@@ -16,7 +16,10 @@ class CoreTransferRepository implements TransferRepository {
   Future<void> acknowledgeWalletTransfer(String uri) => _walletCore.acknowledgeWalletTransfer(uri);
 
   @override
-  Future<WalletInstructionResult> transferWallet(String pin) => _walletCore.transferWallet(pin);
+  Future<WalletInstructionResult> prepareTransferWallet(String pin) => _walletCore.prepareTransferWallet(pin);
+
+  @override
+  Future<void> transferWallet() => _walletCore.transferWallet();
 
   @override
   Future<void> receiveWalletTransfer() => _walletCore.receiveWalletTransfer();
@@ -30,6 +33,7 @@ class CoreTransferRepository implements TransferRepository {
     return switch (result) {
       TransferSessionState.Created => WalletTransferStatus.waitingForScan,
       TransferSessionState.ReadyForTransfer => WalletTransferStatus.waitingForApprovalAndUpload,
+      TransferSessionState.ReadyForTransferConfirmed => WalletTransferStatus.readyForTransferConfirmed,
       TransferSessionState.ReadyForDownload => WalletTransferStatus.readyForDownload,
       TransferSessionState.Success => WalletTransferStatus.success,
       TransferSessionState.Cancelled => WalletTransferStatus.cancelled,

@@ -13,6 +13,7 @@ import '../../../domain/model/transfer/wallet_transfer_status.dart';
 import '../../../domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
+import '../../../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../../../util/cast_util.dart';
 
 part 'wallet_transfer_source_event.dart';
@@ -22,6 +23,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
   final AcknowledgeWalletTransferUseCase _ackWalletTransferUseCase;
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
+  final StartWalletTransferUseCase _startWalletTransferUseCase;
   final AutoLockService _autoLockService;
 
   StreamSubscription? _statusSubscription;
@@ -30,6 +32,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     this._ackWalletTransferUseCase,
     this._getWalletTransferStatusUseCase,
     this._cancelWalletTransferUsecase,
+    this._startWalletTransferUseCase,
     this._autoLockService,
   ) : super(const WalletTransferInitial()) {
     on<WalletTransferAcknowledgeTransferEvent>(_onAcknowledgeTransfer);
@@ -137,6 +140,8 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
           case WalletTransferStatus.waitingForApprovalAndUpload:
           case WalletTransferStatus.readyForDownload:
             break;
+          case WalletTransferStatus.readyForTransferConfirmed:
+            _confirmWalletTransfer();
           case WalletTransferStatus.error:
             final walletTransferFailed = WalletTransferFailed(GenericError('transfer_error', sourceError: status));
             add(WalletTransferUpdateStateEvent(walletTransferFailed));
@@ -149,6 +154,15 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
       onError: (ex) => _handleError(
         tryCast<ApplicationError>(ex) ?? GenericError('transfer_status_stream_error', sourceError: ex),
       ),
+    );
+  }
+
+  Future<void> _confirmWalletTransfer() async {
+    _stopObservingTransferStatus();
+    final result = await _startWalletTransferUseCase.invoke();
+    await result.process(
+      onSuccess: (_) => add(const WalletTransferUpdateStateEvent(WalletTransferSuccess())),
+      onError: _handleError,
     );
   }
 

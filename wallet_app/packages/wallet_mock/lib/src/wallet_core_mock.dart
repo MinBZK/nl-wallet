@@ -319,8 +319,11 @@ class WalletCoreMock implements WalletCoreApi {
       _transferManager.acknowledgeWalletTransfer(uri);
 
   @override
-  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin}) async =>
-      _transferManager.transferWallet(pin);
+  Future<WalletInstructionResult> crateApiFullPrepareTransferWallet({required String pin}) async =>
+      _transferManager.prepareTransferWallet(pin);
+
+  @override
+  Future<void> crateApiFullTransferWallet() => _transferManager.transferWallet();
 
   @override
   Future<void> crateApiFullCancelWalletTransfer() async => _transferManager.cancelWalletTransfer();

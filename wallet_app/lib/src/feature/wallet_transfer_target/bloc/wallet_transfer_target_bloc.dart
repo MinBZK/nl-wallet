@@ -101,6 +101,8 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
             add(WalletTransferUpdateStateEvent(WalletTransferAwaitingQrScan(qrData)));
           case WalletTransferStatus.waitingForApprovalAndUpload:
             add(const WalletTransferUpdateStateEvent(WalletTransferAwaitingConfirmation()));
+          case WalletTransferStatus.readyForTransferConfirmed:
+            break; // source only event
           case WalletTransferStatus.readyForDownload:
             _startReceiving();
           case WalletTransferStatus.error:

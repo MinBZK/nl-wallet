@@ -7,7 +7,9 @@ abstract class TransferRepository {
 
   Future<void> acknowledgeWalletTransfer(String uri);
 
-  Future<WalletInstructionResult> transferWallet(String pin);
+  Future<WalletInstructionResult> prepareTransferWallet(String pin);
+
+  Future<void> transferWallet();
 
   Future<void> receiveWalletTransfer();
 

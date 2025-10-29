@@ -13,6 +13,9 @@ enum WalletTransferStatus {
   /// The wallet data is ready to be downloaded on the target device.
   readyForDownload,
 
+  /// The wallet data is ready to be uploaded on the source device.
+  readyForTransferConfirmed,
+
   /// The transfer has been cancelled by the user on either device.
   cancelled,
 

@@ -14,6 +14,7 @@ void main() {
       MockAcknowledgeWalletTransferUseCase();
   final MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
   final MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
+  final MockStartWalletTransferUseCase mockStartWalletTransferUseCase = MockStartWalletTransferUseCase();
   final mockAutoLockService = MockAutoLockService();
 
   WalletTransferSourceBloc createBloc() {
@@ -21,6 +22,7 @@ void main() {
       mockAcknowledgeWalletTransferUseCase,
       mockGetWalletTransferStatusUseCase,
       mockCancelWalletTransferUseCase,
+      mockStartWalletTransferUseCase,
       mockAutoLockService,
     );
   }
@@ -51,9 +53,7 @@ void main() {
       when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
-          WalletTransferStatus.waitingForApprovalAndUpload,
-          WalletTransferStatus.readyForDownload,
-          WalletTransferStatus.success,
+          WalletTransferStatus.readyForTransferConfirmed,
         ]).delay(const Duration(milliseconds: 10)),
       );
     },
@@ -64,14 +64,58 @@ void main() {
       await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
       // Wait for (mock) stream to emit
-      await Future.delayed(const Duration(milliseconds: 20));
+      await Future.delayed(const Duration(milliseconds: 15));
     },
+    verify: (bloc) => verify(mockStartWalletTransferUseCase.invoke()).called(1),
     expect: () => [
+      // Initial state
       isA<WalletTransferLoading>(),
+      // State once [WalletTransferAcknowledgeTransferEvent] is processed
       isA<WalletTransferIntroduction>(),
+      // State once [WalletTransferAgreeEvent] is processed
       isA<WalletTransferConfirmPin>(),
+      // State once [WalletTransferPinConfirmedEvent] is processed
       isA<WalletTransferTransferring>(),
+      // State after [readyForTransferConfirmed] is processed (which calls StartWalletTransferUseCase)
       isA<WalletTransferSuccess>(),
+    ],
+  );
+
+  blocTest(
+    'verify network error that occurs during transfer',
+    build: createBloc,
+    setUp: () {
+      when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
+        (_) => Stream.fromIterable([
+          WalletTransferStatus.readyForTransferConfirmed,
+        ]).delay(const Duration(milliseconds: 10)),
+      );
+      when(
+        mockStartWalletTransferUseCase.invoke(),
+      ).thenAnswer((_) async => const Result.error(NetworkError(hasInternet: false, sourceError: 'test')));
+    },
+    act: (bloc) async {
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
+      await Future.delayed(Duration.zero);
+      bloc.add(const WalletTransferAgreeEvent());
+      await Future.delayed(Duration.zero);
+      bloc.add(const WalletTransferPinConfirmedEvent());
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 15));
+    },
+    verify: (bloc) => verify(mockStartWalletTransferUseCase.invoke()).called(1),
+    expect: () => [
+      // Initial state
+      isA<WalletTransferLoading>(),
+      // State once [WalletTransferAcknowledgeTransferEvent] is processed
+      isA<WalletTransferIntroduction>(),
+      // State once [WalletTransferAgreeEvent] is processed
+      isA<WalletTransferConfirmPin>(),
+      // State once [WalletTransferPinConfirmedEvent] is processed
+      isA<WalletTransferTransferring>(),
+      // State after [readyForTransferConfirmed] is processed (which calls StartWalletTransferUseCase)
+      isA<WalletTransferNetworkError>(),
     ],
   );
 

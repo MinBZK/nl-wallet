@@ -40,16 +40,26 @@ void main() {
       });
     });
 
-    group('transferWallet', () {
-      test('should call walletCore.transferWallet and return its result', () async {
+    group('prepareTransferWallet', () {
+      test('should call walletCore.prepareTransferWallet and return its result', () async {
         const pin = '1234';
         const expectedResult = WalletInstructionResult_Ok();
-        when(mockWalletCore.transferWallet(pin)).thenAnswer((_) async => expectedResult);
+        when(mockWalletCore.prepareTransferWallet(pin)).thenAnswer((_) async => expectedResult);
 
-        final result = await transferRepository.transferWallet(pin);
+        final result = await transferRepository.prepareTransferWallet(pin);
 
         expect(result, expectedResult);
-        verify(mockWalletCore.transferWallet(pin)).called(1);
+        verify(mockWalletCore.prepareTransferWallet(pin)).called(1);
+      });
+    });
+
+    group('transferWallet', () {
+      test('should call through to walletCore.transferWallet', () async {
+        const expectedResult = WalletInstructionResult_Ok();
+        when(mockWalletCore.transferWallet()).thenAnswer((_) async => expectedResult);
+
+        await transferRepository.transferWallet();
+        verify(mockWalletCore.transferWallet()).called(1);
       });
     });
 

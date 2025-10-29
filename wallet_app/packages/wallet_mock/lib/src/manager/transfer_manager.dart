@@ -20,11 +20,16 @@ class TransferManager {
 
   TransferManager(this._pinManager, this._wallet, this._eventLog);
 
-  Future<WalletInstructionResult> transferWallet(String pin) async {
+  Future<WalletInstructionResult> prepareTransferWallet(String pin) async {
     final result = _pinManager.checkPin(pin);
     final bool pinMatches = result is WalletInstructionResult_Ok;
-    if (pinMatches) _currentState = TransferSessionState.ReadyForTransfer;
+    if (pinMatches) _currentState = TransferSessionState.ReadyForTransferConfirmed;
     return result;
+  }
+
+  Future<void> transferWallet() async {
+    await Future.delayed(const Duration(seconds: 3));
+    _currentState = TransferSessionState.Success;
   }
 
   void acknowledgeWalletTransfer(String uri) {
@@ -51,6 +56,8 @@ class TransferManager {
         _currentState = TransferSessionState.ReadyForDownload;
       case TransferSessionState.ReadyForDownload:
         _currentState = TransferSessionState.Success;
+      case TransferSessionState.ReadyForTransferConfirmed:
+        break; // Awaiting call to prepareWalletTransfer()
       case TransferSessionState.Success:
         // Log successful transfer event
         if (isSourceDevice) {
