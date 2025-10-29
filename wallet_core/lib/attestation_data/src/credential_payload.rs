@@ -805,7 +805,7 @@ mod test {
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "https://aud.example.com",
             expected_nonce: "nonce123",
-            iat_leeway: 5,
+            iat_leeway: Duration::from_secs(5),
             iat_acceptance_window: Duration::from_secs(60),
         };
 

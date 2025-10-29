@@ -696,6 +696,8 @@ where
     ) -> Result<VerifiedSdJwtPresentation<C, H>, DecoderError> {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
         // before parsing the disclosures
+
+        use std::time::Duration;
         let issuer_signed = self
             .sd_jwt
             .issuer_signed
@@ -704,7 +706,7 @@ where
         let kb_verification_options = KbVerificationOptions {
             expected_aud: kb_expected_aud,
             expected_nonce: kb_expected_nonce,
-            iat_leeway: 0,
+            iat_leeway: Duration::ZERO,
             iat_acceptance_window: kb_iat_acceptance_window,
         };
         let key_binding_jwt = self.key_binding_jwt.into_verified(
