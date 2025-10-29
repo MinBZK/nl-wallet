@@ -1137,7 +1137,7 @@ impl Session<WaitingForResponse> {
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .try_into()
-                    .unwrap();
+                    .unwrap(); // ok because copies_per_format has a NonZeroU8 value in AttestationConfig (source)
 
                 let attestation_type = &preview.credential_payload.attestation_type;
                 let config = issuer_data
@@ -1148,7 +1148,6 @@ impl Session<WaitingForResponse> {
                         CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_string())
                     })?;
 
-                // copies_per_format has a NonZeroU8 value in AttestationConfig (source)
                 Ok((preview, config, format_pubkeys))
             })
             .collect::<Result<Vec<_>, CredentialRequestError>>()?;
