@@ -324,14 +324,12 @@ mod tests {
 
     fn mdoc_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
         let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
-        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
         let holder_privkey = SigningKey::random(&mut OsRng);
-        let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload(
+        let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
             payload_preview,
             Utc::now(),
             holder_privkey.verifying_key(),
-            &normalized_metadata,
             Integrity::from(""),
         )
         .unwrap()
@@ -345,7 +343,7 @@ mod tests {
             attestation_id: *ATTESTATION_ID,
             attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestation::MsoMdoc { mdoc },
-            normalized_metadata,
+            normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
         };
 
         let bsn_path = vec![

@@ -923,11 +923,10 @@ fn prepare_example_credential_payload(
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let holder_privkey = wscd.create_random_key();
-    let payload = CredentialPayload::from_previewable_credential_payload(
+    let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
         payload_preview,
         Utc::now(),
         holder_privkey.verifying_key(),
-        &metadata,
         Integrity::from(""),
     )
     .unwrap();

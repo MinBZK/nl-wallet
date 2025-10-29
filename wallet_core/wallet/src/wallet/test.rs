@@ -222,24 +222,19 @@ pub fn create_example_pid_mdoc() -> (Mdoc, NormalizedTypeMetadata) {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let mdoc = mdoc_from_credential_payload(preview_payload, &metadata, &ISSUER_KEY.issuance_key);
+    let mdoc = mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key);
     (mdoc, metadata)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
-pub fn mdoc_from_credential_payload(
-    preview_payload: PreviewableCredentialPayload,
-    metadata: &NormalizedTypeMetadata,
-    issuer_keypair: &KeyPair,
-) -> Mdoc {
+pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayload, issuer_keypair: &KeyPair) -> Mdoc {
     let private_key_id = crypto::utils::random_string(16);
     let holder_privkey = SigningKey::random(&mut OsRng);
 
-    let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload(
+    let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
         preview_payload,
         Utc::now(),
         holder_privkey.verifying_key(),
-        metadata,
         Integrity::from(""),
     )
     .unwrap()

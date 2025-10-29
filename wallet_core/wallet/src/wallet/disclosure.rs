@@ -1025,7 +1025,6 @@ mod tests {
                 StoredAttestation::MsoMdoc {
                     mdoc: mdoc_from_credential_payload(
                         credential_payload.previewable_payload,
-                        &metadata,
                         &ISSUER_KEY.issuance_key,
                     ),
                 },
