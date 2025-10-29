@@ -144,6 +144,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
           case WalletTransferStatus.waitingForScan:
           case WalletTransferStatus.waitingForApprovalAndUpload:
           case WalletTransferStatus.readyForTransferConfirmed:
+            break;
           case WalletTransferStatus.readyForDownload:
             add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
           case WalletTransferStatus.error:
