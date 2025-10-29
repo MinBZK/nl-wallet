@@ -84,7 +84,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::IncorrectNumberOfStatusClaims(_)
-                | CredentialRequestError::StatusClaimService(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::ObtainStatusClaim(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance

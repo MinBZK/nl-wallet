@@ -25,12 +25,12 @@ use status_lists::entity::attestation_batch;
 use status_lists::entity::attestation_type;
 use status_lists::entity::status_list;
 use status_lists::entity::status_list_item;
-use status_lists::postgres::PostgresStatusClaimService;
+use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::StatusListLocation;
 use status_lists::settings::StatusListsSettings;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
-use token_status_list::status_service::StatusClaimService;
+use token_status_list::status_list_service::StatusListService;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::path::prefix_local_path;
 
@@ -52,10 +52,10 @@ async fn create_status_list_service(
     connection: &DatabaseConnection,
     settings: StatusListsSettings,
     attestation_types: usize,
-) -> anyhow::Result<(Vec<String>, PostgresStatusClaimService)> {
+) -> anyhow::Result<(Vec<String>, PostgresStatusListService)> {
     let attestation_types = (0..attestation_types).map(|_| random_string(20)).collect::<Vec<_>>();
 
-    let service = PostgresStatusClaimService::try_new(connection.clone(), settings, &attestation_types).await?;
+    let service = PostgresStatusListService::try_new(connection.clone(), settings, &attestation_types).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
     Ok((attestation_types, service))
@@ -65,8 +65,8 @@ async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     settings: StatusListsSettings,
     attestation_types: &[String],
-) -> anyhow::Result<PostgresStatusClaimService> {
-    let service = PostgresStatusClaimService::try_new(connection.clone(), settings, attestation_types).await?;
+) -> anyhow::Result<PostgresStatusListService> {
+    let service = PostgresStatusListService::try_new(connection.clone(), settings, attestation_types).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
     Ok(service)

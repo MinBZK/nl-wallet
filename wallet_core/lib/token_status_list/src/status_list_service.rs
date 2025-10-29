@@ -9,7 +9,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::status_claim::StatusClaim;
 
 #[trait_variant::make(Send)]
-pub trait StatusClaimService {
+pub trait StatusListService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(
@@ -35,11 +35,11 @@ pub mod mock {
     use super::*;
 
     #[derive(Default)]
-    pub struct MockStatusClaimService {
+    pub struct MockStatusListService {
         index_map: DashMap<String, u32>,
     }
 
-    impl StatusClaimService for MockStatusClaimService {
+    impl StatusListService for MockStatusListService {
         type Error = Infallible;
 
         async fn obtain_status_claims(
