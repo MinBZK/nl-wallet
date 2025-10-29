@@ -85,6 +85,11 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
 
   FutureOr<void> _onPinConfirmed(WalletTransferPinConfirmedEvent event, Emitter<WalletTransferSourceState> emit) async {
     emit(const WalletTransferTransferring());
+    final result = await _startWalletTransferUseCase.invoke();
+    await result.process(
+      onSuccess: (_) => Fimber.d('transferWallet (upload) success'),
+      onError: _handleError,
+    );
   }
 
   FutureOr<void> _onStopRequested(
@@ -138,10 +143,9 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
         switch (status) {
           case WalletTransferStatus.waitingForScan:
           case WalletTransferStatus.waitingForApprovalAndUpload:
-          case WalletTransferStatus.readyForDownload:
-            break;
           case WalletTransferStatus.readyForTransferConfirmed:
-            _confirmWalletTransfer();
+          case WalletTransferStatus.readyForDownload:
+            add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
           case WalletTransferStatus.error:
             final walletTransferFailed = WalletTransferFailed(GenericError('transfer_error', sourceError: status));
             add(WalletTransferUpdateStateEvent(walletTransferFailed));
@@ -154,15 +158,6 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
       onError: (ex) => _handleError(
         tryCast<ApplicationError>(ex) ?? GenericError('transfer_status_stream_error', sourceError: ex),
       ),
-    );
-  }
-
-  Future<void> _confirmWalletTransfer() async {
-    _stopObservingTransferStatus();
-    final result = await _startWalletTransferUseCase.invoke();
-    await result.process(
-      onSuccess: (_) => add(const WalletTransferUpdateStateEvent(WalletTransferSuccess())),
-      onError: _handleError,
     );
   }
 
