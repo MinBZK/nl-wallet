@@ -10,12 +10,19 @@ import 'package:wallet/src/feature/wallet_transfer_source/bloc/wallet_transfer_s
 import '../../../mocks/wallet_mocks.dart';
 
 void main() {
-  final MockAcknowledgeWalletTransferUseCase mockAcknowledgeWalletTransferUseCase =
-      MockAcknowledgeWalletTransferUseCase();
-  final MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
-  final MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
-  final MockStartWalletTransferUseCase mockStartWalletTransferUseCase = MockStartWalletTransferUseCase();
-  final mockAutoLockService = MockAutoLockService();
+  late MockAcknowledgeWalletTransferUseCase mockAcknowledgeWalletTransferUseCase;
+  late MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase;
+  late MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase;
+  late MockStartWalletTransferUseCase mockStartWalletTransferUseCase;
+  late MockAutoLockService mockAutoLockService;
+
+  setUp(() {
+    mockAcknowledgeWalletTransferUseCase = MockAcknowledgeWalletTransferUseCase();
+    mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
+    mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
+    mockStartWalletTransferUseCase = MockStartWalletTransferUseCase();
+    mockAutoLockService = MockAutoLockService();
+  });
 
   WalletTransferSourceBloc createBloc() {
     return WalletTransferSourceBloc(
@@ -54,6 +61,8 @@ void main() {
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
           WalletTransferStatus.readyForTransferConfirmed,
+          WalletTransferStatus.readyForDownload,
+          WalletTransferStatus.success,
         ]).delay(const Duration(milliseconds: 10)),
       );
     },
