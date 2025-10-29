@@ -51,7 +51,7 @@ use crate::jwk::jwk_to_p256;
 /// via `Display` and `FromStr`. To be used to receive a JWT over an untrusted channel.
 ///
 /// - Use [`UnverifiedJwt::parse_and_verify`] to cryptographically verify the signature and parse the header and
-///   payload, yielding a the payload `T` and header `H`. For specific cases like X.509 certificate verification or
+///   payload, yielding a payload `T` and header `H`. For specific cases like X.509 certificate verification or
 ///   JWK-based verification, see the methods [`UnverifiedJwt::<_,
 ///   HeaderWithX5c<_>>::parse_and_verify_against_trust_anchors`] and [`UnverifiedJwt::<_,
 ///   HeaderWithJwk<_>>::parse_and_verify_against_jwk`].
@@ -341,7 +341,7 @@ where
 pub struct SignedJwt<T, H = HeaderWithTyp>(UnverifiedJwt<T, H>);
 
 impl<T, H> SignedJwt<T, H> {
-    /// Internal constructor that takes an already concatendated header and payload and a signature.
+    /// Internal constructor that takes an already concatenated header and payload and a signature.
     fn from_header_payload_and_signature(header_and_payload: String, signature: &Signature) -> Self {
         let payload_end = header_and_payload.len();
         let encoded_signature = BASE64_URL_SAFE_NO_PAD.encode(signature.to_bytes());

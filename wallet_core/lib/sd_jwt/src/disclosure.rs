@@ -160,7 +160,7 @@ pub enum DisclosureContent {
     ArrayElement(
         /// The salt value.
         String,
-        /// The array value which can be a an array hash, or a claim value.
+        /// The array value which can be an array hash, or a claim value.
         ArrayClaim,
     ),
 }
