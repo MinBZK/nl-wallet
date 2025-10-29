@@ -1171,7 +1171,6 @@ strings in the `private_key` field.</p>
 
 #### Configuring the status list settings (optional)
 
-
 The issuance_server maintains binary format token status lists which are used
 for revocation and validity checking. We'll set the defaults here:
 
@@ -1298,10 +1297,16 @@ EOF
 
 Next to the previously done `[status_lists]` settings, which control how big and
 when status lists are created, an `attestation_settings` associated
-`status_list` block configures the `base_url`, which is added to the attestation
-as a location for the Status List Claim.
+`status_list` block.
 
-This needs to be publicly reachable by the NL Wallet app and the verifiers.
+This block configures the `base_url`, which is added to the attestation as a
+location for the Status List Claim. This url needs to be publicly reachable
+by the NL Wallet app and the verifiers.
+
+Next to the `base_url` a `publish_dir` needs to be configured where the status
+lists need to be published. This can be served via either a separate static
+file server or via the issuance server.
+
 Additionally, the `private_key` settings are used to sign the Status Token List,
 which the wallet and the `verification_server` validate when interacting with
 Status Token Lists. The service pointed to by `base_url` needs to be publicly
@@ -1316,6 +1321,7 @@ cat <<EOF > "$TARGET_DIR/parts/17-attestation-status-list.toml"
 
 [attestation_settings.insurance.status_list]
 base_url = "https://cdn.example.com/tsl"
+publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "$(< "${TARGET_DIR}/tsl.${IDENTIFIER}.key.der" $BASE64)"
 certificate = "$(< "${TARGET_DIR}/tsl.${IDENTIFIER}.crt.der" $BASE64)"

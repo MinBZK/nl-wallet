@@ -61,6 +61,7 @@ async fn create_status_list_service(
         base_url: format!("https://example.com/tsl/{}", attestation_type)
             .as_str()
             .parse()?,
+        publish_dir: std::env::temp_dir(),
     };
     let service = PostgresStatusListService::try_new(connection.clone(), &attestation_type, config.clone()).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
@@ -203,6 +204,7 @@ async fn test_service_initializes_multiple_status_lists() {
                 list_size: NonZeroU31::try_new(4).unwrap(),
                 create_threshold: NonZeroU31::try_new(1).unwrap(),
                 base_url: "https://example.com/tsl".parse().unwrap(),
+                publish_dir: std::env::temp_dir(),
             };
             (attestation_type, config)
         })

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::Deserialize;
 use url::Url;
 
@@ -19,6 +21,9 @@ pub struct StatusListsSettings {
 pub struct StatusListAttestationSettings {
     /// Base url for the status list
     pub base_url: BaseUrl,
+
+    /// Path to directory for the published status list
+    pub publish_dir: PathBuf,
 
     /// Key pair to sign status list
     #[serde(flatten)]

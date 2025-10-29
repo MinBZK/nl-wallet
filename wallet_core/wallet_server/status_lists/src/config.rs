@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use derive_more::AsRef;
 use derive_more::From;
@@ -16,6 +17,7 @@ pub struct StatusListConfig {
     pub create_threshold: NonZeroU31,
 
     pub base_url: BaseUrl,
+    pub publish_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, From, IntoIterator, AsRef)]
@@ -33,6 +35,7 @@ impl StatusListConfig {
             list_size: settings.list_size,
             create_threshold: settings.create_threshold,
             base_url: attestation.base_url.clone(),
+            publish_dir: attestation.publish_dir.clone(),
         }
     }
 }

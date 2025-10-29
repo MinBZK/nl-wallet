@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::path::Path;
+use std::path::PathBuf;
 
 use chrono::DateTime;
 use derive_more::From;
@@ -40,6 +42,7 @@ use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::ints::NonZeroU31;
+use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::config::StatusListConfig;
@@ -85,7 +88,9 @@ pub struct PostgresStatusListService {
 
     list_size: NonZeroU31,
     create_threshold: NonZeroU31,
+
     base_url: BaseUrl,
+    _publish_dir: PathBuf,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -98,6 +103,12 @@ pub enum StatusListServiceError {
 
     #[error("could not randomize indices: {0}")]
     Indices(#[from] JoinError),
+
+    #[error("invalid publish dir: {0}")]
+    InvalidPublishDir(PathBuf),
+
+    #[error("io error for `{0}`: {1}")]
+    IO(PathBuf, #[source] std::io::Error),
 
     #[error("could not serialize / deserialize: {0}")]
     Serde(#[from] serde_json::Error),
@@ -152,9 +163,17 @@ impl PostgresStatusListServices {
         configs: StatusListConfigs,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
+        let publish_dirs = try_join_all(
+            configs
+                .as_ref()
+                .values()
+                .map(|config| check_publish_dir(config.publish_dir.as_path())),
+        )
+        .await?;
         let services = configs
             .into_iter()
-            .map(|(attestation_type, config)| {
+            .zip(publish_dirs.into_iter())
+            .map(|((attestation_type, config), publish_dir)| {
                 let attestation_type_id = *attestation_type_ids
                     .get(&attestation_type)
                     .expect("attestation_type_ids should have entry for initialized types");
@@ -164,13 +183,13 @@ impl PostgresStatusListServices {
                     list_size: config.list_size,
                     create_threshold: config.create_threshold,
                     base_url: config.base_url,
+                    _publish_dir: publish_dir,
                 };
                 (attestation_type, service)
             })
             .collect();
         Ok(PostgresStatusListServices(services))
     }
-
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
@@ -196,6 +215,7 @@ impl PostgresStatusListService {
             list_size: config.list_size,
             create_threshold: config.create_threshold,
             base_url: config.base_url,
+            _publish_dir: check_publish_dir(&config.publish_dir).await?,
         })
     }
 
@@ -622,6 +642,17 @@ async fn fetch_attestation_type_ids(
         })
 }
 
+async fn check_publish_dir(publish_dir: &Path) -> Result<PathBuf, StatusListServiceError> {
+    let publish_path = prefix_local_path(publish_dir);
+    let metadata = tokio::fs::metadata(&publish_path)
+        .await
+        .map_err(|err| StatusListServiceError::IO(publish_dir.to_path_buf(), err))?;
+    if !metadata.is_dir() {
+        return Err(StatusListServiceError::InvalidPublishDir(publish_dir.to_path_buf()));
+    }
+    Ok(publish_path.into_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -635,6 +666,7 @@ mod tests {
             list_size: 1.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
             base_url: "https://example.com/tsl".parse().unwrap(),
+            _publish_dir: std::env::temp_dir(),
         }
     }
 
