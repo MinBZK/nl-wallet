@@ -692,11 +692,16 @@ mod test {
 
     use super::*;
 
-    #[tokio::test]
-    async fn it_works() {
+    fn setup_into_signed() -> (
+        PreviewableCredentialPayload,
+        CredentialPayload,
+        NormalizedTypeMetadata,
+        Integrity,
+        Ca,
+        KeyPair,
+    ) {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_pid_issuer_mock().unwrap();
-        let trust_anchors = &[ca.to_trust_anchor()];
 
         let payload_preview = PreviewableCredentialPayload::example_with_attributes(
             PID_ATTESTATION_TYPE,
@@ -709,26 +714,41 @@ mod test {
 
         // Note that this resource integrity does not match any metadata source document.
         let metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
+            PID_ATTESTATION_TYPE,
+            &[
+                ("first_name", JsonSchemaPropertyType::String, None),
+                ("family_name", JsonSchemaPropertyType::String, None),
+            ],
+        ));
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             payload_preview.clone(),
             Utc::now(),
             SigningKey::random(&mut OsRng).verifying_key(),
-            &NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
-                PID_ATTESTATION_TYPE,
-                &[
-                    ("first_name", JsonSchemaPropertyType::String, None),
-                    ("family_name", JsonSchemaPropertyType::String, None),
-                ],
-            )),
+            &metadata,
             metadata_integrity.clone(),
         )
         .unwrap();
+
+        (
+            payload_preview,
+            credential_payload,
+            metadata,
+            metadata_integrity,
+            ca,
+            issuance_key,
+        )
+    }
+
+    #[tokio::test]
+    async fn test_into_signed_mdoc() {
+        let (payload_preview, credential_payload, _, metadata_integrity, ca, issuance_key) = setup_into_signed();
 
         let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
 
         // The IssuerSigned should be valid
         issuer_signed
-            .verify(ValidityRequirement::Valid, &TimeGenerator, trust_anchors)
+            .verify(ValidityRequirement::Valid, &TimeGenerator, &[ca.to_trust_anchor()])
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -748,6 +768,32 @@ mod test {
             (&cose_payload.validity_info.valid_until).try_into().unwrap(),
         );
         assert_eq!(cose_payload.type_metadata_integrity, Some(metadata_integrity));
+    }
+
+    #[tokio::test]
+    async fn test_into_signed_sd_jwt() {
+        let (payload_preview, credential_payload, metadata, metadata_integrity, ca, issuance_key) = setup_into_signed();
+
+        let signed_sd_jwt = credential_payload
+            .into_signed_sd_jwt(&metadata, &issuance_key)
+            .await
+            .unwrap();
+
+        let unverified_sd_jwt = signed_sd_jwt.into_unverified();
+
+        // The IssuerSigned should be valid
+        let verified_sd_jwt = unverified_sd_jwt
+            .into_verified_against_trust_anchors(&[ca.to_trust_anchor()], &TimeGenerator)
+            .expect("the IssuerSigned sent in the preview should be valid");
+
+        // The issuer certificate generated above should be included in the IssuerAuth
+        assert_eq!(verified_sd_jwt.issuer_certificate(), issuance_key.certificate());
+
+        let claims = verified_sd_jwt.claims();
+        assert_eq!(claims.vct, payload_preview.attestation_type);
+        assert_eq!(claims.nbf, payload_preview.not_before);
+        assert_eq!(claims.exp, payload_preview.expires);
+        assert_eq!(claims.vct_integrity, Some(metadata_integrity));
     }
 
     #[test]
@@ -774,7 +820,7 @@ mod test {
     }
 
     #[test]
-    fn test_from_mdoc_parts_invalid() {
+    fn test_from_mdoc_invalid() {
         let mdoc = Mdoc::new_mock().now_or_never().unwrap();
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
             "urn:eudi:pid:nl:1",
