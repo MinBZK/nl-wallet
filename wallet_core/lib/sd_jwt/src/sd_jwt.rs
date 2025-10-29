@@ -83,8 +83,10 @@ impl SdJwtClaims for SdJwtVcClaims {
     }
 }
 
-/// An SD-JWT that has been split into parts but not verified yet. There's no need to keep the SD-JWT as serialized form
-/// as there is no KB-JWT. Formats as `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
+/// An SD-JWT that has been split into parts but not verified yet.
+///
+/// There's no need to keep the SD-JWT as serialized form as there is no KB-JWT. Formats as `<Issuer-signed
+/// JWT>~<Disclosure>~...~<Disclosure>~`.
 ///
 /// Use [`UnverifiedSdJwt::into_verified_against_trust_anchors`] to validate the SD-JWT against provided trust
 /// anchors.
@@ -242,9 +244,10 @@ impl From<VerifiedSdJwt> for UnverifiedSdJwt {
     }
 }
 
-/// SD-JWT VC claims type used by the builder and verifier. Holds VC metadata (`vct`, `iss`), validity information
-/// (`iat` and optionally `exp` and `nbf`), the holder binding (`cnf`), and the selectively-disclosable claims tree in
-/// `claims`.
+/// SD-JWT VC claims type used by the builder and verifier.
+///
+/// Holds VC metadata (`vct`, `iss`), validity information (`iat` and optionally `exp` and `nbf`), the holder binding
+/// (`cnf`), and the selectively-disclosable claims tree in `claims`.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#name-issuer-signed-jwt>
 #[skip_serializing_none]
@@ -289,8 +292,10 @@ impl SdJwtVcClaims {
     }
 }
 
-/// Verified SD-JWT consisting of a verified issuer-signed JWT and verified disclosures,
-/// referenced by their digest values. Formats as `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
+/// Verified SD-JWT consisting of a verified issuer-signed JWT and verified disclosures, referenced by their digest
+/// values.
+///
+/// Formats as `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
 #[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay)]
 pub struct VerifiedSdJwt<C = SdJwtVcClaims, H = HeaderWithX5c> {
     issuer_signed: VerifiedJwt<C, H>,
@@ -417,8 +422,9 @@ impl UnsignedSdJwtPresentation {
     }
 }
 
-/// Parsed but not yet verified SD-JWT Presentation consisting of an SD-JWT and a Key Binding JWT (KB-JWT). Formats as
-/// `<SD-JWT>~<KB-JWT>`.
+/// Parsed but not yet verified SD-JWT Presentation consisting of an SD-JWT and a Key Binding JWT (KB-JWT).
+///
+/// Formats as `<SD-JWT>~<KB-JWT>`.
 #[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay, DeserializeFromStr)]
 pub struct UnverifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
     sd_jwt: UnverifiedSdJwt<C, H>,
@@ -450,7 +456,9 @@ impl<C, H> Display for UnverifiedSdJwtPresentation<C, H> {
 
 impl UnverifiedSdJwtPresentation {
     /// Parses an SD-JWT into its components as [`VerifiedSdJwtPresentation`] while verifying against a set of trust
-    /// anchors. Verifies the presentation by:
+    /// anchors.
+    ///
+    /// Verifies the presentation by:
     /// 1) validating the issuer-signed JWT against `trust_anchors`,
     /// 2) validating the KB-JWT against the public key from the `cnf` claim in the verified issuer-signed JWT,
     /// 3) parsing/verifying disclosures.
@@ -518,10 +526,11 @@ impl<C> VerifiedSdJwtPresentation<C, HeaderWithX5c> {
     }
 }
 
-#[derive(Clone)]
-/// Builder to construct an SD-JWT presentation by selecting which claims to disclose. Call
-/// [`SdJwtPresentationBuilder::disclose`] for each path, then [`SdJwtPresentationBuilder::finish`] to get an
+/// Builder to construct an SD-JWT presentation by selecting which claims to disclose.
+///
+/// Call [`SdJwtPresentationBuilder::disclose`] for each path, then [`SdJwtPresentationBuilder::finish`] to get an
 /// [`UnsignedSdJwtPresentation`].
+#[derive(Clone)]
 pub struct SdJwtPresentationBuilder {
     sd_jwt: VerifiedSdJwt,
 
@@ -720,13 +729,13 @@ where
 mod examples {
     use std::time::Duration;
 
-    use attestation_types::qualification::AttestationQualification;
     use chrono::DateTime;
     use chrono::Utc;
     use p256::ecdsa::VerifyingKey;
     use serde_json::Value;
     use serde_json::json;
 
+    use attestation_types::qualification::AttestationQualification;
     use jwt::jwk::jwk_from_p256;
     use utils::generator::Generator;
 

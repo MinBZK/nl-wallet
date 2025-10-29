@@ -4,8 +4,9 @@ use crypto::utils::sha256;
 
 use crate::sd_alg::SdAlg;
 
-/// Hashing interface used by the SD-JWT encoder/decoder to compute disclosure digests. Currently only `sha-256` is
-/// supported.
+/// Hashing interface used by the SD-JWT encoder/decoder to compute disclosure digests.
+///
+/// Currently only `sha-256` is supported.
 pub trait Hasher {
     /// Digests input to produce unique fixed-size hash value in bytes.
     fn digest(&self, input: &[u8]) -> Vec<u8>;

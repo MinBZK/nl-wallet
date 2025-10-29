@@ -28,8 +28,9 @@ impl JwtTyp for SdJwtVcClaims {
     const TYP: &'static str = SD_JWT_HEADER_TYP;
 }
 
-/// A freshly issued SD-JWT consisting of an issuer-signed JWT (with `x5c`) and its disclosures. Formats as
-/// `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
+/// A freshly issued SD-JWT consisting of an issuer-signed JWT (with `x5c`) and its disclosures.
+///
+/// Formats as `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
 #[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay)]
 pub struct SignedSdJwt {
     issuer_signed: SignedJwt<SdJwtVcClaims, HeaderWithX5c>,
@@ -48,14 +49,16 @@ impl Display for SignedSdJwt {
 }
 
 impl SignedSdJwt {
-    /// Converts signed SD-JWT into its unverified form. This is used to be able to serialize and deserialize a wrapper
-    /// type with the same content.
+    /// Converts signed SD-JWT into its unverified form.
+    ///
+    /// This is used to be able to serialize and deserialize a wrapper type with the same content.
     pub fn into_unverified(self) -> UnverifiedSdJwt {
         self.into()
     }
 
-    /// Converts signed SD-JWT into a verified SD-JWT without an additional verification step. This is safe because the
-    /// value was just signed.
+    /// Converts signed SD-JWT into a verified SD-JWT without an additional verification step.
+    ///
+    /// This is safe because the value was just signed.
     pub fn into_verified(self) -> VerifiedSdJwt {
         self.into()
     }

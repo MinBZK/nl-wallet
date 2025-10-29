@@ -77,7 +77,7 @@ impl TryFrom<Header> for HeaderWithTyp {
     }
 }
 
-/// Header with a required JWK. Used to make verification self-contained.
+/// Header with a required JWK, used to make verification self-contained.
 ///
 /// See `UnverifiedJwt<_, HeaderWithJwk<_>>::parse_and_verify_with_jwk` for verification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -137,9 +137,10 @@ where
     }
 }
 
-/// Header with a required X.509 certificate chain (`x5c`). The chain can be validated against trust anchors, and the
-/// leaf certificate's public key is used to verify the JWS signature. The `x5c` field is serialized as base64-encoded
-/// DER certificates.
+/// Header with a required X.509 certificate chain (`x5c`).
+///
+/// The chain can be validated against trust anchors, and the leaf certificate's public key is used to verify the JWS
+/// signature. The `x5c` field is serialized as base64-encoded DER certificates.
 ///
 /// See `UnverifiedJwt::parse_and_verify_against_trust_anchors` for verification.
 #[serde_as]

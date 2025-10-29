@@ -49,6 +49,7 @@ use crate::error::ClaimError;
 use crate::error::DecoderError;
 
 /// A disclosable value.
+///
 /// Both object properties and array elements disclosures are supported.
 ///
 /// See: <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures>

@@ -47,8 +47,10 @@ use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
 use crate::jwk::jwk_to_p256;
 
-/// A JWT/JWS in its unverified state, generic over payload `T` and header `H`. Implements `Serialize` and `Deserialize`
-/// via `Display` and `FromStr`. To be used to receive a JWT over an untrusted channel.
+/// A JWT/JWS in its unverified state, generic over payload `T` and header `H`.
+///
+/// Implements `Serialize` and `Deserialize` via `Display` and `FromStr`. To be used to receive a JWT over an untrusted
+/// channel.
 ///
 /// - Use [`UnverifiedJwt::parse_and_verify`] to cryptographically verify the signature and parse the header and
 ///   payload, yielding a payload `T` and header `H`. For specific cases like X.509 certificate verification or
@@ -277,8 +279,9 @@ where
         self.parse_and_verify(&(&pubkey).into(), validation_options)
     }
 
-    /// Verify the JWT against an expected JWK in the header. This can, for example, be used to pin a specific key to an
-    /// earlier session.
+    /// Verify the JWT against an expected JWK in the header.
+    ///
+    /// This can, for example, be used to pin a specific key to an earlier session.
     pub fn parse_and_verify_with_expected_jwk(
         &self,
         expected_verifying_key: &VerifyingKey,
@@ -299,8 +302,10 @@ where
     }
 }
 
-/// A freshly signed JWT. Implemented as a wrapper over `UnverifiedJwt<T, H>`. Implements `Serialize` (via `Display`),
-/// but not `Deserialize` as that would be unsafe.
+/// A freshly signed JWT.
+///
+/// Implemented as a wrapper over `UnverifiedJwt<T, H>`. Implements `Serialize` (via `Display`), but not `Deserialize`
+/// as that would be unsafe.
 ///
 /// - Use helpers [`SignedJwt::sign`], [`SignedJwt::sign_with_certificate`], and [`SignedJwt::sign_with_jwk`] to produce
 ///   a `SignedJwt`.

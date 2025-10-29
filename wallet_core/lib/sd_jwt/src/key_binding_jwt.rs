@@ -67,6 +67,7 @@ pub type SignedKeyBindingJwt = SignedJwt<KeyBindingJwtClaims>;
 
 impl UnverifiedKeyBindingJwt {
     /// Verifies the KB-JWT by checking the signature using the provided public key and validation options.
+    ///
     /// Additionally;
     /// - enforces expected `aud`
     /// - verifies expected `nonce`
@@ -221,8 +222,10 @@ pub struct KeyBindingJwtClaims {
     pub sd_hash: String,
 }
 
-/// Proof of possession of a given key. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more details.
-/// Currently, only Jwk is supported.
+/// Proof of possession of a given key.
+///
+/// Currently, only Jwk is supported. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more
+/// details.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum RequiredKeyBinding {
