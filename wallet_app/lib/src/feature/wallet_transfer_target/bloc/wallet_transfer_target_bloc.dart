@@ -102,7 +102,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
           case WalletTransferStatus.waitingForApprovalAndUpload:
             add(const WalletTransferUpdateStateEvent(WalletTransferAwaitingConfirmation()));
           case WalletTransferStatus.readyForTransferConfirmed:
-            break; // source only event
+            add(const WalletTransferUpdateStateEvent(WalletTransferTransferring(isReceiving: false)));
           case WalletTransferStatus.readyForDownload:
             _startReceiving();
           case WalletTransferStatus.error:
@@ -162,14 +162,14 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
   }
 
   Future<void> _startReceiving() async {
-    final isTransferring = state is WalletTransferTransferring;
-    assert(!isTransferring, 'Wallet already in transferring state, should never attempt to receive twice!');
-    if (isTransferring) return;
+    final isReceiving = tryCast<WalletTransferTransferring>(state)?.isReceiving ?? false;
+    assert(!isReceiving, 'Wallet already in transferring state, should never attempt to receive twice!');
+    if (isReceiving) return;
 
     // Stop polling for transfer status
     await _statusSubscription?.cancel();
-    // Move to WalletTransferTransferring state
-    add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
+    // Move to to isReceiving state
+    add(const WalletTransferUpdateStateEvent(WalletTransferTransferring(isReceiving: true)));
     // Start receiving and emit result
     final result = await _receiveWalletTransferUseCase.invoke();
     await result.process(
