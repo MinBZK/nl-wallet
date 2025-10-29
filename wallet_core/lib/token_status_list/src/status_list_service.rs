@@ -2,7 +2,6 @@ use std::num::NonZeroUsize;
 
 use uuid::Uuid;
 
-use http_utils::urls::BaseUrl;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -16,7 +15,6 @@ pub trait StatusListService {
         &self,
         attestation_type: &str,
         batch_id: Uuid,
-        base_url: BaseUrl,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
@@ -34,9 +32,18 @@ pub mod mock {
 
     use super::*;
 
-    #[derive(Default)]
     pub struct MockStatusListService {
+        base_url: BaseUrl,
         index_map: DashMap<String, u32>,
+    }
+
+    impl Default for MockStatusListService {
+        fn default() -> Self {
+            Self {
+                base_url: "https://example.com".parse().unwrap(),
+                index_map: Default::default(),
+            }
+        }
     }
 
     impl StatusListService for MockStatusListService {
@@ -46,12 +53,11 @@ pub mod mock {
             &self,
             attestation_type: &str,
             _batch_id: Uuid,
-            base_url: BaseUrl,
             _expires: Option<DateTimeSeconds>,
             copies: NonZeroUsize,
         ) -> Result<VecNonEmpty<StatusClaim>, Self::Error> {
             let copies = copies.get() as u32;
-            let url = base_url.join(attestation_type.replace(':', "-").as_str());
+            let url = self.base_url.join(attestation_type.replace(':', "-").as_str());
             let mut entry = self.index_map.entry(attestation_type.to_string()).or_insert(0);
             let start = *entry + 1;
             *entry += copies;

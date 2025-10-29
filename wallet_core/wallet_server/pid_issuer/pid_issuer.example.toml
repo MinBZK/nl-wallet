@@ -13,7 +13,6 @@ metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 
 [status_lists]
-base_url = "https://cdn.example.com/tsl"
 list_size = 100_000
 create_threshold = 1000
 
