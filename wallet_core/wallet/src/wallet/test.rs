@@ -218,11 +218,12 @@ pub fn verified_sd_jwt_from_credential_payload(
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
-pub fn create_example_pid_mdoc() -> Mdoc {
+pub fn create_example_pid_mdoc() -> (Mdoc, NormalizedTypeMetadata) {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    mdoc_from_credential_payload(preview_payload, &metadata, &ISSUER_KEY.issuance_key)
+    let mdoc = mdoc_from_credential_payload(preview_payload, &metadata, &ISSUER_KEY.issuance_key);
+    (mdoc, metadata)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.

@@ -722,7 +722,6 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -1040,13 +1039,12 @@ mod tests {
             .expect_fetch_unique_attestations_by_type()
             .times(1)
             .returning(|_, _| {
+                let (mdoc, metadata) = create_example_pid_mdoc();
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
-                    StoredAttestation::MsoMdoc {
-                        mdoc: create_example_pid_mdoc(),
-                    },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    StoredAttestation::MsoMdoc { mdoc },
+                    metadata,
                 )])
             });
 
