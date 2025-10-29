@@ -79,6 +79,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
             error: match err {
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | CredentialRequestError::MissingAttestationTypeConfiguration(_)
+                | CredentialRequestError::PreviewConversion(_)
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::CredentialSigning(_)

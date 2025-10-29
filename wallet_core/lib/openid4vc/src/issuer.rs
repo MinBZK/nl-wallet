@@ -25,6 +25,7 @@ use uuid::Uuid;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::CredentialPayloadError;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
@@ -180,6 +181,9 @@ pub enum CredentialRequestError {
 
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
+
+    #[error("error converting PreviewableCredentialPayload to CredentialPayload: {0}")]
+    PreviewConversion(#[from] CredentialPayloadError),
 
     #[error("error converting CredentialPayload to Mdoc: {0}")]
     MdocConversion(#[from] MdocCredentialPayloadError),

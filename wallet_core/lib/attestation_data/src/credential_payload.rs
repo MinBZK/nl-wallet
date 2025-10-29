@@ -193,10 +193,29 @@ impl PreviewableCredentialPayload {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum SdJwtCredentialPayloadError {
+pub enum CredentialPayloadError {
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    #[category(pd)]
+    JwkConversion(#[from] JwkConversionError),
+
     #[error("error converting to / from JSON: {0}")]
     #[category(pd)]
     JsonConversion(#[from] serde_json::Error),
+
+    #[error("metadata validation error: {0}")]
+    #[category(pd)]
+    MetadataValidation(#[from] TypeMetadataValidationError),
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum SdJwtCredentialPayloadError {
+    #[error("error converting SD-JWT to PreviewableCredentialPayload")]
+    #[category(critical)]
+    PreviewableCredentialPayload(#[from] SdJwtPreviewableCredentialPayloadError),
+
+    #[error("error converting SD-JWT to CredentialPaylad")]
+    #[category(defer)]
+    CredentialPayload(#[from] CredentialPayloadError),
 
     #[error("metadata validation error: {0}")]
     #[category(pd)]
@@ -217,25 +236,17 @@ pub enum SdJwtCredentialPayloadError {
     #[error("error converting claim path to JSON path: {0}")]
     #[category(pd)]
     ClaimPathConversion(#[source] TypeMetadataError),
-
-    #[error("error converting holder VerifyingKey to JWK: {0}")]
-    #[category(pd)]
-    JwkConversion(#[from] JwkConversionError),
-
-    #[error("error converting to PreviewableCredentialPayload")]
-    #[category(critical)]
-    PreviewableCredentialPayload(#[from] SdJwtPreviewableCredentialPayloadError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum MdocCredentialPayloadError {
-    #[error("error converting to / from JSON: {0}")]
-    #[category(pd)]
-    JsonConversion(#[from] serde_json::Error),
+    #[error("error converting mdoc to PreviewableCredentialPayload")]
+    #[category(defer)]
+    PreviewableCredentialPayload(#[from] MdocPreviewableCredentialPayloadError),
 
-    #[error("metadata validation error: {0}")]
-    #[category(pd)]
-    MetadataValidation(#[from] TypeMetadataValidationError),
+    #[error("error converting mdoc to CredentialPaylad")]
+    #[category(defer)]
+    CredentialPayload(#[from] CredentialPayloadError),
 
     #[error("missing validity information: {0}")]
     #[category(critical)]
@@ -249,10 +260,6 @@ pub enum MdocCredentialPayloadError {
     #[category(critical)]
     MissingMetadataIntegrity,
 
-    #[error("error converting holder VerifyingKey to JWK: {0}")]
-    #[category(pd)]
-    JwkConversion(#[from] JwkConversionError),
-
     #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
     #[category(pd)]
     CoseKeyConversion(#[from] CryptoError),
@@ -264,10 +271,6 @@ pub enum MdocCredentialPayloadError {
     #[error("error signing mdoc: {0}")]
     #[category(pd)]
     SigningError(#[from] CoseError),
-
-    #[error("error converting to PreviewableCredentialPayload")]
-    #[category(critical)]
-    PreviewableCredentialPayload(#[from] MdocPreviewableCredentialPayloadError),
 }
 
 impl CredentialPayload {
@@ -277,7 +280,7 @@ impl CredentialPayload {
         holder_pubkey: &VerifyingKey,
         metadata: &NormalizedTypeMetadata,
         metadata_integrity: Integrity,
-    ) -> Result<Self, SdJwtCredentialPayloadError> {
+    ) -> Result<Self, CredentialPayloadError> {
         let payload = CredentialPayload {
             issued_at: issued_at.into(),
             confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
@@ -307,14 +310,18 @@ impl CredentialPayload {
             previewable_payload,
         };
 
-        metadata.validate(&serde_json::to_value(&payload)?)?;
+        metadata
+            .validate(&serde_json::to_value(&payload).map_err(CredentialPayloadError::JsonConversion)?)
+            .map_err(CredentialPayloadError::MetadataValidation)?;
         Ok(payload)
     }
 
     pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, MdocCredentialPayloadError> {
         let (previewable_payload, issued_at, device_key_info, type_metadata_integrity) = split_mdoc(mdoc, metadata)?;
 
-        let confirmation_key = jwk_from_p256(&VerifyingKey::try_from(device_key_info)?).map(RequiredKeyBinding::Jwk)?;
+        let confirmation_key = jwk_from_p256(&VerifyingKey::try_from(device_key_info)?)
+            .map(RequiredKeyBinding::Jwk)
+            .map_err(CredentialPayloadError::JwkConversion)?;
         let payload = CredentialPayload {
             issued_at,
             confirmation_key,
@@ -323,7 +330,9 @@ impl CredentialPayload {
             previewable_payload,
         };
 
-        metadata.validate(&serde_json::to_value(&payload)?)?;
+        metadata
+            .validate(&serde_json::to_value(&payload).map_err(CredentialPayloadError::JsonConversion)?)
+            .map_err(CredentialPayloadError::MetadataValidation)?;
         Ok(payload)
     }
 
@@ -390,7 +399,11 @@ impl CredentialPayload {
             IssuerNameSpaces::try_from(attributes).map_err(MdocCredentialPayloadError::MissingOrEmptyNamespace)?;
 
         let doc_type = self.previewable_payload.attestation_type;
-        let cose_pubkey: CoseKey = (&self.confirmation_key.verifying_key()?).try_into()?;
+        let cose_pubkey: CoseKey = (&self
+            .confirmation_key
+            .verifying_key()
+            .map_err(CredentialPayloadError::JwkConversion)?)
+            .try_into()?;
 
         let mso = MobileSecurityObject {
             version: MobileSecurityObjectVersion::V1_0,
@@ -521,7 +534,7 @@ mod examples {
             issued_at: DateTime<Utc>,
             holder_pubkey: &VerifyingKey,
             metadata_integrity: Integrity,
-        ) -> Result<Self, SdJwtCredentialPayloadError> {
+        ) -> Result<Self, JwkConversionError> {
             let payload = CredentialPayload {
                 issued_at: issued_at.into(),
                 confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
@@ -847,7 +860,10 @@ mod test {
         let error =
             CredentialPayload::from_mdoc(mdoc, &metadata).expect_err("wrong family_name type should fail validation");
 
-        assert_matches!(error, MdocCredentialPayloadError::MetadataValidation(_));
+        assert_matches!(
+            error,
+            MdocCredentialPayloadError::CredentialPayload(CredentialPayloadError::MetadataValidation(_))
+        );
     }
 
     #[test]
@@ -950,7 +966,7 @@ mod test {
         )
         .expect_err("wrong family_name type should fail validation");
 
-        assert_matches!(error, SdJwtCredentialPayloadError::MetadataValidation(_));
+        assert_matches!(error, CredentialPayloadError::MetadataValidation(_));
     }
 
     #[test]
