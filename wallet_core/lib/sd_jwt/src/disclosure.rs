@@ -6,8 +6,8 @@
 //!
 //! The serialized form is the Base64URL (no padding) encoding of a JSON array defined by the SD-JWT spec. This module
 //! exposes:
-//! - `Disclosure`: holds the encoded representation and the parsed `DisclosureContent`.
-//! - `DisclosureContent`: the enum describing either object properties or array elements.
+//! - [`Disclosure`]: holds the encoded representation and the parsed `DisclosureContent`.
+//! - [`DisclosureContent`]: the enum describing either object properties or array elements.
 //!
 //! Examples:
 //! - Parse a disclosure and inspect its type:
@@ -51,7 +51,7 @@ use crate::error::DecoderError;
 /// A disclosable value.
 /// Both object properties and array elements disclosures are supported.
 ///
-/// See: https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures
+/// See: <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures>
 #[derive(Debug, Clone, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct Disclosure {
     /// Indicates whether this disclosure is an object property or array element.
@@ -214,7 +214,7 @@ mod test {
     use super::DisclosureContent;
 
     // Test values from:
-    // https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7
+    // <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7>
     #[test]
     fn test_parsing_value() {
         let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(

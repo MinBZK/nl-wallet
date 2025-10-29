@@ -52,9 +52,8 @@ use crate::jwk::jwk_to_p256;
 ///
 /// - Use [`UnverifiedJwt::parse_and_verify`] to cryptographically verify the signature and parse the header and
 ///   payload, yielding a payload `T` and header `H`. For specific cases like X.509 certificate verification or
-///   JWK-based verification, see the methods [`UnverifiedJwt::<_,
-///   HeaderWithX5c<_>>::parse_and_verify_against_trust_anchors`] and [`UnverifiedJwt::<_,
-///   HeaderWithJwk<_>>::parse_and_verify_against_jwk`].
+///   JWK-based verification, see the methods [`UnverifiedJwt::parse_and_verify_against_trust_anchors`] and
+///   [`UnverifiedJwt::parse_and_verify_against_jwk`].
 /// - Use [`UnverifiedJwt::into_verified`] to verify the signature and parse the JWT and obtain a [`VerifiedJwt<T, H>`].
 /// - Use [`UnverifiedJwt::dangerous_parse_unverified`] only when reading from a trusted source (e.g., a database or
 ///   config) where signature verification has already been performed earlier.
@@ -385,7 +384,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
 
 impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithX5c> {
     /// Sign a payload into a JWT, and put the certificate of the provided keypair in the `x5c` field in the header. The
-    /// resulting JWT can be verified using [`UnverifiedJwt::verify_against_trust_anchors()`].
+    /// resulting JWT can be verified using [`UnverifiedJwt::parse_and_verify_against_trust_anchors`].
     pub async fn sign_with_certificate<K: EcdsaKey>(
         payload: &T,
         keypair: &KeyPair<K>,
@@ -400,7 +399,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithX5c> {
 
 impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithJwk> {
     /// Sign a payload into a JWT, and put the public key of the provided keypair in the `jwk` field in the header. The
-    /// resulting JWT can be verified using [`UnverifiedJwt::verify_against_jwk()`].
+    /// resulting JWT can be verified using [`UnverifiedJwt::parse_and_verify_with_jwk`].
     pub async fn sign_with_jwk(payload: &T, key: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithJwk>, JwtError> {
         let header = HeaderWithJwk::try_from_verifying_key(key).await?;
         SignedJwt::sign_with_header(header, payload, key).await

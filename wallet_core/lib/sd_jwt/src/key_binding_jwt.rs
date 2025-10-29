@@ -120,7 +120,7 @@ static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
     validation
 });
 
-/// Builder-style struct to ease the creation of an [`KeyBindingJwt`].
+/// Builder-style struct to ease the creation of a [`SignedKeyBindingJwt`].
 #[derive(Debug, Clone)]
 pub struct KeyBindingJwtBuilder {
     aud: String,

@@ -449,8 +449,8 @@ impl<C, H> Display for UnverifiedSdJwtPresentation<C, H> {
 }
 
 impl UnverifiedSdJwtPresentation {
-    /// Parses an SD-JWT into its components as [`SdJwtPresentation`] while verifying against a set of trust anchors.
-    /// Verifies the presentation by:
+    /// Parses an SD-JWT into its components as [`VerifiedSdJwtPresentation`] while verifying against a set of trust
+    /// anchors. Verifies the presentation by:
     /// 1) validating the issuer-signed JWT against `trust_anchors`,
     /// 2) validating the KB-JWT against the public key from the `cnf` claim in the verified issuer-signed JWT,
     /// 3) parsing/verifying disclosures.
@@ -624,8 +624,8 @@ impl From<SignedSdJwtPresentation> for UnverifiedSdJwtPresentation {
 }
 
 impl UnsignedSdJwtPresentation {
-    /// Signs the underlying [`SdJwt`] and returns an SD-JWT presentation containing the (verified) issuer signed SD-JWT
-    /// and signed KB-JWT.
+    /// Signs the underlying [`VerifiedSdJwt`] and returns an SD-JWT presentation containing the (verified) issuer
+    /// signed SD-JWT and signed KB-JWT.
     pub async fn sign(
         self,
         key_binding_jwt_builder: KeyBindingJwtBuilder,

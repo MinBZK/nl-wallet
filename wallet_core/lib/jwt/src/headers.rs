@@ -1,11 +1,11 @@
 //! This module provides three header wrappers used throughout the crate:
-//! - `HeaderWithTyp`: minimal header that carries `alg` and a required `typ`, can be enforced via [`JwtTyp`].
-//! - `HeaderWithJwk<H>`: header with a required embedded `jwk` field for self-contained verification.
-//! - `HeaderWithX5c<H>`: header with a required `x5c` certificate chain used for verification against trust anchors.
+//! - [`HeaderWithTyp`]: minimal header that carries `alg` and a required `typ`, can be enforced via [`JwtTyp`].
+//! - [`HeaderWithJwk<H>`]: header with a required embedded `jwk` field for self-contained verification.
+//! - [`HeaderWithX5c<H>`]: header with a required `x5c` certificate chain used for verification against trust anchors.
 //!
 //! Notes
 //! - All headers are convertible to/from `jsonwebtoken::Header` to interoperate with lower-level APIs.
-//! - `HeaderWithTyp::defaults()` sets `alg` to `ES256` and `typ` to `T::TYP`, which is `"jwt"` by default.
+//! - `HeaderWithTyp::default()` sets `alg` to `ES256` and `typ` to `T::TYP`, which is `"jwt"` by default.
 use std::borrow::Cow;
 
 use base64::prelude::*;
@@ -79,7 +79,7 @@ impl TryFrom<Header> for HeaderWithTyp {
 
 /// Header with a required JWK. Used to make verification self-contained.
 ///
-/// See `UnverifiedJwt<_, HeaderWithJwk<_>>::parse_and_verify_against_jwk` for verification.
+/// See `UnverifiedJwt<_, HeaderWithJwk<_>>::parse_and_verify_with_jwk` for verification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HeaderWithJwk<H = HeaderWithTyp> {
     #[serde(flatten)]

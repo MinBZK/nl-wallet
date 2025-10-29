@@ -8,33 +8,37 @@
 //!
 //! # Key concepts and relationships
 //! - Claims and hashing
-//!   - `SdJwtVcClaims` is the canonical SD-JWT payload type as defined in <https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html>.
+//!   - [`SdJwtVcClaims`](sd_jwt::SdJwtVcClaims) is the canonical SD-JWT payload type as defined in <https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html>.
 //!     It contains:
 //!     - `_sd_alg`: the hash algorithm identifier (defaults to sha-256 if absent)
 //!     - `cnf`: the holder binding
 //!     - `vct`: the attestation type
 //!     - metadata (`iss`, `iat`, `exp`/`nbf`, etc.)
 //!     - `claims`: the selectively disclosable claim tree represented by `ClaimValue` and `ObjectClaims`.
-//!   - The hash algorithm is selected via `SdAlg`; implementations live behind the `hasher::Hasher` trait. Currently,
+//!   - The hash algorithm is selected via `SdAlg`; implementations live behind the [`hasher::Hasher`] trait. Currently,
 //!     only `Sha256` is implemented via `Sha256Hasher`.
 //! - JWT. The underlying JWT handling (sign/verify) is provided by the `jwt` crate. This crate uses:
 //!   - `HeaderWithX5c` when issuing SD-JWTs (issuer certificate chain embedded in `x5c`),
 //!   - the holder key binding lives in the `cnf` claim as a JWK (`RequiredKeyBinding`).
 //! - SD-JWTs. Note: to be able to parse the examples from the spec, generics `<C, H>` are provided, but limited to
 //!   what's needed in the examples/tests:
-//!   - `UnverifiedSdJwt`: raw serialization received over an untrusted channel. Can be parsed and verified into a
-//!     `VerifiedSdJwt` with verified disclosures.
-//!   - `SignedSdJwt`: freshly issued SD-JWT. Can be converted into `UnverifiedSdJwt` for transmission.
-//!   - `VerifiedSdJwt`: verified issuer-signed JWT with verified disclosures, indexed by digest.
+//!   - [`UnverifiedSdJwt`](sd_jwt::UnverifiedSdJwt): raw serialization received over an untrusted channel. Can be
+//!     parsed and verified into a `VerifiedSdJwt` with verified disclosures.
+//!   - [`SignedSdJwt`](builder::SignedSdJwt): freshly issued SD-JWT. Can be converted into `UnverifiedSdJwt` for
+//!     transmission.
+//!   - [`VerifiedSdJwt`](sd_jwt::VerifiedSdJwt): verified issuer-signed JWT with verified disclosures, indexed by
+//!     digest.
 //! - SD-JWT presentation and KB-JWT. A presentation combines a selected subset of disclosures with a KB-JWT binding the
 //!   SD-JWT and session to the holder key.
-//!   - `UnsignedSdJwtPresentation`: is created by from a `VerifiedSdJwt` by `SdJwtPresentationBuilder` after selecting
-//!     which disclosures to include. Turned into `SignedSdJwtPresentation` by signing a KB-JWT.
-//!   - `UnverifiedSdJwtPresentation`: raw serialization received over an untrusted channel. Can be parsed and verified
-//!     into a `VerifiedSdJwtPresentation` with verified disclosures and KB-JWT. Note that first the issuer-signed JWT
-//!     must be parsed before the `KB-JWT` can be verified using the holder key from the `cnf` claim. If both signatures
-//!     are verified, the disclosures will be parsed.
-//!   - `VerifiedSdJwtPresentation`: verified SD-JWT presentation with verified disclosures and verified KB-JWT.
+//!   - [`UnsignedSdJwtPresentation`](sd_jwt::UnsignedSdJwtPresentation): is created by from a `VerifiedSdJwt` by
+//!     `SdJwtPresentationBuilder` after selecting which disclosures to include. Turned into `SignedSdJwtPresentation`
+//!     by signing a KB-JWT.
+//!   - [`UnverifiedSdJwtPresentation`](sd_jwt::UnverifiedSdJwtPresentation): raw serialization received over an
+//!     untrusted channel. Can be parsed and verified into a `VerifiedSdJwtPresentation` with verified disclosures and
+//!     KB-JWT. Note that first the issuer-signed JWT must be parsed before the `KB-JWT` can be verified using the
+//!     holder key from the `cnf` claim. If both signatures are verified, the disclosures will be parsed.
+//!   - [`VerifiedSdJwtPresentation`](sd_jwt::VerifiedSdJwtPresentation): verified SD-JWT presentation with verified
+//!     disclosures and verified KB-JWT.
 //!
 //! # Usage
 //! - For issuance, issuer side
