@@ -87,7 +87,7 @@ impl TryFrom<CredentialPayload> for SdJwtVcClaims {
             nbf: value.previewable_payload.not_before,
             cnf: value.confirmation_key,
             attestation_qualification: Some(value.previewable_payload.attestation_qualification),
-            _sd_alg: None, // to be set by SdJwtBuilder
+            _sd_alg: None, // TODO this should be handled elsewhere (PVW-5121)
 
             claims: value.previewable_payload.attributes.try_into()?,
         })
