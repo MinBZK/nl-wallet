@@ -84,7 +84,6 @@ where
                 SessionTypeReturnUrl::Both,
                 s.dcql_query.try_into()?,
                 format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
-                s.additional_accepted_attestation_types,
             )?,
         ))
     }))
@@ -123,6 +122,7 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         issuer_settings.wallet_client_ids,
+        settings.extending_vct_values.unwrap_or_default(),
     )
     .create_wallet_router(disclosure_sessions, Some(Box::new(result_handler)));
 

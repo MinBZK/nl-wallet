@@ -4,6 +4,7 @@ use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use dcql::disclosure::ExtendingVctRetriever;
 use http_utils::urls::BaseUrl;
 
 use crate::issuance_session::CredentialWithMetadata;
@@ -75,6 +76,13 @@ impl IssuanceSession for MockIssuanceSession {
 
     fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
+    }
+}
+
+pub struct ExtendingVctRetrieverStub;
+impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
+    fn retrieve(&self, _vct_value: &str) -> Vec<&str> {
+        vec![]
     }
 }
 

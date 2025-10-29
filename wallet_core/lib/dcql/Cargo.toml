@@ -15,7 +15,7 @@ examples = []
 mock = ["mdoc/examples", "mdoc/mock_example_constructors"]
 
 [dependencies]
-derive_more = { workspace = true, features = ["into_iterator"] }
+derive_more = { workspace = true, features = ["constructor", "into_iterator"] }
 nutype = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }

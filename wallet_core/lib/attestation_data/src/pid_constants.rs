@@ -1,3 +1,5 @@
+pub const EUDI_PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:1";
+
 pub const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
 pub const ADDRESS_ATTESTATION_TYPE: &str = "urn:eudi:pid-address:nl:1";
 

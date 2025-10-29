@@ -333,6 +333,7 @@ pub mod mock {
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
     use mdoc::holder::mock::NL_PID_DOC_TYPE;
+    use mdoc::holder::mock::PID_DOC_TYPE;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
@@ -457,6 +458,14 @@ pub mod mock {
                 "mock_sd_jwt_example",
                 &[NL_PID_DOC_TYPE],
                 &[&["bsn"], &["given_name"], &["family_name"]],
+            )
+        }
+
+        pub fn new_mock_sd_jwt_eu_pid_example() -> Self {
+            Self::new_mock_sd_jwt(
+                "mock_sd_jwt_example",
+                &[PID_DOC_TYPE],
+                &[&["given_name"], &["family_name"]],
             )
         }
     }

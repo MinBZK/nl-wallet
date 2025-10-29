@@ -38,8 +38,9 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
-use dcql::CredentialFormat;
 use dcql::Query;
+use dcql::disclosure::ExtendingVctRetriever;
+use dcql::disclosure::ExtendingVctStore;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -217,7 +218,6 @@ pub struct Created {
     credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
     client_id: String,
-    additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     redirect_uri_template: Option<RedirectUriTemplate>,
 }
 
@@ -225,7 +225,6 @@ pub struct Created {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     auth_request: NormalizedVpAuthorizationRequest,
-    additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
@@ -512,7 +511,6 @@ pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
     pub client_id: String,
     pub session_type_return_url: SessionTypeReturnUrl,
-    pub additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
 }
 
 pub trait UseCase {
@@ -578,22 +576,14 @@ impl<K> RpInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
-        additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
-
-        // Additional accepted attestation types can only be configured for the SD-JWT format.
-        verify_additional_accepted_attestation_types_for_sd_jwt(
-            credential_requests.as_ref(),
-            additional_accepted_attestation_types.as_ref(),
-        )?;
 
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
                 client_id,
                 session_type_return_url,
-                additional_accepted_attestation_types,
             },
             credential_requests,
             return_url_template,
@@ -645,7 +635,6 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             credential_requests,
             id,
             self.data.client_id.clone(),
-            self.data.additional_accepted_attestation_types.clone(),
             redirect_uri_template,
         );
         Ok(session)
@@ -761,22 +750,14 @@ impl<K> WalletInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
-        additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
-
-        // Additional accepted attestation types can only be configured for the SD-JWT format.
-        verify_additional_accepted_attestation_types_for_sd_jwt(
-            Some(&credential_requests),
-            additional_accepted_attestation_types.as_ref(),
-        )?;
 
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
                 client_id,
                 session_type_return_url,
-                additional_accepted_attestation_types,
             },
             credential_requests,
             return_url_template,
@@ -803,7 +784,6 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
             self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
-            self.data.additional_accepted_attestation_types.clone(),
             Some(RedirectUriTemplate {
                 template: self.return_url_template.clone(),
                 share_on_error: false,
@@ -855,24 +835,6 @@ fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<String, UseCaseCe
     ))
 }
 
-fn verify_additional_accepted_attestation_types_for_sd_jwt(
-    credential_requests: Option<&NormalizedCredentialRequests>,
-    additional_accepted_attestation_types: Option<&VecNonEmpty<String>>,
-) -> Result<(), NewDisclosureUseCaseError> {
-    // Additional accepted attestation types can only be configured for the SD-JWT format.
-    if let Some(requests) = &credential_requests
-        && additional_accepted_attestation_types.is_some()
-        && requests
-            .as_ref()
-            .iter()
-            .any(|request| request.format() == CredentialFormat::MsoMdoc)
-    {
-        return Err(NewDisclosureUseCaseError::WrongFormatForAdditionalAcceptedAttestationTypes);
-    }
-
-    Ok(())
-}
-
 pub trait ToPostAuthResponseErrorCode: Error {
     fn to_error_code(&self) -> PostAuthResponseErrorCode;
 }
@@ -908,6 +870,7 @@ pub struct Verifier<S, US> {
     #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
     accepted_wallet_client_ids: Vec<String>,
+    extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
 }
 
 impl<S, K> Drop for Verifier<S, K> {
@@ -939,6 +902,7 @@ where
         trust_anchors: Vec<TrustAnchor<'static>>,
         result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
         accepted_wallet_client_ids: Vec<String>,
+        extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
     ) -> Self
     where
         S: Send + Sync + 'static,
@@ -950,6 +914,7 @@ where
             trust_anchors,
             result_handler,
             accepted_wallet_client_ids,
+            extending_vct_values_store,
         }
     }
 
@@ -1034,6 +999,8 @@ where
             .await
             .map_err(PostAuthResponseError::Session)?;
 
+        let extending_vct_values = ExtendingVctStore::new(&self.extending_vct_values_store);
+
         let (result, next) = session
             .process_authorization_response(
                 wallet_response,
@@ -1041,6 +1008,7 @@ where
                 time,
                 &self.trust_anchors,
                 self.result_handler.as_deref(),
+                &extending_vct_values,
             )
             .await;
 
@@ -1238,7 +1206,6 @@ impl Session<Created> {
         credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
         client_id: String,
-        additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
         redirect_uri_template: Option<RedirectUriTemplate>,
     ) -> Session<Created> {
         Session::<Created> {
@@ -1246,7 +1213,6 @@ impl Session<Created> {
                 SessionToken::new_random(),
                 Created {
                     credential_requests,
-                    additional_accepted_attestation_types,
                     usecase_id,
                     client_id,
                     redirect_uri_template,
@@ -1286,11 +1252,6 @@ impl Session<Created> {
                     redirect_uri,
                     encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     usecase_id: self.state.data.usecase_id.clone(),
-                    additional_accepted_attestation_types: self
-                        .state
-                        .data
-                        .additional_accepted_attestation_types
-                        .clone(),
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -1424,6 +1385,7 @@ impl Session<WaitingForResponse> {
     /// because it differs from similar methods in the following aspect: in some cases (to wit, if the user
     /// sent an error instead of a disclosure) then we should respond with HTTP 200 to the user (mandated by
     /// the OpenID4VP spec), while we fail our session. This does not neatly fit in the `_inner()` method pattern.
+    #[expect(clippy::too_many_arguments)]
     async fn process_authorization_response(
         self,
         wallet_response: WalletAuthResponse,
@@ -1431,6 +1393,7 @@ impl Session<WaitingForResponse> {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         result_handler: Option<&(dyn DisclosureResultHandler + Send + Sync)>,
+        extending_vct_values: &impl ExtendingVctRetriever,
     ) -> (
         Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
         Session<Done>,
@@ -1472,11 +1435,7 @@ impl Session<WaitingForResponse> {
             accepted_wallet_client_ids,
             time,
             trust_anchors,
-            self.state()
-                .additional_accepted_attestation_types
-                .as_ref()
-                .map(VecNonEmpty::as_ref)
-                .unwrap_or_default(),
+            extending_vct_values,
         ) {
             Ok(disclosed) => disclosed,
             Err(err) => return self.handle_err(err.into()),
@@ -1582,12 +1541,9 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
-    use attestation_data::test_credential::TestCredential;
-    use attestation_data::test_credential::TestCredentials;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
-    use dcql::CredentialFormat;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1599,7 +1555,6 @@ mod tests {
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
-    use crate::verifier::NewDisclosureUseCaseError;
 
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
@@ -1652,7 +1607,6 @@ mod tests {
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
-                    None,
                 )
                 .unwrap(),
             ),
@@ -1663,7 +1617,6 @@ mod tests {
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
-                    None,
                 )
                 .unwrap(),
             ),
@@ -1672,7 +1625,6 @@ mod tests {
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
                     SessionTypeReturnUrl::Both,
-                    None,
                     None,
                     None,
                 )
@@ -1692,42 +1644,8 @@ mod tests {
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            HashMap::default(),
         )
-    }
-
-    #[test]
-    fn test_additional_accepted_attestation_types() {
-        let ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_registration = Some(ReaderRegistration::new_mock());
-
-        let credential = TestCredential::new_nl_pid_given_name();
-        let credentials = TestCredentials::new(vec_nonempty![credential]);
-        let requests = credentials.to_normalized_credential_requests([CredentialFormat::MsoMdoc]);
-
-        let err = RpInitiatedUseCase::try_new(
-            generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-            SessionTypeReturnUrl::Neither,
-            Some(requests),
-            None,
-            Some(vec_nonempty![String::from("accepted_vct")]),
-        )
-        .expect_err("should fail for mso-mdoc format");
-
-        assert_matches!(
-            err,
-            NewDisclosureUseCaseError::WrongFormatForAdditionalAcceptedAttestationTypes
-        );
-
-        // Creating the use case for SD-JWT should succeed
-        let requests = credentials.to_normalized_credential_requests([CredentialFormat::SdJwt]);
-        RpInitiatedUseCase::try_new(
-            generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-            SessionTypeReturnUrl::Neither,
-            Some(requests),
-            None,
-            Some(vec_nonempty![String::from("accepted_vct")]),
-        )
-        .unwrap();
     }
 
     #[rstest]
@@ -2088,7 +2006,6 @@ mod tests {
                     key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
-                    additional_accepted_attestation_types: None,
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
@@ -2103,6 +2020,7 @@ mod tests {
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            HashMap::default(),
         );
 
         let query_params = serde_urlencoded::to_string(VerifierUrlParameters {

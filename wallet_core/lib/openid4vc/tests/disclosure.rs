@@ -24,13 +24,17 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
+use attestation_data::pid_constants::EUDI_PID_ATTESTATION_TYPE;
+use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_data::test_credential::TestCredentials;
+use attestation_data::test_credential::eudi_pid_credentials_given_name;
 use attestation_data::test_credential::nl_pid_address_credentials_all;
 use attestation_data::test_credential::nl_pid_address_minimal_address;
 use attestation_data::test_credential::nl_pid_credentials_all;
 use attestation_data::test_credential::nl_pid_credentials_family_name;
 use attestation_data::test_credential::nl_pid_credentials_full_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name;
+use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_id;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
@@ -69,6 +73,7 @@ use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -179,7 +184,7 @@ fn disclosure_direct() {
         &[MOCK_WALLET_CLIENT_ID.to_string()],
         &MockTimeGenerator::default(),
         &[issuer_ca.to_trust_anchor()],
-        &[],
+        &ExtendingVctRetrieverStub,
     )
     .unwrap();
 
@@ -386,7 +391,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &self.trust_anchors,
-            &[],
+            &ExtendingVctRetrieverStub,
         )
         .unwrap();
 
@@ -911,6 +916,50 @@ async fn test_rp_initiated_usecase_verifier_cancel() {
     assert!(session.terminate().await.unwrap().is_some());
 }
 
+#[tokio::test]
+async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
+    let query_id = "eudi_pid_given_name";
+    let test_credentials = nl_pid_credentials_given_name_for_query_id(query_id);
+    let dcql_query = eudi_pid_credentials_given_name(query_id).to_dcql_query([CredentialFormat::SdJwt]);
+
+    let (verifier, rp_trust_anchor, issuer_keypair) = setup_verifier(&dcql_query, None);
+
+    // Start the session
+    let session_token = verifier
+        .new_session(
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            Some(dcql_query),
+            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+        )
+        .await
+        .unwrap();
+
+    // The front-end receives the UL to feed to the wallet when fetching the session status
+    // (this also verifies that the status is Created)
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
+
+    let wscd = MockRemoteWscd::default();
+
+    // Start session in the wallet
+    let session = start_disclosure_session(
+        Arc::clone(&verifier),
+        DisclosureUriSource::Link,
+        &request_uri,
+        rp_trust_anchor,
+    )
+    .await
+    .unwrap();
+
+    // Do the disclosure
+    let presentations = test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd);
+    let disclosable_attestations = DisclosableAttestations::SdJwt(presentations).try_into().unwrap();
+    session
+        .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
+        .await
+        .unwrap()
+        .unwrap();
+}
+
 fn setup_wallet_initiated_usecase_verifier() -> (
     Arc<MockWalletInitiatedUseCaseVerifier>,
     TestCredentials,
@@ -935,7 +984,6 @@ fn setup_wallet_initiated_usecase_verifier() -> (
             SessionTypeReturnUrl::SameDevice,
             dcql_query.try_into().unwrap(),
             "https://example.com/redirect_uri".parse().unwrap(),
-            None,
         )
         .unwrap(),
     )]);
@@ -946,6 +994,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (
         vec![issuer_ca.to_trust_anchor().to_owned()],
         Some(Box::new(MockDisclosureResultHandler::new(None))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
+        HashMap::default(),
     ));
 
     (
@@ -978,7 +1027,6 @@ fn setup_verifier(
                 SessionTypeReturnUrl::Neither,
                 None,
                 None,
-                None,
             )
             .unwrap(),
         ),
@@ -989,7 +1037,6 @@ fn setup_verifier(
                 SessionTypeReturnUrl::SameDevice,
                 None,
                 None,
-                None,
             )
             .unwrap(),
         ),
@@ -998,7 +1045,6 @@ fn setup_verifier(
             RpInitiatedUseCase::try_new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
-                None,
                 None,
                 None,
             )
@@ -1020,6 +1066,10 @@ fn setup_verifier(
         vec![issuer_ca.to_trust_anchor().to_owned()],
         Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
+        HashMap::from([(
+            String::from(EUDI_PID_ATTESTATION_TYPE),
+            vec_nonempty![String::from(PID_ATTESTATION_TYPE)],
+        )]),
     ));
 
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_keypair)

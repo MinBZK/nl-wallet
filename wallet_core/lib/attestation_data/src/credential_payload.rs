@@ -483,6 +483,7 @@ mod mock {
 
     use crate::attributes::Attributes;
     use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use crate::pid_constants::EUDI_PID_ATTESTATION_TYPE;
     use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
@@ -513,6 +514,10 @@ mod mock {
     impl PreviewableCredentialPayload {
         pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_example(), time_generator)
+        }
+
+        pub fn eudi_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(EUDI_PID_ATTESTATION_TYPE, Attributes::nl_pid_example(), time_generator)
         }
 
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {

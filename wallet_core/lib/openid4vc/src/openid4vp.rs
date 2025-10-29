@@ -35,6 +35,7 @@ use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::disclosure::CredentialValidationError;
+use dcql::disclosure::ExtendingVctRetriever;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -684,7 +685,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-        additional_accepted_attestation_types: &[String],
+        extending_vct_values: &impl ExtendingVctRetriever,
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         let (response, encryption_nonce) = Self::decrypt(jwe, private_key)?;
 
@@ -694,7 +695,7 @@ impl VpAuthorizationResponse {
             encryption_nonce.as_deref(),
             time,
             trust_anchors,
-            additional_accepted_attestation_types,
+            extending_vct_values,
         )
     }
 
@@ -724,7 +725,7 @@ impl VpAuthorizationResponse {
         encryption_nonce: Option<&str>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-        additional_accepted_attestation_types: &[String],
+        extending_vct_values: &impl ExtendingVctRetriever,
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
@@ -838,7 +839,7 @@ impl VpAuthorizationResponse {
         // Step 4: Check that we received all the attributes that we requested.
         auth_request
             .credential_requests
-            .is_satisfied_by_disclosed_credentials(&disclosed_attestations, additional_accepted_attestation_types)
+            .is_satisfied_by_disclosed_credentials(&disclosed_attestations, extending_vct_values)
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
         // Step 5: Sort the disclosed attestations into the same order as that of the Credential Requests in the DCQL
@@ -927,6 +928,7 @@ mod tests {
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
+    use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::NormalizedVpAuthorizationRequest;
@@ -1340,7 +1342,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
-                &[],
+                &ExtendingVctRetrieverStub,
             )
             .expect("VpAuthorizationResponse should be valid");
 
@@ -1445,7 +1447,7 @@ mod tests {
                 None,
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
-                &[],
+                &ExtendingVctRetrieverStub,
             )
             .expect("VpAuthorizationResponse should be valid");
 
@@ -1606,7 +1608,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
-                &[],
+                &ExtendingVctRetrieverStub,
             )
             .expect("VpAuthorizationResponse should be valid");
 
@@ -1651,7 +1653,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
-                &[],
+                &ExtendingVctRetrieverStub,
             )
             .unwrap();
     }
@@ -1671,7 +1673,7 @@ mod tests {
                 None,
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
-                &[],
+                &ExtendingVctRetrieverStub,
             )
             .expect_err("verifying authorization response should fail");
 
@@ -1693,7 +1695,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
-                &[],
+                &ExtendingVctRetrieverStub,
             )
             .expect_err("should fail due to missing PoA");
 
@@ -1718,7 +1720,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
-                &[],
+                &ExtendingVctRetrieverStub,
             )
             .expect_err("should fail due to missing PoA");
 

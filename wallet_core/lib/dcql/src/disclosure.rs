@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use derive_more::Constructor;
 use itertools::Either;
 use itertools::Itertools;
 
@@ -9,6 +10,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::CredentialFormat;
 use crate::CredentialQueryIdentifier;
+use crate::normalized::NormalizedCredentialRequest;
 use crate::normalized::NormalizedCredentialRequests;
 
 #[derive(Debug, thiserror::Error)]
@@ -51,12 +53,36 @@ pub trait DisclosedCredential {
     ) -> HashSet<VecNonEmpty<ClaimPath>>;
 }
 
+pub trait DisclosedCredentialTypeVerifier {
+    fn verify_credential_type(
+        &self,
+        request: &NormalizedCredentialRequest,
+        credential: &impl DisclosedCredential,
+    ) -> Result<(), CredentialValidationError>;
+}
+
+pub trait ExtendingVctRetriever {
+    fn retrieve(&self, vct_value: &str) -> Vec<&str>;
+}
+
+#[derive(Constructor)]
+pub struct ExtendingVctStore<'a>(&'a HashMap<String, VecNonEmpty<String>>);
+
+impl<'a> ExtendingVctRetriever for ExtendingVctStore<'a> {
+    fn retrieve(&self, vct_value: &str) -> Vec<&str> {
+        self.0
+            .get(vct_value)
+            .map(|vct| vct.iter().map(String::as_str).collect())
+            .unwrap_or_default()
+    }
+}
+
 impl NormalizedCredentialRequests {
     /// Match keyed credentials received from the holder against a set of normalized DQCL requests.
     pub fn is_satisfied_by_disclosed_credentials(
         &self,
         disclosed_credentials: &HashMap<CredentialQueryIdentifier, VecNonEmpty<impl DisclosedCredential>>,
-        additional_accepted_attestation_types: &[String],
+        extending_vct_values: &impl ExtendingVctRetriever,
     ) -> Result<(), CredentialValidationError> {
         // Credential queries that allow for multiple responses are not supported, so make the `HashMap` resolve to a
         // single credential. If at least one of the values has more than one credential, this consitutes an error.
@@ -118,7 +144,16 @@ impl NormalizedCredentialRequests {
 
                 (!request
                     .credential_types()
-                    .chain(additional_accepted_attestation_types.iter().map(String::as_str))
+                    .chain(if credential.format() == CredentialFormat::SdJwt {
+                        request
+                            .credential_types()
+                            .fold(vec![], |mut acc, requested_credential_type| {
+                                acc.append(&mut extending_vct_values.retrieve(requested_credential_type));
+                                acc
+                            })
+                    } else {
+                        vec![]
+                    })
                     .contains(credential_type))
                 .then(|| {
                     (
@@ -179,9 +214,10 @@ mod tests {
 
     use super::CredentialValidationError;
     use super::DisclosedCredential;
+    use super::ExtendingVctRetriever;
 
     const EXAMPLE_VCT: &str = "com.example.pid";
-    const EXTENDED_EXAMPLE_VCT: &str = "com.example.pid_extended";
+    const EXTENDING_EXAMPLE_VCT: &str = "com.example.pid_extending";
 
     /// A very simple type that implements [`MockDisclosedCredential`] for testing.
     struct MockDisclosedCredential {
@@ -376,9 +412,9 @@ mod tests {
     )]
     #[case::extended_vct_in_response_is_allowed_if_configured(
         example_sd_jwt_single_credential_requests(),
-        &[EXTENDED_EXAMPLE_VCT.to_string()],
+        &[EXTENDING_EXAMPLE_VCT],
         HashMap::from([
-            ("sd_jwt_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example_sd_jwt(EXTENDED_EXAMPLE_VCT)])
+            ("sd_jwt_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example_sd_jwt(EXTENDING_EXAMPLE_VCT)])
         ]),
         Ok(()),
     )]
@@ -386,11 +422,11 @@ mod tests {
         example_sd_jwt_single_credential_requests(),
         &[],
         HashMap::from([
-            ("sd_jwt_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example_sd_jwt(EXTENDED_EXAMPLE_VCT)])
+            ("sd_jwt_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example_sd_jwt(EXTENDING_EXAMPLE_VCT)])
         ]),
         Err(CredentialValidationError::CredentialTypeMismatch(
             HashMap::from([("sd_jwt_0".try_into().unwrap(),
-            (vec![EXAMPLE_VCT.to_string()], EXTENDED_EXAMPLE_VCT.to_string()),
+            (vec![EXAMPLE_VCT.to_string()], EXTENDING_EXAMPLE_VCT.to_string()),
         )]))),
     )]
     #[case::mdoc_error_credential_type_mismatch(
@@ -422,11 +458,20 @@ mod tests {
     )]
     fn test_normalized_credential_requests_is_satisfied_by_disclosed_credentials(
         #[case] requests: NormalizedCredentialRequests,
-        #[case] accepted_vcts: &[String],
+        #[case] accepted_vcts: &[&str],
         #[case] disclosed_credentials: HashMap<CredentialQueryIdentifier, VecNonEmpty<MockDisclosedCredential>>,
         #[case] expected_result: Result<(), CredentialValidationError>,
     ) {
-        let result = requests.is_satisfied_by_disclosed_credentials(&disclosed_credentials, accepted_vcts);
+        struct ExtendingVctRetrieverStub<'a>(&'a [&'a str]);
+
+        impl ExtendingVctRetriever for ExtendingVctRetrieverStub<'_> {
+            fn retrieve(&self, _vct_value: &str) -> Vec<&str> {
+                self.0.to_vec()
+            }
+        }
+
+        let result = requests
+            .is_satisfied_by_disclosed_credentials(&disclosed_credentials, &ExtendingVctRetrieverStub(accepted_vcts));
 
         assert_eq!(result, expected_result);
     }

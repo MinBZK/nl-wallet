@@ -44,6 +44,8 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
+use mdoc::holder::mock::NL_PID_DOC_TYPE;
+use mdoc::holder::mock::PID_DOC_TYPE;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -147,7 +149,6 @@ async fn wallet_server_settings_and_listener(
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
             dcql_query: None,
-            additional_accepted_attestation_types: None,
             return_url_template: None,
         },
     )])
@@ -182,6 +183,11 @@ async fn wallet_server_settings_and_listener(
         server_settings: settings,
 
         wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+
+        extending_vct_values: Some(HashMap::from([(
+            String::from(PID_DOC_TYPE),
+            vec_nonempty![String::from(NL_PID_DOC_TYPE)],
+        )])),
     };
 
     (settings, listener, issuer_ca, rp_trust_anchor)

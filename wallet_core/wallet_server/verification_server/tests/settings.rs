@@ -19,7 +19,6 @@ fn to_use_case(key_pair: KeyPair) -> UseCaseSettings {
         key_pair: key_pair.into(),
         dcql_query: None,
         return_url_template: None,
-        additional_accepted_attestation_types: None,
     }
 }
 

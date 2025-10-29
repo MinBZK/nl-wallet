@@ -45,6 +45,9 @@ pub struct IssuanceServerSettings {
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     pub universal_link_base_url: BaseUrl,
+
+    /// Indicate per vct what extending vcts are accepted during disclosure.
+    pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -52,7 +55,6 @@ pub struct AttestationSettings {
     #[serde(flatten)]
     pub key_pair: KeyPair,
     pub dcql_query: Query,
-    pub additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).

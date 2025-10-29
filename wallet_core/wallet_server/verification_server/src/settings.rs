@@ -73,6 +73,9 @@ pub struct VerifierSettings {
     /// JWTs.
     pub wallet_client_ids: Vec<String>,
 
+    /// Indicate per vct what extending vcts are accepted during disclosure.
+    pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
+
     #[serde(flatten)]
     pub server_settings: Settings,
 }
@@ -91,7 +94,6 @@ pub struct UseCaseSettings {
     pub key_pair: KeyPair,
 
     pub dcql_query: Option<Query>,
-    pub additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -125,7 +127,6 @@ impl UseCaseSettings {
             self.session_type_return_url,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
-            self.additional_accepted_attestation_types,
         )?;
 
         Ok(use_case)

@@ -244,6 +244,7 @@ mod tests {
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
+    use crate::mock::ExtendingVctRetrieverStub;
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::RequestUriMethod;
     use crate::openid4vp::VpAuthorizationResponse;
@@ -497,7 +498,7 @@ mod tests {
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &[ca.to_trust_anchor()],
-            &[],
+            &ExtendingVctRetrieverStub,
         )
         .expect("decrypting and verifying VPDisclosureSession authorization response should succeed");
 
