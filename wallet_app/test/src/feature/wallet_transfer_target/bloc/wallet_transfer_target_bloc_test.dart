@@ -53,6 +53,7 @@ void main() {
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
             WalletTransferStatus.waitingForApprovalAndUpload,
+            WalletTransferStatus.readyForTransferConfirmed,
             WalletTransferStatus.readyForDownload,
             WalletTransferStatus.success,
           ]),
@@ -63,7 +64,8 @@ void main() {
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
         const WalletTransferAwaitingConfirmation(),
-        const WalletTransferTransferring(),
+        const WalletTransferTransferring(isReceiving: false),
+        const WalletTransferTransferring(isReceiving: true),
         const WalletTransferSuccess(),
       ],
     );
@@ -230,6 +232,7 @@ void main() {
         when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
+            WalletTransferStatus.readyForTransferConfirmed,
             WalletTransferStatus.readyForDownload,
           ]).asBroadcastStream(),
         );
@@ -251,7 +254,8 @@ void main() {
         // only initial opt-in states, no change from back press
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
-        const WalletTransferTransferring(),
+        const WalletTransferTransferring(isReceiving: false),
+        const WalletTransferTransferring(isReceiving: true),
         const WalletTransferSuccess(),
       ],
     );

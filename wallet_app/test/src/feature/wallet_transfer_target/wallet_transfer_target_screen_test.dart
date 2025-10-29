@@ -195,7 +195,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferTransferring(),
+          const WalletTransferTransferring(isReceiving: true),
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
@@ -206,7 +206,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferTransferring(),
+          const WalletTransferTransferring(isReceiving: false),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -219,7 +219,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferTransferring(),
+          const WalletTransferTransferring(isReceiving: true),
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
@@ -233,7 +233,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferTransferring(),
+          const WalletTransferTransferring(isReceiving: false),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
