@@ -139,7 +139,7 @@
 //!     &KbVerificationOptions {
 //!         expected_aud: "https://verifier.example.com",
 //!         expected_nonce: "nonce-123",
-//!         iat_leeway: 0,
+//!         iat_leeway: Duration::ZERO,
 //!         iat_acceptance_window: Duration::from_secs(300),
 //!     },
 //!     &TimeGenerator::default()
