@@ -1,53 +1,118 @@
+# Example issuance_server config
+
+# Whether HTTP requests/responses should be logged, default value: false
+log_requests = false
+
+# Emit logs in JSON format, default value: false
+structured_logging = false
+
+# Array of CAs with trusted issuers
+issuer_trust_anchors = ["MII..."]
+
+# Array of CAs which sign use case certificates
+reader_trust_anchors = ["MII..."]
+
 # The wallet must be able to reach the server at this URL
 public_url = 'http://localhost:8001/'
 
-issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
-reader_trust_anchors = ["MII..."] # CAs for RP certificates
+# The base of the Universal Link (UL) of the wallet, used in QRs/ULs
+# Default value: walletdebuginteraction://wallet.edi.rijksoverheid.nl/
+universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/"
 
-# Files containing SD-JWT Type Metadata documents for attestations that will be issued
+# The `client_id` values that this server accepts, identifying the wallet
+# implementation (not individual instances, i.e., the `client_id` value of
+# a wallet implementation is constant across all wallets of that implementation)
+# Default value: https://wallet.edi.rijksoverheid.nl
+wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
+
+# Files containing SD-JWT Type Metadata documents for issued attestations
 metadata = ["com_example_address_metadata.json"]
 
-# The base of the Universal Link (UL) of the wallet, used in QRs/ULs
-# Production value is "https://app.example.com/deeplink/"
-universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/" # default value
-
-# Whether HTTP requests/responses should be logged
-log_requests = false # default value
-
-# Emit logs in JSON format
-structured_logging = false # default value
-
-# `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
-# i.e., the `client_id` value of a wallet implementation is constant across all wallets of that implementation).
-wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"] # default value
-
-[status_lists]
-list_size = 100_000
-create_threshold = 1000
-
-[storage]
-url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
-
+# Public and private endpoint for the issuer
 [wallet_server]
-ip = '127.0.0.1'
+ip = "127.0.0.1"
 port = 8001
 
-# Optional, for securing private keys
+# Where to store session state. can be `memory://` or a `postgres://..` url
+# Memory is ephemeral, default value: memory://
+[storage]
+url = "postgres://postgres:postgres@localhost:5432/issuance_server"
+
+# Optional, when using an HSM
 [hsm]
 library_path = "/path/to/hsm.so"
 user_pin = "12345678"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-# Here, `disclosure_based_issuance` is an example of a freely choosable identifier that has to be present in the QR/UL
-# that starts the session.
-[disclosure_settings.disclosure_based_issuance]
-private_key_type = "hsm"                      # or "software"
-private_key = "disclosure_based_issuance_key" # label for the private key in the HSM, in case of "hsm"
+# Status list settings (values are the defaults if unset)
+[status_lists]
+list_size = 100_000
+create_threshold = 1000
+
+# Disclosure settings are defined as [disclosure_settings.some_name], where
+# "some_name" is an identifier indicating the purpose of the issuance, which
+# is freely choosable and has to be present in the QR/UL that starts the
+# session.
+#
+# Configuration fields for disclosure_settings
+# * private_key_type: Can be hsm or software, when hsm private_key
+#   should contain a string identifying the private key in the HSM
+# * private_key: Base64 encoded DER format private key, or string
+# * certificate: Base64 encoded DER format certificate
+#
+
+# DCQL query credentials are associated with a [disclosure_settings.some_name],
+# which are defined as [disclosure_settings.some_name.dcql_query.credentials].
+# They define attributes that have to be disclosed for "some_name", in the
+# DCQL query format.
+#
+# Configuration fields for dcql_query.credentials
+# * id: A freely choosable identifier
+# * format: Can be mso_mdoc or dc+sd-jwt
+# * meta: if format is dc+sd-jwt, contains vct_values, else doctype_value
+#   - Example 1: { vct_values = ["urn:eudi:pid:nl:1"] }
+#   - Example 2: { doctype_value = "urn:eudi:pid:nl:1" }
+# * claims: Contains a path array and intent_to_retain (default false)
+#   - Example: { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
+#
+
+# Attestation URL configs are associated with a [disclosure_settings.some_name],
+# and defined as [disclosure_settings.some_name.attestation_url_config]. They
+# link the issuance with a specific attestation server (i.e., a source of
+# issuable attributes).
+#
+# Configuration fields for attestation_url_config
+# * base_url: The URL of the attestation server
+# * trust_anchors: An array of trusted CAs used to talk to the server
+#
+
+# Configuration fields for attestation_settings
+# * private_key_type: Can be hsm or software, when hsm private_key
+#   should contain a string identifying the private key in the HSM
+# * private_key: Base64 encoded DER format private key, or string
+# * certificate: Base64 encoded DER format certificate
+# * valid_days: How long are these attestations valid, in days
+# * copies_per_format: How many copies of mso_mdoc, dc+sd-jwt? default is 4
+# * status_list_base_url: The url where status list objects can get fetched
+#
+
+# Configuration fields for status_list
+# * base_url: The URL of the status list server
+# * private_key_type: Can be hsm or software, when hsm private_key
+#   should contain a string identifying the private key in the HSM
+# * private_key: Base64 encoded DER format private key, or string
+# * certificate: Base64 encoded DER format certificate
+#
+
+# Example university_mdoc disclosure_settings
+[disclosure_settings.university_mdoc]
+private_key_type = "hsm"
+private_key = "some_private_key"
 certificate = "MIJ..."
 
-# Attributes that have to be disclosed for `disclosure_based_issuance` in DCQL format
-[[disclosure_settings.disclosure_based_issuance.dcql_query.credentials]]
+# Example university_mdoc associated dcql_query.credentials
+[[disclosure_settings.university_mdoc.dcql_query.credentials]]
 id = "my_credential"
 format = "mso_mdoc"
 meta = { doctype_value = "com.example.pid" }
@@ -55,15 +120,22 @@ claims = [
   { path = ["com.example.pid", "bsn"], intent_to_retain = true }
 ]
 
-[disclosure_settings.degree.attestation_url_config]
-# URL to the attestation server
-base_url = "https://attestation_server.example.com"
+# Example university_mdoc associated attestation_url_config
+[disclosure_settings.university_mdoc.attestation_url_config]
+base_url = "https://some-attestation-server.example.com"
 trust_anchors = ["MIJ..."]
 
-[attestation_settings."com.example.address"]
+# Example attestation settings for a "com.example.degree"
+[attestation_settings."com.example.degree"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
+private_key_type = "software"
+private_key = "MIG..."
+certificate = "MIJ..."
+
+# Example "com.example.degree" associated status list settings
+[attestation_settings."com.example.degree".status_list]
 base_url = "https://cdn.example.com/tsl"
-private_key_type = "software" # or "hsm"
-private_key = "MIG..."        # DER-encoded private key, in case of "software"
+private_key_type = "software"
+private_key = "MIG..."
 certificate = "MIJ..."

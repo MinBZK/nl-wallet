@@ -62,7 +62,7 @@ pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
     pub display_metadata: VecNonEmpty<DisplayMetadata>,
-    pub issuer: Organization,
+    pub issuer: Box<Organization>,
     pub attributes: Vec<AttestationAttribute>,
 }
 

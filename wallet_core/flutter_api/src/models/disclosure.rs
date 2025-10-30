@@ -109,8 +109,8 @@ impl From<wallet::attestation_data::Image> for Image {
     }
 }
 
-impl From<wallet::attestation_data::Organization> for Organization {
-    fn from(value: wallet::attestation_data::Organization) -> Self {
+impl From<Box<wallet::attestation_data::Organization>> for Organization {
+    fn from(value: Box<wallet::attestation_data::Organization>) -> Self {
         Organization {
             legal_name: RPLocalizedStrings(value.legal_name).into(),
             display_name: RPLocalizedStrings(value.display_name).into(),

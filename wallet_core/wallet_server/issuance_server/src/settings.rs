@@ -9,7 +9,6 @@ use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
@@ -131,13 +130,7 @@ impl ServerSettings for IssuanceServerSettings {
             .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &trust_anchors,
-            CertificateUsage::ReaderAuth,
-            &time,
-            |certificate_type| matches!(certificate_type, CertificateType::ReaderAuth(Some(_))),
-        )?;
+        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::ReaderAuth, &time)?;
 
         Ok(())
     }

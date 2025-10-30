@@ -73,7 +73,7 @@ sealed class NavigationRequest extends Equatable {
     WalletRoutes.walletTransferTargetRoute,
     removeUntil: WalletRoutes.dashboardRoute,
     argument: isRetry,
-    navigatePrerequisites: [
+    navigatePrerequisites: const [
       NavigationPrerequisite.walletUnlocked,
       NavigationPrerequisite.walletInitialized,
       NavigationPrerequisite.pidInitialized,

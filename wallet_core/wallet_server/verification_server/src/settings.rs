@@ -17,7 +17,6 @@ use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
-use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
@@ -209,13 +208,7 @@ impl ServerSettings for VerifierSettings {
             .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &trust_anchors,
-            CertificateUsage::ReaderAuth,
-            &time,
-            |certificate_type| matches!(certificate_type, CertificateType::ReaderAuth(Some(_))),
-        )?;
+        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::ReaderAuth, &time)?;
 
         Ok(())
     }

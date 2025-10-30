@@ -5,13 +5,13 @@ enum WalletTransferStatus {
   waitingForScan,
 
   /// Waiting for the user to approve the transfer on the source device.
-  /// The state will progress to [transferring] once the source device has finished uploading the data.
+  /// The state will progress to [readyForDownload] once the source device has finished uploading the data.
   ///
   /// This state is not relevant for the source device.
   waitingForApprovalAndUpload,
 
-  /// The wallet data is being transferred & processed.
-  transferring,
+  /// The wallet data is ready to be downloaded on the target device.
+  readyForDownload,
 
   /// The transfer has been cancelled by the user on either device.
   cancelled,

@@ -100,7 +100,7 @@ android {
         applicationId = System.getenv("APPLICATION_ID") ?: "nl.ictu.edi.wallet.latest"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-build-configuration.
-        minSdk = 24
+        minSdk = 29
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName

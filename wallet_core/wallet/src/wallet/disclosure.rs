@@ -147,10 +147,10 @@ pub enum DisclosureError {
 }
 
 impl DisclosureError {
-    fn with_organization(error: VpSessionError, organization: Organization) -> Self {
+    fn with_organization(error: VpSessionError, organization: Box<Organization>) -> Self {
         match error {
             VpSessionError::Verifier(error) => Self::VpVerifierServer {
-                organization: Some(Box::new(organization)),
+                organization: Some(organization),
                 error,
             },
             error => error.into(),
@@ -1079,7 +1079,7 @@ mod tests {
     ) -> (MockDisclosureSession, VerifierCertificate) {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
-        let key_pair = generate_reader_mock_with_registration(&ca, Some(reader_registration)).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap();
 
         let disclosure_session =

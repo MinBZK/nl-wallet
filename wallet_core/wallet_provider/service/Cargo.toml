@@ -26,17 +26,18 @@ mock_play_integrity = ["android_attest/mock"]
 mock_secure_keys = ["crypto/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
-    "mock_play_integrity",
+    "apple_app_attest/mock",
+    "crypto/mock_secure_keys",
     "dep:anyhow",
     "dep:hmac",
-    "dep:rand_core",
     "dep:platform_support",
-    "apple_app_attest/mock",
+    "dep:rand_core",
+    "mock_play_integrity",
+    "sd_jwt/examples",
     "wallet_account/client",
     "wallet_provider_domain/mock",
     "wallet_provider_persistence",
     "wallet_provider_persistence/mock",
-    "crypto/mock_secure_keys",
 ]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["mock_secure_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provider_database_settings"]

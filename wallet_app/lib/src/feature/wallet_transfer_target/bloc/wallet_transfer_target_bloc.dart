@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/service/auto_lock_service.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
@@ -12,6 +13,7 @@ import '../../../domain/model/transfer/wallet_transfer_status.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
 import '../../../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import '../../../domain/usecase/transfer/receive_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import '../../../util/cast_util.dart';
 
@@ -23,6 +25,8 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
   final SkipWalletTransferUseCase _skipWalletTransferUseCase;
+  final ReceiveWalletTransferUseCase _receiveWalletTransferUseCase;
+  final AutoLockService _autoLockProvider;
 
   StreamSubscription? _statusSubscription;
 
@@ -31,12 +35,35 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     this._getWalletTransferStatusUseCase,
     this._cancelWalletTransferUsecase,
     this._skipWalletTransferUseCase,
+    this._receiveWalletTransferUseCase,
+    this._autoLockProvider,
   ) : super(const WalletTransferIntroduction()) {
     on<WalletTransferRestartEvent>(_onUserRestart);
     on<WalletTransferOptInEvent>(_onUserOptIn);
     on<WalletTransferOptOutEvent>(_onUserOptOut);
     on<WalletTransferStopRequestedEvent>(_onStopRequested);
     on<WalletTransferBackPressedEvent>(_onBackPressed);
+    on<WalletTransferUpdateStateEvent>((event, emit) => emit(event.state));
+  }
+
+  @override
+  void onChange(Change<WalletTransferTargetState> change) {
+    super.onChange(change);
+    switch (change.nextState) {
+      case WalletTransferLoadingQrData():
+      case WalletTransferAwaitingQrScan():
+      case WalletTransferAwaitingConfirmation():
+      case WalletTransferTransferring():
+        _autoLockProvider.setAutoLock(enabled: false);
+      case WalletTransferIntroduction():
+      case WalletTransferSuccess():
+      case WalletTransferStopped():
+      case WalletTransferGenericError():
+      case WalletTransferNetworkError():
+      case WalletTransferSessionExpired():
+      case WalletTransferFailed():
+        _autoLockProvider.setAutoLock(enabled: true);
+    }
   }
 
   FutureOr<void> _onUserRestart(WalletTransferRestartEvent event, Emitter<WalletTransferTargetState> emit) {
@@ -51,12 +78,12 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     emit(const WalletTransferLoadingQrData());
     final result = await _initWalletTransferUseCase.invoke();
     await result.process(
-      onSuccess: (qrData) async {
+      onSuccess: (qrData) {
         if (state is! WalletTransferLoadingQrData) return; // User cancelled
         emit(WalletTransferAwaitingQrScan(qrData));
-        await _startObservingStatus(qrData, emit);
+        _startObservingStatus(qrData);
       },
-      onError: (ApplicationError error) async => _handleError(error, emit),
+      onError: (ApplicationError error) async => _handleError(error),
     );
   }
 
@@ -65,41 +92,52 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     unawaited(_skipWalletTransferUseCase.invoke());
   }
 
-  FutureOr<void> _startObservingStatus(String qrData, Emitter<WalletTransferTargetState> emit) async {
+  Future<void> _startObservingStatus(String qrData) async {
     await _statusSubscription?.cancel();
-    _statusSubscription = _getWalletTransferStatusUseCase.invoke().listen((status) {
-      switch (status) {
-        case WalletTransferStatus.waitingForScan:
-          emit(WalletTransferAwaitingQrScan(qrData));
-        case WalletTransferStatus.waitingForApprovalAndUpload:
-          emit(const WalletTransferAwaitingConfirmation());
-        case WalletTransferStatus.transferring:
-          emit(const WalletTransferTransferring());
-        case WalletTransferStatus.error:
-          emit(WalletTransferFailed(GenericError('transfer_error', sourceError: status)));
-        case WalletTransferStatus.success:
-          emit(const WalletTransferSuccess());
-        case WalletTransferStatus.cancelled:
-          emit(const WalletTransferStopped());
-      }
-    });
-
-    try {
-      // Await the stream, this way the on<...> listener stays active and is allowed to emit states
-      await _statusSubscription?.asFuture(() {});
-    } catch (ex) {
-      Fimber.e('Status stream failed', ex: ex);
-      await _handleError(tryCast<ApplicationError>(ex) ?? GenericError('status_stream', sourceError: ex), emit);
-    }
+    _statusSubscription = _getWalletTransferStatusUseCase.invoke().listen(
+      (status) {
+        switch (status) {
+          case WalletTransferStatus.waitingForScan:
+            add(WalletTransferUpdateStateEvent(WalletTransferAwaitingQrScan(qrData)));
+          case WalletTransferStatus.waitingForApprovalAndUpload:
+            add(const WalletTransferUpdateStateEvent(WalletTransferAwaitingConfirmation()));
+          case WalletTransferStatus.readyForDownload:
+            _startReceiving();
+          case WalletTransferStatus.error:
+            final error = GenericError('transfer_error', sourceError: status);
+            add(WalletTransferUpdateStateEvent(WalletTransferFailed(error)));
+          case WalletTransferStatus.success:
+            add(const WalletTransferUpdateStateEvent(WalletTransferSuccess()));
+          case WalletTransferStatus.cancelled:
+            add(const WalletTransferUpdateStateEvent(WalletTransferStopped()));
+        }
+      },
+      onError: (ex) => _handleError(
+        tryCast<ApplicationError>(ex) ?? GenericError('transfer_status_stream_error', sourceError: ex),
+      ),
+    );
   }
 
   FutureOr<void> _onStopRequested(
     WalletTransferStopRequestedEvent event,
     Emitter<WalletTransferTargetState> emit,
   ) async {
-    unawaited(_statusSubscription?.cancel());
-    await _cancelWalletTransferUsecase.invoke();
-    emit(const WalletTransferStopped());
+    final result = await _cancelWalletTransferUsecase.invoke();
+    // We only want to emit a new state if the wallet is not already in a success/error state
+    bool maintainState(WalletTransferTargetState state) => state is WalletTransferSuccess || state is ErrorState;
+    await result.process(
+      onSuccess: (_) {
+        _statusSubscription?.cancel();
+        if (maintainState(state)) return;
+        emit(const WalletTransferStopped());
+      },
+      onError: (ex) {
+        Fimber.e('Failed to cancel wallet transfer', ex: ex);
+        _statusSubscription?.cancel();
+        if (maintainState(state)) return;
+        _handleError(ex);
+      },
+    );
   }
 
   FutureOr<void> _onBackPressed(WalletTransferBackPressedEvent event, Emitter<WalletTransferTargetState> emit) async {
@@ -110,19 +148,37 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     }
   }
 
-  Future<void> _handleError(ApplicationError error, Emitter<WalletTransferTargetState> emit) async {
+  Future<void> _handleError(ApplicationError error) async {
     switch (error) {
       case NetworkError():
-        emit(WalletTransferNetworkError(error));
+        add(WalletTransferUpdateStateEvent(WalletTransferNetworkError(error)));
       case SessionError():
-        emit(WalletTransferSessionExpired(error));
+        add(WalletTransferUpdateStateEvent(WalletTransferSessionExpired(error)));
       default:
-        emit(WalletTransferGenericError(error));
+        add(WalletTransferUpdateStateEvent(WalletTransferGenericError(error)));
     }
+  }
+
+  Future<void> _startReceiving() async {
+    final isTransferring = state is WalletTransferTransferring;
+    assert(!isTransferring, 'Wallet already in transferring state, should never attempt to receive twice!');
+    if (isTransferring) return;
+
+    // Stop polling for transfer status
+    await _statusSubscription?.cancel();
+    // Move to WalletTransferTransferring state
+    add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
+    // Start receiving and emit result
+    final result = await _receiveWalletTransferUseCase.invoke();
+    await result.process(
+      onSuccess: (_) => add(const WalletTransferUpdateStateEvent(WalletTransferSuccess())),
+      onError: _handleError,
+    );
   }
 
   @override
   Future<void> close() async {
+    _autoLockProvider.setAutoLock(enabled: true); // Always re-enable lock onClose
     await _statusSubscription?.cancel();
     return super.close();
   }

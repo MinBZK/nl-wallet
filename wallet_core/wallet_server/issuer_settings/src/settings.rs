@@ -12,7 +12,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::de;
 
-use attestation_data::x509::CertificateType;
 use attestation_types::qualification::AttestationQualification;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
@@ -65,7 +64,7 @@ pub struct AttestationTypeConfigSettings {
     pub valid_days: u64,
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
 
-    pub status_list_base_url: BaseUrl,
+    pub status_list: StatusListSettings,
 
     #[serde(default)]
     pub attestation_qualification: AttestationQualification,
@@ -73,6 +72,14 @@ pub struct AttestationTypeConfigSettings {
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct StatusListSettings {
+    pub base_url: BaseUrl,
+
+    #[serde(flatten)]
+    pub keypair: KeyPair,
 }
 
 fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<TypeMetadataByVct, D::Error>
@@ -137,7 +144,7 @@ impl AttestationTypesConfigSettings {
                     Days::new(attestation.valid_days),
                     attestation.copies_per_format,
                     issuer_uri,
-                    attestation.status_list_base_url,
+                    attestation.status_list.base_url,
                     attestation.attestation_qualification,
                     metadata_documents,
                 )?;
@@ -163,6 +170,12 @@ pub enum IssuerSettingsError {
     CertificateMissingSan { attestation_type: String, san: HttpsUri },
     #[error("multiple SANs in issuer certificate for {attestation_type}: which one to use was not specified")]
     CertificateSanUnspecified { attestation_type: String },
+    #[error("attestation and status list certificate subject are different {typ}: `{attestation}` vs `{status_list}`")]
+    CertificatesSubjectNameMismatch {
+        typ: String,
+        attestation: String,
+        status_list: String,
+    },
 }
 
 impl IssuerSettings {
@@ -210,13 +223,28 @@ impl IssuerSettings {
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.keypair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &trust_anchors,
-            CertificateUsage::Mdl,
-            &time,
-            |certificate_type| matches!(certificate_type, CertificateType::Mdl(Some(_))),
-        )?;
+        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::Mdl, &time)?;
+
+        let key_pairs: Vec<(&str, &KeyPair)> = self
+            .attestation_settings
+            .as_ref()
+            .iter()
+            .map(|(typ, attestation)| (typ.as_ref(), &attestation.status_list.keypair))
+            .collect();
+
+        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::OAuthStatusSigning, &time)?;
+
+        for (typ, attestation) in self.attestation_settings.as_ref() {
+            let attestation_dn = attestation.keypair.certificate.distinguished_name()?;
+            let status_list_dn = attestation.status_list.keypair.certificate.distinguished_name()?;
+            if attestation_dn != status_list_dn {
+                return Err(IssuerSettingsError::CertificatesSubjectNameMismatch {
+                    typ: typ.clone(),
+                    attestation: attestation_dn,
+                    status_list: status_list_dn,
+                });
+            }
+        }
 
         Ok(())
     }
@@ -230,10 +258,13 @@ mod tests {
     use indexmap::IndexMap;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::CertificateTypeError;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::x509::CertificateError;
+    use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
     use openid4vc::Format;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
@@ -245,14 +276,18 @@ mod tests {
     use server_utils::settings::Storage;
 
     use crate::settings::IssuerSettingsError;
+    use crate::settings::StatusListSettings;
 
     use super::AttestationTypeConfigSettings;
     use super::IssuerSettings;
 
-    fn mock_settings() -> IssuerSettings {
-        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let keypair = generate_issuer_mock_with_registration(&issuer_ca, Some(IssuerRegistration::new_mock()))
+    fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
+        let keypair = generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock())
             .expect("generate issuer cert failed")
+            .into();
+
+        let status_list_keypair = Ca::generate_status_list_mock(issuer_ca)
+            .expect("generate tsl cert failed")
             .into();
 
         IssuerSettings {
@@ -262,7 +297,10 @@ mod tests {
                     keypair,
                     valid_days: 365,
                     copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
-                    status_list_base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                    status_list: StatusListSettings {
+                        base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                        keypair: status_list_keypair,
+                    },
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
                 },
@@ -297,12 +335,14 @@ mod tests {
 
     #[test]
     fn test_validate() {
-        mock_settings().validate().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        mock_settings(&issuer_ca).validate().unwrap();
     }
 
     #[test]
     fn test_no_issuer_trust_anchors() {
-        let mut settings = mock_settings();
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        let mut settings = mock_settings(&issuer_ca);
 
         settings.server_settings.issuer_trust_anchors = vec![];
 
@@ -314,11 +354,16 @@ mod tests {
 
     #[test]
     fn test_no_issuer_registration() {
-        let mut settings = mock_settings();
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        let mut settings = mock_settings(&issuer_ca);
 
-        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
-        let issuer_cert_no_registration = generate_issuer_mock_with_registration(&issuer_ca, None)
+        let issuer_cert_no_registration = issuer_ca
+            .generate_issuer_mock()
             .expect("generate issuer cert without issuer registration");
+
+        let status_list_keypair = Ca::generate_status_list_mock(&issuer_ca)
+            .expect("generate tsl cert failed")
+            .into();
 
         settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
         settings.attestation_settings = HashMap::from([(
@@ -327,7 +372,10 @@ mod tests {
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
-                status_list_base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                status_list: StatusListSettings {
+                    base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                    keypair: status_list_keypair,
+                },
                 attestation_qualification: Default::default(),
                 certificate_san: None,
             },
@@ -352,14 +400,15 @@ mod tests {
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
-            IssuerSettingsError::CertificateVerification(CertificateVerificationError::IncompleteCertificateType(key))
+            IssuerSettingsError::CertificateVerification(CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key))
                 if key == "com.example.no_registration"
         );
     }
 
     #[test]
     fn test_wrong_san_field() {
-        let mut settings = mock_settings();
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        let mut settings = mock_settings(&issuer_ca);
 
         let wrong_san: HttpsUri = "https://wrong.san.example.com".parse().unwrap();
 
@@ -370,5 +419,41 @@ mod tests {
 
         let error = settings.validate().expect_err("should fail");
         assert_matches!(error, IssuerSettingsError::CertificateMissingSan { san, .. } if san == wrong_san);
+    }
+
+    #[test]
+    fn test_status_list_invalid_usage() {
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        let mut settings = mock_settings(&issuer_ca);
+
+        let (typ, attestation_settings) = settings.attestation_settings.as_ref().iter().next().unwrap();
+        let mut attestation_settings = attestation_settings.clone();
+        attestation_settings.status_list.keypair = attestation_settings.keypair.clone();
+        settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
+
+        let error = settings.validate().expect_err("should fail");
+        assert_matches!(error, IssuerSettingsError::CertificateVerification(CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)) if key == "com.example.pid");
+    }
+
+    #[test]
+    fn test_different_subject_field() {
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        let mut settings = mock_settings(&issuer_ca);
+
+        let status_list_keypair = issuer_ca
+            .generate_key_pair(
+                "different.example.com",
+                CertificateUsage::OAuthStatusSigning,
+                Default::default(),
+            )
+            .expect("generate tsl cert failed");
+
+        let (typ, attestation_settings) = settings.attestation_settings.as_ref().iter().next().unwrap();
+        let mut attestation_settings = attestation_settings.clone();
+        attestation_settings.status_list.keypair = status_list_keypair.into();
+        settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
+
+        let error = settings.validate().expect_err("should fail");
+        assert_matches!(error, IssuerSettingsError::CertificatesSubjectNameMismatch { typ, attestation, status_list } if typ == "com.example.pid" && attestation == "CN=cert.issuer.example.com" && status_list == "CN=different.example.com");
     }
 }

@@ -1597,7 +1597,7 @@ mod tests {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let reader_registration = Some(ReaderRegistration::new_mock());
+        let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([
             (
@@ -1997,7 +1997,7 @@ mod tests {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let reader_registration = Some(ReaderRegistration::new_mock());
+        let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),

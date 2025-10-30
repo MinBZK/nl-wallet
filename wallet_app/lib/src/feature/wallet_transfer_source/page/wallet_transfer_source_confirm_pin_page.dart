@@ -27,7 +27,8 @@ class WalletTransferSourceConfirmPinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<PinBloc>(
-      create: (BuildContext context) => bloc ?? PinBloc(context.read<StartWalletTransferUseCase>()),
+      create: (BuildContext context) =>
+          bloc ?? context.read<PinBloc?>() ?? PinBloc(context.read<StartWalletTransferUseCase>()),
       child: PinPage(
         headerBuilder: (context, attempts, isFinalRound) =>
             PinHeader(title: context.l10n.walletTransferSourceConfirmPinPageTitle),

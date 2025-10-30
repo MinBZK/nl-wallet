@@ -111,12 +111,10 @@ where
 
             Ok(Some(redirect_uri)) => Err(DisclosureBasedIssuanceError::UnexpectedScheme(
                 redirect_uri.scheme().to_string(),
-                Box::new(organization.clone()),
+                organization.clone(),
             ))?,
 
-            Ok(None) => Err(DisclosureBasedIssuanceError::MissingRedirectUri(Box::new(
-                organization.clone(),
-            )))?,
+            Ok(None) => Err(DisclosureBasedIssuanceError::MissingRedirectUri(organization.clone()))?,
 
             // If the issuer has no attestations to issue, return an empty Vec.
             Err(DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(err))))
@@ -130,24 +128,20 @@ where
 
         let query = redirect_uri
             .query()
-            .ok_or(DisclosureBasedIssuanceError::MissingRedirectUriQuery(Box::new(
+            .ok_or(DisclosureBasedIssuanceError::MissingRedirectUriQuery(
                 organization.clone(),
-            )))?;
+            ))?;
 
         let CredentialOfferContainer { credential_offer } = serde_urlencoded::from_str(query)
-            .map_err(|e| DisclosureBasedIssuanceError::UrlDecoding(e, Box::new(organization.clone())))?;
+            .map_err(|e| DisclosureBasedIssuanceError::UrlDecoding(e, organization.clone()))?;
 
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::PreAuthorizedCode {
                 pre_authorized_code: credential_offer
                     .grants
-                    .ok_or(DisclosureBasedIssuanceError::MissingGrants(Box::new(
-                        organization.clone(),
-                    )))?
+                    .ok_or(DisclosureBasedIssuanceError::MissingGrants(organization.clone()))?
                     .authorization_code()
-                    .ok_or(DisclosureBasedIssuanceError::MissingAuthorizationCode(Box::new(
-                        organization.clone(),
-                    )))?,
+                    .ok_or(DisclosureBasedIssuanceError::MissingAuthorizationCode(organization))?,
             },
             code_verifier: None,
             client_id: Some(NL_WALLET_CLIENT_ID.to_string()),
@@ -202,7 +196,6 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
@@ -230,7 +223,7 @@ mod tests {
     ) -> WalletDisclosureSession<MockDisclosureSession> {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_key_pair =
-            generate_reader_mock_with_registration(&reader_ca, Some(ReaderRegistration::new_mock())).unwrap();
+            generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock()).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(reader_key_pair.into()).unwrap().unwrap();
 
         let mut disclosure_session = MockDisclosureSession::new();
@@ -341,12 +334,12 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let mdoc = create_example_pid_mdoc();
+        let (mdoc, metadata) = create_example_pid_mdoc();
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
             StoredAttestation::MsoMdoc { mdoc },
-            NormalizedTypeMetadata::nl_pid_example(),
+            metadata,
         );
 
         let expectation_attestation_copy = stored_attestation_copy.clone();

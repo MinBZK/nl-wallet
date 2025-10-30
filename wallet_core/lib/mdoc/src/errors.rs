@@ -1,7 +1,6 @@
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 
-use crate::IssuerNameSpacesPreConditionError;
 use crate::holder::HolderError;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::KeysError;
@@ -35,12 +34,4 @@ pub enum Error {
 
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
-
-    #[error("Missing validity information: {0}")]
-    #[category(critical)]
-    MissingValidityInformation(String),
-
-    #[error("Missing or empty NameSpace detected: {0}")]
-    #[category(critical)]
-    MissingOrEmptyNamespace(#[from] IssuerNameSpacesPreConditionError),
 }

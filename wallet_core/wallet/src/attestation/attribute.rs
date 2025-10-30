@@ -29,7 +29,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_mdoc(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
-        issuer_organization: Organization,
+        issuer_organization: Box<Organization>,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -41,7 +41,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_sd_jwt_claims(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
-        issuer_organization: Organization,
+        issuer_organization: Box<Organization>,
         sd_jwt_claims: ObjectClaims,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -54,7 +54,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_attributes(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
-        issuer: Organization,
+        issuer: Box<Organization>,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {

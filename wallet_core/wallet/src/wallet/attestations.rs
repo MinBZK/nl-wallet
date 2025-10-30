@@ -77,19 +77,12 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
     use uuid::Uuid;
-
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-    use crypto::server_keys::generate::Ca;
-    use sd_jwt::builder::SignedSdJwt;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::create_example_pid_mdoc;
+    use crate::wallet::test::create_example_pid_sd_jwt;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
@@ -129,12 +122,9 @@ mod tests {
     async fn test_wallet_set_clear_documents_callback_registered() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair =
-            generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuance_keypair, holder_key.verifying_key()).into_verified();
+        let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
         let attestation_type = sd_jwt.claims().vct.clone();
+        let (mdoc, mdoc_metadata) = create_example_pid_mdoc();
 
         let storage = wallet.mut_storage();
         storage.expect_fetch_unique_attestations().return_once(move || {
@@ -146,15 +136,13 @@ mod tests {
                         key_identifier: "sd_jwt_key_id".to_string(),
                         sd_jwt,
                     },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    sd_jwt_metadata,
                 ),
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
-                    StoredAttestation::MsoMdoc {
-                        mdoc: create_example_pid_mdoc(),
-                    },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    StoredAttestation::MsoMdoc { mdoc },
+                    mdoc_metadata,
                 ),
             ])
         });
@@ -175,9 +163,9 @@ mod tests {
 
             let attestation = attestations
                 .first()
-                .expect("Attestations callback should have been called")
+                .expect("attestations callback should have been called")
                 .first()
-                .expect("Attestations callback should have been provided an Mdoc");
+                .expect("attestations callback should have been provided a document");
             assert_eq!(attestation.attestation_type, attestation_type);
         }
 

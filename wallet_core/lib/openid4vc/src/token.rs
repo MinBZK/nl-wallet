@@ -19,6 +19,7 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
+use attestation_data::x509::CertificateTypeError;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
@@ -209,11 +210,10 @@ impl CredentialPreview {
     }
 
     pub fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
-        let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&self.content.issuer_certificate)?
-        else {
-            Err(CredentialPreviewError::NoIssuerRegistration)?
+        let CertificateType::Mdl(issuer) = CertificateType::from_certificate(&self.content.issuer_certificate)? else {
+            Err(CredentialPreviewError::NoIssuerCertificate)?
         };
-        Ok(*issuer)
+        Ok(issuer)
     }
 }
 
@@ -223,9 +223,13 @@ pub enum CredentialPreviewError {
     #[category(defer)]
     Certificate(#[from] CertificateError),
 
-    #[error("issuer registration not found in certificate")]
+    #[error("certificate type error: {0}")]
+    #[category(defer)]
+    CertificateType(#[from] CertificateTypeError),
+
+    #[error("certificate is not an issuer certificate")]
     #[category(critical)]
-    NoIssuerRegistration,
+    NoIssuerCertificate,
 
     #[error("issuer URI {0} not found in SAN {1:?}")]
     #[category(pd)]

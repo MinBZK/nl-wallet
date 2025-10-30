@@ -330,17 +330,37 @@ function generate_pid_issuer_key_pair {
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "cert.issuer.example.com" \
+        --common-name "pid.example.com" \
         --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
         --force
 
     # Convert the PEM certificate to DER format
-    openssl x509 \
-            -in "${TARGET_DIR}/pid_issuer/issuer.crt.pem" \
-            -inform PEM \
-            -outform DER \
-            -out "${TARGET_DIR}/pid_issuer/issuer.crt.der"
+    openssl x509 -in "${TARGET_DIR}/pid_issuer/issuer.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/pid_issuer/issuer.crt.der"
+}
+
+# Generate an EC key pair for the pid_issuer
+function generate_pid_issuer_tsl_key_pair {
+    echo -e "${INFO}Generating PID Issuer TSL key pair${NC}"
+
+    # Generate a certificate for the public key including issuer authentication
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca tsl \
+        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
+        --common-name "pid.example.com" \
+        --file-prefix "${TARGET_DIR}/pid_issuer/tsl" \
+        --force
+
+    # Convert the PEM key to DER format
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/pid_issuer/tsl.key.pem" \
+        -out "${TARGET_DIR}/pid_issuer/tsl.key.der" -nocrypt
+
+    # Convert the PEM certificate to DER format
+    openssl x509 -in "${TARGET_DIR}/pid_issuer/tsl.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/pid_issuer/tsl.crt.der"
 }
 
 # Generate an EC key pairs for the demo_issuer
@@ -365,10 +385,20 @@ function generate_demo_issuer_key_pairs {
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.issuer" \
         --force
 
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca tsl \
+        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
+        --common-name "$1.example.com" \
+        --file-prefix "${TARGET_DIR}/demo_issuer/$1.tsl" \
+        --force
+
     openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.reader.crt.pem" \
         -outform der -out "${TARGET_DIR}/demo_issuer/$1.reader.crt.der"
     openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.issuer.crt.pem" \
         -outform der -out "${TARGET_DIR}/demo_issuer/$1.issuer.crt.der"
+    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.tsl.crt.pem" \
+        -outform der -out "${TARGET_DIR}/demo_issuer/$1.tsl.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/demo_issuer/$1.reader.key.pem" \
@@ -376,6 +406,9 @@ function generate_demo_issuer_key_pairs {
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/demo_issuer/$1.issuer.key.pem" \
         -out "${TARGET_DIR}/demo_issuer/$1.issuer.key.der" -nocrypt
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/demo_issuer/$1.tsl.key.pem" \
+        -out "${TARGET_DIR}/demo_issuer/$1.tsl.key.der" -nocrypt
 }
 
 # Generate an EC key pair for the demo_relying_party

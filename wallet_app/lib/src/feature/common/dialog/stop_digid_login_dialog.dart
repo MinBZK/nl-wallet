@@ -5,7 +5,7 @@ import '../../../util/extension/string_extension.dart';
 
 const _kRouteName = 'StopDigidLoginDialog';
 
-/// A dialog that asks the user if they want to stop the DigID login process.
+/// A dialog that asks the user if they want to stop the DigiD login process.
 class StopDigidLoginDialog extends StatelessWidget {
   const StopDigidLoginDialog({super.key});
 

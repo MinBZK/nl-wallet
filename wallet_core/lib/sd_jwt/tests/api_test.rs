@@ -173,7 +173,7 @@ async fn sd_jwt_without_disclosures_works() {
     let kb_verification_options = KbVerificationOptions {
         expected_aud: "https://example.com",
         expected_nonce: "abcdefghi",
-        iat_leeway: 0,
+        iat_leeway: Duration::ZERO,
         iat_acceptance_window: Duration::from_secs(60),
     };
 
@@ -360,7 +360,7 @@ async fn test_presentation() {
     let kb_verification_options = KbVerificationOptions {
         expected_aud: "https://example.com",
         expected_nonce: "abcdefghi",
-        iat_leeway: 0,
+        iat_leeway: Duration::ZERO,
         iat_acceptance_window: Duration::from_secs(60),
     };
 
@@ -446,7 +446,7 @@ fn test_wscd_presentation() {
     let kb_verification_options = KbVerificationOptions {
         expected_aud: "https://example.com",
         expected_nonce: "abcdefghi",
-        iat_leeway: 0,
+        iat_leeway: Duration::ZERO,
         iat_acceptance_window: Duration::from_secs(10 * 60),
     };
 

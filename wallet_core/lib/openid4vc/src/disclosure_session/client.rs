@@ -53,7 +53,7 @@ impl<H> VpDisclosureClient<H> {
             | VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
             | VpVerifierError::RpCertificate(_)
-            | VpVerifierError::MissingReaderRegistration
+            | VpVerifierError::NoReaderCertificate
             | VpVerifierError::RequestedAttributesValidation(_) => {
                 let error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
 
@@ -96,7 +96,7 @@ impl<H> VpDisclosureClient<H> {
         // Extract `ReaderRegistration` from the certificate.
         let verifier_certificate = VerifierCertificate::try_new(certificate)
             .map_err(VpVerifierError::RpCertificate)?
-            .ok_or(VpVerifierError::MissingReaderRegistration)?;
+            .ok_or(VpVerifierError::NoReaderCertificate)?;
 
         // Verify that the requested attributes are included in the reader authentication.
         verifier_certificate
@@ -224,6 +224,7 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::x509::CertificateTypeError;
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -792,7 +793,7 @@ mod tests {
     fn test_vp_disclosure_client_start_error_missing_reader_registration() {
         // Calling `VpDisclosureClient::start()` with an Authorization Request JWT that contains
         // a valid reader certificate but no `ReaderRegistration` should result in an error.
-        // Note that the test for `VpVerifierError::RpCertificate` is missing,
+        // Note that the test for `VpVerifierError::NoReaderCertificate` is missing,
         // which is too convoluted of an error condition to simulate.
         let (error, verifier_session) = start_disclosure_session(
             SessionType::SameDevice,
@@ -807,7 +808,9 @@ mod tests {
 
         assert_matches!(
             *error,
-            VpSessionError::Verifier(VpVerifierError::MissingReaderRegistration)
+            VpSessionError::Verifier(VpVerifierError::RpCertificate(
+                CertificateTypeError::ReaderRegistrationNotFound
+            ))
         );
 
         let wallet_messages = verifier_session.wallet_messages.lock();

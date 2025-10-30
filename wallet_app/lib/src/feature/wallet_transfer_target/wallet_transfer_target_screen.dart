@@ -26,7 +26,6 @@ import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../error/error_page.dart';
-import '../lock/auto_lock_provider.dart';
 import 'bloc/wallet_transfer_target_bloc.dart';
 import 'page/wallet_transfer_awaiting_confirmation_page.dart';
 import 'page/wallet_transfer_awaiting_scan_page.dart';
@@ -42,43 +41,10 @@ class WalletTransferTargetScreen extends StatefulWidget {
 
 class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
     with AfterLayoutMixin<WalletTransferTargetScreen>, LockStateMixin {
-  AutoLockProvider? _autoLockProvider;
-
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) {
     final showTransferStoppedDialog = ModalRoute.of(context)?.settings.arguments == true;
     if (showTransferStoppedDialog) context.read<NavigationService>().showDialog(WalletDialogType.moveStopped);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _autoLockProvider = AutoLockProvider.of(context);
-  }
-
-  @override
-  void dispose() {
-    // Re-enable when screen is disposed
-    _autoLockProvider?.setAutoLock(enabled: true);
-    super.dispose();
-  }
-
-  void _updateAutoLock(WalletTransferTargetState state) {
-    switch (state) {
-      case WalletTransferLoadingQrData():
-      case WalletTransferAwaitingQrScan():
-      case WalletTransferAwaitingConfirmation():
-      case WalletTransferTransferring():
-        _autoLockProvider?.setAutoLock(enabled: false);
-      case WalletTransferIntroduction():
-      case WalletTransferSuccess():
-      case WalletTransferStopped():
-      case WalletTransferGenericError():
-      case WalletTransferNetworkError():
-      case WalletTransferSessionExpired():
-      case WalletTransferFailed():
-        _autoLockProvider?.setAutoLock(enabled: true);
-    }
   }
 
   @override
@@ -94,7 +60,6 @@ class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
         ),
         body: BlocConsumer<WalletTransferTargetBloc, WalletTransferTargetState>(
           listener: (context, state) {
-            _updateAutoLock(state);
             context.read<ScrollOffset>().reset(); // Rest the scrollOffset used by fading title on page transitions
             DialogHelper.dismissOpenDialogs(context); // Dismiss potentially open stop sheet on page transitions
           },

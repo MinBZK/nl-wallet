@@ -131,7 +131,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
@@ -209,7 +209,7 @@ pub fn verified_sd_jwt_from_credential_payload(
     issuer_keypair: &KeyPair,
 ) -> VerifiedSdJwt {
     let sd_jwt = credential_payload
-        .into_sd_jwt(metadata, issuer_keypair)
+        .into_signed_sd_jwt(metadata, issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
@@ -218,10 +218,12 @@ pub fn verified_sd_jwt_from_credential_payload(
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
-pub fn create_example_pid_mdoc() -> Mdoc {
+pub fn create_example_pid_mdoc() -> (Mdoc, NormalizedTypeMetadata) {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key)
+    let mdoc = mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key);
+    (mdoc, metadata)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
@@ -229,16 +231,19 @@ pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayloa
     let private_key_id = crypto::utils::random_string(16);
     let holder_privkey = SigningKey::random(&mut OsRng);
 
-    preview_payload
-        .into_signed_mdoc_unverified(
-            Integrity::from(""),
-            private_key_id,
-            holder_privkey.verifying_key(),
-            issuer_keypair,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
+    let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+        preview_payload,
+        Utc::now(),
+        holder_privkey.verifying_key(),
+        Integrity::from(""),
+    )
+    .unwrap()
+    .into_signed_mdoc(issuer_keypair)
+    .now_or_never()
+    .unwrap()
+    .unwrap();
+
+    Mdoc::new_unverified(mso, private_key_id, issuer_signed)
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
