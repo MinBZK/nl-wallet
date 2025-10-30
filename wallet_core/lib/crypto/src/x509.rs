@@ -24,6 +24,7 @@ use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom;
 use x509_parser::nom::AsBytes;
+use x509_parser::objects::oid_registry;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
@@ -290,6 +291,14 @@ impl BorrowingCertificate {
 
     pub fn common_names(&self) -> Result<Vec<&str>, CertificateError> {
         x509_common_names(&self.x509_certificate().subject)
+    }
+
+    pub fn distinguished_name(&self) -> Result<String, CertificateError> {
+        let dn = self
+            .x509_certificate()
+            .subject
+            .to_string_with_registry(oid_registry())?;
+        Ok(dn)
     }
 
     /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
