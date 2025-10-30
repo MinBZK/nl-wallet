@@ -25,6 +25,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
+use attestation_types::claim_path::ClaimPath;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
@@ -37,8 +38,10 @@ use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::TaggedBytes;
+use sd_jwt::error::DecoderError;
 use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -204,6 +207,12 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
+
+    #[error(
+        "claim `{0:?}` selective disclosability metadata expected `{1:?}`, but actual is_selectively_disclosable: `{2}`"
+    )]
+    #[category(critical)]
+    SelectiveDisclosabiliby(Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata, bool),
 }
 
 #[derive(Clone, Debug)]
@@ -227,6 +236,53 @@ pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
     pub attestation_type: String,
     pub metadata_documents: VerifiedTypeMetadataDocuments,
+}
+
+impl CredentialWithMetadata {
+    pub fn verify_claim_disclosability(&self) -> Result<(), IssuanceSessionError> {
+        let normalized_metadata = self.metadata_documents.to_normalized()?;
+        // Only the first copy needs to be verified.
+        match self.copies.0.first() {
+            IssuedCredential::MsoMdoc { .. } => {
+                // All claims in an mdoc are selectively disclosable, so `Never` is not allowed in the metadata
+                for claim in normalized_metadata.claims() {
+                    if matches!(claim.sd, ClaimSelectiveDisclosureMetadata::Never) {
+                        Err(IssuanceSessionError::SelectiveDisclosabiliby(
+                            claim.path.clone().into_inner(),
+                            claim.sd,
+                            true,
+                        ))?;
+                    }
+                }
+            }
+            IssuedCredential::SdJwt { sd_jwt: first_copy, .. } => {
+                for claim in normalized_metadata.claims() {
+                    let is_selectively_disclosable = first_copy
+                        .is_selectively_disclosable(claim.path.as_slice())
+                        .map_err(DecoderError::ClaimStructure)?;
+                    match claim.sd {
+                        ClaimSelectiveDisclosureMetadata::Always if !is_selectively_disclosable => {
+                            Err(IssuanceSessionError::SelectiveDisclosabiliby(
+                                claim.path.clone().into_inner(),
+                                claim.sd,
+                                is_selectively_disclosable,
+                            ))?
+                        }
+                        ClaimSelectiveDisclosureMetadata::Never if is_selectively_disclosable => {
+                            Err(IssuanceSessionError::SelectiveDisclosabiliby(
+                                claim.path.clone().into_inner(),
+                                claim.sd,
+                                is_selectively_disclosable,
+                            ))?
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        };
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, AsRef)]
@@ -825,6 +881,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     preview.content.credential_payload.attestation_type.clone(),
                     verified_metadata,
                 ))
+            })
+            .map(|doc| {
+                doc.and_then(|doc| {
+                    // Verify whether the disclosability matches the metadata
+                    doc.verify_claim_disclosability()?;
+                    Ok(doc)
+                })
             })
             .try_collect()?;
 
