@@ -331,15 +331,9 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn complete_pin_recovery(&mut self, new_pin: String) -> Result<(), PinRecoveryError> {
-        let config = self.config_repository.get();
-
-        let new_pin_salt = new_pin_salt();
-
         self.complete_pin_recovery_internal(
             |instruction_client, pin_pubkey| PinRecoveryRemoteEcdsaWscd::new(instruction_client, pin_pubkey),
             new_pin,
-            new_pin_salt,
-            &config,
         )
         .await
     }
@@ -349,8 +343,6 @@ where
         &mut self,
         pin_recovery_wscd_factory: F,
         new_pin: String,
-        new_pin_salt: Vec<u8>,
-        config: &WalletConfiguration,
     ) -> Result<(), PinRecoveryError>
     where
         P: PinRecoveryWscd,
@@ -388,6 +380,7 @@ where
 
         // All sanity checks are done, we proceed with recovery.
 
+        let new_pin_salt = new_pin_salt();
         let pin_pubkey = PinKey {
             pin: &new_pin,
             salt: &new_pin_salt,
@@ -399,6 +392,7 @@ where
             ..registration_data.clone()
         };
 
+        let config = self.config_repository.get();
         let instruction_client = self
             .new_instruction_client(
                 new_pin.clone(),
@@ -550,7 +544,6 @@ mod tests {
     use crate::digid::MockDigidSession;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
-    use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
@@ -693,7 +686,6 @@ mod tests {
             .expect_upsert_data()
             .once()
             .returning(|registration_data: &RegistrationData| {
-                assert_eq!(registration_data.pin_salt, vec![1, 2, 3]);
                 assert_eq!(registration_data.wallet_certificate.serialization(), "a.b.c");
                 Ok(())
             });
@@ -751,12 +743,7 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         wallet
-            .complete_pin_recovery_internal(
-                |_, _| MockPinWscd,
-                "112233".to_string(),
-                vec![1, 2, 3],
-                &wallet.config_repository.get(),
-            )
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".to_string())
             .await
             .unwrap();
     }
@@ -976,12 +963,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let err = wallet
-            .complete_pin_recovery_internal(
-                |_, _| MockPinWscd,
-                "112233".to_string(),
-                vec![1, 2, 3],
-                &wallet.config_repository.get(),
-            )
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".to_string())
             .await
             .unwrap_err();
 
@@ -993,12 +975,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let err = wallet
-            .complete_pin_recovery_internal(
-                |_, _| MockPinWscd,
-                "112233".to_string(),
-                vec![1, 2, 3],
-                &wallet.config_repository.get(),
-            )
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".to_string())
             .await
             .unwrap_err();
 
@@ -1015,12 +992,7 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         let err = wallet
-            .complete_pin_recovery_internal(
-                |_, _| MockPinWscd,
-                "111111".to_string(),
-                vec![1, 2, 3],
-                &wallet.config_repository.get(),
-            )
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "111111".to_string())
             .await
             .unwrap_err();
 
