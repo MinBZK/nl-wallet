@@ -2216,7 +2216,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_confirm_transfer_should_fail_for_different_recovery_code() {
+    async fn should_handle_pair_transfer_should_fail_for_different_recovery_code() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.recovery_code = Some(String::from("recovery_code"));
@@ -2261,7 +2261,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_confirm_transfer_error_when_not_in_progress() {
+    async fn should_handle_pair_transfer_error_when_not_in_progress() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::Active;
@@ -2319,7 +2319,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_confirm_transfer_wrong_app_version() {
+    async fn should_handle_pair_transfer_wrong_app_version() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.recovery_code = Some(String::from("recovery_code"));
@@ -2709,7 +2709,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_prepare_send_wallet_payload_idempotency() {
+    async fn should_handle_confirm_wallet_payload_idempotency() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.recovery_code = Some(String::from("recovery_code"));

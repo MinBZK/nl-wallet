@@ -553,7 +553,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_confirm_transfer() {
+    async fn test_pair_transfer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let transfer_session_id = Uuid::new_v4();
@@ -601,7 +601,7 @@ mod tests {
         wallet
             .pair_transfer(transfer_uri.try_into().unwrap())
             .await
-            .expect("Wallet confirm transfer should have succeeded");
+            .expect("Wallet pair transfer should have succeeded");
     }
 
     #[tokio::test]
@@ -757,7 +757,7 @@ mod tests {
             .await
             .expect("Wallet init transfer should have succeeded");
 
-        // Then, confirm the transfer on the source wallet
+        // Then, pair the transfer on the source wallet
 
         Arc::get_mut(&mut source_wallet.account_provider_client)
             .unwrap()
@@ -776,7 +776,7 @@ mod tests {
         source_wallet
             .pair_transfer(transfer_url)
             .await
-            .expect("Wallet confirm transfer should have succeeded");
+            .expect("Wallet pair transfer should have succeeded");
 
         // Now both source and destination wallets should be able to request the session state
 
@@ -941,7 +941,7 @@ mod tests {
         source_wallet
             .pair_transfer(transfer_url.clone())
             .await
-            .expect("Wallet confirm transfer should have succeeded");
+            .expect("Wallet pair transfer should have succeeded");
 
         // Send the wallet payload from the source
 
@@ -1005,7 +1005,7 @@ mod tests {
         source_wallet
             .confirm_transfer(String::from("12345"))
             .await
-            .expect("Wallet prepare send payload should have succeeded");
+            .expect("Wallet confirm should have succeeded");
 
         source_wallet
             .mut_storage()
