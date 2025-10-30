@@ -1,13 +1,13 @@
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
-import '../../../domain/model/transfer/wallet_transfer_status.dart';
+import '../../../domain/model/transfer/transfer_session_state.dart';
 
 abstract class TransferRepository {
   Future<String> initWalletTransfer();
 
   Future<void> pairWalletTransfer(String uri);
 
-  Future<WalletInstructionResult> confirmWalletTransfer(String pin);
+  Future<core.WalletInstructionResult> confirmWalletTransfer(String pin);
 
   Future<void> transferWallet();
 
@@ -15,7 +15,7 @@ abstract class TransferRepository {
 
   Future<void> cancelWalletTransfer();
 
-  Future<WalletTransferStatus> getWalletTransferState();
+  Future<TransferSessionState> getWalletTransferState();
 
   Future<void> skipWalletTransfer();
 }

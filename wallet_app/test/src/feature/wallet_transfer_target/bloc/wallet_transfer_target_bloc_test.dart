@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
-import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
+import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart';
 import 'package:wallet/src/feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 
@@ -51,11 +51,11 @@ void main() {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
-            WalletTransferStatus.waitingForScan,
-            WalletTransferStatus.waitingForApprovalAndUpload,
-            WalletTransferStatus.readyForTransferConfirmed,
-            WalletTransferStatus.readyForDownload,
-            WalletTransferStatus.success,
+            TransferSessionState.created,
+            TransferSessionState.paired,
+            TransferSessionState.confirmed,
+            TransferSessionState.uploaded,
+            TransferSessionState.success,
           ]),
         );
       },
@@ -103,8 +103,8 @@ void main() {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
-            WalletTransferStatus.waitingForScan,
-            WalletTransferStatus.error,
+            TransferSessionState.created,
+            TransferSessionState.error,
           ]),
         );
       },
@@ -173,7 +173,7 @@ void main() {
         // Let status stream emit waitingForScan to reach the desired state
         when(
           mockGetWalletTransferStatusUseCase.invoke(),
-        ).thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
+        ).thenAnswer((_) => Stream.value(TransferSessionState.created).asBroadcastStream());
         when(mockCancelWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
       },
       act: (bloc) async {
@@ -209,7 +209,7 @@ void main() {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         when(
           mockGetWalletTransferStatusUseCase.invoke(),
-        ).thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
+        ).thenAnswer((_) => Stream.value(TransferSessionState.created).asBroadcastStream());
       },
       act: (bloc) async {
         bloc.add(const WalletTransferOptInEvent());
@@ -231,9 +231,9 @@ void main() {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
-            WalletTransferStatus.waitingForScan,
-            WalletTransferStatus.readyForTransferConfirmed,
-            WalletTransferStatus.readyForDownload,
+            TransferSessionState.created,
+            TransferSessionState.confirmed,
+            TransferSessionState.uploaded,
           ]).asBroadcastStream(),
         );
         when(

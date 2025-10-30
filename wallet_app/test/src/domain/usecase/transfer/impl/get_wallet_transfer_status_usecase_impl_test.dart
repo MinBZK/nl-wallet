@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
+import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart';
 import 'package:wallet/src/domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
@@ -17,7 +17,7 @@ void main() {
   group('GetWalletTransferStatusUseCaseImpl', () {
     test('should emit success and complete when repository returns success immediately', () async {
       // Arrange
-      when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async => WalletTransferStatus.success);
+      when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.success);
 
       // Act
       final stream = useCase.invoke();
@@ -26,7 +26,7 @@ void main() {
       await expectLater(
         stream,
         emitsInOrder([
-          WalletTransferStatus.success,
+          TransferSessionState.success,
           emitsDone,
         ]),
       );
@@ -39,7 +39,7 @@ void main() {
       when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async {
         final first = firstCall;
         firstCall = false;
-        return first ? WalletTransferStatus.readyForDownload : WalletTransferStatus.success;
+        return first ? TransferSessionState.uploaded : TransferSessionState.success;
       });
 
       // Act
@@ -49,8 +49,8 @@ void main() {
       await expectLater(
         stream,
         emitsInOrder([
-          WalletTransferStatus.readyForDownload,
-          WalletTransferStatus.success,
+          TransferSessionState.uploaded,
+          TransferSessionState.success,
           emitsDone,
         ]),
       );
@@ -59,7 +59,7 @@ void main() {
 
     test('should emit cancelled and complete when repository returns cancelled immediately', () async {
       // Arrange
-      when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async => WalletTransferStatus.cancelled);
+      when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.cancelled);
 
       // Act
       final stream = useCase.invoke();
@@ -68,7 +68,7 @@ void main() {
       await expectLater(
         stream,
         emitsInOrder([
-          WalletTransferStatus.cancelled,
+          TransferSessionState.cancelled,
           emitsDone,
         ]),
       );
@@ -77,7 +77,7 @@ void main() {
 
     test('should emit error and complete when repository returns error immediately', () async {
       // Arrange
-      when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async => WalletTransferStatus.error);
+      when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.error);
 
       // Act
       final stream = useCase.invoke();
@@ -86,7 +86,7 @@ void main() {
       await expectLater(
         stream,
         emitsInOrder([
-          WalletTransferStatus.error,
+          TransferSessionState.error,
           emitsDone,
         ]),
       );

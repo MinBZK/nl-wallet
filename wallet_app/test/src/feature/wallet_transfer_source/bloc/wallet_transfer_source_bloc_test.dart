@@ -4,7 +4,7 @@ import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
-import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
+import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart';
 import 'package:wallet/src/feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
 
 import '../../../mocks/wallet_mocks.dart';
@@ -60,9 +60,9 @@ void main() {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
-          WalletTransferStatus.readyForTransferConfirmed,
-          WalletTransferStatus.readyForDownload,
-          WalletTransferStatus.success,
+          TransferSessionState.confirmed,
+          TransferSessionState.uploaded,
+          TransferSessionState.success,
         ]).delay(const Duration(milliseconds: 10)),
       );
     },
@@ -97,7 +97,7 @@ void main() {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
-          WalletTransferStatus.readyForTransferConfirmed,
+          TransferSessionState.confirmed,
         ]).delay(const Duration(milliseconds: 10)),
       );
       when(
@@ -162,7 +162,7 @@ void main() {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(
         mockGetWalletTransferStatusUseCase.invoke(),
-      ).thenAnswer((_) => Stream.value(WalletTransferStatus.error).delay(const Duration(milliseconds: 10)));
+      ).thenAnswer((_) => Stream.value(TransferSessionState.error).delay(const Duration(milliseconds: 10)));
     },
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
@@ -189,7 +189,7 @@ void main() {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(
         mockGetWalletTransferStatusUseCase.invoke(),
-      ).thenAnswer((_) => Stream.value(WalletTransferStatus.cancelled).delay(const Duration(milliseconds: 10)));
+      ).thenAnswer((_) => Stream.value(TransferSessionState.cancelled).delay(const Duration(milliseconds: 10)));
     },
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));

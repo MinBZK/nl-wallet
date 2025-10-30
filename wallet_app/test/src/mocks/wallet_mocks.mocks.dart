@@ -54,7 +54,7 @@ import 'package:wallet/src/domain/model/event/wallet_event.dart' as _i31;
 import 'package:wallet/src/domain/model/result/result.dart' as _i57;
 import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart' as _i90;
 import 'package:wallet/src/domain/model/tour/tour_video.dart' as _i111;
-import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart' as _i41;
+import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart' as _i41;
 import 'package:wallet/src/domain/model/update/update_notification.dart' as _i45;
 import 'package:wallet/src/domain/model/update/version_state.dart' as _i37;
 import 'package:wallet/src/domain/model/wallet_card_detail.dart' as _i85;
@@ -2386,17 +2386,17 @@ class MockTransferRepository extends _i1.Mock implements _i40.TransferRepository
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i41.WalletTransferStatus> getWalletTransferState() =>
+  _i10.Future<_i41.TransferSessionState> getWalletTransferState() =>
       (super.noSuchMethod(
             Invocation.method(#getWalletTransferState, []),
-            returnValue: _i10.Future<_i41.WalletTransferStatus>.value(
-              _i41.WalletTransferStatus.waitingForScan,
+            returnValue: _i10.Future<_i41.TransferSessionState>.value(
+              _i41.TransferSessionState.created,
             ),
-            returnValueForMissingStub: _i10.Future<_i41.WalletTransferStatus>.value(
-              _i41.WalletTransferStatus.waitingForScan,
+            returnValueForMissingStub: _i10.Future<_i41.TransferSessionState>.value(
+              _i41.TransferSessionState.created,
             ),
           )
-          as _i10.Future<_i41.WalletTransferStatus>);
+          as _i10.Future<_i41.TransferSessionState>);
 
   @override
   _i10.Future<void> skipWalletTransfer() =>
@@ -5772,13 +5772,13 @@ class MockPairWalletTransferUseCase extends _i1.Mock implements _i117.PairWallet
 /// See the documentation for Mockito's code generation for more information.
 class MockGetWalletTransferStatusUseCase extends _i1.Mock implements _i118.GetWalletTransferStatusUseCase {
   @override
-  _i10.Stream<_i41.WalletTransferStatus> invoke() =>
+  _i10.Stream<_i41.TransferSessionState> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Stream<_i41.WalletTransferStatus>.empty(),
-            returnValueForMissingStub: _i10.Stream<_i41.WalletTransferStatus>.empty(),
+            returnValue: _i10.Stream<_i41.TransferSessionState>.empty(),
+            returnValueForMissingStub: _i10.Stream<_i41.TransferSessionState>.empty(),
           )
-          as _i10.Stream<_i41.WalletTransferStatus>);
+          as _i10.Stream<_i41.TransferSessionState>);
 
   @override
   _i10.Future<_i57.Result<T>> tryCatch<T>(

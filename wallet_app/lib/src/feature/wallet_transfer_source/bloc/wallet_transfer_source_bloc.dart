@@ -9,7 +9,7 @@ import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
-import '../../../domain/model/transfer/wallet_transfer_status.dart';
+import '../../../domain/model/transfer/transfer_session_state.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
 import '../../../domain/usecase/transfer/pair_wallet_transfer_usecase.dart';
@@ -141,18 +141,18 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     _statusSubscription = _getWalletTransferStatusUseCase.invoke().listen(
       (status) {
         switch (status) {
-          case WalletTransferStatus.waitingForScan:
-          case WalletTransferStatus.waitingForApprovalAndUpload:
-          case WalletTransferStatus.readyForTransferConfirmed:
+          case TransferSessionState.created:
+          case TransferSessionState.paired:
+          case TransferSessionState.confirmed:
             break;
-          case WalletTransferStatus.readyForDownload:
+          case TransferSessionState.uploaded:
             add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
-          case WalletTransferStatus.error:
+          case TransferSessionState.error:
             final walletTransferFailed = WalletTransferFailed(GenericError('transfer_error', sourceError: status));
             add(WalletTransferUpdateStateEvent(walletTransferFailed));
-          case WalletTransferStatus.success:
+          case TransferSessionState.success:
             add(const WalletTransferUpdateStateEvent(WalletTransferSuccess()));
-          case WalletTransferStatus.cancelled:
+          case TransferSessionState.cancelled:
             add(const WalletTransferUpdateStateEvent(WalletTransferStopped()));
         }
       },

@@ -1,5 +1,5 @@
 import '../../../../data/repository/transfer/transfer_repository.dart';
-import '../../../model/transfer/wallet_transfer_status.dart';
+import '../../../model/transfer/transfer_session_state.dart';
 import '../../wallet_usecase.dart';
 import '../get_wallet_transfer_status_usecase.dart';
 
@@ -10,18 +10,18 @@ import '../get_wallet_transfer_status_usecase.dart';
 class GetWalletTransferStatusUseCaseImpl extends GetWalletTransferStatusUseCase {
   final TransferRepository _transferRepository;
 
-  static const List<WalletTransferStatus> _terminalStates = [
-    WalletTransferStatus.success,
-    WalletTransferStatus.cancelled,
-    WalletTransferStatus.error,
+  static const List<TransferSessionState> _terminalStates = [
+    TransferSessionState.success,
+    TransferSessionState.cancelled,
+    TransferSessionState.error,
   ];
 
   GetWalletTransferStatusUseCaseImpl(this._transferRepository);
 
   @override
-  Stream<WalletTransferStatus> invoke() => observeWalletStatus().handleAppError('Failed to get transfer status');
+  Stream<TransferSessionState> invoke() => observeWalletStatus().handleAppError('Failed to get transfer status');
 
-  Stream<WalletTransferStatus> observeWalletStatus() async* {
+  Stream<TransferSessionState> observeWalletStatus() async* {
     while (true) {
       final status = await _transferRepository.getWalletTransferState();
       yield status;

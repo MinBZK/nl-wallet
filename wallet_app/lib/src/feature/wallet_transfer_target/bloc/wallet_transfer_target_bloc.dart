@@ -9,7 +9,7 @@ import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
-import '../../../domain/model/transfer/wallet_transfer_status.dart';
+import '../../../domain/model/transfer/transfer_session_state.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
 import '../../../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
@@ -97,20 +97,20 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     _statusSubscription = _getWalletTransferStatusUseCase.invoke().listen(
       (status) {
         switch (status) {
-          case WalletTransferStatus.waitingForScan:
+          case TransferSessionState.created:
             add(WalletTransferUpdateStateEvent(WalletTransferAwaitingQrScan(qrData)));
-          case WalletTransferStatus.waitingForApprovalAndUpload:
+          case TransferSessionState.paired:
             add(const WalletTransferUpdateStateEvent(WalletTransferAwaitingConfirmation()));
-          case WalletTransferStatus.readyForTransferConfirmed:
+          case TransferSessionState.confirmed:
             add(const WalletTransferUpdateStateEvent(WalletTransferTransferring(isReceiving: false)));
-          case WalletTransferStatus.readyForDownload:
+          case TransferSessionState.uploaded:
             _startReceiving();
-          case WalletTransferStatus.error:
+          case TransferSessionState.error:
             final error = GenericError('transfer_error', sourceError: status);
             add(WalletTransferUpdateStateEvent(WalletTransferFailed(error)));
-          case WalletTransferStatus.success:
+          case TransferSessionState.success:
             add(const WalletTransferUpdateStateEvent(WalletTransferSuccess()));
-          case WalletTransferStatus.cancelled:
+          case TransferSessionState.cancelled:
             add(const WalletTransferUpdateStateEvent(WalletTransferStopped()));
         }
       },
