@@ -67,7 +67,7 @@ use crate::authorization::ResponseType;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
-const SD_JWT_IAT_WINDOW_SECONDS: u64 = 15 * 60;
+const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
@@ -784,7 +784,7 @@ impl VpAuthorizationResponse {
                                 expected_aud: &auth_request.client_id,
                                 expected_nonce: &auth_request.nonce,
                                 iat_leeway: SD_JWT_IAT_LEEWAY,
-                                iat_acceptance_window: Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
+                                iat_acceptance_window: SD_JWT_IAT_WINDOW,
                             };
                             let presentation = unverified_presentation.into_verified_against_trust_anchors(
                                 trust_anchors,
