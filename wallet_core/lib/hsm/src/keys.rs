@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use derive_more::Constructor;
+use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
@@ -11,9 +12,10 @@ use crate::model::Hsm;
 use crate::service::HsmError;
 use crate::service::Pkcs11Hsm;
 
-#[derive(Constructor)]
+#[derive(Debug, Clone, Constructor)]
 pub struct HsmEcdsaKey {
     identifier: String,
+    #[debug(skip)]
     hsm: Pkcs11Hsm,
 }
 

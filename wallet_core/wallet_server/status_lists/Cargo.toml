@@ -43,6 +43,7 @@ url.workspace = true
 
 crypto.path = "../../lib/crypto"
 http_utils.path = "../../lib/http_utils"
+hsm.path = "../../lib/hsm"
 server_utils.path = "../server_utils"
 token_status_list.path = "../../lib/token_status_list"
 utils.path = "../../lib/utils"
@@ -53,6 +54,7 @@ assert_matches.workspace = true
 config.workspace = true
 futures.workspace = true
 indexmap.workspace = true
+p256.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 uuid = { workspace = true, features = ["v4"] }
 

@@ -33,8 +33,11 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crypto::EcdsaKeySend;
+use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::BaseUrlError;
+use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list_service::StatusListService;
@@ -62,7 +65,7 @@ const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
 ///
 /// See [PostgresStatusListService] for more.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListServices(HashMap<String, PostgresStatusListService>);
+pub struct PostgresStatusListServices<K: EcdsaKeySend>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -81,7 +84,7 @@ pub struct PostgresStatusListServices(HashMap<String, PostgresStatusListService>
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListService {
+pub struct PostgresStatusListService<K: EcdsaKeySend> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
@@ -91,6 +94,7 @@ pub struct PostgresStatusListService {
 
     base_url: BaseUrl,
     _publish_dir: PathBuf,
+    _key_pair: KeyPair<K>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -130,7 +134,10 @@ pub struct StatusListLocation {
     pub index: u32,
 }
 
-impl StatusListService for PostgresStatusListServices {
+impl<K> StatusListService for PostgresStatusListServices<K>
+where
+    K: EcdsaKeySend + Sync + 'static + Clone,
+{
     type Error = StatusListServiceError;
 
     async fn obtain_status_claims(
@@ -157,7 +164,7 @@ impl StatusListService for PostgresStatusListServices {
     }
 }
 
-impl PostgresStatusListServices {
+impl PostgresStatusListServices<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
         configs: StatusListConfigs,
@@ -184,19 +191,26 @@ impl PostgresStatusListServices {
                     create_threshold: config.create_threshold,
                     base_url: config.base_url,
                     _publish_dir: publish_dir,
+                    _key_pair: config.key_pair,
                 };
                 (attestation_type, service)
             })
             .collect();
         Ok(PostgresStatusListServices(services))
     }
+}
+
+impl<K> PostgresStatusListServices<K>
+where
+    K: EcdsaKeySend + Sync + 'static + Clone,
+{
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
     }
 }
 
-impl PostgresStatusListService {
+impl PostgresStatusListService<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
         attestation_type: &str,
@@ -216,9 +230,15 @@ impl PostgresStatusListService {
             create_threshold: config.create_threshold,
             base_url: config.base_url,
             _publish_dir: check_publish_dir(&config.publish_dir).await?,
+            _key_pair: config.key_pair,
         })
     }
+}
 
+impl<K> PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + 'static + Clone,
+{
     pub async fn obtain_status_claims(
         &self,
         batch_id: Uuid,
@@ -657,9 +677,11 @@ async fn check_publish_dir(publish_dir: &Path) -> Result<PathBuf, StatusListServ
 mod tests {
     use assert_matches::assert_matches;
 
+    use crypto::server_keys::generate::Ca;
+
     use super::*;
 
-    fn mock_service() -> PostgresStatusListService {
+    fn mock_service() -> PostgresStatusListService<impl EcdsaKeySend + Clone> {
         PostgresStatusListService {
             connection: DatabaseConnection::default(),
             attestation_type_id: 1,
@@ -667,6 +689,10 @@ mod tests {
             create_threshold: 1.try_into().unwrap(),
             base_url: "https://example.com/tsl".parse().unwrap(),
             _publish_dir: std::env::temp_dir(),
+            _key_pair: Ca::generate_issuer_mock_ca()
+                .unwrap()
+                .generate_status_list_mock()
+                .unwrap(),
         }
     }
 

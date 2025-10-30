@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -14,7 +13,7 @@ use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 use server_utils::store::postgres::new_connection;
-use status_lists::config::StatusListConfig;
+use status_lists::config::StatusListConfigs;
 use status_lists::postgres::PostgresStatusListServices;
 
 #[tokio::main]
@@ -53,16 +52,14 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             "No database connection configured for status list in pid issuer"
         )),
     }?;
-    let status_list_configs = (&issuer_settings.attestation_settings)
-        .into_iter()
-        .map(|(id, type_settings)| {
-            (
-                id.to_owned(),
-                StatusListConfig::from_settings(&settings.status_lists, &type_settings.status_list),
-            )
-        })
-        .collect::<HashMap<_, _>>()
-        .into();
+    let status_list_configs = StatusListConfigs::from_settings(
+        &settings.status_lists,
+        (&issuer_settings.attestation_settings)
+            .into_iter()
+            .map(|(id, settings)| (id.to_owned(), settings.status_list.clone())),
+        &hsm,
+    )
+    .await?;
     let status_list_service = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
     status_list_service.initialize_lists().await?;
 
