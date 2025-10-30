@@ -85,6 +85,9 @@ enum FlutterApiErrorType {
     /// The wrong DigiD was used for PID renewal or PIN recovery.
     WrongDigid,
 
+    /// DigiD authentication was cancelled.
+    DeniedDigid,
+
     /// Indicating something unexpected went wrong.
     Generic,
 }
@@ -243,7 +246,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
-            IssuanceError::DeniedDigiD => FlutterApiErrorType::CancelledSession,
+            IssuanceError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -499,7 +502,7 @@ impl FlutterApiErrorFields for PinRecoveryError {
             PinRecoveryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
-            PinRecoveryError::DeniedDigiD => FlutterApiErrorType::CancelledSession,
+            PinRecoveryError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
             PinRecoveryError::IncorrectRecoveryCode { .. } => FlutterApiErrorType::WrongDigid,
             PinRecoveryError::MissingPid | PinRecoveryError::MissingRecoveryCode => FlutterApiErrorType::Issuer,
             PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
