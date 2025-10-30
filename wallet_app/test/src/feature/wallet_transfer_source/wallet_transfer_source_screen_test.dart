@@ -8,7 +8,7 @@ import 'package:wallet/src/data/repository/configuration/configuration_repositor
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
-import 'package:wallet/src/domain/usecase/transfer/prepare_wallet_transfer_usecase.dart';
+import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
 import 'package:wallet/src/feature/wallet_transfer_source/wallet_transfer_source_screen.dart';
@@ -67,7 +67,7 @@ void main() {
           const WalletTransferConfirmPin(),
         ),
         providers: [
-          RepositoryProvider<PrepareWalletTransferUseCase>(create: (c) => MockPrepareWalletTransferUseCase()),
+          RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => MockConfirmWalletTransferUseCase()),
         ],
       );
       await screenMatchesGolden('wallet_transfer_confirm_pin.light');
@@ -79,7 +79,7 @@ void main() {
           const WalletTransferTransferring(),
         ),
         providers: [
-          RepositoryProvider<PrepareWalletTransferUseCase>(create: (c) => MockPrepareWalletTransferUseCase()),
+          RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => MockConfirmWalletTransferUseCase()),
         ],
       );
       await screenMatchesGolden('wallet_transfer_transferring.light');
@@ -206,7 +206,7 @@ void main() {
           const WalletTransferConfirmPin(),
         ),
         providers: [
-          RepositoryProvider<PrepareWalletTransferUseCase>(create: (c) => MockPrepareWalletTransferUseCase()),
+          RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => MockConfirmWalletTransferUseCase()),
         ],
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -220,7 +220,7 @@ void main() {
           const WalletTransferTransferring(),
         ),
         providers: [
-          RepositoryProvider<PrepareWalletTransferUseCase>(create: (c) => MockPrepareWalletTransferUseCase()),
+          RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => MockConfirmWalletTransferUseCase()),
         ],
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -301,7 +301,7 @@ void main() {
         MockWalletTransferSourceBloc(),
         const WalletTransferTransferring(),
       ),
-      providers: [RepositoryProvider<PrepareWalletTransferUseCase>(create: (c) => MockPrepareWalletTransferUseCase())],
+      providers: [RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => MockConfirmWalletTransferUseCase())],
     );
 
     await tester.tap(find.text('Stop'));

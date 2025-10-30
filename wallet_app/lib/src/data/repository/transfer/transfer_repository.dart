@@ -5,9 +5,9 @@ import '../../../domain/model/transfer/wallet_transfer_status.dart';
 abstract class TransferRepository {
   Future<String> initWalletTransfer();
 
-  Future<void> acknowledgeWalletTransfer(String uri);
+  Future<void> pairWalletTransfer(String uri);
 
-  Future<WalletInstructionResult> prepareTransferWallet(String pin);
+  Future<WalletInstructionResult> confirmWalletTransfer(String pin);
 
   Future<void> transferWallet();
 

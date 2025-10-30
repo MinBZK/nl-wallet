@@ -32,11 +32,11 @@ void main() {
     group('acknowledgeWalletTransfer', () {
       test('should call walletCore.acknowledgeWalletTransfer with the given uri', () async {
         const testUri = 'test_uri';
-        when(mockWalletCore.acknowledgeWalletTransfer(testUri)).thenAnswer((_) async {});
+        when(mockWalletCore.pairWalletTransfer(testUri)).thenAnswer((_) async {});
 
-        await transferRepository.acknowledgeWalletTransfer(testUri);
+        await transferRepository.pairWalletTransfer(testUri);
 
-        verify(mockWalletCore.acknowledgeWalletTransfer(testUri)).called(1);
+        verify(mockWalletCore.pairWalletTransfer(testUri)).called(1);
       });
     });
 
@@ -44,12 +44,12 @@ void main() {
       test('should call walletCore.prepareTransferWallet and return its result', () async {
         const pin = '1234';
         const expectedResult = WalletInstructionResult_Ok();
-        when(mockWalletCore.prepareTransferWallet(pin)).thenAnswer((_) async => expectedResult);
+        when(mockWalletCore.confirmWalletTransfer(pin)).thenAnswer((_) async => expectedResult);
 
-        final result = await transferRepository.prepareTransferWallet(pin);
+        final result = await transferRepository.confirmWalletTransfer(pin);
 
         expect(result, expectedResult);
-        verify(mockWalletCore.prepareTransferWallet(pin)).called(1);
+        verify(mockWalletCore.confirmWalletTransfer(pin)).called(1);
       });
     });
 
@@ -81,16 +81,22 @@ void main() {
         expect(result, WalletTransferStatus.waitingForScan);
       });
 
-      test('should return WalletTransferStatus.waitingForApproval when walletCore returns ReadyForTransfer', () async {
-        when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.ReadyForTransfer);
+      test('should return WalletTransferStatus.waitingForApproval when walletCore returns Paired', () async {
+        when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.Paired);
         final result = await transferRepository.getWalletTransferState();
         expect(result, WalletTransferStatus.waitingForApprovalAndUpload);
       });
 
-      test('should return WalletTransferStatus.transferring when walletCore returns ReadyForDownload', () async {
-        when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.ReadyForDownload);
+      test('should return WalletTransferStatus.transferring when walletCore returns Uploaded', () async {
+        when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.Uploaded);
         final result = await transferRepository.getWalletTransferState();
         expect(result, WalletTransferStatus.readyForDownload);
+      });
+
+      test('should return WalletTransferStatus.transferring when walletCore returns Uploaded', () async {
+        when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.Confirmed);
+        final result = await transferRepository.getWalletTransferState();
+        expect(result, WalletTransferStatus.readyForTransferConfirmed);
       });
 
       test('should return WalletTransferStatus.success when walletCore returns Success', () async {
@@ -100,7 +106,7 @@ void main() {
       });
 
       test('should return WalletTransferStatus.cancelled when walletCore returns Cancelled', () async {
-        when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.Cancelled);
+        when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.Canceled);
         final result = await transferRepository.getWalletTransferState();
         expect(result, WalletTransferStatus.cancelled);
       });

@@ -10,9 +10,9 @@ import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/model/transfer/wallet_transfer_status.dart';
-import '../../../domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
+import '../../../domain/usecase/transfer/pair_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../../../util/cast_util.dart';
 
@@ -20,7 +20,7 @@ part 'wallet_transfer_source_event.dart';
 part 'wallet_transfer_source_state.dart';
 
 class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTransferSourceState> {
-  final AcknowledgeWalletTransferUseCase _ackWalletTransferUseCase;
+  final PairWalletTransferUseCase _ackWalletTransferUseCase;
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
   final StartWalletTransferUseCase _startWalletTransferUseCase;

@@ -13,10 +13,10 @@ class CoreTransferRepository implements TransferRepository {
   Future<String> initWalletTransfer() => _walletCore.initWalletTransfer();
 
   @override
-  Future<void> acknowledgeWalletTransfer(String uri) => _walletCore.acknowledgeWalletTransfer(uri);
+  Future<void> pairWalletTransfer(String uri) => _walletCore.pairWalletTransfer(uri);
 
   @override
-  Future<WalletInstructionResult> prepareTransferWallet(String pin) => _walletCore.prepareTransferWallet(pin);
+  Future<WalletInstructionResult> confirmWalletTransfer(String pin) => _walletCore.confirmWalletTransfer(pin);
 
   @override
   Future<void> transferWallet() => _walletCore.transferWallet();
@@ -32,11 +32,11 @@ class CoreTransferRepository implements TransferRepository {
     final result = await _walletCore.getWalletTransferState();
     return switch (result) {
       TransferSessionState.Created => WalletTransferStatus.waitingForScan,
-      TransferSessionState.ReadyForTransfer => WalletTransferStatus.waitingForApprovalAndUpload,
-      TransferSessionState.ReadyForTransferConfirmed => WalletTransferStatus.readyForTransferConfirmed,
-      TransferSessionState.ReadyForDownload => WalletTransferStatus.readyForDownload,
+      TransferSessionState.Paired => WalletTransferStatus.waitingForApprovalAndUpload,
+      TransferSessionState.Confirmed => WalletTransferStatus.readyForTransferConfirmed,
+      TransferSessionState.Uploaded => WalletTransferStatus.readyForDownload,
       TransferSessionState.Success => WalletTransferStatus.success,
-      TransferSessionState.Cancelled => WalletTransferStatus.cancelled,
+      TransferSessionState.Canceled => WalletTransferStatus.cancelled,
       TransferSessionState.Error => WalletTransferStatus.error,
     };
   }

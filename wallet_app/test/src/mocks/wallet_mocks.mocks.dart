@@ -107,11 +107,11 @@ import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart' as _i89;
 import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart' as _i110;
 import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart' as _i73;
 import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart' as _i109;
-import 'package:wallet/src/domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart' as _i117;
 import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i116;
+import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart' as _i114;
 import 'package:wallet/src/domain/usecase/transfer/get_wallet_transfer_status_usecase.dart' as _i118;
 import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart' as _i119;
-import 'package:wallet/src/domain/usecase/transfer/prepare_wallet_transfer_usecase.dart' as _i114;
+import 'package:wallet/src/domain/usecase/transfer/pair_wallet_transfer_usecase.dart' as _i117;
 import 'package:wallet/src/domain/usecase/transfer/receive_wallet_transfer_usecase.dart' as _i126;
 import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart' as _i120;
 import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart' as _i115;
@@ -2329,30 +2329,30 @@ class MockTransferRepository extends _i1.Mock implements _i40.TransferRepository
           as _i10.Future<String>);
 
   @override
-  _i10.Future<void> acknowledgeWalletTransfer(String? uri) =>
+  _i10.Future<void> pairWalletTransfer(String? uri) =>
       (super.noSuchMethod(
-            Invocation.method(#acknowledgeWalletTransfer, [uri]),
+            Invocation.method(#pairWalletTransfer, [uri]),
             returnValue: _i10.Future<void>.value(),
             returnValueForMissingStub: _i10.Future<void>.value(),
           )
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> prepareTransferWallet(
+  _i10.Future<_i26.WalletInstructionResult> confirmWalletTransfer(
     String? pin,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#prepareTransferWallet, [pin]),
+            Invocation.method(#confirmWalletTransfer, [pin]),
             returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
               _i14.dummyValue<_i26.WalletInstructionResult>(
                 this,
-                Invocation.method(#prepareTransferWallet, [pin]),
+                Invocation.method(#confirmWalletTransfer, [pin]),
               ),
             ),
             returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
               _i14.dummyValue<_i26.WalletInstructionResult>(
                 this,
-                Invocation.method(#prepareTransferWallet, [pin]),
+                Invocation.method(#confirmWalletTransfer, [pin]),
               ),
             ),
           )
@@ -2947,30 +2947,30 @@ class MockTypedWalletCore extends _i1.Mock implements _i42.TypedWalletCore {
           as _i10.Future<String>);
 
   @override
-  _i10.Future<void> acknowledgeWalletTransfer(String? uri) =>
+  _i10.Future<void> pairWalletTransfer(String? uri) =>
       (super.noSuchMethod(
-            Invocation.method(#acknowledgeWalletTransfer, [uri]),
+            Invocation.method(#pairWalletTransfer, [uri]),
             returnValue: _i10.Future<void>.value(),
             returnValueForMissingStub: _i10.Future<void>.value(),
           )
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> prepareTransferWallet(
+  _i10.Future<_i26.WalletInstructionResult> confirmWalletTransfer(
     String? pin,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#prepareTransferWallet, [pin]),
+            Invocation.method(#confirmWalletTransfer, [pin]),
             returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
               _i14.dummyValue<_i26.WalletInstructionResult>(
                 this,
-                Invocation.method(#prepareTransferWallet, [pin]),
+                Invocation.method(#confirmWalletTransfer, [pin]),
               ),
             ),
             returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
               _i14.dummyValue<_i26.WalletInstructionResult>(
                 this,
-                Invocation.method(#prepareTransferWallet, [pin]),
+                Invocation.method(#confirmWalletTransfer, [pin]),
               ),
             ),
           )
@@ -5583,10 +5583,10 @@ class MockGetPidCardsUseCase extends _i1.Mock implements _i113.GetPidCardsUseCas
           as _i10.Future<_i57.Result<T>>);
 }
 
-/// A class which mocks [PrepareWalletTransferUseCase].
+/// A class which mocks [ConfirmWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPrepareWalletTransferUseCase extends _i1.Mock implements _i114.PrepareWalletTransferUseCase {
+class MockConfirmWalletTransferUseCase extends _i1.Mock implements _i114.ConfirmWalletTransferUseCase {
   @override
   _i10.Future<_i57.Result<void>> invoke(String? pin) =>
       (super.noSuchMethod(
@@ -5721,10 +5721,10 @@ class MockCancelWalletTransferUseCase extends _i1.Mock implements _i116.CancelWa
           as _i10.Future<_i57.Result<T>>);
 }
 
-/// A class which mocks [AcknowledgeWalletTransferUseCase].
+/// A class which mocks [PairWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcknowledgeWalletTransferUseCase extends _i1.Mock implements _i117.AcknowledgeWalletTransferUseCase {
+class MockPairWalletTransferUseCase extends _i1.Mock implements _i117.PairWalletTransferUseCase {
   @override
   _i10.Future<_i57.Result<void>> invoke(String? uri) =>
       (super.noSuchMethod(

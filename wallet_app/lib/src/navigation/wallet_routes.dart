@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
-import '../domain/usecase/transfer/prepare_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
 import '../feature/about/about_screen.dart';
 import '../feature/biometric_settings/biometric_settings_screen.dart';
 import '../feature/biometric_settings/bloc/biometric_settings_bloc.dart';
@@ -605,7 +605,7 @@ WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
             return bloc;
           },
         ),
-        BlocProvider<PinBloc>(create: (BuildContext context) => PinBloc(context.read<PrepareWalletTransferUseCase>())),
+        BlocProvider<PinBloc>(create: (BuildContext context) => PinBloc(context.read<ConfirmWalletTransferUseCase>())),
       ],
       child: const WalletTransferSourceScreen(),
     );
