@@ -274,14 +274,14 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?
             .pop()
-            .expect("no PID found in registered wallet");
+            .ok_or(PinRecoveryError::NoPidPresent)?;
 
         let attestation_type = stored_pid_copy.attestation_type().to_string();
         let attributes = stored_pid_copy.into_attributes();
         let stored_recovery_code = attributes
             .get(&Self::recovery_code_path(&config.pid_attributes, &attestation_type))
             .expect("failed to retrieve recovery code from PID")
-            .expect("no recovery code found in PID");
+            .ok_or(PinRecoveryError::MissingRecoveryCode)?;
 
         if *stored_recovery_code != received_recovery_code {
             return Err(PinRecoveryError::IncorrectRecoveryCode {
