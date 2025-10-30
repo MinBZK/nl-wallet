@@ -7,7 +7,6 @@ use tracing::instrument;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
-use attestation_data::attributes::AttributesHandlingError;
 use attestation_types::claim_path::ClaimPath;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -112,10 +111,6 @@ pub enum PinRecoveryError {
     #[error("user denied DigiD authentication")]
     #[category(expected)]
     DeniedDigiD,
-
-    #[error("failed to retrieve recovery code attribute: {0}")]
-    #[category(pd)]
-    AttributesHandling(#[from] AttributesHandlingError),
 
     #[error("could not query attestations in database: {0}")]
     AttestationQuery(#[source] StorageError),
@@ -321,7 +316,8 @@ where
             .get(&Self::recovery_code_path(
                 &config.pid_attributes,
                 &pid_preview.content.credential_payload.attestation_type,
-            ))?
+            ))
+            .expect("failed to retrieve recovery code from PID")
             .ok_or(PinRecoveryError::MissingRecoveryCode)?
             .clone();
 
