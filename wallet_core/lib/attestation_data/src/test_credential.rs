@@ -10,6 +10,16 @@ use itertools::Itertools;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+use attestation_types::pid_constants::PID_BIRTH_DATE;
+use attestation_types::pid_constants::PID_BSN;
+use attestation_types::pid_constants::PID_FAMILY_NAME;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_RESIDENT_CITY;
+use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
+use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use dcql::CredentialFormat;
@@ -37,16 +47,6 @@ use crate::credential_payload::CredentialPayload;
 use crate::credential_payload::PreviewableCredentialPayload;
 use crate::disclosure::DisclosedAttestations;
 use crate::disclosure::DisclosedAttributes;
-use crate::pid_constants::PID_ADDRESS_GROUP;
-use crate::pid_constants::PID_BIRTH_DATE;
-use crate::pid_constants::PID_BSN;
-use crate::pid_constants::PID_FAMILY_NAME;
-use crate::pid_constants::PID_GIVEN_NAME;
-use crate::pid_constants::PID_RESIDENT_CITY;
-use crate::pid_constants::PID_RESIDENT_COUNTRY;
-use crate::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::pid_constants::PID_RESIDENT_POSTAL_CODE;
-use crate::pid_constants::PID_RESIDENT_STREET;
 
 /// A collection of [`TestCredential`] types, which are guaranteed to contain different credential query identifiers.
 /// It provides aggregate versions of the methods present on that type. It also allows [`TestCredentials`] to be be

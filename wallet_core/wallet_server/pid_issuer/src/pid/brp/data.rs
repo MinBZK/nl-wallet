@@ -6,7 +6,20 @@ use serde_with::skip_serializing_none;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
-use attestation_data::pid_constants::*;
+use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+use attestation_types::pid_constants::PID_AGE_OVER_18;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_BIRTH_DATE;
+use attestation_types::pid_constants::PID_BSN;
+use attestation_types::pid_constants::PID_FAMILY_NAME;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_NATIONALITY;
+use attestation_types::pid_constants::PID_RESIDENT_CITY;
+use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
+use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Deserialize)]
@@ -292,8 +305,8 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_data::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;

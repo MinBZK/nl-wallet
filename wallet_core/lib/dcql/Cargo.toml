@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 examples = []
-mock = ["mdoc/examples", "mdoc/mock_example_constructors"]
+mock = ["attestation_types/pid_constants", "mdoc/examples", "mdoc/mock_example_constructors"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["constructor", "into_iterator"] }

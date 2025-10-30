@@ -139,6 +139,7 @@ mod tests {
     use rand_core::OsRng;
     use ssri::Integrity;
 
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
     use mdoc::utils::serialization::TaggedBytes;
@@ -156,7 +157,6 @@ mod tests {
     use crate::credential_payload::MdocCredentialPayloadError;
     use crate::credential_payload::MdocParts;
     use crate::credential_payload::PreviewableCredentialPayload;
-    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     #[tokio::test]
     async fn it_works() {

@@ -240,8 +240,6 @@ pub mod mock {
 
     use super::Mdoc;
 
-    pub const PID_DOC_TYPE: &str = "urn:eudi:pid:1";
-
     pub const NL_PID_DOC_TYPE: &str = "urn:eudi:pid:nl:1";
 
     impl Mdoc {

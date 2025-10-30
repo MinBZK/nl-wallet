@@ -2,7 +2,12 @@ use indexmap::IndexMap;
 use serial_test::serial;
 
 use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::pid_constants::*;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_BIRTH_DATE;
+use attestation_types::pid_constants::PID_BSN;
+use attestation_types::pid_constants::PID_FAMILY_NAME;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
 use pid_issuer::pid::mock::mock_issuable_document_address;
