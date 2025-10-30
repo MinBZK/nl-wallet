@@ -465,7 +465,18 @@ pub mod server {
 
             Ok(challenge_response)
         }
+    }
+}
 
+#[cfg(feature = "mock")]
+pub mod mock {
+    use serde::de::DeserializeOwned;
+
+    use crate::error::DecodeError;
+    use crate::signed::ChallengeResponsePayload;
+    use crate::signed::HwSignedChallengeResponse;
+
+    impl<T> HwSignedChallengeResponse<T> {
         pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>, DecodeError>
         where
             T: DeserializeOwned,
