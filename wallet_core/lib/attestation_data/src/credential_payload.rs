@@ -270,17 +270,17 @@ pub enum MdocCredentialPayloadError {
 }
 
 impl CredentialPayload {
-    pub fn from_previewable_credential_payload(
+    fn new(
         previewable_payload: PreviewableCredentialPayload,
-        issued_at: DateTime<Utc>,
-        holder_pubkey: &VerifyingKey,
+        issued_at: DateTimeSeconds,
+        confirmation_key: RequiredKeyBinding,
         metadata: &NormalizedTypeMetadata,
-        metadata_integrity: Integrity,
+        vct_integrity: Integrity,
     ) -> Result<Self, CredentialPayloadError> {
         let payload = CredentialPayload {
-            issued_at: issued_at.into(),
-            confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
-            vct_integrity: metadata_integrity,
+            issued_at,
+            confirmation_key,
+            vct_integrity,
             status: None,
             previewable_payload,
         };
@@ -289,47 +289,53 @@ impl CredentialPayload {
         Ok(payload)
     }
 
+    pub fn from_previewable_credential_payload(
+        previewable_payload: PreviewableCredentialPayload,
+        issued_at: DateTime<Utc>,
+        holder_pubkey: &VerifyingKey,
+        metadata: &NormalizedTypeMetadata,
+        metadata_integrity: Integrity,
+    ) -> Result<Self, CredentialPayloadError> {
+        let confirmation_key = jwk_from_p256(holder_pubkey).map_err(CredentialPayloadError::JwkConversion)?;
+        Self::new(
+            previewable_payload,
+            issued_at.into(),
+            RequiredKeyBinding::Jwk(confirmation_key),
+            metadata,
+            metadata_integrity,
+        )
+    }
+
     pub fn from_sd_jwt(
         sd_jwt: VerifiedSdJwt,
         metadata: &NormalizedTypeMetadata,
     ) -> Result<Self, SdJwtCredentialPayloadError> {
         let (previewable_payload, issued_at, confirmation_key, vct_integrity) = split_sd_jwt(sd_jwt)?;
 
-        let payload = CredentialPayload {
+        Ok(Self::new(
+            previewable_payload,
             issued_at,
             confirmation_key,
-            vct_integrity: vct_integrity
+            metadata,
+            vct_integrity
                 .as_ref()
                 .ok_or(SdJwtCredentialPayloadError::MissingMetadataIntegrity)?
                 .to_owned(),
-            status: None,
-            previewable_payload,
-        };
-
-        metadata
-            .validate(&serde_json::to_value(&payload).map_err(CredentialPayloadError::JsonConversion)?)
-            .map_err(CredentialPayloadError::MetadataValidation)?;
-        Ok(payload)
+        )?)
     }
 
     pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, MdocCredentialPayloadError> {
         let (previewable_payload, issued_at, device_key_info, type_metadata_integrity) = split_mdoc(mdoc, metadata)?;
 
-        let confirmation_key = jwk_from_p256(&VerifyingKey::try_from(device_key_info)?)
-            .map(RequiredKeyBinding::Jwk)
-            .map_err(CredentialPayloadError::JwkConversion)?;
-        let payload = CredentialPayload {
-            issued_at,
-            confirmation_key,
-            vct_integrity: type_metadata_integrity.ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
-            status: None,
+        let confirmation_key =
+            jwk_from_p256(&VerifyingKey::try_from(device_key_info)?).map_err(CredentialPayloadError::JwkConversion)?;
+        Ok(Self::new(
             previewable_payload,
-        };
-
-        metadata
-            .validate(&serde_json::to_value(&payload).map_err(CredentialPayloadError::JsonConversion)?)
-            .map_err(CredentialPayloadError::MetadataValidation)?;
-        Ok(payload)
+            issued_at,
+            RequiredKeyBinding::Jwk(confirmation_key),
+            metadata,
+            type_metadata_integrity.ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
+        )?)
     }
 
     pub async fn into_signed_sd_jwt(
