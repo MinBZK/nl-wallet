@@ -39,9 +39,9 @@ use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
+use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
-use wallet_account::messages::instructions::PrepareSendWalletPayload;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
@@ -92,8 +92,8 @@ where
                 .route("/createwallet", post(create_wallet))
                 .route("/instructions/challenge", post(instruction_challenge))
                 .route(
-                    &format!("/instructions/hw_signed/{}", ConfirmTransfer::NAME),
-                    post(handle_hw_signed_instruction::<ConfirmTransfer, _, _, _>),
+                    &format!("/instructions/hw_signed/{}", PairTransfer::NAME),
+                    post(handle_hw_signed_instruction::<PairTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
@@ -161,8 +161,8 @@ where
                     post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _>),
                 )
                 .route(
-                    &format!("/instructions/{}", PrepareSendWalletPayload::NAME),
-                    post(handle_instruction::<PrepareSendWalletPayload, _, _, _>),
+                    &format!("/instructions/{}", ConfirmTransfer::NAME),
+                    post(handle_instruction::<ConfirmTransfer, _, _, _>),
                 )
                 .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())

@@ -109,9 +109,9 @@ async fn test_wallet_transfer() {
 
     assert_state(TransferSessionState::Created, &mut destination).await;
 
-    source.confirm_transfer(url).await.unwrap();
+    source.pair_transfer(url).await.unwrap();
 
-    assert_states(TransferSessionState::ReadyForTransfer, &mut destination, &mut source).await;
+    assert_states(TransferSessionState::Paired, &mut destination, &mut source).await;
 
     // Other instructions are not allowed during transfer
     let err = destination
@@ -131,21 +131,13 @@ async fn test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
 
-    source
-        .prepare_send_wallet_payload(source_wallet_pin.clone())
-        .await
-        .unwrap();
+    source.confirm_transfer(source_wallet_pin.clone()).await.unwrap();
 
-    assert_states(
-        TransferSessionState::ReadyForTransferConfirmed,
-        &mut destination,
-        &mut source,
-    )
-    .await;
+    assert_states(TransferSessionState::Confirmed, &mut destination, &mut source).await;
 
     source.send_wallet_payload().await.unwrap();
 
-    assert_states(TransferSessionState::ReadyForDownload, &mut destination, &mut source).await;
+    assert_states(TransferSessionState::Uploaded, &mut destination, &mut source).await;
 
     destination.receive_wallet_payload().await.unwrap();
 
@@ -169,10 +161,10 @@ async fn test_wallet_transfer_canceled_from_source() {
 
     assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
 
-    source_data.wallet.confirm_transfer(url).await.unwrap();
+    source_data.wallet.pair_transfer(url).await.unwrap();
 
     assert_states(
-        TransferSessionState::ReadyForTransfer,
+        TransferSessionState::Paired,
         &mut destination_data.wallet,
         &mut source_data.wallet,
     )
@@ -203,25 +195,17 @@ async fn test_wallet_transfer_canceled_from_destination() {
 
     assert_state(TransferSessionState::Created, &mut destination).await;
 
-    source.confirm_transfer(url).await.unwrap();
+    source.pair_transfer(url).await.unwrap();
 
-    assert_states(TransferSessionState::ReadyForTransfer, &mut destination, &mut source).await;
+    assert_states(TransferSessionState::Paired, &mut destination, &mut source).await;
 
-    source
-        .prepare_send_wallet_payload(source_wallet_pin.clone())
-        .await
-        .unwrap();
+    source.confirm_transfer(source_wallet_pin.clone()).await.unwrap();
 
-    assert_states(
-        TransferSessionState::ReadyForTransferConfirmed,
-        &mut destination,
-        &mut source,
-    )
-    .await;
+    assert_states(TransferSessionState::Confirmed, &mut destination, &mut source).await;
 
     source.send_wallet_payload().await.unwrap();
 
-    assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
+    assert_state(TransferSessionState::Uploaded, &mut source).await;
 
     destination.cancel_transfer(false).await.unwrap();
 
@@ -237,10 +221,10 @@ async fn test_retry_transfer_after_canceled() {
 
     assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
 
-    source_data.wallet.confirm_transfer(url).await.unwrap();
+    source_data.wallet.pair_transfer(url).await.unwrap();
 
     assert_states(
-        TransferSessionState::ReadyForTransfer,
+        TransferSessionState::Paired,
         &mut destination_data.wallet,
         &mut source_data.wallet,
     )

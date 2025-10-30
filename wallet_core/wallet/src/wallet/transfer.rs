@@ -22,7 +22,7 @@ use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::InstructionAndResult;
-use wallet_account::messages::instructions::PrepareSendWalletPayload;
+use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
@@ -156,8 +156,8 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn confirm_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
-        info!("Confirming transfer");
+    pub async fn pair_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
+        info!("Pairing transfer");
 
         self.validate_transfer_allowed()?;
 
@@ -174,7 +174,7 @@ where
             })
             .await?;
 
-        self.send_transfer_instruction(ConfirmTransfer {
+        self.send_transfer_instruction(PairTransfer {
             transfer_session_id: transfer_query.session_id.into(),
             app_version: version().clone(),
         })
@@ -245,8 +245,8 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn prepare_send_wallet_payload(&mut self, pin: String) -> Result<(), TransferError> {
-        info!("Prepare send wallet payload");
+    pub async fn confirm_transfer(&mut self, pin: String) -> Result<(), TransferError> {
+        info!("Confirming wallet transfer");
 
         self.validate_transfer_allowed()?;
 
@@ -279,7 +279,7 @@ where
             .await?;
 
         remote_instruction
-            .send(PrepareSendWalletPayload { transfer_session_id })
+            .send(ConfirmTransfer { transfer_session_id })
             .await
             .map_err(TransferError::Instruction)
     }
@@ -589,7 +589,7 @@ mod tests {
             .unwrap()
             .expect_hw_signed_instruction()
             .once()
-            .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
+            .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
@@ -599,7 +599,7 @@ mod tests {
         };
 
         wallet
-            .confirm_transfer(transfer_uri.try_into().unwrap())
+            .pair_transfer(transfer_uri.try_into().unwrap())
             .await
             .expect("Wallet confirm transfer should have succeeded");
     }
@@ -717,7 +717,7 @@ mod tests {
             .once()
             .returning(|_, _| Ok(random_bytes(32)));
 
-        let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
+        let wp_result = create_wp_result(TransferSessionState::Paired);
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -730,7 +730,7 @@ mod tests {
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::ReadyForTransfer)
+        assert_eq!(result, TransferSessionState::Paired)
     }
 
     #[tokio::test]
@@ -771,10 +771,10 @@ mod tests {
             .unwrap()
             .expect_hw_signed_instruction()
             .once()
-            .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
+            .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .confirm_transfer(transfer_url)
+            .pair_transfer(transfer_url)
             .await
             .expect("Wallet confirm transfer should have succeeded");
 
@@ -786,7 +786,7 @@ mod tests {
             .once()
             .returning(|_, _| Ok(random_bytes(32)));
 
-        let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
+        let wp_result = create_wp_result(TransferSessionState::Paired);
 
         Arc::get_mut(&mut destination_wallet.account_provider_client)
             .unwrap()
@@ -799,7 +799,7 @@ mod tests {
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::ReadyForTransfer);
+        assert_eq!(result, TransferSessionState::Paired);
 
         Arc::get_mut(&mut source_wallet.account_provider_client)
             .unwrap()
@@ -807,7 +807,7 @@ mod tests {
             .once()
             .returning(|_, _| Ok(random_bytes(32)));
 
-        let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
+        let wp_result = create_wp_result(TransferSessionState::Paired);
 
         Arc::get_mut(&mut source_wallet.account_provider_client)
             .unwrap()
@@ -820,7 +820,7 @@ mod tests {
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::ReadyForTransfer);
+        assert_eq!(result, TransferSessionState::Paired);
 
         // And both can cancel the transfer
 
@@ -936,10 +936,10 @@ mod tests {
             .unwrap()
             .expect_hw_signed_instruction()
             .once()
-            .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
+            .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .confirm_transfer(transfer_url.clone())
+            .pair_transfer(transfer_url.clone())
             .await
             .expect("Wallet confirm transfer should have succeeded");
 
@@ -1000,10 +1000,10 @@ mod tests {
             .unwrap()
             .expect_instruction()
             .once()
-            .return_once(move |_, _: Instruction<PrepareSendWalletPayload>| Ok(wp_result));
+            .return_once(move |_, _: Instruction<ConfirmTransfer>| Ok(wp_result));
 
         source_wallet
-            .prepare_send_wallet_payload(String::from("12345"))
+            .confirm_transfer(String::from("12345"))
             .await
             .expect("Wallet prepare send payload should have succeeded");
 
