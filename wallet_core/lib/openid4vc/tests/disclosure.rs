@@ -25,7 +25,6 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::test_credential::TestCredentials;
-use attestation_data::test_credential::eudi_pid_credentials_given_name;
 use attestation_data::test_credential::nl_pid_address_credentials_all;
 use attestation_data::test_credential::nl_pid_address_minimal_address;
 use attestation_data::test_credential::nl_pid_credentials_all;
@@ -36,6 +35,7 @@ use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_i
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::pid_constants::EUDI_PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -48,6 +48,7 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::CertificateUsage;
 use dcql::CredentialFormat;
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -920,7 +921,22 @@ async fn test_rp_initiated_usecase_verifier_cancel() {
 async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
     let query_id = "eudi_pid_given_name";
     let test_credentials = nl_pid_credentials_given_name_for_query_id(query_id);
-    let dcql_query = eudi_pid_credentials_given_name(query_id).to_dcql_query([CredentialFormat::SdJwt]);
+    let mut dcql_query: Query = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+        &[EUDI_PID_ATTESTATION_TYPE],
+        &[&[PID_GIVEN_NAME]],
+    )])
+    .into();
+    dcql_query.credentials = dcql_query
+        .credentials
+        .clone()
+        .into_iter()
+        .map(|mut query| {
+            query.id = CredentialQueryIdentifier::try_new(String::from(query_id)).unwrap();
+            query
+        })
+        .collect_vec()
+        .try_into()
+        .unwrap();
 
     let (verifier, rp_trust_anchor, issuer_keypair) = setup_verifier(&dcql_query, None);
 

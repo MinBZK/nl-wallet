@@ -480,7 +480,6 @@ mod mock {
     use rand_core::OsRng;
 
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_types::pid_constants::EUDI_PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::generator::Generator;
 
@@ -514,10 +513,6 @@ mod mock {
     impl PreviewableCredentialPayload {
         pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_example(), time_generator)
-        }
-
-        pub fn eudi_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
-            Self::example_with_attributes(EUDI_PID_ATTESTATION_TYPE, Attributes::nl_pid_example(), time_generator)
         }
 
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {

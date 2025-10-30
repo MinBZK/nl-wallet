@@ -408,24 +408,6 @@ impl TestCredential {
 }
 
 impl TestCredential {
-    fn new_eudi_pid<'a>(
-        query_id: &str,
-        query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
-    ) -> Self {
-        let (_, metadata_documents) = TypeMetadataDocuments::nl_pid_example();
-
-        Self::new(
-            PreviewableCredentialPayload::eudi_pid_example(&MockTimeGenerator::default()),
-            metadata_documents,
-            query_id.parse().unwrap(),
-            query_claim_paths,
-        )
-    }
-
-    pub fn new_eudi_pid_given_name(query_id: &str) -> Self {
-        Self::new_eudi_pid(query_id, [[PID_GIVEN_NAME]])
-    }
-
     fn new_nl_pid<'a>(
         query_id: &str,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
@@ -500,10 +482,6 @@ impl TestCredential {
             ],
         )
     }
-}
-
-pub fn eudi_pid_credentials_given_name(query_id: &str) -> TestCredentials {
-    TestCredentials::new(vec_nonempty![TestCredential::new_eudi_pid_given_name(query_id)])
 }
 
 pub fn nl_pid_credentials_all() -> TestCredentials {
