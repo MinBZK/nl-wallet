@@ -169,11 +169,12 @@ where
 
         info!("Checking if a pid is present");
         let config = &self.config_repository.get();
+        let pid_attestation_types = config.pid_attributes.sd_jwt.keys().map(String::clone).collect_vec();
         let has_pid = self
             .storage
             .write()
             .await
-            .has_any_attestations_with_types(&config.pid_attributes.pid_attestation_types())
+            .has_any_attestations_with_types(pid_attestation_types.as_slice())
             .await
             .map_err(PinRecoveryError::AttestationQuery)?;
         if !has_pid {
@@ -243,9 +244,7 @@ where
 
         let received_recovery_code = self.pin_recovery_start_issuance(token_request, &config).await?;
 
-        let pid_attestation_types = config.pid_attributes.pid_attestation_types();
-        let pid_attestation_types = pid_attestation_types.iter().map(String::as_str).collect();
-
+        let pid_attestation_types = config.pid_attributes.sd_jwt.keys().map(String::as_str).collect();
         let stored_pid_copy = self
             .storage
             .read()
@@ -303,14 +302,15 @@ where
         .await
         .map_err(IssuanceError::from)?;
 
-        let pid_attestation_types = config.pid_attributes.pid_attestation_types();
-
         let normalized_credential_previews = issuance_session.normalized_credential_preview();
         let pid_preview = normalized_credential_previews
             .iter()
             .find(|preview| {
                 preview.content.copies_per_format.get(&Format::SdJwt).is_some()
-                    && pid_attestation_types.contains(&preview.content.credential_payload.attestation_type)
+                    && config
+                        .pid_attributes
+                        .sd_jwt
+                        .contains_key(&preview.content.credential_payload.attestation_type)
             })
             .ok_or(PinRecoveryError::MissingPid)?;
 
@@ -448,12 +448,9 @@ where
         };
 
         // Get an SD-JWT copy out of the PID we just received.
-
-        let pid_attestation_types = config.pid_attributes.pid_attestation_types();
-
         let attestation = issuance_result
             .into_iter()
-            .find(|attestation| pid_attestation_types.contains(&attestation.attestation_type)) // TODO: check against the actually offered type
+            .find(|attestation| config.pid_attributes.sd_jwt.contains_key(&attestation.attestation_type)) // TODO: check against the actually offered type
             .expect("no PID received"); // accept_issuance() already checks this against the previews
 
         let pid_attestation_type = attestation.attestation_type;
