@@ -208,6 +208,7 @@ tempfile = "3.16.0"
 thiserror = "2.0.11"
 time = "0.3.37"
 tokio = { version = "1.44.2", default-features = false }
+tokio-test = "0.4.4"
 toml = "0.8.22"
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.2", default-features = false }

@@ -21,12 +21,16 @@ use crate::sd_jwt::SdJwtVcClaims;
 use crate::sd_jwt::UnverifiedSdJwt;
 use crate::sd_jwt::VerifiedSdJwt;
 
+// <https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-10.html#name-jose-header>
 const SD_JWT_HEADER_TYP: &str = "dc+sd-jwt";
 
 impl JwtTyp for SdJwtVcClaims {
     const TYP: &'static str = SD_JWT_HEADER_TYP;
 }
 
+/// A freshly issued SD-JWT consisting of an issuer-signed JWT (with `x5c`) and its disclosures.
+///
+/// Formats as `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
 #[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay)]
 pub struct SignedSdJwt {
     issuer_signed: SignedJwt<SdJwtVcClaims, HeaderWithX5c>,
@@ -45,10 +49,16 @@ impl Display for SignedSdJwt {
 }
 
 impl SignedSdJwt {
+    /// Converts signed SD-JWT into its unverified form.
+    ///
+    /// This is used to be able to serialize and deserialize a wrapper type with the same content.
     pub fn into_unverified(self) -> UnverifiedSdJwt {
         self.into()
     }
 
+    /// Converts signed SD-JWT into a verified SD-JWT without an additional verification step.
+    ///
+    /// This is safe because the value was just signed.
     pub fn into_verified(self) -> VerifiedSdJwt {
         self.into()
     }
@@ -65,7 +75,8 @@ impl From<SignedSdJwt> for UnverifiedSdJwt {
 impl From<SignedSdJwt> for VerifiedSdJwt {
     fn from(value: SignedSdJwt) -> Self {
         let issuer_signed = value.issuer_signed.into_verified();
-        // the SignedSdJwt was just created by our own builder, so the hasher should always be implemented
+
+        // the `SignedSdJwt` was just created by our own builder, so the hasher should always be implemented
         let hasher = issuer_signed.payload()._sd_alg.unwrap_or_default().hasher().unwrap();
         let disclosures = value
             .disclosures
@@ -76,7 +87,49 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
     }
 }
 
-/// Builder structure to create an issuable SD-JWT.
+/// Builder to create an issuable SD-JWT:
+/// - mark claims as concealable with [`SdJwtBuilder::make_concealable`],
+/// - optionally add decoys with [`SdJwtBuilder::add_decoys`],
+/// - call [`SdJwtBuilder::finish`] to sign with the issuer certificate (x5c) and produce a [`SignedSdJwt`].
+///
+/// # Example:
+/// ```
+/// # use attestation_types::claim_path::ClaimPath;
+/// # use chrono::Utc;
+/// # use crypto::server_keys::generate::Ca;
+/// # use jwt::jwk::jwk_from_p256;
+/// # use p256::ecdsa::SigningKey;
+/// # use rand_core::OsRng;
+/// # use sd_jwt::key_binding_jwt::RequiredKeyBinding;
+/// # use sd_jwt::builder::SdJwtBuilder;
+/// # use sd_jwt::sd_jwt::SdJwtVcClaims;
+/// # use utils::date_time_seconds::DateTimeSeconds;
+///
+///  # tokio_test::block_on(async {
+/// let holder_key = SigningKey::random(&mut OsRng);
+/// let claims = SdJwtVcClaims {
+///     _sd_alg: None,
+///     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_key.verifying_key())?),
+///     vct: "urn:example:vct".into(),
+///     vct_integrity: None,
+///     iss: "https://issuer.example.com".parse()?,
+///     iat: DateTimeSeconds::from(Utc::now()),
+///     exp: None,
+///     nbf: None,
+///     attestation_qualification: None,
+///     claims: serde_json::from_value(serde_json::json!({
+///         "name": "alice"
+///     }))?,
+/// };
+/// let builder = SdJwtBuilder::new(claims)
+///     .make_concealable(vec![ClaimPath::SelectByKey("name".into())].try_into()?)?;
+///
+/// let ca = Ca::generate_issuer_mock_ca()?;
+/// let issuer_keypair = ca.generate_issuer_mock()?;
+/// let signed = builder.finish(&issuer_keypair).await?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// # });
+/// ```
 #[derive(Debug)]
 pub struct SdJwtBuilder<H> {
     encoder: SdObjectEncoder<H>,
@@ -85,9 +138,6 @@ pub struct SdJwtBuilder<H> {
 
 impl SdJwtBuilder<Sha256Hasher> {
     /// Creates a new [`SdJwtBuilder`] with `sha-256` hash function.
-    ///
-    /// ## Error
-    /// Returns [`Error::DataTypeMismatch`] if `object` is not a valid JSON object.
     pub fn new(claims: SdJwtVcClaims) -> Self {
         Self::new_with_hasher(claims, Sha256Hasher)
     }
@@ -110,49 +160,55 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
     /// Substitutes a value with the digest of its disclosure.
     ///
-    /// ## Notes
-    /// - `path`  indicates the claim paths pointing to the value that will be concealed.
+    /// # Example
+    /// ```
+    /// # use attestation_types::claim_path::ClaimPath;
+    /// # use chrono::Utc;
+    /// # use jwt::jwk::jwk_from_p256;
+    /// # use p256::ecdsa::SigningKey;
+    /// # use serde_json::json;
+    /// # use sd_jwt::builder::SdJwtBuilder;
+    /// # use sd_jwt::key_binding_jwt::RequiredKeyBinding;
+    /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
+    /// # use utils::date_time_seconds::DateTimeSeconds;
+    /// # use utils::vec_at_least::VecNonEmpty;
+    /// # use rand_core::OsRng;
     ///
-    /// ## Example
-    /// ```rust
-    /// use attestation_types::claim_path::ClaimPath;
-    /// use p256::ecdsa::SigningKey;
-    /// use serde_json::json;
-    /// use sd_jwt::builder::SdJwtBuilder;
-    /// use sd_jwt::sd_jwt::SdJwtVcClaims;
-    /// use utils::generator::mock::MockTimeGenerator;
-    /// use utils::vec_at_least::VecNonEmpty;
-    /// use rand_core::OsRng;
-    ///
-    /// let obj = json!({
-    ///     "id": "did:value",
-    ///     "claim1": {
-    ///         "abc": true
-    ///     },
-    ///     "claim2": ["val_1", "val_2"]
-    /// });
-    /// #[cfg(feature = "examples")]
-    /// let builder = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
-    ///         SigningKey::random(&mut OsRng).verifying_key(),
-    ///         obj,
-    ///         &MockTimeGenerator::default(),
-    ///     ))
-    ///     //conceals "id": "did:value"
-    ///     .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("id"))]).unwrap()).unwrap()
-    ///     //"abc": true
-    ///     .make_concealable(VecNonEmpty::try_from(
-    ///         vec![
-    ///            ClaimPath::SelectByKey(String::from("claim1")),
-    ///            ClaimPath::SelectByKey(String::from("abc"))
-    ///         ]
-    ///     ).unwrap()).unwrap()
-    ///     //conceals "val_1"
-    ///     .make_concealable(VecNonEmpty::try_from(
-    ///         vec![
-    ///            ClaimPath::SelectByKey(String::from("claim2")),
-    ///            ClaimPath::SelectByIndex(0)
-    ///         ]
-    ///     ).unwrap()).unwrap();
+    /// let builder = SdJwtBuilder::new(SdJwtVcClaims {
+    ///     _sd_alg: None,
+    ///     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&SigningKey::random(&mut OsRng).verifying_key())?),
+    ///     vct: "com:example:vct".into(),
+    ///     vct_integrity: None,
+    ///     iss: "https://issuer.example.com".parse()?  ,
+    ///     iat: DateTimeSeconds::from(Utc::now()),
+    ///     exp: None,
+    ///     nbf: None,
+    ///     attestation_qualification: None,
+    ///     claims: serde_json::from_value(serde_json::json!({
+    ///         "name": "alice",
+    ///         "address": {
+    ///             "house_number": 1
+    ///         },
+    ///         "nationalities": ["Dutch", "Belgian"]
+    ///     }))?,
+    /// })
+    /// // conceals "name": "alice"
+    /// .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("name"))])?)?
+    /// // "house_number": 1
+    /// .make_concealable(VecNonEmpty::try_from(
+    ///     vec![
+    ///        ClaimPath::SelectByKey(String::from("address")),
+    ///        ClaimPath::SelectByKey(String::from("house_number"))
+    ///     ]
+    /// )?)?
+    /// // conceals "Dutch"
+    /// .make_concealable(VecNonEmpty::try_from(
+    ///     vec![
+    ///        ClaimPath::SelectByKey(String::from("nationalities")),
+    ///        ClaimPath::SelectByIndex(0)
+    ///     ]
+    /// )?)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self, EncoderError> {
         let disclosure = self.encoder.conceal(path)?;
@@ -170,7 +226,11 @@ impl<H: Hasher> SdJwtBuilder<H> {
         Ok(self)
     }
 
-    /// Creates an SD-JWT with the provided data.
+    /// Creates an SD-JWT by encoding selected disclosures and signing the issuer-signed part with the provided
+    /// certificate/keypair.
+    ///
+    /// The resulting [`SignedSdJwt`] embeds the issuer certificate chain in the `x5c` header and formats as
+    /// `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
     pub async fn finish(self, issuer_keypair: &KeyPair<impl EcdsaKey>) -> Result<SignedSdJwt, EncoderError> {
         let claims = self.encoder.encode();
         let issuer_signed = SignedJwt::sign_with_certificate(&claims, issuer_keypair).await?;

@@ -34,12 +34,18 @@ use crate::hasher::Hasher;
 use crate::sd_jwt::SdJwtClaims;
 use crate::sd_jwt::VerifiedSdJwt;
 
+// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3-3.1.2.1>
 pub const KB_JWT_HEADER_TYP: &str = "kb+jwt";
 
 impl JwtTyp for KeyBindingJwtClaims {
     const TYP: &'static str = KB_JWT_HEADER_TYP;
 }
 
+/// Verification options for KB-JWT verification:
+/// - `expected_aud`: audience to enforce,
+/// - `expected_nonce`: nonce to match,
+/// - `iat_leeway`: allowed leeway (in seconds) around the lower bound of `iat`,
+/// - `iat_acceptance_window`: allowed duration after `iat`.
 pub struct KbVerificationOptions<'a> {
     pub expected_aud: &'a str,
     pub expected_nonce: &'a str,
@@ -48,14 +54,26 @@ pub struct KbVerificationOptions<'a> {
 }
 
 /// Representation of a [KB-JWT](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#name-key-binding-jwt).
+///
+/// Implemented as a wrapper around `UnverifiedJwt`. Can be verified using `into_verified`.
 #[derive(Debug, Clone, PartialEq, Eq, Display, FromStr, Serialize, Deserialize)]
 pub struct UnverifiedKeyBindingJwt(UnverifiedJwt<KeyBindingJwtClaims>);
 
+/// Verified KB-JWT (claims parsed and signature validated).
 pub type VerifiedKeyBindingJwt = VerifiedJwt<KeyBindingJwtClaims>;
 
+/// Freshly signed KB-JWT.
 pub type SignedKeyBindingJwt = SignedJwt<KeyBindingJwtClaims>;
 
 impl UnverifiedKeyBindingJwt {
+    /// Verifies the KB-JWT by checking the signature using the provided public key and validation options.
+    ///
+    /// Additionally;
+    /// - enforces expected `aud`
+    /// - verifies expected `nonce`
+    /// - checks that `iat` is within the acceptance window (with leeway in seconds),
+    ///
+    /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#section-8.3-4.5.1>
     pub fn into_verified(
         self,
         pubkey: &EcdsaDecodingKey,
@@ -103,7 +121,7 @@ static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
     validation
 });
 
-/// Builder-style struct to ease the creation of an [`KeyBindingJwt`].
+/// Builder-style struct to ease the creation of a [`SignedKeyBindingJwt`].
 #[derive(Debug, Clone)]
 pub struct KeyBindingJwtBuilder {
     aud: String,
@@ -204,8 +222,10 @@ pub struct KeyBindingJwtClaims {
     pub sd_hash: String,
 }
 
-/// Proof of possession of a given key. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more details.
-/// Currently, only Jwk is supported.
+/// Proof of possession of a given key.
+///
+/// Currently, only Jwk is supported. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more
+/// details.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum RequiredKeyBinding {
