@@ -152,22 +152,6 @@ where
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
-    async fn check_recovery_state(&self) -> Result<(), PinRecoveryError> {
-        let committed = self
-            .storage
-            .read()
-            .await
-            .fetch_data::<PinRecoveryData>()
-            .await?
-            .is_some();
-
-        if committed {
-            return Err(PinRecoveryError::CommittedToPinRecovery);
-        }
-
-        Ok(())
-    }
-
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
@@ -239,8 +223,6 @@ where
         }
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
-
-        self.check_recovery_state().await?;
 
         info!("Checking if there is an active DigiD issuance session");
         if !matches!(self.session, Some(Session::PinRecovery(PinRecoverySession::Digid(..)))) {
@@ -394,8 +376,6 @@ where
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
-        self.check_recovery_state().await?;
-
         info!("Checking if there is an active issuance session");
         if !matches!(
             self.session,
@@ -531,8 +511,6 @@ where
 
         // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
 
-        self.check_recovery_state().await?;
-
         self.session = None;
 
         Ok(())
@@ -641,12 +619,6 @@ mod tests {
     pub async fn continue_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(|| Ok(None));
-
         let mut session = MockDigidSession::new();
         session
             .expect_into_token_request()
@@ -706,14 +678,7 @@ mod tests {
     pub async fn complete_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // complete_pin_recovery checks the PIN recovery state.
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(|| Ok(None));
-
-        // It then updates the PIN recovery state.
+        // complete_pin_recovery() updates the PIN recovery state.
         wallet
             .mut_storage()
             .expect_upsert_data()
@@ -805,12 +770,6 @@ mod tests {
     async fn cancel_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(None));
-
         setup_issuance_session(&mut wallet);
 
         assert_matches!(
@@ -844,32 +803,8 @@ mod tests {
     // Failing unit tests for continue_pid_recovery()
 
     #[tokio::test]
-    async fn continue_pid_recovery_wrong_state() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(Some(PinRecoveryData)));
-
-        let err = wallet
-            .continue_pin_recovery(AUTH_URL.parse().unwrap())
-            .await
-            .unwrap_err();
-
-        assert_matches!(err, PinRecoveryError::CommittedToPinRecovery);
-    }
-
-    #[tokio::test]
     async fn continue_pid_recovery_no_digid_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(None));
 
         let err = wallet
             .continue_pin_recovery(AUTH_URL.parse().unwrap())
@@ -882,12 +817,6 @@ mod tests {
     #[tokio::test]
     async fn continue_pid_recovery_has_issuance_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(None));
 
         setup_issuance_session(&mut wallet);
 
@@ -902,12 +831,6 @@ mod tests {
     #[tokio::test]
     async fn continue_pid_recovery_user_refused() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(None));
 
         let mut digid_session = MockDigidSession::new();
         digid_session
@@ -929,12 +852,6 @@ mod tests {
     #[serial(MockIssuanceSession)]
     pub async fn continue_pin_recovery_received_no_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(|| Ok(None));
 
         let mut session = MockDigidSession::new();
         session
@@ -989,12 +906,6 @@ mod tests {
     #[serial(MockIssuanceSession)]
     pub async fn continue_pin_recovery_received_wrong_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(|| Ok(None));
 
         let mut session = MockDigidSession::new();
         session
@@ -1070,40 +981,8 @@ mod tests {
     // Failing unit tests for complete_pid_recovery()
 
     #[tokio::test]
-    async fn complete_pid_recovery_wrong_state() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(Some(PinRecoveryData)));
-
-        // Setup the issuance session
-        setup_issuance_session(&mut wallet);
-
-        let err = wallet
-            .complete_pin_recovery_internal(
-                |_, _| MockPinWscd,
-                "112233".to_string(),
-                vec![1, 2, 3],
-                &wallet.config_repository.get(),
-            )
-            .await
-            .unwrap_err();
-
-        assert_matches!(err, PinRecoveryError::CommittedToPinRecovery);
-    }
-
-    #[tokio::test]
     async fn complete_pid_recovery_no_issuance_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(None));
 
         let err = wallet
             .complete_pin_recovery_internal(
@@ -1121,12 +1000,6 @@ mod tests {
     #[tokio::test]
     async fn complete_pid_recovery_has_digid_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(None));
 
         let err = wallet
             .complete_pin_recovery_internal(
@@ -1146,12 +1019,6 @@ mod tests {
     #[tokio::test]
     async fn complete_pid_recovery_too_simple_pin() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(None));
 
         // Setup the issuance session
         setup_issuance_session(&mut wallet);
@@ -1192,21 +1059,6 @@ mod tests {
         );
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance(pid_issuer)));
-    }
-
-    #[tokio::test]
-    async fn cancel_pin_recovery_wrong_state() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<PinRecoveryData>()
-            .once()
-            .returning(move || Ok(Some(PinRecoveryData)));
-
-        let err = wallet.cancel_pin_recovery().await.unwrap_err();
-
-        assert_matches!(err, PinRecoveryError::CommittedToPinRecovery);
     }
 
     struct MockPinWscd;
