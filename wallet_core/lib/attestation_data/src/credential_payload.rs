@@ -213,7 +213,7 @@ pub enum SdJwtCredentialPayloadError {
     #[category(critical)]
     PreviewableCredentialPayload(#[from] SdJwtPreviewableCredentialPayloadError),
 
-    #[error("error converting SD-JWT to CredentialPaylad")]
+    #[error("error converting SD-JWT to CredentialPayload")]
     #[category(defer)]
     CredentialPayload(#[from] CredentialPayloadError),
 
@@ -244,7 +244,7 @@ pub enum MdocCredentialPayloadError {
     #[category(defer)]
     PreviewableCredentialPayload(#[from] MdocPreviewableCredentialPayloadError),
 
-    #[error("error converting mdoc to CredentialPaylad")]
+    #[error("error converting mdoc to CredentialPayload")]
     #[category(defer)]
     CredentialPayload(#[from] CredentialPayloadError),
 
