@@ -1,17 +1,19 @@
+use std::error::Error;
 use std::num::NonZeroUsize;
 
 use derive_more::Constructor;
 
-use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::Poa;
+pub trait Wscd {
+    type Error: Error + Send + Sync + 'static;
+    type Poa: WscdPoa;
 
-pub trait Wscd: DisclosureWscd<Poa = Poa> {
     /// Construct new keys along with PoPs and PoA, and optionally a WUA, for use during issuance.
     async fn perform_issuance(
         &self,

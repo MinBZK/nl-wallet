@@ -124,6 +124,9 @@ where
     GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
+    type Error = RemoteEcdsaKeyError;
+    type Poa = Poa;
+
     async fn perform_issuance(
         &self,
         key_count: NonZeroUsize,
@@ -193,32 +196,8 @@ impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
     }
 }
 
-pub trait PinRecoveryWscd: Wscd {
+pub trait PinRecoveryWscd: Wscd<Poa = Poa> {
     fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>>;
-}
-
-impl<S, AK, GK, A> DisclosureWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
-    type Key = RemoteEcdsaKey;
-    type Error = RemoteEcdsaKeyError;
-    type Poa = Poa;
-
-    fn new_key<I: Into<String>>(&self, _identifier: I, _public_key: p256::ecdsa::VerifyingKey) -> Self::Key {
-        unimplemented!("new_key() should never be called on PinRecoveryRemoteEcdsaWscd");
-    }
-
-    async fn sign(
-        &self,
-        _messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        _poa_input: <Self::Poa as crypto::wscd::WscdPoa>::Input,
-    ) -> Result<crypto::wscd::DisclosureResult<Self::Poa>, Self::Error> {
-        unimplemented!("sign() should never be called on PinRecoveryRemoteEcdsaWscd");
-    }
 }
 
 impl<S, AK, GK, A> Wscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
@@ -228,6 +207,9 @@ where
     GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
+    type Error = RemoteEcdsaKeyError;
+    type Poa = Poa;
+
     async fn perform_issuance(
         &self,
         key_count: std::num::NonZeroUsize,

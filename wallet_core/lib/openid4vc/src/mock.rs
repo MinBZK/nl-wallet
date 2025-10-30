@@ -56,7 +56,7 @@ impl IssuanceSession for MockIssuanceSession {
         Self::start()
     }
 
-    async fn accept_issuance<K, W>(
+    async fn accept_issuance<W>(
         &self,
         _: &[TrustAnchor<'_>],
         _: &W,

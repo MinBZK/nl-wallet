@@ -1,4 +1,3 @@
-use std::hash::Hash;
 use std::sync::Arc;
 
 use itertools::Itertools;
@@ -10,7 +9,6 @@ use url::Url;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::AttributesHandlingError;
 use attestation_types::claim_path::ClaimPath;
-use crypto::wscd::DisclosureWscd;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
@@ -378,7 +376,6 @@ where
     ) -> Result<(), PinRecoveryError>
     where
         P: PinRecoveryWscd,
-        <P as DisclosureWscd>::Key: Eq + Hash,
         F: FnOnce(
             InstructionClient<S, <AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey, APC>,
             VerifyingKey,
@@ -550,7 +547,6 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use p256::ecdsa::VerifyingKey;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -560,10 +556,6 @@ mod tests {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_types::claim_path::ClaimPath;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::wscd::DisclosureResult;
-    use crypto::wscd::DisclosureWscd;
-    use crypto::wscd::WscdPoa;
     use jwt::UnverifiedJwt;
     use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
@@ -1219,25 +1211,10 @@ mod tests {
 
     struct MockPinWscd;
 
-    impl DisclosureWscd for MockPinWscd {
-        type Key = MockRemoteEcdsaKey;
+    impl Wscd for MockPinWscd {
         type Error = Infallible;
         type Poa = Poa;
 
-        fn new_key<I: Into<String>>(&self, _identifier: I, _public_key: VerifyingKey) -> Self::Key {
-            unimplemented!()
-        }
-
-        async fn sign(
-            &self,
-            _messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-            _poa_input: <Self::Poa as WscdPoa>::Input,
-        ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
-            unimplemented!()
-        }
-    }
-
-    impl Wscd for MockPinWscd {
         async fn perform_issuance(
             &self,
             _count: NonZeroUsize,

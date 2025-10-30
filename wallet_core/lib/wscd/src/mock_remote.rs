@@ -123,6 +123,9 @@ impl DisclosureWscd for MockRemoteWscd {
 }
 
 impl Wscd for MockRemoteWscd {
+    type Error = MockRemoteWscdError;
+    type Poa = Poa;
+
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,

@@ -737,6 +737,9 @@ async fn test_disclosure_invalid_poa() {
     }
 
     impl Wscd for WrongPoaWscd {
+        type Error = MockRemoteWscdError;
+        type Poa = Poa;
+
         async fn perform_issuance(
             &self,
             count: NonZeroUsize,
