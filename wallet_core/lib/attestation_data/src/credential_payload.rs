@@ -217,10 +217,6 @@ pub enum SdJwtCredentialPayloadError {
     #[category(defer)]
     CredentialPayload(#[from] CredentialPayloadError),
 
-    #[error("metadata validation error: {0}")]
-    #[category(pd)]
-    MetadataValidation(#[from] TypeMetadataValidationError),
-
     #[error("error converting AttributeName to ClaimName: {0}")]
     #[category(pd)]
     InvalidClaimName(#[from] ClaimNameError),
