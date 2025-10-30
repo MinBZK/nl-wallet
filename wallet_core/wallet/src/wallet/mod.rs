@@ -29,6 +29,7 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
@@ -107,7 +108,10 @@ enum Session<DS, IS, DCS> {
     Digid(DS),
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
-    PinRecovery(PinRecoverySession<DS, IS>),
+    PinRecovery {
+        pid_config: PidAttributesConfiguration,
+        session: PinRecoverySession<DS, IS>,
+    },
 }
 
 pub struct Wallet<

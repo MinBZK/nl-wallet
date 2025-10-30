@@ -164,7 +164,8 @@ where
 
         info!("Checking if a pid is present");
         let config = &self.config_repository.get();
-        let pid_attestation_types = config.pid_attributes.sd_jwt.keys().map(String::clone).collect_vec();
+        let pid_config = config.pid_attributes.clone();
+        let pid_attestation_types = pid_config.sd_jwt.keys().map(String::clone).collect_vec();
         let has_pid = self
             .storage
             .read()
@@ -197,8 +198,10 @@ where
 
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = session.auth_url().clone();
-        self.session
-            .replace(Session::PinRecovery(PinRecoverySession::Digid(session)));
+        self.session.replace(Session::PinRecovery {
+            pid_config,
+            session: PinRecoverySession::Digid(session),
+        });
 
         Ok(auth_url)
     }
@@ -221,11 +224,21 @@ where
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
         info!("Checking if there is an active DigiD issuance session");
-        if !matches!(self.session, Some(Session::PinRecovery(PinRecoverySession::Digid(..)))) {
+        if !matches!(
+            self.session,
+            Some(Session::PinRecovery {
+                session: PinRecoverySession::Digid(..),
+                ..
+            })
+        ) {
             return Err(PinRecoveryError::SessionState);
         }
 
-        let Some(Session::PinRecovery(PinRecoverySession::Digid(session))) = self.session.take() else {
+        let Some(Session::PinRecovery {
+            session: PinRecoverySession::Digid(session),
+            pid_config,
+        }) = self.session.take()
+        else {
             unreachable!("session contained no PinRecoveryDigid"); // we just checked this above
         };
 
@@ -237,9 +250,11 @@ where
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
 
-        let received_recovery_code = self.pin_recovery_start_issuance(token_request, &config).await?;
+        let received_recovery_code = self
+            .pin_recovery_start_issuance(token_request, pid_config.clone(), &config)
+            .await?;
 
-        let pid_attestation_types = config.pid_attributes.sd_jwt.keys().map(String::as_str).collect();
+        let pid_attestation_types = pid_config.sd_jwt.keys().map(String::as_str).collect();
         let stored_pid_copy = self
             .storage
             .read()
@@ -248,12 +263,12 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?
             .pop()
-            .ok_or(PinRecoveryError::NoPidPresent)?;
+            .expect("no PID found in registered wallet");
 
         let attestation_type = stored_pid_copy.attestation_type().to_string();
         let attributes = stored_pid_copy.into_attributes();
         let stored_recovery_code = attributes
-            .get(&Self::recovery_code_path(&config.pid_attributes, &attestation_type))
+            .get(&Self::recovery_code_path(&pid_config, &attestation_type))
             .expect("failed to retrieve recovery code from PID")
             .ok_or(PinRecoveryError::MissingRecoveryCode)?;
 
@@ -282,6 +297,7 @@ where
     async fn pin_recovery_start_issuance(
         &mut self,
         token_request: TokenRequest,
+        pid_config: PidAttributesConfiguration,
         config: &WalletConfiguration,
     ) -> Result<AttributeValue, PinRecoveryError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
@@ -302,8 +318,7 @@ where
             .iter()
             .find(|preview| {
                 preview.content.copies_per_format.get(&Format::SdJwt).is_some()
-                    && config
-                        .pid_attributes
+                    && pid_config
                         .sd_jwt
                         .contains_key(&preview.content.credential_payload.attestation_type)
             })
@@ -322,8 +337,10 @@ where
             .clone();
 
         info!("successfully received token and previews from issuer");
-        self.session
-            .replace(Session::PinRecovery(PinRecoverySession::Issuance(issuance_session)));
+        self.session.replace(Session::PinRecovery {
+            pid_config,
+            session: PinRecoverySession::Issuance(issuance_session),
+        });
 
         Ok(recovery_code)
     }
@@ -367,12 +384,19 @@ where
         info!("Checking if there is an active issuance session");
         if !matches!(
             self.session,
-            Some(Session::PinRecovery(PinRecoverySession::Issuance(..)))
+            Some(Session::PinRecovery {
+                session: PinRecoverySession::Issuance(..),
+                ..
+            })
         ) {
             return Err(PinRecoveryError::SessionState);
         }
 
-        let Some(Session::PinRecovery(PinRecoverySession::Issuance(issuance_session))) = &self.session.take() else {
+        let Some(Session::PinRecovery {
+            pid_config,
+            session: PinRecoverySession::Issuance(issuance_session),
+        }) = &self.session.take()
+        else {
             unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
         };
 
@@ -440,7 +464,7 @@ where
         // Get an SD-JWT copy out of the PID we just received.
         let attestation = issuance_result
             .into_iter()
-            .find(|attestation| config.pid_attributes.sd_jwt.contains_key(&attestation.attestation_type)) // TODO: check against the actually offered type
+            .find(|attestation| pid_config.sd_jwt.contains_key(&attestation.attestation_type)) // TODO: check against the actually offered type
             .expect("no PID received"); // accept_issuance() already checks this against the previews
 
         let pid_attestation_type = attestation.attestation_type;
@@ -456,7 +480,7 @@ where
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(&Self::recovery_code_path(&config.pid_attributes, &pid_attestation_type))
+            .disclose(&Self::recovery_code_path(&pid_config, &pid_attestation_type))
             .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
             .finish()
             .into();
@@ -550,6 +574,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::test::Repository;
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::test::TestWalletMockStorage;
@@ -623,7 +648,10 @@ mod tests {
 
                 Ok(token_request)
             });
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(session)));
+        wallet.session = Some(Session::PinRecovery {
+            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            session: PinRecoverySession::Digid(session),
+        });
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -756,7 +784,10 @@ mod tests {
 
         assert_matches!(
             &wallet.session,
-            Some(Session::PinRecovery(PinRecoverySession::Issuance(..)))
+            Some(Session::PinRecovery {
+                session: PinRecoverySession::Issuance(..),
+                ..
+            })
         );
 
         wallet.cancel_pin_recovery().await.unwrap();
@@ -820,7 +851,10 @@ mod tests {
             .once()
             .returning(|_, _| Err(DigidError::Oidc(OidcError::Denied)));
 
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(digid_session)));
+        wallet.session = Some(Session::PinRecovery {
+            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            session: PinRecoverySession::Digid(digid_session),
+        });
 
         let err = wallet
             .continue_pin_recovery(AUTH_URL.parse().unwrap())
@@ -851,7 +885,10 @@ mod tests {
 
                 Ok(token_request)
             });
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(session)));
+        wallet.session = Some(Session::PinRecovery {
+            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            session: PinRecoverySession::Digid(session),
+        });
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -905,7 +942,10 @@ mod tests {
 
                 Ok(token_request)
             });
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(session)));
+        wallet.session = Some(Session::PinRecovery {
+            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            session: PinRecoverySession::Digid(session),
+        });
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -979,7 +1019,10 @@ mod tests {
             .await
             .unwrap_err();
 
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(MockDigidSession::new())));
+        wallet.session = Some(Session::PinRecovery {
+            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            session: PinRecoverySession::Digid(MockDigidSession::new()),
+        });
 
         assert_matches!(err, PinRecoveryError::SessionState);
     }
@@ -1013,7 +1056,10 @@ mod tests {
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
 
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance(pid_issuer)));
+        wallet.session = Some(Session::PinRecovery {
+            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            session: PinRecoverySession::Issuance(pid_issuer),
+        });
     }
 
     struct MockPinWscd;

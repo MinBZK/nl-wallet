@@ -81,7 +81,13 @@ where
             // The DigiD return URL should only be handled if we're doing either PID issuance or PIN recovery.
             Some(UriType::PidIssuance) if matches!(self.session, Some(Session::Digid(_))) => UriType::PidIssuance,
             Some(UriType::PidIssuance)
-                if matches!(self.session, Some(Session::PinRecovery(PinRecoverySession::Digid(_)))) =>
+                if matches!(
+                    self.session,
+                    Some(Session::PinRecovery {
+                        session: PinRecoverySession::Digid(_),
+                        ..
+                    })
+                ) =>
             {
                 UriType::PinRecovery
             }
