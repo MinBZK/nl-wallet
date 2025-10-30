@@ -29,7 +29,7 @@ class TransferManager {
 
   Future<void> transferWallet() async {
     await Future.delayed(const Duration(seconds: 3));
-    _currentState = TransferSessionState.Success;
+    _currentState = TransferSessionState.Uploaded;
   }
 
   void pairWalletTransfer(String uri) {
@@ -53,11 +53,13 @@ class TransferManager {
       case TransferSessionState.Created:
         _currentState = TransferSessionState.Paired;
       case TransferSessionState.Paired:
-        _currentState = TransferSessionState.Uploaded;
+        // Source awaits call to confirmWalletTransfer()
+        if (!isSourceDevice) _currentState = TransferSessionState.Confirmed;
+      case TransferSessionState.Confirmed:
+        // Source awaits call to transferWallet()
+        if (!isSourceDevice) _currentState = TransferSessionState.Uploaded;
       case TransferSessionState.Uploaded:
         _currentState = TransferSessionState.Success;
-      case TransferSessionState.Confirmed:
-        break; // Awaiting call to confirmWalletTransfer()
       case TransferSessionState.Success:
         // Log successful transfer event
         if (isSourceDevice) {
