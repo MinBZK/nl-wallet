@@ -533,6 +533,8 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
     use jwt::UnverifiedJwt;
     use openid4vc::Format;
@@ -926,7 +928,6 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(session)));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
-        let config = wallet.config_repository.get();
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().once().return_once(move || {
             let mut client = MockIssuanceSession::new();
@@ -938,10 +939,7 @@ mod tests {
             attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
             attributes
                 .insert(
-                    &TestWalletMockStorage::recovery_code_path(
-                        &config.pid_attributes,
-                        &preview.content.credential_payload.attestation_type,
-                    ),
+                    &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
                     Attribute::Single(AttributeValue::Text("wrong recovery code".to_string())),
                 )
                 .unwrap();
@@ -1046,15 +1044,7 @@ mod tests {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
             },
-            wallet
-                .config_repository
-                .get()
-                .pid_attributes
-                .sd_jwt
-                .keys()
-                .next()
-                .unwrap()
-                .clone(),
+            PID_ATTESTATION_TYPE.to_string(),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
 
