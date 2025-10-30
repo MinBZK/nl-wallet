@@ -40,7 +40,6 @@ use crypto::utils::random_string;
 use crypto::x509::CertificateError;
 use dcql::Query;
 use dcql::disclosure::ExtendingVctRetriever;
-use dcql::disclosure::ExtendingVctStore;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -999,8 +998,6 @@ where
             .await
             .map_err(PostAuthResponseError::Session)?;
 
-        let extending_vct_values = ExtendingVctStore::new(&self.extending_vct_values_store);
-
         let (result, next) = session
             .process_authorization_response(
                 wallet_response,
@@ -1008,7 +1005,7 @@ where
                 time,
                 &self.trust_anchors,
                 self.result_handler.as_deref(),
-                &extending_vct_values,
+                self,
             )
             .await;
 
@@ -1133,6 +1130,16 @@ impl<S, US> Verifier<S, US> {
         })?));
 
         Ok(ul.try_into().unwrap()) // safe because we constructed ul from a BaseUrl
+    }
+}
+
+impl<S, US> ExtendingVctRetriever for Verifier<S, US> {
+    fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str> {
+        self.extending_vct_values_store
+            .get(vct_value)
+            .map(|vct| vct.iter().map(String::as_str))
+            .into_iter()
+            .flatten()
     }
 }
 

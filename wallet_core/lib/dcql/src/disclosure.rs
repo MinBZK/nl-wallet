@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::iter;
 
-use derive_more::Constructor;
 use itertools::Either;
 use itertools::Itertools;
 
@@ -55,19 +54,6 @@ pub trait DisclosedCredential {
 
 pub trait ExtendingVctRetriever {
     fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str>;
-}
-
-#[derive(Constructor)]
-pub struct ExtendingVctStore<'a>(&'a HashMap<String, VecNonEmpty<String>>);
-
-impl<'a> ExtendingVctRetriever for ExtendingVctStore<'a> {
-    fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str> {
-        self.0
-            .get(vct_value)
-            .map(|vct| vct.iter().map(String::as_str))
-            .into_iter()
-            .flatten()
-    }
 }
 
 impl NormalizedCredentialRequests {
