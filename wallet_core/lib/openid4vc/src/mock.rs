@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::iter;
 
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
@@ -81,8 +82,8 @@ impl IssuanceSession for MockIssuanceSession {
 
 pub struct ExtendingVctRetrieverStub;
 impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
-    fn retrieve(&self, _vct_value: &str) -> Vec<&str> {
-        vec![]
+    fn retrieve(&self, _vct_value: &str) -> impl Iterator<Item = &str> {
+        iter::empty()
     }
 }
 

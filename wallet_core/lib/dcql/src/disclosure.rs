@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::iter;
 
 use derive_more::Constructor;
 use itertools::Either;
@@ -10,7 +11,6 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::CredentialFormat;
 use crate::CredentialQueryIdentifier;
-use crate::normalized::NormalizedCredentialRequest;
 use crate::normalized::NormalizedCredentialRequests;
 
 #[derive(Debug, thiserror::Error)]
@@ -53,27 +53,20 @@ pub trait DisclosedCredential {
     ) -> HashSet<VecNonEmpty<ClaimPath>>;
 }
 
-pub trait DisclosedCredentialTypeVerifier {
-    fn verify_credential_type(
-        &self,
-        request: &NormalizedCredentialRequest,
-        credential: &impl DisclosedCredential,
-    ) -> Result<(), CredentialValidationError>;
-}
-
 pub trait ExtendingVctRetriever {
-    fn retrieve(&self, vct_value: &str) -> Vec<&str>;
+    fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str>;
 }
 
 #[derive(Constructor)]
 pub struct ExtendingVctStore<'a>(&'a HashMap<String, VecNonEmpty<String>>);
 
 impl<'a> ExtendingVctRetriever for ExtendingVctStore<'a> {
-    fn retrieve(&self, vct_value: &str) -> Vec<&str> {
+    fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str> {
         self.0
             .get(vct_value)
-            .map(|vct| vct.iter().map(String::as_str).collect())
-            .unwrap_or_default()
+            .map(|vct| vct.iter().map(String::as_str))
+            .into_iter()
+            .flatten()
     }
 }
 
@@ -145,14 +138,13 @@ impl NormalizedCredentialRequests {
                 (!request
                     .credential_types()
                     .chain(if credential.format() == CredentialFormat::SdJwt {
-                        request
-                            .credential_types()
-                            .fold(vec![], |mut acc, requested_credential_type| {
-                                acc.append(&mut extending_vct_values.retrieve(requested_credential_type));
-                                acc
-                            })
+                        Either::Left(
+                            request
+                                .credential_types()
+                                .flat_map(|credential_type| extending_vct_values.retrieve(credential_type)),
+                        )
                     } else {
-                        vec![]
+                        Either::Right(iter::empty())
                     })
                     .contains(credential_type))
                 .then(|| {
@@ -465,8 +457,8 @@ mod tests {
         struct ExtendingVctRetrieverStub<'a>(&'a [&'a str]);
 
         impl ExtendingVctRetriever for ExtendingVctRetrieverStub<'_> {
-            fn retrieve(&self, _vct_value: &str) -> Vec<&str> {
-                self.0.to_vec()
+            fn retrieve(&self, _vct_value: &str) -> impl Iterator<Item = &str> {
+                self.0.iter().copied()
             }
         }
 
