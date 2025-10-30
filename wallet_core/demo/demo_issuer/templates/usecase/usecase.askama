@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="../css/university.css" />
 {% when "insurance" %}
     <link rel="stylesheet" href="../css/insurance.css" />
+{% when "housing" %}
+    <link rel="stylesheet" href="../css/housing.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
@@ -26,6 +28,8 @@
         {% include "university.askama" %}
     {% when "insurance" %}
         {% include "insurance.askama" %}
+    {% when "housing" %}
+        {% include "housing.askama" %}
     {% else %}
         <nl-wallet-button
             text={{ base.trans.add_to_nl_wallet }}
