@@ -121,7 +121,7 @@ pub enum PinRecoveryError {
     AttestationQuery(#[source] StorageError),
 
     #[error("cannot recover PIN without a PID")]
-    #[category(expected)]
+    #[category(critical)]
     NoPidPresent,
 }
 
