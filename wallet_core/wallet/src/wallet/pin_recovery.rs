@@ -172,7 +172,7 @@ where
         let pid_attestation_types = config.pid_attributes.sd_jwt.keys().map(String::clone).collect_vec();
         let has_pid = self
             .storage
-            .write()
+            .read()
             .await
             .has_any_attestations_with_types(pid_attestation_types.as_slice())
             .await
