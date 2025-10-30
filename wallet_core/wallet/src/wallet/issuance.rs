@@ -12,7 +12,7 @@ use url::Url;
 use uuid::Uuid;
 
 use attestation_data::auth::Organization;
-use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
@@ -661,12 +661,12 @@ fn match_preview_and_stored_attestations<'a>(
     stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
-    let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
+    let stored_credential_payloads: Vec<(PreviewableCredentialPayload, Uuid)> = stored_attestations
         .into_iter()
         .map(|copy| {
             let attestation_id = copy.attestation_id();
 
-            (copy.into_credential_payload(), attestation_id)
+            (copy.into_previewable_credential_payload(), attestation_id)
         })
         .collect_vec();
 
@@ -680,7 +680,7 @@ fn match_preview_and_stored_attestations<'a>(
                     preview
                         .content
                         .credential_payload
-                        .matches_existing(&stored_preview.previewable_payload, time_generator)
+                        .matches_existing(stored_preview, time_generator)
                 })
                 .map(|(_, id)| *id);
 
@@ -705,7 +705,6 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::credential_payload::IntoCredentialPayload;
     use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
@@ -717,7 +716,6 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -770,15 +768,12 @@ mod tests {
             )
             .unwrap(),
             IssuedCredential::SdJwt { sd_jwt, .. } => {
-                let payload = sd_jwt
-                    .clone()
-                    .into_credential_payload(&type_metadata.to_normalized().unwrap())
-                    .unwrap();
+                let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Ephemeral,
                     type_metadata.to_normalized().unwrap(),
                     issuer_registration.organization.clone(),
-                    &payload.previewable_payload.attributes,
+                    &attributes,
                     &EmptyPresentationConfig,
                 )
                 .unwrap()
@@ -1038,13 +1033,12 @@ mod tests {
             .expect_fetch_unique_attestations_by_type()
             .times(1)
             .returning(|_, _| {
+                let (mdoc, metadata) = create_example_pid_mdoc();
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
-                    StoredAttestation::MsoMdoc {
-                        mdoc: create_example_pid_mdoc(),
-                    },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    StoredAttestation::MsoMdoc { mdoc },
+                    metadata,
                 )])
             });
 
@@ -1194,7 +1188,7 @@ mod tests {
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1698,7 +1692,7 @@ mod tests {
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();

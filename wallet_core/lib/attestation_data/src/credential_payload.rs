@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::DateTime;
 use chrono::Utc;
-use indexmap::IndexMap;
+use coset::CoseSign1;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -17,11 +17,20 @@ use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
-use mdoc::Entry;
+use mdoc::DeviceKeyInfo;
+use mdoc::DigestAlgorithm;
+use mdoc::IssuerNameSpaces;
+use mdoc::IssuerNameSpacesPreConditionError;
+use mdoc::IssuerSigned;
 use mdoc::MobileSecurityObject;
-use mdoc::NameSpace;
+use mdoc::MobileSecurityObjectVersion;
 use mdoc::holder::Mdoc;
+use mdoc::utils::cose::CoseError;
+use mdoc::utils::cose::CoseKey;
+use mdoc::utils::cose::MdocCose;
 use mdoc::utils::crypto::CryptoError;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::claims::ClaimNameError;
@@ -38,49 +47,6 @@ use utils::generator::Generator;
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
 use crate::attributes::AttributesTraversalBehaviour;
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum SdJwtCredentialPayloadError {
-    #[error("error converting to / from JSON: {0}")]
-    #[category(pd)]
-    JsonConversion(#[from] serde_json::Error),
-
-    #[error("metadata validation error: {0}")]
-    #[category(pd)]
-    MetadataValidation(#[from] TypeMetadataValidationError),
-
-    #[error("error converting from SD-JWT: {0}")]
-    #[category(pd)]
-    SdJwtDecoding(#[from] sd_jwt::error::DecoderError),
-
-    #[error("error converting AttributeName to ClaimName: {0}")]
-    #[category(pd)]
-    InvalidClaimName(#[from] ClaimNameError),
-
-    #[error("error converting claims to attributes: {0}")]
-    #[category(pd)]
-    InvalidAttributes(#[from] AttributesError),
-
-    #[error("missing Attestation Qualification")]
-    #[category(critical)]
-    MissingAttestationQualification,
-
-    #[error("missing Metadata Integrity")]
-    #[category(critical)]
-    MissingMetadataIntegrity,
-
-    #[error("error converting to SD-JWT: {0}")]
-    #[category(pd)]
-    SdJwtEncoding(#[from] sd_jwt::error::EncoderError),
-
-    #[error("error converting claim path to JSON path: {0}")]
-    #[category(pd)]
-    ClaimPathConversion(#[source] TypeMetadataError),
-
-    #[error("error converting holder VerifyingKey to JWK: {0}")]
-    #[category(pd)]
-    JwkConversion(#[from] JwkConversionError),
-}
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
 /// JSON schema defined in the SD-JWT VC Type Metadata (`TypeMetadata`).
@@ -107,6 +73,60 @@ pub struct CredentialPayload {
 
     #[serde(flatten)]
     pub previewable_payload: PreviewableCredentialPayload,
+}
+
+impl TryFrom<CredentialPayload> for SdJwtVcClaims {
+    type Error = ClaimNameError;
+
+    fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
+        Ok(SdJwtVcClaims {
+            vct: value.previewable_payload.attestation_type,
+            vct_integrity: Some(value.vct_integrity),
+            iss: value.previewable_payload.issuer,
+            iat: value.issued_at,
+            exp: value.previewable_payload.expires,
+            nbf: value.previewable_payload.not_before,
+            cnf: value.confirmation_key,
+            attestation_qualification: Some(value.previewable_payload.attestation_qualification),
+            _sd_alg: None, // TODO this should be handled elsewhere (PVW-5121)
+
+            claims: value.previewable_payload.attributes.try_into()?,
+        })
+    }
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum SdJwtPreviewableCredentialPayloadError {
+    #[error("error converting from SD-JWT: {0}")]
+    #[category(pd)]
+    SdJwtDecoding(#[from] sd_jwt::error::DecoderError),
+
+    #[error("error converting claims to attributes: {0}")]
+    #[category(pd)]
+    InvalidAttributes(#[from] AttributesError),
+
+    #[error("missing Attestation Qualification")]
+    #[category(critical)]
+    MissingAttestationQualification,
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum MdocPreviewableCredentialPayloadError {
+    #[error("unable to convert mdoc TDate to DateTime<Utc>")]
+    #[category(critical)]
+    DateConversion(#[from] chrono::ParseError),
+
+    #[error("mdoc is missing issuer URI")]
+    #[category(critical)]
+    MissingIssuerUri,
+
+    #[error("mdoc is missing attestation qualification")]
+    #[category(critical)]
+    MissingAttestationQualification,
+
+    #[error("attributes error: {0}")]
+    #[category(pd)]
+    Attributes(#[from] AttributesError),
 }
 
 #[serde_as]
@@ -157,45 +177,27 @@ impl PreviewableCredentialPayload {
 
         false
     }
-}
 
-pub trait IntoCredentialPayload {
-    type Error;
-    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error>;
-}
-
-impl TryFrom<CredentialPayload> for SdJwtVcClaims {
-    type Error = ClaimNameError;
-
-    fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
-        Ok(SdJwtVcClaims {
-            vct: value.previewable_payload.attestation_type,
-            vct_integrity: Some(value.vct_integrity),
-            iss: value.previewable_payload.issuer,
-            iat: value.issued_at,
-            exp: value.previewable_payload.expires,
-            nbf: value.previewable_payload.not_before,
-            cnf: value.confirmation_key,
-            attestation_qualification: Some(value.previewable_payload.attestation_qualification),
-            _sd_alg: None, // to be set by SdJwtBuilder
-
-            claims: value.previewable_payload.attributes.try_into()?,
-        })
+    pub fn from_sd_jwt(sd_jwt: VerifiedSdJwt) -> Result<Self, SdJwtPreviewableCredentialPayloadError> {
+        let (previewable_payload, ..) = split_sd_jwt(sd_jwt)?;
+        Ok(previewable_payload)
     }
-}
 
-impl IntoCredentialPayload for &VerifiedSdJwt {
-    type Error = SdJwtCredentialPayloadError;
-
-    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
-        let payload = CredentialPayload::from_sd_jwt(self)?;
-        metadata.validate(&serde_json::to_value(&payload)?)?;
-        Ok(payload)
+    pub fn from_mdoc(
+        mdoc: Mdoc,
+        metadata: &NormalizedTypeMetadata,
+    ) -> Result<Self, MdocPreviewableCredentialPayloadError> {
+        let (previewable_payload, ..) = split_mdoc(mdoc, metadata)?;
+        Ok(previewable_payload)
     }
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum MdocCredentialPayloadError {
+pub enum CredentialPayloadError {
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    #[category(pd)]
+    JwkConversion(#[from] JwkConversionError),
+
     #[error("error converting to / from JSON: {0}")]
     #[category(pd)]
     JsonConversion(#[from] serde_json::Error),
@@ -203,82 +205,82 @@ pub enum MdocCredentialPayloadError {
     #[error("metadata validation error: {0}")]
     #[category(pd)]
     MetadataValidation(#[from] TypeMetadataValidationError),
+}
 
-    #[error("unable to convert mdoc TDate to DateTime<Utc>")]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum SdJwtCredentialPayloadError {
+    #[error("error converting SD-JWT to PreviewableCredentialPayload")]
     #[category(critical)]
-    DateConversion(#[from] chrono::ParseError),
+    PreviewableCredentialPayload(#[from] SdJwtPreviewableCredentialPayloadError),
 
-    #[error("mdoc is missing issuer URI")]
-    #[category(critical)]
-    MissingIssuerUri,
+    #[error("error converting SD-JWT to CredentialPayload")]
+    #[category(defer)]
+    CredentialPayload(#[from] CredentialPayloadError),
 
-    #[error("mdoc is missing attestation qualification")]
+    #[error("error converting AttributeName to ClaimName: {0}")]
+    #[category(pd)]
+    InvalidClaimName(#[from] ClaimNameError),
+
+    #[error("missing Metadata Integrity")]
     #[category(critical)]
-    MissingAttestationQualification,
+    MissingMetadataIntegrity,
+
+    #[error("error converting to SD-JWT: {0}")]
+    #[category(pd)]
+    SdJwtEncoding(#[from] sd_jwt::error::EncoderError),
+
+    #[error("error converting claim path to JSON path: {0}")]
+    #[category(pd)]
+    ClaimPathConversion(#[source] TypeMetadataError),
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum MdocCredentialPayloadError {
+    #[error("error converting mdoc to PreviewableCredentialPayload")]
+    #[category(defer)]
+    PreviewableCredentialPayload(#[from] MdocPreviewableCredentialPayloadError),
+
+    #[error("error converting mdoc to CredentialPayload")]
+    #[category(defer)]
+    CredentialPayload(#[from] CredentialPayloadError),
+
+    #[error("missing validity information: {0}")]
+    #[category(critical)]
+    MissingValidityInformation(String),
+
+    #[error("missing or empty NameSpace detected: {0}")]
+    #[category(critical)]
+    MissingOrEmptyNamespace(#[from] IssuerNameSpacesPreConditionError),
 
     #[error("mdoc is missing metadata integrity")]
     #[category(critical)]
     MissingMetadataIntegrity,
 
-    #[error("attributes error: {0}")]
-    #[category(pd)]
-    Attributes(#[from] AttributesError),
-
-    #[error("error converting holder VerifyingKey to JWK: {0}")]
-    #[category(pd)]
-    JwkConversion(#[from] JwkConversionError),
-
     #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
     #[category(pd)]
     CoseKeyConversion(#[from] CryptoError),
-}
 
-impl IntoCredentialPayload for Mdoc {
-    type Error = MdocCredentialPayloadError;
+    #[error("error converting issuer namespaces to CBOR: {0}")]
+    #[category(pd)]
+    CborConversion(#[from] CborError),
 
-    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
-        MdocParts::from(self).into_credential_payload(metadata)
-    }
-}
-
-#[derive(derive_more::Constructor)]
-pub struct MdocParts {
-    attributes: IndexMap<NameSpace, Vec<Entry>>,
-    mso: MobileSecurityObject,
-}
-
-impl From<Mdoc> for MdocParts {
-    fn from(value: Mdoc) -> Self {
-        let (mso, _, issuer_signed) = value.into_components();
-
-        Self::new(issuer_signed.into_entries_by_namespace(), mso)
-    }
-}
-
-impl IntoCredentialPayload for MdocParts {
-    type Error = MdocCredentialPayloadError;
-
-    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
-        let payload = CredentialPayload::from_mdoc_parts_unvalidated(self, metadata)?;
-
-        metadata.validate(&serde_json::to_value(&payload)?)?;
-
-        Ok(payload)
-    }
+    #[error("error signing mdoc: {0}")]
+    #[category(pd)]
+    SigningError(#[from] CoseError),
 }
 
 impl CredentialPayload {
-    pub fn from_previewable_credential_payload(
+    fn new(
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTimeSeconds,
-        holder_pubkey: &VerifyingKey,
+        confirmation_key: RequiredKeyBinding,
         metadata: &NormalizedTypeMetadata,
-        metadata_integrity: Integrity,
-    ) -> Result<Self, SdJwtCredentialPayloadError> {
+        vct_integrity: Integrity,
+    ) -> Result<Self, CredentialPayloadError> {
         let payload = CredentialPayload {
             issued_at,
-            confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
-            vct_integrity: metadata_integrity,
+            confirmation_key,
+            vct_integrity,
             status: None,
             previewable_payload,
         };
@@ -287,69 +289,56 @@ impl CredentialPayload {
         Ok(payload)
     }
 
-    pub fn from_sd_jwt(sd_jwt: &VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
-        let credential_payload = CredentialPayload {
-            issued_at: sd_jwt.claims().iat,
-            confirmation_key: sd_jwt.claims().cnf.to_owned(),
-            vct_integrity: sd_jwt
-                .claims()
-                .vct_integrity
+    pub fn from_previewable_credential_payload(
+        previewable_payload: PreviewableCredentialPayload,
+        issued_at: DateTime<Utc>,
+        holder_pubkey: &VerifyingKey,
+        metadata: &NormalizedTypeMetadata,
+        metadata_integrity: Integrity,
+    ) -> Result<Self, CredentialPayloadError> {
+        let confirmation_key = jwk_from_p256(holder_pubkey).map_err(CredentialPayloadError::JwkConversion)?;
+        Self::new(
+            previewable_payload,
+            issued_at.into(),
+            RequiredKeyBinding::Jwk(confirmation_key),
+            metadata,
+            metadata_integrity,
+        )
+    }
+
+    pub fn from_sd_jwt(
+        sd_jwt: VerifiedSdJwt,
+        metadata: &NormalizedTypeMetadata,
+    ) -> Result<Self, SdJwtCredentialPayloadError> {
+        let (previewable_payload, issued_at, confirmation_key, vct_integrity) = split_sd_jwt(sd_jwt)?;
+
+        Ok(Self::new(
+            previewable_payload,
+            issued_at,
+            confirmation_key,
+            metadata,
+            vct_integrity
                 .as_ref()
                 .ok_or(SdJwtCredentialPayloadError::MissingMetadataIntegrity)?
                 .to_owned(),
-            status: None,
-            previewable_payload: PreviewableCredentialPayload {
-                attestation_type: sd_jwt.claims().vct.clone(),
-                issuer: sd_jwt.claims().iss.clone(),
-                expires: sd_jwt.claims().exp,
-                not_before: sd_jwt.claims().nbf,
-                attestation_qualification: sd_jwt
-                    .claims()
-                    .attestation_qualification
-                    .ok_or(SdJwtCredentialPayloadError::MissingAttestationQualification)?,
-                attributes: sd_jwt.decoded_claims()?.try_into()?,
-            },
-        };
-
-        Ok(credential_payload)
+        )?)
     }
 
-    fn from_mdoc_parts_unvalidated(
-        MdocParts { attributes, mso }: MdocParts,
-        metadata: &NormalizedTypeMetadata,
-    ) -> Result<Self, MdocCredentialPayloadError> {
-        let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
+    pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, MdocCredentialPayloadError> {
+        let (previewable_payload, issued_at, device_key_info, type_metadata_integrity) = split_mdoc(mdoc, metadata)?;
 
-        let payload = CredentialPayload {
-            issued_at: (&mso.validity_info.signed).try_into()?,
-            confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
-            vct_integrity: mso
-                .type_metadata_integrity
-                .ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
-            status: None,
-            previewable_payload: PreviewableCredentialPayload {
-                attestation_type: mso.doc_type,
-                issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
-                expires: Some((&mso.validity_info.valid_until).try_into()?),
-                not_before: Some((&mso.validity_info.valid_from).try_into()?),
-                attestation_qualification: mso
-                    .attestation_qualification
-                    .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
-                attributes: Attributes::from_mdoc_attributes(metadata, attributes)?,
-            },
-        };
-
-        Ok(payload)
+        let confirmation_key =
+            jwk_from_p256(&VerifyingKey::try_from(device_key_info)?).map_err(CredentialPayloadError::JwkConversion)?;
+        Ok(Self::new(
+            previewable_payload,
+            issued_at,
+            RequiredKeyBinding::Jwk(confirmation_key),
+            metadata,
+            type_metadata_integrity.ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
+        )?)
     }
 
-    pub fn from_mdoc_unvalidated(
-        mdoc: Mdoc,
-        metadata: &NormalizedTypeMetadata,
-    ) -> Result<Self, MdocCredentialPayloadError> {
-        Self::from_mdoc_parts_unvalidated(mdoc.into(), metadata)
-    }
-
-    pub async fn into_sd_jwt(
+    pub async fn into_signed_sd_jwt(
         self,
         type_metadata: &NormalizedTypeMetadata,
         issuer_keypair: &KeyPair<impl EcdsaKey>,
@@ -384,6 +373,142 @@ impl CredentialPayload {
 
         Ok(sd_jwt)
     }
+
+    pub async fn into_signed_mdoc(
+        self,
+        issuer_keypair: &KeyPair<impl EcdsaKey>,
+    ) -> Result<(IssuerSigned, MobileSecurityObject), MdocCredentialPayloadError> {
+        let validity = mdoc::ValidityInfo {
+            signed: self.issued_at.into(),
+            valid_from: self
+                .previewable_payload
+                .not_before
+                .map(Into::into)
+                .ok_or_else(|| MdocCredentialPayloadError::MissingValidityInformation("valid_from".to_string()))?,
+            valid_until: self
+                .previewable_payload
+                .expires
+                .map(Into::into)
+                .ok_or_else(|| MdocCredentialPayloadError::MissingValidityInformation("valid_until".to_string()))?,
+            expected_update: None,
+        };
+
+        let attributes = self
+            .previewable_payload
+            .attributes
+            .to_mdoc_attributes(&self.previewable_payload.attestation_type);
+        let attrs =
+            IssuerNameSpaces::try_from(attributes).map_err(MdocCredentialPayloadError::MissingOrEmptyNamespace)?;
+
+        let doc_type = self.previewable_payload.attestation_type;
+        let cose_pubkey: CoseKey = (&self
+            .confirmation_key
+            .verifying_key()
+            .map_err(CredentialPayloadError::JwkConversion)?)
+            .try_into()?;
+
+        let mso = MobileSecurityObject {
+            version: MobileSecurityObjectVersion::V1_0,
+            digest_algorithm: DigestAlgorithm::SHA256,
+            doc_type,
+            value_digests: (&attrs).try_into()?,
+            device_key_info: cose_pubkey.into(),
+            validity_info: validity,
+            issuer_uri: Some(self.previewable_payload.issuer),
+            attestation_qualification: Some(self.previewable_payload.attestation_qualification),
+            type_metadata_integrity: Some(self.vct_integrity),
+        };
+
+        let header = IssuerSigned::create_unprotected_header(issuer_keypair.certificate().to_vec());
+        let mso = TaggedBytes(mso);
+        let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
+            MdocCose::sign(&mso, header, issuer_keypair, true).await?;
+        let TaggedBytes(mso) = mso;
+
+        Ok((
+            IssuerSigned {
+                name_spaces: attrs.into(),
+                issuer_auth,
+            },
+            mso,
+        ))
+    }
+}
+
+fn split_sd_jwt(
+    sd_jwt: VerifiedSdJwt,
+) -> Result<
+    (
+        PreviewableCredentialPayload,
+        DateTimeSeconds,
+        RequiredKeyBinding,
+        Option<Integrity>,
+    ),
+    SdJwtPreviewableCredentialPayloadError,
+> {
+    let attributes = sd_jwt
+        .decoded_claims()
+        .map_err(SdJwtPreviewableCredentialPayloadError::SdJwtDecoding)?
+        .try_into()
+        .map_err(SdJwtPreviewableCredentialPayloadError::InvalidAttributes)?;
+    let claims = sd_jwt.into_claims();
+
+    let payload = PreviewableCredentialPayload {
+        attestation_type: claims.vct,
+        issuer: claims.iss,
+        expires: claims.exp,
+        not_before: claims.nbf,
+        attestation_qualification: claims
+            .attestation_qualification
+            .ok_or(SdJwtPreviewableCredentialPayloadError::MissingAttestationQualification)?,
+        attributes,
+    };
+
+    Ok((payload, claims.iat, claims.cnf, claims.vct_integrity))
+}
+
+fn split_mdoc(
+    mdoc: Mdoc,
+    metadata: &NormalizedTypeMetadata,
+) -> Result<
+    (
+        PreviewableCredentialPayload,
+        DateTimeSeconds,
+        DeviceKeyInfo,
+        Option<Integrity>,
+    ),
+    MdocPreviewableCredentialPayloadError,
+> {
+    let (mso, _, issuer_signed) = mdoc.into_components();
+    let attributes = issuer_signed.into_entries_by_namespace();
+
+    let iat = (&mso.validity_info.signed)
+        .try_into()
+        .map_err(MdocPreviewableCredentialPayloadError::DateConversion)?;
+
+    let payload = PreviewableCredentialPayload {
+        attestation_type: mso.doc_type,
+        issuer: mso
+            .issuer_uri
+            .ok_or(MdocPreviewableCredentialPayloadError::MissingIssuerUri)?,
+        expires: Some(
+            (&mso.validity_info.valid_until)
+                .try_into()
+                .map_err(MdocPreviewableCredentialPayloadError::DateConversion)?,
+        ),
+        not_before: Some(
+            (&mso.validity_info.valid_from)
+                .try_into()
+                .map_err(MdocPreviewableCredentialPayloadError::DateConversion)?,
+        ),
+        attestation_qualification: mso
+            .attestation_qualification
+            .ok_or(MdocPreviewableCredentialPayloadError::MissingAttestationQualification)?,
+        attributes: Attributes::from_mdoc_attributes(metadata, attributes)
+            .map_err(MdocPreviewableCredentialPayloadError::Attributes)?,
+    };
+
+    Ok((payload, iat, mso.device_key_info, mso.type_metadata_integrity))
 }
 
 #[cfg(any(test, feature = "example_credential_payloads"))]
@@ -403,10 +528,26 @@ mod examples {
     use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use crate::pid_constants::PID_ATTESTATION_TYPE;
 
-    use super::CredentialPayload;
-    use super::PreviewableCredentialPayload;
+    use super::*;
 
     impl CredentialPayload {
+        pub fn from_previewable_credential_payload_unvalidated(
+            previewable_payload: PreviewableCredentialPayload,
+            issued_at: DateTime<Utc>,
+            holder_pubkey: &VerifyingKey,
+            metadata_integrity: Integrity,
+        ) -> Result<Self, JwkConversionError> {
+            let payload = CredentialPayload {
+                issued_at: issued_at.into(),
+                confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
+                vct_integrity: metadata_integrity,
+                status: None,
+                previewable_payload,
+            };
+
+            Ok(payload)
+        }
+
         pub(super) fn example_with_preview(
             previewable_payload: PreviewableCredentialPayload,
             verifying_key: &VerifyingKey,
@@ -553,6 +694,9 @@ mod test {
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use jwt::jwk::jwk_from_p256;
+    use mdoc::holder::Mdoc;
+    use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::verifier::ValidityRequirement;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt::KbVerificationOptions;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
@@ -562,6 +706,7 @@ mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
 
@@ -570,13 +715,158 @@ mod test {
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::credential_payload::IntoCredentialPayload;
-    use crate::credential_payload::SdJwtCredentialPayloadError;
     use crate::pid_constants::PID_ATTESTATION_TYPE;
     use crate::x509::CertificateType;
 
-    use super::CredentialPayload;
-    use super::PreviewableCredentialPayload;
+    use super::*;
+
+    fn setup_into_signed() -> (
+        PreviewableCredentialPayload,
+        CredentialPayload,
+        NormalizedTypeMetadata,
+        Integrity,
+        Ca,
+        KeyPair,
+    ) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuance_key = ca.generate_pid_issuer_mock().unwrap();
+
+        let payload_preview = PreviewableCredentialPayload::example_with_attributes(
+            PID_ATTESTATION_TYPE,
+            Attributes::example([
+                (["first_name"], AttributeValue::Text("John".to_string())),
+                (["family_name"], AttributeValue::Text("Doe".to_string())),
+            ]),
+            &MockTimeGenerator::default(),
+        );
+
+        // Note that this resource integrity does not match any metadata source document.
+        let metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
+            PID_ATTESTATION_TYPE,
+            &[
+                ("first_name", JsonSchemaPropertyType::String, None),
+                ("family_name", JsonSchemaPropertyType::String, None),
+            ],
+        ));
+        let credential_payload = CredentialPayload::from_previewable_credential_payload(
+            payload_preview.clone(),
+            Utc::now(),
+            SigningKey::random(&mut OsRng).verifying_key(),
+            &metadata,
+            metadata_integrity.clone(),
+        )
+        .unwrap();
+
+        (
+            payload_preview,
+            credential_payload,
+            metadata,
+            metadata_integrity,
+            ca,
+            issuance_key,
+        )
+    }
+
+    #[tokio::test]
+    async fn test_into_signed_mdoc() {
+        let (payload_preview, credential_payload, _, metadata_integrity, ca, issuance_key) = setup_into_signed();
+
+        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
+
+        // The IssuerSigned should be valid
+        issuer_signed
+            .verify(ValidityRequirement::Valid, &TimeGenerator, &[ca.to_trust_anchor()])
+            .expect("the IssuerSigned sent in the preview should be valid");
+
+        // The issuer certificate generated above should be included in the IssuerAuth
+        assert_eq!(
+            &issuer_signed.issuer_auth.signing_cert().unwrap(),
+            issuance_key.certificate()
+        );
+
+        let TaggedBytes(cose_payload) = issuer_signed.issuer_auth.dangerous_parse_unverified().unwrap();
+        assert_eq!(cose_payload.doc_type, payload_preview.attestation_type);
+        assert_eq!(
+            payload_preview.not_before.unwrap(),
+            (&cose_payload.validity_info.valid_from).try_into().unwrap(),
+        );
+        assert_eq!(
+            payload_preview.expires.unwrap(),
+            (&cose_payload.validity_info.valid_until).try_into().unwrap(),
+        );
+        assert_eq!(cose_payload.type_metadata_integrity, Some(metadata_integrity));
+    }
+
+    #[tokio::test]
+    async fn test_into_signed_sd_jwt() {
+        let (payload_preview, credential_payload, metadata, metadata_integrity, ca, issuance_key) = setup_into_signed();
+
+        let signed_sd_jwt = credential_payload
+            .into_signed_sd_jwt(&metadata, &issuance_key)
+            .await
+            .unwrap();
+
+        let unverified_sd_jwt = signed_sd_jwt.into_unverified();
+
+        // The IssuerSigned should be valid
+        let verified_sd_jwt = unverified_sd_jwt
+            .into_verified_against_trust_anchors(&[ca.to_trust_anchor()], &TimeGenerator)
+            .expect("the IssuerSigned sent in the preview should be valid");
+
+        // The issuer certificate generated above should be included in the IssuerAuth
+        assert_eq!(verified_sd_jwt.issuer_certificate(), issuance_key.certificate());
+
+        let claims = verified_sd_jwt.claims();
+        assert_eq!(claims.vct, payload_preview.attestation_type);
+        assert_eq!(claims.nbf, payload_preview.not_before);
+        assert_eq!(claims.exp, payload_preview.expires);
+        assert_eq!(claims.vct_integrity, Some(metadata_integrity));
+    }
+
+    #[test]
+    fn test_from_mdoc() {
+        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::pid_example());
+
+        let payload = CredentialPayload::from_mdoc(mdoc, &metadata)
+            .expect("creating and validating CredentialPayload from Mdoc should succeed");
+
+        assert_eq!(
+            payload
+                .previewable_payload
+                .attributes
+                .into_inner()
+                .into_values()
+                .collect_vec(),
+            vec![
+                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
+                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
+                Attribute::Single(AttributeValue::Text("999999999".to_string()))
+            ]
+        );
+    }
+
+    #[test]
+    fn test_from_mdoc_invalid() {
+        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
+            "urn:eudi:pid:nl:1",
+            &[
+                ("family_name", JsonSchemaPropertyType::Number, None),
+                ("bsn", JsonSchemaPropertyType::String, None),
+                ("given_name", JsonSchemaPropertyType::String, None),
+            ],
+        ));
+
+        let error =
+            CredentialPayload::from_mdoc(mdoc, &metadata).expect_err("wrong family_name type should fail validation");
+
+        assert_matches!(
+            error,
+            MdocCredentialPayloadError::CredentialPayload(CredentialPayloadError::MetadataValidation(_))
+        );
+    }
 
     #[test]
     fn test_serialize_deserialize_and_validate() {
@@ -643,7 +933,7 @@ mod test {
 
         let payload = CredentialPayload::from_previewable_credential_payload(
             preview_payload.clone(),
-            Utc::now().into(),
+            Utc::now(),
             holder_key.verifying_key(),
             &metadata,
             Integrity::from(""),
@@ -671,14 +961,14 @@ mod test {
 
         let error = CredentialPayload::from_previewable_credential_payload(
             preview_payload,
-            Utc::now().into(),
+            Utc::now(),
             holder_key.verifying_key(),
             &metadata,
             Integrity::from(""),
         )
         .expect_err("wrong family_name type should fail validation");
 
-        assert_matches!(error, SdJwtCredentialPayloadError::MetadataValidation(_));
+        assert_matches!(error, CredentialPayloadError::MetadataValidation(_));
     }
 
     #[test]
@@ -751,17 +1041,10 @@ mod test {
 
         let metadata =
             NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::credential_payload_sd_jwt_metadata());
-        let payload = sd_jwt
-            .clone()
-            .into_credential_payload(&metadata)
+        let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone(), &metadata)
             .expect("creating and validating CredentialPayload from SD-JWT should succeed");
 
         assert_eq!(payload.previewable_payload.attestation_type, sd_jwt.claims().vct);
-
-        let unverified_payload = CredentialPayload::from_sd_jwt(&sd_jwt)
-            .expect("creating a CredentialPayload from SD-JWT while not validating metdata should succeed");
-
-        assert_eq!(payload, unverified_payload);
     }
 
     #[test]
@@ -790,7 +1073,7 @@ mod test {
         );
 
         let sd_jwt = credential_payload
-            .into_sd_jwt(&metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(&metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();

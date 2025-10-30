@@ -196,7 +196,6 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
@@ -335,12 +334,12 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let mdoc = create_example_pid_mdoc();
+        let (mdoc, metadata) = create_example_pid_mdoc();
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
             StoredAttestation::MsoMdoc { mdoc },
-            NormalizedTypeMetadata::nl_pid_example(),
+            metadata,
         );
 
         let expectation_attestation_copy = stored_attestation_copy.clone();

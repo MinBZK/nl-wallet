@@ -14,7 +14,7 @@ use url::Url;
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::issuable_document::IssuableDocument;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
@@ -174,7 +174,7 @@ async fn accept_issuance(
                 .into_iter()
                 .for_each(|issued_credential| match issued_credential {
                     IssuedCredential::MsoMdoc { mdoc } => {
-                        let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();
+                        let payload = CredentialPayload::from_mdoc(mdoc, &preview_data.normalized_metadata).unwrap();
                         assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
                     }
                     IssuedCredential::SdJwt { .. } => {

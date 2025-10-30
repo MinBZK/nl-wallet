@@ -25,6 +25,7 @@ use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -289,26 +290,11 @@ impl TestCredential {
         Integrity::from(self.metadata_documents.as_ref().first())
     }
 
-    pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> Mdoc {
+    fn to_credential_payload(
+        &self,
+        wscd: &impl AsRef<MockRemoteWscd>,
+    ) -> (CredentialPayload, String, NormalizedTypeMetadata) {
         let holder_key = wscd.as_ref().create_random_key();
-        let holder_public_key = *holder_key.verifying_key();
-
-        self.payload_preview
-            .clone()
-            .into_signed_mdoc_unverified(
-                self.metadata_integrity(),
-                holder_key.identifier,
-                &holder_public_key,
-                issuer_keypair,
-            )
-            .now_or_never()
-            .unwrap()
-            .expect("TestCredential payload preview should convert to mdoc IssuerSigned")
-    }
-
-    pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
-        let holder_key = wscd.as_ref().create_random_key();
-
         let (normalized_metadata, _) = self
             .metadata_documents
             .clone()
@@ -317,20 +303,38 @@ impl TestCredential {
 
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             self.payload_preview.clone(),
-            Utc::now().into(),
+            Utc::now(),
             holder_key.verifying_key(),
             &normalized_metadata,
             self.metadata_integrity(),
         )
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
+        (credential_payload, holder_key.identifier, normalized_metadata)
+    }
+
+    pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> Mdoc {
+        let (credential_payload, holder_key_identifier, _) = self.to_credential_payload(wscd);
+
+        let (issuer_signed, mso) = credential_payload
+            .into_signed_mdoc(issuer_keypair)
+            .now_or_never()
+            .unwrap()
+            .expect("TestCredential payload preview should convert to Mdoc");
+
+        Mdoc::new_unverified(mso, holder_key_identifier, issuer_signed)
+    }
+
+    pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
+        let (credential_payload, holder_key_identifier, normalized_metadata) = self.to_credential_payload(wscd);
+
         let sd_jwt = credential_payload
-            .into_sd_jwt(&normalized_metadata, issuer_keypair)
+            .into_signed_sd_jwt(&normalized_metadata, issuer_keypair)
             .now_or_never()
             .unwrap()
             .expect("TestCredential payload preview should convert to SD-JWT");
 
-        (sd_jwt, holder_key.identifier)
+        (sd_jwt, holder_key_identifier)
     }
 
     pub fn to_partial_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> PartialMdoc {
