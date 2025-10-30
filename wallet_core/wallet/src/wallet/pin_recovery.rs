@@ -133,7 +133,10 @@ impl From<DigidError> for PinRecoveryError {
 #[derive(Debug)]
 pub(super) enum PinRecoverySession<DS, IS> {
     Digid(DS),
-    Issuance(IS),
+    Issuance {
+        pid_attestation_type: String,
+        issuance_session: IS,
+    },
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -339,7 +342,10 @@ where
         info!("successfully received token and previews from issuer");
         self.session.replace(Session::PinRecovery {
             pid_config,
-            session: PinRecoverySession::Issuance(issuance_session),
+            session: PinRecoverySession::Issuance {
+                pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
+                issuance_session,
+            },
         });
 
         Ok(recovery_code)
@@ -385,7 +391,7 @@ where
         if !matches!(
             self.session,
             Some(Session::PinRecovery {
-                session: PinRecoverySession::Issuance(..),
+                session: PinRecoverySession::Issuance { .. },
                 ..
             })
         ) {
@@ -394,7 +400,11 @@ where
 
         let Some(Session::PinRecovery {
             pid_config,
-            session: PinRecoverySession::Issuance(issuance_session),
+            session:
+                PinRecoverySession::Issuance {
+                    pid_attestation_type: offered_pid,
+                    issuance_session,
+                },
         }) = &self.session.take()
         else {
             unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
@@ -464,7 +474,7 @@ where
         // Get an SD-JWT copy out of the PID we just received.
         let attestation = issuance_result
             .into_iter()
-            .find(|attestation| pid_config.sd_jwt.contains_key(&attestation.attestation_type)) // TODO: check against the actually offered type
+            .find(|attestation| attestation.attestation_type == *offered_pid)
             .expect("no PID received"); // accept_issuance() already checks this against the previews
 
         let pid_attestation_type = attestation.attestation_type;
@@ -480,7 +490,7 @@ where
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(&Self::recovery_code_path(&pid_config, &pid_attestation_type))
+            .disclose(&Self::recovery_code_path(pid_config, &pid_attestation_type))
             .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
             .finish()
             .into();
@@ -785,7 +795,7 @@ mod tests {
         assert_matches!(
             &wallet.session,
             Some(Session::PinRecovery {
-                session: PinRecoverySession::Issuance(..),
+                session: PinRecoverySession::Issuance { .. },
                 ..
             })
         );
@@ -1058,7 +1068,10 @@ mod tests {
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Issuance(pid_issuer),
+            session: PinRecoverySession::Issuance {
+                pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
+                issuance_session: pid_issuer,
+            },
         });
     }
 
