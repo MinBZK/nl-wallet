@@ -571,7 +571,7 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificateClaims;
     use wscd::Poa;
-    use wscd::wscd::Wscd;
+    use wscd::wscd::IssuanceWscd;
 
     use crate::digid::DigidError;
     use crate::digid::MockDigidSession;
@@ -1211,7 +1211,7 @@ mod tests {
 
     struct MockPinWscd;
 
-    impl Wscd for MockPinWscd {
+    impl IssuanceWscd for MockPinWscd {
         type Error = Infallible;
         type Poa = Poa;
 

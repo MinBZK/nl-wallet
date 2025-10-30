@@ -10,7 +10,7 @@ use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use utils::vec_at_least::VecNonEmpty;
 
-pub trait Wscd {
+pub trait IssuanceWscd {
     type Error: Error + Send + Sync + 'static;
     type Poa: WscdPoa;
 

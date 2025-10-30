@@ -23,7 +23,7 @@ use jwt::wua::WuaDisclosure;
 
 use crate::Poa;
 use crate::wscd::IssuanceResult;
-use crate::wscd::Wscd;
+use crate::wscd::IssuanceWscd;
 
 pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
@@ -122,7 +122,7 @@ impl DisclosureWscd for MockRemoteWscd {
     }
 }
 
-impl Wscd for MockRemoteWscd {
+impl IssuanceWscd for MockRemoteWscd {
     type Error = MockRemoteWscdError;
     type Poa = Poa;
 

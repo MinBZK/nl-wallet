@@ -104,8 +104,8 @@ use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::mock_remote::MockRemoteWscd;
 use wscd::wscd::IssuanceResult;
+use wscd::wscd::IssuanceWscd;
 use wscd::wscd::JwtPoaInput;
-use wscd::wscd::Wscd;
 
 fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<DisclosedAttestations>) {
     assert_eq!(disclosed_attestations.len().get(), 1);
@@ -736,7 +736,7 @@ async fn test_disclosure_invalid_poa() {
         }
     }
 
-    impl Wscd for WrongPoaWscd {
+    impl IssuanceWscd for WrongPoaWscd {
         type Error = MockRemoteWscdError;
         type Poa = Poa;
 

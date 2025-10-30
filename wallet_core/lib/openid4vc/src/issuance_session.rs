@@ -47,7 +47,7 @@ use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::wscd::Wscd;
+use wscd::wscd::IssuanceWscd;
 
 use crate::CredentialErrorCode;
 use crate::ErrorResponse;
@@ -278,7 +278,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         include_wua: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
-        W: Wscd<Poa = Poa>;
+        W: IssuanceWscd<Poa = Poa>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 
@@ -690,7 +690,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         include_wua: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
-        W: Wscd<Poa = Poa>,
+        W: IssuanceWscd<Poa = Poa>,
     {
         let key_count = self.session_state.credential_request_types.len();
 

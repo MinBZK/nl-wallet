@@ -25,7 +25,7 @@ use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wscd::Poa;
 use wscd::wscd::IssuanceResult;
-use wscd::wscd::Wscd;
+use wscd::wscd::IssuanceWscd;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
@@ -117,7 +117,7 @@ where
     }
 }
 
-impl<S, AK, GK, A> Wscd for RemoteEcdsaWscd<S, AK, GK, A>
+impl<S, AK, GK, A> IssuanceWscd for RemoteEcdsaWscd<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -196,11 +196,11 @@ impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
     }
 }
 
-pub trait PinRecoveryWscd: Wscd<Poa = Poa> {
+pub trait PinRecoveryWscd: IssuanceWscd<Poa = Poa> {
     fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>>;
 }
 
-impl<S, AK, GK, A> Wscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
+impl<S, AK, GK, A> IssuanceWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
