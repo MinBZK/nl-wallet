@@ -256,12 +256,13 @@ dotenvy = { workspace = true, optional = true }
 [dev-dependencies]
 itertools.workspace = true
 
+attestation_types = { path = "../lib/attestation_types", features = ["pid_constants"] }
+
 # This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
 android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
-attestation_types = { path = "../lib/attestation_types", features = ["pid_constants"] }
 issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer" }
