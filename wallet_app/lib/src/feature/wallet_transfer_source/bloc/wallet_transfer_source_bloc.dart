@@ -9,27 +9,30 @@ import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
-import '../../../domain/model/transfer/wallet_transfer_status.dart';
-import '../../../domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
+import '../../../domain/model/transfer/transfer_session_state.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
-import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
+import '../../../domain/usecase/transfer/observe_transfer_session_state_usecase.dart';
+import '../../../domain/usecase/transfer/pair_wallet_transfer_usecase.dart';
+import '../../../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../../../util/cast_util.dart';
 
 part 'wallet_transfer_source_event.dart';
 part 'wallet_transfer_source_state.dart';
 
 class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTransferSourceState> {
-  final AcknowledgeWalletTransferUseCase _ackWalletTransferUseCase;
-  final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
+  final PairWalletTransferUseCase _ackWalletTransferUseCase;
+  final ObserveTransferSessionStateUseCase _observeTransferSessionStateUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
+  final StartWalletTransferUseCase _startWalletTransferUseCase;
   final AutoLockService _autoLockService;
 
-  StreamSubscription? _statusSubscription;
+  StreamSubscription? _sessionStateSubscription;
 
   WalletTransferSourceBloc(
     this._ackWalletTransferUseCase,
-    this._getWalletTransferStatusUseCase,
+    this._observeTransferSessionStateUseCase,
     this._cancelWalletTransferUsecase,
+    this._startWalletTransferUseCase,
     this._autoLockService,
   ) : super(const WalletTransferInitial()) {
     on<WalletTransferAcknowledgeTransferEvent>(_onAcknowledgeTransfer);
@@ -70,7 +73,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     await result.process(
       onSuccess: (_) {
         emit(const WalletTransferIntroduction());
-        _startObservingTransferStatus();
+        _startObservingSessionState();
       },
       onError: _handleError,
     );
@@ -82,6 +85,11 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
 
   FutureOr<void> _onPinConfirmed(WalletTransferPinConfirmedEvent event, Emitter<WalletTransferSourceState> emit) async {
     emit(const WalletTransferTransferring());
+    final result = await _startWalletTransferUseCase.invoke();
+    await result.process(
+      onSuccess: (_) => Fimber.d('transferWallet (upload) success'),
+      onError: _handleError,
+    );
   }
 
   FutureOr<void> _onStopRequested(
@@ -93,13 +101,13 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     bool maintainState(WalletTransferSourceState state) => state is WalletTransferSuccess || state is ErrorState;
     await result.process(
       onSuccess: (_) {
-        _stopObservingTransferStatus();
+        _stopObservingSessionState();
         if (maintainState(state)) return;
         emit(const WalletTransferStopped());
       },
       onError: (ex) {
         Fimber.e('Failed to cancel wallet transfer', ex: ex);
-        _stopObservingTransferStatus();
+        _stopObservingSessionState();
         if (maintainState(state)) return;
         _handleError(ex);
       },
@@ -117,7 +125,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
   ) => _handleError(event.error);
 
   Future<void> _handleError(ApplicationError error) async {
-    _stopObservingTransferStatus();
+    _stopObservingSessionState();
     switch (error) {
       case NetworkError():
         add(WalletTransferUpdateStateEvent(WalletTransferNetworkError(error)));
@@ -128,21 +136,23 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     }
   }
 
-  Future<void> _startObservingTransferStatus() async {
-    await _statusSubscription?.cancel();
-    _statusSubscription = _getWalletTransferStatusUseCase.invoke().listen(
+  Future<void> _startObservingSessionState() async {
+    await _sessionStateSubscription?.cancel();
+    _sessionStateSubscription = _observeTransferSessionStateUseCase.invoke().listen(
       (status) {
         switch (status) {
-          case WalletTransferStatus.waitingForScan:
-          case WalletTransferStatus.waitingForApprovalAndUpload:
-          case WalletTransferStatus.readyForDownload:
+          case TransferSessionState.created:
+          case TransferSessionState.paired:
+          case TransferSessionState.confirmed:
             break;
-          case WalletTransferStatus.error:
+          case TransferSessionState.uploaded:
+            add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
+          case TransferSessionState.error:
             final walletTransferFailed = WalletTransferFailed(GenericError('transfer_error', sourceError: status));
             add(WalletTransferUpdateStateEvent(walletTransferFailed));
-          case WalletTransferStatus.success:
+          case TransferSessionState.success:
             add(const WalletTransferUpdateStateEvent(WalletTransferSuccess()));
-          case WalletTransferStatus.cancelled:
+          case TransferSessionState.cancelled:
             add(const WalletTransferUpdateStateEvent(WalletTransferStopped()));
         }
       },
@@ -152,15 +162,15 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     );
   }
 
-  void _stopObservingTransferStatus() {
-    _statusSubscription?.cancel();
-    _statusSubscription = null;
+  void _stopObservingSessionState() {
+    _sessionStateSubscription?.cancel();
+    _sessionStateSubscription = null;
   }
 
   @override
   Future<void> close() async {
     _autoLockService.setAutoLock(enabled: true);
-    _stopObservingTransferStatus();
+    _stopObservingSessionState();
     return super.close();
   }
 }

@@ -411,23 +411,32 @@ pub async fn init_wallet_transfer() -> anyhow::Result<String> {
 }
 
 #[flutter_api_error]
-pub async fn acknowledge_wallet_transfer(uri: String) -> anyhow::Result<()> {
+pub async fn pair_wallet_transfer(uri: String) -> anyhow::Result<()> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
-    wallet.confirm_transfer(url).await?;
+    wallet.pair_transfer(url).await?;
 
     Ok(())
 }
 
 #[flutter_api_error]
-pub async fn transfer_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
+pub async fn confirm_wallet_transfer(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.send_wallet_payload(pin).await.try_into()?;
+    let result = wallet.confirm_transfer(pin).await.try_into()?;
 
     Ok(result)
+}
+
+#[flutter_api_error]
+pub async fn transfer_wallet() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.send_wallet_payload().await?;
+
+    Ok(())
 }
 
 #[flutter_api_error]

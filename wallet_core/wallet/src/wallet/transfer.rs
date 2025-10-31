@@ -22,6 +22,7 @@ use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
@@ -155,8 +156,8 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn confirm_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
-        info!("Confirming transfer");
+    pub async fn pair_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
+        info!("Pairing transfer");
 
         self.validate_transfer_allowed()?;
 
@@ -173,7 +174,7 @@ where
             })
             .await?;
 
-        self.send_transfer_instruction(ConfirmTransfer {
+        self.send_transfer_instruction(PairTransfer {
             transfer_session_id: transfer_query.session_id.into(),
             app_version: version().clone(),
         })
@@ -244,8 +245,8 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn send_wallet_payload(&mut self, pin: String) -> Result<(), TransferError> {
-        info!("Send wallet payload");
+    pub async fn confirm_transfer(&mut self, pin: String) -> Result<(), TransferError> {
+        info!("Confirming wallet transfer");
 
         self.validate_transfer_allowed()?;
 
@@ -253,13 +254,9 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
-        let Some(TransferKeyData::Source { public_key }) = transfer_data.key_data else {
+        let Some(TransferKeyData::Source { .. }) = transfer_data.key_data else {
             return Err(TransferError::MissingTransferPublicKey);
         };
-
-        let database_export = self.storage.write().await.export().await?;
-
-        let database_payload = WalletDatabasePayload::new(database_export);
 
         let transfer_session_id: Uuid = transfer_data.transfer_session_id.into();
 
@@ -270,8 +267,6 @@ where
 
         let config = self.config_repository.get();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
-
-        let payload = database_payload.encrypt(&public_key)?;
 
         let remote_instruction = self
             .new_instruction_client(
@@ -284,12 +279,37 @@ where
             .await?;
 
         remote_instruction
-            .send(SendWalletPayload {
-                transfer_session_id,
-                payload,
-            })
+            .send(ConfirmTransfer { transfer_session_id })
             .await
             .map_err(TransferError::Instruction)
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn send_wallet_payload(&mut self) -> Result<(), TransferError> {
+        info!("Send wallet payload");
+
+        self.validate_transfer_allowed()?;
+
+        let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
+            return Err(TransferError::MissingTransferSessionId);
+        };
+
+        let Some(TransferKeyData::Source { public_key }) = transfer_data.key_data else {
+            return Err(TransferError::MissingTransferPublicKey);
+        };
+
+        let transfer_session_id: Uuid = transfer_data.transfer_session_id.into();
+
+        let database_export = self.storage.write().await.export().await?;
+        let database_payload = WalletDatabasePayload::new(database_export);
+        let payload = database_payload.encrypt(&public_key)?;
+
+        self.send_transfer_instruction(SendWalletPayload {
+            transfer_session_id,
+            payload,
+        })
+        .await
     }
 
     #[instrument(skip_all)]
@@ -533,7 +553,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_confirm_transfer() {
+    async fn test_pair_transfer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let transfer_session_id = Uuid::new_v4();
@@ -569,7 +589,7 @@ mod tests {
             .unwrap()
             .expect_hw_signed_instruction()
             .once()
-            .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
+            .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
@@ -579,9 +599,9 @@ mod tests {
         };
 
         wallet
-            .confirm_transfer(transfer_uri.try_into().unwrap())
+            .pair_transfer(transfer_uri.try_into().unwrap())
             .await
-            .expect("Wallet confirm transfer should have succeeded");
+            .expect("Wallet pair transfer should have succeeded");
     }
 
     #[tokio::test]
@@ -697,7 +717,7 @@ mod tests {
             .once()
             .returning(|_, _| Ok(random_bytes(32)));
 
-        let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
+        let wp_result = create_wp_result(TransferSessionState::Paired);
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -710,7 +730,7 @@ mod tests {
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::ReadyForTransfer)
+        assert_eq!(result, TransferSessionState::Paired)
     }
 
     #[tokio::test]
@@ -737,7 +757,7 @@ mod tests {
             .await
             .expect("Wallet init transfer should have succeeded");
 
-        // Then, confirm the transfer on the source wallet
+        // Then, pair the transfer on the source wallet
 
         Arc::get_mut(&mut source_wallet.account_provider_client)
             .unwrap()
@@ -751,12 +771,12 @@ mod tests {
             .unwrap()
             .expect_hw_signed_instruction()
             .once()
-            .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
+            .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .confirm_transfer(transfer_url)
+            .pair_transfer(transfer_url)
             .await
-            .expect("Wallet confirm transfer should have succeeded");
+            .expect("Wallet pair transfer should have succeeded");
 
         // Now both source and destination wallets should be able to request the session state
 
@@ -766,7 +786,7 @@ mod tests {
             .once()
             .returning(|_, _| Ok(random_bytes(32)));
 
-        let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
+        let wp_result = create_wp_result(TransferSessionState::Paired);
 
         Arc::get_mut(&mut destination_wallet.account_provider_client)
             .unwrap()
@@ -779,7 +799,7 @@ mod tests {
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::ReadyForTransfer);
+        assert_eq!(result, TransferSessionState::Paired);
 
         Arc::get_mut(&mut source_wallet.account_provider_client)
             .unwrap()
@@ -787,7 +807,7 @@ mod tests {
             .once()
             .returning(|_, _| Ok(random_bytes(32)));
 
-        let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
+        let wp_result = create_wp_result(TransferSessionState::Paired);
 
         Arc::get_mut(&mut source_wallet.account_provider_client)
             .unwrap()
@@ -800,7 +820,7 @@ mod tests {
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::ReadyForTransfer);
+        assert_eq!(result, TransferSessionState::Paired);
 
         // And both can cancel the transfer
 
@@ -916,12 +936,12 @@ mod tests {
             .unwrap()
             .expect_hw_signed_instruction()
             .once()
-            .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
+            .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .confirm_transfer(transfer_url.clone())
+            .pair_transfer(transfer_url.clone())
             .await
-            .expect("Wallet confirm transfer should have succeeded");
+            .expect("Wallet pair transfer should have succeeded");
 
         // Send the wallet payload from the source
 
@@ -976,12 +996,50 @@ mod tests {
 
         let wp_result = create_wp_result(());
 
+        Arc::get_mut(&mut source_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .once()
+            .return_once(move |_, _: Instruction<ConfirmTransfer>| Ok(wp_result));
+
+        source_wallet
+            .confirm_transfer(String::from("12345"))
+            .await
+            .expect("Wallet confirm should have succeeded");
+
+        source_wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        source_wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        source_wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        Arc::get_mut(&mut source_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(random_bytes(32)));
+
+        let wp_result = create_wp_result(());
+
         let payload_param: Arc<Mutex<Option<SendWalletPayload>>> = Arc::new(Mutex::new(None));
         let payload_param_clone = Arc::clone(&payload_param);
 
         Arc::get_mut(&mut source_wallet.account_provider_client)
             .unwrap()
-            .expect_instruction()
+            .expect_hw_signed_instruction()
             .withf(move |_, instruction| {
                 payload_param_clone
                     .lock()
@@ -989,10 +1047,10 @@ mod tests {
                 true
             })
             .once()
-            .return_once(move |_, _: Instruction<SendWalletPayload>| Ok(wp_result));
+            .return_once(move |_, _: HwSignedInstruction<SendWalletPayload>| Ok(wp_result));
 
         source_wallet
-            .send_wallet_payload(String::from("12345"))
+            .send_wallet_payload()
             .await
             .expect("Wallet send payload should have succeeded");
 

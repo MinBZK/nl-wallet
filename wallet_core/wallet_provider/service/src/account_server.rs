@@ -1862,9 +1862,9 @@ mod tests {
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
-    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
@@ -2623,7 +2623,7 @@ mod tests {
         let (_, account_server, hw_privkey, cert, mut user_state) = setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
-            .sign_instruction_challenge::<ConfirmTransfer>(
+            .sign_instruction_challenge::<PairTransfer>(
                 cert.dangerous_parse_unverified().unwrap().1.wallet_id,
                 1,
                 cert.clone(),
@@ -2728,7 +2728,7 @@ mod tests {
         let (_, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
-            .sign_instruction_challenge::<ConfirmTransfer>(
+            .sign_instruction_challenge::<PairTransfer>(
                 cert.dangerous_parse_unverified().unwrap().1.wallet_id,
                 1,
                 cert.clone(),
@@ -2760,7 +2760,7 @@ mod tests {
 
         let instruction = hw_privkey
             .sign_hw_signed_instruction(
-                ConfirmTransfer {
+                PairTransfer {
                     transfer_session_id,
                     app_version,
                 },
@@ -3369,7 +3369,7 @@ mod tests {
                 destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
                 destination_wallet_recovery_code: String::from("12345678"),
                 transfer_session_id: Uuid::new_v4(),
-                state: TransferSessionState::ReadyForTransfer,
+                state: TransferSessionState::Confirmed,
                 encrypted_wallet_data: None,
             }),
             instruction_sequence_number: 43,

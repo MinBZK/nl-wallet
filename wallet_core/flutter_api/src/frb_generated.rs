@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1208216043;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 248411463;
 
 // Section: executor
 
@@ -111,30 +111,6 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::accept_pid_issuance(api_pin).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
-fn wire__crate__api__full__acknowledge_wallet_transfer_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    uri: impl CstDecode<String>,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "acknowledge_wallet_transfer",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let api_uri = uri.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::acknowledge_wallet_transfer(api_uri).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -399,6 +375,30 @@ fn wire__crate__api__full__complete_pin_recovery_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::complete_pin_recovery(api_pin).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__confirm_wallet_transfer_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    pin: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "confirm_wallet_transfer",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::confirm_wallet_transfer(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -877,6 +877,30 @@ fn wire__crate__api__full__lock_wallet_impl(port_: flutter_rust_bridge::for_gene
         },
     )
 }
+fn wire__crate__api__full__pair_wallet_transfer_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    uri: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "pair_wallet_transfer",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_uri = uri.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::pair_wallet_transfer(api_uri).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__receive_wallet_transfer_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -1148,10 +1172,7 @@ fn wire__crate__api__full__start_disclosure_impl(
         },
     )
 }
-fn wire__crate__api__full__transfer_wallet_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    pin: impl CstDecode<String>,
-) {
+fn wire__crate__api__full__transfer_wallet_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "transfer_wallet",
@@ -1159,11 +1180,10 @@ fn wire__crate__api__full__transfer_wallet_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api_pin = pin.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::transfer_wallet(api_pin).await?;
+                        let output_ok = crate::api::full::transfer_wallet().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1299,11 +1319,12 @@ impl CstDecode<crate::models::transfer::TransferSessionState> for i32 {
     fn cst_decode(self) -> crate::models::transfer::TransferSessionState {
         match self {
             0 => crate::models::transfer::TransferSessionState::Created,
-            1 => crate::models::transfer::TransferSessionState::ReadyForTransfer,
-            2 => crate::models::transfer::TransferSessionState::ReadyForDownload,
-            3 => crate::models::transfer::TransferSessionState::Success,
-            4 => crate::models::transfer::TransferSessionState::Cancelled,
-            5 => crate::models::transfer::TransferSessionState::Error,
+            1 => crate::models::transfer::TransferSessionState::Paired,
+            2 => crate::models::transfer::TransferSessionState::Confirmed,
+            3 => crate::models::transfer::TransferSessionState::Uploaded,
+            4 => crate::models::transfer::TransferSessionState::Success,
+            5 => crate::models::transfer::TransferSessionState::Canceled,
+            6 => crate::models::transfer::TransferSessionState::Error,
             _ => unreachable!("Invalid variant for TransferSessionState: {}", self),
         }
     }
@@ -2156,11 +2177,12 @@ impl SseDecode for crate::models::transfer::TransferSessionState {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
             0 => crate::models::transfer::TransferSessionState::Created,
-            1 => crate::models::transfer::TransferSessionState::ReadyForTransfer,
-            2 => crate::models::transfer::TransferSessionState::ReadyForDownload,
-            3 => crate::models::transfer::TransferSessionState::Success,
-            4 => crate::models::transfer::TransferSessionState::Cancelled,
-            5 => crate::models::transfer::TransferSessionState::Error,
+            1 => crate::models::transfer::TransferSessionState::Paired,
+            2 => crate::models::transfer::TransferSessionState::Confirmed,
+            3 => crate::models::transfer::TransferSessionState::Uploaded,
+            4 => crate::models::transfer::TransferSessionState::Success,
+            5 => crate::models::transfer::TransferSessionState::Canceled,
+            6 => crate::models::transfer::TransferSessionState::Error,
             _ => unreachable!("Invalid variant for TransferSessionState: {}", inner),
         };
     }
@@ -2932,11 +2954,12 @@ impl flutter_rust_bridge::IntoDart for crate::models::transfer::TransferSessionS
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             Self::Created => 0.into_dart(),
-            Self::ReadyForTransfer => 1.into_dart(),
-            Self::ReadyForDownload => 2.into_dart(),
-            Self::Success => 3.into_dart(),
-            Self::Cancelled => 4.into_dart(),
-            Self::Error => 5.into_dart(),
+            Self::Paired => 1.into_dart(),
+            Self::Confirmed => 2.into_dart(),
+            Self::Uploaded => 3.into_dart(),
+            Self::Success => 4.into_dart(),
+            Self::Canceled => 5.into_dart(),
+            Self::Error => 6.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -3810,11 +3833,12 @@ impl SseEncode for crate::models::transfer::TransferSessionState {
         <i32>::sse_encode(
             match self {
                 crate::models::transfer::TransferSessionState::Created => 0,
-                crate::models::transfer::TransferSessionState::ReadyForTransfer => 1,
-                crate::models::transfer::TransferSessionState::ReadyForDownload => 2,
-                crate::models::transfer::TransferSessionState::Success => 3,
-                crate::models::transfer::TransferSessionState::Cancelled => 4,
-                crate::models::transfer::TransferSessionState::Error => 5,
+                crate::models::transfer::TransferSessionState::Paired => 1,
+                crate::models::transfer::TransferSessionState::Confirmed => 2,
+                crate::models::transfer::TransferSessionState::Uploaded => 3,
+                crate::models::transfer::TransferSessionState::Success => 4,
+                crate::models::transfer::TransferSessionState::Canceled => 5,
+                crate::models::transfer::TransferSessionState::Error => 6,
                 _ => {
                     unimplemented!("");
                 }
@@ -5035,14 +5059,6 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__acknowledge_wallet_transfer(
-        port_: i64,
-        uri: *mut wire_cst_list_prim_u_8_strict,
-    ) {
-        wire__crate__api__full__acknowledge_wallet_transfer_impl(port_, uri)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_disclosure(port_: i64) {
         wire__crate__api__full__cancel_disclosure_impl(port_)
     }
@@ -5110,6 +5126,14 @@ mod io {
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__complete_pin_recovery_impl(port_, pin)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__confirm_wallet_transfer(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__confirm_wallet_transfer_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]
@@ -5245,6 +5269,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__pair_wallet_transfer(
+        port_: i64,
+        uri: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__pair_wallet_transfer_impl(port_, uri)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__receive_wallet_transfer(port_: i64) {
         wire__crate__api__full__receive_wallet_transfer_impl(port_)
     }
@@ -5322,11 +5354,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__transfer_wallet(
-        port_: i64,
-        pin: *mut wire_cst_list_prim_u_8_strict,
-    ) {
-        wire__crate__api__full__transfer_wallet_impl(port_, pin)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__transfer_wallet(port_: i64) {
+        wire__crate__api__full__transfer_wallet_impl(port_)
     }
 
     #[unsafe(no_mangle)]
