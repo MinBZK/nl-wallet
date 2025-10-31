@@ -351,13 +351,6 @@ mod example_constructors {
             )
         }
 
-        pub fn eu_pid_example() -> (Integrity, Self) {
-            (
-                Integrity::from(EUDI_PID_METADATA_BYTES),
-                Self::new(vec![EUDI_PID_METADATA_BYTES.to_vec()].try_into().unwrap()),
-            )
-        }
-
         pub fn nl_pid_example() -> (Integrity, Self) {
             (
                 Integrity::from(NL_PID_METADATA_BYTES),

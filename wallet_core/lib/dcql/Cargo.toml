@@ -33,4 +33,5 @@ mdoc = { path = "../mdoc", optional = true }
 [dev-dependencies]
 rstest.workspace = true
 
+attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
 mdoc = { path = "../mdoc", features = ["examples", "mock_example_constructors"] }

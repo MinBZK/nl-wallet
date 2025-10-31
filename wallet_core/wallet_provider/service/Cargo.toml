@@ -27,7 +27,11 @@ mock_secure_keys = ["crypto/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
     "apple_app_attest/mock",
+    "attestation_data/generate",
+    "attestation_data/mock",
+    "attestation_types/pid_constants",
     "crypto/mock_secure_keys",
+    "crypto/generate",
     "dep:anyhow",
     "dep:hmac",
     "dep:platform_support",

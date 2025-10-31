@@ -15,7 +15,14 @@ test = ["crypto/generate", "crypto/mock", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include example based constructors to several types for testing
-mock_example_constructors = ["examples", "test", "crypto/examples", "utils/mock_time", "dep:sd_jwt_vc_metadata"]
+mock_example_constructors = [
+    "examples",
+    "test",
+    "attestation_types/pid_constants",
+    "crypto/examples",
+    "utils/mock_time",
+    "dep:sd_jwt_vc_metadata"
+]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
