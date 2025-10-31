@@ -35,7 +35,6 @@ serde_json = { workspace = true, features = ["std"] }
 serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 axum = { workspace = true, optional = true, features = ["json"] }

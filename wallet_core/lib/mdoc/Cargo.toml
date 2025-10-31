@@ -44,7 +44,6 @@ rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde-aux.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
-serde_json.workspace = true
 serde_repr.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2", "macros"] }
 ssri.workspace = true
@@ -68,7 +67,6 @@ assert_matches.workspace = true
 hex-literal.workspace = true
 regex.workspace = true
 rstest.workspace = true
-serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_types = { path = "../attestation_types", features = ["pid_constants"] }

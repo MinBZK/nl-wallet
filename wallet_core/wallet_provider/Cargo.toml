@@ -71,7 +71,6 @@ tracing-subscriber = { workspace = true, features = [
     "ansi",
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
-zstd.workspace = true
 
 rand_core = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
