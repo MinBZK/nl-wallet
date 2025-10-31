@@ -19,9 +19,10 @@ class ObserveTransferSessionStateUseCaseImpl extends ObserveTransferSessionState
   ObserveTransferSessionStateUseCaseImpl(this._transferRepository);
 
   @override
-  Stream<TransferSessionState> invoke() => observeWalletStatus().handleAppError('Failed to get transfer session state');
+  Stream<TransferSessionState> invoke() =>
+      observeTransferSessionState().handleAppError('Failed to get transfer session state');
 
-  Stream<TransferSessionState> observeWalletStatus() async* {
+  Stream<TransferSessionState> observeTransferSessionState() async* {
     while (true) {
       final status = await _transferRepository.getWalletTransferState();
       yield status;
