@@ -3,7 +3,6 @@ use std::collections::VecDeque;
 use std::hash::Hash;
 
 use derive_more::AsRef;
-use derive_more::Constructor;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
@@ -222,11 +221,28 @@ pub enum IssuedCredential {
     },
 }
 
-#[derive(Clone, Debug, Constructor)]
+#[derive(Clone, Debug)]
 pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
     pub attestation_type: String,
+    pub extended_attestation_types: Vec<String>,
     pub metadata_documents: VerifiedTypeMetadataDocuments,
+}
+
+impl CredentialWithMetadata {
+    pub fn new(
+        copies: IssuedCredentialCopies,
+        attestation_type: String,
+        extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
+        metadata_documents: VerifiedTypeMetadataDocuments,
+    ) -> Self {
+        Self {
+            copies,
+            attestation_type,
+            extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
+            metadata_documents,
+        }
+    }
 }
 
 #[derive(Clone, Debug, AsRef)]
@@ -823,6 +839,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             .expect("the resulting vector is never empty since 'copies' is nonzero"),
                     ),
                     preview.content.credential_payload.attestation_type.clone(),
+                    preview.normalized_metadata.extended_vcts(),
                     verified_metadata,
                 ))
             })
