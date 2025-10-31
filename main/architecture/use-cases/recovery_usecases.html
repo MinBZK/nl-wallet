@@ -268,7 +268,7 @@ PID Renewal allows the user to fetch a new PID attestation in case the current P
     WT -&gt;&gt; WT: Create asymmetric EC key (using ECIES)
     WT -&gt;&gt; User: Present QR code containing pubkey and transfer_session_id (to be scanned from source device)
     User -&gt;&gt; WS: Open app (with PIN/biometrics), Scan QR from target device (read public key and transfer_session_id)
-    WS -&gt;&gt; WP: confirm_transfer_session (with transfer_session_id, app_version)
+    WS -&gt;&gt; WP: pair_transfer (with transfer_session_id, app_version)
     WP -&gt;&gt; WP: validate recovery codes for Source and Destination Wallets (must be equal)
     WP -&gt;&gt; WP: validate app versions (Destination app_version must be &gt;= than than Source app_version) &lt;br/&gt;tranfer_state = ready_for_transfer
     WP -&gt;&gt; WS: confirm session (ok)
@@ -284,7 +284,7 @@ PID Renewal allows the user to fetch a new PID attestation in case the current P
         WP -&gt;&gt; WS: return transfer status (pending, canceled, completed)  
     and (Wait for and) Receive payload from Wallet Backend and report migration status back to Wallet Bakckend afterwards.
         WT -&gt;&gt; WP: receive_payload (transfer_session_id)
-        WP -&gt;&gt; WP: while not (ready_for_download) complete from source wallet: &lt;br/&gt;return pending else return payload
+        WP -&gt;&gt; WP: while not (uploaded) complete from source wallet: &lt;br/&gt;return pending else return payload
         WP -&gt;&gt; WT: Transfer encrypted_payload to Destination Wallet
         WT -&gt;&gt; WT: decrypt data, restore wallet
         WT -&gt;&gt; WP: complete_transfer(transfer_session_id) 
@@ -336,21 +336,25 @@ The Wallet Transfer record can have the following states:</p>
 <tbody>
 <tr class="row-even"><td><p>created</p></td>
 <td><p>- Wallet Transfer record is created.<br/>- <code class="docutils literal notranslate"><span class="pre">reset_transfer</span></code> instruction is called when recovering from a failed or cancelled transfer.</p></td>
-<td><p>ready_for_transfer, canceled</p></td>
+<td><p>paired, canceled</p></td>
 </tr>
-<tr class="row-odd"><td><p>ready_for_transfer</p></td>
-<td><p>After scanning QR from Destination Wallet and <code class="docutils literal notranslate"><span class="pre">confirm_transfer_session</span></code> instruction, Source Wallet is linked to transfer session.</p></td>
-<td><p>ready_for_download, canceled, created</p></td>
+<tr class="row-odd"><td><p>paired</p></td>
+<td><p>After scanning QR from Destination Wallet and <code class="docutils literal notranslate"><span class="pre">pair_transfer</span></code> instruction, Source Wallet is linked to transfer session.</p></td>
+<td><p>confirmed, canceled, created</p></td>
 </tr>
-<tr class="row-even"><td><p>ready_for_download</p></td>
+<tr class="row-even"><td><p>confirmed</p></td>
+<td><p>After <code class="docutils literal notranslate"><span class="pre">confirm_transfer</span></code> instruction from Source Wallet</p></td>
+<td><p>uploaded, canceled, created</p></td>
+</tr>
+<tr class="row-odd"><td><p>uploaded</p></td>
 <td><p>After <code class="docutils literal notranslate"><span class="pre">send_wallet_payload</span></code> instruction from Source Wallet</p></td>
 <td><p>completed, canceled, created</p></td>
 </tr>
-<tr class="row-odd"><td><p>completed</p></td>
+<tr class="row-even"><td><p>completed</p></td>
 <td><p>Destination Wallet after succesfull download (<code class="docutils literal notranslate"><span class="pre">receive_wallet_payload</span></code> instruction) and processing of payload confirmed with <code class="docutils literal notranslate"><span class="pre">complete_transfer</span></code> instruction.</p></td>
 <td><p>-</p></td>
 </tr>
-<tr class="row-even"><td><p>canceled</p></td>
+<tr class="row-odd"><td><p>canceled</p></td>
 <td><p>User can cancel transfer from Destination Wallet or Source Wallet from any state before reaching the <code class="docutils literal notranslate"><span class="pre">completed</span></code> state. The <code class="docutils literal notranslate"><span class="pre">cancel_transfer</span></code> instruction is used.</p></td>
 <td><p>created</p></td>
 </tr>
