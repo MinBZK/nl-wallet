@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <vraagResponse xmlns:ns2="http://www.bprbzk.nl/GBA/LO3/version1.1"
+                   xmlns="http://www.bprbzk.nl/GBA/LRDPlus/version1.1">
+      <vraagReturn>
+        <persoonslijsten>
+          <ns2:item>
+            <ns2:categoriestapels>
+              <!-- Categorie 1 - Persoon -->
+              <ns2:item>
+                <ns2:categorievoorkomens>
+                  <ns2:item>
+                    <ns2:categorienummer>1</ns2:categorienummer>
+                    <ns2:elementen>
+                      <ns2:item>
+                        <ns2:nummer>120</ns2:nummer>
+                        <ns2:waarde>999991905</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>210</ns2:nummer>
+                        <ns2:waarde>Linda</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>240</ns2:nummer>
+                        <ns2:waarde>Strijps</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>310</ns2:nummer>
+                        <ns2:waarde>20000324</ns2:waarde>
+                      </ns2:item>
+                    </ns2:elementen>
+                  </ns2:item>
+                </ns2:categorievoorkomens>
+              </ns2:item>
+
+              <!-- Categorie 4 - Nationaliteit Nederlandse -->
+              <ns2:item>
+                <ns2:categorievoorkomens>
+                  <ns2:item>
+                    <ns2:categorienummer>4</ns2:categorienummer>
+                    <ns2:elementen>
+                      <ns2:item>
+                        <ns2:nummer>510</ns2:nummer>
+                        <ns2:waarde>0001</ns2:waarde> <!-- Nationaliteit Nederlandse -->
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>6310</ns2:nummer>
+                        <ns2:waarde>017</ns2:waarde> <!-- Reden opname nationaliteit -->
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>8510</ns2:nummer>
+                        <ns2:waarde>20000324</ns2:waarde> <!-- Ingangsdatum geldigheid -->
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>8610</ns2:nummer>
+                        <ns2:waarde>20000325</ns2:waarde> <!-- Datum van opneming -->
+                      </ns2:item>
+                    </ns2:elementen>
+                  </ns2:item>
+                </ns2:categorievoorkomens>
+              </ns2:item>
+
+              <!-- Categorie 8 - Adres -->
+              <ns2:item>
+                <ns2:categorievoorkomens>
+                  <ns2:item>
+                    <ns2:categorienummer>8</ns2:categorienummer>
+                    <ns2:elementen>
+                      <ns2:item>
+                        <ns2:nummer>1110</ns2:nummer>
+                        <ns2:waarde>Glitterstraat</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>1115</ns2:nummer>
+                        <ns2:waarde>Glitterstraat</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>1120</ns2:nummer>
+                        <ns2:waarde>301</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>1160</ns2:nummer>
+                        <ns2:waarde>1103SK</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>1170</ns2:nummer>
+                        <ns2:waarde>Amsterdam</ns2:waarde>
+                      </ns2:item>
+                    </ns2:elementen>
+                  </ns2:item>
+                </ns2:categorievoorkomens>
+              </ns2:item>
+            </ns2:categoriestapels>
+          </ns2:item>
+        </persoonslijsten>
+        <resultaat>
+          <code>0</code>
+          <letter>A</letter>
+          <omschrijving>Aantal: 1.</omschrijving>
+          <referentie>c228b4f2-5be4-40d9-881e-62d3d9112d0d</referentie>
+        </resultaat>
+      </vraagReturn>
+    </vraagResponse>
+  </soap:Body>
+</soap:Envelope>
