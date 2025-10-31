@@ -26,6 +26,7 @@ use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use mdoc::utils::cose::CoseError;
+use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -54,7 +55,6 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
-use crate::storage::DataDisclosureStatus;
 use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
@@ -564,7 +564,7 @@ where
             reader_certificate,
             session.disclosure_type,
             EventStatus::Cancelled,
-            DataDisclosureStatus::NotDisclosed,
+            DataDisclosed::NotDisclosed,
         )
         .await
         .map_err(DisclosureError::EventStorage)?;
@@ -765,7 +765,7 @@ where
                     reader_certificate,
                     session.disclosure_type,
                     EventStatus::Error,
-                    DataDisclosureStatus::NotDisclosed,
+                    DataDisclosed::NotDisclosed,
                 )
                 .await
             {
@@ -821,26 +821,18 @@ where
                 if !matches!(
                     disclosure_error,
                     DisclosureError::Instruction(InstructionError::IncorrectPin { .. })
-                ) {
-                    let data_status = if error.data_shared {
-                        DataDisclosureStatus::Disclosed
-                    } else {
-                        DataDisclosureStatus::NotDisclosed
-                    };
-
-                    if let Err(error) = self
-                        .store_disclosure_event(
-                            Utc::now(),
-                            Some(attestation_presentations),
-                            reader_certificate,
-                            session.disclosure_type,
-                            EventStatus::Error,
-                            data_status,
-                        )
-                        .await
-                    {
-                        error!("Could not store error in history: {error}");
-                    }
+                ) && let Err(error) = self
+                    .store_disclosure_event(
+                        Utc::now(),
+                        Some(attestation_presentations),
+                        reader_certificate,
+                        session.disclosure_type,
+                        EventStatus::Error,
+                        error.data_shared,
+                    )
+                    .await
+                {
+                    error!("Could not store error in history: {error}");
                 }
 
                 // At this point place the `DisclosureSession` back so that `WalletDisclosureSession` is whole again.
@@ -882,7 +874,7 @@ where
             reader_certificate,
             session.disclosure_type,
             EventStatus::Success,
-            DataDisclosureStatus::Disclosed,
+            DataDisclosed::Disclosed,
         )
         .await
         .map_err(DisclosureError::EventStorage)?;
@@ -940,6 +932,7 @@ mod tests {
     use mdoc::utils::cose::CoseError;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
+    use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::DisclosableAttestations;
     use openid4vc::disclosure_session::DisclosureUriSource;
     use openid4vc::disclosure_session::VerifierCertificate;
@@ -2496,7 +2489,7 @@ mod tests {
         #[case] error_factory: F,
         #[case] expected_error_type: ClientErrorType,
         #[case] expect_return_url: bool,
-        #[values(true, false)] data_shared: bool,
+        #[values(DataDisclosed::Disclosed, DataDisclosed::NotDisclosed)] data_shared: DataDisclosed,
     ) where
         F: Fn() -> E,
         E: Into<VpMessageClientError>,
@@ -2541,7 +2534,7 @@ mod tests {
                 function(move |attestations: &Vec<_>| {
                     first_event_attestations_tx.send(attestations.clone()).unwrap();
 
-                    attestations.len() == if data_shared { 1 } else { 0 }
+                    attestations.len() == if data_shared == DataDisclosed::Disclosed { 1 } else { 0 }
                 }),
                 eq(reader_certificate),
                 eq(EventStatus::Error),

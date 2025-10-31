@@ -20,6 +20,7 @@ use wscd::Poa;
 use crate::verifier::SessionType;
 
 pub use self::client::VpDisclosureClient;
+pub use self::error::DataDisclosed;
 pub use self::error::DisclosureError;
 pub use self::error::VpClientError;
 pub use self::error::VpSessionError;
