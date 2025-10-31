@@ -119,7 +119,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullClearVersionStateStream();
 
-  Future<WalletInstructionResult> crateApiFullCompletePinRecovery({required String pin});
+  Future<void> crateApiFullCompletePinRecovery({required String pin});
 
   Future<WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String pin});
 
@@ -542,7 +542,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<WalletInstructionResult> crateApiFullCompletePinRecovery({required String pin}) {
+  Future<void> crateApiFullCompletePinRecovery({required String pin}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -550,7 +550,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           return wire.wire__crate__api__full__complete_pin_recovery(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullCompletePinRecoveryConstMeta,

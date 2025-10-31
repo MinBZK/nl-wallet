@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -108,9 +107,7 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::mock_remote::MockRemoteWscd;
-use wscd::wscd::IssuanceResult;
 use wscd::wscd::JwtPoaInput;
-use wscd::wscd::Wscd;
 
 fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<DisclosedAttestations>) {
     assert_eq!(disclosed_attestations.len().get(), 1);
@@ -740,18 +737,6 @@ async fn test_disclosure_invalid_poa() {
             result.poa.as_mut().unwrap().set_payload("wrong_payload".to_string());
 
             Ok(result)
-        }
-    }
-
-    impl Wscd for WrongPoaWscd {
-        async fn perform_issuance(
-            &self,
-            count: NonZeroUsize,
-            aud: String,
-            nonce: Option<String>,
-            include_wua: bool,
-        ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
-            self.0.perform_issuance(count, aud, nonce, include_wua).await
         }
     }
 

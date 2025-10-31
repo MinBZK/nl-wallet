@@ -234,27 +234,39 @@ pub async fn create_pid_renewal_redirect_uri() -> anyhow::Result<String> {
 
 #[flutter_api_error]
 pub async fn create_pin_recovery_redirect_uri() -> anyhow::Result<String> {
-    // TODO: Implement as part of PVW-4587
-    Ok("pin_recovery_url".into())
+    let mut wallet = wallet().write().await;
+
+    let auth_url = wallet.create_pin_recovery_redirect_uri().await?;
+
+    Ok(auth_url.into())
 }
 
 #[flutter_api_error]
 pub async fn continue_pin_recovery(uri: String) -> anyhow::Result<()> {
-    // TODO: Implement as part of PVW-4587
-    println!("Recovery URI: {uri}");
+    let url = Url::parse(&uri)?;
+
+    let mut wallet = wallet().write().await;
+
+    wallet.continue_pin_recovery(url).await?;
+
     Ok(())
 }
 
 #[flutter_api_error]
-pub async fn complete_pin_recovery(pin: String) -> anyhow::Result<WalletInstructionResult> {
-    // TODO: Implement as part of PVW-4587
-    println!("PIN length: {}", pin.len());
-    Ok(WalletInstructionResult::Ok)
+pub async fn complete_pin_recovery(pin: String) -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.complete_pin_recovery(pin).await?;
+
+    Ok(())
 }
 
 #[flutter_api_error]
 pub async fn cancel_pin_recovery() -> anyhow::Result<()> {
-    // TODO: Implement as part of PVW-4587
+    let mut wallet = wallet().write().await;
+
+    wallet.cancel_pin_recovery().await?;
+
     Ok(())
 }
 

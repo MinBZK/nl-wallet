@@ -202,7 +202,9 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
 
   @override
   Future<void> close() {
-    _cancelPinRecoveryUsecase.invoke();
+    // TODO(Rob): this line cancels the PIN recovery flow even when it is succesful.
+    //            PIN recovery should only be cancelled here if it's still ongoing. See PVW-5067.
+    // _cancelPinRecoveryUsecase.invoke();
     return super.close();
   }
 }

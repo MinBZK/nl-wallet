@@ -50,6 +50,11 @@ path = "tests/pin_change.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "pin_recovery"
+path = "tests/pin_recovery.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "registration"
 path = "tests/registration.rs"
 required-features = ["integration_test"]

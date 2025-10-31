@@ -77,6 +77,9 @@ pub enum OidcError {
     #[error("config has no userinfo url")]
     #[category(critical)]
     NoUserinfoUrl,
+    #[error("user denied authentication")]
+    #[category(expected)]
+    Denied,
 }
 
 const APPLICATION_JWT: &str = "application/jwt";
@@ -206,7 +209,12 @@ impl<P: PkcePair> HttpOidcClient<P> {
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
             let err_response: ErrorResponse<AuthorizationErrorCode> = serde_urlencoded::from_str(auth_response)?;
-            return Err(OidcError::RedirectUriError(Box::new(err_response)));
+
+            if err_response.error == AuthorizationErrorCode::AccessDenied {
+                return Err(OidcError::Denied);
+            } else {
+                return Err(OidcError::RedirectUriError(Box::new(err_response)));
+            }
         }
 
         let auth_response: AuthorizationResponse = serde_urlencoded::from_str(auth_response)?;
@@ -332,6 +340,7 @@ mod tests {
     use assert_matches::assert_matches;
     use biscuit::jwk::JWKSet;
     use rstest::rstest;
+    use serial_test::serial;
     use url::Url;
 
     use http_utils::tls::insecure::InsecureHttpConfig;
@@ -364,6 +373,7 @@ mod tests {
     const PARAM_PKCE_VERIFIER: &str = "verifier";
 
     #[tokio::test]
+    #[serial(MockPkcePair)]
     async fn test_start_and_into_token_request() {
         // Setup mock PKCE expectations
         let pkce_context = MockPkcePair::generate_context();
@@ -404,6 +414,40 @@ mod tests {
             token_request.grant_type,
             TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } if pre_authorized_code.as_ref() == CODE
         );
+    }
+
+    #[tokio::test]
+    #[serial(MockPkcePair)]
+    async fn test_user_cancels() {
+        // Setup mock PKCE expectations
+        let pkce_context = MockPkcePair::generate_context();
+        pkce_context.expect().return_once(|| {
+            let mut pkce_pair = MockPkcePair::new();
+            pkce_pair
+                .expect_code_challenge()
+                .times(1)
+                .return_const(PARAM_PKCE_CHALLENGE.to_string());
+            pkce_pair
+        });
+
+        let (_server, server_url) = start_discovery_server().await;
+        let client = OidcReqwestClient::try_new(InsecureHttpConfig::new(server_url.clone())).unwrap();
+        let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
+        let (client, _) = HttpOidcClient::<MockPkcePair>::start(&client, CLIENT_ID.to_string(), redirect_uri.clone())
+            .await
+            .unwrap();
+
+        // Convert it to a token request
+        let state = client.state.clone();
+        let error = client
+            .into_token_request(
+                &redirect_uri
+                    .join(&format!("?error=access_denied&state={state}"))
+                    .unwrap(),
+            )
+            .unwrap_err();
+
+        assert_matches!(error, OidcError::Denied);
     }
 
     fn create_client() -> HttpOidcClient<MockPkcePair> {

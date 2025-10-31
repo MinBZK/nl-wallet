@@ -364,7 +364,7 @@ class RecoverPinScreen extends StatelessWidget {
       await _performMockLogin(context);
     } else {
       try {
-        await launchUrl(Uri.parse(authUrl), mode: LaunchMode.platformDefault);
+        await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
       } catch (ex) {
         final error = GenericError('Failed to launch digid url', sourceError: ex);
         if (context.mounted) {

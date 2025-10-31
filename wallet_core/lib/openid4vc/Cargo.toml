@@ -107,6 +107,7 @@ parking_lot.workspace = true
 rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
+serial_test.workspace = true
 tracing-test.workspace = true
 ts-rs.workspace = true
 wiremock.workspace = true

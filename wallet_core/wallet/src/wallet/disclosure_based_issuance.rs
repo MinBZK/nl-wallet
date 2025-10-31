@@ -181,6 +181,7 @@ mod tests {
     use dcql::CredentialFormat;
     use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
+    use openid4vc::Format;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
@@ -298,7 +299,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let credential_preview = create_example_preview_data(&MockTimeGenerator::default());
+        let credential_preview = create_example_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();
