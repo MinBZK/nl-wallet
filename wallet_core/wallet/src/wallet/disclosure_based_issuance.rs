@@ -347,7 +347,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_unique_attestations_by_types()
             .times(1)
-            .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .returning(move |_| Ok(vec![expectation_attestation_copy.clone()]));
 
         // Accept disclosure based issuance
         let previews = wallet

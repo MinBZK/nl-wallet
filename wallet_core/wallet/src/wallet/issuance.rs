@@ -61,7 +61,6 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
-use crate::storage::AttestationFormatQuery;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
@@ -405,7 +404,7 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_types(&preview_attestation_types, AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types(&preview_attestation_types)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -1035,7 +1034,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_unique_attestations_by_types()
             .times(1)
-            .returning(|_, _| {
+            .returning(|_| {
                 let (mdoc, metadata) = create_example_pid_mdoc();
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
@@ -1210,7 +1209,7 @@ mod tests {
         let storage = wallet.mut_storage();
         storage
             .expect_fetch_unique_attestations_by_types()
-            .return_once(move |_attestation_types, _format| Ok(vec![stored]));
+            .return_once(move |_attestation_types| Ok(vec![stored]));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
