@@ -252,8 +252,7 @@ where
 
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
-
-        let received_recovery_code = self
+        let (received_recovery_code, session) = self
             .pin_recovery_start_issuance(token_request, pid_config.clone(), &config)
             .await?;
 
@@ -282,6 +281,8 @@ where
             });
         }
 
+        self.session.replace(Session::PinRecovery { pid_config, session });
+
         Ok(())
     }
 
@@ -302,7 +303,7 @@ where
         token_request: TokenRequest,
         pid_config: PidAttributesConfiguration,
         config: &WalletConfiguration,
-    ) -> Result<AttributeValue, PinRecoveryError> {
+    ) -> Result<(AttributeValue, PinRecoverySession<<DC as DigidClient>::Session, IS>), PinRecoveryError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
             .expect("Could not build reqwest HTTP client");
@@ -340,15 +341,13 @@ where
             .clone();
 
         info!("successfully received token and previews from issuer");
-        self.session.replace(Session::PinRecovery {
-            pid_config,
-            session: PinRecoverySession::Issuance {
-                pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
-                issuance_session,
-            },
-        });
 
-        Ok(recovery_code)
+        let session = PinRecoverySession::Issuance {
+            pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
+            issuance_session,
+        };
+
+        Ok((recovery_code, session))
     }
 
     #[instrument(skip_all)]
