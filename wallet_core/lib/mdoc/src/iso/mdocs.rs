@@ -184,10 +184,10 @@ pub struct MobileSecurityObject {
     pub issuer_uri: Option<HttpsUri>,
 
     /// Optional because it is not in the spec.
-    pub attestation_qualification: Option<AttestationQualification>,
+    pub status: Option<StatusClaim>,
 
     /// Optional because it is not in the spec.
-    pub status: Option<StatusClaim>,
+    pub attestation_qualification: Option<AttestationQualification>,
 
     /// This value is optional, as it is not part of the spec.
     pub type_metadata_integrity: Option<Integrity>,

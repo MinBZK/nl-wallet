@@ -275,11 +275,11 @@ pub struct SdJwtVcClaims {
 
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
-    pub attestation_qualification: Option<AttestationQualification>,
+    pub status: Option<StatusClaim>,
 
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
-    pub status: Option<StatusClaim>,
+    pub attestation_qualification: Option<AttestationQualification>,
 
     // In practice this should always be a `ClaimValue::Object`, however `ClaimValue` is used here instead of
     // `ObjectClaims` to make is possible to call `ClaimValue::traverse_by_claim_paths` at this level and return `self`
