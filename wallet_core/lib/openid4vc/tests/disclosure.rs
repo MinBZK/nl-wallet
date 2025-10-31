@@ -926,7 +926,6 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
     .into();
     dcql_query.credentials = dcql_query
         .credentials
-        .clone()
         .into_iter()
         .map(|mut query| {
             query.id = CredentialQueryIdentifier::try_new(String::from(query_id)).unwrap();
