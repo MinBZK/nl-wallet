@@ -1387,7 +1387,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
-                        mdoc.doc_type(),
+                        mdoc.doc_type().to_string(),
                         normalized_metadata.extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),

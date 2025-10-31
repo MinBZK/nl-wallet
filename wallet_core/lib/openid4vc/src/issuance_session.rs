@@ -232,7 +232,7 @@ pub struct CredentialWithMetadata {
 impl CredentialWithMetadata {
     pub fn new(
         copies: IssuedCredentialCopies,
-        attestation_type: impl Into<String>,
+        attestation_type: String,
         extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
         metadata_documents: VerifiedTypeMetadataDocuments,
     ) -> Self {
