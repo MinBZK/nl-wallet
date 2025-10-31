@@ -1070,6 +1070,7 @@ mod tests {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::mock::MockTimeGenerator;
     use wscd::mock_remote::MockRemoteWscd;
 
@@ -1328,6 +1329,7 @@ mod tests {
         issuer_key: Arc<KeyPair>,
         metadata_integrity: Integrity,
         previewable_payload: PreviewableCredentialPayload,
+        status: StatusClaim,
     }
 
     impl MockCredentialSigner {
@@ -1363,6 +1365,7 @@ mod tests {
                 issuer_key: Arc::new(issuer_key),
                 metadata_integrity,
                 previewable_payload: preview_payload.clone(),
+                status: StatusClaim::new_mock(),
             };
 
             let preview = NormalizedCredentialPreview {
@@ -1393,6 +1396,7 @@ mod tests {
                 Utc::now(),
                 holder_pubkey,
                 self.metadata_integrity,
+                self.status,
             )
             .unwrap();
 

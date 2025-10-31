@@ -98,6 +98,7 @@
 //!     exp: None,
 //!     nbf: None,
 //!     attestation_qualification: None,
+//!     status: None,
 //!     claims: serde_json::from_value(serde_json::json!({
 //!         "name": "alice"
 //!     }))?,

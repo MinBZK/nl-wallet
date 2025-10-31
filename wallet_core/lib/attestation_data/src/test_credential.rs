@@ -27,6 +27,7 @@ use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use token_status_list::status_claim::StatusClaim;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -76,6 +77,7 @@ pub struct TestCredential {
     metadata_documents: TypeMetadataDocuments,
     query_id: CredentialQueryIdentifier,
     disclosure_attributes: Attributes,
+    status: StatusClaim,
 }
 
 impl TestCredentials {
@@ -202,6 +204,7 @@ impl TestCredential {
         metadata_documents: TypeMetadataDocuments,
         query_id: CredentialQueryIdentifier,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        status: StatusClaim,
     ) -> Self {
         let claim_paths = query_claim_paths
             .into_iter()
@@ -222,6 +225,7 @@ impl TestCredential {
             metadata_documents,
             query_id,
             disclosure_attributes,
+            status,
         }
     }
 
@@ -307,6 +311,7 @@ impl TestCredential {
             holder_key.verifying_key(),
             &normalized_metadata,
             self.metadata_integrity(),
+            self.status.clone(),
         )
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
@@ -423,6 +428,7 @@ impl TestCredential {
             metadata_documents,
             query_id.parse().unwrap(),
             query_claim_paths,
+            StatusClaim::new_mock(),
         )
     }
 
@@ -456,6 +462,7 @@ impl TestCredential {
             metadata_documents,
             query_id.parse().unwrap(),
             query_claim_paths,
+            StatusClaim::new_mock(),
         )
     }
 
