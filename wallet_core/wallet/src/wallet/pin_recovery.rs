@@ -577,13 +577,13 @@ mod tests {
     use crate::digid::MockDigidSession;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
+    use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
-    use crate::test::Repository;
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::test::TestWalletMockStorage;
