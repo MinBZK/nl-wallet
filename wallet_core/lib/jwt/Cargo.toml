@@ -36,6 +36,7 @@ assert_matches.workspace = true
 futures = { workspace = true, features = ["std"] }
 rand_core.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+tokio-test.workspace = true
 
 crypto = { path = "../crypto", features = ["generate", "mock", "mock_secure_keys"] }
 utils.path = "../utils"
