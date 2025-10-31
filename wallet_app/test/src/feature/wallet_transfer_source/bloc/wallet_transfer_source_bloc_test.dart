@@ -11,14 +11,14 @@ import '../../../mocks/wallet_mocks.dart';
 
 void main() {
   late MockPairWalletTransferUseCase mockPairWalletTransferUseCase;
-  late MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase;
+  late MockObserveTransferSessionStateUseCase mockObserveTransferSessionStateUseCase;
   late MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase;
   late MockStartWalletTransferUseCase mockStartWalletTransferUseCase;
   late MockAutoLockService mockAutoLockService;
 
   setUp(() {
     mockPairWalletTransferUseCase = MockPairWalletTransferUseCase();
-    mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
+    mockObserveTransferSessionStateUseCase = MockObserveTransferSessionStateUseCase();
     mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
     mockStartWalletTransferUseCase = MockStartWalletTransferUseCase();
     mockAutoLockService = MockAutoLockService();
@@ -27,7 +27,7 @@ void main() {
   WalletTransferSourceBloc createBloc() {
     return WalletTransferSourceBloc(
       mockPairWalletTransferUseCase,
-      mockGetWalletTransferStatusUseCase,
+      mockObserveTransferSessionStateUseCase,
       mockCancelWalletTransferUseCase,
       mockStartWalletTransferUseCase,
       mockAutoLockService,
@@ -58,7 +58,7 @@ void main() {
     build: createBloc,
     setUp: () {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
-      when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
+      when(mockObserveTransferSessionStateUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
           TransferSessionState.confirmed,
           TransferSessionState.uploaded,
@@ -95,7 +95,7 @@ void main() {
     build: createBloc,
     setUp: () {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
-      when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
+      when(mockObserveTransferSessionStateUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
           TransferSessionState.confirmed,
         ]).delay(const Duration(milliseconds: 10)),
@@ -161,7 +161,7 @@ void main() {
     setUp: () {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(
-        mockGetWalletTransferStatusUseCase.invoke(),
+        mockObserveTransferSessionStateUseCase.invoke(),
       ).thenAnswer((_) => Stream.value(TransferSessionState.error).delay(const Duration(milliseconds: 10)));
     },
     act: (bloc) async {
@@ -188,7 +188,7 @@ void main() {
     setUp: () {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(
-        mockGetWalletTransferStatusUseCase.invoke(),
+        mockObserveTransferSessionStateUseCase.invoke(),
       ).thenAnswer((_) => Stream.value(TransferSessionState.cancelled).delay(const Duration(milliseconds: 10)));
     },
     act: (bloc) async {
@@ -209,7 +209,7 @@ void main() {
     setUp: () {
       when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(
-        mockGetWalletTransferStatusUseCase.invoke(),
+        mockObserveTransferSessionStateUseCase.invoke(),
       ).thenAnswer(
         (_) async* {
           await Future.delayed(const Duration(milliseconds: 10));

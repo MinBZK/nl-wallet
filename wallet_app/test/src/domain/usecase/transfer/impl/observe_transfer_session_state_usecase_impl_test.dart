@@ -1,20 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart';
-import 'package:wallet/src/domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
+import 'package:wallet/src/domain/usecase/transfer/impl/observe_transfer_session_state_usecase_impl.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
 void main() {
-  late GetWalletTransferStatusUseCaseImpl useCase;
+  late ObserveTransferSessionStateUseCaseImpl useCase;
   late MockTransferRepository mockTransferRepository;
 
   setUp(() {
     mockTransferRepository = MockTransferRepository();
-    useCase = GetWalletTransferStatusUseCaseImpl(mockTransferRepository);
+    useCase = ObserveTransferSessionStateUseCaseImpl(mockTransferRepository);
   });
 
-  group('GetWalletTransferStatusUseCaseImpl', () {
+  group('ObserveTransferSessionStateUseCaseImpl', () {
     test('should emit success and complete when repository returns success immediately', () async {
       // Arrange
       when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.success);

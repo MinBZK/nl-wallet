@@ -1,13 +1,13 @@
 import '../../../../data/repository/transfer/transfer_repository.dart';
 import '../../../model/transfer/transfer_session_state.dart';
 import '../../wallet_usecase.dart';
-import '../get_wallet_transfer_status_usecase.dart';
+import '../observe_transfer_session_state_usecase.dart';
 
-/// Use case for observing the status of a wallet transfer.
+/// Use case for observing the [TransferSessionState].
 ///
-/// This class polls the [TransferRepository] for the current transfer status
-/// and yields the status until a terminal state is reached.
-class GetWalletTransferStatusUseCaseImpl extends GetWalletTransferStatusUseCase {
+/// This class polls the [TransferRepository] for the transfer session state
+/// and yields the state until a terminal state is reached.
+class ObserveTransferSessionStateUseCaseImpl extends ObserveTransferSessionStateUseCase {
   final TransferRepository _transferRepository;
 
   static const List<TransferSessionState> _terminalStates = [
@@ -16,10 +16,10 @@ class GetWalletTransferStatusUseCaseImpl extends GetWalletTransferStatusUseCase 
     TransferSessionState.error,
   ];
 
-  GetWalletTransferStatusUseCaseImpl(this._transferRepository);
+  ObserveTransferSessionStateUseCaseImpl(this._transferRepository);
 
   @override
-  Stream<TransferSessionState> invoke() => observeWalletStatus().handleAppError('Failed to get transfer status');
+  Stream<TransferSessionState> invoke() => observeWalletStatus().handleAppError('Failed to get transfer session state');
 
   Stream<TransferSessionState> observeWalletStatus() async* {
     while (true) {

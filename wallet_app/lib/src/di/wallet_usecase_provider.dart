@@ -91,16 +91,16 @@ import '../domain/usecase/tour/observe_show_tour_banner_usecase.dart';
 import '../domain/usecase/tour/tour_overview_viewed_usecase.dart';
 import '../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
-import '../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
 import '../domain/usecase/transfer/impl/cancel_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/confirm_wallet_transfer_usecase_impl.dart';
-import '../domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/init_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/observe_transfer_session_state_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/pair_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/receive_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/skip_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/start_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/observe_transfer_session_state_usecase.dart';
 import '../domain/usecase/transfer/pair_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/receive_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
@@ -327,8 +327,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<SkipWalletTransferUseCase>(
           create: (context) => SkipWalletTransferUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<GetWalletTransferStatusUseCase>(
-          create: (context) => GetWalletTransferStatusUseCaseImpl(context.read()),
+        RepositoryProvider<ObserveTransferSessionStateUseCase>(
+          create: (context) => ObserveTransferSessionStateUseCaseImpl(context.read()),
         ),
         RepositoryProvider<InitWalletTransferUseCase>(
           create: (context) => InitWalletTransferUseCaseImpl(context.read()),

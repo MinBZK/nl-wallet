@@ -109,8 +109,8 @@ import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.
 import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart' as _i109;
 import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i116;
 import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart' as _i114;
-import 'package:wallet/src/domain/usecase/transfer/get_wallet_transfer_status_usecase.dart' as _i118;
 import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart' as _i119;
+import 'package:wallet/src/domain/usecase/transfer/observe_transfer_session_state_usecase.dart' as _i118;
 import 'package:wallet/src/domain/usecase/transfer/pair_wallet_transfer_usecase.dart' as _i117;
 import 'package:wallet/src/domain/usecase/transfer/receive_wallet_transfer_usecase.dart' as _i126;
 import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart' as _i120;
@@ -5767,10 +5767,10 @@ class MockPairWalletTransferUseCase extends _i1.Mock implements _i117.PairWallet
           as _i10.Future<_i57.Result<T>>);
 }
 
-/// A class which mocks [GetWalletTransferStatusUseCase].
+/// A class which mocks [ObserveTransferSessionStateUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetWalletTransferStatusUseCase extends _i1.Mock implements _i118.GetWalletTransferStatusUseCase {
+class MockObserveTransferSessionStateUseCase extends _i1.Mock implements _i118.ObserveTransferSessionStateUseCase {
   @override
   _i10.Stream<_i41.TransferSessionState> invoke() =>
       (super.noSuchMethod(
