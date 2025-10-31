@@ -246,8 +246,6 @@ computed as the HMAC of the user’s BSN.</p></li>
 already exists and renews the existing attestation. The only exception is that
 if the attestation will be valid in the future, the attestation will be
 treated as new.</p></li>
-<li><p>The Wallet Provider now supports a new <code class="docutils literal notranslate"><span class="pre">StartPinRecovery</span></code> instruction with
-which the wallet can start PIN recovery if the user forgot their PIN.</p></li>
 <li><p>The wallet now start with an empty database on every new version.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> endpoint of the verifier now includes the
 <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code> field per disclosed attestation.</p></li>
@@ -255,6 +253,9 @@ which the wallet can start PIN recovery if the user forgot their PIN.</p></li>
 server supports receiving them.</p></li>
 <li><p>The recovery code and login claims can be configured per PID attestation type
 in the wallet configuration.</p></li>
+<li><p>If the wallet user forgot their PIN, the wallet and wallet provider now
+support a protocol that allows the user to reauthenticate using DigiD and
+choose a new PIN.</p></li>
 <li><p>The PID issuer and the Issuance Server now maintain a table of issued
 attestation batches and the corresponding issued status token claims.</p></li>
 <li><p>The PID attestation types with recovery code has to be configured for the
