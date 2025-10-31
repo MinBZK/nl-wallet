@@ -238,7 +238,7 @@ impl CredentialWithMetadata {
     ) -> Self {
         Self {
             copies,
-            attestation_type: attestation_type.into(),
+            attestation_type,
             extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
             metadata_documents,
         }
