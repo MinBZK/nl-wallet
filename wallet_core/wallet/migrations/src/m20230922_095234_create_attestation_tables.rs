@@ -16,6 +16,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(Attestation::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(Attestation::Type).text().not_null())
+                    .col(ColumnDef::new(Attestation::ExtendedTypes).json().not_null())
                     .col(ColumnDef::new(Attestation::TypeMetadata).json().not_null())
                     .to_owned(),
             )
@@ -78,6 +79,7 @@ pub enum Attestation {
     Id,
     #[sea_orm(iden = "attestation_type")]
     Type,
+    ExtendedTypes,
     TypeMetadata,
 }
 

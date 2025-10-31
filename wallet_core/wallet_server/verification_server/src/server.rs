@@ -63,6 +63,7 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         settings.wallet_client_ids,
+        settings.extending_vct_values.unwrap_or_default(),
     )
     .create_routers(settings.allow_origins, disclosure_sessions, None);
 

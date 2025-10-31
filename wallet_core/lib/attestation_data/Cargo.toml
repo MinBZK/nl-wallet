@@ -11,11 +11,10 @@ workspace = true
 doctest = false
 
 [features]
-examples = ["pid_constants"]
+examples = ["attestation_types/pid_constants"]
 example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
-mock = ["example_credential_payloads", "pid_constants", "crypto/mock", "mdoc/test", "dep:rand_core"]
-pid_constants = []
+mock = ["example_credential_payloads", "attestation_types/pid_constants", "crypto/mock", "mdoc/test", "dep:rand_core"]
 test_credential = ["mock", "dep:futures"]
 
 [dependencies]
@@ -49,6 +48,7 @@ jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
+token_status_list.path = "../token_status_list"
 utils.path = "../utils"
 
 [dev-dependencies]
@@ -63,7 +63,9 @@ serde_valid.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
+attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
 crypto = { path = "../crypto", features = ["generate", "mock"] }
 dcql = { path = "../dcql", features = ["mock"] }
+sd_jwt = { path = "../sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

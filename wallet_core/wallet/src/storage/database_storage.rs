@@ -27,6 +27,8 @@ use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
 use sea_orm::sea_query::IntoColumnRef;
 use sea_orm::sea_query::Query;
+use sea_query::Asterisk;
+use sea_query::Func;
 use sea_query::OnConflict;
 use sea_query::Order;
 use sea_query::SimpleExpr;
@@ -39,7 +41,9 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
+use dcql::CredentialFormat;
 use entity::attestation;
+use entity::attestation::ExtendedTypesModel;
 use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::attestation_copy::AttestationFormat;
@@ -64,7 +68,6 @@ use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
-use super::AttestationFormatQuery;
 use super::DatabaseExport;
 use super::Storage;
 use super::StorageError;
@@ -111,13 +114,10 @@ struct OpenDatabaseStorage<K> {
     key_file_key: K,
 }
 
-impl AttestationFormatQuery {
-    fn attestation_format(self) -> Option<AttestationFormat> {
-        match self {
-            AttestationFormatQuery::Any => None,
-            AttestationFormatQuery::MsoMdoc => Some(AttestationFormat::Mdoc),
-            AttestationFormatQuery::SdJwt => Some(AttestationFormat::SdJwt),
-        }
+fn attestation_format_for_credential_format(format: CredentialFormat) -> AttestationFormat {
+    match format {
+        CredentialFormat::MsoMdoc => AttestationFormat::Mdoc,
+        CredentialFormat::SdJwt => AttestationFormat::SdJwt,
     }
 }
 
@@ -248,6 +248,53 @@ impl<K> DatabaseStorage<K> {
             .collect::<Result<_, StorageError>>()?;
 
         Ok(attestations)
+    }
+
+    async fn query_unique_attestations_with_parameters<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+        format: Option<CredentialFormat>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        // Collect all conditions for the requested attestation types using OR.
+        let attestation_type_condition = Condition::any();
+        let attestation_types_iter = attestation_types.iter().copied();
+
+        // If SD-JWT was requested, check if any of the extended attestation types match any of the requested
+        // attestation types. Note that this results in the following query:
+        //
+        // WHERE EXISTS(SELECT * FROM json_each(attestation.extended_types)
+        //                       AS extended_attestation_type
+        //                       WHERE extended_attestation_type.value IN ({attestation_types}))
+        let attestation_type_condition = match format {
+            Some(CredentialFormat::SdJwt) => attestation_type_condition.add(Expr::exists(
+                Query::select()
+                    .column(Asterisk)
+                    .from_function(
+                        Func::cust("json_each").arg(attestation::Column::ExtendedTypes.into_expr()),
+                        "extended_attestation_type",
+                    )
+                    .and_where(Expr::col(("extended_attestation_type", "value")).is_in(attestation_types_iter.clone()))
+                    .take(),
+            )),
+            Some(CredentialFormat::MsoMdoc) | None => attestation_type_condition,
+        };
+
+        // The `attestation_type` column should match any of the requested attestation types.
+        let attestation_type_condition =
+            attestation_type_condition.add(attestation::Column::AttestationType.is_in(attestation_types_iter));
+
+        // The top-level conditions are joined with AND, starting with the attestation types.
+        let condition = Condition::all().add(attestation_type_condition);
+
+        // If a specific format was requested, add that to condition.
+        let condition = if let Some(format) = format {
+            condition
+                .add(attestation_copy::Column::AttestationFormat.eq(attestation_format_for_credential_format(format)))
+        } else {
+            condition
+        };
+
+        self.query_unique_attestations(Some(condition)).await
     }
 
     fn combine_events(
@@ -598,6 +645,7 @@ where
                     CredentialWithMetadata {
                         copies,
                         attestation_type,
+                        extended_attestation_types,
                         metadata_documents,
                     },
                     attestation_presentation,
@@ -607,6 +655,7 @@ where
                     let attestation_model = attestation::ActiveModel {
                         id: Set(attestation_id),
                         attestation_type: Set(attestation_type),
+                        extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
                         type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
                     };
 
@@ -738,24 +787,21 @@ where
         self.query_unique_attestations(None).await
     }
 
-    async fn fetch_unique_attestations_by_type<'a>(
+    async fn fetch_unique_attestations_by_types<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
-        format_query: AttestationFormatQuery,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        let condition = Condition::all();
+        self.query_unique_attestations_with_parameters(attestation_types, None)
+            .await
+    }
 
-        let attestation_types_iter = attestation_types.iter().copied();
-        let condition = condition.add(attestation::Column::AttestationType.is_in(attestation_types_iter));
-
-        let condition = match format_query.attestation_format() {
-            Some(attestation_format) => {
-                condition.add(attestation_copy::Column::AttestationFormat.eq(attestation_format))
-            }
-            None => condition,
-        };
-
-        self.query_unique_attestations(Some(condition)).await
+    async fn fetch_unique_attestations_by_types_and_format<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+        format: CredentialFormat,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        self.query_unique_attestations_with_parameters(attestation_types, Some(format))
+            .await
     }
 
     async fn log_disclosure_event(
@@ -1031,10 +1077,10 @@ pub(crate) mod tests {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::credential_payload::IntoCredentialPayload;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -1330,6 +1376,8 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
+        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
+
         assert!(!has_any_pid_attestation_types(&storage).await);
 
         // Insert mdocs
@@ -1340,6 +1388,7 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
                         mdoc.doc_type().to_string(),
+                        normalized_metadata.extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1363,33 +1412,31 @@ pub(crate) mod tests {
             &attestation_copy1.attestation,
             StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
         );
-        assert_eq!(
-            attestation_copy1.normalized_metadata,
-            NormalizedTypeMetadata::nl_pid_example()
-        );
+        assert_eq!(attestation_copy1.normalized_metadata, normalized_metadata);
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is SD-JWT.
         let attestation_types = HashSet::from([mdoc.doc_type()]);
+
         let fetched_unique_any = storage
-            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types(&attestation_types)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::MsoMdoc)
+            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::SdJwt)
+            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_unique_attestations_by_type(&HashSet::from(["other"]), AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::MsoMdoc)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types and format");
 
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
@@ -1423,10 +1470,7 @@ pub(crate) mod tests {
             &attestation_copy2.attestation,
             StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
         );
-        assert_eq!(
-            attestation_copy2.normalized_metadata,
-            NormalizedTypeMetadata::nl_pid_example()
-        );
+        assert_eq!(attestation_copy2.normalized_metadata, normalized_metadata);
         assert_ne!(
             attestation_copy1.attestation_copy_id,
             attestation_copy2.attestation_copy_id
@@ -1459,6 +1503,26 @@ pub(crate) mod tests {
         assert_eq!(remaning_attestation_copy_id1, remaning_attestation_copy_id2);
         assert_ne!(attestation_copy1.attestation_copy_id, remaning_attestation_copy_id1);
         assert_ne!(attestation_copy2.attestation_copy_id, remaning_attestation_copy_id1);
+
+        // Test that fetching extended VCTs does not return anything, as this should only work for SD-JWT.
+        let extended_vcts = normalized_metadata.extended_vcts().collect::<HashSet<_>>();
+
+        assert!(!extended_vcts.is_empty());
+
+        let fetched_unique = storage
+            .fetch_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::MsoMdoc)
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+
+        assert!(fetched_unique.is_empty());
+
+        // Fetching extended VCTs without specifying a format should not return anything.
+        let fetched_unique = storage
+            .fetch_unique_attestations_by_types(&extended_vcts)
+            .await
+            .expect("Could not fetch unique attestations by types");
+
+        assert!(fetched_unique.is_empty());
     }
 
     #[tokio::test]
@@ -1482,6 +1546,7 @@ pub(crate) mod tests {
         );
 
         let attestation_type = sd_jwt.claims().vct.clone();
+        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1500,6 +1565,7 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies,
                         attestation_type.clone(),
+                        normalized_metadata.extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1526,33 +1592,30 @@ pub(crate) mod tests {
                 sd_jwt: stored
             } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
         );
-        assert_eq!(
-            attestation_copy1.normalized_metadata,
-            NormalizedTypeMetadata::nl_pid_example()
-        );
+        assert_eq!(attestation_copy1.normalized_metadata, normalized_metadata);
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is mdoc.
         let attestation_types = HashSet::from([attestation_type.as_str()]);
         let fetched_unique_any = storage
-            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types(&attestation_types)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::MsoMdoc)
+            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::SdJwt)
+            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_unique_attestations_by_type(&HashSet::from(["other"]), AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::SdJwt)
             .await
-            .expect("Could not fetch unique attestations by type");
+            .expect("Could not fetch unique attestations by types and format");
 
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
@@ -1572,6 +1635,33 @@ pub(crate) mod tests {
             } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
         );
         assert!(fetched_unique_other.is_empty());
+
+        // Test that fetching extended VCTs also works.
+        let extended_vcts = normalized_metadata.extended_vcts().collect::<HashSet<_>>();
+
+        assert!(!extended_vcts.is_empty());
+
+        let fetched_unique = storage
+            .fetch_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::SdJwt)
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+
+        assert_eq!(fetched_unique.len(), 1);
+        assert_matches!(
+            &fetched_unique.first().unwrap().attestation,
+            StoredAttestation::SdJwt {
+                key_identifier,
+                sd_jwt: stored
+            } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
+        );
+
+        // Fetching extended VCTs without specifying a format should not return anything.
+        let fetched_unique = storage
+            .fetch_unique_attestations_by_types(&extended_vcts)
+            .await
+            .expect("Could not fetch unique attestations by types");
+
+        assert!(fetched_unique.is_empty());
     }
 
     #[tokio::test]
@@ -1613,6 +1703,7 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
                         attestation_type,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     attestation_presentation.clone(),
@@ -1862,6 +1953,7 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies,
                         attestation_type,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1979,6 +2071,9 @@ pub(crate) mod tests {
         let attestation_type = sd_jwt.claims().vct.clone();
 
         // Insert sd_jwts
+        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
+        let metadata_documents = VerifiedTypeMetadataDocuments::nl_pid_example();
+
         storage
             .insert_credentials(
                 timestamp,
@@ -1987,7 +2082,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies.clone(),
                             attestation_type.clone(),
-                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                            normalized_metadata.extended_vcts(),
+                            metadata_documents.clone(),
                         ),
                         AttestationPresentation::new_mock(),
                     ),
@@ -1995,7 +2091,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies,
                             attestation_type,
-                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                            normalized_metadata.extended_vcts(),
+                            metadata_documents,
                         ),
                         AttestationPresentation::new_mock(),
                     ),
@@ -2026,7 +2123,7 @@ pub(crate) mod tests {
                     .unwrap()
                     .unwrap();
 
-                let payload = sd_jwt.into_credential_payload(&normalized_metadata).unwrap();
+                let payload = CredentialPayload::from_sd_jwt(sd_jwt, &normalized_metadata).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,

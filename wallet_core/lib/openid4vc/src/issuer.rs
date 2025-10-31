@@ -4,6 +4,7 @@ use std::num::NonZeroU8;
 use std::ops::Add;
 use std::sync::Arc;
 
+use chrono::DateTime;
 use chrono::Days;
 use chrono::DurationRound;
 use chrono::Utc;
@@ -24,9 +25,8 @@ use uuid::Uuid;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::CredentialPayloadError;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
-use attestation_data::credential_payload::MdocParts;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_data::issuable_document::IssuableDocument;
@@ -47,7 +47,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use token_status_list::status_claim::StatusClaim;
-use token_status_list::status_service::StatusClaimService;
+use token_status_list::status_list_service::StatusListService;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -165,10 +165,10 @@ pub enum CredentialRequestError {
     CredentialSigning(mdoc::Error),
 
     #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
-    CredentialTypeMismatch { requested: String, offered: String },
+    CredentialTypeMismatch { requested: Format, offered: Format },
 
-    #[error("missing credential request for format {0}")]
-    MissingCredentialRequest(String),
+    #[error("wrong number of credential requests")]
+    WrongNumberOfCredentialRequests,
 
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
@@ -182,6 +182,9 @@ pub enum CredentialRequestError {
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
 
+    #[error("error converting PreviewableCredentialPayload to CredentialPayload: {0}")]
+    PreviewConversion(#[from] CredentialPayloadError),
+
     #[error("error converting CredentialPayload to Mdoc: {0}")]
     MdocConversion(#[from] MdocCredentialPayloadError),
 
@@ -192,7 +195,7 @@ pub enum CredentialRequestError {
     Wua(#[from] WuaError),
 
     #[error("error obtaining status claim: {0}")]
-    StatusClaimService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("incorrect number of status claims for attestation_type: {0}")]
     IncorrectNumberOfStatusClaims(String),
@@ -387,12 +390,12 @@ impl<K> AttestationTypeConfig<K> {
 #[derive(Debug, From, AsRef)]
 pub struct AttestationTypesConfig<K>(HashMap<String, AttestationTypeConfig<K>>);
 
-pub struct Issuer<A, K, S, C> {
+pub struct Issuer<A, K, S, L> {
     sessions: Arc<S>,
     attr_service: A,
     issuer_data: IssuerData<K>,
     sessions_cleanup_task: JoinHandle<()>,
-    status_claim_service: C,
+    status_list_service: L,
     pub metadata: IssuerMetadata,
 }
 
@@ -417,19 +420,19 @@ pub struct WuaConfig {
     pub wua_issuer_pubkey: EcdsaDecodingKey,
 }
 
-impl<A, K, S, C> Drop for Issuer<A, K, S, C> {
+impl<A, K, S, L> Drop for Issuer<A, K, S, L> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.sessions_cleanup_task.abort();
     }
 }
 
-impl<A, K, S, C> Issuer<A, K, S, C>
+impl<A, K, S, L> Issuer<A, K, S, L>
 where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    C: StatusClaimService,
+    L: StatusListService,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
@@ -439,7 +442,7 @@ where
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
         wua_config: Option<WuaConfig>,
-        status_claim_service: C,
+        status_list_service: L,
     ) -> Self {
         let credential_configurations_supported = attestation_config
             .as_ref()
@@ -468,7 +471,7 @@ where
             sessions: Arc::clone(&sessions),
             attr_service,
             issuer_data,
-            status_claim_service,
+            status_list_service,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
             metadata: IssuerMetadata {
                 issuer_config: metadata::IssuerData {
@@ -499,7 +502,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-impl<A, K, S, C> Issuer<A, K, S, C>
+impl<A, K, S, L> Issuer<A, K, S, L>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -522,12 +525,12 @@ where
     }
 }
 
-impl<A, K, S, C> Issuer<A, K, S, C>
+impl<A, K, S, L> Issuer<A, K, S, L>
 where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    C: StatusClaimService,
+    L: StatusListService,
 {
     pub async fn process_token_request(
         &self,
@@ -611,7 +614,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.status_claim_service,
+                &self.status_list_service,
             )
             .await;
 
@@ -638,7 +641,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.status_claim_service,
+                &self.status_list_service,
             )
             .await;
 
@@ -710,6 +713,12 @@ impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
     }
 }
 
+fn utc_now_truncated_to_days() -> DateTime<Utc> {
+    Utc::now()
+        .duration_trunc(chrono::Duration::days(1))
+        .expect("should never exceed Unix time bounds")
+}
+
 impl Session<Created> {
     #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
     pub async fn process_token_request(
@@ -757,10 +766,8 @@ impl Session<Created> {
         attestation_data: &AttestationTypeConfig<impl EcdsaKeySend>,
     ) -> (Uuid, CredentialPreview) {
         // Truncate the current time to only include the date part, so that all issued credentials on a single
-        // day have the same `iat` and `exp` field
-        let now = Utc::now()
-            .duration_trunc(chrono::Duration::days(1))
-            .expect("should never exceed Unix time bounds");
+        // day have the same `nbf` and `exp` field
+        let now = utc_now_truncated_to_days();
         let valid_until = now.add(attestation_data.valid_days);
 
         let (id, credential_payload) = document.into_id_and_previewable_credential_payload(
@@ -890,16 +897,10 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_claim_service: &impl StatusClaimService,
+        status_list_service: &impl StatusListService,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
-            .process_credential_inner(
-                credential_request,
-                access_token,
-                dpop,
-                issuer_data,
-                status_claim_service,
-            )
+            .process_credential_inner(credential_request, access_token, dpop, issuer_data, status_list_service)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -993,7 +994,7 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_claim_service: &impl StatusClaimService,
+        status_list_service: &impl StatusListService,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1033,9 +1034,9 @@ impl Session<WaitingForResponse> {
             .attestation_config
             .as_ref()
             .get(attestation_type)
-            .ok_or_else(|| CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_string()))?;
+            .ok_or_else(|| CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_owned()))?;
 
-        let status_claim = status_claim_service
+        let status_claim = status_list_service
             .obtain_status_claims(
                 &preview.credential_payload.attestation_type,
                 preview.batch_id,
@@ -1044,13 +1045,14 @@ impl Session<WaitingForResponse> {
                 1.try_into().unwrap(),
             )
             .await
-            .map_err(|err| CredentialRequestError::StatusClaimService(Box::new(err)))?
+            .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
             .into_first();
 
         let credential_response = CredentialResponse::new(
             requested_format,
             preview.credential_payload.clone(),
-            holder_pubkey,
+            utc_now_truncated_to_days(),
+            &holder_pubkey,
             config,
             status_claim,
         )
@@ -1065,7 +1067,7 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_claim_service: &impl StatusClaimService,
+        status_list_service: &impl StatusListService,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(
@@ -1073,7 +1075,7 @@ impl Session<WaitingForResponse> {
                 access_token,
                 dpop,
                 issuer_data,
-                status_claim_service,
+                status_list_service,
             )
             .await;
 
@@ -1096,7 +1098,7 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_claim_service: &impl StatusClaimService,
+        status_list_service: &impl StatusListService,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1108,29 +1110,32 @@ impl Session<WaitingForResponse> {
             .iter()
             .map(|preview| {
                 // For every preview collect for every copy the verified key and the format
-                let format_pubkeys = preview
+                let format_pubkeys: VecNonEmpty<_> = preview
                     .copies_per_format
                     .iter()
                     .flat_map(|(format, copies)| itertools::repeat_n(*format, copies.get().into()))
                     .map(|format| {
-                        let Some(cred_req) = credential_requests.credential_requests.as_ref().get(cred_req_index)
-                        else {
-                            return Err(CredentialRequestError::MissingCredentialRequest(format.to_string()));
-                        };
+                        let cred_req = credential_requests
+                            .credential_requests
+                            .as_ref()
+                            .get(cred_req_index)
+                            .ok_or(CredentialRequestError::WrongNumberOfCredentialRequests)?;
                         cred_req_index += 1;
 
                         // Verify the assumption that the order of the incoming requests matches exactly
                         // that of the flattened copies_per_format by matching the requested format.
                         if format != cred_req.credential_type.as_ref().format() {
                             return Err(CredentialRequestError::CredentialTypeMismatch {
-                                offered: format.to_string(),
-                                requested: cred_req.credential_type.as_ref().format().to_string(),
+                                offered: format,
+                                requested: cred_req.credential_type.as_ref().format(),
                             });
                         }
                         let key = cred_req.verify(&session_data.c_nonce, issuer_data)?;
                         Ok((format, key))
                     })
-                    .collect::<Result<Vec<_>, _>>()?;
+                    .collect::<Result<Vec<_>, _>>()?
+                    .try_into()
+                    .unwrap(); // ok because copies_per_format has a NonZeroU8 value in AttestationConfig (source)
 
                 let attestation_type = &preview.credential_payload.attestation_type;
                 let config = issuer_data
@@ -1141,10 +1146,14 @@ impl Session<WaitingForResponse> {
                         CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_string())
                     })?;
 
-                // copies_per_format has a NonZeroU8 value in AttestationConfig (source)
-                Ok((preview, config, VecNonEmpty::try_from(format_pubkeys).unwrap()))
+                Ok((preview, config, format_pubkeys))
             })
             .collect::<Result<Vec<_>, CredentialRequestError>>()?;
+
+        // Verify that we have consumed all credential requests
+        if cred_req_index != credential_requests.credential_requests.as_ref().len() {
+            return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
+        }
 
         self.verify_wua_and_poa(
             credential_requests.attestations.as_ref(),
@@ -1158,7 +1167,7 @@ impl Session<WaitingForResponse> {
         // Obtain a status claim for every attestation copy, linked to a single batch id per preview
         let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
             |(preview, config, format_pubkeys)| async move {
-                let claims = status_claim_service
+                let claims = status_list_service
                     .obtain_status_claims(
                         &preview.credential_payload.attestation_type,
                         preview.batch_id,
@@ -1167,7 +1176,7 @@ impl Session<WaitingForResponse> {
                         format_pubkeys.len(),
                     )
                     .await
-                    .map_err(|err| CredentialRequestError::StatusClaimService(Box::new(err)))?;
+                    .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?;
                 if claims.len() != format_pubkeys.len() {
                     return Err(CredentialRequestError::IncorrectNumberOfStatusClaims(
                         preview.credential_payload.attestation_type.clone(),
@@ -1178,9 +1187,11 @@ impl Session<WaitingForResponse> {
         ))
         .await?;
 
+        // Make sure all credentials are issued with the same `issued_at` timestamp
+        let issued_at = utc_now_truncated_to_days();
         let credential_responses = try_join_all(
             previews_and_holder_pubkeys
-                .into_iter()
+                .iter()
                 // The claims size is explicitly checked to be equal to the number of copies
                 .zip_eq(status_claims.into_iter())
                 .flat_map(|((preview, config, format_pubkeys), claims)| {
@@ -1188,7 +1199,14 @@ impl Session<WaitingForResponse> {
                         .into_iter()
                         .zip(claims.into_inner())
                         .map(|((format, key), claim)| {
-                            CredentialResponse::new(format, preview.credential_payload.clone(), key, config, claim)
+                            CredentialResponse::new(
+                                *format,
+                                preview.credential_payload.clone(),
+                                issued_at,
+                                key,
+                                config,
+                                claim,
+                            )
                         })
                 }),
         )
@@ -1254,37 +1272,36 @@ impl CredentialResponse {
     async fn new(
         credential_format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
-        holder_pubkey: VerifyingKey,
+        issued_at: DateTime<Utc>,
+        holder_pubkey: &VerifyingKey,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend>,
-        _status_claim: StatusClaim,
+        status_claim: StatusClaim,
     ) -> Result<CredentialResponse, CredentialRequestError> {
+        let payload = CredentialPayload::from_previewable_credential_payload(
+            preview_credential_payload,
+            issued_at,
+            holder_pubkey,
+            &attestation_config.metadata,
+            attestation_config.first_metadata_integrity.clone(),
+            status_claim,
+        )?;
+
         match credential_format {
-            Format::MsoMdoc => Self::new_for_mdoc(preview_credential_payload, &holder_pubkey, attestation_config).await,
-            Format::SdJwt => Self::new_for_sd_jwt(preview_credential_payload, &holder_pubkey, attestation_config).await,
+            Format::MsoMdoc => Self::new_for_mdoc(payload, attestation_config).await,
+            Format::SdJwt => Self::new_for_sd_jwt(payload, attestation_config).await,
             other => Err(CredentialRequestError::CredentialTypeNotOffered(other.to_string())),
         }
     }
 
     async fn new_for_mdoc(
-        preview_credential_payload: PreviewableCredentialPayload,
-        holder_pubkey: &VerifyingKey,
+        credential_payload: CredentialPayload,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let (issuer_signed, mso) = preview_credential_payload
-            .into_issuer_signed(
-                attestation_config.first_metadata_integrity.clone(),
-                holder_pubkey,
-                &attestation_config.key_pair,
-            )
-            .await
-            .map_err(CredentialRequestError::CredentialSigning)?;
-
-        // As a last check, convert the `IssuerSigned` back to a full `CredentialPayload`
-        // and validate it against the normalized metadata for this attestation.
-        let _ = MdocParts::new(issuer_signed.clone().into_entries_by_namespace(), mso)
-            .into_credential_payload(&attestation_config.metadata)?;
+        let (issuer_signed, _) = credential_payload
+            .into_signed_mdoc(&attestation_config.key_pair)
+            .await?;
 
         Ok(CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed),
@@ -1292,20 +1309,11 @@ impl CredentialResponse {
     }
 
     async fn new_for_sd_jwt(
-        preview_credential_payload: PreviewableCredentialPayload,
-        holder_pubkey: &VerifyingKey,
+        credential_payload: CredentialPayload,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
-        let payload = CredentialPayload::from_previewable_credential_payload(
-            preview_credential_payload,
-            Utc::now().into(),
-            holder_pubkey,
-            &attestation_config.metadata,
-            attestation_config.first_metadata_integrity.clone(),
-        )?;
-
-        let signed_sd_jwt = payload
-            .into_sd_jwt(&attestation_config.metadata, &attestation_config.key_pair)
+        let signed_sd_jwt = credential_payload
+            .into_signed_sd_jwt(&attestation_config.metadata, &attestation_config.key_pair)
             .await?;
 
         Ok(CredentialResponse::SdJwt {

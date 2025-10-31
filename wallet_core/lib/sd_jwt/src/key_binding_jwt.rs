@@ -34,28 +34,46 @@ use crate::hasher::Hasher;
 use crate::sd_jwt::SdJwtClaims;
 use crate::sd_jwt::VerifiedSdJwt;
 
+// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3-3.1.2.1>
 pub const KB_JWT_HEADER_TYP: &str = "kb+jwt";
 
 impl JwtTyp for KeyBindingJwtClaims {
     const TYP: &'static str = KB_JWT_HEADER_TYP;
 }
 
+/// Verification options for KB-JWT verification:
+/// - `expected_aud`: audience to enforce,
+/// - `expected_nonce`: nonce to match,
+/// - `iat_leeway`: allowed leeway around the lower bound of `iat`,
+/// - `iat_acceptance_window`: allowed duration after `iat`.
 pub struct KbVerificationOptions<'a> {
     pub expected_aud: &'a str,
     pub expected_nonce: &'a str,
-    pub iat_leeway: u64,
+    pub iat_leeway: Duration,
     pub iat_acceptance_window: Duration,
 }
 
 /// Representation of a [KB-JWT](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#name-key-binding-jwt).
+///
+/// Implemented as a wrapper around `UnverifiedJwt`. Can be verified using `into_verified`.
 #[derive(Debug, Clone, PartialEq, Eq, Display, FromStr, Serialize, Deserialize)]
 pub struct UnverifiedKeyBindingJwt(UnverifiedJwt<KeyBindingJwtClaims>);
 
+/// Verified KB-JWT (claims parsed and signature validated).
 pub type VerifiedKeyBindingJwt = VerifiedJwt<KeyBindingJwtClaims>;
 
+/// Freshly signed KB-JWT.
 pub type SignedKeyBindingJwt = SignedJwt<KeyBindingJwtClaims>;
 
 impl UnverifiedKeyBindingJwt {
+    /// Verifies the KB-JWT by checking the signature using the provided public key and validation options.
+    ///
+    /// Additionally;
+    /// - enforces expected `aud`
+    /// - verifies expected `nonce`
+    /// - checks that `iat` is within the acceptance window (with leeway),
+    ///
+    /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#section-8.3-4.5.1>
     pub fn into_verified(
         self,
         pubkey: &EcdsaDecodingKey,
@@ -71,7 +89,7 @@ impl UnverifiedKeyBindingJwt {
         };
 
         let now = time.generate();
-        let leeway = Duration::from_secs(kb_verification_options.iat_leeway);
+        let leeway = kb_verification_options.iat_leeway;
         if !(payload.iat <= now + leeway && now <= payload.iat + kb_verification_options.iat_acceptance_window) {
             return Err(KeyBindingError::InvalidSignatureTimestamp(
                 payload.iat,
@@ -103,7 +121,7 @@ static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
     validation
 });
 
-/// Builder-style struct to ease the creation of an [`KeyBindingJwt`].
+/// Builder-style struct to ease the creation of a [`SignedKeyBindingJwt`].
 #[derive(Debug, Clone)]
 pub struct KeyBindingJwtBuilder {
     aud: String,
@@ -204,8 +222,10 @@ pub struct KeyBindingJwtClaims {
     pub sd_hash: String,
 }
 
-/// Proof of possession of a given key. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more details.
-/// Currently, only Jwk is supported.
+/// Proof of possession of a given key.
+///
+/// Currently, only Jwk is supported. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more
+/// details.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum RequiredKeyBinding {
@@ -397,7 +417,7 @@ mod test {
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
             expected_nonce: "abc123",
-            iat_leeway: 0,
+            iat_leeway: Duration::ZERO,
             iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
         };
 
@@ -414,15 +434,15 @@ mod test {
     }
 
     #[rstest]
-    #[case::not_yet_valid(1000, 5, 994, Duration::from_secs(500), false)]
-    #[case::valid_in_leeway(1000, 5, 995, Duration::from_secs(500), true)]
-    #[case::valid(1000, 5, 1200, Duration::from_secs(500), true)]
-    #[case::valid_atwindow_boundary(1000, 5, 1500, Duration::from_secs(500), true)]
-    #[case::expired(1000, 5, 1501, Duration::from_secs(500), false)]
+    #[case::not_yet_valid(1000, Duration::from_secs(5), 994, Duration::from_secs(500), false)]
+    #[case::valid_in_leeway(1000, Duration::from_secs(5), 995, Duration::from_secs(500), true)]
+    #[case::valid(1000, Duration::from_secs(5), 1200, Duration::from_secs(500), true)]
+    #[case::valid_atwindow_boundary(1000, Duration::from_secs(5), 1500, Duration::from_secs(500), true)]
+    #[case::expired(1000, Duration::from_secs(5), 1501, Duration::from_secs(500), false)]
     #[tokio::test]
     async fn test_parse_and_verify_iat(
         #[case] iat_epoch: i64,
-        #[case] leeway: u64,
+        #[case] leeway: Duration,
         #[case] now_epoch: i64,
         #[case] iat_acceptance_window: Duration,
         #[case] expected_valid: bool,
@@ -473,7 +493,7 @@ mod test {
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
             expected_nonce: "def456",
-            iat_leeway: 0,
+            iat_leeway: Duration::ZERO,
             iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
         };
 
@@ -499,7 +519,7 @@ mod test {
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "other_aud",
             expected_nonce: "abc123",
-            iat_leeway: 0,
+            iat_leeway: Duration::ZERO,
             iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
         };
 

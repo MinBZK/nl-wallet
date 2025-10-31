@@ -162,6 +162,10 @@ impl NormalizedTypeMetadata {
         self.vcts.first()
     }
 
+    pub fn extended_vcts(&self) -> impl Iterator<Item = &str> {
+        self.vcts.iter().skip(1).map(String::as_str)
+    }
+
     pub fn display(&self) -> &[DisplayMetadata] {
         self.display.as_ref()
     }
@@ -508,12 +512,18 @@ mod tests {
 
         normalized
             .validate(&json!({
-              "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
-              "iss": "https://example.com/issuer",
-              "nbf": 1683000000,
-              "iat": 1683000000,
-              "exp": 1883000000,
-              "attestation_qualification": "EAA"
+                "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
+                "iss": "https://example.com/issuer",
+                "nbf": 1683000000,
+                "iat": 1683000000,
+                "exp": 1883000000,
+                "attestation_qualification": "EAA",
+                "status": {
+                    "status_list": {
+                        "idx": 0,
+                        "uri": "https://example.com/statuslists/1"
+                    }
+                }
             }))
             .expect("all JSON schemas in chain should validate");
     }

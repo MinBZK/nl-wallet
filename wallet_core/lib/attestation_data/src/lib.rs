@@ -4,11 +4,7 @@ pub mod credential_payload;
 pub mod disclosure;
 pub mod disclosure_type;
 pub mod issuable_document;
-pub mod mdoc;
 pub mod x509;
-
-#[cfg(feature = "pid_constants")]
-pub mod pid_constants;
 
 #[cfg(feature = "test_credential")]
 pub mod test_credential;

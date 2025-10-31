@@ -1630,24 +1630,6 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__accept_pid_issuance = _wire__crate__api__full__accept_pid_issuancePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
-  void wire__crate__api__full__acknowledge_wallet_transfer(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> uri,
-  ) {
-    return _wire__crate__api__full__acknowledge_wallet_transfer(
-      port_,
-      uri,
-    );
-  }
-
-  late final _wire__crate__api__full__acknowledge_wallet_transferPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__acknowledge_wallet_transfer',
-      );
-  late final _wire__crate__api__full__acknowledge_wallet_transfer =
-      _wire__crate__api__full__acknowledge_wallet_transferPtr
-          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
-
   void wire__crate__api__full__cancel_disclosure(
     int port_,
   ) {
@@ -1839,6 +1821,23 @@ class WalletCoreWire implements BaseWire {
         'frbgen_wallet_core_wire__crate__api__full__complete_pin_recovery',
       );
   late final _wire__crate__api__full__complete_pin_recovery = _wire__crate__api__full__complete_pin_recoveryPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__full__confirm_wallet_transfer(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
+  ) {
+    return _wire__crate__api__full__confirm_wallet_transfer(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire__crate__api__full__confirm_wallet_transferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__confirm_wallet_transfer',
+      );
+  late final _wire__crate__api__full__confirm_wallet_transfer = _wire__crate__api__full__confirm_wallet_transferPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__continue_change_pin(
@@ -2188,6 +2187,23 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__lock_wallet = _wire__crate__api__full__lock_walletPtr
       .asFunction<void Function(int)>();
 
+  void wire__crate__api__full__pair_wallet_transfer(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> uri,
+  ) {
+    return _wire__crate__api__full__pair_wallet_transfer(
+      port_,
+      uri,
+    );
+  }
+
+  late final _wire__crate__api__full__pair_wallet_transferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__pair_wallet_transfer',
+      );
+  late final _wire__crate__api__full__pair_wallet_transfer = _wire__crate__api__full__pair_wallet_transferPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
   void wire__crate__api__full__receive_wallet_transfer(
     int port_,
   ) {
@@ -2372,20 +2388,17 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__transfer_wallet(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
     return _wire__crate__api__full__transfer_wallet(
       port_,
-      pin,
     );
   }
 
-  late final _wire__crate__api__full__transfer_walletPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__transfer_wallet',
-      );
+  late final _wire__crate__api__full__transfer_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+    'frbgen_wallet_core_wire__crate__api__full__transfer_wallet',
+  );
   late final _wire__crate__api__full__transfer_wallet = _wire__crate__api__full__transfer_walletPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+      .asFunction<void Function(int)>();
 
   void wire__crate__api__full__unlock_wallet(
     int port_,

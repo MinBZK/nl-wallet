@@ -96,7 +96,7 @@ sequenceDiagram
     WT ->> WT: Create asymmetric EC key (using ECIES)
     WT ->> User: Present QR code containing pubkey and transfer_session_id (to be scanned from source device)
     User ->> WS: Open app (with PIN/biometrics), Scan QR from target device (read public key and transfer_session_id)
-    WS ->> WP: confirm_transfer_session (with transfer_session_id, app_version)
+    WS ->> WP: pair_transfer (with transfer_session_id, app_version)
     WP ->> WP: validate recovery codes for Source and Destination Wallets (must be equal)
     WP ->> WP: validate app versions (Destination app_version must be >= than than Source app_version) <br/>tranfer_state = ready_for_transfer
     WP ->> WS: confirm session (ok)
@@ -112,7 +112,7 @@ sequenceDiagram
         WP ->> WS: return transfer status (pending, canceled, completed)  
     and (Wait for and) Receive payload from Wallet Backend and report migration status back to Wallet Bakckend afterwards.
         WT ->> WP: receive_payload (transfer_session_id)
-        WP ->> WP: while not (ready_for_download) complete from source wallet: <br/>return pending else return payload
+        WP ->> WP: while not (uploaded) complete from source wallet: <br/>return pending else return payload
         WP ->> WT: Transfer encrypted_payload to Destination Wallet
         WT ->> WT: decrypt data, restore wallet
         WT ->> WP: complete_transfer(transfer_session_id) 
@@ -154,9 +154,10 @@ The Wallet Transfer record can have the following states:
 
 | Transfer State     | State is set when                                                                                                                                                  | Next State(s)                         |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
-| created            | - Wallet Transfer record is created.<br/>- `reset_transfer` instruction is called when recovering from a failed or cancelled transfer.                            | ready_for_transfer, canceled          |
-| ready_for_transfer | After scanning QR from Destination Wallet and `confirm_transfer_session` instruction, Source Wallet is linked to transfer session.                                 | ready_for_download, canceled, created |
-| ready_for_download | After `send_wallet_payload` instruction from Source Wallet                                                                                                         | completed, canceled, created          |
+| created            | - Wallet Transfer record is created.<br/>- `reset_transfer` instruction is called when recovering from a failed or cancelled transfer.                            | paired, canceled          |
+| paired | After scanning QR from Destination Wallet and `pair_transfer` instruction, Source Wallet is linked to transfer session.                                 | confirmed, canceled, created |
+| confirmed | After `confirm_transfer` instruction from Source Wallet                                                                                                         | uploaded, canceled, created          |
+| uploaded | After `send_wallet_payload` instruction from Source Wallet                                                                                                         | completed, canceled, created          |
 | completed          | Destination Wallet after succesfull download (`receive_wallet_payload` instruction) and processing of payload confirmed with `complete_transfer` instruction.      | -                                     |
 | canceled           | User can cancel transfer from Destination Wallet or Source Wallet from any state before reaching the `completed` state. The `cancel_transfer` instruction is used. | created                               |
 

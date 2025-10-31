@@ -1577,9 +1577,9 @@ pub mod mock {
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -1838,10 +1838,10 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_BSN;
-    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -1860,9 +1860,9 @@ mod tests {
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
-    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
@@ -2622,7 +2622,7 @@ mod tests {
         let (_, account_server, hw_privkey, cert, mut user_state) = setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
-            .sign_instruction_challenge::<ConfirmTransfer>(
+            .sign_instruction_challenge::<PairTransfer>(
                 cert.dangerous_parse_unverified().unwrap().1.wallet_id,
                 1,
                 cert.clone(),
@@ -2727,7 +2727,7 @@ mod tests {
         let (_, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
-            .sign_instruction_challenge::<ConfirmTransfer>(
+            .sign_instruction_challenge::<PairTransfer>(
                 cert.dangerous_parse_unverified().unwrap().1.wallet_id,
                 1,
                 cert.clone(),
@@ -2759,7 +2759,7 @@ mod tests {
 
         let instruction = hw_privkey
             .sign_hw_signed_instruction(
-                ConfirmTransfer {
+                PairTransfer {
                     transfer_session_id,
                     app_version,
                 },
@@ -3387,7 +3387,7 @@ mod tests {
                 destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
                 destination_wallet_recovery_code: String::from("12345678"),
                 transfer_session_id: Uuid::new_v4(),
-                state: TransferSessionState::ReadyForTransfer,
+                state: TransferSessionState::Confirmed,
                 encrypted_wallet_data: None,
             }),
             instruction_sequence_number: 43,

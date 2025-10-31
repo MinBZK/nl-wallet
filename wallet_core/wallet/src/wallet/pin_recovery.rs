@@ -8,6 +8,7 @@ use url::Url;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_types::claim_path::ClaimPath;
+use dcql::CredentialFormat;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
@@ -45,7 +46,6 @@ use crate::instruction::PinRecoveryWscd;
 use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
-use crate::storage::AttestationFormatQuery;
 use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
@@ -262,7 +262,7 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_type(&pid_attestation_types, AttestationFormatQuery::SdJwt)
+            .fetch_unique_attestations_by_types_and_format(&pid_attestation_types, CredentialFormat::SdJwt)
             .await
             .map_err(IssuanceError::AttestationQuery)?
             .pop()
@@ -554,9 +554,9 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
@@ -683,7 +683,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types_and_format()
             .once()
             .returning(|_, _| {
                 Ok(vec![StoredAttestationCopy::new(
@@ -984,7 +984,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types_and_format()
             .once()
             .returning(|_, _| {
                 Ok(vec![StoredAttestationCopy::new(

@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use derive_more::AsRef;
-use derive_more::Constructor;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
@@ -21,7 +20,6 @@ use url::Url;
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
@@ -221,11 +219,28 @@ pub enum IssuedCredential {
     },
 }
 
-#[derive(Clone, Debug, Constructor)]
+#[derive(Clone, Debug)]
 pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
     pub attestation_type: String,
+    pub extended_attestation_types: Vec<String>,
     pub metadata_documents: VerifiedTypeMetadataDocuments,
+}
+
+impl CredentialWithMetadata {
+    pub fn new(
+        copies: IssuedCredentialCopies,
+        attestation_type: String,
+        extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
+        metadata_documents: VerifiedTypeMetadataDocuments,
+    ) -> Self {
+        Self {
+            copies,
+            attestation_type,
+            extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
+            metadata_documents,
+        }
+    }
 }
 
 #[derive(Clone, Debug, AsRef)]
@@ -509,7 +524,7 @@ struct IssuanceState {
     c_nonce: String,
     normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
-    issuer_registration: Box<IssuerRegistration>,
+    issuer_registration: IssuerRegistration,
     issuer_url: BaseUrl,
     #[debug(skip)]
     dpop_private_key: SigningKey,
@@ -820,6 +835,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             .expect("the resulting vector is never empty since 'copies' is nonzero"),
                     ),
                     preview.content.credential_payload.attestation_type.clone(),
+                    preview.normalized_metadata.extended_vcts(),
                     verified_metadata,
                 ))
             })
@@ -941,7 +957,8 @@ impl CredentialResponse {
                 let mdoc = Mdoc::new(key_identifier, *issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(IssuanceSessionError::MdocVerification)?;
 
-                let issued_credential_payload = mdoc.clone().into_credential_payload(&preview.normalized_metadata)?;
+                let issued_credential_payload =
+                    CredentialPayload::from_mdoc(mdoc.clone(), &preview.normalized_metadata)?;
 
                 Self::validate_credential(
                     preview,
@@ -954,7 +971,9 @@ impl CredentialResponse {
             }
             CredentialResponse::SdJwt { credential } => {
                 let sd_jwt = credential.into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)?;
-                let issued_credential_payload = sd_jwt.into_credential_payload(&preview.normalized_metadata)?;
+                let issued_credential_payload =
+                    CredentialPayload::from_sd_jwt(sd_jwt.clone(), &preview.normalized_metadata)?;
+
                 Self::validate_credential(
                     preview,
                     verifying_key,
@@ -1036,8 +1055,8 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::LocalizedStrings;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
@@ -1046,6 +1065,7 @@ mod tests {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::mock::MockTimeGenerator;
     use wscd::mock_remote::MockRemoteWscd;
 
@@ -1291,7 +1311,7 @@ mod tests {
             c_nonce: "c_nonce".to_string(),
             normalized_credential_previews,
             credential_request_types,
-            issuer_registration: IssuerRegistration::new_mock().into(),
+            issuer_registration: IssuerRegistration::new_mock(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
@@ -1304,6 +1324,7 @@ mod tests {
         issuer_key: Arc<KeyPair>,
         metadata_integrity: Integrity,
         previewable_payload: PreviewableCredentialPayload,
+        status: StatusClaim,
     }
 
     impl MockCredentialSigner {
@@ -1339,6 +1360,7 @@ mod tests {
                 issuer_key: Arc::new(issuer_key),
                 metadata_integrity,
                 previewable_payload: preview_payload.clone(),
+                status: StatusClaim::new_mock(),
             };
 
             let preview = NormalizedCredentialPreview {
@@ -1358,15 +1380,23 @@ mod tests {
             let proof_jwt = match request.proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => jwt,
             };
-            let holder_public_key = jwk_to_p256(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
+            let holder_pubkey = jwk_to_p256(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
 
-            self.into_response_from_holder_public_key(&holder_public_key)
+            self.into_response_from_holder_pubkey(&holder_pubkey)
         }
 
-        pub fn into_response_from_holder_public_key(self, holder_public_key: &VerifyingKey) -> CredentialResponse {
-            let (issuer_signed, _) = self
-                .previewable_payload
-                .into_issuer_signed(self.metadata_integrity, holder_public_key, &self.issuer_key)
+        pub fn into_response_from_holder_pubkey(self, holder_pubkey: &VerifyingKey) -> CredentialResponse {
+            let credential_payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
+                self.previewable_payload,
+                Utc::now(),
+                holder_pubkey,
+                self.metadata_integrity,
+                self.status,
+            )
+            .unwrap();
+
+            let (issuer_signed, _) = credential_payload
+                .into_signed_mdoc(&self.issuer_key)
                 .now_or_never()
                 .unwrap()
                 .unwrap();
@@ -1599,10 +1629,10 @@ mod tests {
     ) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
-        let holder_public_key = *SigningKey::random(&mut OsRng).verifying_key();
-        let credential_response = signer.into_response_from_holder_public_key(&holder_public_key);
+        let holder_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let credential_response = signer.into_response_from_holder_pubkey(&holder_pubkey);
 
-        (credential_response, preview_data, holder_public_key, trust_anchor)
+        (credential_response, preview_data, holder_pubkey, trust_anchor)
     }
 
     #[test]

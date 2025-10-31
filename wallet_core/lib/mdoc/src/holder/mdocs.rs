@@ -125,6 +125,7 @@ mod test {
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::Generator;
 
     use crate::iso::disclosure::IssuerSigned;
@@ -185,6 +186,7 @@ mod test {
                 },
                 issuer_uri: Some(issuer_uri),
                 attestation_qualification: Some(Default::default()),
+                status: Some(StatusClaim::new_mock()),
                 type_metadata_integrity: Some(metadata_integrity),
             };
 
@@ -224,6 +226,7 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::CredentialEcdsaKey;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -238,8 +241,6 @@ pub mod mock {
     use crate::iso::mdocs::Entry;
 
     use super::Mdoc;
-
-    pub const NL_PID_DOC_TYPE: &str = "urn:eudi:pid:nl:1";
 
     impl Mdoc {
         /// Out of the example data structures in the standard, assemble an mdoc.
@@ -287,10 +288,10 @@ pub mod mock {
             let (metadata_integrity, _) = TypeMetadataDocuments::nl_pid_example();
 
             Self::new_unverified_from_data(
-                NL_PID_DOC_TYPE.to_string(),
+                PID_ATTESTATION_TYPE.to_string(),
                 format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 IndexMap::from_iter(vec![(
-                    NL_PID_DOC_TYPE.to_string(),
+                    PID_ATTESTATION_TYPE.to_string(),
                     vec![
                         Entry {
                             name: "bsn".to_string(),

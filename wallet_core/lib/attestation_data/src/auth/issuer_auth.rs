@@ -13,7 +13,7 @@ use crate::x509::CertificateType;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssuerRegistration {
-    pub organization: Organization,
+    pub organization: Box<Organization>,
 }
 
 impl BorrowingCertificateExtension for IssuerRegistration {
@@ -26,7 +26,7 @@ impl BorrowingCertificateExtension for IssuerRegistration {
 
 impl From<IssuerRegistration> for CertificateType {
     fn from(source: IssuerRegistration) -> Self {
-        CertificateType::Mdl(Box::new(source))
+        CertificateType::Mdl(source)
     }
 }
 

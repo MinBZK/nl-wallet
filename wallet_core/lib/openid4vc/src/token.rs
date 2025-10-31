@@ -209,7 +209,7 @@ impl CredentialPreview {
         Ok(())
     }
 
-    pub fn issuer_registration(&self) -> Result<Box<IssuerRegistration>, CredentialPreviewError> {
+    pub fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
         let CertificateType::Mdl(issuer) = CertificateType::from_certificate(&self.content.issuer_certificate)? else {
             Err(CredentialPreviewError::NoIssuerCertificate)?
         };

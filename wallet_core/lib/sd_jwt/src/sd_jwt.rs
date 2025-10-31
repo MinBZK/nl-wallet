@@ -36,6 +36,7 @@ use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
+use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -59,6 +60,8 @@ use crate::key_binding_jwt::UnverifiedKeyBindingJwt;
 use crate::key_binding_jwt::VerifiedKeyBindingJwt;
 use crate::sd_alg::SdAlg;
 
+/// SD-JWT payload trait used by this crate. Types implementing this trait provide accessors for the hash algorithm
+/// (`_sd_alg`), holder binding (`cnf`) and the selectively disclosable claims tree (`claims`).
 pub trait SdJwtClaims: JwtTyp {
     fn _sd_alg(&self) -> Option<SdAlg>;
 
@@ -81,8 +84,13 @@ impl SdJwtClaims for SdJwtVcClaims {
     }
 }
 
-/// An SD-JWT that has been split into parts but not verified yet. There's no need to keep the SD JWT as serialized form
-/// as there is no KB-JWT
+/// An SD-JWT that has been split into parts but not verified yet.
+///
+/// There's no need to keep the SD-JWT as serialized form as there is no KB-JWT. Formats as `<Issuer-signed
+/// JWT>~<Disclosure>~...~<Disclosure>~`.
+///
+/// Use [`UnverifiedSdJwt::into_verified_against_trust_anchors`] to validate the SD-JWT against provided trust
+/// anchors.
 #[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct UnverifiedSdJwt<C = SdJwtVcClaims, H = HeaderWithX5c> {
     issuer_signed: UnverifiedJwt<C, H>,
@@ -151,6 +159,8 @@ impl<C, H> FromStr for UnverifiedSdJwt<C, H> {
 }
 
 impl UnverifiedSdJwt {
+    /// Verifies the issuer-signed part (using `x5c` against `trust_anchors`) and parses and verifies disclosures,
+    /// producing a [`VerifiedSdJwt`].
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &[TrustAnchor],
@@ -235,6 +245,12 @@ impl From<VerifiedSdJwt> for UnverifiedSdJwt {
     }
 }
 
+/// SD-JWT VC claims type used by the builder and verifier.
+///
+/// Holds VC metadata (`vct`, `iss`), validity information (`iat` and optionally `exp` and `nbf`), the holder binding
+/// (`cnf`), and the selectively-disclosable claims tree in `claims`.
+///
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#name-issuer-signed-jwt>
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SdJwtVcClaims {
@@ -259,6 +275,10 @@ pub struct SdJwtVcClaims {
 
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
+    pub status: Option<StatusClaim>,
+
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
     pub attestation_qualification: Option<AttestationQualification>,
 
     // In practice this should always be a `ClaimValue::Object`, however `ClaimValue` is used here instead of
@@ -277,8 +297,10 @@ impl SdJwtVcClaims {
     }
 }
 
-/// Representation of an SD-JWT of the format
-/// `<Issuer-signed JWT>~<Disclosure 1>~<Disclosure 2>~...~<Disclosure N>~`.
+/// Verified SD-JWT consisting of a verified issuer-signed JWT and verified disclosures, referenced by their digest
+/// values.
+///
+/// Formats as `<Issuer-signed JWT>~<Disclosure>~...~<Disclosure>~`.
 #[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay)]
 pub struct VerifiedSdJwt<C = SdJwtVcClaims, H = HeaderWithX5c> {
     issuer_signed: VerifiedJwt<C, H>,
@@ -329,7 +351,7 @@ impl<C> VerifiedSdJwt<C, HeaderWithX5c> {
 }
 
 impl VerifiedSdJwt {
-    /// Prepares this [`SdJwt`] for a presentation, returning an [`SdJwtPresentationBuilder`].
+    /// Prepares this SD-JWT for presentation, returning a builder that can be used to select which claims to disclose.
     pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder {
         SdJwtPresentationBuilder::new(self)
     }
@@ -338,10 +360,8 @@ impl VerifiedSdJwt {
         self.claims().cnf().verifying_key()
     }
 
-    /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] without verifying the signature.
-    ///
-    /// ## Error
-    /// Returns [`Error::Deserialization`] if parsing fails.
+    /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] without verifying the signature. Note that this should
+    /// only be used when receiving the SD-JWT over a trusted channel (i.e. from the database).
     pub fn dangerous_parse_unverified(s: &str) -> Result<Self, DecoderError> {
         let serialization = s.parse::<UnverifiedSdJwt>()?;
         serialization.dangerous_parse_unverified()
@@ -349,6 +369,8 @@ impl VerifiedSdJwt {
 }
 
 impl<H> VerifiedSdJwt<SdJwtVcClaims, H> {
+    /// Decodes the SD-protected claims by substituting matched disclosures, returning a plain `ObjectClaims` structure
+    /// without `_sd` claims or digests.
     pub fn decoded_claims(&self) -> Result<ObjectClaims, DecoderError> {
         let claims = SdObjectDecoder::decode(self.claims(), &self.disclosures)?;
         let ClaimValue::Object(claims) = claims.claims else {
@@ -405,6 +427,9 @@ impl UnsignedSdJwtPresentation {
     }
 }
 
+/// Parsed but not yet verified SD-JWT Presentation consisting of an SD-JWT and a Key Binding JWT (KB-JWT).
+///
+/// Formats as `<SD-JWT>~<KB-JWT>`.
 #[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay, DeserializeFromStr)]
 pub struct UnverifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
     sd_jwt: UnverifiedSdJwt<C, H>,
@@ -435,10 +460,13 @@ impl<C, H> Display for UnverifiedSdJwtPresentation<C, H> {
 }
 
 impl UnverifiedSdJwtPresentation {
-    /// Parses an SD-JWT into its components as [`SdJwtPresentation`] while verifying against a set of trust anchors.
+    /// Parses an SD-JWT into its components as [`VerifiedSdJwtPresentation`] while verifying against a set of trust
+    /// anchors.
     ///
-    /// ## Error
-    /// Returns [`Error::Deserialization`] if parsing fails.
+    /// Verifies the presentation by:
+    /// 1) validating the issuer-signed JWT against `trust_anchors`,
+    /// 2) validating the KB-JWT against the public key from the `cnf` claim in the verified issuer-signed JWT,
+    /// 3) parsing/verifying disclosures.
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &[TrustAnchor],
@@ -474,6 +502,7 @@ impl UnverifiedSdJwtPresentation {
     }
 }
 
+/// Verified SD-JWT Presentation combining a verified SD-JWT and a verified KB-JWT.
 #[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay)]
 pub struct VerifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
     sd_jwt: VerifiedSdJwt<C, H>,
@@ -502,6 +531,10 @@ impl<C> VerifiedSdJwtPresentation<C, HeaderWithX5c> {
     }
 }
 
+/// Builder to construct an SD-JWT presentation by selecting which claims to disclose.
+///
+/// Call [`SdJwtPresentationBuilder::disclose`] for each path, then [`SdJwtPresentationBuilder::finish`] to get an
+/// [`UnsignedSdJwtPresentation`].
 #[derive(Clone)]
 pub struct SdJwtPresentationBuilder {
     sd_jwt: VerifiedSdJwt,
@@ -518,6 +551,7 @@ pub struct SdJwtPresentationBuilder {
     full_payload: SdJwtVcClaims,
 }
 
+/// An SD-JWT ready for presentation after selecting disclosures, before binding with a KB-JWT.
 #[derive(Debug, Clone, Eq, PartialEq, AsRef, Serialize)]
 pub struct UnsignedSdJwtPresentation(VerifiedSdJwt);
 
@@ -533,6 +567,7 @@ impl SdJwtPresentationBuilder {
         }
     }
 
+    /// Select a path to disclose in the presentation. Should be called for each path to disclose.
     pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self, ClaimError> {
         // Gather all digests to be disclosed into a set. This can include intermediary attributes as well
         self.digests_to_be_disclosed.extend({
@@ -547,6 +582,8 @@ impl SdJwtPresentationBuilder {
         Ok(self)
     }
 
+    /// Returns an [`UnsignedSdJwtPresentation`] containing the original issuer signed JWT and a list of disclosures to
+    /// be disclose. Can be turned into a [`SignedSdJwtPresentation`] using [`UnsignedSdJwtPresentation::sign`].
     pub fn finish(self) -> UnsignedSdJwtPresentation {
         // Put everything back in its place.
         let SdJwtPresentationBuilder {
@@ -601,12 +638,8 @@ impl From<SignedSdJwtPresentation> for UnverifiedSdJwtPresentation {
 }
 
 impl UnsignedSdJwtPresentation {
-    /// Signs the underlying [`SdJwt`] and returns an SD-JWT presentation containing the issuer signed SD-JWT and
-    /// KB-JWT.
-    ///
-    /// ## Errors
-    /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm
-    ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
+    /// Signs the underlying [`VerifiedSdJwt`] and returns an SD-JWT presentation containing the (verified) issuer
+    /// signed SD-JWT and signed KB-JWT.
     pub async fn sign(
         self,
         key_binding_jwt_builder: KeyBindingJwtBuilder,
@@ -616,7 +649,6 @@ impl UnsignedSdJwtPresentation {
         let sd_jwt = self.0;
 
         let key_binding_jwt = key_binding_jwt_builder.finish(&sd_jwt, signing_key, time).await?;
-
         let sd_jwt_presentation = SignedSdJwtPresentation {
             sd_jwt,
             key_binding_jwt,
@@ -628,12 +660,10 @@ impl UnsignedSdJwtPresentation {
 
 static SD_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut validation = Validation::new(Algorithm::ES256);
-
     validation.validate_aud = false;
     validation.validate_nbf = true;
     validation.leeway = 0;
     validation.required_spec_claims.clear(); // remove "exp" from required claims
-
     validation
 });
 
@@ -671,6 +701,8 @@ where
     ) -> Result<VerifiedSdJwtPresentation<C, H>, DecoderError> {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
         // before parsing the disclosures
+
+        use std::time::Duration;
         let issuer_signed = self
             .sd_jwt
             .issuer_signed
@@ -679,7 +711,7 @@ where
         let kb_verification_options = KbVerificationOptions {
             expected_aud: kb_expected_aud,
             expected_nonce: kb_expected_nonce,
-            iat_leeway: 0,
+            iat_leeway: Duration::ZERO,
             iat_acceptance_window: kb_iat_acceptance_window,
         };
         let key_binding_jwt = self.key_binding_jwt.into_verified(
@@ -704,14 +736,15 @@ where
 mod examples {
     use std::time::Duration;
 
-    use attestation_types::qualification::AttestationQualification;
     use chrono::DateTime;
     use chrono::Utc;
     use p256::ecdsa::VerifyingKey;
     use serde_json::Value;
     use serde_json::json;
 
+    use attestation_types::qualification::AttestationQualification;
     use jwt::jwk::jwk_from_p256;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::Generator;
 
     use crate::key_binding_jwt::RequiredKeyBinding;
@@ -730,6 +763,7 @@ mod examples {
                 exp: Some((time.generate() + Duration::from_secs(365 * 24 * 60 * 60)).into()),
                 nbf: None,
                 attestation_qualification: Some(AttestationQualification::QEAA),
+                status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(json!({
                     "bsn": "999999999",
                     "recovery_code": "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d",
@@ -756,6 +790,7 @@ mod examples {
                 exp: None,
                 nbf: None,
                 attestation_qualification: Some(AttestationQualification::PubEAA),
+                status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(claims).unwrap(),
             }
         }
@@ -1797,6 +1832,7 @@ mod test {
                 ]),
             }),
             attestation_qualification: None,
+            status: None,
         };
         assert_eq!(parsed, expected);
     }

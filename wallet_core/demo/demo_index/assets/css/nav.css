@@ -127,7 +127,8 @@ nav a::before {
 }
 
 #xyz_bank_mdoc::before,
-#xyz_bank_sd_jwt::before {
+#xyz_bank_sd_jwt::before,
+#xyz_bank_sd_jwt_eu::before {
   background: url("../images/xyz_bank.svg") no-repeat center center / cover;
 }
 

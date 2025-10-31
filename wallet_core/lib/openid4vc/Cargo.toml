@@ -57,11 +57,9 @@ derive_more = { workspace = true, features = [
 ] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
-http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
-jsonwebtoken.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
@@ -120,8 +118,10 @@ attestation_data = { path = "../attestation_data", features = [
     "example_credential_payloads",
     "test_credential",
 ] }
+attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
 crypto = { path = "../crypto", features = ["examples"] }
 dcql = { path = "../dcql", features = ["mock"] }
+http.workspace = true
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }

@@ -87,6 +87,26 @@ claims = [
     { path = ["address", "postal_code"] }
 ]
 
+[[usecases.xyz_bank_sd_jwt_eu.dcql_query.credentials]]
+id = "sd_jwt_pid"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:1"] }
+claims = [
+    { path = ["given_name"]},
+    { path = ["family_name"] },
+    { path = ["birthdate"] }
+]
+
+[[usecases.xyz_bank_sd_jwt_eu.dcql_query.credentials]]
+id = "sd_jwt_address"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid-address:1"] }
+claims = [
+    { path = ["address", "street_address"] },
+    { path = ["address", "house_number"] },
+    { path = ["address", "postal_code"] }
+]
+
 [[usecases.monkey_bike.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"

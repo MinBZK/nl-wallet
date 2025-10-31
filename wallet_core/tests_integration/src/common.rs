@@ -64,7 +64,7 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
-use token_status_list::status_service::mock::MockStatusClaimService;
+use token_status_list::status_list_service::mock::MockStatusListService;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
@@ -662,7 +662,7 @@ pub async fn start_issuance_server(
             issuance_sessions,
             disclosure_settings,
             attributes_fetcher,
-            MockStatusClaimService::default(),
+            MockStatusListService::default(),
         )
         .await
         {
@@ -705,7 +705,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             hsm,
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
-            MockStatusClaimService::default(),
+            MockStatusListService::default(),
         )
         .await
         {

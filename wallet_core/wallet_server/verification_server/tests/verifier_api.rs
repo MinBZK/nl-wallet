@@ -26,6 +26,7 @@ use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
@@ -33,6 +34,7 @@ use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_regist
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
+use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialFormat;
 use dcql::CredentialQuery;
@@ -69,6 +71,7 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
+use token_status_list::status_claim::StatusClaim;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 use verification_server::server;
@@ -178,6 +181,8 @@ async fn wallet_server_settings_and_listener(
         server_settings: settings,
 
         wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+
+        extending_vct_values: None,
     };
 
     (settings, listener, issuer_ca, rp_trust_anchor)
@@ -910,48 +915,51 @@ fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequ
     }
 }
 
-fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
-    let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
-
-    let issuer_keypair = generate_pid_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
-
-    // Generate a new private key and use that and the issuer key to sign the Mdoc.
-    let mdoc_private_key = wscd.create_random_key();
-    let mdoc_public_key = mdoc_private_key.verifying_key();
-
-    payload_preview
-        .into_signed_mdoc_unverified(
-            Integrity::from(""),
-            mdoc_private_key.identifier.clone(),
-            mdoc_public_key,
-            &issuer_keypair,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
-}
-
-fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SignedSdJwt, String) {
+fn prepare_example_credential_payload(
+    issuer_ca: &Ca,
+    wscd: &MockRemoteWscd,
+) -> (CredentialPayload, KeyPair, String, NormalizedTypeMetadata) {
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
     let issuer_keypair = generate_pid_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
 
-    // Generate a new private key and use that and the issuer key to sign the SD-JWT.
-    let sd_jwt_private_key = wscd.create_random_key();
+    // Generate a new private key and use that and the issuer key to sign the Mdoc.
+    let holder_privkey = wscd.create_random_key();
+    let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
+        payload_preview,
+        Utc::now(),
+        holder_privkey.verifying_key(),
+        Integrity::from(""),
+        StatusClaim::new_mock(),
+    )
+    .unwrap();
 
-    let sd_jwt = payload_preview
-        .into_signed_sd_jwt_unverified(
-            &metadata,
-            Integrity::from(""),
-            sd_jwt_private_key.verifying_key(),
-            &issuer_keypair,
-        )
+    (payload, issuer_keypair, holder_privkey.identifier, metadata)
+}
+
+fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
+    let (credential_payload, issuer_keypair, holder_privkey_identifier, _) =
+        prepare_example_credential_payload(issuer_ca, wscd);
+    let (issuer_signed, mso) = credential_payload
+        .into_signed_mdoc(&issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
 
-    (sd_jwt, sd_jwt_private_key.identifier)
+    Mdoc::new_unverified(mso, holder_privkey_identifier, issuer_signed)
+}
+
+fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SignedSdJwt, String) {
+    let (credential_payload, issuer_keypair, holder_privkey_identifier, metadata) =
+        prepare_example_credential_payload(issuer_ca, wscd);
+    let sd_jwt = credential_payload
+        .into_signed_sd_jwt(&metadata, &issuer_keypair)
+        .now_or_never()
+        .unwrap()
+        .unwrap();
+
+    (sd_jwt, holder_privkey_identifier)
 }
 
 async fn perform_full_disclosure(

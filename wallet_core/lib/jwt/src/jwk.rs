@@ -8,6 +8,7 @@ use p256::ecdsa::VerifyingKey;
 
 use crate::error::JwkConversionError;
 
+/// Converts a P-256 `VerifyingKey` to a JWK with EC P-256 parameters.
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
     let jwk = Jwk {
         common: Default::default(),
@@ -17,6 +18,7 @@ pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
     Ok(jwk)
 }
 
+/// Builds `jsonwebtoken::jwk::AlgorithmParameters` for an EC P-256 public key.
 pub fn jwk_alg_from_p256(value: &VerifyingKey) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
     let point = value.to_encoded_point(false);
     let alg = jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
@@ -29,6 +31,9 @@ pub fn jwk_alg_from_p256(value: &VerifyingKey) -> Result<jwk::AlgorithmParameter
     Ok(alg)
 }
 
+/// Converts a JWK into a P-256 `VerifyingKey`.
+///
+/// Returns an error if the JWK is not an EC key or the curve is not P-256.
 pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
     let ec_params = match value.algorithm {
         jwk::AlgorithmParameters::EllipticCurve(ref params) => Ok(params),

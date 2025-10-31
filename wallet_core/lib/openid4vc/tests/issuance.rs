@@ -14,7 +14,7 @@ use url::Url;
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::issuable_document::IssuableDocument;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
@@ -55,13 +55,13 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-use token_status_list::status_service::mock::MockStatusClaimService;
+use token_status_list::status_list_service::mock::MockStatusListService;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaPayload;
 use wscd::mock_remote::MockRemoteWscd;
 
-type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusClaimService>;
+type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusListService>;
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -127,7 +127,7 @@ fn setup(
         Some(WuaConfig {
             wua_issuer_pubkey: wua_issuer_privkey.verifying_key().into(),
         }),
-        MockStatusClaimService::default(),
+        MockStatusListService::default(),
     );
 
     (
@@ -174,7 +174,7 @@ async fn accept_issuance(
                 .into_iter()
                 .for_each(|issued_credential| match issued_credential {
                     IssuedCredential::MsoMdoc { mdoc } => {
-                        let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();
+                        let payload = CredentialPayload::from_mdoc(mdoc, &preview_data.normalized_metadata).unwrap();
                         assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
                     }
                     IssuedCredential::SdJwt { .. } => {

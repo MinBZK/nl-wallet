@@ -5,7 +5,9 @@ use crate::error::SdAlgHasherNotImplemented;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 
-/// <https://www.iana.org/assignments/named-information/named-information.xhtml>
+/// Named Information Hash Algorithms used by SD-JWT for disclosure digests.
+///
+/// Names come from the [IANA registry](https://www.iana.org/assignments/named-information/named-information.xhtml).
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display, SerializeDisplay, DeserializeFromStr,
 )]
@@ -42,6 +44,9 @@ pub enum SdAlg {
     K12_512,
 }
 
+/// Returns a hasher implementation for this algorithm.
+///
+/// Currently, only `sha-256` is supported. Other variants return [`SdAlgHasherNotImplemented`].
 impl SdAlg {
     pub fn hasher(self) -> Result<impl Hasher, SdAlgHasherNotImplemented> {
         match self {

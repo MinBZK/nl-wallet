@@ -26,6 +26,7 @@ use ssri::Integrity;
 use attestation_types::qualification::AttestationQualification;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
+use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 
 use crate::utils::cose::CoseKey;
@@ -181,6 +182,9 @@ pub struct MobileSecurityObject {
     /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate. Optional because it is not in
     /// the spec.
     pub issuer_uri: Option<HttpsUri>,
+
+    /// Optional because it is not in the spec.
+    pub status: Option<StatusClaim>,
 
     /// Optional because it is not in the spec.
     pub attestation_qualification: Option<AttestationQualification>,

@@ -29,6 +29,14 @@ universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/
 # Default value: https://wallet.edi.rijksoverheid.nl
 wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 
+# Optional, can be used to accept disclosed attestations having a vct that extends the one being requested.
+[extending_vct_values]
+"eudi:pid:1" = [
+    "eudi:pid:extended:1",
+    "eudi:pid:extended:2",
+    "eudi:pid:extended:3"
+]
+
 # CORS settings. To allow all origins: allow_origins = "*"
 allow_origins = ["http://localhost:8080"]
 
@@ -58,21 +66,28 @@ user_pin = "12345678"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-# Use case entries
-# * session_type_return_url: Can be both, same_device (default), or neither
-# * certificate: Base64 encoded DER format certificate
-# * private_key: Base64 encoded DER format private key, or string
+# Usecases are defined as [usecases.some_name], where "some_name" is an
+# identifier indicating the purpose of the usecase, which is freely choosable
+# and has to be present in the QR/UL that starts the session.
+#
+# Configuration fields for usecases:
 # * private_key_type: Can be hsm or software, when hsm private_key
 #   should contain a string identifying the private key in the HSM
+# * private_key: Base64 encoded DER format private key, or string
+# * certificate: Base64 encoded DER format certificate
+# * session_type_return_url: Can be both, same_device (default), or neither
 #
-[usecases.driving_license]
-session_type_return_url = "both"
-certificate = "MII..."
-private_key = "MII..."
-private_key_type = "software"
 
-[usecases.parking_permit]
-session_type_return_url = "same_device"
+# Example driving_license usecase
+[usecases.driving_license]
+private_key_type = "software"
+private_key = "MII..."
 certificate = "MII..."
-private_key = "some_private_key"
+session_type_return_url = "both"
+
+# Example parking_permit usecase
+[usecases.parking_permit]
 private_key_type = "hsm"
+private_key = "some_private_key"
+certificate = "MII..."
+session_type_return_url = "same_device"

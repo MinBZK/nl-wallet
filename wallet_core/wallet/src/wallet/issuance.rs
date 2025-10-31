@@ -12,7 +12,7 @@ use url::Url;
 use uuid::Uuid;
 
 use attestation_data::auth::Organization;
-use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
@@ -62,7 +62,6 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
-use crate::storage::AttestationFormatQuery;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
@@ -331,10 +330,7 @@ where
                 .protocol_state
                 .reject_issuance()
                 .await
-                .map_err(|error| IssuanceError::IssuerServer {
-                    organization: Box::new(organization),
-                    error,
-                })?;
+                .map_err(|error| IssuanceError::IssuerServer { organization, error })?;
         };
 
         // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state,
@@ -422,7 +418,7 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_type(&preview_attestation_types, AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types(&preview_attestation_types)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -450,7 +446,7 @@ where
                     &wallet_config.pid_attributes,
                 )
                 .map_err(|error| IssuanceError::Attestation {
-                    organization: Box::new(organization.clone()),
+                    organization: organization.clone(),
                     error,
                 })?;
 
@@ -619,7 +615,7 @@ where
                 }
             }
             _ => IssuanceError::IssuerServer {
-                organization: Box::new(issuance_session.issuer_registration().organization.clone()),
+                organization: issuance_session.issuer_registration().organization.clone(),
                 error,
             },
         }
@@ -676,12 +672,12 @@ fn match_preview_and_stored_attestations<'a>(
     stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
-    let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
+    let stored_credential_payloads: Vec<(PreviewableCredentialPayload, Uuid)> = stored_attestations
         .into_iter()
         .map(|copy| {
             let attestation_id = copy.attestation_id();
 
-            (copy.into_credential_payload(), attestation_id)
+            (copy.into_previewable_credential_payload(), attestation_id)
         })
         .collect_vec();
 
@@ -695,7 +691,7 @@ fn match_preview_and_stored_attestations<'a>(
                     preview
                         .content
                         .credential_payload
-                        .matches_existing(&stored_preview.previewable_payload, time_generator)
+                        .matches_existing(stored_preview, time_generator)
                 })
                 .map(|(_, id)| *id);
 
@@ -720,8 +716,8 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::CertificateType;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
     use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
@@ -729,7 +725,6 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -994,16 +989,15 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
-            .returning(|_, _| {
+            .returning(|_| {
+                let (mdoc, metadata) = create_example_pid_mdoc();
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
-                    StoredAttestation::MsoMdoc {
-                        mdoc: create_example_pid_mdoc(),
-                    },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    StoredAttestation::MsoMdoc { mdoc },
+                    metadata,
                 )])
             });
 
@@ -1172,7 +1166,7 @@ mod tests {
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1190,8 +1184,8 @@ mod tests {
 
         let storage = wallet.mut_storage();
         storage
-            .expect_fetch_unique_attestations_by_type()
-            .return_once(move |_attestation_types, _format| Ok(vec![stored]));
+            .expect_fetch_unique_attestations_by_types()
+            .return_once(move |_attestation_types| Ok(vec![stored]));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -1676,7 +1670,7 @@ mod tests {
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();

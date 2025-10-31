@@ -29,7 +29,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_mdoc(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
-        issuer_organization: Organization,
+        issuer_organization: Box<Organization>,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -41,7 +41,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_sd_jwt_claims(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
-        issuer_organization: Organization,
+        issuer_organization: Box<Organization>,
         sd_jwt_claims: ObjectClaims,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -54,7 +54,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_attributes(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
-        issuer: Organization,
+        issuer: Box<Organization>,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -195,10 +195,10 @@ pub mod test {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_BSN;
-    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;
     use sd_jwt_vc_metadata::ClaimDisplayMetadata;

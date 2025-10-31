@@ -62,7 +62,7 @@ pub mod mock {
     use super::*;
 
     impl Organization {
-        pub fn new_mock() -> Self {
+        pub fn new_mock() -> Box<Self> {
             Organization {
                 display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
                 legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
@@ -80,6 +80,7 @@ pub mod mock {
                 privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
                 logo: None,
             }
+            .into()
         }
     }
 }

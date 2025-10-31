@@ -26,6 +26,7 @@ use server_utils::settings::verify_key_pairs;
 use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -43,6 +44,9 @@ pub struct IssuanceServerSettings {
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     pub universal_link_base_url: BaseUrl,
+
+    /// Indicate per vct what extending vcts are accepted during disclosure.
+    pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 }
 
 #[derive(Clone, Deserialize)]

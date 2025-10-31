@@ -1,3 +1,37 @@
+//! Disclosure types and helpers for SD-JWT selective disclosure.
+//!
+//! A Disclosure represents a selectively disclosable value. The disclosure content can be either:
+//! - an object property (salt, claim name, claim value), or
+//! - an array element (salt, array element; which may be a placeholder hash or an actual claim value).
+//!
+//! The serialized form is the Base64URL (no padding) encoding of a JSON array defined by the SD-JWT spec. This module
+//! exposes:
+//! - [`Disclosure`]: holds the encoded representation and the parsed `DisclosureContent`.
+//! - [`DisclosureContent`]: the enum describing either object properties or array elements.
+//!
+//! Examples:
+//! - Parse a disclosure and inspect its type:
+//! ```
+//! use sd_jwt::claims::ClaimType;
+//! use sd_jwt::disclosure::Disclosure;
+//!
+//! // Example disclosure for an array element (from the SD-JWT draft)
+//! let encoded = "WyJsa2x4RjVqTVlsR1RQVW92TU5JdkNBIiwgIlVTIl0";
+//! let disclosure: Disclosure = encoded.parse().unwrap();
+//! assert_eq!(disclosure.encoded(), encoded);
+//! assert_eq!(disclosure.disclosure_type(), ClaimType::Array);
+//! ```
+//!
+//! - Parse an object-property disclosure and list the referenced digest claim types:
+//! ```
+//! use sd_jwt::disclosure::Disclosure;
+//!
+//! // Example disclosure for an object property (from the SD-JWT draft)
+//! let encoded = "WyIyR0xDNDJzS1F2ZUNmR2ZyeU5STjl3IiwgInRpbWUiLCAiMjAxMi0wNC0yM1QxODoyNVoiXQ";
+//! let disclosure: Disclosure = encoded.parse().unwrap();
+//! // This returns (digest, ClaimType) pairs for any nested values that would be disclosed by this disclosure.
+//! let _digests = disclosure.digests();
+//! ```
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -15,9 +49,10 @@ use crate::error::ClaimError;
 use crate::error::DecoderError;
 
 /// A disclosable value.
+///
 /// Both object properties and array elements disclosures are supported.
 ///
-/// See: https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures
+/// See: <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures>
 #[derive(Debug, Clone, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct Disclosure {
     /// Indicates whether this disclosure is an object property or array element.
@@ -126,7 +161,7 @@ pub enum DisclosureContent {
     ArrayElement(
         /// The salt value.
         String,
-        /// The array value which can be a an array hash, or a claim value.
+        /// The array value which can be an array hash, or a claim value.
         ArrayClaim,
     ),
 }
@@ -180,7 +215,7 @@ mod test {
     use super::DisclosureContent;
 
     // Test values from:
-    // https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7
+    // <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7>
     #[test]
     fn test_parsing_value() {
         let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(

@@ -20,11 +20,10 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-use attestation_data::pid_constants::PID_RECOVERY_CODE;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -54,6 +53,7 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+use token_status_list::status_claim::StatusClaim;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -224,7 +224,7 @@ pub fn verified_sd_jwt_from_credential_payload(
     issuer_keypair: &KeyPair,
 ) -> VerifiedSdJwt {
     let sd_jwt = credential_payload
-        .into_sd_jwt(metadata, issuer_keypair)
+        .into_signed_sd_jwt(metadata, issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
@@ -233,10 +233,12 @@ pub fn verified_sd_jwt_from_credential_payload(
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
-pub fn create_example_pid_mdoc() -> Mdoc {
+pub fn create_example_pid_mdoc() -> (Mdoc, NormalizedTypeMetadata) {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key)
+    let mdoc = mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key);
+    (mdoc, metadata)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
@@ -244,16 +246,20 @@ pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayloa
     let private_key_id = crypto::utils::random_string(16);
     let holder_privkey = SigningKey::random(&mut OsRng);
 
-    preview_payload
-        .into_signed_mdoc_unverified(
-            Integrity::from(""),
-            private_key_id,
-            holder_privkey.verifying_key(),
-            issuer_keypair,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
+    let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+        preview_payload,
+        Utc::now(),
+        holder_privkey.verifying_key(),
+        Integrity::from(""),
+        StatusClaim::new_mock(),
+    )
+    .unwrap()
+    .into_signed_mdoc(issuer_keypair)
+    .now_or_never()
+    .unwrap()
+    .unwrap();
+
+    Mdoc::new_unverified(mso, private_key_id, issuer_signed)
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
@@ -506,6 +512,8 @@ pub fn mock_issuance_session(
     attestation_type: String,
     type_metadata: VerifiedTypeMetadataDocuments,
 ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
+    let normalized_type_metadata = type_metadata.to_normalized().unwrap();
+
     let mut client = MockIssuanceSession::new();
     let issuer_certificate = match &credential {
         IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
@@ -520,22 +528,19 @@ pub fn mock_issuance_session(
     let attestations = vec![match &credential {
         IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
-            type_metadata.to_normalized().unwrap(),
+            normalized_type_metadata.clone(),
             issuer_registration.organization.clone(),
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
             &EmptyPresentationConfig,
         )
         .unwrap(),
         IssuedCredential::SdJwt { sd_jwt, .. } => {
-            let payload = sd_jwt
-                .clone()
-                .into_credential_payload(&type_metadata.to_normalized().unwrap())
-                .unwrap();
+            let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
             AttestationPresentation::create_from_attributes(
                 AttestationIdentity::Ephemeral,
-                type_metadata.to_normalized().unwrap(),
+                normalized_type_metadata.clone(),
                 issuer_registration.organization.clone(),
-                &payload.previewable_payload.attributes,
+                &attributes,
                 &EmptyPresentationConfig,
             )
             .unwrap()
@@ -550,6 +555,7 @@ pub fn mock_issuance_session(
         Ok(vec![CredentialWithMetadata::new(
             IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
             attestation_type,
+            normalized_type_metadata.extended_vcts(),
             type_metadata,
         )])
     });

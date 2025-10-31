@@ -672,6 +672,7 @@ dependencies = [
  "ssri",
  "thiserror 2.0.11",
  "time",
+ "token_status_list",
  "tokio",
  "url",
  "utils",
@@ -3104,7 +3105,6 @@ dependencies = [
  "tokio",
  "toml 0.8.22",
  "tower-http",
- "trait-variant",
  "url",
 ]
 
@@ -3655,7 +3655,6 @@ dependencies = [
  "derive_more",
  "error_category",
  "futures",
- "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
  "p256",
@@ -3667,6 +3666,7 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.11",
  "tokio",
+ "tokio-test",
  "utils",
 ]
 
@@ -3862,11 +3862,11 @@ dependencies = [
  "serde",
  "serde-aux",
  "serde_bytes",
- "serde_json",
  "serde_repr",
  "serde_with",
  "ssri",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tracing",
  "url",
@@ -4228,7 +4228,6 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
- "jsonwebtoken",
  "jwt",
  "mdoc",
  "mime",
@@ -5437,7 +5436,6 @@ dependencies = [
 name = "sd_jwt"
 version = "0.4.0-dev"
 dependencies = [
- "anyhow",
  "assert_matches",
  "attestation_types",
  "base64 0.22.1",
@@ -5462,7 +5460,9 @@ dependencies = [
  "ssri",
  "strum 0.26.3",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
+ "tokio-test",
  "utils",
 ]
 
@@ -6905,6 +6905,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-test"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2468baabc3311435b55dd935f702f42cd1b8abb7e754fb7dfb16bd36aa88f9f7"
+dependencies = [
+ "async-stream",
+ "bytes",
+ "futures-core",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "tokio-util"
 version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7604,6 +7617,7 @@ dependencies = [
  "serial_test",
  "server_utils",
  "ssri",
+ "token_status_list",
  "tokio",
  "tower-http",
  "tracing",
@@ -7707,6 +7721,7 @@ dependencies = [
  "strum 0.26.3",
  "tempfile",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tracing",
  "trait-variant",
@@ -7842,7 +7857,6 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
- "zstd",
 ]
 
 [[package]]

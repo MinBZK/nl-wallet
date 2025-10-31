@@ -3,7 +3,7 @@ use uuid::Uuid;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
 use mdoc::IssuerSigned;
@@ -86,7 +86,7 @@ fn attestation_presentation_from_issuer_signed(
     issuer_signed: IssuerSigned,
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
-    issuer_organization: Organization,
+    issuer_organization: Box<Organization>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_mdoc(
@@ -103,7 +103,7 @@ fn attestation_presentation_from_sd_jwt(
     sd_jwt: &VerifiedSdJwt,
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
-    issuer_organization: Organization,
+    issuer_organization: Box<Organization>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_sd_jwt_claims(
@@ -183,14 +183,15 @@ impl StoredAttestationCopy {
         }
     }
 
-    /// Convert the stored attestation into a [`CredentialPayload`], skipping JSON schema validation.
-    pub fn into_credential_payload(self) -> CredentialPayload {
+    /// Convert the stored attestation into a [`PreivewableCredentialPayload`], to be able to compare it to a received
+    /// preview.
+    pub fn into_previewable_credential_payload(self) -> PreviewableCredentialPayload {
         match self.attestation {
             StoredAttestation::MsoMdoc { mdoc } => {
-                CredentialPayload::from_mdoc_unvalidated(mdoc, &self.normalized_metadata)
+                PreviewableCredentialPayload::from_mdoc(mdoc, &self.normalized_metadata)
                     .expect("a stored mdoc attestation should convert to CredentialPayload without errors")
             }
-            StoredAttestation::SdJwt { sd_jwt, .. } => CredentialPayload::from_sd_jwt(&sd_jwt)
+            StoredAttestation::SdJwt { sd_jwt, .. } => PreviewableCredentialPayload::from_sd_jwt(sd_jwt)
                 .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors"),
         }
     }
@@ -310,6 +311,7 @@ impl DisclosableAttestation {
 mod tests {
     use std::sync::LazyLock;
 
+    use chrono::Utc;
     use futures::FutureExt;
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
@@ -320,13 +322,15 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_BSN;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_BSN;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use mdoc::holder::Mdoc;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -343,17 +347,20 @@ mod tests {
         let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
         let holder_privkey = SigningKey::random(&mut OsRng);
-        let mdoc = payload_preview
-            .into_signed_mdoc_unverified(
-                Integrity::from(""),
-                "mdoc_key_id".to_string(),
-                holder_privkey.verifying_key(),
-                issuer_keypair,
-            )
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+        let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+            payload_preview,
+            Utc::now(),
+            holder_privkey.verifying_key(),
+            Integrity::from(""),
+            StatusClaim::new_mock(),
+        )
+        .unwrap()
+        .into_signed_mdoc(issuer_keypair)
+        .now_or_never()
+        .unwrap()
+        .unwrap();
 
+        let mdoc = Mdoc::new_unverified(mso, "mdoc_key_id".to_string(), issuer_signed);
         let copy = StoredAttestationCopy {
             attestation_id: *ATTESTATION_ID,
             attestation_copy_id: Uuid::new_v4(),
@@ -374,7 +381,7 @@ mod tests {
     fn sd_jwt_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
         let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let sd_jwt = credential_payload
-            .into_sd_jwt(&NormalizedTypeMetadata::nl_pid_example(), issuer_keypair)
+            .into_signed_sd_jwt(&NormalizedTypeMetadata::nl_pid_example(), issuer_keypair)
             .now_or_never()
             .unwrap()
             .unwrap();
