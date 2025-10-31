@@ -330,10 +330,10 @@ pub mod mock {
     use itertools::Itertools;
 
     use attestation_types::pid_constants::EUDI_PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
-    use mdoc::holder::mock::NL_PID_DOC_TYPE;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
@@ -447,8 +447,8 @@ pub mod mock {
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_mdoc(
                 "mdoc_pid_example",
-                NL_PID_DOC_TYPE,
-                NL_PID_DOC_TYPE,
+                PID_ATTESTATION_TYPE,
+                PID_ATTESTATION_TYPE,
                 &["bsn", "given_name", "family_name"],
             )
         }
@@ -456,7 +456,7 @@ pub mod mock {
         pub fn new_mock_sd_jwt_pid_example() -> Self {
             Self::new_mock_sd_jwt(
                 "mock_sd_jwt_example",
-                &[NL_PID_DOC_TYPE],
+                &[PID_ATTESTATION_TYPE],
                 &[&["bsn"], &["given_name"], &["family_name"]],
             )
         }
@@ -633,11 +633,11 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "mdoc_pid_example",
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                &[NL_PID_DOC_TYPE],
+                &[PID_ATTESTATION_TYPE],
                 &[
-                    &[NL_PID_DOC_TYPE, "bsn"],
-                    &[NL_PID_DOC_TYPE, "given_name"],
-                    &[NL_PID_DOC_TYPE, "family_name"],
+                    &[PID_ATTESTATION_TYPE, "bsn"],
+                    &[PID_ATTESTATION_TYPE, "given_name"],
+                    &[PID_ATTESTATION_TYPE, "family_name"],
                 ],
             )
         }
@@ -646,7 +646,7 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "sd_jwt_pid_example",
                 MockCredentialFormat::SdJwt,
-                &[NL_PID_DOC_TYPE],
+                &[PID_ATTESTATION_TYPE],
                 &[&["bsn"], &["given_name"], &["family_name"]],
             )
         }

@@ -226,6 +226,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::CertificateTypeError;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
@@ -236,7 +237,6 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
-    use mdoc::holder::mock::NL_PID_DOC_TYPE;
     use sd_jwt::builder::SignedSdJwt;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -509,13 +509,15 @@ mod tests {
             .exactly_one()
             .ok()
             .and_then(|attestations| attestations.attestations.iter().exactly_one().ok())
-            .and_then(|attestation| (attestation.attestation_type.as_str() == NL_PID_DOC_TYPE).then_some(attestation))
+            .and_then(|attestation| {
+                (attestation.attestation_type.as_str() == PID_ATTESTATION_TYPE).then_some(attestation)
+            })
             .and_then(|attestation| match &attestation.attributes {
                 DisclosedAttributes::MsoMdoc(attributes) => attributes
                     .iter()
                     .exactly_one()
                     .ok()
-                    .and_then(|(namespaces, attributes)| (namespaces == NL_PID_DOC_TYPE).then_some(attributes))
+                    .and_then(|(namespaces, attributes)| (namespaces == PID_ATTESTATION_TYPE).then_some(attributes))
                     .map(|attributes| {
                         attributes
                             .iter()
@@ -827,7 +829,7 @@ mod tests {
         // an attribute that is not in the `ReaderRegistration` should result in an error.
         let reader_registration = ReaderRegistration {
             authorized_attributes: ReaderRegistration::create_attributes(
-                NL_PID_DOC_TYPE,
+                PID_ATTESTATION_TYPE,
                 [["given_name"], ["family_name"]],
             ),
             ..ReaderRegistration::new_mock()
@@ -844,7 +846,7 @@ mod tests {
         .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
 
         let unregistered_attributes = HashMap::from([(
-            NL_PID_DOC_TYPE.to_string(),
+            PID_ATTESTATION_TYPE.to_string(),
             HashSet::from([vec![ClaimPath::SelectByKey("bsn".to_string())].try_into().unwrap()]),
         )]);
         assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
@@ -872,7 +874,7 @@ mod tests {
             .cloned()
             .collect();
         let reader_registration = ReaderRegistration {
-            authorized_attributes: HashMap::from([(NL_PID_DOC_TYPE.to_string(), authorized_attributes)]),
+            authorized_attributes: HashMap::from([(PID_ATTESTATION_TYPE.to_string(), authorized_attributes)]),
             ..ReaderRegistration::new_mock()
         };
 
