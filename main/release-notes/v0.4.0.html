@@ -263,6 +263,10 @@ wallet-provider.</p></li>
 disclosure, if more than one matches the request.</p></li>
 <li><p>Issued attestations must now contain a <code class="docutils literal notranslate"><span class="pre">status</span></code> field, which is used to
 determine the revocation status of an attestation.</p></li>
+<li><p>When disclosing SD-JWT attestations, the wallet can now disclose an
+attestation having an attestation type that is extending the requested
+attestation type. The verification server should be configured to accept
+such attestations.</p></li>
 </ul>
 </section>
 <section id="code-improvements">
