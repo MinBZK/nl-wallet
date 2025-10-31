@@ -102,6 +102,33 @@
     "description": "The JSON schema that defines a degree VCT",
     "type": "object",
     "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      },
       "university": {
         "type": "string"
       },
@@ -117,29 +144,8 @@
       },
       "cum_laude": {
         "type": "boolean"
-      },
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "attestation_qualification": {
-        "type": "string"
       }
     },
-    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
+    "required": ["vct", "iss", "iat", "exp", "status", "attestation_qualification"]
   }
 }

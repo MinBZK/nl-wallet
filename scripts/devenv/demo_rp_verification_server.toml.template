@@ -51,6 +51,11 @@ certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
 
+[usecases.xyz_bank_sd_jwt_eu]
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
 [usecases.monkey_bike]
 certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"

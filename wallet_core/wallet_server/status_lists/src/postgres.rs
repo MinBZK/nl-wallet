@@ -34,7 +34,7 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::BaseUrlError;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
-use token_status_list::status_service::StatusClaimService;
+use token_status_list::status_list_service::StatusListService;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -70,19 +70,19 @@ const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusClaimService {
+pub struct PostgresStatusListService {
     connection: DatabaseConnection,
     list_size: NonZeroU31,
     create_threshold: NonZeroU31,
     attestation_type_ids: HashMap<String, i16>,
 }
 
-impl PostgresStatusClaimService {
+impl PostgresStatusListService {
     pub async fn try_new(
         connection: DatabaseConnection,
         settings: StatusListsSettings,
         attestation_types: &[String],
-    ) -> Result<Self, StatusClaimServiceError> {
+    ) -> Result<Self, StatusListServiceError> {
         let attestation_type_ids = Self::initialize_attestation_type_ids(&connection, attestation_types).await?;
         let service = Self {
             connection,
@@ -95,7 +95,7 @@ impl PostgresStatusClaimService {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum StatusClaimServiceError {
+pub enum StatusListServiceError {
     #[error("base url error: {0}")]
     BaseUrl(#[from] BaseUrlError),
 
@@ -125,8 +125,8 @@ pub struct StatusListLocation {
     pub index: u32,
 }
 
-impl StatusClaimService for PostgresStatusClaimService {
-    type Error = StatusClaimServiceError;
+impl StatusListService for PostgresStatusListService {
+    type Error = StatusListServiceError;
 
     async fn obtain_status_claims(
         &self,
@@ -142,7 +142,7 @@ impl StatusClaimService for PostgresStatusClaimService {
     }
 }
 
-impl PostgresStatusClaimService {
+impl PostgresStatusListService {
     async fn initialize_attestation_type_ids(
         connection: &DatabaseConnection,
         attestation_types: &[String],
@@ -205,7 +205,7 @@ impl PostgresStatusClaimService {
         base_url: BaseUrl,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
-    ) -> Result<(VecNonEmpty<StatusClaim>, Vec<JoinHandle<()>>), StatusClaimServiceError> {
+    ) -> Result<(VecNonEmpty<StatusClaim>, Vec<JoinHandle<()>>), StatusListServiceError> {
         log::debug!(
             "Obtaining status claims for {} with {} copies",
             attestation_type,
@@ -214,7 +214,7 @@ impl PostgresStatusClaimService {
 
         let copies = copies.get();
         let Some(&attestation_type_id) = self.attestation_type_ids.get(attestation_type) else {
-            return Err(StatusClaimServiceError::UnknownAttestationType(
+            return Err(StatusListServiceError::UnknownAttestationType(
                 attestation_type.to_string(),
             ));
         };
@@ -222,7 +222,7 @@ impl PostgresStatusClaimService {
         // If issuer requests more copies than the size of a complete status list,
         // this is a configuration issue.
         if copies > self.list_size.into_inner() as usize {
-            return Err(StatusClaimServiceError::TooManyClaimsRequested(copies));
+            return Err(StatusListServiceError::TooManyClaimsRequested(copies));
         }
 
         // Get status lists with exclusive lock or create if not available
@@ -273,7 +273,7 @@ impl PostgresStatusClaimService {
         &self,
         attestation_type_id: i16,
         copies: usize,
-    ) -> Result<(DatabaseTransaction, Vec<status_list::Model>), StatusClaimServiceError> {
+    ) -> Result<(DatabaseTransaction, Vec<status_list::Model>), StatusListServiceError> {
         let mut tries = STATUS_LIST_IN_FLIGHT_CREATE_TRIES;
         loop {
             // Always restart transaction (e.g. level was set to repeatable read)
@@ -294,7 +294,7 @@ impl PostgresStatusClaimService {
             }
 
             if tries == 0 {
-                return Err(StatusClaimServiceError::NoStatusListAvailable());
+                return Err(StatusListServiceError::NoStatusListAvailable());
             }
             tries -= 1;
 
@@ -322,7 +322,7 @@ impl PostgresStatusClaimService {
         attestation_type_id: i16,
         mut lists: Vec<status_list::Model>,
         num_copies: u64,
-    ) -> Result<Vec<(status_list::Model, Vec<status_list_item::Model>)>, StatusClaimServiceError> {
+    ) -> Result<Vec<(status_list::Model, Vec<status_list_item::Model>)>, StatusListServiceError> {
         let start_sequence_no = lists
             .iter()
             .map(|list| list.next_sequence_no - list.available as i64)
@@ -382,7 +382,7 @@ impl PostgresStatusClaimService {
         batch_id: Uuid,
         expiration_date: Option<NaiveDate>,
         locations: Vec<StatusListLocation>,
-    ) -> Result<(), StatusClaimServiceError> {
+    ) -> Result<(), StatusListServiceError> {
         let model = attestation_batch::ActiveModel {
             id: NotSet,
             batch_id: Set(batch_id),
@@ -404,7 +404,7 @@ impl PostgresStatusClaimService {
         next_sequence_no: i64,
         list_size: NonZeroU31,
         wait_for_lock: bool,
-    ) -> Result<bool, StatusClaimServiceError> {
+    ) -> Result<bool, StatusListServiceError> {
         let tx = connection.begin().await?;
 
         // Get exclusive lock on attestation type
@@ -486,7 +486,7 @@ impl PostgresStatusClaimService {
         Ok(true)
     }
 
-    pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusClaimServiceError> {
+    pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         log::info!("Initializing status lists");
 
         // Fetch all lists that still have list items in the database
@@ -599,7 +599,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_service_create_status_claims_uninitialized_attestation_type() {
-        let service = PostgresStatusClaimService {
+        let service = PostgresStatusListService {
             connection: DatabaseConnection::default(),
             list_size: 1.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
@@ -611,12 +611,12 @@ mod tests {
         let result = service
             .obtain_status_claims("invalid", batch_id, base_url, None, 1.try_into().unwrap())
             .await;
-        assert_matches!(result, Err(StatusClaimServiceError::UnknownAttestationType(attestation_type)) if attestation_type == "invalid");
+        assert_matches!(result, Err(StatusListServiceError::UnknownAttestationType(attestation_type)) if attestation_type == "invalid");
     }
 
     #[tokio::test]
     async fn test_service_create_status_claims_too_many_copies() {
-        let service = PostgresStatusClaimService {
+        let service = PostgresStatusListService {
             connection: DatabaseConnection::default(),
             list_size: 2.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
@@ -628,6 +628,6 @@ mod tests {
         let result = service
             .obtain_status_claims("pid", batch_id, base_url, None, 3.try_into().unwrap())
             .await;
-        assert_matches!(result, Err(StatusClaimServiceError::TooManyClaimsRequested(size)) if size == 3);
+        assert_matches!(result, Err(StatusListServiceError::TooManyClaimsRequested(size)) if size == 3);
     }
 }

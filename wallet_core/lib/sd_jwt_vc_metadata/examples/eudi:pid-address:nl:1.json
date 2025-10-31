@@ -3,7 +3,7 @@
   "name": "NL address credential",
   "description": "Working version of the Dutch address credential",
   "extends": "urn:eudi:pid-address:1",
-  "extends#integrity": "sha256-17CxrX9FJ68Lsw5nui612i7m3lyZzhK9kK3G76DROks=",
+  "extends#integrity": "sha256-8VoBY+NcnqzXtLcvmwmEzwMN8QlViubwhes4OAr4PxM=",
   "display": [
     {
       "lang": "en-US",
@@ -103,6 +103,9 @@
       "iss": {
         "type": "string"
       },
+      "iat": {
+        "type": "number"
+      },
       "nbf": {
         "type": "number"
       },
@@ -114,12 +117,6 @@
       },
       "status": {
         "type": "object"
-      },
-      "sub": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
       },
       "attestation_qualification": {
         "type": "string"
@@ -146,6 +143,6 @@
         "required": ["street_address", "house_number", "postal_code", "locality", "country"]
       }
     },
-    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
+    "required": ["vct", "iss", "iat", "cnf", "status", "attestation_qualification"]
   }
 }

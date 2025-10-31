@@ -48,6 +48,7 @@ jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
+token_status_list.path = "../token_status_list"
 utils.path = "../utils"
 
 [dev-dependencies]

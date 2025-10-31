@@ -47,6 +47,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use token_status_list::status_claim::StatusClaim;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::instructions::InstructionResultClaims;
@@ -236,6 +237,7 @@ pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayloa
         Utc::now(),
         holder_privkey.verifying_key(),
         Integrity::from(""),
+        StatusClaim::new_mock(),
     )
     .unwrap()
     .into_signed_mdoc(issuer_keypair)

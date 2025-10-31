@@ -41,6 +41,7 @@ attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
+token_status_list.path = "../token_status_list"
 utils.path = "../utils"
 
 [dev-dependencies]
@@ -53,4 +54,5 @@ tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }
 tokio-test.workspace = true
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
+token_status_list = { path = "../token_status_list", features = ["mock"] }
 utils = { path = "../utils", features = ["mock_time"] }

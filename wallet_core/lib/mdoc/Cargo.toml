@@ -58,6 +58,7 @@ attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
+token_status_list.path = "../token_status_list"
 utils.path = "../utils"
 
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }

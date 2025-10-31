@@ -310,6 +310,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -331,6 +332,7 @@ mod tests {
             Utc::now(),
             holder_privkey.verifying_key(),
             Integrity::from(""),
+            StatusClaim::new_mock(),
         )
         .unwrap()
         .into_signed_mdoc(issuer_keypair)

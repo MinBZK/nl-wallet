@@ -126,6 +126,7 @@ mod test {
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::Generator;
 
     use crate::iso::disclosure::IssuerSigned;
@@ -186,6 +187,7 @@ mod test {
                 },
                 issuer_uri: Some(issuer_uri),
                 attestation_qualification: Some(Default::default()),
+                status: Some(StatusClaim::new_mock()),
                 type_metadata_integrity: Some(metadata_integrity),
             };
 

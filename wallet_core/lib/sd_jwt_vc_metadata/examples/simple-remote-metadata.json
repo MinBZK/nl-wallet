@@ -40,10 +40,6 @@
     "description": "The JSON schema that defines the NL Wallet Simple VCT",
     "type": "object",
     "properties": {
-      "birth_date": {
-        "type": "string",
-        "format": "date"
-      },
       "vct": {
         "type": "string"
       },
@@ -56,19 +52,26 @@
       "iat": {
         "type": "number"
       },
-      "exp": {
+      "nbf": {
         "type": "number"
       },
-      "nbf": {
+      "exp": {
         "type": "number"
       },
       "cnf": {
         "type": "object"
       },
+      "status": {
+        "type": "object"
+      },
       "attestation_qualification": {
         "type": "string"
+      },
+      "birth_date": {
+        "type": "string",
+        "format": "date"
       }
     },
-    "required": ["vct", "iss", "iat", "attestation_qualification"]
+    "required": ["vct", "iss", "iat", "cnf", "status", "attestation_qualification"]
   }
 }

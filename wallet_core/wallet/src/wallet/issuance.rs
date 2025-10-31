@@ -61,7 +61,6 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
-use crate::storage::AttestationFormatQuery;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
@@ -405,7 +404,7 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_type(&preview_attestation_types, AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types(&preview_attestation_types)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -747,6 +746,8 @@ mod tests {
         attestation_type: String,
         type_metadata: VerifiedTypeMetadataDocuments,
     ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
+        let normalized_type_metadata = type_metadata.to_normalized().unwrap();
+
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = match &credential {
             IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
@@ -761,7 +762,7 @@ mod tests {
         let attestations = vec![match &credential {
             IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
-                type_metadata.to_normalized().unwrap(),
+                normalized_type_metadata.clone(),
                 issuer_registration.organization.clone(),
                 mdoc.issuer_signed().clone().into_entries_by_namespace(),
                 &EmptyPresentationConfig,
@@ -771,7 +772,7 @@ mod tests {
                 let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Ephemeral,
-                    type_metadata.to_normalized().unwrap(),
+                    normalized_type_metadata.clone(),
                     issuer_registration.organization.clone(),
                     &attributes,
                     &EmptyPresentationConfig,
@@ -788,6 +789,7 @@ mod tests {
             Ok(vec![CredentialWithMetadata::new(
                 IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
                 attestation_type,
+                normalized_type_metadata.extended_vcts(),
                 type_metadata,
             )])
         });
@@ -1030,9 +1032,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
-            .returning(|_, _| {
+            .returning(|_| {
                 let (mdoc, metadata) = create_example_pid_mdoc();
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
@@ -1206,8 +1208,8 @@ mod tests {
 
         let storage = wallet.mut_storage();
         storage
-            .expect_fetch_unique_attestations_by_type()
-            .return_once(move |_attestation_types, _format| Ok(vec![stored]));
+            .expect_fetch_unique_attestations_by_types()
+            .return_once(move |_attestation_types| Ok(vec![stored]));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
