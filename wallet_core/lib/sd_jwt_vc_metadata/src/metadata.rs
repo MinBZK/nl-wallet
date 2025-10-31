@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Write;
 use std::ops::Deref;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
@@ -515,10 +512,7 @@ pub struct ClaimMetadata {
 
 impl ClaimMetadata {
     pub(crate) fn path_to_string(path: &[ClaimPath]) -> String {
-        path.iter().fold(String::new(), |mut output, path| {
-            let _ = write!(output, "[{path}]");
-            output
-        })
+        format!("[{}]", path.iter().join(", "))
     }
 
     fn find_duplicate_languages(&self) -> Vec<String> {
@@ -527,12 +521,6 @@ impl ClaimMetadata {
             .duplicates_by(|display| &display.lang)
             .map(|display| display.lang.clone())
             .collect()
-    }
-}
-
-impl Display for ClaimMetadata {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Self::path_to_string(self.path.as_ref()))
     }
 }
 
@@ -805,6 +793,16 @@ mod test {
     use crate::examples::VCT_EXAMPLE_CREDENTIAL;
 
     use super::*;
+
+    #[test]
+    fn test_path_to_string() {
+        let result = ClaimMetadata::path_to_string(&[
+            ClaimPath::SelectByKey("key".to_string()),
+            ClaimPath::SelectByIndex(3),
+            ClaimPath::SelectAll,
+        ]);
+        assert_eq!(result, String::from("[key, 3, null]"));
+    }
 
     #[test]
     fn test_deserialize() {
