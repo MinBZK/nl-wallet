@@ -3105,7 +3105,6 @@ dependencies = [
  "tokio",
  "toml 0.8.22",
  "tower-http",
- "trait-variant",
  "url",
 ]
 
@@ -3656,7 +3655,6 @@ dependencies = [
  "derive_more",
  "error_category",
  "futures",
- "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
  "p256",
@@ -3864,7 +3862,6 @@ dependencies = [
  "serde",
  "serde-aux",
  "serde_bytes",
- "serde_json",
  "serde_repr",
  "serde_with",
  "ssri",
@@ -4231,7 +4228,6 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
- "jsonwebtoken",
  "jwt",
  "mdoc",
  "mime",
@@ -5439,7 +5435,6 @@ dependencies = [
 name = "sd_jwt"
 version = "0.4.0-dev"
 dependencies = [
- "anyhow",
  "assert_matches",
  "attestation_types",
  "base64 0.22.1",
@@ -7861,7 +7856,6 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
- "zstd",
 ]
 
 [[package]]

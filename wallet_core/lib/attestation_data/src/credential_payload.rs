@@ -546,14 +546,14 @@ mod examples {
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     use utils::generator::Generator;
 
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
-    use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::*;
 
@@ -655,11 +655,11 @@ mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::generator::Generator;
 
     use crate::attributes::Attributes;
-    use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -717,6 +717,7 @@ mod test {
     use ssri::Integrity;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
@@ -743,7 +744,6 @@ mod test {
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::pid_constants::PID_ATTESTATION_TYPE;
     use crate::x509::CertificateType;
 
     use super::*;

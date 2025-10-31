@@ -10,6 +10,16 @@ use itertools::Itertools;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+use attestation_types::pid_constants::PID_BIRTH_DATE;
+use attestation_types::pid_constants::PID_BSN;
+use attestation_types::pid_constants::PID_FAMILY_NAME;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_RESIDENT_CITY;
+use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
+use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use dcql::CredentialFormat;
@@ -39,16 +49,6 @@ use crate::credential_payload::CredentialPayload;
 use crate::credential_payload::PreviewableCredentialPayload;
 use crate::disclosure::DisclosedAttestations;
 use crate::disclosure::DisclosedAttributes;
-use crate::pid_constants::PID_ADDRESS_GROUP;
-use crate::pid_constants::PID_BIRTH_DATE;
-use crate::pid_constants::PID_BSN;
-use crate::pid_constants::PID_FAMILY_NAME;
-use crate::pid_constants::PID_GIVEN_NAME;
-use crate::pid_constants::PID_RESIDENT_CITY;
-use crate::pid_constants::PID_RESIDENT_COUNTRY;
-use crate::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::pid_constants::PID_RESIDENT_POSTAL_CODE;
-use crate::pid_constants::PID_RESIDENT_STREET;
 
 /// A collection of [`TestCredential`] types, which are guaranteed to contain different credential query identifiers.
 /// It provides aggregate versions of the methods present on that type. It also allows [`TestCredentials`] to be be
@@ -447,6 +447,10 @@ impl TestCredential {
         Self::new_nl_pid("nl_pid_given_name", [[PID_GIVEN_NAME]])
     }
 
+    pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> Self {
+        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]])
+    }
+
     pub fn new_nl_pid_family_name() -> Self {
         Self::new_nl_pid("nl_pid_family_name", [[PID_FAMILY_NAME]])
     }
@@ -501,6 +505,12 @@ pub fn nl_pid_credentials_full_name() -> TestCredentials {
 
 pub fn nl_pid_credentials_given_name() -> TestCredentials {
     TestCredentials::new(vec_nonempty![TestCredential::new_nl_pid_given_name()])
+}
+
+pub fn nl_pid_credentials_given_name_for_query_id(query_id: &str) -> TestCredentials {
+    TestCredentials::new(vec_nonempty![TestCredential::new_nl_pid_given_name_for_query_id(
+        query_id
+    )])
 }
 
 pub fn nl_pid_credentials_family_name() -> TestCredentials {

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::Form;
@@ -52,6 +53,7 @@ use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
 
 struct ApplicationState<S, US> {
     verifier: Verifier<S, US>,
@@ -65,6 +67,7 @@ pub struct VerifierFactory<US> {
     use_cases: US,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     accepted_wallet_client_ids: Vec<String>,
+    extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
 }
 
 struct WalletRouterAndState<S, US> {
@@ -84,6 +87,7 @@ where
         use_cases: US,
         issuer_trust_anchors: Vec<TrustAnchor<'static>>,
         accepted_wallet_client_ids: Vec<String>,
+        extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
     ) -> Self {
         Self {
             public_url,
@@ -91,6 +95,7 @@ where
             use_cases,
             issuer_trust_anchors,
             accepted_wallet_client_ids,
+            extending_vct_values_store,
         }
     }
 
@@ -108,7 +113,8 @@ where
                 sessions,
                 self.issuer_trust_anchors,
                 result_handler,
-                self.accepted_wallet_client_ids.clone(),
+                self.accepted_wallet_client_ids,
+                self.extending_vct_values_store,
             ),
             public_url: self.public_url,
             universal_link_base_url: self.universal_link_base_url,

@@ -17,7 +17,6 @@ examples = ["futures", "rand_core", "utils/mock_time"]
 mock = []
 
 [dependencies]
-anyhow.workspace = true
 base64.workspace = true
 chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "display", "from_str"] }
