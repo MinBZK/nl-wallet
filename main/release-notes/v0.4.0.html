@@ -229,6 +229,8 @@ which should be changed to <code class="docutils literal notranslate"><span clas
 14.0).</p></li>
 <li><p>The minimum supported Android version has been upgraded to Android 10.0 - API
 29 (from Android 7.0 - API 24).</p></li>
+<li><p>The status field is now required in issued attestations. The field should be
+added to the SD-JWT VC Type metadata of issued attestations.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -259,6 +261,8 @@ attestation batches and the corresponding issued status token claims.</p></li>
 wallet-provider.</p></li>
 <li><p>The wallet supports selecting one of a set of candidate attestations for
 disclosure, if more than one matches the request.</p></li>
+<li><p>Issued attestations must now contain a <code class="docutils literal notranslate"><span class="pre">status</span></code> field, which is used to
+determine the revocation status of an attestation.</p></li>
 </ul>
 </section>
 <section id="code-improvements">
