@@ -21,7 +21,8 @@ integration_test = []
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
-derive_more = { workspace = true, features = ["constructor"] }
+derive_more = { workspace = true, features = ["from", "into"] }
+futures.workspace = true
 itertools.workspace = true
 log.workspace = true
 rand.workspace = true

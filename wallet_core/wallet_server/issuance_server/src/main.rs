@@ -12,7 +12,7 @@ use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 use server_utils::store::postgres::new_connection;
-use status_lists::postgres::PostgresStatusListService;
+use status_lists::postgres::PostgresStatusListServices;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -55,7 +55,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             "No database connection configured for status list in issuance server"
         )),
     }?;
-    let status_list_service = PostgresStatusListService::try_new(
+    let status_list_service = PostgresStatusListServices::try_new(
         db_connection,
         settings.status_lists.clone(),
         &settings
