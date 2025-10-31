@@ -20,6 +20,7 @@ use serde::de::DeserializeOwned;
 use url::Url;
 
 use attestation_data::attributes::AttributesError;
+use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
@@ -41,6 +42,7 @@ use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::error::DecoderError;
 use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
@@ -212,7 +214,11 @@ pub enum IssuanceSessionError {
         "claim `{0:?}` selective disclosability metadata expected `{1:?}`, but actual is_selectively_disclosable: `{2}`"
     )]
     #[category(critical)]
-    SelectiveDisclosabiliby(Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata, bool),
+    SelectiveDisclosabiliby(VecNonEmpty<ClaimPath>, ClaimSelectiveDisclosureMetadata, bool),
+
+    #[error("claim `{0:?}` not found in metadata")]
+    #[category(critical)]
+    ClaimNotFoundInMetadata(VecNonEmpty<ClaimPath>),
 }
 
 #[derive(Clone, Debug)]
@@ -236,53 +242,6 @@ pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
     pub attestation_type: String,
     pub metadata_documents: VerifiedTypeMetadataDocuments,
-}
-
-impl CredentialWithMetadata {
-    pub fn verify_claim_disclosability(&self) -> Result<(), IssuanceSessionError> {
-        let normalized_metadata = self.metadata_documents.to_normalized()?;
-        // Only the first copy needs to be verified.
-        match self.copies.0.first() {
-            IssuedCredential::MsoMdoc { .. } => {
-                // All claims in an mdoc are selectively disclosable, so `Never` is not allowed in the metadata
-                for claim in normalized_metadata.claims() {
-                    if matches!(claim.sd, ClaimSelectiveDisclosureMetadata::Never) {
-                        Err(IssuanceSessionError::SelectiveDisclosabiliby(
-                            claim.path.clone().into_inner(),
-                            claim.sd,
-                            true,
-                        ))?;
-                    }
-                }
-            }
-            IssuedCredential::SdJwt { sd_jwt: first_copy, .. } => {
-                for claim in normalized_metadata.claims() {
-                    let is_selectively_disclosable = first_copy
-                        .is_selectively_disclosable(claim.path.as_slice())
-                        .map_err(DecoderError::ClaimStructure)?;
-                    match claim.sd {
-                        ClaimSelectiveDisclosureMetadata::Always if !is_selectively_disclosable => {
-                            Err(IssuanceSessionError::SelectiveDisclosabiliby(
-                                claim.path.clone().into_inner(),
-                                claim.sd,
-                                is_selectively_disclosable,
-                            ))?
-                        }
-                        ClaimSelectiveDisclosureMetadata::Never if is_selectively_disclosable => {
-                            Err(IssuanceSessionError::SelectiveDisclosabiliby(
-                                claim.path.clone().into_inner(),
-                                claim.sd,
-                                is_selectively_disclosable,
-                            ))?
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        };
-
-        Ok(())
-    }
 }
 
 #[derive(Clone, Debug, AsRef)]
@@ -882,13 +841,6 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     verified_metadata,
                 ))
             })
-            .map(|doc| {
-                doc.and_then(|doc| {
-                    // Verify whether the disclosability matches the metadata
-                    doc.verify_claim_disclosability()?;
-                    Ok(doc)
-                })
-            })
             .try_collect()?;
 
         Ok(docs)
@@ -1024,12 +976,27 @@ impl CredentialResponse {
                 let issued_credential_payload =
                     CredentialPayload::from_sd_jwt(sd_jwt.clone(), &preview.normalized_metadata)?;
 
+                // Store claim paths to later use in validation of selective disclosability of claims.
+                // This prevents cloning `issued_credential_payload`.
+                let issued_claims = issued_credential_payload
+                    .previewable_payload
+                    .attributes
+                    .claim_paths(AttributesTraversalBehaviour::OnlyLeaves);
+
                 Self::validate_credential(
                     preview,
                     verifying_key,
                     issued_credential_payload,
                     sd_jwt.issuer_certificate(),
                 )?;
+
+                for issued_claim in issued_claims {
+                    verify_claim_selective_disclosability(
+                        &issued_claim,
+                        preview.normalized_metadata.claims(),
+                        &sd_jwt,
+                    )?;
+                }
 
                 Ok(IssuedCredential::SdJwt { key_identifier, sd_jwt })
             }
@@ -1067,6 +1034,33 @@ impl CredentialResponse {
 
         Ok(())
     }
+}
+
+fn verify_claim_selective_disclosability(
+    issued_claim: &VecNonEmpty<ClaimPath>,
+    claims_metadata: &[ClaimMetadata],
+    sd_jwt: &VerifiedSdJwt,
+) -> Result<(), IssuanceSessionError> {
+    let is_selectively_disclosable = sd_jwt
+        .is_selectively_disclosable(issued_claim.as_slice())
+        .map_err(DecoderError::ClaimStructure)?;
+
+    let sd = claims_metadata
+        .iter()
+        .find(|claim_metadata| claim_metadata.path == *issued_claim)
+        .map(|md| md.sd)
+        .ok_or_else(|| IssuanceSessionError::ClaimNotFoundInMetadata(issued_claim.clone()))?;
+
+    match sd {
+        ClaimSelectiveDisclosureMetadata::Always if !is_selectively_disclosable => Err(
+            IssuanceSessionError::SelectiveDisclosabiliby(issued_claim.clone(), sd, is_selectively_disclosable),
+        )?,
+        ClaimSelectiveDisclosureMetadata::Never if is_selectively_disclosable => Err(
+            IssuanceSessionError::SelectiveDisclosabiliby(issued_claim.clone(), sd, is_selectively_disclosable),
+        )?,
+        _ => {}
+    }
+    Ok(())
 }
 
 impl IssuanceState {
