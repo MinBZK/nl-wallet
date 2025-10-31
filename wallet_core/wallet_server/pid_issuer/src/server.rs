@@ -14,7 +14,7 @@ use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
-use token_status_list::status_service::StatusClaimService;
+use token_status_list::status_list_service::StatusListService;
 
 pub async fn serve<A, C, IS>(
     attr_service: A,
@@ -22,11 +22,11 @@ pub async fn serve<A, C, IS>(
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
-    status_claim_service: C,
+    status_list_service: C,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    C: StatusClaimService + Send + Sync + 'static,
+    C: StatusListService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
 {
     let listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
@@ -37,7 +37,7 @@ where
         hsm,
         issuance_sessions,
         wua_issuer_pubkey,
-        status_claim_service,
+        status_list_service,
     )
     .await
 }
@@ -50,11 +50,11 @@ pub async fn serve_with_listener<A, C, IS>(
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
-    status_claim_service: C,
+    status_list_service: C,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    C: StatusClaimService + Send + Sync + 'static,
+    C: StatusListService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;
@@ -70,7 +70,7 @@ where
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
         }),
-        status_claim_service,
+        status_list_service,
     )));
 
     listen(

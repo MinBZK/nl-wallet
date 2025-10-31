@@ -13,7 +13,7 @@ use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 use server_utils::store::postgres::new_connection;
-use status_lists::postgres::PostgresStatusClaimService;
+use status_lists::postgres::PostgresStatusListService;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -51,7 +51,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             "No database connection configured for status list in pid issuer"
         )),
     }?;
-    let status_claim_service = PostgresStatusClaimService::try_new(
+    let status_list_service = PostgresStatusListService::try_new(
         db_connection,
         settings.status_lists,
         &issuer_settings
@@ -62,7 +62,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             .collect_vec(),
     )
     .await?;
-    status_claim_service.initialize_lists().await?;
+    status_list_service.initialize_lists().await?;
 
     // This will block until the server shuts down.
     server::serve(
@@ -71,7 +71,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         hsm,
         sessions,
         settings.wua_issuer_pubkey.into_inner(),
-        status_claim_service,
+        status_list_service,
     )
     .await
 }
