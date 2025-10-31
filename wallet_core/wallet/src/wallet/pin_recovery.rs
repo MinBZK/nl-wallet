@@ -253,7 +253,7 @@ where
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
         let (received_recovery_code, session) = self
-            .pin_recovery_start_issuance(token_request, pid_config.clone(), &config)
+            .pin_recovery_start_issuance(token_request, &pid_config, &config)
             .await?;
 
         let pid_attestation_types = pid_config.sd_jwt.keys().map(String::as_str).collect();
@@ -301,7 +301,7 @@ where
     async fn pin_recovery_start_issuance(
         &mut self,
         token_request: TokenRequest,
-        pid_config: PidAttributesConfiguration,
+        pid_config: &PidAttributesConfiguration,
         config: &WalletConfiguration,
     ) -> Result<(AttributeValue, PinRecoverySession<<DC as DigidClient>::Session, IS>), PinRecoveryError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
