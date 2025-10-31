@@ -758,7 +758,8 @@ where
             .unwrap();
 
         if let Err(error) = result {
-            if let Err(e) = self
+            // If storing the event results in an error, log it but do nothing else.
+            let _ = self
                 .store_disclosure_event(
                     Utc::now(),
                     Some(attestation_presentations),
@@ -768,9 +769,9 @@ where
                     DataDisclosed::NotDisclosed,
                 )
                 .await
-            {
-                error!("Could not store error in history: {e}");
-            }
+                .inspect_err(|e| {
+                    error!("Could not store error in history: {e}");
+                });
 
             return Err(DisclosureError::IncrementUsageCount(error));
         }
@@ -818,6 +819,8 @@ where
                     DisclosureError::with_organization(error.error, reader_registration.organization);
 
                 // IncorrectPin is a functional error and does not need to be recorded.
+                //
+                // If storing the event results in an error, log it but do nothing else.
                 if !matches!(
                     disclosure_error,
                     DisclosureError::Instruction(InstructionError::IncorrectPin { .. })
@@ -845,14 +848,17 @@ where
                     // On a PIN timeout we should proactively terminate the disclosure session
                     // and lock the wallet, as the user is probably not the owner of the wallet.
                     // The UI should catch this specific error and close the disclosure screens.
-
-                    if let Err(terminate_error) = self.terminate_disclosure_session(session).await {
-                        // Log the error, but do not return it from this method.
-                        error!(
-                            "Error while terminating disclosure session on PIN timeout: {}",
-                            terminate_error
-                        );
-                    }
+                    //
+                    // If terminating the session results in an error, log it but do nothing else.
+                    let _ = self
+                        .terminate_disclosure_session(session)
+                        .await
+                        .inspect_err(|terminate_error| {
+                            error!(
+                                "Error while terminating disclosure session on PIN timeout: {}",
+                                terminate_error
+                            );
+                        });
 
                     self.lock.lock();
                 } else {
