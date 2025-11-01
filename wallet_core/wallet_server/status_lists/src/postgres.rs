@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
@@ -37,10 +38,19 @@ use crypto::EcdsaKeySend;
 use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::BaseUrlError;
+use http_utils::urls::HttpsUri;
+use http_utils::urls::HttpsUriError;
+use jwt::UnverifiedJwt;
+use jwt::error::JwtError;
+use jwt::headers::HeaderWithTyp;
+use jwt::headers::HeaderWithX5c;
 use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
+use token_status_list::status_list::StatusList;
 use token_status_list::status_list_service::StatusListService;
+use token_status_list::status_list_token::StatusListClaims;
+use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -93,8 +103,8 @@ pub struct PostgresStatusListService<K: EcdsaKeySend> {
     create_threshold: NonZeroU31,
 
     base_url: BaseUrl,
-    _publish_dir: PathBuf,
-    _key_pair: KeyPair<K>,
+    publish_dir: PathBuf,
+    key_pair: KeyPair<K>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -105,6 +115,9 @@ pub enum StatusListServiceError {
     #[error("database error: {0}")]
     Db(#[from] DbErr),
 
+    #[error("url is not an https: {0}")]
+    HttpsUri(#[from] HttpsUriError),
+
     #[error("could not randomize indices: {0}")]
     Indices(#[from] JoinError),
 
@@ -113,6 +126,9 @@ pub enum StatusListServiceError {
 
     #[error("io error for `{0}`: {1}")]
     IO(PathBuf, #[source] std::io::Error),
+
+    #[error("could write JWT: {0}")]
+    JWT(#[from] JwtError),
 
     #[error("could not serialize / deserialize: {0}")]
     Serde(#[from] serde_json::Error),
@@ -190,8 +206,8 @@ impl PostgresStatusListServices<PrivateKeyVariant> {
                     list_size: config.list_size,
                     create_threshold: config.create_threshold,
                     base_url: config.base_url,
-                    _publish_dir: publish_dir,
-                    _key_pair: config.key_pair,
+                    publish_dir,
+                    key_pair: config.key_pair,
                 };
                 (attestation_type, service)
             })
@@ -229,8 +245,8 @@ impl PostgresStatusListService<PrivateKeyVariant> {
             list_size: config.list_size,
             create_threshold: config.create_threshold,
             base_url: config.base_url,
-            _publish_dir: check_publish_dir(&config.publish_dir).await?,
-            _key_pair: config.key_pair,
+            publish_dir: check_publish_dir(&config.publish_dir).await?,
+            key_pair: config.key_pair,
         })
     }
 }
@@ -260,7 +276,7 @@ where
 
         // If issuer requests more copies than the size of a complete status list,
         // this is a configuration issue.
-        if copies > self.list_size.into_inner() as usize {
+        if copies > self.list_size.as_usize() {
             return Err(StatusListServiceError::TooManyClaimsRequested(copies));
         }
 
@@ -454,12 +470,13 @@ where
         }
 
         // Create new list
+        let external_id = crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE);
         let list_size = self.list_size.into_inner();
         let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
         let list = status_list::ActiveModel {
             id: NotSet,
             attestation_type_id: Set(self.attestation_type_id),
-            external_id: Set(crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE)),
+            external_id: Set(external_id.clone()),
             available: Set(list_size),
             size: Set(list_size),
             next_sequence_no: Set(new_next_sequence_no),
@@ -477,6 +494,10 @@ where
             TryInsertResult::Inserted(inserted) => inserted.last_insert_id,
             _ => return Ok(false),
         };
+
+        // Publish status list
+        let service = self.clone();
+        let publish = tokio::spawn(async move { service.publish_new_status_list(&external_id).await });
 
         // Create new list items
         let indices = tokio::task::spawn_blocking(move || {
@@ -511,6 +532,9 @@ where
         let mut attestation_type = attestation_type.into_active_model();
         attestation_type.next_sequence_no = Set(new_next_sequence_no);
         attestation_type::Entity::update(attestation_type).exec(&tx).await?;
+
+        // Wait for publish to complete before committing
+        publish.await??;
 
         tx.commit().await?;
         Ok(true)
@@ -611,6 +635,29 @@ where
             log::warn!("Failed to delete status list items of {}: {}", id, err);
         }
     }
+
+    async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
+        let sub = HttpsUri::try_new(self.base_url.join(external_id).to_string())?;
+        let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
+            StatusListToken::builder(sub, StatusList::new(self.list_size.as_usize()).pack())
+                .sign(&self.key_pair)
+                .await?
+                .into();
+
+        let path = self.publish_dir.join(Path::new(external_id));
+        tokio::task::spawn_blocking(move || {
+            // create because a new status list external id can be reused if the transaction fails
+            std::fs::File::create(&path)
+                .and_then(|file| {
+                    let mut writer = std::io::BufWriter::new(file);
+                    writer.write_all(jwt.serialization().as_bytes())
+                })
+                .map_err(|err| StatusListServiceError::IO(path, err))
+        })
+        .await??;
+
+        Ok(())
+    }
 }
 
 async fn initialize_attestation_type_ids(
@@ -688,8 +735,8 @@ mod tests {
             list_size: 1.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
             base_url: "https://example.com/tsl".parse().unwrap(),
-            _publish_dir: std::env::temp_dir(),
-            _key_pair: Ca::generate_issuer_mock_ca()
+            publish_dir: std::env::temp_dir(),
+            key_pair: Ca::generate_issuer_mock_ca()
                 .unwrap()
                 .generate_status_list_mock()
                 .unwrap(),

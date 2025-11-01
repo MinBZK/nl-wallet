@@ -17,7 +17,7 @@ mock = ["dep:dashmap"]
 base64.workspace = true
 chrono.workspace = true
 dashmap = { workspace = true, optional = true }
-derive_more = { workspace = true, features = ["as_ref", "from_str"] }
+derive_more = { workspace = true, features = ["from_str", "into"] }
 flate2.workspace = true
 rstest.workspace = true
 serde = { workspace = true, features = ["derive"] }
