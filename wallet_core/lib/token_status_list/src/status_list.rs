@@ -3,9 +3,9 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hasher;
 
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
-use serde_repr::Deserialize_repr;
-use serde_repr::Serialize_repr;
+use serde::Serializer;
 
 #[derive(Debug, Default)]
 struct IdentityHasher(u64);
@@ -117,21 +117,13 @@ impl StatusList {
     }
 
     pub fn pack(self) -> PackedStatusList {
-        let bits = self
-            .sparse
-            .values()
-            .max_by(|a, b| a.bits().cmp(&b.bits()))
-            .map(|s| s.bits())
-            .unwrap_or_default(); // empty list
-
-        let lst = self.sparse.iter().fold(
-            vec![0; (self.len * bits as usize).div_ceil(8)],
-            |mut acc, (index, status)| {
-                let idx = bits.packed_index(*index);
-                acc[idx] |= Into::<u8>::into(*status) << bits.shift_for_index(*index);
-                acc
-            },
-        );
+        let bits = self.sparse.values().map(|s| s.bits()).max().unwrap_or_default(); // empty list
+        let size = bits.packed_len(self.len);
+        let lst = self.sparse.iter().fold(vec![0; size], |mut acc, (index, status)| {
+            let idx = bits.packed_index(*index);
+            acc[idx] |= Into::<u8>::into(*status) << bits.shift_for_index(*index);
+            acc
+        });
 
         PackedStatusList { bits, lst }
     }
@@ -166,40 +158,79 @@ impl PackedStatusList {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
-#[repr(u8)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Bits {
     #[default]
-    One = 1,
-    Two = 2,
-    Four = 4,
-    Eight = 8,
+    One,
+    Two,
+    Four,
+    Eight,
+}
+
+impl Serialize for Bits {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u8(self.size())
+    }
+}
+
+impl<'de> Deserialize<'de> for Bits {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match u8::deserialize(deserializer)? {
+            1 => Ok(Bits::One),
+            2 => Ok(Bits::Two),
+            4 => Ok(Bits::Four),
+            8 => Ok(Bits::Eight),
+            _ => Err(serde::de::Error::custom("Invalid bits.")),
+        }
+    }
 }
 
 impl Bits {
+    fn size(self) -> u8 {
+        1 << self as u8
+    }
+
     #[inline]
     fn statuses_per_byte(self) -> usize {
-        8 / self as usize
+        8 >> self as usize
     }
 
     #[inline]
     fn mask(self) -> u8 {
-        ((1 << self as u16) - 1) as u8
+        ((1 << (self.size() as u16)) - 1) as u8
     }
 
     #[inline]
     fn shift_for_index(self, index: usize) -> usize {
-        (index % self.statuses_per_byte()) * self as usize
+        let remainder = index & (self.statuses_per_byte() - 1);
+        remainder * self.size() as usize
     }
 
     #[inline]
     fn packed_index(self, index: usize) -> usize {
-        index / self.statuses_per_byte()
+        index >> (3 - self as usize)
     }
 
     #[inline]
-    fn unpacked_len(self, len: usize) -> usize {
-        len * self.statuses_per_byte()
+    fn unpacked_len(self, size: usize) -> usize {
+        size << (3 - self as usize)
+    }
+
+    #[inline]
+    fn packed_len(self, len: usize) -> usize {
+        self.aligned_len(len) >> (3 - self as usize)
+    }
+
+    #[inline]
+    fn aligned_len(self, len: usize) -> usize {
+        let align = self.statuses_per_byte();
+        (len + (align - 1)) & !(align - 1)
     }
 }
 
@@ -316,7 +347,7 @@ pub mod test {
     fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: Bits) {
         let packed = list.pack();
         let compressed = serde_json::to_value(packed).unwrap();
-        assert_eq!(compressed["bits"].as_u64().unwrap(), expected as u64);
+        assert_eq!(compressed["bits"].as_u64().unwrap(), expected.size() as u64);
     }
 
     #[rstest]
