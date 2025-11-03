@@ -41,6 +41,7 @@ use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::ints::NonZeroU31;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::entity::attestation_batch;
 use crate::entity::attestation_type;
@@ -157,11 +158,12 @@ impl StatusListService for PostgresStatusListServices {
             copies
         );
 
-        let Some(service) = self.0.get(attestation_type) else {
-            return Err(StatusListServiceError::UnknownAttestationType(
+        let service = self
+            .0
+            .get(attestation_type)
+            .ok_or(StatusListServiceError::UnknownAttestationType(
                 attestation_type.to_string(),
-            ));
-        };
+            ))?;
 
         service.obtain_status_claims(batch_id, base_url, expires, copies).await
     }
@@ -235,11 +237,11 @@ impl PostgresStatusListService {
         settings: StatusListsSettings,
         attestation_type: String,
     ) -> Result<Self, StatusListServiceError> {
-        let attestation_types = vec![attestation_type];
-        let attestation_type_ids = initialize_attestation_type_ids(&connection, &attestation_types).await?;
+        let attestation_types = vec_nonempty![attestation_type];
+        let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types.as_ref()).await?;
 
         // `initialize_attestation_type_ids` guarantees the requested types exist
-        let type_id = *attestation_type_ids.get(attestation_types[0].as_str()).unwrap();
+        let type_id = *attestation_type_ids.get(attestation_types.first()).unwrap();
         Ok(Self {
             connection,
             type_id,
@@ -350,7 +352,7 @@ impl PostgresStatusListService {
                 copies
             );
 
-            let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or(0);
+            let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or_default();
             if !self.create_status_list(next_sequence_no, true).await? {
                 log::warn!("Failed to create status list in flight");
             }
@@ -544,7 +546,7 @@ impl PostgresStatusListService {
             .all(&self.connection)
             .await?;
 
-        // Create status lists if no lists are in progress
+        // Create status lists if all lists for this attestation type are full
         if lists.is_empty() {
             let next_sequence_no = attestation_type::Entity::find_by_id(self.type_id)
                 .select_only()
@@ -564,7 +566,7 @@ impl PostgresStatusListService {
     }
 
     fn schedule_housekeeping<'a>(
-        &'a self,
+        &self,
         lists: impl IntoIterator<Item = &'a status_list::Model>,
     ) -> Vec<JoinHandle<()>> {
         let mut tasks = Vec::new();
