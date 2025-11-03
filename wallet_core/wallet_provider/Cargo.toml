@@ -48,10 +48,10 @@ config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }
 futures.workspace = true
 http.workspace = true
-libc.workspace = true
 log.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 regex.workspace = true
+rustix = { workspace = true, features = ["pipe", "stdio"] }
 rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
