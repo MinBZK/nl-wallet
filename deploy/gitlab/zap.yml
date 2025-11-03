@@ -19,6 +19,7 @@
     paths:
       - zapreports/
   before_script:
+    - set -euxo pipefail
     - mkdir zapreports
 
 .run-zap-scan:
@@ -98,6 +99,18 @@ zap-scan-public-verification-server:
   variables:
     SUT: "PUBLIC_VERIFICATION_SERVER"
 
+zap-scan-issuance-server:
+  extends: .zap-scan-base
+  script:
+    - |
+      yq e ".servers[0].url=\"${ISSUANCE_SERVER_URL}\"" -i wallet_docs/openapi/wallet-issuance.openapi.yaml
+      sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-issuance.openapi.yaml
+      sed -i "s|application/x-www-form-urlencoded|application/json|g" wallet_docs/openapi/wallet-issuance.openapi.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-issuance.openapi.yaml wallet_docs/openapi/wallet-components.openapi.yaml > ${ZAP_HOME}/merged-issuance.openapi.yaml
+    - !reference [.run-zap-scan, script]
+  variables:
+    SUT: "ISSUANCE_SERVER"
+
 zap-scan-publish-results:
   rules: !reference [.zap-base, rules]
   needs:
@@ -107,5 +120,6 @@ zap-scan-publish-results:
     - { job: zap-scan-pid-issuer }
     - { job: zap-scan-internal-verification-server }
     - { job: zap-scan-public-verification-server }
+    - { job: zap-scan-issuance-server }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/zap.zip zapreports/*.xml
