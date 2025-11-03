@@ -184,7 +184,9 @@ impl PostgresStatusListService {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types.as_ref()).await?;
 
         // `initialize_attestation_type_ids` guarantees the requested types exist
-        let type_id = *attestation_type_ids.get(attestation_types.first()).unwrap();
+        let type_id = *attestation_type_ids
+            .get(attestation_types.first())
+            .expect("attestation_type_ids should have entry for initialized types");
         Ok(Self {
             connection,
             type_id,
