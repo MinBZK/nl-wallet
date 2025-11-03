@@ -1,4 +1,3 @@
-use std::mem;
 use std::sync::Arc;
 
 use josekit::JoseError;
@@ -341,13 +340,10 @@ where
             .await?;
         self.complete_transfer(transfer_data.transfer_session_id.into()).await?;
 
-        let result = self.commit_and_clear_transfer_session(&encrypted_file).await;
+        let result = self.commit_and_clear_transfer_session(encrypted_file).await;
         // If restore fails, there is no clear way on how to move forward, so the database will be cleared.
         if let Err(err) = result {
-            // Remove the downloaded database.
-            mem::drop(encrypted_file);
-
-            // Clear the database. This is allowed to fail.
+            // Clear the database
             if let Err(err) = self.clean_after_transfer().await {
                 panic!("Failed to clear the database after a failed restore: {}", err);
             }
@@ -395,7 +391,7 @@ where
         Ok(())
     }
 
-    async fn commit_and_clear_transfer_session(&mut self, encrypted_file: &NamedTempFile) -> Result<(), TransferError> {
+    async fn commit_and_clear_transfer_session(&mut self, encrypted_file: NamedTempFile) -> Result<(), TransferError> {
         self.storage.write().await.commit_import(encrypted_file).await?;
         // When the restore is successful, the transfer session can be cleared
         self.storage.write().await.delete_data::<TransferData>().await?;
