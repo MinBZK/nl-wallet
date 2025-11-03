@@ -18,6 +18,7 @@ use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
 use wallet::errors::PinRecoveryError;
 use wallet::errors::ResetError;
+use wallet::errors::TransferError;
 use wallet::errors::UpdatePolicyError;
 use wallet::errors::UriIdentificationError;
 use wallet::errors::WalletInitError;
@@ -142,6 +143,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
             .or_else(|e| e.downcast::<ChangePinError>().map(Self::from))
             .or_else(|e| e.downcast::<PinRecoveryError>().map(Self::from))
+            .or_else(|e| e.downcast::<TransferError>().map(Self::from))
     }
 }
 
@@ -516,6 +518,23 @@ impl FlutterApiErrorFields for PinRecoveryError {
         }
 
         serde_json::Value::Null
+    }
+}
+
+impl FlutterApiErrorFields for TransferError {
+    fn typ(&self) -> FlutterApiErrorType {
+        if let Some(network_error) = detect_networking_error(self) {
+            return network_error;
+        }
+
+        match self {
+            TransferError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            TransferError::NotRegistered | TransferError::IllegalWalletState => FlutterApiErrorType::WalletState,
+            TransferError::Instruction(e) => FlutterApiErrorType::from(e),
+            TransferError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            TransferError::ChangePin(e) => e.typ(),
+            _ => FlutterApiErrorType::Generic,
+        }
     }
 }
 
