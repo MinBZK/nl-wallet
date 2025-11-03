@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use derive_more::Constructor;
+use derive_more::Display;
 
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::x509::CertificateTypeError;
@@ -101,10 +102,16 @@ pub enum VpVerifierError {
     RequestedAttributesValidation(#[source] ValidationError),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+pub enum DataDisclosed {
+    Disclosed,
+    NotDisclosed,
+}
+
 #[derive(Debug, Constructor, thiserror::Error)]
 #[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
 pub struct DisclosureError<E: Error> {
-    pub data_shared: bool,
+    pub data_shared: DataDisclosed,
     #[source]
     pub error: E,
 }
@@ -112,14 +119,14 @@ pub struct DisclosureError<E: Error> {
 impl<E: Error> DisclosureError<E> {
     pub fn before_sharing(error: E) -> Self {
         Self {
-            data_shared: false,
+            data_shared: DataDisclosed::NotDisclosed,
             error,
         }
     }
 
     pub fn after_sharing(error: E) -> Self {
         Self {
-            data_shared: true,
+            data_shared: DataDisclosed::Disclosed,
             error,
         }
     }
@@ -128,8 +135,8 @@ impl<E: Error> DisclosureError<E> {
 impl From<VpMessageClientError> for DisclosureError<VpSessionError> {
     fn from(value: VpMessageClientError) -> Self {
         let data_shared = match &value {
-            VpMessageClientError::Http(reqwest_error) => !reqwest_error.is_connect(),
-            _ => true,
+            VpMessageClientError::Http(reqwest_error) if reqwest_error.is_connect() => DataDisclosed::NotDisclosed,
+            _ => DataDisclosed::Disclosed,
         };
 
         Self::new(data_shared, value.into())

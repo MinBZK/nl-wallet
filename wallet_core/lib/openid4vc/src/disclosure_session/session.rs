@@ -298,6 +298,7 @@ mod tests {
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
 
+    use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::openid4vp::RequestUriMethod;
@@ -479,9 +480,9 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError {
-                data_shared,
+                data_shared: DataDisclosed::NotDisclosed,
                 error: VpSessionError::Client(VpClientError::DeviceResponse(_))
-            } if !data_shared
+            }
         );
     }
 
@@ -502,9 +503,9 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError {
-                data_shared,
+                data_shared: DataDisclosed::NotDisclosed,
                 error: VpSessionError::Client(VpClientError::SdJwtSigning(_))
-            } if !data_shared
+            }
         );
     }
 
@@ -529,9 +530,9 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError {
-                data_shared,
+                data_shared: DataDisclosed::NotDisclosed,
                 error: VpSessionError::Client(VpClientError::AuthResponseEncryption(_))
-            } if !data_shared
+            }
         );
     }
 
@@ -555,7 +556,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 1);
         assert_matches!(wallet_messages.last().unwrap(), WalletMessage::Disclosure(_));
 
-        assert!(error.data_shared);
+        assert!(error.data_shared == DataDisclosed::Disclosed);
 
         error.error
     }

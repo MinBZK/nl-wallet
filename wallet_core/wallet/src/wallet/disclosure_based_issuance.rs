@@ -189,6 +189,7 @@ mod tests {
     use openid4vc::credential::Grants;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
+    use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
@@ -380,7 +381,7 @@ mod tests {
             Err((
                 MockDisclosureSession::new(),
                 disclosure_session::DisclosureError::new(
-                    true,
+                    DataDisclosed::Disclosed,
                     VpSessionError::Client(VpClientError::Request(
                         DisclosureErrorResponse {
                             error_response: PostAuthResponseError::HandlingDisclosureResult(
