@@ -338,7 +338,8 @@ impl PostgresStatusListService {
             // If the `create_threshold` is large enough compared to the requested claim_size and
             // concurrent requests, this should always be true. If this is false, the
             // `create_threshold` should be increased.
-            if available_in_lists(&lists) >= copies {
+            let available: usize = lists.iter().map(|list| list.available as usize).sum();
+            if available >= copies {
                 return Ok((tx, lists));
             }
 
@@ -616,10 +617,6 @@ impl PostgresStatusListService {
             log::warn!("Failed to delete status list items of {}: {}", id, err);
         }
     }
-}
-
-fn available_in_lists(lists: &[status_list::Model]) -> usize {
-    lists.iter().map(|list| list.available as usize).sum()
 }
 
 #[cfg(test)]
