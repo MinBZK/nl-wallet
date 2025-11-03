@@ -181,6 +181,8 @@ async fn wallet_server_settings_and_listener(
         server_settings: settings,
 
         wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+
+        extending_vct_values: None,
     };
 
     (settings, listener, issuer_ca, rp_trust_anchor)

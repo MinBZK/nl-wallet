@@ -39,6 +39,7 @@ use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
+use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
@@ -91,8 +92,8 @@ where
                 .route("/createwallet", post(create_wallet))
                 .route("/instructions/challenge", post(instruction_challenge))
                 .route(
-                    &format!("/instructions/hw_signed/{}", ConfirmTransfer::NAME),
-                    post(handle_hw_signed_instruction::<ConfirmTransfer, _, _, _>),
+                    &format!("/instructions/hw_signed/{}", PairTransfer::NAME),
+                    post(handle_hw_signed_instruction::<PairTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
@@ -105,6 +106,11 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),
                     post(handle_hw_signed_instruction::<GetTransferStatus, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", SendWalletPayload::NAME),
+                    post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _>)
+                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
@@ -155,9 +161,8 @@ where
                     post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _>),
                 )
                 .route(
-                    &format!("/instructions/{}", SendWalletPayload::NAME),
-                    post(handle_instruction::<SendWalletPayload, _, _, _>)
-                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
+                    &format!("/instructions/{}", ConfirmTransfer::NAME),
+                    post(handle_instruction::<ConfirmTransfer, _, _, _>),
                 )
                 .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())

@@ -15,7 +15,14 @@ test = ["crypto/generate", "crypto/mock", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include example based constructors to several types for testing
-mock_example_constructors = ["examples", "test", "crypto/examples", "utils/mock_time", "dep:sd_jwt_vc_metadata"]
+mock_example_constructors = [
+    "examples",
+    "test",
+    "attestation_types/pid_constants",
+    "crypto/examples",
+    "utils/mock_time",
+    "dep:sd_jwt_vc_metadata"
+]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -37,7 +44,6 @@ rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde-aux.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
-serde_json.workspace = true
 serde_repr.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2", "macros"] }
 ssri.workspace = true
@@ -62,9 +68,9 @@ assert_matches.workspace = true
 hex-literal.workspace = true
 regex.workspace = true
 rstest.workspace = true
-serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
+attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

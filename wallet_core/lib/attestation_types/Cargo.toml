@@ -10,9 +10,11 @@ workspace = true
 [lib]
 doctest = false
 
+[features]
+pid_constants = []
+
 [dependencies]
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
-

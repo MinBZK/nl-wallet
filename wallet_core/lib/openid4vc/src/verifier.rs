@@ -39,6 +39,7 @@ use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
 use dcql::Query;
+use dcql::disclosure::ExtendingVctRetriever;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -47,6 +48,7 @@ use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -562,6 +564,9 @@ pub struct RpInitiatedUseCases<K, S> {
 pub enum NewDisclosureUseCaseError {
     #[error(transparent)]
     UseCaseCertificate(#[from] UseCaseCertificateError),
+
+    #[error("additional accepted attestation types can only be configured for the SD-JWT format")]
+    WrongFormatForAdditionalAcceptedAttestationTypes,
 }
 
 impl<K> RpInitiatedUseCase<K> {
@@ -572,6 +577,7 @@ impl<K> RpInitiatedUseCase<K> {
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
+
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
@@ -743,8 +749,9 @@ impl<K> WalletInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
-    ) -> Result<Self, UseCaseCertificateError> {
+    ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
+
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
@@ -862,6 +869,7 @@ pub struct Verifier<S, US> {
     #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
     accepted_wallet_client_ids: Vec<String>,
+    extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
 }
 
 impl<S, K> Drop for Verifier<S, K> {
@@ -893,6 +901,7 @@ where
         trust_anchors: Vec<TrustAnchor<'static>>,
         result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
         accepted_wallet_client_ids: Vec<String>,
+        extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
     ) -> Self
     where
         S: Send + Sync + 'static,
@@ -904,6 +913,7 @@ where
             trust_anchors,
             result_handler,
             accepted_wallet_client_ids,
+            extending_vct_values_store,
         }
     }
 
@@ -995,6 +1005,7 @@ where
                 time,
                 &self.trust_anchors,
                 self.result_handler.as_deref(),
+                self,
             )
             .await;
 
@@ -1119,6 +1130,16 @@ impl<S, US> Verifier<S, US> {
         })?));
 
         Ok(ul.try_into().unwrap()) // safe because we constructed ul from a BaseUrl
+    }
+}
+
+impl<S, US> ExtendingVctRetriever for Verifier<S, US> {
+    fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str> {
+        self.extending_vct_values_store
+            .get(vct_value)
+            .map(|vct| vct.iter().map(String::as_str))
+            .into_iter()
+            .flatten()
     }
 }
 
@@ -1371,6 +1392,7 @@ impl Session<WaitingForResponse> {
     /// because it differs from similar methods in the following aspect: in some cases (to wit, if the user
     /// sent an error instead of a disclosure) then we should respond with HTTP 200 to the user (mandated by
     /// the OpenID4VP spec), while we fail our session. This does not neatly fit in the `_inner()` method pattern.
+    #[expect(clippy::too_many_arguments)]
     async fn process_authorization_response(
         self,
         wallet_response: WalletAuthResponse,
@@ -1378,6 +1400,7 @@ impl Session<WaitingForResponse> {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         result_handler: Option<&(dyn DisclosureResultHandler + Send + Sync)>,
+        extending_vct_values: &impl ExtendingVctRetriever,
     ) -> (
         Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
         Session<Done>,
@@ -1419,6 +1442,7 @@ impl Session<WaitingForResponse> {
             accepted_wallet_client_ids,
             time,
             trust_anchors,
+            extending_vct_values,
         ) {
             Ok(disclosed) => disclosed,
             Err(err) => return self.handle_err(err.into()),
@@ -1627,6 +1651,7 @@ mod tests {
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            HashMap::default(),
         )
     }
 
@@ -2002,6 +2027,7 @@ mod tests {
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            HashMap::default(),
         );
 
         let query_params = serde_urlencoded::to_string(VerifierUrlParameters {

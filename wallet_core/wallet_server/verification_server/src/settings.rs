@@ -41,6 +41,7 @@ use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 const MIN_KEY_LENGTH_BYTES: usize = 32;
 
@@ -70,6 +71,9 @@ pub struct VerifierSettings {
     /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
     /// JWTs.
     pub wallet_client_ids: Vec<String>,
+
+    /// Indicate per vct what extending vcts are accepted during disclosure.
+    pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 
     #[serde(flatten)]
     pub server_settings: Settings,

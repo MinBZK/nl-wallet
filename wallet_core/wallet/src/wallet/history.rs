@@ -10,6 +10,7 @@ use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -19,7 +20,6 @@ use crate::attestation::AttestationPresentation;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::repository::Repository;
-use crate::storage::DataDisclosureStatus;
 use crate::storage::DisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
@@ -69,13 +69,13 @@ where
         reader_certificate: BorrowingCertificate,
         r#type: DisclosureType,
         status: DisclosureStatus,
-        data_status: DataDisclosureStatus,
+        data_status: DataDisclosed,
     ) -> Result<(), StorageError> {
         info!("Storing history event");
 
         let attestations = match data_status {
-            DataDisclosureStatus::Disclosed => attestations.map(VecNonEmpty::into_inner),
-            DataDisclosureStatus::NotDisclosed => None,
+            DataDisclosed::Disclosed => attestations.map(VecNonEmpty::into_inner),
+            DataDisclosed::NotDisclosed => None,
         }
         .unwrap_or_default();
 
@@ -194,12 +194,12 @@ mod tests {
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::server_keys::generate::Ca;
+    use openid4vc::disclosure_session::DataDisclosed;
 
     use crate::AttestationPresentation;
     use crate::DisclosureStatus;
     use crate::WalletEvent;
     use crate::errors::StorageError;
-    use crate::storage::DataDisclosureStatus;
     use crate::wallet::test::TestWalletInMemoryStorage;
 
     use super::super::test;
@@ -266,7 +266,7 @@ mod tests {
                 reader_key.certificate().clone(),
                 DisclosureType::Regular,
                 DisclosureStatus::Success,
-                DataDisclosureStatus::Disclosed,
+                DataDisclosed::Disclosed,
             )
             .await
             .unwrap();
@@ -278,7 +278,7 @@ mod tests {
                 reader_key.certificate().clone(),
                 DisclosureType::Regular,
                 DisclosureStatus::Cancelled,
-                DataDisclosureStatus::NotDisclosed,
+                DataDisclosed::NotDisclosed,
             )
             .await
             .unwrap();
@@ -290,7 +290,7 @@ mod tests {
                 reader_key.certificate().clone(),
                 DisclosureType::Regular,
                 DisclosureStatus::Error,
-                DataDisclosureStatus::NotDisclosed,
+                DataDisclosed::NotDisclosed,
             )
             .await
             .unwrap();
@@ -302,7 +302,7 @@ mod tests {
                 reader_key.certificate().clone(),
                 DisclosureType::Regular,
                 DisclosureStatus::Success,
-                DataDisclosureStatus::Disclosed,
+                DataDisclosed::Disclosed,
             )
             .await
             .unwrap();

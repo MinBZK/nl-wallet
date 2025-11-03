@@ -76,7 +76,7 @@ Future<String> createPinRecoveryRedirectUri() => WalletCore.instance.api.crateAp
 Future<void> continuePinRecovery({required String uri}) =>
     WalletCore.instance.api.crateApiFullContinuePinRecovery(uri: uri);
 
-Future<WalletInstructionResult> completePinRecovery({required String pin}) =>
+Future<void> completePinRecovery({required String pin}) =>
     WalletCore.instance.api.crateApiFullCompletePinRecovery(pin: pin);
 
 Future<void> cancelPinRecovery() => WalletCore.instance.api.crateApiFullCancelPinRecovery();
@@ -118,11 +118,13 @@ Future<void> unlockWalletWithBiometrics() => WalletCore.instance.api.crateApiFul
 
 Future<String> initWalletTransfer() => WalletCore.instance.api.crateApiFullInitWalletTransfer();
 
-Future<void> acknowledgeWalletTransfer({required String uri}) =>
-    WalletCore.instance.api.crateApiFullAcknowledgeWalletTransfer(uri: uri);
+Future<void> pairWalletTransfer({required String uri}) =>
+    WalletCore.instance.api.crateApiFullPairWalletTransfer(uri: uri);
 
-Future<WalletInstructionResult> transferWallet({required String pin}) =>
-    WalletCore.instance.api.crateApiFullTransferWallet(pin: pin);
+Future<WalletInstructionResult> confirmWalletTransfer({required String pin}) =>
+    WalletCore.instance.api.crateApiFullConfirmWalletTransfer(pin: pin);
+
+Future<void> transferWallet() => WalletCore.instance.api.crateApiFullTransferWallet();
 
 Future<void> receiveWalletTransfer() => WalletCore.instance.api.crateApiFullReceiveWalletTransfer();
 

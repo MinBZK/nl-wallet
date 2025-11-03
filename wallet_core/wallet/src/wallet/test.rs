@@ -21,18 +21,23 @@ use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::x509::BorrowingCertificateExtension;
 use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
+use openid4vc::issuance_session::CredentialWithMetadata;
+use openid4vc::issuance_session::IssuedCredential;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;
@@ -47,16 +52,20 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use token_status_list::status_claim::StatusClaim;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::AttestationIdentity;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::mock::EmptyPresentationConfig;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
@@ -153,6 +162,7 @@ pub fn create_example_credential_payload(
             (["given_name"], AttributeValue::Text("Willeke Liselotte".to_string())),
             (["birth_date"], AttributeValue::Text("1997-05-10".to_string())),
             (["age_over_18"], AttributeValue::Bool(true)),
+            ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
         ]),
         SigningKey::random(&mut OsRng).verifying_key(),
         time_generator,
@@ -169,6 +179,7 @@ pub fn create_example_credential_payload(
                 Some(JsonSchemaPropertyFormat::Date),
             ),
             ("age_over_18", JsonSchemaPropertyType::Boolean, None),
+            (PID_RECOVERY_CODE, JsonSchemaPropertyType::String, None),
         ],
     );
 
@@ -179,12 +190,15 @@ pub fn create_example_credential_payload(
 }
 
 /// Generate valid `CredentialPreviewData`.
-pub fn create_example_preview_data(time_generator: &impl Generator<DateTime<Utc>>) -> NormalizedCredentialPreview {
+pub fn create_example_preview_data(
+    time_generator: &impl Generator<DateTime<Utc>>,
+    format: Format,
+) -> NormalizedCredentialPreview {
     let (credential_payload, raw_metadata, normalized_metadata) = create_example_credential_payload(time_generator);
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
-            copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
+            copies_per_format: IndexMap::from([(format, NonZeroU8::new(1).unwrap())]),
             credential_payload: credential_payload.previewable_payload,
             issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
         },
@@ -491,4 +505,60 @@ where
         .unwrap()
         .expect("could not sign instruction result")
         .into()
+}
+
+pub fn mock_issuance_session(
+    credential: IssuedCredential,
+    attestation_type: String,
+    type_metadata: VerifiedTypeMetadataDocuments,
+) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
+    let normalized_type_metadata = type_metadata.to_normalized().unwrap();
+
+    let mut client = MockIssuanceSession::new();
+    let issuer_certificate = match &credential {
+        IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
+        IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate().to_owned(),
+    };
+
+    let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
+        Ok(Some(registration)) => registration,
+        _ => IssuerRegistration::new_mock(),
+    };
+
+    let attestations = vec![match &credential {
+        IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
+            AttestationIdentity::Ephemeral,
+            normalized_type_metadata.clone(),
+            issuer_registration.organization.clone(),
+            mdoc.issuer_signed().clone().into_entries_by_namespace(),
+            &EmptyPresentationConfig,
+        )
+        .unwrap(),
+        IssuedCredential::SdJwt { sd_jwt, .. } => {
+            let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
+            AttestationPresentation::create_from_attributes(
+                AttestationIdentity::Ephemeral,
+                normalized_type_metadata.clone(),
+                issuer_registration.organization.clone(),
+                &attributes,
+                &EmptyPresentationConfig,
+            )
+            .unwrap()
+        }
+    }]
+    .try_into()
+    .unwrap();
+
+    client.expect_issuer().return_const(issuer_registration);
+
+    client.expect_accept().return_once(move || {
+        Ok(vec![CredentialWithMetadata::new(
+            IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
+            attestation_type,
+            normalized_type_metadata.extended_vcts(),
+            type_metadata,
+        )])
+    });
+
+    (client, attestations)
 }

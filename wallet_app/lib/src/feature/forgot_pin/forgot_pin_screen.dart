@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../environment.dart';
 import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -61,10 +60,7 @@ class ForgotPinScreen extends StatelessWidget {
               children: [
                 TitleText(context.l10n.forgotPinScreenTitle),
                 const SizedBox(height: 8),
-                // TODO(Rob): Remove legacy flow. Awaiting core implementation. PVW-4587
-                ParagraphedList.splitContent(
-                  Environment.isMockOrTest ? content : context.l10n.forgotPinScreenResetDescription,
-                ),
+                ParagraphedList.splitContent(content),
                 const SizedBox(height: 32),
                 const PageIllustration(
                   asset: WalletAssets.svg_pin_forgot,
@@ -91,8 +87,7 @@ class ForgotPinScreen extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
           child: Column(
             children: [
-              // TODO(Rob): Remove legacy flow. Awaiting core implementation. PVW-4587
-              Environment.isMockOrTest ? cta : _buildPinResetButton(context),
+              cta,
               const SizedBox(height: 12),
               TertiaryButton(
                 onPressed: () => Navigator.maybePop(context),

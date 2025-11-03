@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::iter;
 
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use dcql::disclosure::ExtendingVctRetriever;
 use http_utils::urls::BaseUrl;
 
 use crate::issuance_session::CredentialWithMetadata;
@@ -56,7 +58,7 @@ impl IssuanceSession for MockIssuanceSession {
         Self::start()
     }
 
-    async fn accept_issuance<K, W>(
+    async fn accept_issuance<W>(
         &self,
         _: &[TrustAnchor<'_>],
         _: &W,
@@ -75,6 +77,13 @@ impl IssuanceSession for MockIssuanceSession {
 
     fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
+    }
+}
+
+pub struct ExtendingVctRetrieverStub;
+impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
+    fn retrieve(&self, _vct_value: &str) -> impl Iterator<Item = &str> {
+        iter::empty()
     }
 }
 

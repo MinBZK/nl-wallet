@@ -5,7 +5,6 @@ use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
 use ssri::Integrity;
 
-use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
 
@@ -34,7 +33,7 @@ pub struct Mdoc {
 
 impl Mdoc {
     /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
-    pub fn new<K: CredentialEcdsaKey>(
+    pub fn new(
         private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
@@ -227,6 +226,7 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::CredentialEcdsaKey;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -241,8 +241,6 @@ pub mod mock {
     use crate::iso::mdocs::Entry;
 
     use super::Mdoc;
-
-    pub const NL_PID_DOC_TYPE: &str = "urn:eudi:pid:nl:1";
 
     impl Mdoc {
         /// Out of the example data structures in the standard, assemble an mdoc.
@@ -263,7 +261,7 @@ pub mod mock {
                 .unwrap()
                 .issuer_signed;
 
-            Mdoc::new::<MockRemoteEcdsaKey>(
+            Mdoc::new(
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,
@@ -290,10 +288,10 @@ pub mod mock {
             let (metadata_integrity, _) = TypeMetadataDocuments::nl_pid_example();
 
             Self::new_unverified_from_data(
-                NL_PID_DOC_TYPE.to_string(),
+                PID_ATTESTATION_TYPE.to_string(),
                 format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 IndexMap::from_iter(vec![(
-                    NL_PID_DOC_TYPE.to_string(),
+                    PID_ATTESTATION_TYPE.to_string(),
                     vec![
                         Entry {
                             name: "bsn".to_string(),
