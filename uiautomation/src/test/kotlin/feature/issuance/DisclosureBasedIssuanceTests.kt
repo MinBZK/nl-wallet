@@ -56,8 +56,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         noCardsErrorScreen = NoCardsErrorScreen()
     }
 
-    //    TODO enable and update after PVW-3829
-//     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC5 Disclosure based Issuance happy flow, university, SD-JWT")
     fun verifyDiplomaIssuanceSdJwt(testInfo: TestInfo) {
         setUp(testInfo)
@@ -76,25 +75,23 @@ class DisclosureBasedIssuanceTests : TestBase() {
         disclosureForIssuanceScreen.goBack();
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
-        cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").first())
+        cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         assertAll(
             { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(l10n.getString("cardValueNull")), "data is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").first()), "data is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").first()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").last()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last()), "data is not visible") },
         )
         cardIssuanceScreen.clickBackButton()
-        cardIssuanceScreen.clickAddButton()
+        cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
     }
 
-//    TODO enable and update after PVW-3829
-//    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC5 Disclosure based Issuance happy flow, university, MDOC")
     fun verifyDiplomaIssuanceMdoc(testInfo: TestInfo) {
         setUp(testInfo)
@@ -113,17 +110,17 @@ class DisclosureBasedIssuanceTests : TestBase() {
         disclosureForIssuanceScreen.goBack();
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
-        cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").first())
+        cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         assertAll(
             { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "grade").first()), "data is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").first()), "data is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").first()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "grade").last()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").last()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last()), "data is not visible") },
         )
         cardIssuanceScreen.clickBackButton()
-        cardIssuanceScreen.clickAddButton()
+        cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
@@ -159,7 +156,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         )
 
         cardIssuanceScreen.clickBackButton()
-        cardIssuanceScreen.clickAddButton()
+        cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton();
         dashboardScreen.scrollToEndOfScreen()
