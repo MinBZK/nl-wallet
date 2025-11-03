@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
-use std::path::Path;
 use std::path::PathBuf;
 
 use chrono::DateTime;
@@ -15,10 +14,12 @@ use sea_orm::DatabaseTransaction;
 use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::IntoActiveModel;
+use sea_orm::JoinType;
 use sea_orm::NotSet;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
+use sea_orm::RelationTrait;
 use sea_orm::SelectColumns;
 use sea_orm::Set;
 use sea_orm::TransactionTrait;
@@ -46,6 +47,7 @@ use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::StatusList;
+use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListClaims;
 use token_status_list::status_list_token::StatusListToken;
@@ -62,6 +64,8 @@ use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
+use crate::publish::PublishDir;
+use crate::publish::PublishLockError;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
 const STATUS_LIST_EXTERNAL_ID_SIZE: usize = 12;
@@ -101,12 +105,15 @@ pub struct PostgresStatusListService<K: EcdsaKeySend> {
     create_threshold: NonZeroU31,
 
     base_url: BaseUrl,
-    publish_dir: PathBuf,
+    publish_dir: PublishDir,
     key_pair: KeyPair<K>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListServiceError {
+    #[error("attestation batch not found: {0}")]
+    AttestationBatchNotFound(Uuid),
+
     #[error("base url error: {0}")]
     BaseUrl(#[from] BaseUrlError),
 
@@ -122,17 +129,23 @@ pub enum StatusListServiceError {
     #[error("invalid publish dir: {0}")]
     InvalidPublishDir(PathBuf),
 
+    #[error("io error: {0}")]
+    IO(#[from] std::io::Error),
+
     #[error("io error for `{0}`: {1}")]
-    IO(PathBuf, #[source] std::io::Error),
+    IOWithPath(PathBuf, #[source] std::io::Error),
 
     #[error("could write JWT: {0}")]
     JWT(#[from] JwtError),
 
-    #[error("could not serialize / deserialize: {0}")]
-    Serde(#[from] serde_json::Error),
-
     #[error("no status list available and could not create one")]
     NoStatusListAvailable(),
+
+    #[error("could not lock for publish: {0}")]
+    PublishLock(#[from] PublishLockError),
+
+    #[error("could not serialize / deserialize: {0}")]
+    Serde(#[from] serde_json::Error),
 
     #[error("too many claims requested: {0}")]
     TooManyClaimsRequested(usize),
@@ -196,7 +209,7 @@ impl PostgresStatusListServices<PrivateKeyVariant> {
                     list_size: config.list_size,
                     create_threshold: config.create_threshold,
                     base_url: config.base_url,
-                    publish_dir: config.publish_dir.into(),
+                    publish_dir: config.publish_dir,
                     key_pair: config.key_pair,
                 };
                 (attestation_type, service)
@@ -235,7 +248,7 @@ impl PostgresStatusListService<PrivateKeyVariant> {
             list_size: config.list_size,
             create_threshold: config.create_threshold,
             base_url: config.base_url,
-            publish_dir: config.publish_dir.into(),
+            publish_dir: config.publish_dir,
             key_pair: config.key_pair,
         })
     }
@@ -361,7 +374,6 @@ where
             .filter(status_list_item::Column::SequenceNo.gte(start_sequence_no))
             .order_by_asc(status_list_item::Column::SequenceNo)
             .limit(num_copies)
-            .into_model::<status_list_item::Model>()
             .all(tx)
             .await?;
         if items.len() != num_copies as usize {
@@ -545,7 +557,6 @@ where
                         .to_owned(),
                 ),
             )
-            .into_model::<status_list::Model>()
             .all(&self.connection)
             .await?;
 
@@ -627,6 +638,7 @@ where
     }
 
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
+        // Build empty status list
         let sub = self.base_url.join(external_id);
         let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
             StatusListToken::builder(sub, StatusList::new(self.list_size.as_usize()).pack())
@@ -634,10 +646,105 @@ where
                 .await?
                 .into();
 
-        let path = self.publish_dir.join(Path::new(external_id));
-        tokio::fs::write(&path, jwt.serialization().as_bytes())
+        // Write to disk
+        let publish_lock = self.publish_dir.lock_for(external_id);
+        let jwt_path = self.publish_dir.jwt_path(external_id);
+        tokio::task::spawn_blocking(move || {
+            // create because a new status list external id can be reused if the transaction fails
+            publish_lock.create()?;
+            std::fs::write(&jwt_path, jwt.serialization().as_bytes())
+                .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
+        })
+        .await?
+    }
+
+    async fn publish_status_list(&self, list_id: i64, external_id: &str) -> Result<bool, StatusListServiceError> {
+        // Fetch all revoked attestation for this status list
+        let result: Vec<Vec<i32>> = attestation_batch_list_indices::Entity::find()
+            .join(
+                JoinType::InnerJoin,
+                attestation_batch_list_indices::Relation::AttestationBatch.def(),
+            )
+            .select_only()
+            .select_column(attestation_batch_list_indices::Column::Indices)
+            .filter(attestation_batch_list_indices::Column::StatusListId.eq(list_id))
+            .filter(attestation_batch::Column::IsRevoked.eq(true))
+            .into_tuple()
+            .all(&self.connection)
+            .await?;
+
+        // The database guarantees reading commits, so we can use `result.len()` as version
+        let version = result.len();
+        self.publish_dir
+            .lock_for(external_id)
+            .with_lock_if_newer(version, async || {
+                // Build packed status list
+                let sub = self.base_url.join(external_id);
+                let mut status_list = StatusList::new(self.list_size.as_usize());
+                let builder = tokio::task::spawn_blocking(move || {
+                    for indices in result {
+                        for index in indices {
+                            status_list.insert(index as usize, StatusType::Invalid);
+                        }
+                    }
+                    StatusListToken::builder(sub, status_list.pack())
+                })
+                .await?;
+
+                // Sign
+                let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
+                    builder.sign(&self.key_pair).await?.into();
+
+                // Write to a tempfile and atomically move via rename
+                let jwt_path = self.publish_dir.jwt_path(external_id);
+                let tmp_path = self.publish_dir.tmp_path(external_id);
+                tokio::task::spawn_blocking(move || {
+                    std::fs::write(&tmp_path, jwt.serialization())
+                        .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
+                    std::fs::rename(&tmp_path, &jwt_path)
+                        .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
+                })
+                .await??;
+
+                Ok(())
+            })
             .await
-            .map_err(|err| StatusListServiceError::IO(path, err))?;
+    }
+
+    pub async fn revoke_attestation_batch(&self, batch_id: Uuid) -> Result<(), StatusListServiceError> {
+        // Find batch by batch_id
+        let batch = attestation_batch::Entity::find()
+            .filter(attestation_batch::Column::BatchId.eq(batch_id))
+            .one(&self.connection)
+            .await?
+            .ok_or_else(|| StatusListServiceError::AttestationBatchNotFound(batch_id))?;
+
+        // Update revocation
+        let attestation_batch_id = batch.id;
+        let mut update = batch.into_active_model();
+        update.is_revoked = Set(true);
+        attestation_batch::Entity::update(update).exec(&self.connection).await?;
+
+        // Find status list and external id for all related status lists
+        let list_and_external_ids: Vec<(i64, String)> = attestation_batch_list_indices::Entity::find()
+            .join(
+                JoinType::InnerJoin,
+                attestation_batch_list_indices::Relation::StatusList.def(),
+            )
+            .select_only()
+            .select_column(status_list::Column::Id)
+            .select_column(status_list::Column::ExternalId)
+            .filter(attestation_batch_list_indices::Column::AttestationBatchId.eq(attestation_batch_id))
+            .into_tuple()
+            .all(&self.connection)
+            .await?;
+
+        // Publish new status list
+        try_join_all(list_and_external_ids.into_iter()
+            .map(|(list_id, external_id)| {
+                async move { self.publish_status_list(list_id, external_id.as_str()).await }
+            })
+        ).await?;
 
         Ok(())
     }
@@ -707,7 +814,7 @@ mod tests {
             list_size: 1.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
             base_url: "https://example.com/tsl".parse().unwrap(),
-            publish_dir: std::env::temp_dir(),
+            publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
             key_pair: Ca::generate_issuer_mock_ca()
                 .unwrap()
                 .generate_status_list_mock()

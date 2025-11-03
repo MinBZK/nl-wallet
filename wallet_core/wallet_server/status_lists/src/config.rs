@@ -12,7 +12,7 @@ use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
 use utils::num::NonZeroU31;
 
-use crate::settings::PublishDir;
+use crate::publish::PublishDir;
 use crate::settings::StatusListAttestationSettings;
 use crate::settings::StatusListsSettings;
 

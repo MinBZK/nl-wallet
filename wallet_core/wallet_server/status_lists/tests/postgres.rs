@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::Read;
 use std::path::Path;
-use std::path::PathBuf;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
@@ -41,11 +40,12 @@ use status_lists::entity::status_list;
 use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
-use status_lists::settings::PublishDir;
+use status_lists::publish::PublishDir;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
+use token_status_list::status_list::StatusType;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -159,7 +159,15 @@ async fn assert_status_list_items(
 }
 
 async fn assert_empty_published_list(config: &StatusListConfig, list: &status_list::Model) {
-    let path = PathBuf::from(config.publish_dir.clone()).join(Path::new(&list.external_id));
+    assert_published_list(config, list, vec![]).await
+}
+
+async fn assert_published_list(
+    config: &StatusListConfig,
+    list: &status_list::Model,
+    revoked: impl IntoIterator<Item = usize>,
+) {
+    let path = config.publish_dir.jwt_path(&list.external_id);
     let status_list_token = tokio::task::spawn_blocking(move || {
         let file = std::fs::File::open(path).expect("published file not found");
         let mut buffer = String::new();
@@ -179,7 +187,10 @@ async fn assert_empty_published_list(config: &StatusListConfig, list: &status_li
     assert_eq!(bits, Bits::One);
 
     let published = claims.status_list.unpack();
-    let expected = StatusList::new_aligned(config.list_size.as_usize(), bits);
+    let mut expected = StatusList::new_aligned(config.list_size.as_usize(), bits);
+    for index in revoked {
+        expected.insert(index, StatusType::Invalid);
+    }
     assert_eq!(published, expected);
 }
 
@@ -509,4 +520,104 @@ async fn test_service_create_status_claims_concurrently() {
 
     let claims = claims_per_batch.into_iter().flatten().collect::<HashSet<_>>();
     assert_eq!(claims, db_claims);
+}
+
+#[tokio::test]
+async fn test_service_revoke_attestation_batch_multiple_lists() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let connection = connection_from_settings().await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 4, 1, &publish_dir)
+        .await
+        .unwrap();
+
+    // Ensure we have two lists
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    update_availability_of_status_list(&connection, type_id, 1).await;
+    try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
+
+    // Create status claims for attestation
+    let batch_id = Uuid::new_v4();
+    let claims = service
+        .obtain_status_claims(batch_id, None, 3.try_into().unwrap())
+        .await
+        .unwrap();
+
+    // Revoke all attestation
+    service.revoke_attestation_batch(batch_id).await.unwrap();
+
+    // Check if published list matches database
+    let db_lists = fetch_status_list(&connection, type_id).await;
+    assert_eq!(db_lists.len(), 2);
+
+    let list_urls = db_lists
+        .iter()
+        .map(|list| config.base_url.join(&list.external_id))
+        .collect::<Vec<_>>();
+    assert_published_list(
+        &config,
+        &db_lists[0],
+        claims.iter().filter_map(|claim| match claim {
+            StatusClaim::StatusList(list) if list_urls[0] == list.uri => Some(list.idx as usize),
+            _ => None,
+        }),
+    )
+    .await;
+    assert_published_list(
+        &config,
+        &db_lists[1],
+        claims.into_iter().filter_map(|claim| match claim {
+            StatusClaim::StatusList(list) if list_urls[1] == list.uri => Some(list.idx as usize),
+            _ => None,
+        }),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn test_service_revoke_attestation_batch_concurrently() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let connection = connection_from_settings().await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 1, &publish_dir)
+        .await
+        .unwrap();
+
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+
+    // Obtain claims for multiple attestation batches
+    let concurrent = 7;
+    let batch_ids = (0..concurrent).map(|_| Uuid::new_v4()).collect::<Vec<_>>();
+    let claims_per_batch = try_join_all(
+        batch_ids
+            .iter()
+            .copied()
+            .map(|batch_id| service.obtain_status_claims(batch_id, None, 1.try_into().unwrap())),
+    )
+    .await
+    .unwrap();
+
+    // Revoke concurrently
+    try_join_all(
+        batch_ids
+            .into_iter()
+            .map(|batch_id| service.revoke_attestation_batch(batch_id)),
+    )
+    .await
+    .unwrap();
+
+    // Check if published list matches database
+    let db_lists = fetch_status_list(&connection, type_id).await;
+    assert_eq!(db_lists.len(), 1);
+
+    assert_published_list(
+        &config,
+        &db_lists[0],
+        claims_per_batch.into_iter().flat_map(|claims| {
+            claims.into_iter().map(|claim| match claim {
+                StatusClaim::StatusList(list) => list.idx as usize,
+            })
+        }),
+    )
+    .await;
 }

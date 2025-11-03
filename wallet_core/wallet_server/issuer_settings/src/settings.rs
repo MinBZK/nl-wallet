@@ -268,7 +268,7 @@ mod tests {
     use server_utils::settings::Server;
     use server_utils::settings::Settings;
     use server_utils::settings::Storage;
-    use status_lists::settings::PublishDir;
+    use status_lists::publish::PublishDir;
     use status_lists::settings::StatusListAttestationSettings;
 
     use crate::settings::IssuerSettingsError;
