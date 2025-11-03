@@ -81,7 +81,7 @@ pub struct PostgresStatusListServices(HashMap<String, PostgresStatusListService>
 pub struct PostgresStatusListService {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
-    type_id: i16,
+    attestation_type_id: i16,
 
     list_size: NonZeroU31,
     create_threshold: NonZeroU31,
@@ -155,10 +155,10 @@ impl PostgresStatusListServices {
         let services = initialize_attestation_type_ids(&connection, attestation_types)
             .await?
             .into_iter()
-            .map(|(attestation_type, type_id)| {
+            .map(|(attestation_type, attestation_type_id)| {
                 let service = PostgresStatusListService {
                     connection: connection.clone(),
-                    type_id,
+                    attestation_type_id,
                     list_size: settings.list_size,
                     create_threshold: settings.create_threshold,
                 };
@@ -184,12 +184,12 @@ impl PostgresStatusListService {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types.as_ref()).await?;
 
         // `initialize_attestation_type_ids` guarantees the requested types exist
-        let type_id = *attestation_type_ids
+        let attestation_type_id = *attestation_type_ids
             .get(attestation_types.first())
             .expect("attestation_type_ids should have entry for initialized types");
         Ok(Self {
             connection,
-            type_id,
+            attestation_type_id,
             list_size: settings.list_size,
             create_threshold: settings.create_threshold,
         })
@@ -273,7 +273,7 @@ impl PostgresStatusListService {
             // Always restart transaction (e.g. level was set to repeatable read)
             let tx = self.connection.begin().await?;
             let lists = status_list::Entity::find()
-                .filter(status_list::Column::AttestationTypeId.eq(self.type_id))
+                .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
                 .filter(status_list::Column::Available.gt(0))
                 // Use a lock because we use and update availability afterward
                 .lock_exclusive()
@@ -317,7 +317,7 @@ impl PostgresStatusListService {
             .min();
 
         let items = status_list_item::Entity::find()
-            .filter(status_list_item::Column::AttestationTypeId.eq(self.type_id))
+            .filter(status_list_item::Column::AttestationTypeId.eq(self.attestation_type_id))
             .filter(status_list_item::Column::SequenceNo.gte(start_sequence_no))
             .order_by_asc(status_list_item::Column::SequenceNo)
             .limit(num_copies)
@@ -394,7 +394,8 @@ impl PostgresStatusListService {
         let tx = self.connection.begin().await?;
 
         // Get exclusive lock on attestation type
-        let mut query = attestation_type::Entity::find().filter(attestation_type::Column::Id.eq(self.type_id));
+        let mut query =
+            attestation_type::Entity::find().filter(attestation_type::Column::Id.eq(self.attestation_type_id));
         query = match wait_for_lock {
             false => query.lock_with_behavior(LockType::Update, LockBehavior::SkipLocked),
             true => query.lock_exclusive(),
@@ -402,7 +403,7 @@ impl PostgresStatusListService {
         let attestation_type = match (query.one(&tx).await?, wait_for_lock) {
             (None, false) => return Ok(false),
             (Some(attestation_type), _) => attestation_type,
-            _ => panic!("Missing attestation type for ID {}", self.type_id),
+            _ => panic!("Missing attestation type for ID {}", self.attestation_type_id),
         };
 
         // Status list was created by someone else
@@ -415,7 +416,7 @@ impl PostgresStatusListService {
         let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
         let list = status_list::ActiveModel {
             id: NotSet,
-            attestation_type_id: Set(self.type_id),
+            attestation_type_id: Set(self.attestation_type_id),
             external_id: Set(crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE)),
             available: Set(list_size),
             size: Set(list_size),
@@ -450,7 +451,7 @@ impl PostgresStatusListService {
                 .iter()
                 .enumerate()
                 .map(|(k, index)| status_list_item::ActiveModel {
-                    attestation_type_id: Set(self.type_id),
+                    attestation_type_id: Set(self.attestation_type_id),
                     sequence_no: Set((next_sequence_no + k) as i64),
                     status_list_id: Set(list_id),
                     index: Set(*index),
@@ -478,7 +479,7 @@ impl PostgresStatusListService {
 
         // Fetch all lists that still have list items in the database
         let lists = status_list::Entity::find()
-            .filter(status_list::Column::AttestationTypeId.eq(self.type_id))
+            .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
             .filter(
                 status_list::Column::Id.in_subquery(
                     Query::select()
@@ -494,15 +495,18 @@ impl PostgresStatusListService {
 
         // Create status lists if all lists for this attestation type are full
         if lists.is_empty() {
-            let next_sequence_no = attestation_type::Entity::find_by_id(self.type_id)
+            let next_sequence_no = attestation_type::Entity::find_by_id(self.attestation_type_id)
                 .select_only()
                 .select_column(attestation_type::Column::NextSequenceNo)
                 .into_tuple()
                 .one(&self.connection)
                 .await?
-                .unwrap_or_else(|| panic!("Missing attestation type for ID {}", self.type_id));
+                .unwrap_or_else(|| panic!("Missing attestation type for ID {}", self.attestation_type_id));
 
-            log::info!("Schedule creation of status list items for {}", self.type_id);
+            log::info!(
+                "Schedule creation of status list items for {}",
+                self.attestation_type_id
+            );
             let service = self.clone();
             let task = tokio::spawn(async move { service.create_status_list_in_background(next_sequence_no).await });
             Ok(vec![task])
@@ -546,7 +550,10 @@ impl PostgresStatusListService {
         //  - when the threshold is hit and the status list is not created yet.
         // Waiting will only hog connections from the DB pool waiting for the lock.
         match self.create_status_list(next_sequence_no, false).await {
-            Ok(created) if created => log::info!("Created status list for attestation type ID {}", self.type_id),
+            Ok(created) if created => log::info!(
+                "Created status list for attestation type ID {}",
+                self.attestation_type_id
+            ),
             Err(err) => log::warn!("Failed to create status list: {}", err),
             _ => {}
         };
@@ -628,7 +635,7 @@ mod tests {
     fn mock_service() -> PostgresStatusListService {
         PostgresStatusListService {
             connection: DatabaseConnection::default(),
-            type_id: 1,
+            attestation_type_id: 1,
             list_size: 1.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
         }
