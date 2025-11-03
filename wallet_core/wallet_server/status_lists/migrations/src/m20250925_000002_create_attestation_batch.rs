@@ -17,7 +17,6 @@ impl MigrationTrait for Migration {
                     .col(uuid(AttestationBatch::BatchId))
                     .col(date_null(AttestationBatch::ExpirationDate))
                     .col(boolean(AttestationBatch::IsRevoked))
-                    .col(json_binary(AttestationBatch::StatusListLocations))
                     .index(
                         Index::create()
                             .unique()
@@ -49,5 +48,4 @@ pub enum AttestationBatch {
     BatchId,
     ExpirationDate,
     IsRevoked,
-    StatusListLocations,
 }

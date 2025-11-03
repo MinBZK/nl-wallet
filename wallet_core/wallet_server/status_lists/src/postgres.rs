@@ -58,6 +58,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::config::StatusListConfig;
 use crate::config::StatusListConfigs;
 use crate::entity::attestation_batch;
+use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
@@ -278,15 +279,10 @@ where
             &tx,
             batch_id,
             expires.map(|d| DateTime::from(d).date_naive()),
-            lists_with_items
-                .iter()
-                .flat_map(|(list, items)| {
-                    items.iter().map(|item| StatusListLocation {
-                        list_id: list.id,
-                        index: item.index as u32,
-                    })
-                })
-                .collect(),
+            lists_with_items.iter().map(|(list, items)| {
+                let indices = items.iter().map(|item| item.index).collect();
+                (list.id, indices)
+            }),
         )
         .await?;
         tx.commit().await?;
@@ -413,16 +409,24 @@ where
         tx: &DatabaseTransaction,
         batch_id: Uuid,
         expiration_date: Option<NaiveDate>,
-        locations: Vec<StatusListLocation>,
+        list_indices: impl Iterator<Item = (i64, Vec<i32>)>,
     ) -> Result<(), StatusListServiceError> {
         let model = attestation_batch::ActiveModel {
             id: NotSet,
             batch_id: Set(batch_id),
             expiration_date: Set(expiration_date),
             is_revoked: Set(false),
-            status_list_locations: Set(serde_json::to_value(locations)?),
         };
-        attestation_batch::Entity::insert(model).exec(tx).await?;
+        let attestation_batch_id = attestation_batch::Entity::insert(model).exec(tx).await?.last_insert_id;
+
+        for (list_id, indices) in list_indices {
+            let model = attestation_batch_list_indices::ActiveModel {
+                attestation_batch_id: Set(attestation_batch_id),
+                status_list_id: Set(list_id),
+                indices: Set(indices),
+            };
+            attestation_batch_list_indices::Entity::insert(model).exec(tx).await?;
+        }
 
         Ok(())
     }

@@ -17,6 +17,8 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::attestation_batch_list_indices::Entity")]
+    AttestationBatchListIndices,
     #[sea_orm(
         belongs_to = "super::attestation_type::Entity",
         from = "Column::AttestationTypeId",
@@ -27,9 +29,24 @@ pub enum Relation {
     AttestationType,
 }
 
+impl Related<super::attestation_batch_list_indices::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AttestationBatchListIndices.def()
+    }
+}
+
 impl Related<super::attestation_type::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AttestationType.def()
+    }
+}
+
+impl Related<super::attestation_batch::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::attestation_batch_list_indices::Relation::AttestationBatch.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::attestation_batch_list_indices::Relation::StatusList.def().rev())
     }
 }
 

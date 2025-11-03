@@ -35,12 +35,12 @@ use server_utils::keys::PrivateKeyVariant;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigs;
 use status_lists::entity::attestation_batch;
+use status_lists::entity::attestation_batch_list_indices;
 use status_lists::entity::attestation_type;
 use status_lists::entity::status_list;
 use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
-use status_lists::postgres::StatusListLocation;
 use status_lists::settings::PublishDir;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
@@ -213,20 +213,15 @@ async fn update_availability_of_status_list(connection: &DatabaseConnection, typ
 async fn fetch_attestation_batches(
     connection: &DatabaseConnection,
     status_lists: &[status_list::Model],
-) -> Vec<attestation_batch::Model> {
-    let ids = status_lists.iter().map(|list| list.id).collect::<HashSet<_>>();
+) -> Vec<(attestation_batch::Model, Vec<attestation_batch_list_indices::Model>)> {
+    let ids = status_lists.iter().map(|list| list.id);
     attestation_batch::Entity::find()
-        .order_by_asc(attestation_batch::Column::Id)
+        .find_with_related(attestation_batch_list_indices::Entity)
+        .filter(attestation_batch_list_indices::Column::StatusListId.is_in(ids))
+        .order_by_asc(attestation_batch_list_indices::Column::StatusListId)
         .all(connection)
         .await
         .unwrap()
-        .into_iter()
-        .filter(|batch| {
-            let locations =
-                serde_json::from_value::<Vec<StatusListLocation>>(batch.status_list_locations.clone()).unwrap();
-            locations.iter().any(|l| ids.contains(&l.list_id))
-        })
-        .collect()
 }
 
 #[tokio::test]
@@ -403,29 +398,21 @@ async fn test_service_create_status_claims() {
 
     let db_attestations = fetch_attestation_batches(&connection, &db_lists).await;
     assert_eq!(db_attestations.len(), 1);
-    assert_eq!(db_attestations[0].batch_id, batch_id);
+
+    let db_attestation = &db_attestations[0].0;
+    assert_eq!(db_attestation.batch_id, batch_id);
     assert_eq!(
-        db_attestations[0].expiration_date,
+        db_attestation.expiration_date,
         Some(DateTime::from(expiration_date).date_naive())
     );
-    assert!(!db_attestations[0].is_revoked);
+    assert!(!db_attestation.is_revoked);
 
-    let locations =
-        serde_json::from_value::<Vec<StatusListLocation>>(db_attestations[0].status_list_locations.clone()).unwrap();
-    assert_eq!(locations.len(), 2);
+    let db_list_indices = &db_attestations[0].1;
+    assert_eq!(db_list_indices.len(), 1);
+    assert_eq!(db_list_indices[0].status_list_id, db_lists[0].id);
     assert_eq!(
-        locations[0],
-        StatusListLocation {
-            list_id: db_lists[0].id,
-            index: db_list_items[1].index as u32
-        }
-    );
-    assert_eq!(
-        locations[1],
-        StatusListLocation {
-            list_id: db_lists[0].id,
-            index: db_list_items[2].index as u32
-        }
+        db_list_indices[0].indices,
+        vec![db_list_items[1].index, db_list_items[2].index]
     );
 }
 
@@ -472,27 +459,18 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
 
     let db_attestations = fetch_attestation_batches(&connection, &db_lists).await;
     assert_eq!(db_attestations.len(), 1);
-    assert_eq!(db_attestations[0].batch_id, batch_id);
-    assert_eq!(db_attestations[0].expiration_date, None);
-    assert!(!db_attestations[0].is_revoked);
 
-    let locations =
-        serde_json::from_value::<Vec<StatusListLocation>>(db_attestations[0].status_list_locations.clone()).unwrap();
-    assert_eq!(locations.len(), 2);
-    assert_eq!(
-        locations[0],
-        StatusListLocation {
-            list_id: db_lists[0].id,
-            index: db_old_list_items[7].index as u32
-        }
-    );
-    assert_eq!(
-        locations[1],
-        StatusListLocation {
-            list_id: db_lists[1].id,
-            index: db_new_list_items[0].index as u32
-        }
-    );
+    let db_attestation = &db_attestations[0].0;
+    assert_eq!(db_attestation.batch_id, batch_id);
+    assert_eq!(db_attestation.expiration_date, None);
+    assert!(!db_attestation.is_revoked);
+
+    let db_list_indices = &db_attestations[0].1;
+    assert_eq!(db_list_indices.len(), 2);
+    assert_eq!(db_list_indices[0].status_list_id, db_lists[0].id);
+    assert_eq!(db_list_indices[0].indices, vec![db_old_list_items[7].index]);
+    assert_eq!(db_list_indices[1].status_list_id, db_lists[1].id);
+    assert_eq!(db_list_indices[1].indices, vec![db_new_list_items[0].index]);
 }
 
 #[tokio::test]
