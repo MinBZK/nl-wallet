@@ -285,248 +285,316 @@
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>1.3</strong></p></td>
-<td><p><strong>System displays screen ‘Approve login organization’</strong><ul><li>Do you want to share details with [Organization]?</li><li>Actions: Share, Check all details, Help, Close, Stop</li></ul></p></td>
+<td><p><strong>System determines whether user has multiple cards to fulfill disclosure</strong></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.3a</p></td>
-<td><p>User selects Share</p></td>
+<td><p>Case: User has one card</p></td>
 <td><p>1.4</p></td>
 </tr>
 <tr class="row-even"><td><p>1.3b</p></td>
-<td><p>User selects Check all details</p></td>
+<td><p>Case: User has multiple cards</p></td>
+<td><p>10</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.4</strong></p></td>
+<td><p><strong>System displays screen ‘Approve organization’</strong><ul><li>Do you want to share details with [Organization]?</li><li>Actions: Share, About [organization], View data, Read the agreement, Help, Close, Stop</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.4a</p></td>
+<td><p>User selects Share</p></td>
+<td><p>1.5</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.4b</p></td>
+<td><p>User selects About [organization]</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>1.4c</p></td>
+<td><p>User selects View data</p></td>
 <td><p>4</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3e</p></td>
+<tr class="row-odd"><td><p>1.4d</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-even"><td><p>1.3f</p></td>
+<tr class="row-even"><td><p>1.4e</p></td>
 <td><p>User selects Close</p></td>
 <td><p>2</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3g</p></td>
+<tr class="row-odd"><td><p>1.4f</p></td>
 <td><p>User selects Stop</p></td>
 <td><p>2</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>1.4</strong></p></td>
-<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a></strong><ul><li>Cancelable</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>1.4a</p></td>
-<td><p>Result: Confirm</p></td>
-<td><p>1.5</p></td>
-</tr>
-<tr class="row-even"><td><p>1.4b</p></td>
-<td><p>Result: Cancel</p></td>
-<td><p>2</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.4c</p></td>
-<td><p>Result: Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>1.5</strong></p></td>
-<td><p><strong>System displays screen ‘Disclosure success’</strong><ul><li>Message: Success!</li><li>Actions: To my overview (cross-device flow), Go to website (same-device flow), See activity, Help, Close</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>1.5a</p></td>
-<td><p>User selects To my overview (in cross-device flow only)</p></td>
-<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p>1.5b</p></td>
-<td><p>User selects Go to website <br>→ System opens browser and suspends app (in same-device flow only)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>1.5c</p></td>
-<td><p>User selects See activity</p></td>
-<td><p>Go to: <a class="reference internal" href="UC6.3_ShowHistoryEvent.html"><span class="std std-doc">UC6.3 Show event</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p>1.5d</p></td>
-<td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.5e</p></td>
-<td><p>User selects Close <br>→ System opens browser and suspends app</p></td>
-<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p>1.5f</p></td>
-<td><p>Error: No internet</p></td>
-<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
-</tr>
-<tr class="row-odd"><td><p>1.5g</p></td>
-<td><p>Error: Server unreachable</p></td>
-<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>2</strong></p></td>
-<td><p><strong>STOP</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
-<td><p><strong>System displays screen ‘Stop’</strong><ul><li>Message: Are you sure you want to stop?</li><li>Actions: Yes Stop, No, Report Problem</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>2.1a</p></td>
-<td><p>User selects Yes stop</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>2.1b</p></td>
-<td><p>User selects No</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-even"><td><p>2.1c</p></td>
-<td><p>User selects Report a problem</p></td>
-<td><p>6</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>3</strong></p></td>
-<td><p><strong>GET WEBSITE CHECK DETAILS</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>3.1</strong></p></td>
-<td><p><strong>System displays screen ‘Under construction’</strong><ul><li>Actions: Back</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>3.1a</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>4</strong></p></td>
-<td><p><strong>GET SHARING DETAILS</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>4.1</strong></p></td>
-<td><p><strong>System displays screen ‘Approve Organization’</strong><ul><li>Message: Information about logging in at [organization]?</li><li>Actions: [organization], View data, Read the agreement, Help, Back</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>4.1a</p></td>
-<td><p>User selects [organization]</p></td>
-<td><p>7</p></td>
-</tr>
-<tr class="row-odd"><td><p>4.1b</p></td>
-<td><p>User selects View data</p></td>
-<td><p>4.2</p></td>
-</tr>
-<tr class="row-even"><td><p>4.1c</p></td>
+<tr class="row-even"><td><p>1.4g</p></td>
 <td><p>User selects Read the agreement</p></td>
 <td><p>6</p></td>
 </tr>
-<tr class="row-odd"><td><p>4.1d</p></td>
+<tr class="row-odd"><td><p><strong>1.5</strong></p></td>
+<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a></strong><ul><li>Cancelable</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.5a</p></td>
+<td><p>Result: Confirm</p></td>
+<td><p>1.6</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.5b</p></td>
+<td><p>Result: Cancel</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p>1.5c</p></td>
+<td><p>Result: Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.6</strong></p></td>
+<td><p><strong>System displays screen ‘Disclosure success’</strong><ul><li>Message: Success!</li><li>Actions: To my overview (cross-device flow), Go to website (same-device flow), See activity, Help, Close</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.6a</p></td>
+<td><p>User selects To my overview (in cross-device flow only)</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.6b</p></td>
+<td><p>User selects Go to website <br>→ System opens browser and suspends app (in same-device flow only)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.6c</p></td>
+<td><p>User selects See activity</p></td>
+<td><p>Go to: <a class="reference internal" href="UC6.3_ShowHistoryEvent.html"><span class="std std-doc">UC6.3 Show event</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.6d</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-even"><td><p>4.1e</p></td>
-<td><p>User selects Back</p></td>
+<tr class="row-even"><td><p>1.6e</p></td>
+<td><p>User selects Close <br>→ System opens browser and suspends app</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.6f</p></td>
+<td><p>Error: No internet</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.6g</p></td>
+<td><p>Error: Server unreachable</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>2</strong></p></td>
+<td><p><strong>STOP</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>2.1</strong></p></td>
+<td><p><strong>System displays screen ‘Stop’</strong><ul><li>Message: Are you sure you want to stop?</li><li>Actions: Yes Stop, No, Report Problem</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>2.1a</p></td>
+<td><p>User selects Yes stop</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>2.1b</p></td>
+<td><p>User selects No</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>4.2</strong></p></td>
-<td><p><strong>System displays screen ‘Requested data’</strong><ul><li># from [Card Title]</li><li>Actions: Details Incorrect, Help, Back</li></ul></p></td>
+<tr class="row-odd"><td><p>2.1c</p></td>
+<td><p>User selects Report a problem</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>3</strong></p></td>
+<td><p><strong>GET WEBSITE CHECK DETAILS</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>4.2a</p></td>
-<td><p>User selects Details Incorrect</p></td>
-<td><p>5</p></td>
-</tr>
-<tr class="row-odd"><td><p>4.2b</p></td>
-<td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
-</tr>
-<tr class="row-even"><td><p>4.2c</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>5</strong></p></td>
-<td><p><strong>WHEN DETAILS ARE INCORRECT</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>5.1</strong></p></td>
-<td><p><strong>System displays screen ‘Details incorrect’</strong><ul><li>Message: Details Incorrect</li><li>Actions: Back</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>5.1a</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>6</strong></p></td>
-<td><p><strong>GET SHARING AGREEMENT DETAILS</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>6.2</strong></p></td>
-<td><p><strong>System displays screen ‘Agreements’</strong><ul><li>Message: agreements</li><li>Actions: Privacy policy, Back</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>6.2a</p></td>
-<td><p>User selects Privacy policy <br>→ System opens browser and suspends app</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>6.2b</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>7</strong></p></td>
-<td><p><strong>GET VERIFIER ORGANIZATION DETAILS</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>7.1</strong></p></td>
-<td><p><strong>System displays screen ‘About organization’</strong><ul><li>Message: About [Organization]</li><li>Actions: Help, Back</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>7.1a</p></td>
-<td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
-</tr>
-<tr class="row-odd"><td><p>7.1b</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>8</strong></p></td>
-<td><p><strong>REPORT PROBLEM</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>8.1</strong></p></td>
-<td><p><strong>System displays screen ‘Report problem’</strong><ul><li>Message: Report Problem</li><li>Options: problems</li><li>Actions: Back</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>8.1a</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-odd"><td><p>8.1b</p></td>
-<td><p>User selects Problem option</p></td>
-<td><p>8.2</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>8.2</strong></p></td>
+<tr class="row-odd"><td><p><strong>3.1</strong></p></td>
 <td><p><strong>System displays screen ‘Under construction’</strong><ul><li>Actions: Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>8.2a</p></td>
+<tr class="row-even"><td><p>3.1a</p></td>
 <td><p>User selects Back</p></td>
-<td><p>8.1</p></td>
+<td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>9</strong></p></td>
-<td><p><strong>WHEN WALLET DOES NOT CONTAIN REQUESTED ATTRIBUTES</strong></p></td>
+<tr class="row-odd"><td><p><strong>4</strong></p></td>
+<td><p><strong>GET SHARING DETAILS</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>9.1</strong></p></td>
-<td><p><strong>System displays screen ‘Missing data’</strong><ul><li>Message: See at verifier what is missing, add and try again</li><li>Actions: Close, See details, Help</li></ul></p></td>
+<tr class="row-even"><td><p><strong>4.1</strong></p></td>
+<td><p><strong>System displays screen ‘Requested data’</strong><ul><li># from [Card Title]</li><li>Actions: Details Incorrect, Help, Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>9.1a</p></td>
-<td><p>User selects Close</p></td>
-<td><p>2</p></td>
+<tr class="row-odd"><td><p>4.1a</p></td>
+<td><p>User selects Details Incorrect</p></td>
+<td><p>5</p></td>
 </tr>
-<tr class="row-odd"><td><p>9.1b</p></td>
-<td><p>User selects See details</p></td>
-<td><p>9.2</p></td>
-</tr>
-<tr class="row-even"><td><p>9.1c</p></td>
+<tr class="row-even"><td><p>4.1b</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>9.2</strong></p></td>
+<tr class="row-odd"><td><p>4.1c</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>5</strong></p></td>
+<td><p><strong>WHEN DETAILS ARE INCORRECT</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>5.1</strong></p></td>
+<td><p><strong>System displays screen ‘Details incorrect’</strong><ul><li>Message: Details Incorrect</li><li>Actions: Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>5.1a</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>6</strong></p></td>
+<td><p><strong>GET SHARING AGREEMENT DETAILS</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>6.2</strong></p></td>
+<td><p><strong>System displays screen ‘Agreements’</strong><ul><li>Message: agreements</li><li>Actions: Privacy policy, Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>6.2a</p></td>
+<td><p>User selects Privacy policy <br>→ System opens browser and suspends app</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>6.2b</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>7</strong></p></td>
+<td><p><strong>GET VERIFIER ORGANIZATION DETAILS</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>7.1</strong></p></td>
+<td><p><strong>System displays screen ‘About organization’</strong><ul><li>Message: About [Organization]</li><li>Actions: Help, Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>7.1a</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-even"><td><p>7.1b</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>8</strong></p></td>
+<td><p><strong>REPORT PROBLEM</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>8.1</strong></p></td>
+<td><p><strong>System displays screen ‘Report problem’</strong><ul><li>Message: Report Problem</li><li>Options: problems</li><li>Actions: Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>8.1a</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-even"><td><p>8.1b</p></td>
+<td><p>User selects Problem option</p></td>
+<td><p>8.2</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>8.2</strong></p></td>
+<td><p><strong>System displays screen ‘Under construction’</strong><ul><li>Actions: Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>8.2a</p></td>
+<td><p>User selects Back</p></td>
+<td><p>8.1</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>9</strong></p></td>
+<td><p><strong>WHEN WALLET DOES NOT CONTAIN REQUESTED ATTRIBUTES</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>9.1</strong></p></td>
+<td><p><strong>System displays screen ‘Missing data’</strong><ul><li>Message: See at verifier what is missing, add and try again</li><li>Actions: Close, See details, Help</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>9.1a</p></td>
+<td><p>User selects Close</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p>9.1b</p></td>
+<td><p>User selects See details</p></td>
+<td><p>9.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>9.1c</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>9.2</strong></p></td>
 <td><p><strong>System displays bottom sheet ‘Error details’ with list of all requested attributes</strong><ul><li>Actions: Close</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>9.2a</p></td>
+<tr class="row-odd"><td><p>9.2a</p></td>
 <td><p>User selects Close</p></td>
 <td><p>9.1</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>10</strong></p></td>
+<td><p><strong>WHEN USER HAS MULTIPLE CARDS</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>10.1</strong></p></td>
+<td><p><strong>System displays screen ‘Approve organization’</strong><ul><li>Do you want to share details with [Organization]?</li><li>Actions: Share, About [organization], View data, Swap card, Read the agreement, Help, Close, Stop</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>10.1a</p></td>
+<td><p>User selects Share</p></td>
+<td><p>1.5</p></td>
+</tr>
+<tr class="row-odd"><td><p>10.1b</p></td>
+<td><p>User selects About [organization]</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>10.1c</p></td>
+<td><p>User selects View data</p></td>
+<td><p>10.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>10.1d</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-even"><td><p>10.1e</p></td>
+<td><p>User selects Close</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p>10.1f</p></td>
+<td><p>User selects Stop</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p>10.1g</p></td>
+<td><p>User selects Read the agreement</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-odd"><td><p>10.1e</p></td>
+<td><p>User selects Swap card</p></td>
+<td><p>10.3</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>10.2</strong></p></td>
+<td><p><strong>System displays screen ‘Requested data’</strong><ul><li># from [Card Title]</li><li>Actions: Swap card, Details Incorrect, Help, Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>10.2a</p></td>
+<td><p>User selects Swap card</p></td>
+<td><p>10.3</p></td>
+</tr>
+<tr class="row-even"><td><p>10.2b</p></td>
+<td><p>User selects Details Incorrect</p></td>
+<td><p>5</p></td>
+</tr>
+<tr class="row-odd"><td><p>10.2c</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-even"><td><p>10.2d</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>10.3</strong></p></td>
+<td><p><strong>System displays bottom sheet ‘Choose another card’ with list of all possible cards</strong><ul><li>Actions: Close</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>10.3a</p></td>
+<td><p>User selects Card</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p>10.3a</p></td>
+<td><p>User selects Close</p></td>
+<td><p>Back</p></td>
 </tr>
 </tbody>
 </table>
