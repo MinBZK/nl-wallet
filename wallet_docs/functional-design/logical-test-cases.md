@@ -994,3 +994,15 @@ again
 **And** user enters correct biometric  
 **And** user enters invalid PIN  
 **Then** system handles it according to retry policy
+
+---
+
+### LTC79
+
+#### User selects another card to be disclosed
+
+**Given** user has multiple cards that can fulfill a disclosure request
+**When** user starts disclosure  
+**Then** system offers user option to select another card  
+**When** user selects a card
+**Then** the requested attributes are disclosed from the previously selected card

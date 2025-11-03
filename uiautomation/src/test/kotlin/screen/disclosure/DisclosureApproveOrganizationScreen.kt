@@ -20,6 +20,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val disclosureConfirmDataAttributesSubtitleTerms = l10n.getString("disclosureConfirmDataAttributesSubtitleTerms")
     private val disclosureConfirmDataAttributesCheckConditionsCta = l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta")
     private val reportOptionSuspiciousOrganization = l10n.getString("reportOptionSuspiciousOrganization")
+    private val swapCardButton = l10n.getString("sharedAttributesCardChangeCardCta")
 
     fun login() = clickElementWithText(loginButton)
 
@@ -108,5 +109,14 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun conditionsButtonVisible(): Boolean  {
         scrollToElementWithText(disclosureConfirmDataAttributesCheckConditionsCta)
         return elementWithTextVisible(disclosureConfirmDataAttributesCheckConditionsCta)
+    }
+
+    fun clickSwapCardButton() {
+        scrollToElementWithText(swapCardButton)
+        clickElementWithText(swapCardButton)
+    }
+
+    fun swapCardTo(cardIdentifier: String) {
+        clickElementContainingText(cardIdentifier)
     }
 }

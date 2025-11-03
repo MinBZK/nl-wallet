@@ -19,6 +19,7 @@ class DashboardScreen : MobileActions() {
     fun checkCardSorting(): Boolean {
         scrollToElementContainingText(pidAddressTitleText)
         val (_, pidY) = getTopLeftOfElementContainingText(pidIdTitleText)!!
+        scrollToElementContainingText(pidAddressTitleText)
         val (_, addressY) = getTopLeftOfElementContainingText(pidAddressTitleText)!!
         return pidY < addressY
     }
