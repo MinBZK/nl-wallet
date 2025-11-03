@@ -4247,6 +4247,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serde_with",
+ "serial_test",
  "ssri",
  "strfmt",
  "strum 0.26.3",

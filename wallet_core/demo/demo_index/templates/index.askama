@@ -48,6 +48,8 @@
                                 {{ base.trans.insurance_index }}
                             {% when "job_finder" %}
                                 {{ base.trans.job_index }}
+                            {% when "housing" %}
+                                {{ base.trans.housing_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

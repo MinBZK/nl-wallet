@@ -6388,31 +6388,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> crateApiFullCompletePinRecovery({
-    required String? pin,
-  }) =>
+  _i10.Future<void> crateApiFullCompletePinRecovery({required String? pin}) =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullCompletePinRecovery, [], {
               #pin: pin,
             }),
-            returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullCompletePinRecovery, [], {
-                  #pin: pin,
-                }),
-              ),
-            ),
-            returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullCompletePinRecovery, [], {
-                  #pin: pin,
-                }),
-              ),
-            ),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
           )
-          as _i10.Future<_i26.WalletInstructionResult>);
+          as _i10.Future<void>);
 
   @override
   _i10.Future<_i26.WalletInstructionResult> crateApiFullConfirmWalletTransfer({

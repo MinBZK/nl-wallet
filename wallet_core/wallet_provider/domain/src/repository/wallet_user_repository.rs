@@ -72,7 +72,7 @@ pub trait WalletUserRepository {
     async fn is_pin_recovery_key(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_user_id: Uuid,
         key: VerifyingKey,
     ) -> Result<bool>;
 
@@ -278,7 +278,7 @@ pub mod mock {
         async fn is_pin_recovery_key(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_user_id: Uuid,
             _key: VerifyingKey,
         ) -> Result<bool> {
             Ok(true)

@@ -8,4 +8,4 @@ usecases = ['mijn_amsterdam_mdoc', 'mijn_amsterdam_sd_jwt', 'online_marketplace'
 
 [[demo_services]]
 service_url = 'http://${SERVICES_HOST}:${DEMO_ISSUER_PORT}/'
-usecases = ['university_mdoc', 'university_sd_jwt', 'insurance']
+usecases = ['university_mdoc', 'university_sd_jwt', 'insurance', 'housing']

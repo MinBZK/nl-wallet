@@ -5,7 +5,6 @@ use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
 use ssri::Integrity;
 
-use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
 
@@ -34,7 +33,7 @@ pub struct Mdoc {
 
 impl Mdoc {
     /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
-    pub fn new<K: CredentialEcdsaKey>(
+    pub fn new(
         private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
@@ -262,7 +261,7 @@ pub mod mock {
                 .unwrap()
                 .issuer_signed;
 
-            Mdoc::new::<MockRemoteEcdsaKey>(
+            Mdoc::new(
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,

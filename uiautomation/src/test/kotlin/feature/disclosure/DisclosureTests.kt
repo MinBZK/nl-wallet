@@ -3,9 +3,11 @@ package feature.disclosure
 import helper.GbaDataHelper
 import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
+import helper.IssuanceDataHelper
 import helper.LocalizationHelper
 import helper.OrganizationAuthMetadataHelper
 import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
+import helper.OrganizationAuthMetadataHelper.Organization.JOBFINDER
 import helper.OrganizationAuthMetadataHelper.Organization.MARKETPLACE
 import helper.OrganizationAuthMetadataHelper.Organization.XYZ
 import helper.TasDataHelper
@@ -19,19 +21,24 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
+import screen.dashboard.DashboardScreen
 import screen.disclosure.DisclosureApproveOrganizationScreen
+import screen.issuance.CardIssuanceScreen
+import screen.issuance.DisclosureIssuanceScreen
 import screen.menu.MenuScreen
 import screen.organization.OrganizationDetailScreen
 import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
+import screen.web.demo.issuer.IssuerWebPage
 import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
+import screen.web.demo.rp.RelyingPartyJobFinderWebPage
 import screen.web.demo.rp.RelyingPartyMarketplaceWebPage
 import screen.web.demo.rp.RelyingPartyMonkeyBikeWebPage
 import screen.web.demo.rp.RelyingPartyXyzBankWebPage
 
 class DisclosureTests : TestBase() {
 
-    private lateinit var overviewWebPage: DemoIndexWebPage
+    private lateinit var indexWebPage: DemoIndexWebPage
     private lateinit var xyzBankWebPage: RelyingPartyXyzBankWebPage
     private lateinit var amsterdamWebPage: RelyingPartyAmsterdamWebPage
     private lateinit var marketPlaceWebPage: RelyingPartyMarketplaceWebPage
@@ -43,10 +50,16 @@ class DisclosureTests : TestBase() {
     private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
     private lateinit var gbaData: GbaDataHelper
     private lateinit var organizationDetailScreen: OrganizationDetailScreen
+    private lateinit var issuerWebPage: IssuerWebPage
+    private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
+    private lateinit var cardIssuanceScreen: CardIssuanceScreen
+    private lateinit var dashboardScreen: DashboardScreen
+    private lateinit var issuanceData : IssuanceDataHelper
+    private lateinit var jobFinderWebPage : RelyingPartyJobFinderWebPage
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
-        overviewWebPage = DemoIndexWebPage()
+        indexWebPage = DemoIndexWebPage()
         disclosureScreen = DisclosureApproveOrganizationScreen()
         organizationDetailScreen = OrganizationDetailScreen()
         pinScreen = PinScreen()
@@ -54,10 +67,17 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage = RelyingPartyAmsterdamWebPage()
         marketPlaceWebPage = RelyingPartyMarketplaceWebPage()
         monkeyBikeWebPage = RelyingPartyMonkeyBikeWebPage()
+        issuerWebPage = IssuerWebPage()
+        disclosureForIssuanceScreen = DisclosureIssuanceScreen()
+        dashboardScreen = DashboardScreen()
+        jobFinderWebPage = RelyingPartyJobFinderWebPage()
+        cardIssuanceScreen = CardIssuanceScreen()
+
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
         organizationAuthMetadata = OrganizationAuthMetadataHelper()
         gbaData = GbaDataHelper()
+        issuanceData = IssuanceDataHelper()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -66,8 +86,8 @@ class DisclosureTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        overviewWebPage.switchToWebViewContext()
-        overviewWebPage.clickXyzBankMdocButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickXyzBankMdocButton()
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
@@ -90,8 +110,8 @@ class DisclosureTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        overviewWebPage.switchToWebViewContext()
-        overviewWebPage.clickXyzBankSdJwtButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickXyzBankSdJwtButton()
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
@@ -117,7 +137,7 @@ class DisclosureTests : TestBase() {
         MenuScreen().clickBrowserTestButton()
         amsterdamWebPage.switchToWebViewContext()
         amsterdamWebPage = RelyingPartyAmsterdamWebPage()
-        overviewWebPage.clickAmsterdamMdocButton()
+        indexWebPage.clickAmsterdamMdocButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
@@ -152,7 +172,7 @@ class DisclosureTests : TestBase() {
         MenuScreen().clickBrowserTestButton()
         amsterdamWebPage.switchToWebViewContext()
         amsterdamWebPage = RelyingPartyAmsterdamWebPage()
-        overviewWebPage.clickAmsterdamSdJwtButton()
+        indexWebPage.clickAmsterdamSdJwtButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
@@ -184,8 +204,8 @@ class DisclosureTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        overviewWebPage.switchToWebViewContext()
-        overviewWebPage.clickMarketplaceButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickMarketplaceButton()
         marketPlaceWebPage.openSameDeviceWalletFlow()
         marketPlaceWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)))
@@ -224,8 +244,8 @@ class DisclosureTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        overviewWebPage.switchToWebViewContext()
-        overviewWebPage.clickMonkeyBikeButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickMonkeyBikeButton()
         monkeyBikeWebPage.openSameDeviceWalletFlow()
         monkeyBikeWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
@@ -234,5 +254,40 @@ class DisclosureTests : TestBase() {
 //        disclosureScreen.goToWebsite()
 //        monkeyBikeWebPage.switchToWebViewContext()
 //        assertTrue(monkeyBikeWebPage.loginFailedMessageVisible(), "Login failed message not visible")
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC79 User selects another card to be disclosed MDOC")
+    fun verifyUserSelectCardToDisclose(testInfo: TestInfo) {
+        setUp(testInfo)
+
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickHollandUniversityMdocButton()
+        issuerWebPage.openSameDeviceWalletFlow()
+
+        disclosureForIssuanceScreen.switchToNativeContext()
+        disclosureForIssuanceScreen.share()
+        pinScreen.enterPin(DEFAULT_PIN)
+        cardIssuanceScreen.clickAdd2CardsButton()
+        pinScreen.enterPin(DEFAULT_PIN)
+        cardIssuanceScreen.clickToDashboardButton()
+
+        dashboardScreen.clickMenuButton()
+        MenuScreen().clickBrowserTestButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickJobFinderButton()
+        jobFinderWebPage.openSameDeviceWalletFlow()
+        jobFinderWebPage.switchToNativeContext()
+        disclosureScreen.viewDisclosureOrganizationDetails()
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", JOBFINDER)))
+        disclosureScreen.goBack();
+        disclosureScreen.clickSwapCardButton()
+        disclosureScreen.swapCardTo(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
+        disclosureScreen.share()
+        pinScreen.enterPin(DEFAULT_PIN)
+        disclosureScreen.goToWebsite()
+        assertTrue(jobFinderWebPage.sharedAttributeVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last()), "Attribute of selected card not visible")
     }
 }

@@ -36,6 +36,7 @@ pub const TRANSLATIONS: Translations = Translations {
         university_mdoc_index: "Get diploma cards (mdoc)",
         university_sd_jwt_index: "Get diploma cards (SD-JWT)",
         insurance_index: "Get insurance cards",
+        housing_index: "Get housing card",
     },
     nl: Words {
         en: "English",
@@ -54,6 +55,7 @@ pub const TRANSLATIONS: Translations = Translations {
         university_mdoc_index: "Ontvang diploma kaarten (mdoc)",
         university_sd_jwt_index: "Ontvang diploma kaarten (SD-JWT)",
         insurance_index: "Ontvang verzekeringskaarten",
+        housing_index: "Ontvang huurkaart",
     },
 };
 
@@ -74,6 +76,7 @@ pub struct Words<'a> {
     pub university_mdoc_index: &'a str,
     pub university_sd_jwt_index: &'a str,
     pub insurance_index: &'a str,
+    pub housing_index: &'a str,
 }
 
 impl<'a> Index<Language> for Words<'a> {

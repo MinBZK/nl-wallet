@@ -11,12 +11,6 @@ use crate::attestation::AttestationPresentation;
 
 pub type DisclosureStatus = EventStatus;
 
-#[derive(Debug, Clone, Copy)]
-pub enum DataDisclosureStatus {
-    Disclosed,
-    NotDisclosed,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum WalletEvent {
     Issuance {

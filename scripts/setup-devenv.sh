@@ -317,6 +317,13 @@ export DEMO_RELYING_PARTY_KEY_JOB_FINDER
 DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
+# Generate relying party key and cert
+generate_demo_relying_party_key_pair housing
+DEMO_RELYING_PARTY_KEY_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_HOUSING
+DEMO_RELYING_PARTY_CRT_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_HOUSING
+
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
 
 
@@ -349,6 +356,20 @@ export DEMO_ISSUER_KEY_INSURANCE_TSL
 DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_TSL
 
+generate_demo_issuer_key_pairs housing
+DEMO_ISSUER_KEY_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_READER
+DEMO_ISSUER_CRT_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_READER
+DEMO_ISSUER_KEY_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_ISSUER
+DEMO_ISSUER_CRT_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_ISSUER
+DEMO_ISSUER_KEY_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_TSL
+DEMO_ISSUER_CRT_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_TSL
+
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
 
@@ -361,14 +382,15 @@ render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_ind
 
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
 export ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
 export ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
 export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
 export ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
+export ISSUER_METADATA_HOUSING_PATH="com.example.housing.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
