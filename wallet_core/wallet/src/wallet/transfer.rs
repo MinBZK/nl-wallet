@@ -1,3 +1,4 @@
+use std::mem;
 use std::sync::Arc;
 
 use josekit::JoseError;
@@ -339,13 +340,24 @@ where
             .prepare_import(database_payload.into(), &encrypted_file)
             .await?;
         self.complete_transfer(transfer_data.transfer_session_id.into()).await?;
-        self.storage.write().await.commit_import(encrypted_file).await?;
+
+        let result = self.commit_and_clear_transfer_session(&encrypted_file).await;
+        // If restore fails, there is no clear way on how to move forward, so the database will be cleared.
+        if let Err(err) = result {
+            // Remove the downloaded database.
+            mem::drop(encrypted_file);
+
+            // Clear the database. This is allowed to fail.
+            if let Err(err) = self.clean_after_transfer().await {
+                panic!("Failed to clear the database after a failed restore: {}", err);
+            }
+
+            // Return the original failure reason.
+            return Err(err);
+        }
 
         self.emit_attestations().await?;
         self.emit_recent_history().await?;
-
-        // When the restore is successful, the transfer session can be cleared
-        self.storage.write().await.delete_data::<TransferData>().await?;
 
         Ok(())
     }
@@ -379,6 +391,14 @@ where
         if self.session.is_some() {
             return Err(TransferError::IllegalWalletState);
         }
+
+        Ok(())
+    }
+
+    async fn commit_and_clear_transfer_session(&mut self, encrypted_file: &NamedTempFile) -> Result<(), TransferError> {
+        self.storage.write().await.commit_import(encrypted_file).await?;
+        // When the restore is successful, the transfer session can be cleared
+        self.storage.write().await.delete_data::<TransferData>().await?;
 
         Ok(())
     }
@@ -1293,6 +1313,142 @@ mod tests {
             });
 
         destination_wallet.mut_storage().expect_commit_import().never();
+
+        destination_wallet
+            .receive_wallet_payload()
+            .await
+            .expect_err("Wallet receive payload should have failed");
+    }
+
+    #[tokio::test]
+    async fn test_receive_wallet_payload_should_clear_database_when_commit_fails() {
+        let mut destination_wallet =
+            TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let transfer_session_id = Uuid::new_v4();
+
+        // Init the transfer on the destination wallet
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                    key_data: None,
+                }))
+            });
+
+        destination_wallet
+            .mut_storage()
+            .expect_upsert_data::<TransferData>()
+            .returning(|_| Ok(()));
+
+        destination_wallet
+            .init_transfer()
+            .await
+            .expect("Wallet init transfer should have succeeded");
+
+        // Receive payload
+        destination_wallet.mut_storage().checkpoint();
+
+        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let database_export_bytes = random_bytes(256);
+        let database_export_key = SqlCipherKey::new_random_with_salt();
+        let database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
+        let database_payload = WalletDatabasePayload::new(database_export);
+        let payload = database_payload.encrypt(&key_pair.to_jwk_public_key()).unwrap();
+        let private_key = key_pair.to_jwk_private_key();
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                    key_data: Some(TransferKeyData::Destination {
+                        private_key: private_key.clone(),
+                    }),
+                }))
+            });
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        destination_wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        Arc::get_mut(&mut destination_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(random_bytes(32)));
+
+        Arc::get_mut(&mut destination_wallet.account_provider_client)
+            .unwrap()
+            .expect_hw_signed_instruction()
+            .once()
+            .return_once(move |_, _: HwSignedInstruction<ReceiveWalletPayload>| {
+                Ok(create_wp_result(ReceiveWalletPayloadResult { payload }))
+            });
+
+        destination_wallet
+            .mut_storage()
+            .expect_prepare_import()
+            .returning(|_, _| Ok(()));
+
+        destination_wallet.mut_storage().expect_open().returning(|| Ok(()));
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        destination_wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        Arc::get_mut(&mut destination_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(random_bytes(32)));
+
+        Arc::get_mut(&mut destination_wallet.account_provider_client)
+            .unwrap()
+            .expect_hw_signed_instruction()
+            .once()
+            .return_once(move |_, _: HwSignedInstruction<CompleteTransfer>| Ok(create_wp_result(())));
+
+        destination_wallet
+            .mut_storage()
+            .expect_commit_import()
+            .return_once(|_| Err(StorageError::NotOpened));
+
+        destination_wallet.mut_storage().expect_clear().return_const(());
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
 
         destination_wallet
             .receive_wallet_payload()

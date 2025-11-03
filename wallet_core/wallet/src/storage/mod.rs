@@ -151,7 +151,7 @@ pub trait Storage {
     async fn open(&mut self) -> StorageResult<()>;
     async fn export(&mut self) -> StorageResult<DatabaseExport>;
     async fn prepare_import(&mut self, export: DatabaseExport, database_file: &NamedTempFile) -> StorageResult<()>;
-    async fn commit_import(&mut self, database_file: NamedTempFile) -> StorageResult<()>;
+    async fn commit_import(&mut self, database_file: &NamedTempFile) -> StorageResult<()>;
     async fn clear(&mut self);
 
     async fn open_if_needed(&mut self) -> StorageResult<()> {

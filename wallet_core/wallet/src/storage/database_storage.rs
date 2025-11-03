@@ -515,7 +515,7 @@ where
 
     /// Commit the prepared import by first retrieving all keyed data from the existing database, then switching over
     /// to the newly imported (encrypted) database, after which the keyed data is then updated in the imported database.
-    async fn commit_import(&mut self, database_file: NamedTempFile) -> StorageResult<()> {
+    async fn commit_import(&mut self, database_file: &NamedTempFile) -> StorageResult<()> {
         // Fetch all keyed data of the existing database before import
         let destination_keyed_data: Vec<(String, Json)> = keyed_data::Entity::find()
             .into_tuple()
@@ -1232,7 +1232,7 @@ pub(crate) mod tests {
 
         storage.insert_data(&initial_registration).await.unwrap();
         storage.prepare_import(transfer, &encrypted_file).await.unwrap();
-        storage.commit_import(encrypted_file).await.unwrap();
+        storage.commit_import(&encrypted_file).await.unwrap();
         let imported_test_data: Option<TestData> = storage.fetch_data().await.unwrap();
         let imported_registration_data: Option<RegistrationData> = storage.fetch_data().await.unwrap();
 
