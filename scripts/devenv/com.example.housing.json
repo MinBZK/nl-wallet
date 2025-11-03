@@ -1,0 +1,130 @@
+{
+  "vct": "com.example.housing",
+  "name": "Housing credential",
+  "description": "Housing credential",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Rent",
+      "description": "A rent credential",
+      "summary": "{{rent}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#008236",
+          "text_color": "#ffffff"
+        }
+      }
+    },
+    {
+      "lang": "nl-NL",
+      "name": "Huur",
+      "description": "Een huur-attestatie",
+      "summary": "{{rent}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#008236",
+          "text_color": "#ffffff"
+        }
+      }
+    }
+  ],
+  "claims": [
+    {
+      "path": ["rent"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Huur",
+          "description": "De huurkosten van uw woning"
+        },
+        {
+          "lang": "en-US",
+          "label": "Rent",
+          "description": "The rent costs of your house"
+        }
+      ],
+      "sd": "always",
+      "svg_id": "rent"
+    },
+    {
+      "path": ["service_charges"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Servicekosten",
+          "description": "De servicekosten van uw huurcontract"
+        },
+        {
+          "lang": "en-US",
+          "label": "Service charges",
+          "description": "The service charges under your rental contract"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["eligible_service_charges"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Subsidiabele servicekosten",
+          "description": "De servicekosten van uw huurcontract"
+        },
+        {
+          "lang": "en-US",
+          "label": "Eligible service charges",
+          "description": "The eligible service charges under your rental contract"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Housing VCT Schema",
+    "description": "The JSON schema that defines a housing VCT",
+    "type": "object",
+    "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "sub": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      },
+      "rent": {
+        "type": "string"
+      },
+      "service_charges": {
+        "type": "string"
+      },
+      "eligible_service_charges": {
+        "type": "string"
+      }
+    },
+    "required": ["vct", "iss", "attestation_qualification", "rent", "service_charges", "eligible_service_charges"]
+  }
+}

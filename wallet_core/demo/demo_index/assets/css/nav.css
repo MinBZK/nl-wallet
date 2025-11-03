@@ -148,3 +148,7 @@ nav a::before {
 #insurance::before {
   background: url("../images/insurance.svg") no-repeat center center / cover;
 }
+
+#housing::before {
+  background: url("../images/housing.svg") no-repeat center center / cover;
+}
