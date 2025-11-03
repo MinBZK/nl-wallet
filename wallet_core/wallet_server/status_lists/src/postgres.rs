@@ -87,29 +87,6 @@ pub struct PostgresStatusListService {
     create_threshold: NonZeroU31,
 }
 
-impl PostgresStatusListServices {
-    pub async fn try_new(
-        connection: DatabaseConnection,
-        settings: StatusListsSettings,
-        attestation_types: &[String],
-    ) -> Result<Self, StatusListServiceError> {
-        let services = initialize_attestation_type_ids(&connection, attestation_types)
-            .await?
-            .into_iter()
-            .map(|(attestation_type, type_id)| {
-                let service = PostgresStatusListService {
-                    connection: connection.clone(),
-                    type_id,
-                    list_size: settings.list_size,
-                    create_threshold: settings.create_threshold,
-                };
-                (attestation_type, service)
-            })
-            .collect();
-        Ok(PostgresStatusListServices(services))
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListServiceError {
     #[error("base url error: {0}")]
@@ -169,62 +146,28 @@ impl StatusListService for PostgresStatusListServices {
     }
 }
 
-async fn initialize_attestation_type_ids(
-    connection: &DatabaseConnection,
-    attestation_types: &[String],
-) -> Result<HashMap<String, i16>, DbErr> {
-    let map = fetch_attestation_type_ids(connection, attestation_types).await?;
-    let insert = attestation_types
-        .iter()
-        .filter_map(|attestation_type| match map.get(attestation_type) {
-            None => Some(attestation_type::ActiveModel {
-                id: NotSet,
-                name: Set(attestation_type.to_string()),
-                next_sequence_no: Set(0),
-            }),
-            _ => None,
-        });
-    match attestation_type::Entity::insert_many(insert)
-        .on_conflict(
-            OnConflict::column(attestation_type::Column::Name)
-                .do_nothing()
-                .to_owned(),
-        )
-        .on_empty_do_nothing()
-        .exec(connection)
-        .await?
-    {
-        TryInsertResult::Empty => Ok(map),
-        _ => {
-            let map = fetch_attestation_type_ids(connection, attestation_types).await?;
-            if !attestation_types
-                .iter()
-                .all(|attestation_type| map.contains_key(attestation_type))
-            {
-                panic!("Missing attestation types from database, even after inserting");
-            }
-            Ok(map)
-        }
-    }
-}
-
-async fn fetch_attestation_type_ids(
-    connection: &DatabaseConnection,
-    attestation_types: impl IntoIterator<Item = &String>,
-) -> Result<HashMap<String, i16>, DbErr> {
-    attestation_type::Entity::find()
-        .filter(attestation_type::Column::Name.is_in(attestation_types))
-        .all(connection)
-        .await
-        .map(|models| {
-            models
-                .into_iter()
-                .map(|model| (model.name, model.id))
-                .collect::<HashMap<_, _>>()
-        })
-}
-
 impl PostgresStatusListServices {
+    pub async fn try_new(
+        connection: DatabaseConnection,
+        settings: StatusListsSettings,
+        attestation_types: &[String],
+    ) -> Result<Self, StatusListServiceError> {
+        let services = initialize_attestation_type_ids(&connection, attestation_types)
+            .await?
+            .into_iter()
+            .map(|(attestation_type, type_id)| {
+                let service = PostgresStatusListService {
+                    connection: connection.clone(),
+                    type_id,
+                    list_size: settings.list_size,
+                    create_threshold: settings.create_threshold,
+                };
+                (attestation_type, service)
+            })
+            .collect();
+        Ok(PostgresStatusListServices(services))
+    }
+
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
@@ -617,6 +560,61 @@ impl PostgresStatusListService {
             log::warn!("Failed to delete status list items of {}: {}", id, err);
         }
     }
+}
+
+async fn initialize_attestation_type_ids(
+    connection: &DatabaseConnection,
+    attestation_types: &[String],
+) -> Result<HashMap<String, i16>, DbErr> {
+    let map = fetch_attestation_type_ids(connection, attestation_types).await?;
+    let insert = attestation_types
+        .iter()
+        .filter_map(|attestation_type| match map.get(attestation_type) {
+            None => Some(attestation_type::ActiveModel {
+                id: NotSet,
+                name: Set(attestation_type.to_string()),
+                next_sequence_no: Set(0),
+            }),
+            _ => None,
+        });
+    match attestation_type::Entity::insert_many(insert)
+        .on_conflict(
+            OnConflict::column(attestation_type::Column::Name)
+                .do_nothing()
+                .to_owned(),
+        )
+        .on_empty_do_nothing()
+        .exec(connection)
+        .await?
+    {
+        TryInsertResult::Empty => Ok(map),
+        _ => {
+            let map = fetch_attestation_type_ids(connection, attestation_types).await?;
+            if !attestation_types
+                .iter()
+                .all(|attestation_type| map.contains_key(attestation_type))
+            {
+                panic!("Missing attestation types from database, even after inserting");
+            }
+            Ok(map)
+        }
+    }
+}
+
+async fn fetch_attestation_type_ids(
+    connection: &DatabaseConnection,
+    attestation_types: impl IntoIterator<Item = &String>,
+) -> Result<HashMap<String, i16>, DbErr> {
+    attestation_type::Entity::find()
+        .filter(attestation_type::Column::Name.is_in(attestation_types))
+        .all(connection)
+        .await
+        .map(|models| {
+            models
+                .into_iter()
+                .map(|model| (model.name, model.id))
+                .collect::<HashMap<_, _>>()
+        })
 }
 
 #[cfg(test)]
