@@ -92,9 +92,11 @@ where
     let documents = path
         .iter()
         .map(|path| {
-            let json = fs::read(prefix_local_path(path.as_ref())).map_err(de::Error::custom)?;
-            let metadata =
-                serde_json::from_slice::<UncheckedTypeMetadata>(json.as_slice()).map_err(de::Error::custom)?;
+            let path = prefix_local_path(path.as_ref());
+            let json = fs::read(&path)
+                .map_err(|err| de::Error::custom(format!("could not read `{}`: {}", path.display(), err)))?;
+            let metadata = serde_json::from_slice::<UncheckedTypeMetadata>(json.as_slice())
+                .map_err(|err| de::Error::custom(format!("could not deserialize `{}`: {}", path.display(), err)))?;
 
             Ok((metadata.vct.clone(), (metadata, json)))
         })
