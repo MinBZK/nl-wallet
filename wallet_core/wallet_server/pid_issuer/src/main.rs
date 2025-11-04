@@ -53,10 +53,8 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             "No database connection configured for status list in pid issuer"
         )),
     }?;
-    let status_list_configs = issuer_settings
-        .attestation_settings
-        .as_ref()
-        .iter()
+    let status_list_configs = (&issuer_settings.attestation_settings)
+        .into_iter()
         .map(|(id, type_settings)| {
             (
                 id.to_string(),

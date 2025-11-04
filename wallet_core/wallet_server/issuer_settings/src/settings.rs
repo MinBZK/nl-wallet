@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use chrono::Days;
 use derive_more::AsRef;
 use derive_more::From;
+use derive_more::IntoIterator;
 use futures::future::join_all;
 use indexmap::IndexMap;
 use rustls_pki_types::TrustAnchor;
@@ -53,8 +54,8 @@ pub struct IssuerSettings {
     pub server_settings: Settings,
 }
 
-#[derive(Clone, Deserialize, From, AsRef)]
-pub struct AttestationTypesConfigSettings(HashMap<String, AttestationTypeConfigSettings>);
+#[derive(Clone, Deserialize, From, IntoIterator, AsRef)]
+pub struct AttestationTypesConfigSettings(#[into_iterator(owned, ref)] HashMap<String, AttestationTypeConfigSettings>);
 
 #[derive(Clone, Deserialize)]
 pub struct AttestationTypeConfigSettings {

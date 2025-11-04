@@ -56,11 +56,8 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             "No database connection configured for status list in issuance server"
         )),
     }?;
-    let status_list_configs = settings
-        .issuer_settings
-        .attestation_settings
-        .as_ref()
-        .iter()
+    let status_list_configs = (&settings.issuer_settings.attestation_settings)
+        .into_iter()
         .map(|(id, type_settings)| {
             (
                 id.to_string(),
