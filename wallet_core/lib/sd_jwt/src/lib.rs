@@ -163,26 +163,24 @@ pub mod sd_jwt;
 #[cfg(any(test, feature = "examples"))]
 pub mod examples;
 
-#[cfg(test)]
-mod test;
+#[cfg(any(test, feature = "test"))]
+pub mod test;
 
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use futures::FutureExt;
     use rstest::rstest;
     use serde_json::json;
 
     use attestation_types::claim_path::ClaimPath;
-    use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
-    use crate::builder::SdJwtBuilder;
-    use crate::builder::SignedSdJwt;
     use crate::error::ClaimError;
     use crate::sd_jwt::SdJwtVcClaims;
+    use crate::test::conceal_and_sign;
+    use crate::test::disclose_claims;
 
     fn test_object() -> SdJwtVcClaims {
         let input_object = json!({
@@ -230,13 +228,11 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
 
-        let input = test_object();
-
         // conceal all claims, and encode as an SD-JWT
-        let sd_jwt = conceal_test_object(&issuer_keypair, input, all_claims());
+        let signed_sd_jwt = conceal_and_sign(&issuer_keypair, test_object(), all_claims());
 
         // disclose all claims
-        let unsigned_sd_jwt = disclose_claims(sd_jwt.into_verified(), &all_claims());
+        let unsigned_sd_jwt = disclose_claims(signed_sd_jwt.into_verified(), &all_claims());
 
         // decode the disclosed SD-JWT
         let claims = unsigned_sd_jwt.as_ref().decoded_claims().unwrap();
@@ -269,7 +265,7 @@ mod tests {
         let input = test_object();
 
         // conceal claims, and encode as an SD-JWT
-        let sd_jwt = conceal_test_object(&issuer_keypair, input, concealed_claims);
+        let sd_jwt = conceal_and_sign(&issuer_keypair, input, concealed_claims);
         let verified_sd_jwt = sd_jwt.into_verified();
 
         assert_eq!(
@@ -322,39 +318,12 @@ mod tests {
         let input = test_object();
 
         // conceal claims, and encode as an SD-JWT
-        let sd_jwt = conceal_test_object(&issuer_keypair, input, concealed_claims);
+        let sd_jwt = conceal_and_sign(&issuer_keypair, input, concealed_claims);
         let verified_sd_jwt = sd_jwt.into_verified();
 
         let error = verified_sd_jwt.is_selectively_disclosable(&path).unwrap_err();
 
         verify_expected_error(error);
-    }
-
-    fn disclose_claims(
-        verified_sd_jwt: crate::sd_jwt::VerifiedSdJwt,
-        all_claims: &[VecNonEmpty<ClaimPath>],
-    ) -> crate::sd_jwt::UnsignedSdJwtPresentation {
-        let mut presentation_builder = verified_sd_jwt.into_presentation_builder();
-
-        for claim_path in all_claims {
-            presentation_builder = presentation_builder.disclose(claim_path).unwrap();
-        }
-
-        presentation_builder.finish()
-    }
-
-    fn conceal_test_object(
-        issuer_keypair: &KeyPair,
-        input: SdJwtVcClaims,
-        claims_to_conceal: Vec<VecNonEmpty<ClaimPath>>,
-    ) -> SignedSdJwt {
-        let mut builder = SdJwtBuilder::new(input);
-
-        for claim_to_conceal in claims_to_conceal {
-            builder = builder.make_concealable(claim_to_conceal).unwrap();
-        }
-
-        builder.finish(issuer_keypair).now_or_never().unwrap().unwrap()
     }
 
     fn all_claims() -> Vec<VecNonEmpty<ClaimPath>> {

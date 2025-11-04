@@ -124,7 +124,7 @@ dcql = { path = "../dcql", features = ["mock"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }
-sd_jwt = { path = "../sd_jwt", features = ["examples"] }
+sd_jwt = { path = "../sd_jwt", features = ["examples", "test"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 token_status_list = { path = "../token_status_list", features = ["mock"] }
 utils = { path = "../utils", features = ["mock_time"] }
