@@ -345,7 +345,6 @@ pub struct AttestationTypeConfig<K> {
     pub valid_days: Days,
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
     pub issuer_uri: HttpsUri,
-    pub status_list_base_url: BaseUrl,
     pub attestation_qualification: AttestationQualification,
     #[debug(skip)]
     pub metadata_documents: TypeMetadataDocuments,
@@ -362,7 +361,6 @@ impl<K> AttestationTypeConfig<K> {
         valid_days: Days,
         copies_per_format: IndexMap<Format, NonZeroU8>,
         issuer_uri: HttpsUri,
-        status_list_base_url: BaseUrl,
         attestation_qualification: AttestationQualification,
         metadata_documents: TypeMetadataDocuments,
     ) -> Result<Self, TypeMetadataChainError> {
@@ -375,7 +373,6 @@ impl<K> AttestationTypeConfig<K> {
             valid_days,
             copies_per_format,
             issuer_uri,
-            status_list_base_url,
             attestation_qualification,
             metadata_documents: sorted_documents.into(),
             first_metadata_integrity,
@@ -1040,7 +1037,6 @@ impl Session<WaitingForResponse> {
             .obtain_status_claims(
                 &preview.credential_payload.attestation_type,
                 preview.batch_id,
-                config.status_list_base_url.clone(),
                 preview.credential_payload.expires,
                 1.try_into().unwrap(),
             )
@@ -1166,12 +1162,11 @@ impl Session<WaitingForResponse> {
 
         // Obtain a status claim for every attestation copy, linked to a single batch id per preview
         let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
-            |(preview, config, format_pubkeys)| async move {
+            |(preview, _, format_pubkeys)| async move {
                 let claims = status_list_service
                     .obtain_status_claims(
                         &preview.credential_payload.attestation_type,
                         preview.batch_id,
-                        config.status_list_base_url.clone(),
                         preview.credential_payload.expires,
                         format_pubkeys.len(),
                     )
@@ -1380,7 +1375,6 @@ mod tests {
             Days::new(1),
             IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
             "https://example.com".parse().unwrap(),
-            "https://cdn.example.com/tsl".parse().unwrap(),
             AttestationQualification::default(),
             TypeMetadataDocuments::degree_example().1,
         )

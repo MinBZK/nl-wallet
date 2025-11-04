@@ -21,7 +21,7 @@ integration_test = []
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
-derive_more = { workspace = true, features = ["from", "into"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true
 log.workspace = true
@@ -43,6 +43,7 @@ url.workspace = true
 
 crypto.path = "../../lib/crypto"
 http_utils.path = "../../lib/http_utils"
+server_utils.path = "../server_utils"
 token_status_list.path = "../../lib/token_status_list"
 utils.path = "../../lib/utils"
 
@@ -55,4 +56,5 @@ indexmap.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 uuid = { workspace = true, features = ["v4"] }
 
-server_utils = { path = "../server_utils", features = ["postgres"] }
+crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
+server_utils = { path = "../server_utils", features = ["parsed_key_pair_conversion", "postgres"] }

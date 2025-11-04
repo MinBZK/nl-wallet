@@ -108,7 +108,6 @@ fn setup(
                         .san_dns_name_or_uris()
                         .unwrap()
                         .into_first(),
-                    "https://cdn.example.com/tsl".parse().unwrap(),
                     AttestationQualification::default(),
                     metadata_documents,
                 )
