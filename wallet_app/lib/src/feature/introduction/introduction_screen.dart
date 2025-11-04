@@ -157,8 +157,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       top: normalizedOffset,
       left: 0,
       right: 0,
-      child: const ExcludeSemantics(
-        child: GovernmentLogo(),
+      child: const Center(
+        child: ExcludeSemantics(
+          child: GovernmentLogo(),
+        ),
       ),
     );
   }
