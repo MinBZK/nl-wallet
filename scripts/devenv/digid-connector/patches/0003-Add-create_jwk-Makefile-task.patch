@@ -13,9 +13,23 @@ diff --git a/Makefile b/Makefile
 index cfaf1c1..a04dae0 100644
 --- a/Makefile
 +++ b/Makefile
+@@ -4,7 +4,7 @@ create_key_pair =
+ venv: .venv/touchfile ## Create virtual environment
+ .venv/touchfile:
+ 	test -d .venv || python3 -m venv .venv
+-	. .venv/bin/activate; pip install -U pip
++	. .venv/bin/activate; pip install 'pip < 25.3'
+ 	. .venv/bin/activate; pip install pip-tools
+ 	. .venv/bin/activate && ${env} pip-compile --extra dev
+ 	. .venv/bin/activate && ${env} pip-sync
+
+diff --git a/Makefile b/Makefile
+index cfaf1c1..a04dae0 100644
+--- a/Makefile
++++ b/Makefile
 @@ -59,3 +59,6 @@ coverage:
  	. .venv/bin/activate && ${env} coverage run -m pytest tests && coverage report && coverage html
- 
+
  check-all: fix check type-check test audit
 +
 +create-jwk:
@@ -41,6 +55,5 @@ index 0000000..7dd0eec
 +
 +if __name__ == "__main__":
 +    main()
--- 
+--
 2.43.0
-
