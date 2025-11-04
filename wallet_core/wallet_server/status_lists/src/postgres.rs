@@ -288,15 +288,15 @@ impl PostgresStatusListService {
                 return Ok((tx, lists));
             }
 
-            if tries == 0 {
+            if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
+                log::warn!(
+                    "Creating status list in flight, increase threshold to at least {}",
+                    copies
+                );
+            } else if tries == 0 {
                 return Err(StatusListServiceError::NoStatusListAvailable());
             }
             tries -= 1;
-
-            log::warn!(
-                "Creating status list in flight, increase threshold to at least {}",
-                copies
-            );
 
             let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or_default();
             if !self.create_status_list(next_sequence_no, true).await? {
