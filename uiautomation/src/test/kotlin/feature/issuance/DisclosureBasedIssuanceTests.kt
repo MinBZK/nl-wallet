@@ -156,7 +156,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         )
 
         cardIssuanceScreen.clickBackButton()
-        cardIssuanceScreen.clickAdd2CardsButton()
+        cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton();
         dashboardScreen.scrollToEndOfScreen()
