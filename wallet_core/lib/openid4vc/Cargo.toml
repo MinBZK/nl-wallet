@@ -46,10 +46,10 @@ cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 dashmap.workspace = true
 derive_more = { workspace = true, features = [
+    "as_ref",
+    "constructor",
     "debug",
     "display",
-    "constructor",
-    "as_ref",
     "from",
     "from_str",
     "into",
@@ -57,11 +57,9 @@ derive_more = { workspace = true, features = [
 ] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
-http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
-jsonwebtoken.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
@@ -109,6 +107,7 @@ parking_lot.workspace = true
 rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
+serial_test.workspace = true
 tracing-test.workspace = true
 ts-rs.workspace = true
 wiremock.workspace = true
@@ -119,8 +118,10 @@ attestation_data = { path = "../attestation_data", features = [
     "example_credential_payloads",
     "test_credential",
 ] }
+attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
 crypto = { path = "../crypto", features = ["examples"] }
 dcql = { path = "../dcql", features = ["mock"] }
+http.workspace = true
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }

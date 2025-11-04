@@ -75,7 +75,7 @@ where
         .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
-pub async fn is_pin_recovery_key<S, T>(db: &T, wallet_id: &str, key: VerifyingKey) -> Result<bool>
+pub async fn is_pin_recovery_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<bool>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -83,7 +83,7 @@ where
     let is_recovery_key = match wallet_user_key::Entity::find()
         .filter(
             wallet_user_key::Column::WalletUserId
-                .eq(wallet_id)
+                .eq(wallet_user_id)
                 .and(wallet_user_key::Column::PublicKey.eq(key.to_public_key_der()?.into_vec()))
                 .and(wallet_user_key::Column::EncryptedPrivateKey.is_null()),
         )

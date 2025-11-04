@@ -181,6 +181,7 @@ mod tests {
     use dcql::CredentialFormat;
     use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
+    use openid4vc::Format;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
@@ -188,6 +189,7 @@ mod tests {
     use openid4vc::credential::Grants;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
+    use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
@@ -298,7 +300,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let credential_preview = create_example_preview_data(&MockTimeGenerator::default());
+        let credential_preview = create_example_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();
@@ -345,9 +347,9 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
-            .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .returning(move |_| Ok(vec![expectation_attestation_copy.clone()]));
 
         // Accept disclosure based issuance
         let previews = wallet
@@ -379,7 +381,7 @@ mod tests {
             Err((
                 MockDisclosureSession::new(),
                 disclosure_session::DisclosureError::new(
-                    true,
+                    DataDisclosed::Disclosed,
                     VpSessionError::Client(VpClientError::Request(
                         DisclosureErrorResponse {
                             error_response: PostAuthResponseError::HandlingDisclosureResult(

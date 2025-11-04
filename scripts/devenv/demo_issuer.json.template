@@ -96,6 +96,35 @@
         "credential_type": "urn:eudi:pid:nl:1",
         "path": ["urn:eudi:pid:nl:1", "bsn"]
       }
+    },
+    "housing": {
+      "client_id": "housing.example.com",
+      "data": {
+        "999991772": [
+          {
+            "attestation_type": "com.example.housing",
+            "attributes": {
+              "rent": "€ 720,00",
+              "service_charges": "€ 48,00",
+              "eligible_service_charges": "€ 40,00"
+            }
+          }
+        ],
+        "999991905": [
+          {
+            "attestation_type": "com.example.housing",
+            "attributes": {
+              "rent": "€ 720,00",
+              "service_charges": "€ 48,00",
+              "eligible_service_charges": "€ 40,00"
+            }
+          }
+        ]
+      },
+      "disclosed": {
+        "credential_type": "urn:eudi:pid:nl:1",
+        "path": ["urn:eudi:pid:nl:1", "bsn"]
+      }
     }
   }
 }

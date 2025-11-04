@@ -56,10 +56,15 @@ class WalletTransferAwaitingConfirmation extends WalletTransferTargetState {
 
 /// Represents the state where the transfer is actively in progress.
 class WalletTransferTransferring extends WalletTransferTargetState {
+  final bool isReceiving;
+
   @override
   FlowProgress? get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: _kTransferSteps);
 
-  const WalletTransferTransferring();
+  const WalletTransferTransferring({required this.isReceiving});
+
+  @override
+  List<Object?> get props => [isReceiving, super.props];
 }
 
 /// Represents the state when the wallet transfer has been successfully completed.

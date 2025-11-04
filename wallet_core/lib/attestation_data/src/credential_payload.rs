@@ -41,6 +41,7 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
+use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 
@@ -69,7 +70,7 @@ pub struct CredentialPayload {
     pub vct_integrity: Integrity,
 
     /// The information on how to read the status of the Verifiable Credential.
-    pub status: Option<serde_json::Value>,
+    pub status: StatusClaim,
 
     #[serde(flatten)]
     pub previewable_payload: PreviewableCredentialPayload,
@@ -88,6 +89,7 @@ impl TryFrom<CredentialPayload> for SdJwtVcClaims {
             nbf: value.previewable_payload.not_before,
             cnf: value.confirmation_key,
             attestation_qualification: Some(value.previewable_payload.attestation_qualification),
+            status: Some(value.status),
             _sd_alg: None, // TODO this should be handled elsewhere (PVW-5121)
 
             claims: value.previewable_payload.attributes.try_into()?,
@@ -232,6 +234,10 @@ pub enum SdJwtCredentialPayloadError {
     #[error("error converting claim path to JSON path: {0}")]
     #[category(pd)]
     ClaimPathConversion(#[source] TypeMetadataError),
+
+    #[error("missing status claim")]
+    #[category(critical)]
+    MissingStatusClaim,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -267,6 +273,10 @@ pub enum MdocCredentialPayloadError {
     #[error("error signing mdoc: {0}")]
     #[category(pd)]
     SigningError(#[from] CoseError),
+
+    #[error("missing status claim")]
+    #[category(critical)]
+    MissingStatusClaim,
 }
 
 impl CredentialPayload {
@@ -276,12 +286,13 @@ impl CredentialPayload {
         confirmation_key: RequiredKeyBinding,
         metadata: &NormalizedTypeMetadata,
         vct_integrity: Integrity,
+        status: StatusClaim,
     ) -> Result<Self, CredentialPayloadError> {
         let payload = CredentialPayload {
             issued_at,
             confirmation_key,
             vct_integrity,
-            status: None,
+            status,
             previewable_payload,
         };
 
@@ -295,6 +306,7 @@ impl CredentialPayload {
         holder_pubkey: &VerifyingKey,
         metadata: &NormalizedTypeMetadata,
         metadata_integrity: Integrity,
+        status: StatusClaim,
     ) -> Result<Self, CredentialPayloadError> {
         let confirmation_key = jwk_from_p256(holder_pubkey).map_err(CredentialPayloadError::JwkConversion)?;
         Self::new(
@@ -303,6 +315,7 @@ impl CredentialPayload {
             RequiredKeyBinding::Jwk(confirmation_key),
             metadata,
             metadata_integrity,
+            status,
         )
     }
 
@@ -310,7 +323,7 @@ impl CredentialPayload {
         sd_jwt: VerifiedSdJwt,
         metadata: &NormalizedTypeMetadata,
     ) -> Result<Self, SdJwtCredentialPayloadError> {
-        let (previewable_payload, issued_at, confirmation_key, vct_integrity) = split_sd_jwt(sd_jwt)?;
+        let (previewable_payload, issued_at, confirmation_key, vct_integrity, status) = split_sd_jwt(sd_jwt)?;
 
         Ok(Self::new(
             previewable_payload,
@@ -321,11 +334,13 @@ impl CredentialPayload {
                 .as_ref()
                 .ok_or(SdJwtCredentialPayloadError::MissingMetadataIntegrity)?
                 .to_owned(),
+            status.ok_or(SdJwtCredentialPayloadError::MissingStatusClaim)?,
         )?)
     }
 
     pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, MdocCredentialPayloadError> {
-        let (previewable_payload, issued_at, device_key_info, type_metadata_integrity) = split_mdoc(mdoc, metadata)?;
+        let (previewable_payload, issued_at, device_key_info, type_metadata_integrity, status) =
+            split_mdoc(mdoc, metadata)?;
 
         let confirmation_key =
             jwk_from_p256(&VerifyingKey::try_from(device_key_info)?).map_err(CredentialPayloadError::JwkConversion)?;
@@ -335,6 +350,7 @@ impl CredentialPayload {
             RequiredKeyBinding::Jwk(confirmation_key),
             metadata,
             type_metadata_integrity.ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
+            status.ok_or(MdocCredentialPayloadError::MissingStatusClaim)?,
         )?)
     }
 
@@ -416,6 +432,7 @@ impl CredentialPayload {
             validity_info: validity,
             issuer_uri: Some(self.previewable_payload.issuer),
             attestation_qualification: Some(self.previewable_payload.attestation_qualification),
+            status: Some(self.status),
             type_metadata_integrity: Some(self.vct_integrity),
         };
 
@@ -435,6 +452,7 @@ impl CredentialPayload {
     }
 }
 
+#[expect(clippy::type_complexity, reason = "used for splitting attestation into parts")]
 fn split_sd_jwt(
     sd_jwt: VerifiedSdJwt,
 ) -> Result<
@@ -443,6 +461,7 @@ fn split_sd_jwt(
         DateTimeSeconds,
         RequiredKeyBinding,
         Option<Integrity>,
+        Option<StatusClaim>,
     ),
     SdJwtPreviewableCredentialPayloadError,
 > {
@@ -464,9 +483,10 @@ fn split_sd_jwt(
         attributes,
     };
 
-    Ok((payload, claims.iat, claims.cnf, claims.vct_integrity))
+    Ok((payload, claims.iat, claims.cnf, claims.vct_integrity, claims.status))
 }
 
+#[expect(clippy::type_complexity, reason = "used for splitting attestation into parts")]
 fn split_mdoc(
     mdoc: Mdoc,
     metadata: &NormalizedTypeMetadata,
@@ -476,6 +496,7 @@ fn split_mdoc(
         DateTimeSeconds,
         DeviceKeyInfo,
         Option<Integrity>,
+        Option<StatusClaim>,
     ),
     MdocPreviewableCredentialPayloadError,
 > {
@@ -508,7 +529,13 @@ fn split_mdoc(
             .map_err(MdocPreviewableCredentialPayloadError::Attributes)?,
     };
 
-    Ok((payload, iat, mso.device_key_info, mso.type_metadata_integrity))
+    Ok((
+        payload,
+        iat,
+        mso.device_key_info,
+        mso.type_metadata_integrity,
+        mso.status,
+    ))
 }
 
 #[cfg(any(test, feature = "example_credential_payloads"))]
@@ -519,14 +546,14 @@ mod examples {
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     use utils::generator::Generator;
 
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
-    use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::*;
 
@@ -536,12 +563,13 @@ mod examples {
             issued_at: DateTime<Utc>,
             holder_pubkey: &VerifyingKey,
             metadata_integrity: Integrity,
+            status: StatusClaim,
         ) -> Result<Self, JwkConversionError> {
             let payload = CredentialPayload {
                 issued_at: issued_at.into(),
                 confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
                 vct_integrity: metadata_integrity,
-                status: None,
+                status,
                 previewable_payload,
             };
 
@@ -561,7 +589,7 @@ mod examples {
                 issued_at: time.into(),
                 confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
                 vct_integrity: Integrity::from(""),
-                status: None,
+                status: StatusClaim::new_mock(),
                 previewable_payload,
             }
         }
@@ -627,11 +655,11 @@ mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::generator::Generator;
 
     use crate::attributes::Attributes;
-    use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -689,6 +717,7 @@ mod test {
     use ssri::Integrity;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
@@ -715,7 +744,6 @@ mod test {
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::pid_constants::PID_ATTESTATION_TYPE;
     use crate::x509::CertificateType;
 
     use super::*;
@@ -755,6 +783,7 @@ mod test {
             SigningKey::random(&mut OsRng).verifying_key(),
             &metadata,
             metadata_integrity.clone(),
+            StatusClaim::new_mock(),
         )
         .unwrap();
 
@@ -876,7 +905,7 @@ mod test {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
             confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
             vct_integrity: Integrity::from(""),
-            status: None,
+            status: StatusClaim::new_mock(),
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: String::from("com.example.pid"),
                 issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
@@ -892,6 +921,12 @@ mod test {
             "vct#integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
             "iss": "https://com.example.org/pid/issuer",
             "iat": 61,
+            "status": {
+                "status_list": {
+                    "idx": 0,
+                    "uri": "https://example.com/statuslists/1"
+                }
+            },
             "attestation_qualification": "QEAA",
             "cnf": {
                 "jwk": confirmation_key
@@ -937,6 +972,7 @@ mod test {
             holder_key.verifying_key(),
             &metadata,
             Integrity::from(""),
+            StatusClaim::new_mock(),
         )
         .unwrap();
 
@@ -965,6 +1001,7 @@ mod test {
             holder_key.verifying_key(),
             &metadata,
             Integrity::from(""),
+            StatusClaim::new_mock(),
         )
         .expect_err("wrong family_name type should fail validation");
 

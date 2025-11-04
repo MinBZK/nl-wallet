@@ -130,10 +130,10 @@ impl WalletUserRepository for Repositories {
     async fn is_pin_recovery_key(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_user_id: Uuid,
         key: VerifyingKey,
     ) -> Result<bool, PersistenceError> {
-        wallet_user_key::is_pin_recovery_key(transaction, wallet_id, key).await
+        wallet_user_key::is_pin_recovery_key(transaction, wallet_user_id, key).await
     }
 
     async fn find_keys_by_identifiers(
@@ -244,19 +244,14 @@ impl WalletUserRepository for Repositories {
             .await
     }
 
-    async fn confirm_wallet_transfer(
+    async fn pair_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
         source_wallet_user_id: Uuid,
         destination_wallet_user_id: Uuid,
         transfer_session_id: Uuid,
     ) -> Result<(), PersistenceError> {
-        wallet_transfer::update_transfer_state(
-            transaction,
-            transfer_session_id,
-            TransferSessionState::ReadyForTransfer,
-        )
-        .await?;
+        wallet_transfer::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Paired).await?;
         wallet_transfer::set_transfer_source(transaction, transfer_session_id, source_wallet_user_id).await?;
         wallet_user::transition_wallet_user_state(
             transaction,
@@ -313,18 +308,22 @@ impl WalletUserRepository for Repositories {
         wallet_transfer::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Created).await
     }
 
+    async fn confirm_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<(), PersistenceError> {
+        wallet_transfer::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Confirmed).await
+    }
+
     async fn store_wallet_transfer_data(
         &self,
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
         encrypted_wallet_data: String,
     ) -> Result<(), PersistenceError> {
-        wallet_transfer::update_transfer_state(
-            transaction,
-            transfer_session_id,
-            TransferSessionState::ReadyForDownload,
-        )
-        .await?;
+        wallet_transfer::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Uploaded)
+            .await?;
         wallet_transfer::set_wallet_transfer_data(transaction, transfer_session_id, Some(encrypted_wallet_data)).await
     }
 
@@ -458,7 +457,7 @@ pub mod mock {
             async fn is_pin_recovery_key(
                 &self,
                 _transaction: &MockTransaction,
-                _wallet_id: &str,
+                _wallet_user_id: Uuid,
                 _key: VerifyingKey,
             ) -> Result<bool, PersistenceError>;
 
@@ -536,7 +535,7 @@ pub mod mock {
                 destination_wallet_user_id: Uuid,
             ) -> Result<Option<Uuid>, PersistenceError>;
 
-            async fn confirm_wallet_transfer(&self,
+            async fn pair_wallet_transfer(&self,
                 transaction: &MockTransaction,
                 source_wallet_user_id: Uuid,
                 destination_wallet_user_id: Uuid,
@@ -558,6 +557,12 @@ pub mod mock {
                 transfer_session_id: Uuid,
                 source_wallet_user_id: Option<Uuid>,
                 destination_wallet_user_id: Uuid,
+            ) -> Result<(), PersistenceError>;
+
+            async fn confirm_wallet_transfer(
+                &self,
+                transaction: &MockTransaction,
+                transfer_session_id: Uuid,
             ) -> Result<(), PersistenceError>;
 
             async fn store_wallet_transfer_data(
@@ -697,7 +702,7 @@ pub mod mock {
         async fn is_pin_recovery_key(
             &self,
             _transaction: &MockTransaction,
-            _wallet_id: &str,
+            _wallet_user_id: Uuid,
             _key: VerifyingKey,
         ) -> Result<bool, PersistenceError> {
             Ok(true)
@@ -809,7 +814,7 @@ pub mod mock {
             Ok(None)
         }
 
-        async fn confirm_wallet_transfer(
+        async fn pair_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
             _source_wallet_user_id: Uuid,
@@ -836,6 +841,14 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Option<Uuid>,
             _destination_wallet_user_id: Uuid,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn confirm_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

@@ -8,6 +8,7 @@ mod init;
 mod instruction_client;
 mod issuance;
 mod lock;
+mod pin_recovery;
 mod registration;
 mod reset;
 mod state;
@@ -28,6 +29,7 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
@@ -37,6 +39,7 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::pin_recovery::PinRecoverySession;
 
 use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
@@ -56,6 +59,7 @@ pub use self::issuance::IssuanceResult;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
+pub use self::pin_recovery::PinRecoveryError;
 pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
 pub use self::state::WalletState;
@@ -104,6 +108,10 @@ enum Session<DS, IS, DCS> {
     Digid(DS),
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
+    PinRecovery {
+        pid_config: PidAttributesConfiguration,
+        session: PinRecoverySession<DS, IS>,
+    },
 }
 
 pub struct Wallet<

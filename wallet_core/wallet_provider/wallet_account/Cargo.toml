@@ -19,6 +19,7 @@ required-features = ["integration_test"]
 client = ["dep:futures", "dep:p256", "dep:thiserror", "dep:platform_support", "dep:error_category"]
 server = ["dep:p256", "dep:thiserror", "dep:apple_app_attest"]
 integration_test = ["client", "server", "dep:rustls-pki-types", "dep:android_attest"]
+mock = []
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "serde"] }

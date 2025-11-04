@@ -50,6 +50,11 @@ path = "tests/pin_change.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "pin_recovery"
+path = "tests/pin_recovery.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "registration"
 path = "tests/registration.rs"
 required-features = ["integration_test"]
@@ -256,7 +261,7 @@ dotenvy = { workspace = true, optional = true }
 [dev-dependencies]
 itertools.workspace = true
 
-attestation_types.path = "../lib/attestation_types"
+attestation_types = { path = "../lib/attestation_types", features = ["pid_constants"] }
 
 # This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:

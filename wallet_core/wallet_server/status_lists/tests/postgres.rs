@@ -7,8 +7,6 @@ use chrono::Utc;
 use config::Config;
 use config::File;
 use futures::future::try_join_all;
-use indexmap::IndexMap;
-use itertools::Itertools;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -25,12 +23,12 @@ use status_lists::entity::attestation_batch;
 use status_lists::entity::attestation_type;
 use status_lists::entity::status_list;
 use status_lists::entity::status_list_item;
-use status_lists::postgres::PostgresStatusClaimService;
+use status_lists::postgres::PostgresStatusListService;
+use status_lists::postgres::PostgresStatusListServices;
 use status_lists::postgres::StatusListLocation;
 use status_lists::settings::StatusListsSettings;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
-use token_status_list::status_service::StatusClaimService;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::path::prefix_local_path;
 
@@ -51,40 +49,36 @@ async fn connection_and_settings(
 async fn create_status_list_service(
     connection: &DatabaseConnection,
     settings: StatusListsSettings,
-    attestation_types: usize,
-) -> anyhow::Result<(Vec<String>, PostgresStatusClaimService)> {
-    let attestation_types = (0..attestation_types).map(|_| random_string(20)).collect::<Vec<_>>();
-
-    let service = PostgresStatusClaimService::try_new(connection.clone(), settings, &attestation_types).await?;
+) -> anyhow::Result<(String, PostgresStatusListService)> {
+    let attestation_type = random_string(20);
+    let service = PostgresStatusListService::try_new(connection.clone(), settings, attestation_type.clone()).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
-    Ok((attestation_types, service))
+    Ok((attestation_type, service))
 }
 
 async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     settings: StatusListsSettings,
-    attestation_types: &[String],
-) -> anyhow::Result<PostgresStatusClaimService> {
-    let service = PostgresStatusClaimService::try_new(connection.clone(), settings, attestation_types).await?;
+    attestation_type: &str,
+) -> anyhow::Result<PostgresStatusListService> {
+    let service =
+        PostgresStatusListService::try_new(connection.clone(), settings, attestation_type.to_string()).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
     Ok(service)
 }
 
-async fn attestation_ids(connection: &DatabaseConnection, names: &[String]) -> IndexMap<String, i16> {
+async fn attestation_type_id(connection: &DatabaseConnection, name: &str) -> i16 {
     attestation_type::Entity::find()
         .select_only()
-        .column(attestation_type::Column::Name)
         .column(attestation_type::Column::Id)
-        .filter(attestation_type::Column::Name.is_in(names))
-        .order_by_asc(attestation_type::Column::Id)
+        .filter(attestation_type::Column::Name.eq(name))
         .into_tuple()
-        .all(connection)
+        .one(connection)
         .await
         .unwrap()
-        .into_iter()
-        .collect::<IndexMap<_, _>>()
+        .unwrap()
 }
 
 async fn assert_status_list_items(
@@ -124,37 +118,30 @@ async fn assert_status_list_items(
     items
 }
 
-async fn fetch_status_list(connection: &DatabaseConnection, attestation_type_id: i16) -> Vec<status_list::Model> {
+async fn fetch_status_list(connection: &DatabaseConnection, type_id: i16) -> Vec<status_list::Model> {
     status_list::Entity::find()
-        .filter(status_list::Column::AttestationTypeId.eq(attestation_type_id))
+        .filter(status_list::Column::AttestationTypeId.eq(type_id))
         .order_by_asc(status_list::Column::NextSequenceNo)
         .all(connection)
         .await
         .unwrap()
 }
 
-async fn update_availability_of_status_list(
-    connection: &DatabaseConnection,
-    attestation_type_id: i16,
-    availability: i32,
-) {
+async fn update_availability_of_status_list(connection: &DatabaseConnection, type_id: i16, availability: i32) {
     // Make second list empty
     let result = status_list::Entity::update_many()
         .col_expr(status_list::Column::Available, Expr::value(availability))
-        .filter(status_list::Column::AttestationTypeId.eq(attestation_type_id))
+        .filter(status_list::Column::AttestationTypeId.eq(type_id))
         .exec(connection)
         .await
         .unwrap();
     match result.rows_affected {
         0 => panic!(
             "Not updated availability of status list for attestation type {}",
-            attestation_type_id
+            type_id
         ),
         1 => (),
-        no => panic!(
-            "Updated {} status lists for attestation type {}",
-            no, attestation_type_id
-        ),
+        no => panic!("Updated {} status lists for attestation type {}", no, type_id),
     }
 }
 
@@ -180,57 +167,102 @@ async fn fetch_attestation_batches(
 #[tokio::test]
 async fn test_service_initializes_status_lists() {
     let (connection, settings) = connection_and_settings(10, 1).await.unwrap();
-    let (attestation_types, _) = create_status_list_service(&connection, settings, 1).await.unwrap();
+    let (attestation_type, _) = create_status_list_service(&connection, settings).await.unwrap();
 
-    let db_types = attestation_type::Entity::find()
-        .filter(attestation_type::Column::Name.is_in(attestation_types))
-        .all(&connection)
+    let attestation_type = attestation_type::Entity::find()
+        .filter(attestation_type::Column::Name.eq(attestation_type))
+        .one(&connection)
         .await
+        .unwrap()
         .unwrap();
-    assert_eq!(db_types.len(), 1);
-    assert_eq!(db_types[0].next_sequence_no, 10);
+    assert_eq!(attestation_type.next_sequence_no, 10);
 
-    let db_lists = fetch_status_list(&connection, db_types[0].id).await;
+    let db_lists = fetch_status_list(&connection, attestation_type.id).await;
     assert_eq!(db_lists.len(), 1);
     assert_status_list_items(&connection, &db_lists[0], 10, 10, 10, false).await;
 }
 
 #[tokio::test]
-async fn test_service_initializes_schedule_housekeeping() {
-    let (connection, settings) = connection_and_settings(5, 2).await.unwrap();
-    let (attestation_types, _) = create_status_list_service(&connection, settings.clone(), 3)
+async fn test_service_initializes_multiple_status_lists() {
+    let (connection, settings) = connection_and_settings(4, 1).await.unwrap();
+    let attestation_types = (0..2).map(|_| random_string(20)).collect::<Vec<_>>();
+    let service = PostgresStatusListServices::try_new(connection.clone(), settings, &attestation_types)
+        .await
+        .unwrap();
+    try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
+
+    let attestation_types = attestation_type::Entity::find()
+        .filter(attestation_type::Column::Name.is_in(attestation_types))
+        .all(&connection)
         .await
         .unwrap();
 
-    let type_ids = attestation_ids(&connection, attestation_types.as_slice()).await;
+    for attestation_type in attestation_types {
+        let db_lists = fetch_status_list(&connection, attestation_type.id).await;
+        assert_eq!(db_lists.len(), 1);
+        assert_status_list_items(&connection, &db_lists[0], 4, 4, 4, false).await;
+    }
+}
 
-    // Make list for first attestation type empty
-    update_availability_of_status_list(&connection, *type_ids.get_index(0).unwrap().1, 0).await;
+#[tokio::test]
+async fn test_service_initializes_schedule_housekeeping_empty() {
+    let (connection, settings) = connection_and_settings(5, 2).await.unwrap();
+    let (attestation_type, _) = create_status_list_service(&connection, settings.clone()).await.unwrap();
 
-    // Make list for second attestation type almost empty
-    update_availability_of_status_list(&connection, *type_ids.get_index(1).unwrap().1, 1).await;
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+
+    // Make list empty
+    update_availability_of_status_list(&connection, type_id, 0).await;
 
     // Recreate list with large list size
     let settings = StatusListsSettings {
         list_size: 6.try_into().unwrap(),
         ..settings
     };
-    let _ = recreate_status_list_service(&connection, settings.clone(), &type_ids.keys().cloned().collect_vec()).await;
+    let _ = recreate_status_list_service(&connection, settings, &attestation_type).await;
 
     // Check for empty list if new one is created and properly cleaned up
-    let db_lists = fetch_status_list(&connection, *type_ids.get_index(0).unwrap().1).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[0], 0, 5, 5, true).await;
     assert_status_list_items(&connection, &db_lists[1], 6, 6, 11, false).await;
+}
 
-    // Check for almost empty list if new list is created, but items are still there
-    let db_lists = fetch_status_list(&connection, *type_ids.get_index(1).unwrap().1).await;
+#[tokio::test]
+async fn test_service_initializes_schedule_housekeeping_almost_empty() {
+    let (connection, settings) = connection_and_settings(5, 2).await.unwrap();
+    let (attestation_type, _) = create_status_list_service(&connection, settings.clone()).await.unwrap();
+
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+
+    // Make list almost empty
+    update_availability_of_status_list(&connection, type_id, 1).await;
+
+    // Recreate list with large list size
+    let settings = StatusListsSettings {
+        list_size: 7.try_into().unwrap(),
+        ..settings
+    };
+    let _ = recreate_status_list_service(&connection, settings, &attestation_type).await;
+
+    let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[0], 1, 5, 5, false).await;
-    assert_status_list_items(&connection, &db_lists[1], 6, 6, 11, false).await;
+    assert_status_list_items(&connection, &db_lists[1], 7, 7, 12, false).await;
+}
+
+#[tokio::test]
+async fn test_service_initializes_schedule_housekeeping_full() {
+    let (connection, settings) = connection_and_settings(5, 2).await.unwrap();
+    let (attestation_type, _) = create_status_list_service(&connection, settings.clone()).await.unwrap();
+
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+
+    // Recreate list with large list size
+    let _ = recreate_status_list_service(&connection, settings.clone(), &attestation_type).await;
 
     // Full list should still be same
-    let db_lists = fetch_status_list(&connection, *type_ids.get_index(2).unwrap().1).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1);
     assert_status_list_items(&connection, &db_lists[0], 5, 5, 5, false).await;
 }
@@ -238,28 +270,21 @@ async fn test_service_initializes_schedule_housekeeping() {
 #[tokio::test]
 async fn test_service_create_status_claims() {
     let (connection, settings) = connection_and_settings(9, 5).await.unwrap();
-    let (attestation_types, service) = create_status_list_service(&connection, settings, 1).await.unwrap();
+    let (attestation_type, service) = create_status_list_service(&connection, settings).await.unwrap();
 
-    let db_type_ids = attestation_ids(&connection, attestation_types.as_slice()).await;
-    let attestation_type_id = *db_type_ids.get_index(0).unwrap().1;
-    update_availability_of_status_list(&connection, attestation_type_id, 8).await;
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    update_availability_of_status_list(&connection, type_id, 8).await;
 
     let batch_id = Uuid::new_v4();
     let base_url = "https://example.com/tsl".parse().unwrap();
     let expiration_date: DateTimeSeconds = Utc::now().into();
     let (claims, tasks) = service
-        .obtain_status_claims_and_scheduled_tasks(
-            &attestation_types[0],
-            batch_id,
-            base_url,
-            Some(expiration_date),
-            2.try_into().unwrap(),
-        )
+        .obtain_status_claims_and_scheduled_tasks(batch_id, base_url, Some(expiration_date), 2.try_into().unwrap())
         .await
         .unwrap();
     assert_eq!(tasks.len(), 0);
 
-    let db_lists = fetch_status_list(&connection, attestation_type_id).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1); // No new list creation scheduled
     let db_list_items = assert_status_list_items(&connection, &db_lists[0], 6, 9, 9, false).await;
 
@@ -304,33 +329,26 @@ async fn test_service_create_status_claims() {
 #[tokio::test]
 async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     let (connection, settings) = connection_and_settings(8, 1).await.unwrap();
-    let (attestation_types, service) = create_status_list_service(&connection, settings, 1).await.unwrap();
+    let (attestation_type, service) = create_status_list_service(&connection, settings).await.unwrap();
 
-    let db_type_ids = attestation_ids(&connection, attestation_types.as_slice()).await;
-    let attestation_type_id = *db_type_ids.get_index(0).unwrap().1;
-    update_availability_of_status_list(&connection, attestation_type_id, 1).await;
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    update_availability_of_status_list(&connection, type_id, 1).await;
 
     // Fetch items of current list now, since they will be deleted
-    let db_lists = fetch_status_list(&connection, attestation_type_id).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1);
     let db_old_list_items = assert_status_list_items(&connection, &db_lists[0], 1, 8, 8, false).await;
 
     let batch_id = Uuid::new_v4();
     let base_url = "https://example.com/tsl".parse().unwrap();
     let (claims, tasks) = service
-        .obtain_status_claims_and_scheduled_tasks(
-            &attestation_types[0],
-            batch_id,
-            base_url,
-            None,
-            2.try_into().unwrap(),
-        )
+        .obtain_status_claims_and_scheduled_tasks(batch_id, base_url, None, 2.try_into().unwrap())
         .await
         .unwrap();
     assert_eq!(tasks.len(), 2);
     try_join_all(tasks.into_iter()).await.unwrap();
 
-    let db_lists = fetch_status_list(&connection, attestation_type_id).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[0], 0, 8, 8, true).await;
     let db_new_list_items = assert_status_list_items(&connection, &db_lists[1], 7, 8, 16, false).await;
@@ -373,27 +391,20 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
 #[tokio::test]
 async fn test_service_create_status_claims_concurrently() {
     let (connection, settings) = connection_and_settings(24, 2).await.unwrap();
-    let (attestation_types, service) = create_status_list_service(&connection, settings, 1).await.unwrap();
+    let (attestation_type, service) = create_status_list_service(&connection, settings).await.unwrap();
 
-    let db_type_ids = attestation_ids(&connection, attestation_types.as_slice()).await;
-    let attestation_type_id = *db_type_ids.get_index(0).unwrap().1;
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
 
     let concurrent = 7;
     let num_copies = 3.try_into().unwrap();
     let base_url: BaseUrl = "https://example.com/tsl".parse().unwrap();
-    let claims_per_batch = try_join_all((0..concurrent).map(|_| {
-        service.obtain_status_claims(
-            &attestation_types[0],
-            Uuid::new_v4(),
-            base_url.clone(),
-            None,
-            num_copies,
-        )
-    }))
+    let claims_per_batch = try_join_all(
+        (0..concurrent).map(|_| service.obtain_status_claims(Uuid::new_v4(), base_url.clone(), None, num_copies)),
+    )
     .await
     .unwrap();
 
-    let db_lists = fetch_status_list(&connection, attestation_type_id).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1); // No new list creation scheduled
     let mut db_list_items = assert_status_list_items(&connection, &db_lists[0], 3, 24, 24, false).await;
 

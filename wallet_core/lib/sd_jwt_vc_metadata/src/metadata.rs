@@ -139,6 +139,7 @@ const INTERNAL_ATTRIBUTES: &[&str] = &[
     "exp",
     "iat",
     "sub",
+    "status",
     "attestation_qualification",
 ];
 
@@ -928,6 +929,12 @@ mod test {
           "iat": 1683000000,
           "exp": 1883000000,
           "attestation_qualification": "EAA",
+          "status": {
+              "status_list": {
+                  "idx": 0,
+                  "uri": "https://example.com/statuslists/1"
+              }
+          },
           "place_of_birth": {
             "locality": "DE"
           }
@@ -959,6 +966,12 @@ mod test {
           "iss": "https://example.com/issuer",
           "iat": 1683000000,
           "attestation_qualification": "EAA",
+          "status": {
+              "status_list": {
+                  "idx": 0,
+                  "uri": "https://example.com/statuslists/1"
+              }
+          },
           "financial": {
             "has_job": "yes"
           }
@@ -985,6 +998,12 @@ mod test {
             "iss": "https://example.com/issuer",
             "iat": 1683000000,
             "attestation_qualification": "EAA",
+            "status": {
+                "status_list": {
+                    "idx": 0,
+                    "uri": "https://example.com/statuslists/1"
+                }
+            },
             "birth_date": date_str,
         });
 

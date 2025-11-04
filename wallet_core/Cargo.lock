@@ -672,6 +672,7 @@ dependencies = [
  "ssri",
  "thiserror 2.0.11",
  "time",
+ "token_status_list",
  "tokio",
  "url",
  "utils",
@@ -3104,7 +3105,6 @@ dependencies = [
  "tokio",
  "toml 0.8.22",
  "tower-http",
- "trait-variant",
  "url",
 ]
 
@@ -3655,7 +3655,6 @@ dependencies = [
  "derive_more",
  "error_category",
  "futures",
- "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
  "p256",
@@ -3772,6 +3771,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
 
 [[package]]
+name = "linux-raw-sys"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
+
+[[package]]
 name = "litemap"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3863,11 +3868,11 @@ dependencies = [
  "serde",
  "serde-aux",
  "serde_bytes",
- "serde_json",
  "serde_repr",
  "serde_with",
  "ssri",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tracing",
  "url",
@@ -4229,7 +4234,6 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
- "jsonwebtoken",
  "jwt",
  "mdoc",
  "mime",
@@ -4249,6 +4253,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serde_with",
+ "serial_test",
  "ssri",
  "strfmt",
  "strum 0.26.3",
@@ -5305,7 +5310,20 @@ dependencies = [
  "bitflags 2.8.0",
  "errno",
  "libc",
- "linux-raw-sys",
+ "linux-raw-sys 0.4.15",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "rustix"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd15f8a2c5551a84d56efdc1cd049089e409ac19a3072d5037a17fd70719ff3e"
+dependencies = [
+ "bitflags 2.8.0",
+ "errno",
+ "libc",
+ "linux-raw-sys 0.11.0",
  "windows-sys 0.59.0",
 ]
 
@@ -5437,7 +5455,6 @@ dependencies = [
 name = "sd_jwt"
 version = "0.4.0-dev"
 dependencies = [
- "anyhow",
  "assert_matches",
  "attestation_types",
  "base64 0.22.1",
@@ -5462,6 +5479,7 @@ dependencies = [
  "ssri",
  "strum 0.26.3",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tokio-test",
  "utils",
@@ -6600,7 +6618,7 @@ dependencies = [
  "fastrand",
  "getrandom 0.3.1",
  "once_cell",
- "rustix",
+ "rustix 0.38.44",
  "windows-sys 0.59.0",
 ]
 
@@ -7618,6 +7636,7 @@ dependencies = [
  "serial_test",
  "server_utils",
  "ssri",
+ "token_status_list",
  "tokio",
  "tower-http",
  "tracing",
@@ -7721,6 +7740,7 @@ dependencies = [
  "strum 0.26.3",
  "tempfile",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tracing",
  "trait-variant",
@@ -7832,11 +7852,11 @@ dependencies = [
  "hsm",
  "http",
  "http_utils",
- "libc",
  "log",
  "p256",
  "rand_core",
  "regex",
+ "rustix 1.1.2",
  "rustls",
  "serde",
  "serde_with",
@@ -7856,7 +7876,6 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
- "zstd",
 ]
 
 [[package]]
@@ -8123,7 +8142,7 @@ dependencies = [
  "either",
  "home",
  "once_cell",
- "rustix",
+ "rustix 0.38.44",
 ]
 
 [[package]]

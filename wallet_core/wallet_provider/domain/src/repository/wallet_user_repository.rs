@@ -72,7 +72,7 @@ pub trait WalletUserRepository {
     async fn is_pin_recovery_key(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_user_id: Uuid,
         key: VerifyingKey,
     ) -> Result<bool>;
 
@@ -138,7 +138,7 @@ pub trait WalletUserRepository {
         destination_wallet_user_id: Uuid,
     ) -> Result<Option<Uuid>>;
 
-    async fn confirm_wallet_transfer(
+    async fn pair_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
         source_wallet_user_id: Uuid,
@@ -161,6 +161,12 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
         source_wallet_user_id: Option<Uuid>,
         destination_wallet_user_id: Uuid,
+    ) -> Result<()>;
+
+    async fn confirm_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
     ) -> Result<()>;
 
     async fn store_wallet_transfer_data(
@@ -272,7 +278,7 @@ pub mod mock {
         async fn is_pin_recovery_key(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_user_id: Uuid,
             _key: VerifyingKey,
         ) -> Result<bool> {
             Ok(true)
@@ -362,7 +368,7 @@ pub mod mock {
             Ok(None)
         }
 
-        async fn confirm_wallet_transfer(
+        async fn pair_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
             _source_wallet_user_id: Uuid,
@@ -389,6 +395,14 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Option<Uuid>,
             _destination_wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn confirm_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }

@@ -2,39 +2,23 @@ use std::fmt::Debug;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::mem::MaybeUninit;
+use std::mem::ManuallyDrop;
+use std::os::fd::AsFd;
 use std::os::fd::FromRawFd;
+use std::os::fd::OwnedFd;
 use std::os::fd::RawFd;
 use std::thread;
 
-use libc;
 use log::Level;
 use regex::Regex;
 
-struct Pipe {
-    read_fd: RawFd,
-    write_fd: RawFd,
-}
-
 #[derive(Debug, thiserror::Error)]
-#[error("pipe error {value}")]
-pub struct PipeError {
-    value: i32,
-}
+pub enum LogError {
+    #[error("dup2 error: {0}")]
+    Dup2(#[source] rustix::io::Errno),
 
-impl Pipe {
-    fn try_new() -> Result<Self, PipeError> {
-        let mut fds: MaybeUninit<[libc::c_int; 2]> = MaybeUninit::uninit();
-        let err = unsafe { libc::pipe(fds.as_mut_ptr() as *mut libc::c_int) };
-        if err != 0 {
-            return Err(PipeError { value: err });
-        }
-        let fds = unsafe { fds.assume_init() };
-        Ok(Self {
-            read_fd: fds[0] as RawFd,
-            write_fd: fds[1] as RawFd,
-        })
-    }
+    #[error("pipe error: {0}")]
+    Pipe(#[source] rustix::io::Errno),
 }
 
 struct LevelPattern(Regex);
@@ -56,10 +40,10 @@ impl LevelPattern {
     }
 }
 
-fn redirect_output_to_log(fd: RawFd) -> Result<thread::JoinHandle<()>, PipeError> {
-    let pipe = Pipe::try_new()?;
+fn redirect_output_to_log(fd: RawFd) -> Result<thread::JoinHandle<()>, LogError> {
+    let (read_fd, write_fd) = rustix::pipe::pipe().map_err(LogError::Pipe)?;
     let join_handle = thread::spawn(move || {
-        let reader = unsafe { File::from_raw_fd(pipe.read_fd) };
+        let reader = File::from(read_fd);
         let reader = BufReader::new(reader);
 
         let level_pattern = LevelPattern::new();
@@ -79,10 +63,9 @@ fn redirect_output_to_log(fd: RawFd) -> Result<thread::JoinHandle<()>, PipeError
             };
         }
     });
-    unsafe {
-        libc::dup2(pipe.write_fd, fd);
-        libc::close(pipe.write_fd);
-    }
+    // rustix dup2 requires a &mut OwnedFd, but this module works with RawFd
+    let mut owned_fd = ManuallyDrop::new(unsafe { OwnedFd::from_raw_fd(fd) });
+    rustix::io::dup2(write_fd.as_fd(), &mut owned_fd).map_err(LogError::Dup2)?;
     Ok(join_handle)
 }
 
@@ -95,17 +78,25 @@ pub struct LogRedirect {
 
 impl LogRedirect {
     pub fn stop_and_wait(self) -> thread::Result<()> {
+        // Close the files because it will make the pipe thread stop reading when it reaches EOF
         unsafe {
-            libc::close(self.stdout_fd);
-            libc::close(self.stderr_fd);
+            rustix::io::close(self.stdout_fd);
+            rustix::io::close(self.stderr_fd);
         }
+
         self.stdout_handle.join()?;
         self.stderr_handle.join()?;
+
         Ok(())
     }
 }
 
-fn redirect_stdout_stderr_to_log_with_fd(stdout: RawFd, stderr: RawFd) -> Result<LogRedirect, PipeError> {
+/// Redirects stdout and stderr to a Unix pipe.
+///
+/// Using RawFd instead of OwnedFd to prevent closing stdout or stderr on an
+/// error or on a drop of LogRedirect. When calling `LogRedirect::stop_and_wait`
+/// the file descriptors will be closed.
+fn redirect_stdout_stderr_to_log_with_fd(stdout: RawFd, stderr: RawFd) -> Result<LogRedirect, LogError> {
     Ok(LogRedirect {
         stdout_fd: stdout,
         stderr_fd: stderr,
@@ -121,14 +112,14 @@ fn redirect_stdout_stderr_to_log_with_fd(stdout: RawFd, stderr: RawFd) -> Result
 /// which can be read out by a separate sidecar container to stdout.
 ///
 /// The LogRedirect can be used to stop and wait the processing threads.
-pub fn redirect_stdout_stderr_to_log() -> Result<LogRedirect, PipeError> {
-    redirect_stdout_stderr_to_log_with_fd(libc::STDOUT_FILENO, libc::STDERR_FILENO)
+pub fn redirect_stdout_stderr_to_log() -> Result<LogRedirect, LogError> {
+    redirect_stdout_stderr_to_log_with_fd(rustix::stdio::raw_stdout(), rustix::stdio::raw_stderr())
 }
 
 #[cfg(test)]
 mod test {
-    use std::io::BufWriter;
     use std::io::Write;
+    use std::mem::ManuallyDrop;
     use std::os::fd::AsRawFd;
 
     use log::Level;
@@ -152,18 +143,19 @@ mod test {
     #[traced_test]
     #[test]
     fn test_redirect_stdout_stderr_to_log_with_fd() {
-        let stdout = tempfile().unwrap();
-        let stderr = tempfile().unwrap();
+        // ManuallyDrop because we close the files ourselves via LogRedirect
+        let mut stdout = ManuallyDrop::new(tempfile().unwrap());
+        let mut stderr = ManuallyDrop::new(tempfile().unwrap());
 
         let log_redirect = redirect_stdout_stderr_to_log_with_fd(stdout.as_raw_fd(), stderr.as_raw_fd()).unwrap();
 
         writeln!(
-            BufWriter::new(stdout),
+            *stdout,
             "18.07.2025 18:07:20.251 | [00000001:00000001] C_Test | W: Warning information"
         )
         .unwrap();
         writeln!(
-            BufWriter::new(stderr),
+            *stderr,
             "18.07.2025 18:07:20.252 | [00000001:00000001] C_Test | E: Error information"
         )
         .unwrap();

@@ -116,11 +116,9 @@ use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance_with_wua;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
-use crate::wallet_certificate::PinKeyChecks;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wallet_certificate::verify_wallet_certificate_pin_public_key;
 use crate::wua_issuer::WuaIssuer;
 
 #[derive(Debug, thiserror::Error)]
@@ -807,21 +805,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 .map(|request| (request, None)),
         }?;
 
-        debug!("Verifying wallet certificate");
-        let encrypted_pin_key = if request.instruction_name == ChangePinRollback::NAME {
-            user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey)
-        } else {
-            user.encrypted_pin_pubkey
-        };
-
-        verify_wallet_certificate_pin_public_key(
-            claims,
-            &self.keys.pin_keys,
-            PinKeyChecks::AllChecks,
-            encrypted_pin_key,
-            &user_state.wallet_user_hsm,
-        )
-        .await?;
+        // In case of the `StartPinRecovery` instruction, the user has used a new PIN that does not match
+        // the HMAC of the old PIN in the user's certificate. Since the user is requesting a challenge,
+        // we don't yet know which instruction they are going to send. So we should not enforce here that
+        // the user's PIN key matches the PIN HMAC in the certificate. This is enforced during instruction
+        // validation, where appropriate.
 
         debug!("Challenge request valid, persisting generated challenge and incremented sequence number");
         let challenge = InstructionChallenge {
@@ -1174,6 +1162,16 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                         .collect(),
                 },
             )
+            .await?;
+
+        // Clear the unsuccesful PIN entries, so that even if the user was in timeout before they started
+        // PIN recovery, they can send the `DiscloseRecoveryCodePinRecovery` after this.
+        // This cannot be abused by a malicious user to disable the timeout mechanism, because after this,
+        // this wallet account is committed to PIN recovery and PIN recovery will need to be completed
+        // before the user can do anything else.
+        user_state
+            .repositories
+            .reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id)
             .await?;
 
         let (instruction_result_signing_key, certificate_signing_key) = signing_keys;
@@ -1579,9 +1577,9 @@ pub mod mock {
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -1840,10 +1838,10 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_BSN;
-    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -1862,9 +1860,9 @@ mod tests {
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
-    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
@@ -1889,6 +1887,7 @@ mod tests {
 
     use crate::account_server::AccountServerPinKeys;
     use crate::account_server::RecoveryCodeConfig;
+    use crate::account_server::WalletCertificateError;
     use crate::instructions::PinCheckOptions;
     use crate::keys::WalletCertificateSigningKey;
     use crate::wallet_certificate;
@@ -2623,7 +2622,7 @@ mod tests {
         let (_, account_server, hw_privkey, cert, mut user_state) = setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
-            .sign_instruction_challenge::<ConfirmTransfer>(
+            .sign_instruction_challenge::<PairTransfer>(
                 cert.dangerous_parse_unverified().unwrap().1.wallet_id,
                 1,
                 cert.clone(),
@@ -2728,7 +2727,7 @@ mod tests {
         let (_, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
-            .sign_instruction_challenge::<ConfirmTransfer>(
+            .sign_instruction_challenge::<PairTransfer>(
                 cert.dangerous_parse_unverified().unwrap().1.wallet_id,
                 1,
                 cert.clone(),
@@ -2760,7 +2759,7 @@ mod tests {
 
         let instruction = hw_privkey
             .sign_hw_signed_instruction(
-                ConfirmTransfer {
+                PairTransfer {
                     transfer_session_id,
                     app_version,
                 },
@@ -3090,7 +3089,13 @@ mod tests {
         let instruction_result = account_server
             .handle_change_pin_rollback_instruction(
                 hw_privkey
-                    .sign_instruction(ChangePinRollback {}, challenge, 47, &setup.pin_privkey, cert.clone())
+                    .sign_instruction(
+                        ChangePinRollback {},
+                        challenge.clone(),
+                        47,
+                        &setup.pin_privkey,
+                        cert.clone(),
+                    )
                     .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
@@ -3104,17 +3109,30 @@ mod tests {
             .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result");
 
-        do_check_pin(
-            &account_server,
-            &new_pin_privkey,
-            &hw_privkey,
-            new_cert,
-            &instruction_result_signing_key,
-            &mut user_state,
-        )
-        .await
-        .expect_err("should not be able to send CheckPin instruction with new certificate");
+        // Check that checking the PIN with the new certificate now fails
+        user_state.repositories = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            ..user_state.repositories.clone()
+        };
+        let instruction_error = account_server
+            .handle_instruction(
+                hw_privkey
+                    .sign_instruction(CheckPin, challenge, 48, &setup.pin_privkey, new_cert)
+                    .await,
+                &instruction_result_signing_key,
+                &MockGenerators,
+                &FailingPinPolicy,
+                &user_state,
+            )
+            .await
+            .expect_err("checking PIN with new certificate after PIN change was reverted should error");
 
+        assert_matches!(
+            instruction_error,
+            InstructionError::WalletCertificate(WalletCertificateError::PinPubKeyMismatch)
+        );
+
+        // With the old certificate, PIN checking should work.
         do_check_pin(
             &account_server,
             &setup.pin_privkey,
@@ -3308,7 +3326,7 @@ mod tests {
             .returning(|_, _| Ok(()));
         repositories
             .expect_reset_unsuccessful_pin_entries()
-            .times(1)
+            .times(2)
             .returning(|_, _| Ok(()));
         repositories
             .expect_update_instruction_sequence_number()
@@ -3369,7 +3387,7 @@ mod tests {
                 destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
                 destination_wallet_recovery_code: String::from("12345678"),
                 transfer_session_id: Uuid::new_v4(),
-                state: TransferSessionState::ReadyForTransfer,
+                state: TransferSessionState::Confirmed,
                 encrypted_wallet_data: None,
             }),
             instruction_sequence_number: 43,

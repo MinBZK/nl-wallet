@@ -117,6 +117,7 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 ///     exp: None,
 ///     nbf: None,
 ///     attestation_qualification: None,
+///     status: None,
 ///     claims: serde_json::from_value(serde_json::json!({
 ///         "name": "alice"
 ///     }))?,
@@ -184,6 +185,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///     exp: None,
     ///     nbf: None,
     ///     attestation_qualification: None,
+    ///     status: None,
     ///     claims: serde_json::from_value(serde_json::json!({
     ///         "name": "alice",
     ///         "address": {

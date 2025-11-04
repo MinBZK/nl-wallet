@@ -42,7 +42,7 @@ use openid4vc::server_state::SessionStore;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
-use token_status_list::status_service::StatusClaimService;
+use token_status_list::status_list_service::StatusListService;
 
 struct ApplicationState<A, K, S, C> {
     issuer: Arc<Issuer<A, K, S, C>>,
@@ -63,7 +63,7 @@ where
     A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    C: StatusClaimService + Send + Sync + 'static,
+    C: StatusListService + Send + Sync + 'static,
 {
     let application_state = ApplicationState { issuer };
 
@@ -87,7 +87,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    C: StatusClaimService,
+    C: StatusListService,
 {
     let metadata = state.issuer.oauth_metadata().await.map_err(|error| {
         warn!("retrieving OAuth metadata failed: {}", error);
@@ -115,7 +115,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    C: StatusClaimService,
+    C: StatusListService,
 {
     let (response, dpop_nonce) = state
         .issuer
@@ -142,7 +142,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    C: StatusClaimService,
+    C: StatusListService,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -164,7 +164,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    C: StatusClaimService,
+    C: StatusListService,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -186,7 +186,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    C: StatusClaimService,
+    C: StatusListService,
 {
     let uri_path = &uri.path()[1..]; // strip off leading slash
 

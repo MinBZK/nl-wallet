@@ -3,13 +3,6 @@ package feature.security
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
-import screen.about.AboutScreen
-import screen.dashboard.DashboardScreen
-import screen.error.NoInternetErrorScreen
-import screen.menu.MenuScreen
-import screen.security.ForgotPinScreen
-import screen.security.PinScreen
-import screen.security.TemporarilyBlockedScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -17,6 +10,13 @@ import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
+import screen.about.AboutScreen
+import screen.dashboard.DashboardScreen
+import screen.error.NoInternetErrorScreen
+import screen.menu.MenuScreen
+import screen.security.ForgotPinScreen
+import screen.security.PinScreen
+import screen.security.TemporarilyBlockedScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC2.3 Unlock the app")
@@ -111,8 +111,8 @@ class UserEntersPinTests : TestBase() {
         pinScreen.clickForgotPinButton()
         assertAll(
             { assertTrue(forgotPinScreen.visible(), "forgot pin screen is not visible") },
-            { assertTrue(forgotPinScreen.dataLossTextVisible(), "data loss description text is not visible") },
-            { assertTrue(forgotPinScreen.resetButtonVisible(), "reset wallet button is not visible") }
+            { assertTrue(forgotPinScreen.descriptionTextVisible(), "description text is not visible") },
+            { assertTrue(forgotPinScreen.recoverButtonVisible(), "reset wallet button is not visible") }
         )
     }
 

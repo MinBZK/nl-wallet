@@ -36,6 +36,7 @@ use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
+use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -271,6 +272,10 @@ pub struct SdJwtVcClaims {
     pub exp: Option<DateTimeSeconds>,
 
     pub nbf: Option<DateTimeSeconds>,
+
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
+    pub status: Option<StatusClaim>,
 
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
@@ -745,6 +750,7 @@ mod examples {
 
     use attestation_types::qualification::AttestationQualification;
     use jwt::jwk::jwk_from_p256;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::Generator;
 
     use crate::key_binding_jwt::RequiredKeyBinding;
@@ -763,6 +769,7 @@ mod examples {
                 exp: Some((time.generate() + Duration::from_secs(365 * 24 * 60 * 60)).into()),
                 nbf: None,
                 attestation_qualification: Some(AttestationQualification::QEAA),
+                status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(json!({
                     "bsn": "999999999",
                     "recovery_code": "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d",
@@ -789,6 +796,7 @@ mod examples {
                 exp: None,
                 nbf: None,
                 attestation_qualification: Some(AttestationQualification::PubEAA),
+                status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(claims).unwrap(),
             }
         }
@@ -1830,6 +1838,7 @@ mod test {
                 ]),
             }),
             attestation_qualification: None,
+            status: None,
         };
         assert_eq!(parsed, expected);
     }

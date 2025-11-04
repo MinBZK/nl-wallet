@@ -647,18 +647,18 @@ mod examples {
 
 #[cfg(feature = "mock")]
 mod mock {
-    use crate::pid_constants::PID_ADDRESS_GROUP;
-    use crate::pid_constants::PID_AGE_OVER_18;
-    use crate::pid_constants::PID_BIRTH_DATE;
-    use crate::pid_constants::PID_BSN;
-    use crate::pid_constants::PID_FAMILY_NAME;
-    use crate::pid_constants::PID_GIVEN_NAME;
-    use crate::pid_constants::PID_RECOVERY_CODE;
-    use crate::pid_constants::PID_RESIDENT_CITY;
-    use crate::pid_constants::PID_RESIDENT_COUNTRY;
-    use crate::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
-    use crate::pid_constants::PID_RESIDENT_POSTAL_CODE;
-    use crate::pid_constants::PID_RESIDENT_STREET;
+    use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+    use attestation_types::pid_constants::PID_AGE_OVER_18;
+    use attestation_types::pid_constants::PID_BIRTH_DATE;
+    use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_FAMILY_NAME;
+    use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
+    use attestation_types::pid_constants::PID_RESIDENT_CITY;
+    use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
+    use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+    use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+    use attestation_types::pid_constants::PID_RESIDENT_STREET;
 
     use super::AttributeValue;
     use super::Attributes;

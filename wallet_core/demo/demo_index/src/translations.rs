@@ -30,11 +30,13 @@ pub const TRANSLATIONS: Translations = Translations {
         marketplace_index: "Log in webshop",
         xyz_mdoc_index: "Open bank account (mdoc)",
         xyz_sd_jwt_index: "Open bank account (SD-JWT)",
+        xyz_sd_jwt_eu_index: "Open bank account (SD-JWT, EU PID)",
         monkeybike_index: "Create account",
         job_index: "Apply for a job",
         university_mdoc_index: "Get diploma cards (mdoc)",
         university_sd_jwt_index: "Get diploma cards (SD-JWT)",
         insurance_index: "Get insurance cards",
+        housing_index: "Get housing card",
     },
     nl: Words {
         en: "English",
@@ -47,11 +49,13 @@ pub const TRANSLATIONS: Translations = Translations {
         marketplace_index: "Inloggen webshop",
         xyz_mdoc_index: "Bankrekening openen (mdoc)",
         xyz_sd_jwt_index: "Bankrekening openen (SD-JWT)",
+        xyz_sd_jwt_eu_index: "Bankrekening openen (SD-JWT, EU PID)",
         monkeybike_index: "Account aanmaken",
         job_index: "Reageer op vacature",
         university_mdoc_index: "Ontvang diploma kaarten (mdoc)",
         university_sd_jwt_index: "Ontvang diploma kaarten (SD-JWT)",
         insurance_index: "Ontvang verzekeringskaarten",
+        housing_index: "Ontvang huurkaart",
     },
 };
 
@@ -66,11 +70,13 @@ pub struct Words<'a> {
     pub marketplace_index: &'a str,
     pub xyz_mdoc_index: &'a str,
     pub xyz_sd_jwt_index: &'a str,
+    pub xyz_sd_jwt_eu_index: &'a str,
     pub monkeybike_index: &'a str,
     pub job_index: &'a str,
     pub university_mdoc_index: &'a str,
     pub university_sd_jwt_index: &'a str,
     pub insurance_index: &'a str,
+    pub housing_index: &'a str,
 }
 
 impl<'a> Index<Language> for Words<'a> {

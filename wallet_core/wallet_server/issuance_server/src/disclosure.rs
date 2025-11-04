@@ -208,7 +208,7 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
-    use token_status_list::status_service::mock::MockStatusClaimService;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::vec_nonempty;
 
     use super::AttributesFetcher;
@@ -276,7 +276,7 @@ mod tests {
     }
 
     type MockIssuer =
-        Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusClaimService>;
+        Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusListService>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
@@ -286,7 +286,7 @@ mod tests {
             &"https://example.com".parse().unwrap(),
             vec![],
             None::<WuaConfig>,
-            MockStatusClaimService::default(),
+            MockStatusListService::default(),
         )
     }
 

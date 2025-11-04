@@ -150,6 +150,18 @@ spec:
                   key: private_key
             - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__PRIVATE_KEY_TYPE
               value: "software"
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__PRIVATE_KEY_TYPE
+              value: "software"
             - name: VERIFICATION_SERVER__USECASES__job_finder__CERTIFICATE
               valueFrom:
                 secretKeyRef:

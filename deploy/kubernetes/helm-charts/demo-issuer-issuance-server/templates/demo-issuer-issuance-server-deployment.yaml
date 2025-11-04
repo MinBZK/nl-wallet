@@ -53,6 +53,9 @@ spec:
             - name: demo-issuer-metadata
               mountPath: /com.example.insurance.json
               subPath: com.example.insurance.json
+            - name: demo-issuer-metadata
+              mountPath: /com.example.housing.json
+              subPath: com.example.housing.json
           env:
             - name: ISSUANCE_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
@@ -61,7 +64,7 @@ spec:
             - name: ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
             - name: ISSUANCE_SERVER__METADATA
-              value: "com.example.degree.json,com.example.insurance.json"
+              value: "com.example.degree.json,com.example.insurance.json,com.example.housing.json"
             - name: ISSUANCE_SERVER__STORAGE__URL
               valueFrom:
                 secretKeyRef:

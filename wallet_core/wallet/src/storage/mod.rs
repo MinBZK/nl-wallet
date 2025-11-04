@@ -25,6 +25,7 @@ use uuid::Uuid;
 
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
+use dcql::CredentialFormat;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
@@ -43,13 +44,13 @@ pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
 pub use self::data::KeyData;
 pub use self::data::KeyedData;
+pub use self::data::PinRecoveryData;
 pub use self::data::RegistrationData;
 pub use self::data::TransferData;
 pub use self::data::TransferKeyData;
 pub use self::data::UnlockData;
 pub use self::data::UnlockMethod;
 pub use self::database_storage::DatabaseStorage;
-pub use self::event_log::DataDisclosureStatus;
 pub use self::event_log::DisclosureStatus;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
@@ -133,13 +134,6 @@ pub enum StorageError {
 
 pub type StorageResult<T> = Result<T, StorageError>;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AttestationFormatQuery {
-    Any,
-    MsoMdoc,
-    SdJwt,
-}
-
 /// Database export with one time key and the data.
 /// Using an encrypted database because SQLCipher exports to file system,
 /// and we do not want an unencrypted file written to disk.
@@ -191,10 +185,23 @@ pub trait Storage {
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    async fn fetch_unique_attestations_by_type<'a>(
+    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to one of
+    /// types requested. The format of the copy returned is undetermined.
+    async fn fetch_unique_attestations_by_types<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
-        format_query: AttestationFormatQuery,
+    ) -> StorageResult<Vec<StoredAttestationCopy>>;
+
+    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to one of
+    /// types requested and for which at least one copy of the requested format exists. The returned copy will be of the
+    /// requested format.
+    ///
+    /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
+    /// that extend at least one of the requested attestation types.
+    async fn fetch_unique_attestations_by_types_and_format<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+        format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     async fn log_disclosure_event(

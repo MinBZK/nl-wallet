@@ -26,6 +26,7 @@ use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use mdoc::utils::cose::CoseError;
+use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -54,8 +55,6 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
-use crate::storage::AttestationFormatQuery;
-use crate::storage::DataDisclosureStatus;
 use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
@@ -348,13 +347,9 @@ where
         presentation_config: &impl AttestationPresentationConfig,
     ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
         let credential_types = request.credential_types().collect();
-        let format_query = match &request {
-            NormalizedCredentialRequest::MsoMdoc { .. } => AttestationFormatQuery::MsoMdoc,
-            NormalizedCredentialRequest::SdJwt { .. } => AttestationFormatQuery::SdJwt,
-        };
 
         let stored_attestations = storage
-            .fetch_unique_attestations_by_type(&credential_types, format_query)
+            .fetch_unique_attestations_by_types_and_format(&credential_types, request.format())
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -569,7 +564,7 @@ where
             reader_certificate,
             session.disclosure_type,
             EventStatus::Cancelled,
-            DataDisclosureStatus::NotDisclosed,
+            DataDisclosed::NotDisclosed,
         )
         .await
         .map_err(DisclosureError::EventStorage)?;
@@ -763,19 +758,20 @@ where
             .unwrap();
 
         if let Err(error) = result {
-            if let Err(e) = self
+            // If storing the event results in an error, log it but do nothing else.
+            let _ = self
                 .store_disclosure_event(
                     Utc::now(),
                     Some(attestation_presentations),
                     reader_certificate,
                     session.disclosure_type,
                     EventStatus::Error,
-                    DataDisclosureStatus::NotDisclosed,
+                    DataDisclosed::NotDisclosed,
                 )
                 .await
-            {
-                error!("Could not store error in history: {e}");
-            }
+                .inspect_err(|e| {
+                    error!("Could not store error in history: {e}");
+                });
 
             return Err(DisclosureError::IncrementUsageCount(error));
         }
@@ -823,29 +819,23 @@ where
                     DisclosureError::with_organization(error.error, reader_registration.organization);
 
                 // IncorrectPin is a functional error and does not need to be recorded.
+                //
+                // If storing the event results in an error, log it but do nothing else.
                 if !matches!(
                     disclosure_error,
                     DisclosureError::Instruction(InstructionError::IncorrectPin { .. })
-                ) {
-                    let data_status = if error.data_shared {
-                        DataDisclosureStatus::Disclosed
-                    } else {
-                        DataDisclosureStatus::NotDisclosed
-                    };
-
-                    if let Err(error) = self
-                        .store_disclosure_event(
-                            Utc::now(),
-                            Some(attestation_presentations),
-                            reader_certificate,
-                            session.disclosure_type,
-                            EventStatus::Error,
-                            data_status,
-                        )
-                        .await
-                    {
-                        error!("Could not store error in history: {error}");
-                    }
+                ) && let Err(error) = self
+                    .store_disclosure_event(
+                        Utc::now(),
+                        Some(attestation_presentations),
+                        reader_certificate,
+                        session.disclosure_type,
+                        EventStatus::Error,
+                        error.data_shared,
+                    )
+                    .await
+                {
+                    error!("Could not store error in history: {error}");
                 }
 
                 // At this point place the `DisclosureSession` back so that `WalletDisclosureSession` is whole again.
@@ -858,14 +848,17 @@ where
                     // On a PIN timeout we should proactively terminate the disclosure session
                     // and lock the wallet, as the user is probably not the owner of the wallet.
                     // The UI should catch this specific error and close the disclosure screens.
-
-                    if let Err(terminate_error) = self.terminate_disclosure_session(session).await {
-                        // Log the error, but do not return it from this method.
-                        error!(
-                            "Error while terminating disclosure session on PIN timeout: {}",
-                            terminate_error
-                        );
-                    }
+                    //
+                    // If terminating the session results in an error, log it but do nothing else.
+                    let _ = self
+                        .terminate_disclosure_session(session)
+                        .await
+                        .inspect_err(|terminate_error| {
+                            error!(
+                                "Error while terminating disclosure session on PIN timeout: {}",
+                                terminate_error
+                            );
+                        });
 
                     self.lock.lock();
                 } else {
@@ -887,7 +880,7 @@ where
             reader_certificate,
             session.disclosure_type,
             EventStatus::Success,
-            DataDisclosureStatus::Disclosed,
+            DataDisclosed::Disclosed,
         )
         .await
         .map_err(DisclosureError::EventStorage)?;
@@ -925,15 +918,15 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_ADDRESS_GROUP;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_FAMILY_NAME;
-    use attestation_data::pid_constants::PID_GIVEN_NAME;
-    use attestation_data::pid_constants::PID_RECOVERY_CODE;
-    use attestation_data::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
-    use attestation_data::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_FAMILY_NAME;
+    use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
+    use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+    use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -945,6 +938,7 @@ mod tests {
     use mdoc::utils::cose::CoseError;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
+    use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::DisclosableAttestations;
     use openid4vc::disclosure_session::DisclosureUriSource;
     use openid4vc::disclosure_session::VerifierCertificate;
@@ -971,7 +965,6 @@ mod tests {
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
     use crate::errors::StorageError;
-    use crate::storage::AttestationFormatQuery;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
     use crate::storage::StoredAttestation;
@@ -1265,20 +1258,15 @@ mod tests {
         );
 
         // The wallet will query the database for both attestation types, mock returning them.
-        let expectation_format = match requested_format {
-            CredentialFormat::MsoMdoc => AttestationFormatQuery::MsoMdoc,
-            CredentialFormat::SdJwt => AttestationFormatQuery::SdJwt,
-        };
-
         for (attestation_type, attestations) in [
             (PID_ATTESTATION_TYPE, vec![pid1, pid2.clone(), pid3]),
             (ADDRESS_ATTESTATION_TYPE, vec![address1.clone(), address2]),
         ] {
             wallet
                 .mut_storage()
-                .expect_fetch_unique_attestations_by_type()
+                .expect_fetch_unique_attestations_by_types_and_format()
                 .withf(move |attestation_types, format| {
-                    *attestation_types == HashSet::from([attestation_type]) && *format == expectation_format
+                    *attestation_types == HashSet::from([attestation_type]) && *format == requested_format
                 })
                 .times(1)
                 .return_once(move |_, _| Ok(attestations));
@@ -1747,7 +1735,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types_and_format()
             .times(1)
             .returning(move |_, _| Err(StorageError::AlreadyOpened));
 
@@ -1776,10 +1764,9 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE])
-                    && *format == AttestationFormatQuery::MsoMdoc
+                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE]) && *format == CredentialFormat::MsoMdoc
             })
             .times(1)
             .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
@@ -1814,7 +1801,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types_and_format()
             .times(1)
             .returning(move |_, _| Ok(vec![]));
 
@@ -1886,7 +1873,7 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types_and_format()
             .times(1)
             .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 
@@ -2508,7 +2495,7 @@ mod tests {
         #[case] error_factory: F,
         #[case] expected_error_type: ClientErrorType,
         #[case] expect_return_url: bool,
-        #[values(true, false)] data_shared: bool,
+        #[values(DataDisclosed::Disclosed, DataDisclosed::NotDisclosed)] data_shared: DataDisclosed,
     ) where
         F: Fn() -> E,
         E: Into<VpMessageClientError>,
@@ -2553,7 +2540,7 @@ mod tests {
                 function(move |attestations: &Vec<_>| {
                     first_event_attestations_tx.send(attestations.clone()).unwrap();
 
-                    attestations.len() == if data_shared { 1 } else { 0 }
+                    attestations.len() == if data_shared == DataDisclosed::Disclosed { 1 } else { 0 }
                 }),
                 eq(reader_certificate),
                 eq(EventStatus::Error),

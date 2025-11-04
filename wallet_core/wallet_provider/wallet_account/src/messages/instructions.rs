@@ -265,16 +265,16 @@ impl InstructionAndResult for DiscloseRecoveryCodePinRecovery {
     type Result = ();
 }
 
-// ConfirmTransfer instruction.
+// PairTransfer instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ConfirmTransfer {
+pub struct PairTransfer {
     pub transfer_session_id: Uuid,
     pub app_version: Version,
 }
 
-impl InstructionAndResult for ConfirmTransfer {
-    const NAME: &'static str = "confirm_transfer";
+impl InstructionAndResult for PairTransfer {
+    const NAME: &'static str = "pair_transfer";
 
     type Result = ();
 }
@@ -317,6 +317,19 @@ impl InstructionAndResult for GetTransferStatus {
     const NAME: &'static str = "get_transfer_status";
 
     type Result = TransferSessionState;
+}
+
+// ConfirmTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfirmTransfer {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for ConfirmTransfer {
+    const NAME: &'static str = "confirm_transfer";
+
+    type Result = ();
 }
 
 // SendWalletPayload instruction.

@@ -163,6 +163,26 @@ impl StoredAttestationCopy {
         }
     }
 
+    pub fn attestation_type(&self) -> &str {
+        self.normalized_metadata.vct()
+    }
+
+    pub fn into_attributes(self) -> Attributes {
+        match self.attestation {
+            StoredAttestation::MsoMdoc { mdoc } => Attributes::from_mdoc_attributes(
+                &self.normalized_metadata,
+                mdoc.into_issuer_signed().into_entries_by_namespace(),
+            )
+            .expect("a stored mdoc attestation should convert to Attributes without errors"),
+            StoredAttestation::SdJwt { sd_jwt, .. } => Attributes::try_from(
+                sd_jwt
+                    .decoded_claims()
+                    .expect("a stored SD-JWT attestation should decode to its claims without errors"),
+            )
+            .expect("a stored SD-JWT attestation should convert to Attributes without errors"),
+        }
+    }
+
     /// Convert the stored attestation into a [`PreivewableCredentialPayload`], to be able to compare it to a received
     /// preview.
     pub fn into_previewable_credential_payload(self) -> PreviewableCredentialPayload {
@@ -302,14 +322,15 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
-    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::pid_constants::PID_BSN;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_BSN;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use token_status_list::status_claim::StatusClaim;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -331,6 +352,7 @@ mod tests {
             Utc::now(),
             holder_privkey.verifying_key(),
             Integrity::from(""),
+            StatusClaim::new_mock(),
         )
         .unwrap()
         .into_signed_mdoc(issuer_keypair)

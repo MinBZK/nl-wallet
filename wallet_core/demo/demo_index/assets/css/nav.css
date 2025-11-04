@@ -127,7 +127,8 @@ nav a::before {
 }
 
 #xyz_bank_mdoc::before,
-#xyz_bank_sd_jwt::before {
+#xyz_bank_sd_jwt::before,
+#xyz_bank_sd_jwt_eu::before {
   background: url("../images/xyz_bank.svg") no-repeat center center / cover;
 }
 
@@ -146,4 +147,8 @@ nav a::before {
 
 #insurance::before {
   background: url("../images/insurance.svg") no-repeat center center / cover;
+}
+
+#housing::before {
+  background: url("../images/housing.svg") no-repeat center center / cover;
 }

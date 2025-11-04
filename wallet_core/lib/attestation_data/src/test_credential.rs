@@ -10,6 +10,16 @@ use itertools::Itertools;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+use attestation_types::pid_constants::PID_BIRTH_DATE;
+use attestation_types::pid_constants::PID_BSN;
+use attestation_types::pid_constants::PID_FAMILY_NAME;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_RESIDENT_CITY;
+use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
+use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use dcql::CredentialFormat;
@@ -27,6 +37,7 @@ use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use token_status_list::status_claim::StatusClaim;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -38,16 +49,6 @@ use crate::credential_payload::CredentialPayload;
 use crate::credential_payload::PreviewableCredentialPayload;
 use crate::disclosure::DisclosedAttestations;
 use crate::disclosure::DisclosedAttributes;
-use crate::pid_constants::PID_ADDRESS_GROUP;
-use crate::pid_constants::PID_BIRTH_DATE;
-use crate::pid_constants::PID_BSN;
-use crate::pid_constants::PID_FAMILY_NAME;
-use crate::pid_constants::PID_GIVEN_NAME;
-use crate::pid_constants::PID_RESIDENT_CITY;
-use crate::pid_constants::PID_RESIDENT_COUNTRY;
-use crate::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::pid_constants::PID_RESIDENT_POSTAL_CODE;
-use crate::pid_constants::PID_RESIDENT_STREET;
 
 /// A collection of [`TestCredential`] types, which are guaranteed to contain different credential query identifiers.
 /// It provides aggregate versions of the methods present on that type. It also allows [`TestCredentials`] to be be
@@ -76,6 +77,7 @@ pub struct TestCredential {
     metadata_documents: TypeMetadataDocuments,
     query_id: CredentialQueryIdentifier,
     disclosure_attributes: Attributes,
+    status: StatusClaim,
 }
 
 impl TestCredentials {
@@ -202,6 +204,7 @@ impl TestCredential {
         metadata_documents: TypeMetadataDocuments,
         query_id: CredentialQueryIdentifier,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        status: StatusClaim,
     ) -> Self {
         let claim_paths = query_claim_paths
             .into_iter()
@@ -222,6 +225,7 @@ impl TestCredential {
             metadata_documents,
             query_id,
             disclosure_attributes,
+            status,
         }
     }
 
@@ -307,6 +311,7 @@ impl TestCredential {
             holder_key.verifying_key(),
             &normalized_metadata,
             self.metadata_integrity(),
+            self.status.clone(),
         )
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
@@ -423,6 +428,7 @@ impl TestCredential {
             metadata_documents,
             query_id.parse().unwrap(),
             query_claim_paths,
+            StatusClaim::new_mock(),
         )
     }
 
@@ -441,6 +447,10 @@ impl TestCredential {
         Self::new_nl_pid("nl_pid_given_name", [[PID_GIVEN_NAME]])
     }
 
+    pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> Self {
+        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]])
+    }
+
     pub fn new_nl_pid_family_name() -> Self {
         Self::new_nl_pid("nl_pid_family_name", [[PID_FAMILY_NAME]])
     }
@@ -456,6 +466,7 @@ impl TestCredential {
             metadata_documents,
             query_id.parse().unwrap(),
             query_claim_paths,
+            StatusClaim::new_mock(),
         )
     }
 
@@ -494,6 +505,12 @@ pub fn nl_pid_credentials_full_name() -> TestCredentials {
 
 pub fn nl_pid_credentials_given_name() -> TestCredentials {
     TestCredentials::new(vec_nonempty![TestCredential::new_nl_pid_given_name()])
+}
+
+pub fn nl_pid_credentials_given_name_for_query_id(query_id: &str) -> TestCredentials {
+    TestCredentials::new(vec_nonempty![TestCredential::new_nl_pid_given_name_for_query_id(
+        query_id
+    )])
 }
 
 pub fn nl_pid_credentials_family_name() -> TestCredentials {

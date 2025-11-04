@@ -140,7 +140,7 @@ async fn test_update_transfer_state() {
     assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
     assert_eq!(transfer_session.state, TransferSessionState::Created);
 
-    update_transfer_state(&db, transfer_session_id, TransferSessionState::ReadyForTransfer)
+    update_transfer_state(&db, transfer_session_id, TransferSessionState::Paired)
         .await
         .unwrap();
 
@@ -150,7 +150,7 @@ async fn test_update_transfer_state() {
         .unwrap();
 
     assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
-    assert_eq!(transfer_session.state, TransferSessionState::ReadyForTransfer);
+    assert_eq!(transfer_session.state, TransferSessionState::Paired);
 
     let err = update_transfer_state(&db, Uuid::new_v4(), TransferSessionState::Success)
         .await

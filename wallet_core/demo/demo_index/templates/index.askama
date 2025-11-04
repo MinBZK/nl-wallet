@@ -38,6 +38,8 @@
                                 {{ base.trans.xyz_mdoc_index }}
                             {% when "xyz_bank_sd_jwt" %}
                                 {{ base.trans.xyz_sd_jwt_index }}
+                            {% when "xyz_bank_sd_jwt_eu" %}
+                                {{ base.trans.xyz_sd_jwt_eu_index }}
                             {% when "university_mdoc" %}
                                 {{ base.trans.university_mdoc_index }}
                             {% when "university_sd_jwt" %}
@@ -46,6 +48,8 @@
                                 {{ base.trans.insurance_index }}
                             {% when "job_finder" %}
                                 {{ base.trans.job_index }}
+                            {% when "housing" %}
+                                {{ base.trans.housing_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

@@ -15,7 +15,14 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub attestation_type: String,
+    pub extended_types: ExtendedTypesModel,
     pub type_metadata: TypeMetadataModel,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]
+#[serde(transparent)]
+pub struct ExtendedTypesModel {
+    pub attestation_types: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]

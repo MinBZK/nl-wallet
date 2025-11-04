@@ -71,6 +71,7 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
+use token_status_list::status_claim::StatusClaim;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 use verification_server::server;
@@ -180,6 +181,8 @@ async fn wallet_server_settings_and_listener(
         server_settings: settings,
 
         wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+
+        extending_vct_values: None,
     };
 
     (settings, listener, issuer_ca, rp_trust_anchor)
@@ -928,6 +931,7 @@ fn prepare_example_credential_payload(
         Utc::now(),
         holder_privkey.verifying_key(),
         Integrity::from(""),
+        StatusClaim::new_mock(),
     )
     .unwrap();
 

@@ -5,6 +5,10 @@ reader_trust_anchors = ["${READER_CA_CRT}"]
 ephemeral_id_secret = "${DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
 allow_origins = ["http://${SERVICES_HOST}:${DEMO_RP_PORT}"]
 
+[extending_vct_values]
+"urn:eudi:pid:1" = ["urn:eudi:pid:nl:1"]
+"urn:eudi:pid-address:1" = ["urn:eudi:pid-address:nl:1"]
+
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/verification_server'
 
@@ -43,6 +47,11 @@ private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
 
 [usecases.xyz_bank_sd_jwt]
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
+[usecases.xyz_bank_sd_jwt_eu]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"

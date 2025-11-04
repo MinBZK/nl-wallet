@@ -392,6 +392,8 @@ class IssuanceScreen extends StatelessWidget {
         } else {
           return ReportingGroup.disclosureConfirmMultipleAttributes;
         }
+      case IssuanceProvidePinForDisclosure():
+        return ReportingGroup.disclosureConfirmMultipleAttributes;
       case IssuanceReviewCards():
         return ReportingGroup.issuanceConfirmCards;
       case IssuanceMissingAttributes():

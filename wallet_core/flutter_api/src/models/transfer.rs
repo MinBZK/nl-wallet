@@ -1,9 +1,10 @@
 pub enum TransferSessionState {
     Created,
-    ReadyForTransfer,
-    ReadyForDownload,
+    Paired,
+    Confirmed,
+    Uploaded,
     Success,
-    Cancelled,
+    Canceled,
     Error,
 }
 
@@ -11,10 +12,11 @@ impl From<wallet::TransferSessionState> for TransferSessionState {
     fn from(value: wallet::TransferSessionState) -> Self {
         match value {
             wallet::TransferSessionState::Created => TransferSessionState::Created,
-            wallet::TransferSessionState::ReadyForTransfer => TransferSessionState::ReadyForTransfer,
-            wallet::TransferSessionState::ReadyForDownload => TransferSessionState::ReadyForDownload,
+            wallet::TransferSessionState::Paired => TransferSessionState::Paired,
+            wallet::TransferSessionState::Confirmed => TransferSessionState::Confirmed,
+            wallet::TransferSessionState::Uploaded => TransferSessionState::Uploaded,
             wallet::TransferSessionState::Success => TransferSessionState::Success,
-            wallet::TransferSessionState::Canceled => TransferSessionState::Cancelled,
+            wallet::TransferSessionState::Canceled => TransferSessionState::Canceled,
             wallet::TransferSessionState::Error => TransferSessionState::Error,
         }
     }

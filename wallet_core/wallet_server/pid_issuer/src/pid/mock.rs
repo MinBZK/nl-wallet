@@ -4,7 +4,8 @@ use derive_more::Constructor;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::pid_constants::*;
+use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;

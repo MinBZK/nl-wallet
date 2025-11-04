@@ -32,6 +32,16 @@ pub struct StatusListClaim {
     pub uri: Url,
 }
 
+#[cfg(feature = "mock")]
+impl StatusClaim {
+    pub fn new_mock() -> Self {
+        StatusClaim::StatusList(StatusListClaim {
+            idx: 0,
+            uri: "https://example.com/statuslists/1".parse().unwrap(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use serde_json::json;

@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-vVXio7oP2Xnm9DwNx7nY3BFut7g7MJO9EzicYCEbL4E=",
+  "extends#integrity": "sha256-pyWOFfcIFqX4VDNUW4r8t1ZrKIkCkDQmUmP+Mmxg8P0=",
   "display": [
     {
       "lang": "en-US",
@@ -135,6 +135,9 @@
       "iss": {
         "type": "string"
       },
+      "iat": {
+        "type": "number"
+      },
       "nbf": {
         "type": "number"
       },
@@ -146,12 +149,6 @@
       },
       "status": {
         "type": "object"
-      },
-      "sub": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
       },
       "attestation_qualification": {
         "type": "string"
@@ -185,6 +182,9 @@
     "required": [
       "vct",
       "iss",
+      "iat",
+      "cnf",
+      "status",
       "attestation_qualification",
       "given_name",
       "family_name",
