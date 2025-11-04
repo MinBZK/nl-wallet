@@ -152,7 +152,7 @@ impl PostgresStatusListServices {
         configs: StatusListConfigs,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
-        let services = HashMap::from(configs)
+        let services = configs
             .into_iter()
             .map(|(attestation_type, config)| {
                 let attestation_type_id = *attestation_type_ids

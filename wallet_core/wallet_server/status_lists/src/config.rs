@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use derive_more::AsRef;
 use derive_more::From;
-use derive_more::Into;
+use derive_more::IntoIterator;
 
 use http_utils::urls::BaseUrl;
 use utils::ints::NonZeroU31;
@@ -18,7 +18,7 @@ pub struct StatusListConfig {
     pub base_url: BaseUrl,
 }
 
-#[derive(Debug, Clone, From, Into, AsRef)]
+#[derive(Debug, Clone, From, IntoIterator, AsRef)]
 pub struct StatusListConfigs(HashMap<String, StatusListConfig>);
 
 impl StatusListConfigs {
