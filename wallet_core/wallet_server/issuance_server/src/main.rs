@@ -60,7 +60,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         .into_iter()
         .map(|(id, type_settings)| {
             (
-                id.to_string(),
+                id.to_owned(),
                 StatusListConfig::from_settings(&settings.status_lists, &type_settings.status_list),
             )
         })
