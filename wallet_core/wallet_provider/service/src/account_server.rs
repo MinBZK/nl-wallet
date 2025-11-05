@@ -530,11 +530,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(challenge)
     }
 
-    pub async fn register<T, R, H>(
+    pub async fn register<T, R, H, W>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         registration_message: ChallengeResponse<Registration>,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, W>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         GRC: GoogleCrlProvider,
@@ -759,11 +759,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(wallet_certificate)
     }
 
-    pub async fn instruction_challenge<T, R, H>(
+    pub async fn instruction_challenge<T, R, H, W>(
         &self,
         challenge_request: InstructionChallengeRequest,
         time_generator: &impl Generator<DateTime<Utc>>,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, W>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -1248,14 +1248,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     /// Verify the provided user's PIN and the provided instruction.
     ///
     /// The `pin_pubkey` is used if provided; if not, the PIN public key from the `wallet_user` is used.
-    async fn verify_pin_and_extract_instruction<T, R, I, G, H>(
+    async fn verify_pin_and_extract_instruction<T, R, I, G, H, W>(
         &self,
         wallet_user: &WalletUser,
         instruction: Instruction<I>,
         generators: &G,
         pin_pubkey: Encrypted<VerifyingKey>,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, W>,
     ) -> Result<I, InstructionError>
     where
         T: Committable,
