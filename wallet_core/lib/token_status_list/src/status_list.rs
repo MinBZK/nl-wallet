@@ -183,22 +183,22 @@ impl Bits {
     }
 
     #[inline]
-    pub fn mask(self) -> u8 {
+    fn mask(self) -> u8 {
         ((1 << self as u16) - 1) as u8
     }
 
     #[inline]
-    pub fn shift_for_index(self, index: usize) -> usize {
+    fn shift_for_index(self, index: usize) -> usize {
         (index % self.statuses_per_byte()) * self as usize
     }
 
     #[inline]
-    pub fn packed_index(self, index: usize) -> usize {
+    fn packed_index(self, index: usize) -> usize {
         index / self.statuses_per_byte()
     }
 
     #[inline]
-    pub fn unpacked_len(self, len: usize) -> usize {
+    fn unpacked_len(self, len: usize) -> usize {
         len * self.statuses_per_byte()
     }
 }
