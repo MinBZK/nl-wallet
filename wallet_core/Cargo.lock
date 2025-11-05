@@ -7928,6 +7928,7 @@ version = "0.4.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
+ "status_lists_migrations",
  "tokio",
  "wallet_provider_database_settings",
 ]

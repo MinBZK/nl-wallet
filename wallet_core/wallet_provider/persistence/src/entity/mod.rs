@@ -2,9 +2,14 @@
 
 pub mod prelude;
 
+pub mod attestation_batch;
+pub mod attestation_type;
+pub mod status_list;
+pub mod status_list_item;
 pub mod wallet_transfer;
 pub mod wallet_user;
 pub mod wallet_user_android_attestation;
 pub mod wallet_user_apple_attestation;
 pub mod wallet_user_instruction_challenge;
 pub mod wallet_user_key;
+pub mod wallet_user_wua;
