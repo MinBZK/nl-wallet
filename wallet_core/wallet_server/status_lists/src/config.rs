@@ -39,7 +39,7 @@ impl StatusListConfigs {
         let configs = try_join_all(
             attestation_settings
                 .into_iter()
-                .map(|a| StatusListConfig::from_settings(settings, a, hsm.clone())),
+                .map(|attestation| StatusListConfig::from_settings(settings, attestation, hsm.clone())),
         )
         .await?;
 
