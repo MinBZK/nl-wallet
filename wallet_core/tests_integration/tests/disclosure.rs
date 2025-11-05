@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
+use itertools::Itertools;
 use reqwest::StatusCode;
 use rstest::rstest;
 use serial_test::serial;
@@ -12,8 +13,13 @@ use attestation_data::test_credential::nl_pid_address_minimal_address;
 use attestation_data::test_credential::nl_pid_credentials_family_name;
 use attestation_data::test_credential::nl_pid_credentials_full_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name;
+use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_id;
+use attestation_types::pid_constants::EUDI_PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
 use dcql::CredentialFormat;
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
 use openid4vc::return_url::ReturnUrlTemplate;
@@ -35,68 +41,17 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     response.json().await.unwrap()
 }
 
-#[rstest]
-#[case(
-    SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_credentials_full_name()
-)]
-#[case(
-    SessionType::SameDevice,
-    Some("http://localhost:3004/return".parse().unwrap()),
-    // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
-    "xyz_bank_sd_jwt",
-    nl_pid_credentials_full_name(),
-)]
-#[case(
-    SessionType::SameDevice,
-    Some("http://localhost:3004/return".parse().unwrap()),
-    "xyz_bank_all_return_url",
-    nl_pid_credentials_full_name(),
-)]
-#[case(
-    SessionType::CrossDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_credentials_full_name()
-)]
-#[case(
-    SessionType::CrossDevice,
-    Some("http://localhost:3004/return".parse().unwrap()),
-    // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
-    "xyz_bank_sd_jwt",
-    nl_pid_credentials_full_name(),
-)]
-#[case(
-    SessionType::CrossDevice,
-    Some("http://localhost:3004/return".parse().unwrap()),
-    "xyz_bank_all_return_url",
-    nl_pid_credentials_full_name(),
-)]
-#[case(
-    SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
-)]
-#[case(SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_credentials_full_name() + nl_pid_address_minimal_address(),
-)]
-#[tokio::test]
-#[serial(hsm)]
-async fn test_disclosure_usecases_ok(
-    #[case] session_type: SessionType,
-    #[case] return_url_template: Option<ReturnUrlTemplate>,
-    #[case] usecase: String,
-    #[case] test_credentials: TestCredentials,
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+async fn assert_disclosure_ok(
+    session_type: SessionType,
+    usecase: String,
+    return_url_template: Option<ReturnUrlTemplate>,
+    format: CredentialFormat,
+    dcql_query: Query,
+    test_credentials: TestCredentials,
 ) {
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
-        dcql_query: Some(test_credentials.to_dcql_query(std::iter::repeat_n(format, test_credentials.as_ref().len()))),
+        dcql_query: Some(dcql_query),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
@@ -216,6 +171,115 @@ async fn test_disclosure_usecases_ok(
         &disclosed_attestations,
         std::iter::repeat_n(format, test_credentials.as_ref().len()),
     );
+}
+
+#[rstest]
+#[case(
+    SessionType::SameDevice,
+    None,
+    "xyz_bank_no_return_url",
+    nl_pid_credentials_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
+    "xyz_bank_sd_jwt",
+    nl_pid_credentials_full_name(),
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    "xyz_bank_all_return_url",
+    nl_pid_credentials_full_name(),
+)]
+#[case(
+    SessionType::CrossDevice,
+    None,
+    "xyz_bank_no_return_url",
+    nl_pid_credentials_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
+    "xyz_bank_sd_jwt",
+    nl_pid_credentials_full_name(),
+)]
+#[case(
+    SessionType::CrossDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    "xyz_bank_all_return_url",
+    nl_pid_credentials_full_name(),
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    "xyz_bank_no_return_url",
+    nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
+)]
+#[case(SessionType::SameDevice,
+    None,
+    "xyz_bank_no_return_url",
+    nl_pid_credentials_full_name() + nl_pid_address_minimal_address(),
+)]
+#[tokio::test]
+#[serial(hsm)]
+async fn test_disclosure_usecases_ok(
+    #[case] session_type: SessionType,
+    #[case] return_url_template: Option<ReturnUrlTemplate>,
+    #[case] usecase: String,
+    #[case] test_credentials: TestCredentials,
+    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+) {
+    let dcql_query = test_credentials.to_dcql_query(std::iter::repeat_n(format, test_credentials.as_ref().len()));
+
+    assert_disclosure_ok(
+        session_type,
+        usecase,
+        return_url_template,
+        format,
+        dcql_query,
+        test_credentials,
+    )
+    .await;
+}
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_disclosure_extended_vct_ok() {
+    let session_type = SessionType::SameDevice;
+    let return_url_template = None;
+    let usecase = "xyz_bank_no_return_url".to_owned();
+    let format = CredentialFormat::SdJwt;
+
+    let query_id = "eudi_pid_given_name";
+    let test_credentials = nl_pid_credentials_given_name_for_query_id(query_id);
+    let mut dcql_query: Query = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+        &[EUDI_PID_ATTESTATION_TYPE],
+        &[&[PID_GIVEN_NAME]],
+    )])
+    .into();
+    dcql_query.credentials = dcql_query
+        .credentials
+        .into_iter()
+        .map(|mut query| {
+            query.id = CredentialQueryIdentifier::try_new(String::from(query_id)).unwrap();
+            query
+        })
+        .collect_vec()
+        .try_into()
+        .unwrap();
+
+    assert_disclosure_ok(
+        session_type,
+        usecase,
+        return_url_template,
+        format,
+        dcql_query,
+        test_credentials,
+    )
+    .await;
 }
 
 #[tokio::test]
