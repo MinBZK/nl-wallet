@@ -71,12 +71,16 @@ mod zlib_base64 {
     where
         S: serde::Serializer,
     {
-        // Implementations are RECOMMENDED to use the highest compression level available.
-        let mut e = ZlibEncoder::new(Vec::new(), Compression::best());
-        e.write_all(bytes).map_err(serde::ser::Error::custom)?;
-        let compressed = e.finish().map_err(serde::ser::Error::custom)?;
+        // Best gzip compression is limited by the algorithm to 1032, rounded to a nice two power
+        let buf = Vec::with_capacity(bytes.len() / 1024);
+        let writer = base64::write::EncoderWriter::new(buf, &BASE64_URL_SAFE_NO_PAD);
 
-        let encoded = BASE64_URL_SAFE_NO_PAD.encode(compressed);
+        // Implementations are RECOMMENDED to use the highest compression level available.
+        let mut e = ZlibEncoder::new(writer, Compression::best());
+        e.write_all(bytes).map_err(serde::ser::Error::custom)?;
+        let encoded = e.finish().map_err(serde::ser::Error::custom)?.into_inner();
+
+        let encoded = String::from_utf8(encoded).expect("base64 encoded string should be valid utf-8");
         encoded.serialize(serializer)
     }
 
@@ -84,12 +88,12 @@ mod zlib_base64 {
     where
         D: serde::Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
+        let encoded = String::deserialize(deserializer)?;
 
-        let decoded = BASE64_URL_SAFE_NO_PAD.decode(s).map_err(serde::de::Error::custom)?;
+        let mut decompressed = Vec::with_capacity(encoded.len());
+        let reader = base64::read::DecoderReader::new(encoded.as_bytes(), &BASE64_URL_SAFE_NO_PAD);
 
-        let mut d = ZlibDecoder::new(&decoded[..]);
-        let mut decompressed = Vec::new();
+        let mut d = ZlibDecoder::new(reader);
         d.read_to_end(&mut decompressed).map_err(serde::de::Error::custom)?;
 
         Ok(decompressed)
