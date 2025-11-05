@@ -13,8 +13,8 @@ pub struct StatusListsSettings {
     pub storage_url: Option<Url>,
     /// List size
     pub list_size: NonZeroU31,
-    /// Threshold to start creating a new list in the background
-    pub create_threshold: NonZeroU31,
+    /// Threshold to start creating a new list in the background, defaults to 10% of list_size
+    pub create_threshold: Option<NonZeroU31>,
 }
 
 #[derive(Clone, Deserialize)]

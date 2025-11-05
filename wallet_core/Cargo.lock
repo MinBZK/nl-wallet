@@ -6465,6 +6465,7 @@ dependencies = [
  "log",
  "p256",
  "rand",
+ "rstest",
  "sea-orm",
  "serde",
  "serde_json",

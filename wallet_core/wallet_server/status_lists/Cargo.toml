@@ -26,6 +26,7 @@ futures.workspace = true
 itertools.workspace = true
 log.workspace = true
 rand.workspace = true
+rstest.workspace = true
 sea-orm = { workspace = true, features = [
     "macros",
     "runtime-tokio-rustls",
