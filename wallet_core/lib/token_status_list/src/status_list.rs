@@ -219,18 +219,23 @@ impl Bits {
     }
 
     #[inline]
+    fn inverse_exponent(self) -> usize {
+        3 - self as usize
+    }
+
+    #[inline]
     fn packed_index(self, index: usize) -> usize {
-        index >> (3 - self as usize)
+        index >> self.inverse_exponent()
     }
 
     #[inline]
     fn unpacked_len(self, size: usize) -> usize {
-        size << (3 - self as usize)
+        size << self.inverse_exponent()
     }
 
     #[inline]
     fn packed_len(self, len: usize) -> usize {
-        self.aligned_len(len) >> (3 - self as usize)
+        self.aligned_len(len) >> self.inverse_exponent()
     }
 
     #[inline]
