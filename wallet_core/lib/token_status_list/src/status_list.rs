@@ -186,7 +186,9 @@ impl<'de> Deserialize<'de> for Bits {
             2 => Ok(Bits::Two),
             4 => Ok(Bits::Four),
             8 => Ok(Bits::Eight),
-            _ => Err(serde::de::Error::custom("Invalid bits.")),
+            n => Err(serde::de::Error::custom(format!(
+                "invalid value: {n}, expected one of: 1, 2, 4, 8"
+            ))),
         }
     }
 }
