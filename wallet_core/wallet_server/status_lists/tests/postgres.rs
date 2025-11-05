@@ -244,6 +244,7 @@ async fn test_service_initializes_status_lists() {
         .await
         .unwrap();
 
+    // Check if attestation type is correctly created
     let attestation_type = attestation_type::Entity::find()
         .filter(attestation_type::Column::Name.eq(attestation_type))
         .one(&connection)
@@ -252,6 +253,7 @@ async fn test_service_initializes_status_lists() {
         .unwrap();
     assert_eq!(attestation_type.next_sequence_no, 10);
 
+    // Check if status lists are correctly initialized
     let db_lists = fetch_status_list(&connection, attestation_type.id).await;
     assert_eq!(db_lists.len(), 1);
     assert_status_list_items(&connection, &db_lists[0], 10, 10, 10, false).await;
@@ -284,12 +286,14 @@ async fn test_service_initializes_multiple_status_lists() {
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
+    // Check if attestation types are correctly created
     let attestation_types = attestation_type::Entity::find()
         .filter(attestation_type::Column::Name.is_in(configs.as_ref().keys()))
         .all(&connection)
         .await
         .unwrap();
 
+    // Check if status lists are correctly initialized
     for attestation_type in attestation_types {
         let db_lists = fetch_status_list(&connection, attestation_type.id).await;
         assert_eq!(db_lists.len(), 1);
@@ -319,7 +323,7 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
     };
     let _ = recreate_status_list_service(&connection, &attestation_type, config).await;
 
-    // Check for empty list if new one is created and properly cleaned up
+    // Old list should be empty and new list should be created
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[0], 0, 5, 5, true).await;
@@ -347,6 +351,7 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
     };
     let _ = recreate_status_list_service(&connection, &attestation_type, config).await;
 
+    // New list should be created, but old one still has available items
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[0], 1, 5, 5, false).await;
@@ -385,6 +390,7 @@ async fn test_service_create_status_claims() {
     let type_id = attestation_type_id(&connection, &attestation_type).await;
     update_availability_of_status_list(&connection, type_id, 8).await;
 
+    // Obtain claims for attestation batch
     let batch_id = Uuid::new_v4();
     let expiration_date: DateTimeSeconds = Utc::now().into();
     let (claims, tasks) = service
@@ -393,10 +399,12 @@ async fn test_service_create_status_claims() {
         .unwrap();
     assert_eq!(tasks.len(), 0);
 
+    // Check if database is correctly updated
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1); // No new list creation scheduled
     let db_list_items = assert_status_list_items(&connection, &db_lists[0], 6, 9, 9, false).await;
 
+    // Check if claims matches config and database
     assert_eq!(claims.len(), 2.try_into().unwrap());
     assert_matches!(&claims[0], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_list_items[1].index as u32,
@@ -407,6 +415,7 @@ async fn test_service_create_status_claims() {
         uri: config.base_url.join(&db_lists[0].external_id),
     });
 
+    // Check if database attestation batch is correctly stored
     let db_attestations = fetch_attestation_batches(&connection, &db_lists).await;
     assert_eq!(db_attestations.len(), 1);
 
@@ -444,6 +453,7 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     assert_eq!(db_lists.len(), 1);
     let db_old_list_items = assert_status_list_items(&connection, &db_lists[0], 1, 8, 8, false).await;
 
+    // Obtain claims for attestation batch
     let batch_id = Uuid::new_v4();
     let (claims, tasks) = service
         .obtain_status_claims_and_scheduled_tasks(batch_id, None, 2.try_into().unwrap())
@@ -452,12 +462,14 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     assert_eq!(tasks.len(), 2);
     try_join_all(tasks.into_iter()).await.unwrap();
 
+    // Check if database is correctly updated
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[0], 0, 8, 8, true).await;
     assert_empty_published_list(&config, &db_lists[0]).await;
     let db_new_list_items = assert_status_list_items(&connection, &db_lists[1], 7, 8, 16, false).await;
 
+    // Check if claims matches config and database
     assert_eq!(claims.len(), 2.try_into().unwrap());
     assert_matches!(&claims[0], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_old_list_items[7].index as u32,
@@ -468,6 +480,7 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
         uri: config.base_url.join(&db_lists[1].external_id),
     });
 
+    // Check if database attestation batch is correctly stored
     let db_attestations = fetch_attestation_batches(&connection, &db_lists).await;
     assert_eq!(db_attestations.len(), 1);
 
@@ -495,6 +508,7 @@ async fn test_service_create_status_claims_concurrently() {
 
     let type_id = attestation_type_id(&connection, &attestation_type).await;
 
+    // Obtain claims for multiple attestation batches
     let concurrent = 7;
     let num_copies = 3.try_into().unwrap();
     let claims_per_batch =
@@ -502,6 +516,7 @@ async fn test_service_create_status_claims_concurrently() {
             .await
             .unwrap();
 
+    // Check if claims matches the database
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1); // No new list creation scheduled
     let mut db_list_items = assert_status_list_items(&connection, &db_lists[0], 3, 24, 24, false).await;
