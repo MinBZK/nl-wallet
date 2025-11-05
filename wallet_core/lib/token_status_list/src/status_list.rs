@@ -3,9 +3,9 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hasher;
 
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
-use serde_repr::Deserialize_repr;
-use serde_repr::Serialize_repr;
+use serde::Serializer;
 
 #[derive(Debug, Default)]
 struct IdentityHasher(u64);
@@ -71,12 +71,16 @@ mod zlib_base64 {
     where
         S: serde::Serializer,
     {
-        // Implementations are RECOMMENDED to use the highest compression level available.
-        let mut e = ZlibEncoder::new(Vec::new(), Compression::best());
-        e.write_all(bytes).map_err(serde::ser::Error::custom)?;
-        let compressed = e.finish().map_err(serde::ser::Error::custom)?;
+        // Best gzip compression is limited by the algorithm to 1032, rounded to a nice two power
+        let buf = Vec::with_capacity(bytes.len() / 1024);
+        let writer = base64::write::EncoderWriter::new(buf, &BASE64_URL_SAFE_NO_PAD);
 
-        let encoded = BASE64_URL_SAFE_NO_PAD.encode(compressed);
+        // Implementations are RECOMMENDED to use the highest compression level available.
+        let mut e = ZlibEncoder::new(writer, Compression::best());
+        e.write_all(bytes).map_err(serde::ser::Error::custom)?;
+        let encoded = e.finish().map_err(serde::ser::Error::custom)?.into_inner();
+
+        let encoded = String::from_utf8(encoded).expect("base64 encoded string should be valid utf-8");
         encoded.serialize(serializer)
     }
 
@@ -84,12 +88,12 @@ mod zlib_base64 {
     where
         D: serde::Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
+        let encoded = String::deserialize(deserializer)?;
 
-        let decoded = BASE64_URL_SAFE_NO_PAD.decode(s).map_err(serde::de::Error::custom)?;
+        let mut decompressed = Vec::with_capacity(encoded.len());
+        let reader = base64::read::DecoderReader::new(encoded.as_bytes(), &BASE64_URL_SAFE_NO_PAD);
 
-        let mut d = ZlibDecoder::new(&decoded[..]);
-        let mut decompressed = Vec::new();
+        let mut d = ZlibDecoder::new(reader);
         d.read_to_end(&mut decompressed).map_err(serde::de::Error::custom)?;
 
         Ok(decompressed)
@@ -117,21 +121,13 @@ impl StatusList {
     }
 
     pub fn pack(self) -> PackedStatusList {
-        let bits = self
-            .sparse
-            .values()
-            .max_by(|a, b| a.bits().cmp(&b.bits()))
-            .map(|s| s.bits())
-            .unwrap_or_default(); // empty list
-
-        let lst = self.sparse.iter().fold(
-            vec![0; (self.len * bits as usize).div_ceil(8)],
-            |mut acc, (index, status)| {
-                let idx = bits.packed_index(*index);
-                acc[idx] |= Into::<u8>::into(*status) << bits.shift_for_index(*index);
-                acc
-            },
-        );
+        let bits = self.sparse.values().map(|s| s.bits()).max().unwrap_or_default(); // empty list
+        let size = bits.packed_len(self.len);
+        let lst = self.sparse.iter().fold(vec![0; size], |mut acc, (index, status)| {
+            let idx = bits.packed_index(*index);
+            acc[idx] |= Into::<u8>::into(*status) << bits.shift_for_index(*index);
+            acc
+        });
 
         PackedStatusList { bits, lst }
     }
@@ -166,40 +162,86 @@ impl PackedStatusList {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
-#[repr(u8)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Bits {
     #[default]
-    One = 1,
-    Two = 2,
-    Four = 4,
-    Eight = 8,
+    One,
+    Two,
+    Four,
+    Eight,
+}
+
+impl Serialize for Bits {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u8(self.size())
+    }
+}
+
+impl<'de> Deserialize<'de> for Bits {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match u8::deserialize(deserializer)? {
+            1 => Ok(Bits::One),
+            2 => Ok(Bits::Two),
+            4 => Ok(Bits::Four),
+            8 => Ok(Bits::Eight),
+            n => Err(serde::de::Error::custom(format!(
+                "invalid value: {n}, expected one of: 1, 2, 4, 8"
+            ))),
+        }
+    }
 }
 
 impl Bits {
+    fn size(self) -> u8 {
+        1 << self as u8
+    }
+
     #[inline]
     fn statuses_per_byte(self) -> usize {
-        8 / self as usize
+        8 >> self as usize
     }
 
     #[inline]
-    pub fn mask(self) -> u8 {
-        ((1 << self as u16) - 1) as u8
+    fn mask(self) -> u8 {
+        ((1 << (self.size() as u16)) - 1) as u8
     }
 
     #[inline]
-    pub fn shift_for_index(self, index: usize) -> usize {
-        (index % self.statuses_per_byte()) * self as usize
+    fn shift_for_index(self, index: usize) -> usize {
+        let remainder = index & (self.statuses_per_byte() - 1);
+        remainder * self.size() as usize
     }
 
     #[inline]
-    pub fn packed_index(self, index: usize) -> usize {
-        index / self.statuses_per_byte()
+    fn inverse_exponent(self) -> usize {
+        3 - self as usize
     }
 
     #[inline]
-    pub fn unpacked_len(self, len: usize) -> usize {
-        len * self.statuses_per_byte()
+    fn packed_index(self, index: usize) -> usize {
+        index >> self.inverse_exponent()
+    }
+
+    #[inline]
+    fn unpacked_len(self, size: usize) -> usize {
+        size << self.inverse_exponent()
+    }
+
+    #[inline]
+    fn packed_len(self, len: usize) -> usize {
+        self.aligned_len(len) >> self.inverse_exponent()
+    }
+
+    #[inline]
+    fn aligned_len(self, len: usize) -> usize {
+        let align = self.statuses_per_byte();
+        (len + (align - 1)) & !(align - 1)
     }
 }
 
@@ -316,7 +358,7 @@ pub mod test {
     fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: Bits) {
         let packed = list.pack();
         let compressed = serde_json::to_value(packed).unwrap();
-        assert_eq!(compressed["bits"].as_u64().unwrap(), expected as u64);
+        assert_eq!(compressed["bits"].as_u64().unwrap(), expected.size() as u64);
     }
 
     #[rstest]

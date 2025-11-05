@@ -6864,7 +6864,6 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "serde_repr",
  "serde_with",
  "tests_integration",
  "thiserror 2.0.11",
