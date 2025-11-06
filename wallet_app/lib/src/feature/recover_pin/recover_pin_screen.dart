@@ -10,7 +10,6 @@ import '../../data/service/navigation_service.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/model/result/application_error.dart';
-import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/list_extension.dart';
@@ -259,12 +258,13 @@ class RecoverPinScreen extends StatelessWidget {
               illustration: const PageIllustration(asset: WalletAssets.svg_pin_set),
               primaryButtonCta: c.l10n.recoverPinSuccessPageToOverviewCta,
               onPrimaryPressed: () => Navigator.of(c).resetToDashboard(),
-              secondaryButtonCta: c.l10n.recoverPinSuccessPageToHistoryCta,
+              // Re-introduce secondary button in PVW-5058 (also see PVW-5141)
+              /* secondaryButtonCta: c.l10n.recoverPinSuccessPageToHistoryCta,
               onSecondaryButtonPressed: () {
                 Navigator.of(c)
                   ..resetToDashboard()
                   ..pushNamed(WalletRoutes.walletHistoryRoute);
-              },
+              }, */
             );
           case RecoverPinSelectPinFailed():
             page = const CenteredLoadingIndicator();
