@@ -1365,7 +1365,7 @@
     },
     "signSuccessPageHistoryCta": "Activiteiten",
     "signSuccessPageTitle": "Gelukt!",
-    "stopDigidLoginDialogNegativeCta": "TERUG",
+    "stopDigidLoginDialogNegativeCta": "ANNULEREN",
     "stopDigidLoginDialogPositiveCta": "INLOGGEN STOPPEN",
     "stopDigidLoginDialogSubtitle": "Als je stopt, moet je opnieuw beginnen.",
     "stopDigidLoginDialogTitle": "DigiD inloggen stoppen?",
