@@ -60,10 +60,10 @@ class UpdateInfoScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _buildButtons(context),
                   ],
                 ),
               ),
+              _buildBottomSection(context),
             ],
           ),
         ),
@@ -71,12 +71,12 @@ class UpdateInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildButtons(BuildContext context) {
-    return SliverFillRemaining(
-      hasScrollBody: false,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ConfirmButtons(
+  Widget _buildBottomSection(BuildContext context) {
+    return Column(
+      children: [
+        const Divider(),
+        ConfirmButtons(
+          forceVertical: !context.isLandscape,
           primaryButton: PrimaryButton(
             text: Text.rich(
               (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta).toTextSpan(
@@ -92,7 +92,7 @@ class UpdateInfoScreen extends StatelessWidget {
             onPressed: () => Navigator.maybePop(context),
           ),
         ),
-      ),
+      ],
     );
   }
 }
