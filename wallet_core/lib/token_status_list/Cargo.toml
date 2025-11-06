@@ -35,6 +35,7 @@ utils.path = "../utils"
 
 [dev-dependencies]
 dashmap.workspace = true
-p256.workspace = true
 regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+
+crypto = { path = "../crypto", features = ["generate", "mock"] }

@@ -11,11 +11,13 @@ use serde_with::DurationSeconds;
 use serde_with::serde_as;
 
 use crypto::EcdsaKey;
+use crypto::server_keys::KeyPair;
 use http_utils::urls::HttpsUri;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithX5c;
 
 use crate::status_list::PackedStatusList;
 
@@ -26,7 +28,7 @@ static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
 #[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
-pub struct StatusListToken(UnverifiedJwt<StatusListClaims>);
+pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithX5c>);
 
 impl StatusListToken {
     pub fn builder(sub: HttpsUri, status_list: PackedStatusList) -> StatusListTokenBuilder {
@@ -57,7 +59,7 @@ impl StatusListTokenBuilder {
         self
     }
 
-    pub async fn sign(self, key: &impl EcdsaKey) -> Result<StatusListToken, JwtError> {
+    pub async fn sign(self, keypair: &KeyPair<impl EcdsaKey>) -> Result<StatusListToken, JwtError> {
         let claims = StatusListClaims {
             iat: Utc::now(),
             exp: self.exp,
@@ -66,8 +68,8 @@ impl StatusListTokenBuilder {
             status_list: self.status_list,
         };
 
-        let jwt = SignedJwt::sign(&claims, key).await?;
-        Ok(StatusListToken(jwt.into()))
+        let jwt = SignedJwt::sign_with_certificate(&claims, keypair).await?;
+        Ok(StatusListToken(jwt.into_unverified()))
     }
 }
 
@@ -99,10 +101,11 @@ impl JwtTyp for StatusListClaims {
 
 #[cfg(test)]
 mod test {
-    use p256::ecdsa::SigningKey;
-    use p256::elliptic_curve::rand_core::OsRng;
+    use base64::Engine;
+    use base64::prelude::BASE64_STANDARD;
     use serde_json::json;
 
+    use crypto::server_keys::generate::Ca;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::headers::HeaderWithTyp;
 
@@ -110,9 +113,13 @@ mod test {
 
     #[tokio::test]
     async fn test_status_list_token() {
+        let ca = Ca::generate("test", Default::default()).unwrap();
+        let keypair = ca.generate_status_list_mock().unwrap();
+
         let example_header = json!({
             "alg": "ES256",
-            "typ": "statuslist+jwt"
+            "typ": "statuslist+jwt",
+            "x5c": vec![BASE64_STANDARD.encode(keypair.certificate().to_vec())],
         });
         let example_payload = json!({
             "exp": 2291720170_i64,
@@ -125,22 +132,21 @@ mod test {
             "ttl": 43200
         });
 
-        let expected_header: HeaderWithTyp = serde_json::from_value(example_header).unwrap();
-        assert!(expected_header.typ == TOKEN_STATUS_LIST_JWT_TYP);
+        let expected_header: HeaderWithX5c<HeaderWithTyp> = serde_json::from_value(example_header).unwrap();
+        assert_eq!(expected_header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
 
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
-        let key = SigningKey::random(&mut OsRng);
         let signed = StatusListToken::builder(expected_claims.sub.clone(), expected_claims.status_list.clone())
             .exp(expected_claims.exp.unwrap())
             .ttl(expected_claims.ttl.unwrap())
-            .sign(&key)
+            .sign(&keypair)
             .await
             .unwrap();
 
         let verified = signed
             .0
-            .into_verified(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .into_verified(&keypair.private_key().verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
         assert_eq!(*verified.header(), expected_header);
         // the `iat` claim is set when signing the token

@@ -6857,7 +6857,6 @@ dependencies = [
  "flate2",
  "http_utils",
  "jwt",
- "p256",
  "regex",
  "rstest",
  "serde",
