@@ -1,11 +1,5 @@
 use std::time::Duration;
 
-#[cfg(feature = "axum")]
-use axum::http::header::CONTENT_TYPE;
-#[cfg(feature = "axum")]
-use axum::response::IntoResponse;
-#[cfg(feature = "axum")]
-use axum::response::Response;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
@@ -26,8 +20,6 @@ use jwt::error::JwtError;
 use crate::status_list::PackedStatusList;
 
 static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
-#[cfg(feature = "axum")]
-static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
 
 /// A Status List Token embeds a Status List into a token that is cryptographically signed and protects the integrity of
 /// the Status List.
@@ -76,13 +68,6 @@ impl StatusListTokenBuilder {
 
         let jwt = SignedJwt::sign(&claims, key).await?;
         Ok(StatusListToken(jwt.into()))
-    }
-}
-
-#[cfg(feature = "axum")]
-impl IntoResponse for StatusListToken {
-    fn into_response(self) -> Response {
-        ([(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER)], self.0.to_string()).into_response()
     }
 }
 
@@ -163,62 +148,5 @@ mod test {
         assert_eq!(verified.payload().sub, expected_claims.sub);
         assert_eq!(verified.payload().ttl, expected_claims.ttl);
         assert_eq!(verified.payload().exp, expected_claims.exp);
-    }
-
-    #[cfg(feature = "axum")]
-    async fn start_mock_server() -> http_utils::urls::BaseUrl {
-        use axum::Router;
-        use axum::routing::get;
-        use tokio::net::TcpListener;
-
-        use http_utils::urls::BaseUrl;
-        use tests_integration::common::wait_for_server;
-
-        use crate::status_list::test::EXAMPLE_STATUS_LIST_ONE;
-
-        let listener = TcpListener::bind("localhost:0").await.unwrap();
-        let port = listener.local_addr().unwrap().port();
-
-        let token_status_list = StatusListToken::builder(
-            "https://example.com/statuslists/1".parse().unwrap(),
-            EXAMPLE_STATUS_LIST_ONE.to_owned().pack(),
-        )
-        .exp(Utc::now() + Duration::from_secs(3600))
-        .ttl(Duration::from_secs(43200))
-        .sign(&SigningKey::random(&mut OsRng))
-        .await
-        .unwrap();
-
-        let app = Router::new()
-            .route("/", get(move || async { token_status_list }))
-            .into_make_service();
-
-        tokio::spawn(async move {
-            axum::serve(listener, app).await.unwrap();
-        });
-
-        let url: BaseUrl = format!("http://localhost:{port}/").as_str().parse().unwrap();
-        wait_for_server(url.clone(), std::iter::empty()).await;
-        url
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "axum")]
-    async fn test_token_status_list_into_response() {
-        let url = start_mock_server().await;
-
-        let response = reqwest::Client::new()
-            .get(url.into_inner())
-            .send()
-            .await
-            .expect("Failed to send request");
-
-        assert_eq!(
-            response.headers().get("Content-Type").unwrap(),
-            TOKEN_STATUS_LIST_JWT_HEADER
-        );
-        let status_list_token: StatusListToken = response.text().await.unwrap().parse().unwrap();
-        let (_, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
-        assert!(!payload.status_list.is_empty());
     }
 }
