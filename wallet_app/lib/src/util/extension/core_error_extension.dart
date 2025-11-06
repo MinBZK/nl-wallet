@@ -39,6 +39,8 @@ extension CoreErrorExtension on CoreError {
         LocalizedText? organizationName;
         if (error.organizationName != null) organizationName = LocalizedLabelsMapper().map(error.organizationName!);
         return RelyingPartyError(sourceError: error, organizationName: organizationName);
+      case CoreWrongDigidError():
+        return WrongDigidError(sourceError: error);
       case CoreStateError():
         Fimber.e('StateError detected!', ex: this);
         throw StateError(toString());

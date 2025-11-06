@@ -182,8 +182,9 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
   Future<void> _handleApplicationError(ApplicationError error, Emitter<RecoverPinState> emit) async {
     await _cancelPinRecoveryUsecase.invoke(); // Always attempt to cancel the session, then render the specific error
 
-    // TODO(Rob): Handle DigiDMismatch and emit [RecoverPinDigidMismatch]
     switch (error) {
+      case WrongDigidError():
+        emit(const RecoverPinDigidMismatch());
       case NetworkError():
         emit(RecoverPinNetworkError(hasInternet: error.hasInternet, error: error));
       case RedirectUriError():

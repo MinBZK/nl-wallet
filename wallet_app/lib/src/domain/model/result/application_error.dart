@@ -105,6 +105,10 @@ class ExternalScannerError extends ApplicationError {
   const ExternalScannerError({required super.sourceError});
 }
 
+class WrongDigidError extends ApplicationError {
+  const WrongDigidError({required super.sourceError});
+}
+
 class RelyingPartyError extends ApplicationError {
   final LocalizedText? organizationName;
 
