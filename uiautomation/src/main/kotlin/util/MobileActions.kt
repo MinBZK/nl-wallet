@@ -145,7 +145,7 @@ open class MobileActions {
         val height = size.height
 
         val startX = width / 2
-        val startY = (height * 0.80).toInt()   // near bottom
+        val startY = (height * 0.60).toInt()   // near bottom
         val endX   = startX
         val endY   = (height * 0.20).toInt()   // near top
 
