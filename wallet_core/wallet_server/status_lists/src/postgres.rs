@@ -345,7 +345,10 @@ where
             }
 
             if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
-                log::warn!("Creating status list in flight, increase create_threshold or list_size");
+                log::warn!(
+                    "Creating status list in flight for attestation type ID {}, increase create_threshold or list_size",
+                    self.attestation_type_id,
+                )
             } else if tries == 0 {
                 return Err(StatusListServiceError::NoStatusListAvailable());
             }
@@ -353,7 +356,10 @@ where
 
             let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or_default();
             if !self.create_status_list(next_sequence_no, true).await? {
-                log::warn!("Failed to create status list in flight");
+                log::warn!(
+                    "Failed to create status list in flight for attestation type ID {}",
+                    self.attestation_type_id,
+                );
             }
         }
     }
@@ -380,7 +386,7 @@ where
             panic!(
                 "Insufficient number of items in status list: fetched: {}, requested: {}",
                 items.len(),
-                num_copies
+                num_copies,
             );
         }
 
@@ -529,7 +535,7 @@ where
         // Update next sequence no of attestation type
         assert_eq!(
             next_sequence_no, new_next_sequence_no as usize,
-            "Inserted items did not match calculated sequence number"
+            "Inserted items did not match calculated sequence number",
         );
         let mut attestation_type = attestation_type.into_active_model();
         attestation_type.next_sequence_no = Set(new_next_sequence_no);
@@ -543,7 +549,7 @@ where
     }
 
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
-        log::info!("Initializing status lists");
+        log::info!("Initializing status lists for ID: {}", self.attestation_type_id);
 
         // Fetch all lists that still have list items in the database
         let lists = status_list::Entity::find()
@@ -571,7 +577,7 @@ where
                 .unwrap_or_else(|| panic!("Missing attestation type for ID {}", self.attestation_type_id));
 
             log::info!(
-                "Schedule creation of status list items for {}",
+                "Schedule creation of status list items for list ID {}",
                 self.attestation_type_id
             );
             let service = self.clone();
@@ -589,7 +595,7 @@ where
         let mut tasks = Vec::new();
         for list in lists {
             if list.available == 0 {
-                log::info!("Schedule deletion of status list items for ID {}", list.id);
+                log::info!("Schedule deletion of status list items for list ID {}", list.id);
 
                 let connection = self.connection.clone();
                 let list_id = list.id;
@@ -598,7 +604,7 @@ where
             if list.available <= self.create_threshold.into_inner() {
                 log::info!(
                     "Schedule creation of status list items for attestation type ID {}",
-                    list.attestation_type_id
+                    list.attestation_type_id,
                 );
 
                 let service = self.clone();
@@ -619,9 +625,13 @@ where
         match self.create_status_list(next_sequence_no, false).await {
             Ok(created) if created => log::info!(
                 "Created status list for attestation type ID {}",
-                self.attestation_type_id
+                self.attestation_type_id,
             ),
-            Err(err) => log::warn!("Failed to create status list: {}", err),
+            Err(err) => log::warn!(
+                "Failed to create status list for attestation type ID {}: {}",
+                self.attestation_type_id,
+                err,
+            ),
             _ => {}
         };
     }
