@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::Write;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
@@ -645,16 +644,9 @@ where
                 .into();
 
         let path = self.publish_dir.join(Path::new(external_id));
-        tokio::task::spawn_blocking(move || {
-            // create because a new status list external id can be reused if the transaction fails
-            std::fs::File::create(&path)
-                .and_then(|file| {
-                    let mut writer = std::io::BufWriter::new(file);
-                    writer.write_all(jwt.serialization().as_bytes())
-                })
-                .map_err(|err| StatusListServiceError::IO(path, err))
-        })
-        .await??;
+        tokio::fs::write(&path, jwt.serialization().as_bytes())
+            .await
+            .map_err(|err| StatusListServiceError::IO(path, err))?;
 
         Ok(())
     }
