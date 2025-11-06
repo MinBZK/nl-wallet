@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-10-16T14:30:35+02:00",
+    "@@last_modified": "2025-11-04T16:39:18+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1156,6 +1156,8 @@
     "recoverPinAwaitingDigidAuthenticationDescription": "DigiD app is being opened",
     "recoverPinChooseNewPinPageTitle": "Choose a 6-digit PIN",
     "recoverPinConfirmNewPinPageTitle": "Repeat your PIN",
+    "recoverPinContinueWithDigiDDescription": "That's how you can get your details",
+    "recoverPinContinueWithDigiDTitle": "Continue in your DigiD app",
     "recoverPinDigidMismatchPageDescription": "This NL Wallet does not belong to this DigiD account.\n\nLog in again using the same DigiD if you want to recover your PIN.",
     "recoverPinDigidMismatchPageRetryCta": "Log in again",
     "recoverPinDigidMismatchPageTitle": "Wrong DigiD",

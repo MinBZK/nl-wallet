@@ -193,10 +193,10 @@ class RecoverPinScreen extends StatelessWidget {
             );
           case RecoverPinAwaitingDigidAuthentication():
             page = GenericLoadingPage(
-              contextImage: const SvgOrImage(asset: WalletAssets.logo_wallet, height: 64, width: 64),
-              title: c.l10n.recoverPinGenericLoadingTitle,
-              description: c.l10n.recoverPinAwaitingDigidAuthenticationDescription,
+              title: c.l10n.recoverPinContinueWithDigiDTitle,
+              description: c.l10n.recoverPinContinueWithDigiDDescription,
               cancelCta: c.l10n.generalStop,
+              loadingIndicator: const SizedBox.shrink(),
               onCancel: () => _stopRecoverPin(c),
             );
           case RecoverPinVerifyingDigidAuthentication():

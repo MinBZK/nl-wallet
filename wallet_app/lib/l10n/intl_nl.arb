@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-10-16T14:30:35+02:00",
+    "@@last_modified": "2025-11-04T16:39:18+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1152,6 +1152,8 @@
     "recoverPinAwaitingDigidAuthenticationDescription": "DigiD app wordt geopend",
     "recoverPinChooseNewPinPageTitle": "Kies een 6-cijferige pincode",
     "recoverPinConfirmNewPinPageTitle": "Herhaal je pincode",
+    "recoverPinContinueWithDigiDDescription": "Zo haal je je gegevens op",
+    "recoverPinContinueWithDigiDTitle": "Ga verder in je DigiD app",
     "recoverPinDigidMismatchPageDescription": "Deze NL Wallet hoort niet bij dit DigiD-account.\n\nLog in met het DigiD-account waarmee je de NL Wallet eerder hebt gemaakt.",
     "recoverPinDigidMismatchPageRetryCta": "Opnieuw inloggen",
     "recoverPinDigidMismatchPageTitle": "Verkeerde DigiD",
