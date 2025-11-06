@@ -24,6 +24,7 @@ pub enum PinPolicyEvaluation {
         timeout: Duration,
     },
     BlockedPermanently,
+    InPinRecovery,
 }
 
 #[cfg(feature = "mock")]
