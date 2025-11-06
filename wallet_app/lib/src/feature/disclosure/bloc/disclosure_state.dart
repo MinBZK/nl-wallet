@@ -233,7 +233,7 @@ class DisclosureMissingAttributes extends DisclosureState {
   final FlowProgress stepperProgress;
 
   @override
-  bool get canGoBack => true;
+  bool get canGoBack => false;
 
   @override
   bool get showStopConfirmation => false;
