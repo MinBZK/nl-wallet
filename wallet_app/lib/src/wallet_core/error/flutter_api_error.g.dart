@@ -30,4 +30,5 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.cancelledSession: 'CancelledSession',
   FlutterApiErrorType.issuer: 'Issuer',
   FlutterApiErrorType.verifier: 'Verifier',
+  FlutterApiErrorType.wrongDigid: 'WrongDigid',
 };
