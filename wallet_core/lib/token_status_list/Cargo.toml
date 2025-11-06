@@ -11,11 +11,9 @@ workspace = true
 doctest = false
 
 [features]
-axum = ["dep:axum"]
 mock = ["dep:dashmap"]
 
 [dependencies]
-axum = { workspace = true, optional = true }
 base64.workspace = true
 chrono.workspace = true
 dashmap = { workspace = true, optional = true }
@@ -36,10 +34,8 @@ jwt.path = "../jwt"
 utils.path = "../utils"
 
 [dev-dependencies]
-axum = { workspace = true, features = ["http1", "tokio"] }
-p256.workspace = true
+dashmap.workspace = true
 regex.workspace = true
-reqwest = { workspace = true, features = ["json"] }
 tokio = { workspace = true, features = ["macros"] }
 
-tests_integration.path = "../../tests_integration"
+crypto = { path = "../crypto", features = ["generate", "mock"] }
