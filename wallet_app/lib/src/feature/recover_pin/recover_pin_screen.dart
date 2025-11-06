@@ -118,7 +118,7 @@ class RecoverPinScreen extends StatelessWidget {
       RecoverPinChooseNewPin() => false,
       RecoverPinConfirmNewPin() => false,
       RecoverPinUpdatingPin() => false,
-      RecoverPinSuccess() => true,
+      RecoverPinSuccess() => false,
       RecoverPinSelectPinFailed() => true,
       RecoverPinConfirmPinFailed() => true,
       RecoverPinDigidFailure() => true,
@@ -331,15 +331,18 @@ class RecoverPinScreen extends StatelessWidget {
   /// sure the correct stop action (dialog/sheet/pop) will be executed.
   Future<void> _stopRecoverPin(BuildContext context) async {
     final state = context.bloc.state;
-    if (state is ErrorState) {
-      Navigator.pop(context);
-    } else if (state is RecoverPinAwaitingDigidAuthentication) {
-      // This is a special case, for which we show the stop dialog
-      unawaited(_showStopDigidLoginDialog(context));
-    } else {
-      // Confirm with user through the stop sheet
-      final stoppedByUser = await RecoverPinStopSheet.show(context);
-      if (stoppedByUser && context.mounted) context.bloc.add(const RecoverPinStopPressed());
+    switch (state) {
+      case ErrorState():
+        Navigator.pop(context);
+      case RecoverPinSuccess():
+        unawaited(Navigator.of(context).resetToDashboard());
+      case RecoverPinAwaitingDigidAuthentication():
+        // This is a special case, for which we show the stop dialog
+        unawaited(_showStopDigidLoginDialog(context));
+      default:
+        // Confirm with user through the stop sheet
+        final stoppedByUser = await RecoverPinStopSheet.show(context);
+        if (stoppedByUser && context.mounted) context.bloc.add(const RecoverPinStopPressed());
     }
   }
 
