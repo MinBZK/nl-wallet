@@ -1369,7 +1369,7 @@
     },
     "signSuccessPageHistoryCta": "Activities",
     "signSuccessPageTitle": "Success!",
-    "stopDigidLoginDialogNegativeCta": "BACK",
+    "stopDigidLoginDialogNegativeCta": "CANCEL",
     "stopDigidLoginDialogPositiveCta": "STOP LOGIN",
     "stopDigidLoginDialogSubtitle": "If you stop, you'll need to start over.",
     "stopDigidLoginDialogTitle": "Stop DigiD login?",
