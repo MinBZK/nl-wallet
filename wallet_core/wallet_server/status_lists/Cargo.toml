@@ -25,6 +25,7 @@ derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"]
 futures.workspace = true
 itertools.workspace = true
 log.workspace = true
+nutype.workspace = true
 rand.workspace = true
 rstest.workspace = true
 sea-orm = { workspace = true, features = [
@@ -55,7 +56,6 @@ anyhow.workspace = true
 assert_matches.workspace = true
 config.workspace = true
 futures.workspace = true
-indexmap.workspace = true
 p256.workspace = true
 tempfile.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }

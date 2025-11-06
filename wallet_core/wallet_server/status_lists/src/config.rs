@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use derive_more::AsRef;
 use derive_more::From;
@@ -13,6 +12,7 @@ use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
 use utils::ints::NonZeroU31;
 
+use crate::settings::PublishDir;
 use crate::settings::StatusListAttestationSettings;
 use crate::settings::StatusListsSettings;
 
@@ -22,7 +22,7 @@ pub struct StatusListConfig {
     pub create_threshold: NonZeroU31,
 
     pub base_url: BaseUrl,
-    pub publish_dir: PathBuf,
+    pub publish_dir: PublishDir,
     pub key_pair: KeyPair<PrivateKeyVariant>,
 }
 

@@ -54,7 +54,6 @@ use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::ints::NonZeroU31;
-use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::config::StatusListConfig;
@@ -185,17 +184,9 @@ impl PostgresStatusListServices<PrivateKeyVariant> {
         configs: StatusListConfigs,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
-        let publish_dirs = try_join_all(
-            configs
-                .as_ref()
-                .values()
-                .map(|config| check_publish_dir(config.publish_dir.as_path())),
-        )
-        .await?;
         let services = configs
             .into_iter()
-            .zip(publish_dirs.into_iter())
-            .map(|((attestation_type, config), publish_dir)| {
+            .map(|(attestation_type, config)| {
                 let attestation_type_id = *attestation_type_ids
                     .get(&attestation_type)
                     .expect("attestation_type_ids should have entry for initialized types");
@@ -205,7 +196,7 @@ impl PostgresStatusListServices<PrivateKeyVariant> {
                     list_size: config.list_size,
                     create_threshold: config.create_threshold,
                     base_url: config.base_url,
-                    publish_dir,
+                    publish_dir: config.publish_dir.into(),
                     key_pair: config.key_pair,
                 };
                 (attestation_type, service)
@@ -244,7 +235,7 @@ impl PostgresStatusListService<PrivateKeyVariant> {
             list_size: config.list_size,
             create_threshold: config.create_threshold,
             base_url: config.base_url,
-            publish_dir: check_publish_dir(&config.publish_dir).await?,
+            publish_dir: config.publish_dir.into(),
             key_pair: config.key_pair,
         })
     }
@@ -699,17 +690,6 @@ async fn fetch_attestation_type_ids(
                 .map(|model| (model.name, model.id))
                 .collect::<HashMap<_, _>>()
         })
-}
-
-async fn check_publish_dir(publish_dir: &Path) -> Result<PathBuf, StatusListServiceError> {
-    let publish_path = prefix_local_path(publish_dir);
-    let metadata = tokio::fs::metadata(&publish_path)
-        .await
-        .map_err(|err| StatusListServiceError::IO(publish_dir.to_path_buf(), err))?;
-    if !metadata.is_dir() {
-        return Err(StatusListServiceError::InvalidPublishDir(publish_dir.to_path_buf()));
-    }
-    Ok(publish_path.into_owned())
 }
 
 #[cfg(test)]

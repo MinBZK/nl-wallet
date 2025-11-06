@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::Read;
 use std::path::Path;
+use std::path::PathBuf;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
@@ -40,6 +41,7 @@ use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::postgres::StatusListLocation;
+use status_lists::settings::PublishDir;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::Bits;
@@ -87,7 +89,7 @@ async fn create_status_list_service(
         base_url: format!("https://example.com/tsl/{}", attestation_type)
             .as_str()
             .parse()?,
-        publish_dir: publish_dir.path().to_path_buf(),
+        publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
         key_pair: private_key_variant(ca.generate_status_list_mock()?).await,
     };
     let service = PostgresStatusListService::try_new(connection.clone(), &attestation_type, config.clone()).await?;
@@ -157,7 +159,7 @@ async fn assert_status_list_items(
 }
 
 async fn assert_empty_published_list(config: &StatusListConfig, list: &status_list::Model) {
-    let path = config.publish_dir.join(Path::new(&list.external_id));
+    let path = PathBuf::from(config.publish_dir.clone()).join(Path::new(&list.external_id));
     let status_list_token = tokio::task::spawn_blocking(move || {
         let file = std::fs::File::open(path).expect("published file not found");
         let mut buffer = String::new();
@@ -264,7 +266,7 @@ async fn test_service_initializes_multiple_status_lists() {
                 list_size: NonZeroU31::try_new(4).unwrap(),
                 create_threshold: NonZeroU31::try_new(1).unwrap(),
                 base_url: "https://example.com/tsl".parse().unwrap(),
-                publish_dir: publish_dir.path().to_path_buf(),
+                publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
                 key_pair: private_key.clone(),
             };
             (attestation_type, config)
