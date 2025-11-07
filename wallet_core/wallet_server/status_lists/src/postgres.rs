@@ -150,7 +150,7 @@ pub struct StatusListLocation {
 
 impl<K> StatusListService for PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + 'static + Clone,
+    K: EcdsaKeySend + Sync + Clone + 'static,
 {
     type Error = StatusListServiceError;
 
@@ -208,7 +208,7 @@ impl PostgresStatusListServices<PrivateKeyVariant> {
 
 impl<K> PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + 'static + Clone,
+    K: EcdsaKeySend + Sync + Clone + 'static,
 {
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
@@ -243,7 +243,7 @@ impl PostgresStatusListService<PrivateKeyVariant> {
 
 impl<K> PostgresStatusListService<K>
 where
-    K: EcdsaKeySend + Sync + 'static + Clone,
+    K: EcdsaKeySend + Sync + Clone + 'static,
 {
     pub async fn obtain_status_claims(
         &self,
