@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::Deserialize;
 use url::Url;
 
@@ -16,6 +18,8 @@ pub struct StatusListsSettings {
     pub list_size: NonZeroU31,
     /// Threshold relatively to `list_size` to start creating a new list in the background
     pub create_threshold: Ratio,
+    /// TTL that indicates how long verifiers can cache the status list locally
+    pub ttl: Option<Duration>,
 }
 
 #[derive(Clone, Deserialize)]

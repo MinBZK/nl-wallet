@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::Read;
 use std::path::Path;
+use std::time::Duration;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
@@ -80,12 +81,14 @@ async fn create_status_list_service(
     connection: &DatabaseConnection,
     list_size: i32,
     create_threshold: i32,
+    ttl: Option<Duration>,
     publish_dir: &TempDir,
 ) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService<PrivateKeyVariant>)> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
         create_threshold: NonZeroU31::try_new(create_threshold)?,
+        ttl,
         base_url: format!("https://example.com/tsl/{}", attestation_type)
             .as_str()
             .parse()?,
@@ -185,6 +188,7 @@ async fn assert_published_list(
 
     let bits = *claims.status_list.bits();
     assert_eq!(bits, Bits::One);
+    assert_eq!(claims.ttl, config.ttl);
 
     let published = claims.status_list.unpack();
     let mut expected = StatusList::new_aligned(config.list_size.as_usize(), bits);
@@ -240,7 +244,7 @@ async fn test_service_initializes_status_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 10, 1, &publish_dir)
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 10, 1, None, &publish_dir)
         .await
         .unwrap();
 
@@ -273,6 +277,7 @@ async fn test_service_initializes_multiple_status_lists() {
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
                 create_threshold: NonZeroU31::try_new(1).unwrap(),
+                ttl: None,
                 base_url: "https://example.com/tsl".parse().unwrap(),
                 publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
                 key_pair: private_key.clone(),
@@ -307,7 +312,7 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, &publish_dir)
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
         .await
         .unwrap();
 
@@ -335,7 +340,7 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, &publish_dir)
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
         .await
         .unwrap();
 
@@ -363,7 +368,7 @@ async fn test_service_initializes_schedule_housekeeping_full() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, &publish_dir)
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
         .await
         .unwrap();
 
@@ -383,7 +388,7 @@ async fn test_service_create_status_claims() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 5, &publish_dir)
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 5, None, &publish_dir)
         .await
         .unwrap();
 
@@ -441,7 +446,7 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 8, 1, &publish_dir)
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 8, 1, None, &publish_dir)
         .await
         .unwrap();
 
@@ -502,7 +507,7 @@ async fn test_service_create_status_claims_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 24, 2, &publish_dir)
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 24, 2, None, &publish_dir)
         .await
         .unwrap();
 
@@ -542,9 +547,10 @@ async fn test_service_revoke_attestation_batch_multiple_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 4, 1, &publish_dir)
-        .await
-        .unwrap();
+    let (attestation_type, config, service) =
+        create_status_list_service(&ca, &connection, 4, 1, Some(Duration::from_secs(300)), &publish_dir)
+            .await
+            .unwrap();
 
     // Ensure we have two lists
     let type_id = attestation_type_id(&connection, &attestation_type).await;
@@ -594,7 +600,7 @@ async fn test_service_revoke_attestation_batch_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 1, &publish_dir)
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 1, None, &publish_dir)
         .await
         .unwrap();
 

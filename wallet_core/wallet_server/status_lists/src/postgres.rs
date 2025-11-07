@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use chrono::DateTime;
 use derive_more::From;
@@ -103,6 +104,7 @@ pub struct PostgresStatusListService<K: EcdsaKeySend> {
 
     list_size: NonZeroU31,
     create_threshold: NonZeroU31,
+    ttl: Option<Duration>,
 
     base_url: BaseUrl,
     publish_dir: PublishDir,
@@ -208,6 +210,7 @@ impl PostgresStatusListServices<PrivateKeyVariant> {
                     attestation_type_id,
                     list_size: config.list_size,
                     create_threshold: config.create_threshold,
+                    ttl: config.ttl,
                     base_url: config.base_url,
                     publish_dir: config.publish_dir,
                     key_pair: config.key_pair,
@@ -247,6 +250,7 @@ impl PostgresStatusListService<PrivateKeyVariant> {
             attestation_type_id,
             list_size: config.list_size,
             create_threshold: config.create_threshold,
+            ttl: config.ttl,
             base_url: config.base_url,
             publish_dir: config.publish_dir,
             key_pair: config.key_pair,
@@ -652,6 +656,7 @@ where
         let sub = self.base_url.join(external_id);
         let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
             StatusListToken::builder(sub, StatusList::new(self.list_size.as_usize()).pack())
+                .ttl(self.ttl)
                 .sign(&self.key_pair)
                 .await?
                 .into();
@@ -703,7 +708,7 @@ where
 
                 // Sign
                 let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
-                    builder.sign(&self.key_pair).await?.into();
+                    builder.ttl(self.ttl).sign(&self.key_pair).await?.into();
 
                 // Write to a tempfile and atomically move via rename
                 let jwt_path = self.publish_dir.jwt_path(external_id);
@@ -823,6 +828,7 @@ mod tests {
             attestation_type_id: 1,
             list_size: 1.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
+            ttl: None,
             base_url: "https://example.com/tsl".parse().unwrap(),
             publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
             key_pair: Ca::generate_issuer_mock_ca()

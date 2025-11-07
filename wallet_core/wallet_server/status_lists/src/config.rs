@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Duration;
 
 use derive_more::AsRef;
 use derive_more::From;
@@ -20,6 +21,7 @@ use crate::settings::StatusListsSettings;
 pub struct StatusListConfig {
     pub list_size: NonZeroU31,
     pub create_threshold: NonZeroU31,
+    pub ttl: Option<Duration>,
 
     pub base_url: BaseUrl,
     pub publish_dir: PublishDir,
@@ -61,6 +63,7 @@ impl StatusListConfig {
         Ok(StatusListConfig {
             list_size: settings.list_size,
             create_threshold: settings.create_threshold.of_nonzero_u31(settings.list_size),
+            ttl: settings.ttl,
             base_url: attestation.base_url,
             publish_dir: attestation.publish_dir,
             key_pair: attestation.keypair.parse(hsm).await?,
