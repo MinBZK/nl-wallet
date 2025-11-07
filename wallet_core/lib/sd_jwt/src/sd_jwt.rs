@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -367,10 +368,39 @@ impl VerifiedSdJwt {
         serialization.dangerous_parse_unverified()
     }
 
-    pub fn is_selectively_disclosable(&self, claim_paths: &[ClaimPath]) -> Result<bool, ClaimError> {
+    pub fn verify_selective_disclosure(
+        &self,
+        claim_path: &[ClaimPath],
+        metadata: &HashMap<Vec<ClaimPath>, SelectiveDisclosability>,
+    ) -> Result<(), ClaimError> {
         self.claims()
             .claims
-            .is_selectively_disclosable(claim_paths.iter().peekable(), &self.disclosures)
+            .verify_selective_disclosability(claim_path, 0, &self.disclosures, metadata)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectiveDisclosability {
+    Always,
+    Allowed,
+    Never,
+}
+
+impl SelectiveDisclosability {
+    pub fn verify_against_actual_disclosability(
+        &self,
+        is_actually_disclosable: bool,
+        claim_path: &[ClaimPath],
+    ) -> Result<(), ClaimError> {
+        if (*self == Self::Always && !is_actually_disclosable) || (*self == Self::Never && is_actually_disclosable) {
+            Err(ClaimError::SelectiveDisclosabilityMismatch(
+                claim_path.to_vec(),
+                *self,
+                is_actually_disclosable,
+            ))
+        } else {
+            Ok(())
+        }
     }
 }
 

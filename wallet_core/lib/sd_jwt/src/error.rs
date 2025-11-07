@@ -16,6 +16,7 @@ use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
 use crate::claims::ObjectClaims;
 use crate::sd_alg::SdAlg;
+use crate::sd_jwt::SelectiveDisclosability;
 
 #[derive(Debug, thiserror::Error)]
 #[error("no hasher implemented for sd_alg: {0:?}")]
@@ -72,6 +73,9 @@ pub enum ClaimError {
 
     #[error("no disclosure found with digest: {0}, for path: `{1:?}`")]
     DisclosureNotFound(String, Vec<ClaimPath>),
+
+    #[error("expected selective disclosability for claim `{0:?}` is `{1:?}`, but it was {2}")]
+    SelectiveDisclosabilityMismatch(Vec<ClaimPath>, SelectiveDisclosability, bool),
 }
 
 #[derive(Debug, thiserror::Error)]

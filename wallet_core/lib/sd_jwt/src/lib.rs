@@ -169,6 +169,8 @@ pub mod test;
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use rstest::rstest;
     use serde_json::json;
@@ -180,6 +182,7 @@ mod tests {
 
     use crate::error::ClaimError;
     use crate::sd_jwt::SdJwtVcClaims;
+    use crate::sd_jwt::SelectiveDisclosability;
     use crate::test::conceal_and_sign;
     use crate::test::disclose_claims;
 
@@ -198,11 +201,12 @@ mod tests {
             },
             "root_value": 1,
             "root_array": [
-                2,
-                [
-                    1,
-                    "nested_array_value"
-                ],
+                {
+                    "array_object_value": 1,
+                },
+                {
+                    "array_object_value": 2,
+                },
                 {
                     "array_object_value": 3,
                 }
@@ -210,10 +214,12 @@ mod tests {
             "root_object": {
                 "object_value": 4,
                 "object_array": [
-                    5,
-                    [
-                        "object_array_value"
-                    ],
+                    {
+                        "nested_object_value": 4,
+                    },
+                    {
+                        "nested_object_value": 5,
+                    },
                     {
                         "nested_object_value": 6,
                     }
@@ -242,22 +248,25 @@ mod tests {
     }
 
     #[rstest]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], false)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], false)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(0)], true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(0)], false)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(1)], true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(1)], true)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], true)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectByIndex(0)], true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectByIndex(0)], true)]
-    #[case(double_concealed_array_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(2), ClaimPath::SelectByKey("array_object_value".to_string())], true)]
-    fn test_is_selectively_disclosable(
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Allowed, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Never, false)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], SelectiveDisclosability::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], SelectiveDisclosability::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Always, false)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Allowed, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Never, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], SelectiveDisclosability::Never, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, true)] // ClaimError::SelectiveDisclosabilityMismatch
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], SelectiveDisclosability::Always, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, false)]
+    #[case(double_concealed_array_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll, ClaimPath::SelectByKey("array_object_value".to_string())], SelectiveDisclosability::Always, false)]
+    fn test_verify_selective_disclosability(
         #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
         #[case] path: Vec<ClaimPath>,
+        #[case] sd: SelectiveDisclosability,
         #[case] should_succeed: bool,
     ) {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -269,10 +278,14 @@ mod tests {
         let sd_jwt = conceal_and_sign(&issuer_keypair, input, concealed_claims);
         let verified_sd_jwt = sd_jwt.into_verified();
 
-        assert_eq!(
-            verified_sd_jwt.is_selectively_disclosable(&path).unwrap(),
-            should_succeed
-        );
+        let metadata = HashMap::from_iter([(path.clone(), sd)]);
+
+        let result = verified_sd_jwt.verify_selective_disclosure(&path, &metadata);
+        if should_succeed {
+            result.unwrap();
+        } else {
+            result.unwrap_err();
+        }
     }
 
     #[rstest]
@@ -281,34 +294,26 @@ mod tests {
            |actual| assert_eq!(actual, ClaimError::EmptyPath)
     )]
     #[case(all_claims(),
-           vec![ClaimPath::SelectByIndex(0)],
-           |actual| assert_matches!(actual, ClaimError::UnexpectedElement(_, path) if path == vec![ClaimPath::SelectByIndex(0)])
+           vec![ClaimPath::SelectAll],
+           |actual| assert_matches!(actual, ClaimError::UnexpectedElement(_, path) if path == vec![ClaimPath::SelectAll])
     )]
     #[case(all_claims(),
-           vec![ClaimPath::SelectAll],
-           |actual| assert_eq!(actual, ClaimError::UnsupportedTraversalPath(ClaimPath::SelectAll))
+           vec![ClaimPath::SelectByIndex(0)],
+           |actual| assert_eq!(actual, ClaimError::UnsupportedTraversalPath(ClaimPath::SelectByIndex(0)))
     )]
     #[case(all_claims(),
            vec![ClaimPath::SelectByKey("missing_root_value".to_string())],
            |actual| assert_matches!(actual, ClaimError::ObjectFieldNotFound(claim_name, _) if claim_name.as_str() == "missing_root_value")
     )]
     #[case(all_claims(),
-           vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(3)],
-           |actual| assert_matches!(actual, ClaimError::IndexOutOfBounds(index, array) if index == 3 && array.len() == 3)
-    )]
-    #[case(all_claims(),
-           vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectByIndex(3)],
-           |actual| assert_matches!(actual, ClaimError::IndexOutOfBounds(index, array) if index == 3 && array.len() == 3)
-    )]
-    #[case(all_claims(),
            vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("missing_nested_value".to_string())],
            |actual| assert_matches!(actual, ClaimError::ObjectFieldNotFound(claim_name, _) if claim_name.as_ref() == "missing_nested_value")
     )]
     #[case(all_claims(),
-           vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("missing_nested_value".to_string()), ClaimPath::SelectByIndex(0)],
+           vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("missing_nested_value".to_string()), ClaimPath::SelectAll],
            |actual| assert_matches!(actual, ClaimError::ObjectFieldNotFound(claim_name, _) if claim_name.as_ref() == "missing_nested_value")
     )]
-    fn test_is_selectively_disclosable_errors(
+    fn test_verify_selective_disclosability_errors(
         #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
         #[case] path: Vec<ClaimPath>,
         #[case] verify_expected_error: impl FnOnce(ClaimError),
@@ -322,7 +327,9 @@ mod tests {
         let sd_jwt = conceal_and_sign(&issuer_keypair, input, concealed_claims);
         let verified_sd_jwt = sd_jwt.into_verified();
 
-        let error = verified_sd_jwt.is_selectively_disclosable(&path).unwrap_err();
+        let error = verified_sd_jwt
+            .verify_selective_disclosure(&path, &HashMap::new())
+            .unwrap_err();
 
         verify_expected_error(error);
     }
@@ -374,7 +381,15 @@ mod tests {
         vec![
             vec_nonempty![
                 ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(0)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
                 ClaimPath::SelectByIndex(1)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(2)
             ],
             vec_nonempty![ClaimPath::SelectByKey("root_object".to_string())],
         ]
@@ -382,6 +397,22 @@ mod tests {
 
     fn double_concealed_array_claims() -> Vec<VecNonEmpty<ClaimPath>> {
         vec![
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(0)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(0)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(1)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(1)
+            ],
             vec_nonempty![
                 ClaimPath::SelectByKey("root_array".to_string()),
                 ClaimPath::SelectByIndex(2)
