@@ -53,7 +53,7 @@ use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
-use utils::ints::NonZeroU31;
+use utils::num::NonZeroU31;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::config::StatusListConfig;

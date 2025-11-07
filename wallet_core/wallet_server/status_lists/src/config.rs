@@ -10,7 +10,7 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
-use utils::ints::NonZeroU31;
+use utils::num::NonZeroU31;
 
 use crate::settings::PublishDir;
 use crate::settings::StatusListAttestationSettings;

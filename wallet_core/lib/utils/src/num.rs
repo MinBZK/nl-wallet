@@ -1,6 +1,9 @@
 use nutype::nutype;
 
-#[nutype(derive(Debug,Clone,Copy,PartialEq,Eq,TryFrom,Into,Deserialize),validate(predicate = |i| *i > 0))]
+#[nutype(
+    derive(Debug, Clone, Copy, PartialEq, Eq, TryFrom, Into, Deserialize),
+    validate(greater = 0)
+)]
 pub struct NonZeroU31(i32);
 
 impl NonZeroU31 {

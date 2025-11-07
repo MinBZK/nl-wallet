@@ -49,7 +49,7 @@ use token_status_list::status_list::StatusList;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
-use utils::ints::NonZeroU31;
+use utils::num::NonZeroU31;
 use utils::path::prefix_local_path;
 
 #[derive(Debug, Clone, Deserialize)]

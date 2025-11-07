@@ -7,7 +7,7 @@ use url::Url;
 
 use http_utils::urls::BaseUrl;
 use server_utils::settings::KeyPair;
-use utils::ints::NonZeroU31;
+use utils::num::NonZeroU31;
 use utils::path::prefix_local_path;
 
 #[derive(Clone, Deserialize)]
