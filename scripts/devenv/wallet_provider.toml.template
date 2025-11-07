@@ -14,11 +14,7 @@ pid_issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 "urn:eudi:pid:nl:1" = ["recovery_code"]
 
 [database]
-host = "${DB_HOST}"
-port = "${DB_PORT}"
-username = "${DB_USERNAME}"
-password = "${DB_PASSWORD}"
-name = "wallet_provider"
+url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider"
 
 [webserver]
 ip = "0.0.0.0"

@@ -24,7 +24,7 @@ use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
-use wallet_provider_database_settings::Database;
+use wallet_provider_database_settings::Settings as DatabaseSettings;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -37,7 +37,7 @@ pub struct Settings {
     pub wua_signing_key_identifier: String,
     pub wua_issuer_identifier: String,
     pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
-    pub database: Database,
+    pub database: DatabaseSettings,
     pub webserver: Webserver,
     pub tls_config: Option<TlsServerConfig>,
     pub hsm: Hsm,

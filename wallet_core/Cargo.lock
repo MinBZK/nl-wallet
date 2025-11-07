@@ -7896,6 +7896,8 @@ dependencies = [
  "config",
  "serde",
  "serde_with",
+ "url",
+ "utils",
 ]
 
 [[package]]
@@ -7950,6 +7952,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
  "utils",
  "uuid",
  "wallet_account",

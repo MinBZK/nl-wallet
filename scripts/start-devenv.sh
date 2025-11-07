@@ -469,7 +469,7 @@ then
     then
         echo -e "${INFO}Running wallet_provider database migrations${NC}"
         pushd "${WALLET_CORE_DIR}"
-        cargo run --package wallet_provider_migrations --bin wallet_provider_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider" cargo run --package wallet_provider_migrations --bin wallet_provider_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"

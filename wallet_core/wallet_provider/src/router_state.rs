@@ -108,11 +108,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             play_integrity_client,
         );
 
-        let db = Db::new(
-            settings.database.connection_string(),
-            settings.database.connection_options,
-        )
-        .await?;
+        let db = Db::new(settings.database.url, settings.database.options).await?;
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,

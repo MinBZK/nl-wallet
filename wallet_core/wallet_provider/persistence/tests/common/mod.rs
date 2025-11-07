@@ -45,7 +45,7 @@ fn init_logging() {
 
 pub async fn db_from_env() -> Result<Db, PersistenceError> {
     let settings = Settings::new().unwrap();
-    Db::new(settings.database.connection_string(), Default::default()).await
+    Db::new(settings.url, Default::default()).await
 }
 
 pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {

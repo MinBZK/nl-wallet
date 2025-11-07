@@ -32,16 +32,18 @@ use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
 use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
 
-async fn db_from_env() -> Result<Db, PersistenceError> {
+fn init_logging() {
     let _ = tracing::subscriber::set_global_default(
         tracing_subscriber::fmt()
             .with_max_level(tracing::Level::DEBUG)
             .with_test_writer()
             .finish(),
     );
+}
 
+async fn db_from_env() -> Result<Db, PersistenceError> {
     let settings = Settings::new().unwrap();
-    Db::new(settings.database.connection_string(), Default::default()).await
+    Db::new(settings.url, Default::default()).await
 }
 
 async fn do_registration(
@@ -139,6 +141,8 @@ async fn assert_instruction_data(
 async fn test_instruction_challenge(
     #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
 ) {
+    init_logging();
+
     let db = db_from_env().await.expect("Could not connect to database");
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 

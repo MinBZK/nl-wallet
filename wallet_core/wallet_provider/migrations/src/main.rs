@@ -1,8 +1,4 @@
-use std::error::Error;
-
 use sea_orm_migration::prelude::*;
-
-use wallet_provider_database_settings::Settings;
 
 mod m20250102_000000_create_wallet_user_apple_attestation_table;
 mod m20250102_000001_create_wallet_user_android_attestation_table;
@@ -27,13 +23,6 @@ impl MigratorTrait for Migrator {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let settings = Settings::new()?;
-
-    unsafe {
-        std::env::set_var("DATABASE_URL", settings.database.connection_string());
-    }
+async fn main() {
     cli::run_cli(Migrator).await;
-
-    Ok(())
 }

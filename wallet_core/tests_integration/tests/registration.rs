@@ -1,4 +1,5 @@
 use rstest::rstest;
+use sea_orm::Database;
 use serde_json::json;
 use serial_test::serial;
 
@@ -12,8 +13,10 @@ use wallet::errors::WalletRegistrationError;
 async fn test_wallet_registration(
     #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
 ) {
-    let settings_and_ca = wallet_provider_settings();
-    let connection = database_connection(&settings_and_ca.0).await;
+    let (settings, _) = wallet_provider_settings();
+    let connection = Database::connect(settings.database.url)
+        .await
+        .expect("Could not open database connection");
 
     let (wallet, _, _) = setup_wallet_and_default_env(vendor).await;
 

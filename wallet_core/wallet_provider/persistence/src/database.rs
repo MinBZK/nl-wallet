@@ -1,9 +1,9 @@
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use tracing::log::LevelFilter;
-use wallet_provider_database_settings::ConnectionOptions;
-use wallet_provider_database_settings::ConnectionString;
+use url::Url;
 
+use wallet_provider_database_settings::ConnectionOptions;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
@@ -11,14 +11,11 @@ use crate::PersistenceConnection;
 pub struct Db(DatabaseConnection);
 
 impl Db {
-    pub async fn new(
-        connection_string: ConnectionString,
-        connection_options: ConnectionOptions,
-    ) -> Result<Db, PersistenceError> {
-        let mut connect_options = sea_orm::ConnectOptions::new(connection_string);
+    pub async fn new(database_url: Url, connection_options: ConnectionOptions) -> Result<Db, PersistenceError> {
+        let mut connect_options = sea_orm::ConnectOptions::new(database_url);
         connect_options
             .connect_timeout(connection_options.connect_timeout)
-            .max_connections(connection_options.max_connections.into())
+            .max_connections(connection_options.max_connections)
             .sqlx_logging(true)
             .sqlx_logging_level(LevelFilter::Trace);
 
