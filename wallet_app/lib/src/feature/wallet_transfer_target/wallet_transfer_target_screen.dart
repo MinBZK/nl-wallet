@@ -103,8 +103,8 @@ class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
                 title: context.l10n.walletTransferScreenStoppedTitle,
                 description: context.l10n.walletTransferTargetScreenStoppedDescription,
                 onPrimaryPressed: restart,
-                primaryButtonCta: context.l10n.generalRetry,
-                primaryButtonIcon: const Icon(Icons.refresh_outlined),
+                primaryButtonCta: context.l10n.generalClose,
+                primaryButtonIcon: const Icon(Icons.close_outlined),
                 illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
               ),
               WalletTransferGenericError() => ErrorPage.generic(
