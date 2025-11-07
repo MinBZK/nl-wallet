@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::io::Read;
 use std::path::Path;
+use std::path::PathBuf;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
@@ -8,6 +10,7 @@ use chrono::Utc;
 use config::Config;
 use config::File;
 use futures::future::try_join_all;
+use p256::ecdsa::SigningKey;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -16,10 +19,19 @@ use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
 use sea_orm::sea_query::Expr;
 use serde::Deserialize;
+use tempfile::TempDir;
 use url::Url;
 use uuid::Uuid;
 
+use crypto::EcdsaKey;
+use crypto::EcdsaKeySend;
+use crypto::server_keys::KeyPair;
+use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
+use jwt::DEFAULT_VALIDATIONS;
+use jwt::EcdsaDecodingKey;
+use jwt::UnverifiedJwt;
+use server_utils::keys::PrivateKeyVariant;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigs;
 use status_lists::entity::attestation_batch;
@@ -29,10 +41,15 @@ use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::postgres::StatusListLocation;
+use status_lists::settings::PublishDir;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
+use token_status_list::status_list::Bits;
+use token_status_list::status_list::StatusList;
+use token_status_list::status_list_token::StatusListToken;
+use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
-use utils::ints::NonZeroU31;
+use utils::num::NonZeroU31;
 use utils::path::prefix_local_path;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -49,11 +66,22 @@ async fn connection_from_settings() -> anyhow::Result<DatabaseConnection> {
     Ok(connection)
 }
 
+async fn private_key_variant(pair: KeyPair<SigningKey>) -> KeyPair<PrivateKeyVariant> {
+    KeyPair::new(
+        PrivateKeyVariant::Software(pair.private_key().clone()),
+        pair.certificate().clone(),
+    )
+    .await
+    .unwrap()
+}
+
 async fn create_status_list_service(
+    ca: &Ca,
     connection: &DatabaseConnection,
     list_size: i32,
     create_threshold: i32,
-) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService)> {
+    publish_dir: &TempDir,
+) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService<PrivateKeyVariant>)> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
@@ -61,6 +89,8 @@ async fn create_status_list_service(
         base_url: format!("https://example.com/tsl/{}", attestation_type)
             .as_str()
             .parse()?,
+        publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
+        key_pair: private_key_variant(ca.generate_status_list_mock()?).await,
     };
     let service = PostgresStatusListService::try_new(connection.clone(), &attestation_type, config.clone()).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
@@ -72,7 +102,7 @@ async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     attestation_type: &str,
     config: StatusListConfig,
-) -> anyhow::Result<PostgresStatusListService> {
+) -> anyhow::Result<PostgresStatusListService<impl EcdsaKeySend>> {
     let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
@@ -128,6 +158,31 @@ async fn assert_status_list_items(
     items
 }
 
+async fn assert_empty_published_list(config: &StatusListConfig, list: &status_list::Model) {
+    let path = PathBuf::from(config.publish_dir.clone()).join(Path::new(&list.external_id));
+    let status_list_token = tokio::task::spawn_blocking(move || {
+        let file = std::fs::File::open(path).expect("published file not found");
+        let mut buffer = String::new();
+        std::io::BufReader::new(file).read_to_string(&mut buffer).unwrap();
+        buffer.parse::<StatusListToken>().unwrap()
+    })
+    .await
+    .unwrap();
+
+    let verifying_key = EcdsaDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
+    let (header, claims) = UnverifiedJwt::from(status_list_token)
+        .parse_and_verify(&verifying_key, &DEFAULT_VALIDATIONS)
+        .unwrap();
+    assert_eq!(header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
+
+    let bits = *claims.status_list.bits();
+    assert_eq!(bits, Bits::One);
+
+    let published = claims.status_list.unpack();
+    let expected = StatusList::new_aligned(config.list_size.as_usize(), bits);
+    assert_eq!(published, expected);
+}
+
 async fn fetch_status_list(connection: &DatabaseConnection, type_id: i16) -> Vec<status_list::Model> {
     status_list::Entity::find()
         .filter(status_list::Column::AttestationTypeId.eq(type_id))
@@ -176,8 +231,12 @@ async fn fetch_attestation_batches(
 
 #[tokio::test]
 async fn test_service_initializes_status_lists() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
-    let (attestation_type, _, _) = create_status_list_service(&connection, 10, 1).await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 10, 1, &publish_dir)
+        .await
+        .unwrap();
 
     let attestation_type = attestation_type::Entity::find()
         .filter(attestation_type::Column::Name.eq(attestation_type))
@@ -190,12 +249,16 @@ async fn test_service_initializes_status_lists() {
     let db_lists = fetch_status_list(&connection, attestation_type.id).await;
     assert_eq!(db_lists.len(), 1);
     assert_status_list_items(&connection, &db_lists[0], 10, 10, 10, false).await;
+    assert_empty_published_list(&config, &db_lists[0]).await;
 }
 
 #[tokio::test]
 async fn test_service_initializes_multiple_status_lists() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
 
+    let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
+    let publish_dir = tempfile::tempdir().unwrap();
     let configs: StatusListConfigs = (0..2)
         .map(|_| {
             let attestation_type = random_string(20);
@@ -203,6 +266,8 @@ async fn test_service_initializes_multiple_status_lists() {
                 list_size: NonZeroU31::try_new(4).unwrap(),
                 create_threshold: NonZeroU31::try_new(1).unwrap(),
                 base_url: "https://example.com/tsl".parse().unwrap(),
+                publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
+                key_pair: private_key.clone(),
             };
             (attestation_type, config)
         })
@@ -223,13 +288,18 @@ async fn test_service_initializes_multiple_status_lists() {
         let db_lists = fetch_status_list(&connection, attestation_type.id).await;
         assert_eq!(db_lists.len(), 1);
         assert_status_list_items(&connection, &db_lists[0], 4, 4, 4, false).await;
+        assert_empty_published_list(&configs.as_ref()[&attestation_type.name], &db_lists[0]).await;
     }
 }
 
 #[tokio::test]
 async fn test_service_initializes_schedule_housekeeping_empty() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
-    let (attestation_type, config, _) = create_status_list_service(&connection, 5, 2).await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, &publish_dir)
+        .await
+        .unwrap();
 
     let type_id = attestation_type_id(&connection, &attestation_type).await;
 
@@ -252,8 +322,12 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
 
 #[tokio::test]
 async fn test_service_initializes_schedule_housekeeping_almost_empty() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
-    let (attestation_type, config, _) = create_status_list_service(&connection, 5, 2).await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, &publish_dir)
+        .await
+        .unwrap();
 
     let type_id = attestation_type_id(&connection, &attestation_type).await;
 
@@ -275,8 +349,12 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
 
 #[tokio::test]
 async fn test_service_initializes_schedule_housekeeping_full() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
-    let (attestation_type, config, _) = create_status_list_service(&connection, 5, 2).await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, &publish_dir)
+        .await
+        .unwrap();
 
     let type_id = attestation_type_id(&connection, &attestation_type).await;
 
@@ -291,8 +369,12 @@ async fn test_service_initializes_schedule_housekeeping_full() {
 
 #[tokio::test]
 async fn test_service_create_status_claims() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&connection, 9, 5).await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 5, &publish_dir)
+        .await
+        .unwrap();
 
     let type_id = attestation_type_id(&connection, &attestation_type).await;
     update_availability_of_status_list(&connection, type_id, 8).await;
@@ -349,8 +431,12 @@ async fn test_service_create_status_claims() {
 
 #[tokio::test]
 async fn test_service_create_status_claims_creates_in_flight_if_needed() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&connection, 8, 1).await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 8, 1, &publish_dir)
+        .await
+        .unwrap();
 
     let type_id = attestation_type_id(&connection, &attestation_type).await;
     update_availability_of_status_list(&connection, type_id, 1).await;
@@ -371,6 +457,7 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[0], 0, 8, 8, true).await;
+    assert_empty_published_list(&config, &db_lists[0]).await;
     let db_new_list_items = assert_status_list_items(&connection, &db_lists[1], 7, 8, 16, false).await;
 
     assert_eq!(claims.len(), 2.try_into().unwrap());
@@ -410,8 +497,12 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
 
 #[tokio::test]
 async fn test_service_create_status_claims_concurrently() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
-    let (attestation_type, config, service) = create_status_list_service(&connection, 24, 2).await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 24, 2, &publish_dir)
+        .await
+        .unwrap();
 
     let type_id = attestation_type_id(&connection, &attestation_type).await;
 

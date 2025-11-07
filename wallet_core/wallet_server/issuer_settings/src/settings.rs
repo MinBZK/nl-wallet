@@ -268,6 +268,7 @@ mod tests {
     use server_utils::settings::Server;
     use server_utils::settings::Settings;
     use server_utils::settings::Storage;
+    use status_lists::settings::PublishDir;
     use status_lists::settings::StatusListAttestationSettings;
 
     use crate::settings::IssuerSettingsError;
@@ -294,6 +295,7 @@ mod tests {
                     status_list: StatusListAttestationSettings {
                         base_url: "https://cdn.example.com/tsl".parse().unwrap(),
                         keypair: status_list_keypair,
+                        publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                     },
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
@@ -369,6 +371,7 @@ mod tests {
                 status_list: StatusListAttestationSettings {
                     base_url: "https://cdn.example.com/tsl".parse().unwrap(),
                     keypair: status_list_keypair,
+                    publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 },
                 attestation_qualification: Default::default(),
                 certificate_san: None,

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::path::Path;
+use std::path::PathBuf;
 
 use chrono::DateTime;
 use derive_more::From;
@@ -31,15 +33,27 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crypto::EcdsaKeySend;
+use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::BaseUrlError;
+use http_utils::urls::HttpsUri;
+use http_utils::urls::HttpsUriError;
+use jwt::UnverifiedJwt;
+use jwt::error::JwtError;
+use jwt::headers::HeaderWithTyp;
+use jwt::headers::HeaderWithX5c;
+use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
+use token_status_list::status_list::StatusList;
 use token_status_list::status_list_service::StatusListService;
+use token_status_list::status_list_token::StatusListClaims;
+use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
-use utils::ints::NonZeroU31;
+use utils::num::NonZeroU31;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::config::StatusListConfig;
@@ -59,7 +73,7 @@ const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
 ///
 /// See [PostgresStatusListService] for more.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListServices(HashMap<String, PostgresStatusListService>);
+pub struct PostgresStatusListServices<K: EcdsaKeySend>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -78,14 +92,17 @@ pub struct PostgresStatusListServices(HashMap<String, PostgresStatusListService>
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListService {
+pub struct PostgresStatusListService<K: EcdsaKeySend> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
 
     list_size: NonZeroU31,
     create_threshold: NonZeroU31,
+
     base_url: BaseUrl,
+    publish_dir: PathBuf,
+    key_pair: KeyPair<K>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -96,8 +113,20 @@ pub enum StatusListServiceError {
     #[error("database error: {0}")]
     Db(#[from] DbErr),
 
+    #[error("url is not an https: {0}")]
+    HttpsUri(#[from] HttpsUriError),
+
     #[error("could not randomize indices: {0}")]
     Indices(#[from] JoinError),
+
+    #[error("invalid publish dir: {0}")]
+    InvalidPublishDir(PathBuf),
+
+    #[error("io error for `{0}`: {1}")]
+    IO(PathBuf, #[source] std::io::Error),
+
+    #[error("could write JWT: {0}")]
+    JWT(#[from] JwtError),
 
     #[error("could not serialize / deserialize: {0}")]
     Serde(#[from] serde_json::Error),
@@ -119,7 +148,10 @@ pub struct StatusListLocation {
     pub index: u32,
 }
 
-impl StatusListService for PostgresStatusListServices {
+impl<K> StatusListService for PostgresStatusListServices<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
     type Error = StatusListServiceError;
 
     async fn obtain_status_claims(
@@ -146,7 +178,7 @@ impl StatusListService for PostgresStatusListServices {
     }
 }
 
-impl PostgresStatusListServices {
+impl PostgresStatusListServices<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
         configs: StatusListConfigs,
@@ -164,20 +196,27 @@ impl PostgresStatusListServices {
                     list_size: config.list_size,
                     create_threshold: config.create_threshold,
                     base_url: config.base_url,
+                    publish_dir: config.publish_dir.into(),
+                    key_pair: config.key_pair,
                 };
                 (attestation_type, service)
             })
             .collect();
         Ok(PostgresStatusListServices(services))
     }
+}
 
+impl<K> PostgresStatusListServices<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
     }
 }
 
-impl PostgresStatusListService {
+impl PostgresStatusListService<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
         attestation_type: &str,
@@ -196,9 +235,16 @@ impl PostgresStatusListService {
             list_size: config.list_size,
             create_threshold: config.create_threshold,
             base_url: config.base_url,
+            publish_dir: config.publish_dir.into(),
+            key_pair: config.key_pair,
         })
     }
+}
 
+impl<K> PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
     pub async fn obtain_status_claims(
         &self,
         batch_id: Uuid,
@@ -220,7 +266,7 @@ impl PostgresStatusListService {
 
         // If issuer requests more copies than the size of a complete status list,
         // this is a configuration issue.
-        if copies > self.list_size.into_inner() as usize {
+        if copies > self.list_size.as_usize() {
             return Err(StatusListServiceError::TooManyClaimsRequested(copies));
         }
 
@@ -291,10 +337,7 @@ impl PostgresStatusListService {
             }
 
             if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
-                log::warn!(
-                    "Creating status list in flight, increase threshold to at least {}",
-                    copies
-                );
+                log::warn!("Creating status list in flight, increase create_threshold or list_size");
             } else if tries == 0 {
                 return Err(StatusListServiceError::NoStatusListAvailable());
             }
@@ -414,12 +457,13 @@ impl PostgresStatusListService {
         }
 
         // Create new list
+        let external_id = crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE);
         let list_size = self.list_size.into_inner();
         let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
         let list = status_list::ActiveModel {
             id: NotSet,
             attestation_type_id: Set(self.attestation_type_id),
-            external_id: Set(crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE)),
+            external_id: Set(external_id.clone()),
             available: Set(list_size),
             size: Set(list_size),
             next_sequence_no: Set(new_next_sequence_no),
@@ -437,6 +481,10 @@ impl PostgresStatusListService {
             TryInsertResult::Inserted(inserted) => inserted.last_insert_id,
             _ => return Ok(false),
         };
+
+        // Publish status list
+        let service = self.clone();
+        let publish = tokio::spawn(async move { service.publish_new_status_list(&external_id).await });
 
         // Create new list items
         let indices = tokio::task::spawn_blocking(move || {
@@ -471,6 +519,9 @@ impl PostgresStatusListService {
         let mut attestation_type = attestation_type.into_active_model();
         attestation_type.next_sequence_no = Set(new_next_sequence_no);
         attestation_type::Entity::update(attestation_type).exec(&tx).await?;
+
+        // Wait for publish to complete before committing
+        publish.await??;
 
         tx.commit().await?;
         Ok(true)
@@ -571,6 +622,22 @@ impl PostgresStatusListService {
             log::warn!("Failed to delete status list items of {}: {}", id, err);
         }
     }
+
+    async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
+        let sub = HttpsUri::try_new(self.base_url.join(external_id).to_string())?;
+        let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
+            StatusListToken::builder(sub, StatusList::new(self.list_size.as_usize()).pack())
+                .sign(&self.key_pair)
+                .await?
+                .into();
+
+        let path = self.publish_dir.join(Path::new(external_id));
+        tokio::fs::write(&path, jwt.serialization().as_bytes())
+            .await
+            .map_err(|err| StatusListServiceError::IO(path, err))?;
+
+        Ok(())
+    }
 }
 
 async fn initialize_attestation_type_ids(
@@ -626,15 +693,22 @@ async fn fetch_attestation_type_ids(
 mod tests {
     use assert_matches::assert_matches;
 
+    use crypto::server_keys::generate::Ca;
+
     use super::*;
 
-    fn mock_service() -> PostgresStatusListService {
+    fn mock_service() -> PostgresStatusListService<impl EcdsaKeySend + Clone> {
         PostgresStatusListService {
             connection: DatabaseConnection::default(),
             attestation_type_id: 1,
             list_size: 1.try_into().unwrap(),
             create_threshold: 1.try_into().unwrap(),
             base_url: "https://example.com/tsl".parse().unwrap(),
+            publish_dir: std::env::temp_dir(),
+            key_pair: Ca::generate_issuer_mock_ca()
+                .unwrap()
+                .generate_status_list_mock()
+                .unwrap(),
         }
     }
 

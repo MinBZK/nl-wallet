@@ -44,18 +44,20 @@ spec:
             - name: http
               containerPort: 8001
           volumeMounts:
-            - name: issuance-server-settings
+            - name: settings
               mountPath: /issuance_server.toml
               subPath: issuance_server.toml
-            - name: demo-issuer-metadata
+            - name: metadata
               mountPath: /com.example.degree.json
               subPath: com.example.degree.json
-            - name: demo-issuer-metadata
+            - name: metadata
               mountPath: /com.example.insurance.json
               subPath: com.example.insurance.json
-            - name: demo-issuer-metadata
+            - name: metadata
               mountPath: /com.example.housing.json
               subPath: com.example.housing.json
+            - name: status-lists
+              mountPath: /status-lists
           env:
             - name: ISSUANCE_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
@@ -80,12 +82,17 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: reader_trust_anchors
+            - name: ISSUANCE_SERVER__STATUS_LISTS__PUBLISH_DIR
+              value: "/status-lists"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: issuance-server-settings
+        - name: settings
           secret:
             secretName: nl-wallet-demo-issuer-issuance-server-settings
-        - name: demo-issuer-metadata
+        - name: metadata
           configMap:
             name: nl-wallet-demo-issuer-metadata
+        - name: status-lists
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}

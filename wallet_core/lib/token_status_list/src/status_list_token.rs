@@ -5,6 +5,7 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
 use derive_more::FromStr;
+use derive_more::Into;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -21,13 +22,13 @@ use jwt::headers::HeaderWithX5c;
 
 use crate::status_list::PackedStatusList;
 
-static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
+pub static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
 
 /// A Status List Token embeds a Status List into a token that is cryptographically signed and protects the integrity of
 /// the Status List.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
-#[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
+#[derive(Debug, Clone, FromStr, Into, Serialize, Deserialize)]
 pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithX5c>);
 
 impl StatusListToken {
@@ -78,21 +79,21 @@ impl StatusListTokenBuilder {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StatusListClaims {
     #[serde(with = "ts_seconds")]
-    iat: DateTime<Utc>,
+    pub iat: DateTime<Utc>,
 
     #[serde(with = "ts_seconds_option")]
-    exp: Option<DateTime<Utc>>,
+    pub exp: Option<DateTime<Utc>>,
 
     /// The sub (subject) claim MUST specify the URI of the Status List Token. The value MUST be equal to that of the
     /// `uri` claim contained in the `status_list` claim of the Referenced Token
-    sub: HttpsUri,
+    pub sub: HttpsUri,
 
     /// If present, MUST specify the maximum amount of time, in seconds, that the Status List Token can be cached by a
     /// consumer before a fresh copy SHOULD be retrieved.
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
-    ttl: Option<Duration>,
+    pub ttl: Option<Duration>,
 
-    status_list: PackedStatusList,
+    pub status_list: PackedStatusList,
 }
 
 impl JwtTyp for StatusListClaims {

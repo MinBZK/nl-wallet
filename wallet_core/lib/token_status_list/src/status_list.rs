@@ -108,6 +108,10 @@ impl StatusList {
         }
     }
 
+    pub fn new_aligned(len: usize, bits: Bits) -> Self {
+        Self::new(bits.aligned_len(len))
+    }
+
     pub fn get(&self, k: &usize) -> StatusType {
         self.sparse.get(k).copied().unwrap_or_default()
     }
@@ -134,6 +138,10 @@ impl StatusList {
 }
 
 impl PackedStatusList {
+    pub fn bits(&self) -> &Bits {
+        &self.bits
+    }
+
     pub fn single_unpack(&self, index: usize) -> StatusType {
         let byte = self.lst[self.bits.packed_index(index)];
         let status = (byte >> self.bits.shift_for_index(index)) & self.bits.mask();
@@ -163,7 +171,7 @@ impl PackedStatusList {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Bits {
+pub enum Bits {
     #[default]
     One,
     Two,
@@ -315,7 +323,7 @@ pub mod test {
 
     use super::*;
 
-    static STATUS_LIST_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"status\[(\d+)\]\s*=\s*(\d+)").unwrap());
+    static STATUS_LIST_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"status\[(\d+)]\s*=\s*(\d+)").unwrap());
 
     // Parse the status list examples as they are listed in the spec
     fn parse_status_list(input: &str) -> StatusList {
