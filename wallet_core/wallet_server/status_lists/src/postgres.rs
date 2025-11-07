@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use chrono::DateTime;
 use derive_more::From;
@@ -35,9 +34,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crypto::EcdsaKey;
 use crypto::EcdsaKeySend;
-use crypto::server_keys::KeyPair;
-use http_utils::urls::BaseUrl;
 use http_utils::urls::BaseUrlError;
 use http_utils::urls::HttpsUriError;
 use jwt::UnverifiedJwt;
@@ -55,7 +53,6 @@ use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
-use utils::num::NonZeroU31;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::config::StatusListConfig;
@@ -65,7 +62,6 @@ use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
-use crate::publish::PublishDir;
 use crate::publish::PublishLockError;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
@@ -78,7 +74,7 @@ const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
 ///
 /// See [PostgresStatusListService] for more.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListServices<K: EcdsaKeySend>(HashMap<String, PostgresStatusListService<K>>);
+pub struct PostgresStatusListServices<K: EcdsaKey + Clone>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -97,18 +93,11 @@ pub struct PostgresStatusListServices<K: EcdsaKeySend>(HashMap<String, PostgresS
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListService<K: EcdsaKeySend> {
+pub struct PostgresStatusListService<K: EcdsaKey + Clone> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
-
-    list_size: NonZeroU31,
-    create_threshold: NonZeroU31,
-    ttl: Option<Duration>,
-
-    base_url: BaseUrl,
-    publish_dir: PublishDir,
-    key_pair: KeyPair<K>,
+    config: StatusListConfig<K>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -196,7 +185,7 @@ where
 impl PostgresStatusListServices<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
-        configs: StatusListConfigs,
+        configs: StatusListConfigs<PrivateKeyVariant>,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
         let services = configs
@@ -208,12 +197,7 @@ impl PostgresStatusListServices<PrivateKeyVariant> {
                 let service = PostgresStatusListService {
                     connection: connection.clone(),
                     attestation_type_id,
-                    list_size: config.list_size,
-                    create_threshold: config.create_threshold,
-                    ttl: config.ttl,
-                    base_url: config.base_url,
-                    publish_dir: config.publish_dir,
-                    key_pair: config.key_pair,
+                    config,
                 };
                 (attestation_type, service)
             })
@@ -236,7 +220,7 @@ impl PostgresStatusListService<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
         attestation_type: &str,
-        config: StatusListConfig,
+        config: StatusListConfig<PrivateKeyVariant>,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_types = vec![attestation_type];
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types).await?;
@@ -248,12 +232,7 @@ impl PostgresStatusListService<PrivateKeyVariant> {
         Ok(Self {
             connection,
             attestation_type_id,
-            list_size: config.list_size,
-            create_threshold: config.create_threshold,
-            ttl: config.ttl,
-            base_url: config.base_url,
-            publish_dir: config.publish_dir,
-            key_pair: config.key_pair,
+            config,
         })
     }
 }
@@ -283,7 +262,7 @@ where
 
         // If issuer requests more copies than the size of a complete status list,
         // this is a configuration issue.
-        if copies > self.list_size.as_usize() {
+        if copies > self.config.list_size.as_usize() {
             return Err(StatusListServiceError::TooManyClaimsRequested(copies));
         }
 
@@ -311,7 +290,7 @@ where
         let claims = lists_with_items
             .into_iter()
             .flat_map(|(list, items)| {
-                let url = self.base_url.join(&list.external_id);
+                let url = self.config.base_url.join(&list.external_id);
                 items.into_iter().map(move |item| {
                     StatusClaim::StatusList(StatusListClaim {
                         idx: item.index as u32,
@@ -483,7 +462,7 @@ where
 
         // Create new list
         let external_id = crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE);
-        let list_size = self.list_size.into_inner();
+        let list_size = self.config.list_size.into_inner();
         let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
         let list = status_list::ActiveModel {
             id: NotSet,
@@ -605,7 +584,7 @@ where
                 let list_id = list.id;
                 tasks.push(tokio::spawn(Self::delete_status_list_items(connection, list_id)));
             }
-            if list.available <= self.create_threshold.into_inner() {
+            if list.available <= self.config.create_threshold.into_inner() {
                 log::info!(
                     "Schedule creation of status list items for attestation type ID {}",
                     list.attestation_type_id,
@@ -653,17 +632,17 @@ where
 
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
         // Build empty status list
-        let sub = self.base_url.join(external_id);
+        let sub = self.config.base_url.join(external_id);
         let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
-            StatusListToken::builder(sub, StatusList::new(self.list_size.as_usize()).pack())
-                .ttl(self.ttl)
-                .sign(&self.key_pair)
+            StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
+                .ttl(self.config.ttl)
+                .sign(&self.config.key_pair)
                 .await?
                 .into();
 
         // Write to disk
-        let publish_lock = self.publish_dir.lock_for(external_id);
-        let jwt_path = self.publish_dir.jwt_path(external_id);
+        let publish_lock = self.config.publish_dir.lock_for(external_id);
+        let jwt_path = self.config.publish_dir.jwt_path(external_id);
         tokio::task::spawn_blocking(move || {
             // create because a new status list external id can be reused if the transaction fails
             publish_lock.create()?;
@@ -690,12 +669,13 @@ where
 
         // The database guarantees reading commits, so we can use `result.len()` as version
         let version = result.len();
-        self.publish_dir
+        self.config
+            .publish_dir
             .lock_for(external_id)
             .with_lock_if_newer(version, async || {
                 // Build packed status list
-                let sub = self.base_url.join(external_id);
-                let mut status_list = StatusList::new(self.list_size.as_usize());
+                let sub = self.config.base_url.join(external_id);
+                let mut status_list = StatusList::new(self.config.list_size.as_usize());
                 let builder = tokio::task::spawn_blocking(move || {
                     for indices in result {
                         for index in indices {
@@ -708,11 +688,11 @@ where
 
                 // Sign
                 let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
-                    builder.ttl(self.ttl).sign(&self.key_pair).await?.into();
+                    builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?.into();
 
                 // Write to a tempfile and atomically move via rename
-                let jwt_path = self.publish_dir.jwt_path(external_id);
-                let tmp_path = self.publish_dir.tmp_path(external_id);
+                let jwt_path = self.config.publish_dir.jwt_path(external_id);
+                let tmp_path = self.config.publish_dir.tmp_path(external_id);
                 tokio::task::spawn_blocking(move || {
                     std::fs::write(&tmp_path, jwt.serialization())
                         .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
@@ -820,21 +800,25 @@ mod tests {
 
     use crypto::server_keys::generate::Ca;
 
+    use crate::publish::PublishDir;
+
     use super::*;
 
     fn mock_service() -> PostgresStatusListService<impl EcdsaKeySend + Clone> {
         PostgresStatusListService {
             connection: DatabaseConnection::default(),
             attestation_type_id: 1,
-            list_size: 1.try_into().unwrap(),
-            create_threshold: 1.try_into().unwrap(),
-            ttl: None,
-            base_url: "https://example.com/tsl".parse().unwrap(),
-            publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
-            key_pair: Ca::generate_issuer_mock_ca()
-                .unwrap()
-                .generate_status_list_mock()
-                .unwrap(),
+            config: StatusListConfig {
+                list_size: 1.try_into().unwrap(),
+                create_threshold: 1.try_into().unwrap(),
+                ttl: None,
+                base_url: "https://example.com/tsl".parse().unwrap(),
+                publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
+                key_pair: Ca::generate_issuer_mock_ca()
+                    .unwrap()
+                    .generate_status_list_mock()
+                    .unwrap(),
+            },
         }
     }
 

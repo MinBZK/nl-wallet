@@ -24,7 +24,6 @@ use url::Url;
 use uuid::Uuid;
 
 use crypto::EcdsaKey;
-use crypto::EcdsaKeySend;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
@@ -83,7 +82,11 @@ async fn create_status_list_service(
     create_threshold: i32,
     ttl: Option<Duration>,
     publish_dir: &TempDir,
-) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService<PrivateKeyVariant>)> {
+) -> anyhow::Result<(
+    String,
+    StatusListConfig<PrivateKeyVariant>,
+    PostgresStatusListService<PrivateKeyVariant>,
+)> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
@@ -104,8 +107,8 @@ async fn create_status_list_service(
 async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     attestation_type: &str,
-    config: StatusListConfig,
-) -> anyhow::Result<PostgresStatusListService<impl EcdsaKeySend>> {
+    config: StatusListConfig<PrivateKeyVariant>,
+) -> anyhow::Result<PostgresStatusListService<PrivateKeyVariant>> {
     let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
@@ -161,12 +164,12 @@ async fn assert_status_list_items(
     items
 }
 
-async fn assert_empty_published_list(config: &StatusListConfig, list: &status_list::Model) {
+async fn assert_empty_published_list<K: EcdsaKey + Clone>(config: &StatusListConfig<K>, list: &status_list::Model) {
     assert_published_list(config, list, vec![]).await
 }
 
-async fn assert_published_list(
-    config: &StatusListConfig,
+async fn assert_published_list<K: EcdsaKey + Clone>(
+    config: &StatusListConfig<K>,
     list: &status_list::Model,
     revoked: impl IntoIterator<Item = usize>,
 ) {
@@ -271,7 +274,7 @@ async fn test_service_initializes_multiple_status_lists() {
 
     let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let configs: StatusListConfigs = (0..2)
+    let configs: StatusListConfigs<PrivateKeyVariant> = (0..2)
         .map(|_| {
             let attestation_type = random_string(20);
             let config = StatusListConfig {
