@@ -8,6 +8,7 @@ use url::Url;
 use http_utils::urls::BaseUrl;
 use server_utils::settings::KeyPair;
 use utils::num::NonZeroU31;
+use utils::num::Ratio;
 use utils::path::prefix_local_path;
 
 #[derive(Clone, Deserialize)]
@@ -16,8 +17,8 @@ pub struct StatusListsSettings {
     pub storage_url: Option<Url>,
     /// List size
     pub list_size: NonZeroU31,
-    /// Threshold to start creating a new list in the background, defaults to 10% of list_size
-    pub create_threshold: Option<NonZeroU31>,
+    /// Threshold relatively to `list_size` to start creating a new list in the background
+    pub create_threshold: Ratio,
 }
 
 #[derive(Clone, Deserialize)]

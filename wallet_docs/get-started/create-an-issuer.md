@@ -1181,7 +1181,7 @@ cat <<EOF > "$TARGET_DIR/parts/12-status-lists.toml"
 
 [status_lists]
 list_size = 100_000
-create_threshold = 10_000 # default is 10% of list_size
+create_threshold = 0.1
 EOF
 ```
 

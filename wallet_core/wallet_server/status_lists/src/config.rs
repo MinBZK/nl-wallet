@@ -60,36 +60,10 @@ impl StatusListConfig {
     ) -> Result<Self, PrivateKeySettingsError> {
         Ok(StatusListConfig {
             list_size: settings.list_size,
-            create_threshold: settings
-                .create_threshold
-                .unwrap_or_else(|| default_create_threshold(settings.list_size)),
+            create_threshold: settings.create_threshold.of_nonzero_u31(settings.list_size),
             base_url: attestation.base_url,
             publish_dir: attestation.publish_dir,
             key_pair: attestation.keypair.parse(hsm).await?,
         })
-    }
-}
-
-fn default_create_threshold(list_size: NonZeroU31) -> NonZeroU31 {
-    let list_size = list_size.into_inner() as u32;
-    // list_size is a larger NonZeroU31
-    NonZeroU31::try_new(list_size.div_ceil(10) as i32).unwrap()
-}
-
-#[cfg(test)]
-mod tests {
-    use rstest::rstest;
-    use utils::ints::NonZeroU31;
-
-    use super::default_create_threshold;
-
-    #[rstest]
-    #[case(99, 10)]
-    #[case(1, 1)]
-    fn test_default_create_threshold(#[case] list_size: i32, #[case] expected_create_threshold: i32) {
-        assert_eq!(
-            default_create_threshold(list_size.try_into().unwrap()),
-            NonZeroU31::try_from(expected_create_threshold).unwrap(),
-        );
     }
 }

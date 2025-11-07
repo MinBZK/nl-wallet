@@ -337,10 +337,7 @@ where
             }
 
             if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
-                log::warn!(
-                    "Creating status list in flight, increase threshold to at least {}",
-                    copies
-                );
+                log::warn!("Creating status list in flight, increase create_threshold or list_size");
             } else if tries == 0 {
                 return Err(StatusListServiceError::NoStatusListAvailable());
             }
