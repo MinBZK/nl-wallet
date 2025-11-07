@@ -1470,7 +1470,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 
 <span class="s">[status_lists]</span>
 <span class="s">list_size = 100_000</span>
-<span class="s">create_threshold = 1000</span>
+<span class="s">create_threshold = 0.1</span>
 <span class="s">EOF</span>
 </pre></div>
 </div>
@@ -1581,10 +1581,14 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <h5>The attestation settings associated status list settings<a class="headerlink" href="#the-attestation-settings-associated-status-list-settings" title="Link to this heading"></a></h5>
 <p>Next to the previously done <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code> settings, which control how big and
 when status lists are created, an <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> associated
-<code class="docutils literal notranslate"><span class="pre">status_list</span></code> block configures the <code class="docutils literal notranslate"><span class="pre">base_url</span></code>, which is added to the attestation
-as a location for the Status List Claim.</p>
-<p>This needs to be publicly reachable by the NL Wallet app and the verifiers.
-Additionally, the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> settings are used to sign the Status Token List,
+<code class="docutils literal notranslate"><span class="pre">status_list</span></code> block.</p>
+<p>This block configures the <code class="docutils literal notranslate"><span class="pre">base_url</span></code>, which is added to the attestation as a
+location for the Status List Claim. This url needs to be publicly reachable
+by the NL Wallet app and the verifiers.</p>
+<p>Next to the <code class="docutils literal notranslate"><span class="pre">base_url</span></code> a <code class="docutils literal notranslate"><span class="pre">publish_dir</span></code> needs to be configured where the status
+lists need to be published. This can be served via either a separate static
+file server or via the issuance server.</p>
+<p>Additionally, the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> settings are used to sign the Status Token List,
 which the wallet and the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> validate when interacting with
 Status Token Lists. The service pointed to by <code class="docutils literal notranslate"><span class="pre">base_url</span></code> needs to be publicly
 reachable by the NL Wallet app and the verifiers. Let’s create it:</p>
@@ -1596,6 +1600,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 
 <span class="s">[attestation_settings.insurance.status_list]</span>
 <span class="s">base_url = &quot;https://cdn.example.com/tsl&quot;</span>
+<span class="s">publish_dir = &quot;/srv/html/tsl&quot;</span>
 <span class="s">private_key_type = &quot;software&quot;</span>
 <span class="s">private_key = &quot;$(&lt; &quot;${TARGET_DIR}/tsl.${IDENTIFIER}.key.der&quot; $BASE64)&quot;</span>
 <span class="s">certificate = &quot;$(&lt; &quot;${TARGET_DIR}/tsl.${IDENTIFIER}.crt.der&quot; $BASE64)&quot;</span>
