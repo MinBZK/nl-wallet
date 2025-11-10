@@ -4,29 +4,28 @@ workspace "Name" "NL-Wallet" {
 
     model {
         u = person "User"
-        ua = person "Wallet Technical Support"
         us = person "Wallet User Support"
         uaPid = person "PID issuer admin"
         uaPb = person "Issuer admin"
 
         ws = softwareSystem "NL-Wallet" {
             wab = group "NL-Wallet App containers" {
-            walletApp = container "Wallet app" "" "Android/iOS" {
-                appGui = component "App Frontend" "" "flutter (dart)"  
-                appCore = component "App core component" "" "rust"
-                appPlatform = component "Platform support" "native functions" "rust"
+                walletApp = container "Wallet app" "" "Android/iOS" {
+                    appGui = component "App Frontend" "" "flutter (dart)"  
+                    appCore = component "App core component" "" "rust"
+                    appPlatform = component "Platform support" "native functions" "rust"
+                }
+                appDb = container "App database" "" "sqlite" {
+                    tags "Database"
+                }      
             }
-            appDb = container "App database" "" "sqlite" {
-                tags "Database"
-            }      
-            secureElement = container "Secure Element" "" "Secure Enclave, Android Keystore system" 
-            }
-            
+            revokeUi = container "Wallet Revocation Portal" "" "vite" 
             wb = group "NL-Wallet backend containers" {
-                walletBackend = container "WalletBackend (WP)" "Wallet backend" "axum (rust)" {
-                    hsmInstructionClient = component "Assisted wallet Instructions endpoint (/instructions)"
-                    walletAccountManager = component "Wallet Accounts endpoint (enroll/create)"
-                    walletStatusManager = component "Wallet Status endpoint (/status)"
+                walletBackend = container "WalletBackend (WB)" "Wallet backend" "axum (rust)" {
+                    hsmInstructionClient = component "Assisted wallet Instructions (WSCA)"
+                    walletAccountManager = component "Wallet Account manager (enroll / migrate / recover / revoke)"
+                    walletStatusManager = component "Status List Service"
+                    walletDenyList = component "Wallet Deny list manager" 
                 }
                 updateServer = container "UpdateServer" "Serve app update policy" "nginx (static)" {
                     updatePolicy = component "Policy configuration" "" "[update policy] section in .toml file" { 
@@ -36,13 +35,39 @@ workspace "Name" "NL-Wallet" {
 
                 statusList = container "WUA status list" "" "Static content (TSL)"
                 configurationServer = container "ConfigurationServer" "Serve app config file" "nginx (static)"               
-                db = container "WP database (accounts, WUA status)" "" "postgress" {
+                db = container "WB database (accounts, WUA status)" "" "postgress" {
                     tags "Database"
                 }                
             }
-            walletHsm = container "HSM device" "dedicated cryptographic hardware" 
-            //walletAdminPortal = container "Self Serivce portal" "Selfservice and assitance" "web front-end"
+            walletHsm = container "HSM device (WSCD)" "dedicated cryptographic hardware" 
         }
+
+
+       adminPortal = softwareSystem "Admin Portal" ""{ 
+            tags "HostingPlatform"
+            -> ws.walletBackend "Manage vulnerable devices"
+            -> ws.walletBackend "Revoke wallet" 
+            -> ws.walletBackend.walletDenyList "Manage vulnerable devices"
+        }
+        ciCdPipeline = softwareSystem "CI/CD" "deployment"{ 
+            tags "HostingPlatform"
+            -> ws.configurationServer "Maintain runtime config"
+            -> ws.updateServer.updatePolicy "Maintain updatepolicy"
+        }
+ 
+        healthMonitoring = softwareSystem "Monitoring" "health monitoring"{ 
+            tags "HostingPlatform"
+            -> ws.walletBackend "Get health"
+        }
+        performanceMetrics = softwareSystem "Performance monitoring" "Prometheus"{ 
+            tags "HostingPlatform"
+            -> ws.walletBackend "Get metrics"
+        }
+
+        secureElement = softwareSystem "Secure Element" "Secure Enclave, Android TEE/Strongbox" ""{
+            tags "External"
+        }
+
         platformServicesApple = softwareSystem "Apple AppAttest"{
           tags "External"            
         }
@@ -50,6 +75,11 @@ workspace "Name" "NL-Wallet" {
           tags "External"            
         }
         
+        ua = person "Wallet Technical Support"{
+            -> ws "Maintain configuration, Manage vulnerabilities" 
+            -> adminPortal "Perform system administration"
+        }
+
         hc = softwareSystem "BRP-V"
 
         verifier = softwareSystem "Verifier" { 
@@ -103,13 +133,11 @@ workspace "Name" "NL-Wallet" {
 
         issuerPid -> digid "User authentication"
         u -> ws "Uses"
-        // u -> ws.walletAdminPortal "Self service"
+        u -> ws.revokeUi "Revoke wallet" 
         u -> ws.walletApp "Uses"
         u -> ws.walletApp.appGui "Has interactions"
-        ua -> ws "Manage system" 
-        us -> ws "Perform user support actions" 
-        ua -> ws.configurationServer "Maintain runtime config"
-        ua -> ws.updateServer.updatePolicy "Maintain updatepolicy"
+
+
 
         ws -> platformServices "Request/verify app- and keyattestations" 
         ws -> digid "Start user authentication (onboarding and recovery)"
@@ -124,12 +152,12 @@ workspace "Name" "NL-Wallet" {
         ws.walletApp.appGui -> ws.walletApp.appCore "Exchange information from GUI to core"
         ws.walletApp.appCore -> ws.walletApp.appPlatform "Use platform routines (iOS/Android)"
         ws.walletApp.appCore -> ws.updateServer "Get update policies"
-        ws.walletApp.appCore -> ws.walletBackend.walletAccountManager "WP operations (account, HSM instructions)"
         ws.walletApp.appCore -> ws.configurationServer "Get runtime configuration"
-        ws.walletApp.appCore -> ws.walletBackend.hsmInstructionClient "HSM-assisted operation"
+        ws.walletApp.appCore -> ws.walletBackend.hsmInstructionClient "HSM-assisted operation (sign, generate key, PIN mgmt, recovery)"
+        ws.walletBackend.hsmInstructionClient -> ws.walletBackend.walletAccountManager "account operations"
         ws.walletApp.appCore -> ws.appDb "Store/retrieve attestations, logs, configuration"
-        ws.walletApp.appCore -> ws.secureElement "Manage keys, signing ops"
-
+        ws.walletApp.appPlatform -> secureElement "Manage keys, signing ops"
+        ws.revokeUi -> ws.walletBackend.walletAccountManager "Revoke wallet"
         //PID issuer specific
         ws.walletApp.appCore -> issuerPid.authServer "Wallet activation and PID issuance"
 
@@ -142,8 +170,14 @@ workspace "Name" "NL-Wallet" {
         ws.walletApp -> verifier "Disclose attributes to verifier"
 
         ws.walletBackend.walletAccountManager -> ws.walletBackend.walletStatusManager "Update WUA status"
+        ws.walletBackend.walletStatusManager -> ws.statusList "Publish WUA statuslist"
         ws.walletBackend.hsmInstructionClient -> ws.walletHsm "Process HSM instruction"
-        us -> ws.walletBackend.walletAccountManager "Manage wallet instances"
+        ws.walletBackend.hsmInstructionClient -> ws.db "Store/retrieve (encrypted) keys"
+        ws.walletBackend.hsmInstructionClient -> ws.walletBackend.walletDenyList "Check denylist"
+        ws.walletBackend.walletAccountManager -> ws.db "Store/retrieve accountdata"
+        ws.walletBackend.walletStatusManager -> ws.db "Store/retrieve WUA data + status"
+        ws.walletBackend.walletDenyList -> ws.db "Store/retrieve denylist"
+        us -> ws.revokeUi "Revoke wallet"
         issuerPid -> ws.statusList "Get WUA status" 
 
         ws.walletApp.appCore -> issuerPid.statusList "Get attestation status list (PID)" 
@@ -199,7 +233,7 @@ workspace "Name" "NL-Wallet" {
         }
 
         component ws.walletApp "HD2NL-WalletApp" {
-            include * verifier
+            include * verifier ws.wab
         }
 
         systemContext issuerPb "ID3IssuerSoftwareSystem" {
@@ -222,15 +256,22 @@ workspace "Name" "NL-Wallet" {
             "structurizr.sort" "key"
         }
 
+        branding {
+            font "Calibri, Arial" 
+        }
       
         styles {
+            
             element "Element" {
                 color #ffffff
             }
             element "Person" {
                 
-                background #09326b
+                background #7992bb
+                stroke #09326b
                 shape person
+                fontSize 16
+                width 300
             }
             element "Software System" {
                 background #2b81e9
@@ -242,6 +283,8 @@ workspace "Name" "NL-Wallet" {
                 shape RoundedBox
                 fontSize 32
             }
+
+
             element "Component" {
                 background #1056ab
                 shape Component
@@ -269,6 +312,14 @@ workspace "Name" "NL-Wallet" {
             }
             element "External" {
                 background #aaaaaa
+                fontSize 26
+
+            }
+            element "HostingPlatform" {
+                stroke #2b81e9
+                color #2b81e9
+
+                background #ddedff
                 fontSize 26
 
             }
