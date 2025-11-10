@@ -112,8 +112,8 @@ impl StatusList {
         Self::new(bits.aligned_len(len))
     }
 
-    pub fn get(&self, k: &usize) -> StatusType {
-        self.sparse.get(k).copied().unwrap_or_default()
+    pub fn get(&self, k: usize) -> StatusType {
+        self.sparse.get(&k).copied().unwrap_or_default()
     }
 
     pub fn insert(&mut self, k: usize, v: StatusType) -> Option<StatusType> {

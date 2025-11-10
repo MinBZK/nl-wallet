@@ -11,6 +11,7 @@ workspace = true
 doctest = false
 
 [features]
+verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "http_utils/client"]
 mock = ["dep:dashmap"]
 
 [dependencies]
@@ -19,7 +20,10 @@ chrono.workspace = true
 dashmap = { workspace = true, optional = true }
 derive_more = { workspace = true, features = ["from_str", "into"] }
 flate2.workspace = true
+http = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
+rustls-pki-types = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
@@ -32,10 +36,15 @@ crypto.path = "../crypto"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
 utils.path = "../utils"
+log = "0.4.25"
 
 [dev-dependencies]
+assert_matches.workspace = true
 dashmap.workspace = true
+futures.workspace = true
+mockall.workspace = true
 regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
+utils = { path = "../utils", features = ["mock_time"] }
