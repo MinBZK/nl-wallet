@@ -6,6 +6,7 @@ pub mod transaction;
 pub mod wallet_transfer;
 pub mod wallet_user;
 pub mod wallet_user_key;
+pub mod wallet_user_wua;
 
 pub trait PersistenceConnection<T> {
     fn connection(&self) -> &T;

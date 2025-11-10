@@ -183,6 +183,9 @@ pub trait WalletUserRepository {
         source_wallet_user_id: Uuid,
         destination_wallet_user_id: Uuid,
     ) -> Result<()>;
+
+    async fn store_wua_id(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid, wua_id: Uuid)
+    -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -422,6 +425,15 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Uuid,
             _destination_wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn store_wua_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _wua_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }

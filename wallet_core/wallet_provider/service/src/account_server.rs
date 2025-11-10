@@ -1138,7 +1138,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_with_wua_result, keys, _) = perform_issuance_with_wua(issuance_instruction, user_state).await?;
+        let (issuance_with_wua_result, keys, _) =
+            perform_issuance_with_wua(issuance_instruction, &wallet_user, user_state).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -3344,8 +3345,9 @@ mod tests {
             .returning(|_, _, _| Ok(()));
         repositories
             .expect_begin_transaction()
-            .times(3)
+            .times(4)
             .returning(|| Ok(MockTransaction));
+        repositories.expect_store_wua_id().once().returning(|_, _, _| Ok(()));
 
         repositories
             .expect_change_pin()

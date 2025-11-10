@@ -15,14 +15,13 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(WalletUserWua::Table)
-                    .col(big_integer(WalletUserWua::Id).primary_key().auto_increment())
-                    .col(big_integer(WalletUserWua::WuaId))
+                    .col(uuid(WalletUserWua::WuaId).primary_key())
                     .col(uuid(WalletUserWua::WalletUserId))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_wua_batch_id")
                             .from(WalletUserWua::Table, WalletUserWua::WuaId)
-                            .to(AttestationBatch::Table, AttestationBatch::Id)
+                            .to(AttestationBatch::Table, AttestationBatch::BatchId)
                             .on_delete(ForeignKeyAction::NoAction),
                     )
                     .foreign_key(
@@ -43,7 +42,6 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum WalletUserWua {
     Table,
-    Id,
     WuaId,
     WalletUserId,
 }

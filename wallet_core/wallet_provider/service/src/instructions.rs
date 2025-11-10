@@ -377,6 +377,7 @@ impl HandleInstruction for ChangePinCommit {
 
 pub(super) async fn perform_issuance_with_wua<T, R, H>(
     instruction: PerformIssuance,
+    wallet_user: &WalletUser,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, (WrappedKey, String)), InstructionError>
 where
@@ -385,7 +386,7 @@ where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let (issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id) =
-        perform_issuance(instruction, true, user_state).await?;
+        perform_issuance(instruction, Some(wallet_user), user_state).await?;
 
     let issuance_result = PerformIssuanceWithWuaResult {
         issuance_result,
@@ -399,7 +400,7 @@ where
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
-    issue_wua: bool,
+    wallet_user: Option<&WalletUser>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<
     (
@@ -435,20 +436,18 @@ where
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wua_key_and_id, wua_disclosure) = if issue_wua {
-        let (key, key_id, wua_disclosure) = wua(&claims, user_state).await?;
-        (Some((key, key_id)), Some(wua_disclosure))
+    let (wua_key_and_id, wua_disclosure, key_count_including_wua) = if let Some(wallet_user) = wallet_user {
+        let (key, key_id, wua_disclosure) = wua(&claims, wallet_user, user_state).await?;
+        (
+            Some((key, key_id)),
+            Some(wua_disclosure),
+            instruction.key_count.get() + 1,
+        )
     } else {
-        (None, None)
+        (None, None, instruction.key_count.get())
     };
 
     let pops = issuance_pops(&attestation_keys, &claims).await?;
-
-    let key_count_including_wua = if issue_wua {
-        instruction.key_count.get() + 1
-    } else {
-        instruction.key_count.get()
-    };
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_key_and_id.as_ref().map(|(key, _)| attestation_key(key, user_state));
         Some(
@@ -522,6 +521,7 @@ where
 
 async fn wua<T, R, H>(
     claims: &JwtPopClaims,
+    wallet_user: &WalletUser,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<(WrappedKey, String, WuaDisclosure), InstructionError>
 where
@@ -540,6 +540,13 @@ where
         )
         .await
         .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)));
+
+    let tx = user_state.repositories.begin_transaction().await?;
+    user_state
+        .repositories
+        .store_wua_id(&tx, wallet_user.id, wua_id)
+        .await?;
+    tx.commit().await?;
 
     let (wua_wrapped_key, wua_key_id, wua) = user_state
         .wua_issuer
@@ -609,7 +616,7 @@ impl HandleInstruction for PerformIssuance {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, false, user_state).await?;
+        let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,
@@ -642,7 +649,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
-            perform_issuance_with_wua(self.issuance_instruction, user_state).await?;
+            perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,
@@ -1938,6 +1945,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo.expect_save_keys().returning(|_, _| Ok(()));
+        wallet_user_repo.expect_store_wua_id().returning(|_, _, _| Ok(()));
 
         instruction
             .handle(
