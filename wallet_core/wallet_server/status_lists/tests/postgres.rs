@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
@@ -174,14 +173,11 @@ async fn assert_published_list<K: EcdsaKey + Clone>(
     revoked: impl IntoIterator<Item = usize>,
 ) {
     let path = config.publish_dir.jwt_path(&list.external_id);
-    let status_list_token = tokio::task::spawn_blocking(move || {
-        let file = std::fs::File::open(path).expect("published file not found");
-        let mut buffer = String::new();
-        std::io::BufReader::new(file).read_to_string(&mut buffer).unwrap();
-        buffer.parse::<StatusListToken>().unwrap()
-    })
-    .await
-    .unwrap();
+    let status_list_token = tokio::fs::read_to_string(path)
+        .await
+        .unwrap()
+        .parse::<StatusListToken>()
+        .unwrap();
 
     let verifying_key = EcdsaDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
     let (header, claims) = UnverifiedJwt::from(status_list_token)
