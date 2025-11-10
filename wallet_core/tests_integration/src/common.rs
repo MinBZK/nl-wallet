@@ -471,7 +471,7 @@ pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
 }
 
 pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
@@ -487,7 +487,7 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrus
 }
 
 pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
@@ -503,7 +503,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 }
 
 pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     let play_integrity_client = MockPlayIntegrityClient::new(

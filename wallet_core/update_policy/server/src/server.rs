@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::net::TcpListener;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -14,6 +13,7 @@ use etag::EntityTag;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::header;
+use tokio::net::TcpListener;
 use tracing::debug;
 use tracing::info;
 
@@ -29,14 +29,14 @@ struct ApplicationState {
 }
 
 pub async fn serve(settings: Settings) -> Result<()> {
-    let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port))?;
+    let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port)).await?;
     serve_with_listener(listener, settings).await
 }
 
 pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> Result<()> {
     info!("{}", version_string());
     info!("listening on {}", listener.local_addr()?);
-    listener.set_nonblocking(true)?;
+    let listener = listener.into_std()?;
 
     let application_state = Arc::new(ApplicationState {
         update_policy: settings.update_policy,

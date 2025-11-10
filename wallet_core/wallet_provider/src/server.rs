@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::net::SocketAddr;
-use std::net::TcpListener;
 
+use tokio::net::TcpListener;
 use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
@@ -23,7 +23,7 @@ where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
-    let listener = TcpListener::bind(SocketAddr::new(settings.webserver.ip, settings.webserver.port))?;
+    let listener = TcpListener::bind(SocketAddr::new(settings.webserver.ip, settings.webserver.port)).await?;
     serve_with_listener(listener, settings, hsm, google_crl_client, play_integrity_client).await
 }
 
@@ -41,7 +41,7 @@ where
     info!("{}", version_string());
     let addr = listener.local_addr()?;
     info!("listening on {}:{}", addr.ip(), addr.port());
-    listener.set_nonblocking(true)?;
+    let listener = listener.into_std()?;
 
     let tls_config = settings.tls_config.clone();
     let router_state = RouterState::new_from_settings(settings, hsm, google_crl_client, play_integrity_client).await?;
