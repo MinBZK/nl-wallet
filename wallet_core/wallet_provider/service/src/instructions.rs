@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use base64::prelude::*;
@@ -24,6 +25,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
+use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -69,6 +71,7 @@ use crate::account_server::InstructionValidationError;
 use crate::account_server::RecoveryCodeConfig;
 use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
+use crate::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
@@ -313,7 +316,7 @@ pub trait HandleInstruction {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -330,7 +333,7 @@ impl HandleInstruction for CheckPin {
         self,
         _wallet_user: &WalletUser,
         _generators: &G,
-        _user_state: &UserState<R, H, impl WuaIssuer>,
+        _user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -350,7 +353,7 @@ impl HandleInstruction for ChangePinCommit {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -374,7 +377,7 @@ impl HandleInstruction for ChangePinCommit {
 
 pub(super) async fn perform_issuance_with_wua<T, R, H>(
     instruction: PerformIssuance,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, (WrappedKey, String)), InstructionError>
 where
     T: Committable,
@@ -397,7 +400,7 @@ where
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
     issue_wua: bool,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<
     (
         PerformIssuanceResult,
@@ -475,13 +478,13 @@ where
     Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id))
 }
 
-async fn persist_issuance_keys<T, R, H>(
+async fn persist_issuance_keys<T, R, H, S>(
     wrapped_keys: Vec<WrappedKey>,
     key_ids: Vec<String>,
     wua_key_and_id: Option<(WrappedKey, String)>,
     wallet_user: &WalletUser,
     uuid_generator: &impl Generator<Uuid>,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer, S>,
 ) -> Result<(), InstructionError>
 where
     T: Committable,
@@ -519,13 +522,25 @@ where
 
 async fn wua<T, R, H>(
     claims: &JwtPopClaims,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<(WrappedKey, String, WuaDisclosure), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
+    let wua_id = Uuid::new_v4();
+    let _status_claim = user_state
+        .status_list_service
+        .obtain_status_claims(
+            WUA_ATTESTATION_TYPE_IDENTIFIER,
+            wua_id,
+            None,              // TODO decide on WUA expiry
+            NonZeroUsize::MIN, // only one is needed
+        )
+        .await
+        .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)));
+
     let (wua_wrapped_key, wua_key_id, wua) = user_state
         .wua_issuer
         .issue_wua()
@@ -562,9 +577,9 @@ where
     Ok(pops)
 }
 
-fn attestation_key<'a, T, R, H>(
+fn attestation_key<'a, T, R, H, S>(
     wrapped_key: &'a WrappedKey,
-    user_state: &'a UserState<R, H, impl WuaIssuer>,
+    user_state: &'a UserState<R, H, impl WuaIssuer, S>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
     T: Committable,
@@ -585,7 +600,7 @@ impl HandleInstruction for PerformIssuance {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -617,7 +632,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -654,7 +669,7 @@ impl HandleInstruction for Sign {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
     where
@@ -724,7 +739,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -794,7 +809,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -846,7 +861,7 @@ impl HandleInstruction for PairTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -895,7 +910,7 @@ impl HandleInstruction for CancelTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -946,7 +961,7 @@ impl HandleInstruction for ResetTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -992,7 +1007,7 @@ impl HandleInstruction for GetTransferStatus {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1026,7 +1041,7 @@ impl HandleInstruction for ConfirmTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1072,7 +1087,7 @@ impl HandleInstruction for SendWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1119,7 +1134,7 @@ impl HandleInstruction for ReceiveWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<ReceiveWalletPayloadResult, InstructionError>
     where
@@ -1160,7 +1175,7 @@ impl HandleInstruction for CompleteTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where

@@ -6,7 +6,6 @@ use derive_more::From;
 use derive_more::IntoIterator;
 use futures::future::try_join_all;
 
-use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
@@ -19,7 +18,7 @@ use crate::settings::StatusListAttestationSettings;
 use crate::settings::StatusListsSettings;
 
 #[derive(Debug, Clone)]
-pub struct StatusListConfig<K: EcdsaKey + Clone> {
+pub struct StatusListConfig<K: Clone> {
     pub list_size: NonZeroU31,
     pub create_threshold: NonZeroU31,
     pub ttl: Option<Duration>,
@@ -30,7 +29,7 @@ pub struct StatusListConfig<K: EcdsaKey + Clone> {
 }
 
 #[derive(Debug, Clone, From, IntoIterator, AsRef)]
-pub struct StatusListConfigs<K: EcdsaKey + Clone>(HashMap<String, StatusListConfig<K>>);
+pub struct StatusListConfigs<K: Clone>(HashMap<String, StatusListConfig<K>>);
 
 impl StatusListConfigs<PrivateKeyVariant> {
     pub async fn from_settings(

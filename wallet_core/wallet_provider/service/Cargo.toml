@@ -34,13 +34,13 @@ mock = [
     "crypto/generate",
     "dep:anyhow",
     "dep:hmac",
-    "dep:platform_support",
     "dep:rand_core",
+    "platform_support/mock_attested_key_apple",
     "mock_play_integrity",
     "sd_jwt/examples",
+    "token_status_list/mock",
     "wallet_account/client",
     "wallet_provider_domain/mock",
-    "wallet_provider_persistence",
     "wallet_provider_persistence/mock",
 ]
 # Include and run test that depend on an external PostgreSQL database
@@ -85,14 +85,15 @@ crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 jwt.path = "../../lib/jwt"
 sd_jwt.path = "../../lib/sd_jwt"
+token_status_list.path = "../../lib/token_status_list"
 wallet_account = { path = "../wallet_account", features = ["server"] }
 wallet_provider_domain.path = "../domain"
 utils.path = "../../lib/utils"
 wscd.path = "../../lib/wscd"
 
-platform_support = { path = "../../wallet/platform_support", optional = true, features = ["mock_attested_key_apple"] }
+platform_support = { path = "../../wallet/platform_support", optional = true }
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
-wallet_provider_persistence = { path = "../persistence", features = ["mock"], optional = true }
+wallet_provider_persistence = { path = "../persistence", optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true
@@ -113,6 +114,7 @@ crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 jwt = { path = "../../lib/jwt", features = ["test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
+token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }

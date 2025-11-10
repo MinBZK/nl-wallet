@@ -7,6 +7,7 @@ use android_attest::attestation_extension::key_description::KeyDescription;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
+use token_status_list::status_list_service::mock::MockStatusListService;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
@@ -57,7 +58,7 @@ async fn do_registration(
     WalletCertificate,
     MockHardwareKey,
     WalletCertificateClaims,
-    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer>,
+    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService>,
 ) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)

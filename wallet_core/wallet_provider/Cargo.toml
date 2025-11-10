@@ -80,8 +80,9 @@ apple_app_attest.path = "../lib/apple_app_attest"
 crypto = { path = "../lib/crypto" }
 hsm = { path = "../lib/hsm", features = ["settings"] }
 http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
-wallet_account = { path = "wallet_account", features = ["server"] }
+status_lists.path = "../wallet_server/status_lists"
 utils = { path = "../lib/utils" }
+wallet_account = { path = "wallet_account", features = ["server"] }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
 wallet_provider_persistence.path = "persistence"

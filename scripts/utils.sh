@@ -363,6 +363,29 @@ function generate_pid_issuer_tsl_key_pair {
         -outform DER -out "${TARGET_DIR}/pid_issuer/tsl.crt.der"
 }
 
+# Generate an EC key pair for the wallet_provider
+function generate_wallet_provider_tsl_key_pair {
+    echo -e "${INFO}Generating Wallet Provider WUA TSL key pair${NC}"
+
+    # Generate a certificate for the public key including issuer authentication
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca tsl \
+        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
+        --common-name "wallet_provider.example.com" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/tsl" \
+        --force
+
+    # Convert the PEM key to DER format
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/wallet_provider/tsl.key.pem" \
+        -out "${TARGET_DIR}/wallet_provider/tsl.key.der" -nocrypt
+
+    # Convert the PEM certificate to DER format
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/tsl.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/tsl.crt.der"
+}
+
 # Generate an EC key pairs for the demo_issuer
 #
 # $1 - ISSUER_NAME: Name of the Issuer

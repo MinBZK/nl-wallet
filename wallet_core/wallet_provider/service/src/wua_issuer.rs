@@ -14,6 +14,9 @@ use jwt::error::JwtError;
 use jwt::wua::WuaClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
+// used as the identifier for a WUA specific token status list
+pub const WUA_ATTESTATION_TYPE_IDENTIFIER: &str = "wua";
+
 pub trait WuaIssuer {
     type Error: Error + Send + Sync + 'static;
 
@@ -50,10 +53,12 @@ where
 
     async fn issue_wua(
         &self,
+        // TODO status_claim: ... (PVW-4574)
     ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
+        // TODO add `status_claim` to WuaClaims (PVW-4574)
         let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims::new())
             .await?
             .into();

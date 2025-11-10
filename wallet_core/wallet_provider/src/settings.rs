@@ -22,6 +22,8 @@ use apple_app_attest::AttestationEnvironment;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
+use status_lists::settings::StatusListAttestationSettings;
+use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_provider_database_settings::Settings as DatabaseSettings;
@@ -45,6 +47,8 @@ pub struct Settings {
     pub structured_logging: bool,
     pub capture_and_redirect_logging: Option<PathBuf>,
     pub max_transfer_upload_size_in_bytes: usize,
+
+    pub wua_status_list: WuaStatusListsSettings,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
@@ -73,6 +77,15 @@ pub struct PinPolicySettings {
     #[serde(rename = "timeouts_in_ms")]
     #[serde_as(as = "Vec<DurationMilliSeconds>")]
     pub timeouts: Vec<Duration>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct WuaStatusListsSettings {
+    #[serde(flatten)]
+    pub list_settings: StatusListsSettings,
+
+    #[serde(flatten)]
+    pub attestation_settings: StatusListAttestationSettings,
 }
 
 #[serde_as]
@@ -123,6 +136,8 @@ impl Settings {
                 "pin_public_disclosure_protection_key_identifier",
                 "pin_public_disclosure_protection_key",
             )?
+            .set_default("wua_status_list.list_size", 1_000_000)?
+            .set_default("wua_status_list.create_threshold", 0.001)?
             .set_default("wua_signing_key_identifier", "wua_signing_key")?
             .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
             .set_default("webserver.ip", "0.0.0.0")?
