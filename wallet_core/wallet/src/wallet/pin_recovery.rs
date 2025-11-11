@@ -516,6 +516,10 @@ where
 
         self.storage.write().await.delete_data::<PinRecoveryData>().await?;
 
+        // Since the user just entered their new PIN, there is no point in asking for it again.
+        // Ensure the wallet is unlocked.
+        self.lock.unlock();
+
         Ok(())
     }
 
