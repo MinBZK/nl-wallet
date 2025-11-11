@@ -53,7 +53,7 @@ sequenceDiagram
     deactivate Wallet
     User->>-Wallet: approve with PIN
     activate Wallet
-        Wallet->>Wallet: create PoPs by signing nonce using Wallet Provider
+        Wallet->>Wallet: create PoPs by signing c_nonce, retrieve WUA using Wallet Backend
         Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
         note over Wallet: WUA and PoA are included here
         WalletServer->>WalletServer: verify proofs,  WUA and PoA
@@ -104,4 +104,88 @@ sequenceDiagram
         Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
         WalletServer->>-Wallet: attestations
     deactivate Wallet
+```
+
+
+## Key generation and usage during issuance
+
+### Wallet App
+
+From the App, the issuance transaction is initiated by requesting a challenge from the Wallet Backend. Using the challenge, the App will request the Wallet Backend to provide a WUA and PoP's for the private keys by signing the c_nonce from the issuance session. The PID-issuer will provide a PID that will be stored in the App Database.
+
+```{mermaid}
+sequenceDiagram
+    actor user
+    participant platform as Platform<br/> (SE/TEE)
+    participant db as App Database
+    participant wallet_app as Wallet Frontend (App)
+    participant wallet_core as Wallet Core (App)
+    participant wallet_provider as Wallet Backend
+    participant issuer as PID-Issuer
+
+    note over user, wallet_core: assume access_token and c_nonce (from issuance session) are present)
+    user->>wallet_app: confirm issuance with pin
+    activate user
+        wallet_app->>wallet_core: confirm_issuance(pin)
+        activate wallet_core
+        wallet_core ->> wallet_core: createChallengeRequest(walletID)
+        wallet_core->>+platform: signWithHwKey(challengeRequest)
+        platform ->> wallet_core: signedChallengeRequest
+        wallet_core->>+wallet_provider: POST /requestChallenge<br/> requestChallenge(signedChallengeRequest)
+        wallet_provider-->>-wallet_core: challenge
+
+        wallet_core->>db: retrieveSalt()
+        db->>wallet_core: salt
+        wallet_core->>wallet_core: deriveWalletPINKeyPair(pin, salt)
+        wallet_core->>wallet_core: requestObject = {challenge, c_nonce}<br/>signRequestObject(walletPINPrivateKey, requestObject)
+        wallet_core->>+platform: signWithHwKey(pinSignedRequestObject)
+        platform->>platform: sign(hwKey, pinSignedRequestObject)
+        platform-->>-wallet_core: doubleSignedRequestObject
+        wallet_core->>+wallet_provider: POST /PerformIssuanceWithWua ,<br/>perform_issuance_with_wua(doubleSignedRequestObject)
+        wallet_provider-->>-wallet_core: PoPs, attestationPublicKeys, WUA
+        wallet_core->>issuer: request attestations (PoPs, attestationPublicKeys, access_token, WUA)
+        issuer -->> wallet_core : attestations
+        wallet_core ->> db: storeEncrypted(attestations)
+        deactivate wallet_core
+    deactivate user
+```
+### Wallet Backend
+The flowdiagram below depicts 2 instructions:
+
+1. requestChallenge. Must be called before any other instruction. It will provide a challenge that must be double signed by the App in a subsequent request.
+2. PerformIssuanceWithWua. Called during PID-issuance process to generate private keys and retrieve PoPs and WUA. For non PID-issuance, the PerformIssuance instruction is used, which won’t return a WUA.
+
+```{mermaid}
+sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    participant wallet_core as Wallet Core (App)
+    participant wallet_provider as Wallet Backend
+    participant hsm as HSM
+    participant db as WB Database
+
+    wallet_core->>+wallet_provider: requestChallenge(signedChallengeRequest)
+    note over wallet_core,wallet_provider: POST /requestChallenge
+    wallet_provider ->> wallet_provider: generate challengePayload
+    wallet_provider ->> hsm: Sign challengePayload using WB Wallet Certificate Signing Key  (TODO: is this actually signed?)
+    hsm ->> wallet_provider: signedChallenge
+    wallet_provider-->>-wallet_core: signedChallenge 
+    wallet_core->>+wallet_provider: perform_issuance(_with_wua)( doubleSignedRequestObject)
+    note over wallet_core,wallet_provider: POST /PerformIssuanceWithWua <br/> - OR- <br/>/PerformIssuance
+    wallet_provider->>wallet_provider: verifyDoubleSignedRequestObject()
+    wallet_provider ->> hsm: generateAttestationPrivateKeys()
+    hsm ->> hsm: generate attestationPrivateKeys<br/>encrypt(attestationPrivateKeys) using attestationWrappingKey
+    hsm -->> wallet_provider: encryptedAttestationPrivateKeys, attestationPublicKeys (will include keys for WUA when requested)
+    wallet_provider ->> db : storeAttestationKeys(encryptedAttestationPrivateKeys, attestationPublicKeys)
+    wallet_provider ->> hsm: signNonceWithAttestationPrivateKeys(encryptedAttestationPrivateKeys, doubleSignedRequestObject.c_nonce)
+    hsm ->> hsm: Decrypt encryptedAttestationPrivateKeys and sign c_nonce<br/>decryption is done using attestationWrappingKey
+    hsm -->> wallet_provider: signedNonces as PoPs
+    opt Issuance requested with WUA
+        wallet_provider->>wallet_provider: generateWUAContent()
+        wallet_provider->> hsm: sign WUA content using wuaCertificateSigningKey 
+        hsm -->> wallet_provider:  WUA
+        wallet_provider ->> hsm: sign PoA for WUA and attestationPrivateKeys        
+        hsm --> wallet_provider: PoA
+        wallet_provider ->> db: Store WUA reference
+    end
+    wallet_provider-->>-wallet_core: PoPs, attestationPublicKeys, WUA (optional), PoA (optional)
 ```

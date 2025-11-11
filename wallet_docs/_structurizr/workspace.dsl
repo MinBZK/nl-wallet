@@ -12,7 +12,7 @@ workspace "Name" "NL-Wallet" {
             wab = group "NL-Wallet App containers" {
                 walletApp = container "Wallet app" "" "Android/iOS" {
                     appGui = component "App Frontend" "" "flutter (dart)"  
-                    appCore = component "App core component" "" "rust"
+                    appCore = component "App Core" "" "rust"
                     appPlatform = component "Platform support" "native functions" "rust"
                 }
                 appDb = container "App database" "" "sqlite" {
@@ -225,15 +225,18 @@ workspace "Name" "NL-Wallet" {
 
         container ws "D2NL-WalletSystem" {
             include * platformServices
+            exclude ws.updateServer ws.revokeUi us issuerPb verifier
         }
 
         component ws.walletBackend "GD2NL-walletBackend" {
-            include * 
+            include *
+            exclude ws.updateServer ws.revokeUi us issuerPb verifier
             
         }
 
         component ws.walletApp "HD2NL-WalletApp" {
             include * verifier ws.wab
+            exclude ws.updateServer ws.revokeUi us issuerPb verifier
         }
 
         systemContext issuerPb "ID3IssuerSoftwareSystem" {
