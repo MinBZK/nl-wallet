@@ -222,7 +222,7 @@ pub async fn setup_env_default() -> (
         wallet_provider_settings(),
         verification_server_settings(),
         pid_issuer_settings(),
-        crate::common::issuance_server_settings(),
+        issuance_server_settings(),
     )
     .await
 }
@@ -349,15 +349,14 @@ pub async fn setup_in_memory_wallet(
 }
 
 /// Create an instance of [`Wallet`] having temporary file storage.
-pub async fn setup_wallet<F, Fut>(
+pub async fn setup_wallet<F>(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
     storage_generator: F,
 ) -> WalletWithStorage
 where
-    F: FnOnce() -> Fut,
-    Fut: Future<Output = MockHardwareDatabaseStorage>,
+    F: AsyncFnOnce() -> MockHardwareDatabaseStorage,
 {
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
@@ -656,6 +655,7 @@ pub async fn start_issuance_server(
             disclosure_settings,
             attributes_fetcher,
             MockStatusListService::default(),
+            Router::new(),
         )
         .await
         {
@@ -699,6 +699,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
             MockStatusListService::default(),
+            Router::new(),
         )
         .await
         {

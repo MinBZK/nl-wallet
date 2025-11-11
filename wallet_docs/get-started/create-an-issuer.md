@@ -762,17 +762,18 @@ Don't enable `allow_insecure_url` on anything remotely production-like. Doing
 so anyway, accidentally or not, could expose you to man-in-the-middle attacks.
 </div>
 
-### Using a database backend (optional)
+### Using a database backend
 
-The `issuance_server`, when compiled with the `postgres` feature flag
-(which is the default), can use a PostgreSQL database backend to store state.
+The `issuance_server` needs a PostgreSQL database for maintaining status lists.
+When compiled with the `postgres` feature flag (which is the default), it can
+also use a PostgreSQL database backend to store state.
 This is done by configuring a `postgres://` storage URL in the
 `issuance_server.toml` configuration file. In this section, we'll create a
 PostgreSQL database, configure credentials and configure the schema
 (tables, columns).
 
 <div class="admonition tip">
-<p class="title">You can also run without a database backend</p>
+<p class="title">You can also run with a memory session store</p>
 Note that you can run `issuance_server` with a storage URL `memory://`
 This makes the server store session state in memory. **When using in-memory
 session state, on server shutdown or crash, any session state will be lost.**
@@ -1182,17 +1183,45 @@ cat <<EOF > "$TARGET_DIR/parts/12-status-lists.toml"
 [status_lists]
 list_size = 100_000
 create_threshold = 0.1
+serve_directories = {}
+EOF
+```
+
+By default the issuance server will not serve the status lists it creates.
+You can opt in to do so, by adding an entry to the serve_directories map.
+The key is the URL path and the value is the filesystem path e.g.
+
+```shell
+cd nl-wallet
+export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
+cat <<EOF > "$TARGET_DIR/parts/12-status-lists.toml"
+
+[status_lists]
+serve_directories = { "/tsl" = "/srv/html/tsl" }
 EOF
 ```
 
 <div class="admonition note">
-<p class="title">Using a `storage_url` under `[status_lists]`</p>
-<p>By default the status lists uses the same database as configured for the
+<p class="title">Serve status lists yourself</p>
+You can serve the status lists yourselve as well. Ensure that you map a request
+with URL path ending on `/id` to filesystem path of with name `id.jwt`.
+</div>
+
+By default the status lists uses the same database as configured for the
 session store. If you have a memory store as session store you need to configure
 a PostgreSQL `storage_url` under the `[status_lists]` block. You can also
 configure a `storage_url` under the `[status_lists]` block if you want to store
 the status list in a different database or use a different user.</p>
-</div>
+
+```shell
+cd nl-wallet
+export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
+cat <<EOF > "$TARGET_DIR/parts/12-status-lists.toml"
+
+[status_lists]
+url = "postgres://$DB_USERNAME:$DB_PASSWORD@$PGHOST:$PGPORT/$DB_NAME"
+EOF
+```
 
 #### Configuring disclosure-based issuance elements
 

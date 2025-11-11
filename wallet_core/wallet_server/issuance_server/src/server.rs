@@ -22,6 +22,7 @@ use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::create_wallet_listener;
+use server_utils::server::decorate_router;
 use server_utils::server::listen;
 use token_status_list::status_list_service::StatusListService;
 
@@ -29,6 +30,7 @@ use crate::disclosure::AttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
 
+#[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, L, IS, DS>(
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
@@ -36,6 +38,7 @@ pub async fn serve<A, L, IS, DS>(
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
     status_list_service: L,
+    status_list_router: Router,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -51,6 +54,7 @@ where
         disclosure_sessions,
         attributes_fetcher,
         status_list_service,
+        status_list_router,
     )
     .await
 }
@@ -64,6 +68,7 @@ pub async fn serve_with_listener<A, L, IS, DS>(
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
     status_list_service: L,
+    status_list_router: Router,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -129,9 +134,9 @@ where
     listen(
         listener,
         Router::new()
-            .nest("/issuance", issuance_router)
-            .nest("/disclosure", disclosure_router),
-        log_requests,
+            .nest("/issuance", decorate_router(issuance_router, log_requests))
+            .nest("/disclosure", decorate_router(disclosure_router, log_requests))
+            .merge(status_list_router),
     )
     .await
 }

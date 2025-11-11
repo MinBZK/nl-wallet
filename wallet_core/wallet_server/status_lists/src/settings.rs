@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -20,6 +21,9 @@ pub struct StatusListsSettings {
     pub create_threshold: Ratio,
     /// TTL that indicates how long verifiers can cache the status list locally
     pub ttl: Option<Duration>,
+    /// Publish directories to serve by context path
+    #[serde(default = "HashMap::new")]
+    pub serve_directories: HashMap<String, PublishDir>,
 }
 
 #[derive(Clone, Deserialize)]

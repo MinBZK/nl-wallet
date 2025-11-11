@@ -15,8 +15,14 @@ name = "postgres"
 path = "tests/postgres.rs"
 required-features = ["integration_test", "test"]
 
+[[test]]
+name = "router"
+path = "tests/router.rs"
+required-features = ["integration_test", "test"]
+
 [features]
-integration_test = []
+axum = ["dep:axum", "dep:etag", "dep:mediatype"]
+integration_test = ["axum", "dep:reqwest"]
 test = []
 
 [dependencies]
@@ -44,6 +50,12 @@ thiserror.workspace = true
 tokio.workspace = true
 uuid.workspace = true
 url.workspace = true
+
+axum = { workspace = true, optional = true }
+etag = { workspace = true, optional = true }
+mediatype = { workspace = true, optional = true }
+
+reqwest = { workspace = true, optional = true }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"

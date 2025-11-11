@@ -43,9 +43,7 @@ pub async fn create_wallet_listener(wallet_server: &Server) -> Result<TcpListene
 }
 
 /// Attach the specified router to the specified listener.
-pub async fn listen(listener: TcpListener, mut router: Router, log_requests: bool) -> Result<()> {
-    router = decorate_router(router, log_requests);
-
+pub async fn listen(listener: TcpListener, router: Router) -> Result<()> {
     info!("{}", version_string());
     info!("listening for wallet on {}", listener.local_addr()?);
     axum::serve(listener, router)

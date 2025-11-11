@@ -3882,6 +3882,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "mediatype"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "120fa187be19d9962f0926633453784691731018a2bf936ddb4e29101b79c4a7"
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6455,19 +6461,23 @@ version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "axum",
  "chrono",
  "config",
  "crypto",
  "derive_more",
+ "etag",
  "futures",
  "hsm",
  "http_utils",
  "itertools 0.14.0",
  "jwt",
  "log",
+ "mediatype",
  "nutype",
  "p256",
  "rand",
+ "reqwest",
  "rstest",
  "rustix 1.1.2",
  "sea-orm",

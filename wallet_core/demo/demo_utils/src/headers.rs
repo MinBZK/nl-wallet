@@ -18,7 +18,9 @@ pub fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
 
 pub async fn set_static_cache_control(request: Request, next: Next) -> Response {
     // only cache images and fonts, not CSS and JS
-    let set_no_store = [".css", ".js"].iter().any(|ext| request.uri().path().ends_with(ext));
+    let set_no_store = [".css", ".js"]
+        .into_iter()
+        .any(|ext| request.uri().path().ends_with(ext));
     let mut response = next.run(request).await;
     if set_no_store {
         response
