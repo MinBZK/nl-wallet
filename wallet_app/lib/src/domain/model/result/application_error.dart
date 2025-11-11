@@ -109,6 +109,10 @@ class WrongDigidError extends ApplicationError {
   const WrongDigidError({required super.sourceError});
 }
 
+class DeniedDigidError extends ApplicationError {
+  const DeniedDigidError({required super.sourceError});
+}
+
 class RelyingPartyError extends ApplicationError {
   final LocalizedText? organizationName;
 

@@ -414,5 +414,51 @@ void main() {
         const RecoverPinConfirmNewPin(authUrl: 'auth', selectedPin: '123456', pin: '', isRetrying: false),
       ],
     );
+
+    blocTest<RecoverPinBloc, RecoverPinState>(
+      'emits RecoverPinDigidMismatch when a WrongDigidError is received',
+      build: () {
+        when(
+          continuePinRecoveryUseCase.invoke(any),
+        ).thenAnswer((_) async => const Result.error(WrongDigidError(sourceError: 'test')));
+        when(cancelPinRecoveryUseCase.invoke()).thenAnswer((_) async => const Result<void>.success(null));
+        return RecoverPinBloc(
+          createPinRecoveryRedirectUriUseCase,
+          checkIsValidPinUseCase,
+          continuePinRecoveryUseCase,
+          cancelPinRecoveryUseCase,
+          completePinRecoveryUseCase,
+          continueFromDigiD: false,
+        );
+      },
+      act: (bloc) => bloc.add(const RecoverPinContinuePinRecovery('mock_auth_url')),
+      expect: () => [
+        const RecoverPinVerifyingDigidAuthentication(),
+        isA<RecoverPinDigidMismatch>(),
+      ],
+    );
+
+    blocTest<RecoverPinBloc, RecoverPinState>(
+      'emits RecoverPinDigidLoginCancelled when a DeniedDigidError is received',
+      build: () {
+        when(
+          continuePinRecoveryUseCase.invoke(any),
+        ).thenAnswer((_) async => const Result.error(DeniedDigidError(sourceError: 'test')));
+        when(cancelPinRecoveryUseCase.invoke()).thenAnswer((_) async => const Result<void>.success(null));
+        return RecoverPinBloc(
+          createPinRecoveryRedirectUriUseCase,
+          checkIsValidPinUseCase,
+          continuePinRecoveryUseCase,
+          cancelPinRecoveryUseCase,
+          completePinRecoveryUseCase,
+          continueFromDigiD: false,
+        );
+      },
+      act: (bloc) => bloc.add(const RecoverPinContinuePinRecovery('mock_auth_url')),
+      expect: () => [
+        const RecoverPinVerifyingDigidAuthentication(),
+        isA<RecoverPinDigidLoginCancelled>(),
+      ],
+    );
   });
 }

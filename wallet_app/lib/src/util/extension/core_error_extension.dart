@@ -41,6 +41,8 @@ extension CoreErrorExtension on CoreError {
         return RelyingPartyError(sourceError: error, organizationName: organizationName);
       case CoreWrongDigidError():
         return WrongDigidError(sourceError: error);
+      case CoreDeniedDigidError():
+        return DeniedDigidError(sourceError: error);
       case CoreStateError():
         Fimber.e('StateError detected!', ex: this);
         throw StateError(toString());

@@ -58,6 +58,8 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
         );
       case FlutterApiErrorType.wrongDigid:
         return CoreWrongDigidError(flutterApiError.description);
+      case FlutterApiErrorType.deniedDigid:
+        return CoreDeniedDigidError(flutterApiError.description);
     }
   }
 

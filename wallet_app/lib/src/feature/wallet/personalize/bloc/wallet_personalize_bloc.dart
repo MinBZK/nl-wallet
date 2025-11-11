@@ -67,6 +67,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         switch (error) {
           case NetworkError():
             emit(WalletPersonalizeNetworkError(error: error, hasInternet: error.hasInternet));
+          case DeniedDigidError():
+            add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true, error: error));
           case RedirectUriError():
             // Currently seeing 'accessDenied/loginRequired' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)
             final cancelled = [RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError);
