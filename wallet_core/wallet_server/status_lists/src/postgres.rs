@@ -37,7 +37,6 @@ use uuid::Uuid;
 use crypto::EcdsaKey;
 use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
-use http_utils::urls::HttpsUriError;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithTyp;
@@ -110,9 +109,6 @@ pub enum StatusListServiceError {
 
     #[error("database error: {0}")]
     Db(#[from] DbErr),
-
-    #[error("url is not an https: {0}")]
-    HttpsUri(#[from] HttpsUriError),
 
     #[error("could not randomize indices: {0}")]
     Indices(#[from] JoinError),
