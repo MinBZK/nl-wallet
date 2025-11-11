@@ -6,10 +6,10 @@ pub trait SingleUnique<T> {
     fn single_unique(&mut self) -> Result<Option<T>, MultipleItemsFound>;
 }
 
-impl<'a, I, T> SingleUnique<T> for I
+impl<I, T> SingleUnique<T> for I
 where
-    I: Iterator<Item = &'a T>,
-    T: 'a + Clone + PartialEq,
+    I: Iterator<Item = T>,
+    T: PartialEq,
 {
     fn single_unique(&mut self) -> Result<Option<T>, MultipleItemsFound> {
         if let Some(first) = self.next() {
@@ -18,7 +18,7 @@ where
                     return Err(MultipleItemsFound);
                 }
             }
-            Ok(Some(first.clone()))
+            Ok(Some(first))
         } else {
             Ok(None)
         }
@@ -40,14 +40,14 @@ mod tests {
     fn test_single_item() {
         let items = [42];
         let result = items.iter().single_unique();
-        assert_eq!(result, Ok(Some(42)));
+        assert_eq!(result, Ok(Some(&42)));
     }
 
     #[test]
     fn test_multiple_identical_items() {
         let items = [42, 42, 42];
         let result = items.iter().single_unique();
-        assert_eq!(result, Ok(Some(42)));
+        assert_eq!(result, Ok(Some(&42)));
     }
 
     #[test]
@@ -61,6 +61,6 @@ mod tests {
     fn test_different_types() {
         let items = ["hello", "hello", "hello"];
         let result = items.iter().single_unique();
-        assert_eq!(result, Ok(Some("hello")));
+        assert_eq!(result, Ok(Some(&"hello")));
     }
 }

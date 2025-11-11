@@ -10,9 +10,14 @@ use serde::Serialize;
 use serde_json::Number;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use thiserror::Error;
 
 use attestation_types::claim_path::ClaimPath;
+use utils::single_unique::MultipleItemsFound;
+use utils::single_unique::SingleUnique;
+use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
+use utils::vec_nonempty;
 
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
@@ -242,6 +247,41 @@ impl ObjectClaims {
         } else {
             Err(ClaimError::ObjectFieldNotFound(claim.parse()?, Box::new(self.clone())))
         }
+    }
+
+    fn non_selectable_claims(&self) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectableClaimsError> {
+        self.claims
+            .iter()
+            .map(|(name, claim)| {
+                let path = ClaimPath::SelectByKey(name.as_str().to_string());
+                let sub_claims = claim.non_selectable_claims()?;
+                Ok(prefix_all(sub_claims, path))
+            })
+            .flatten_ok()
+            .try_collect()
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum NonSelectableClaimsError {
+    #[error("invalid array structure")]
+    ArrayStructure(#[from] MultipleItemsFound),
+
+    #[error("array is a mixture of digests and values")]
+    ArrayMixtureOfValuesAndHashes,
+}
+
+fn prefix_all(sub_claims: Vec<VecNonEmpty<ClaimPath>>, path: ClaimPath) -> Vec<VecNonEmpty<ClaimPath>> {
+    if sub_claims.is_empty() {
+        vec![vec_nonempty![path]]
+    } else {
+        sub_claims
+            .into_iter()
+            .map(|mut claim| {
+                claim.insert(0, path.clone());
+                claim
+            })
+            .collect()
     }
 }
 
@@ -475,6 +515,43 @@ impl ClaimValue {
                 Box::new(claim_value.clone()),
                 claim_path[..=claim_path_index].to_vec(),
             )),
+        }
+    }
+
+    pub(crate) fn non_selectable_claims(&self) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectableClaimsError> {
+        match self {
+            ClaimValue::Array(array_claims) => {
+                let (values, digests): (Vec<_>, Vec<_>) = array_claims
+                    .iter()
+                    .partition(|claim| matches!(claim, ArrayClaim::Value(_)));
+
+                if !values.is_empty() && digests.is_empty() {
+                    let (oks, errors): (Vec<_>, Vec<_>) = values
+                        .into_iter()
+                        .map(|value| {
+                            let ArrayClaim::Value(claim) = value else {
+                                unreachable!()
+                            };
+                            claim.non_selectable_claims()
+                        })
+                        .partition(|c| c.is_ok());
+                    errors.into_iter().collect::<Result<Vec<_>, _>>()?;
+                    match oks.into_iter().map(Result::unwrap).single_unique() {
+                        Ok(Some(claim)) => Ok(prefix_all(claim, ClaimPath::SelectAll)),
+                        Ok(None) => Ok(vec![vec_nonempty![ClaimPath::SelectAll]]),
+                        Err(error) => Err(error)?,
+                    }
+                } else if values.is_empty() {
+                    Ok(vec![vec_nonempty![ClaimPath::SelectAll]])
+                } else {
+                    Err(NonSelectableClaimsError::ArrayMixtureOfValuesAndHashes)
+                }
+            }
+            ClaimValue::Object(object_claims) => object_claims.non_selectable_claims(),
+            ClaimValue::Null => Ok(vec![]),
+            ClaimValue::Bool(_) => Ok(vec![]),
+            ClaimValue::Number(_) => Ok(vec![]),
+            ClaimValue::String(_) => Ok(vec![]),
         }
     }
 }
@@ -761,5 +838,40 @@ mod tests {
         let claim: ClaimValue = serde_json::from_value(value).unwrap();
 
         assert_eq!(claim, expected);
+    }
+
+    #[rstest]
+    #[case(json!(1), Ok(vec![]))]
+    #[case(json!(true), Ok(vec![]))]
+    #[case(json!(null), Ok(vec![]))]
+    #[case(json!("".to_string()), Ok(vec![]))]
+    #[case(json!({}), Ok(vec![]))]
+    #[case(json!([]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
+    #[case(json!({"value": 5}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("value".to_string())]]))]
+    #[case(json!({"a": 1, "b": true}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("a".to_string())], vec_nonempty![ClaimPath::SelectByKey("b".to_string())]]))]
+    #[case(json!([1, 2]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
+    #[case(json!([1, "a", true]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
+    #[case(json!([1, { "a": 2 }]), Err(NonSelectableClaimsError::ArrayStructure(MultipleItemsFound)))]
+    #[case(json!([
+        1, 2, 3,
+        { "...": "some_digest" }
+    ]), Err(NonSelectableClaimsError::ArrayMixtureOfValuesAndHashes))]
+    fn non_selectable_claims(
+        #[case] value: serde_json::Value,
+        #[case] expected_result: Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectableClaimsError>,
+    ) {
+        let value: ClaimValue = serde_json::from_value(value).unwrap();
+
+        let result = value.non_selectable_claims();
+        match expected_result {
+            Ok(expected) => assert_eq!(result.unwrap(), expected),
+            Err(NonSelectableClaimsError::ArrayStructure(_)) => {
+                assert_matches!(result.unwrap_err(), NonSelectableClaimsError::ArrayStructure(_))
+            }
+            Err(NonSelectableClaimsError::ArrayMixtureOfValuesAndHashes) => assert_matches!(
+                result.unwrap_err(),
+                NonSelectableClaimsError::ArrayMixtureOfValuesAndHashes
+            ),
+        }
     }
 }
