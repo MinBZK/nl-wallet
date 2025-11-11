@@ -120,7 +120,7 @@ pub mod verification {
     use crate::status_list::StatusList;
     use crate::status_list_token::StatusListToken;
 
-    const EXP_LEEWAY: u8 = 60;
+    const EXP_LEEWAY: Duration = Duration::seconds(60);
 
     #[derive(Debug, thiserror::Error)]
     pub enum StatusListTokenVerificationError {
@@ -171,9 +171,7 @@ pub mod verification {
                 return Err(StatusListTokenVerificationError::UnexpectedSubject);
             }
 
-            if let Some(exp) = claims.exp
-                && exp.add(Duration::seconds(EXP_LEEWAY.into())) < time.generate()
-            {
+            if claims.exp.is_some_and(|exp| exp.add(EXP_LEEWAY) < time.generate()) {
                 return Err(StatusListTokenVerificationError::Expired);
             }
 
