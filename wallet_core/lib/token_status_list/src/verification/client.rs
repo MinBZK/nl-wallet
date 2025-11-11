@@ -1,4 +1,5 @@
-use http_utils::urls::HttpsUri;
+use url::Url;
+
 use jwt::error::JwtError;
 
 use crate::status_list_token::StatusListToken;
@@ -14,5 +15,5 @@ pub enum StatusListClientError {
 
 #[cfg_attr(test, mockall::automock)]
 pub trait StatusListClient {
-    async fn fetch(&self, uri: &HttpsUri) -> Result<StatusListToken, StatusListClientError>;
+    async fn fetch(&self, url: Url) -> Result<StatusListToken, StatusListClientError>;
 }

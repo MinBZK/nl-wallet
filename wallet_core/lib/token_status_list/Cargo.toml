@@ -11,8 +11,8 @@ workspace = true
 doctest = false
 
 [features]
-verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "http_utils/client"]
-mock = ["dep:dashmap"]
+verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "dep:http_utils", "http_utils/client"]
+mock = ["dep:dashmap", "dep:http_utils"]
 
 [dependencies]
 base64.workspace = true
@@ -34,7 +34,7 @@ url = { workspace = true, features = ["serde"] }
 uuid.workspace = true
 
 crypto.path = "../crypto"
-http_utils.path = "../http_utils"
+http_utils = { path = "../http_utils", optional = true }
 jwt.path = "../jwt"
 utils.path = "../utils"
 
@@ -47,4 +47,5 @@ regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
+http_utils.path = "../http_utils"
 utils = { path = "../utils", features = ["mock_time"] }

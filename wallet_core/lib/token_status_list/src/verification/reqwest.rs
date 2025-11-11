@@ -1,8 +1,8 @@
 use derive_more::AsRef;
 use http::header;
+use url::Url;
 
 use http_utils::reqwest::default_reqwest_client_builder;
-use http_utils::urls::HttpsUri;
 
 use crate::status_list_token::StatusListToken;
 use crate::verification::client::StatusListClient;
@@ -20,10 +20,10 @@ impl StatusListReqwestClient {
 }
 
 impl StatusListClient for StatusListReqwestClient {
-    async fn fetch(&self, uri: &HttpsUri) -> Result<StatusListToken, StatusListClientError> {
+    async fn fetch(&self, url: Url) -> Result<StatusListToken, StatusListClientError> {
         let response = self
             .as_ref()
-            .get(uri.to_string())
+            .get(url)
             .header(header::ACCEPT, STATUS_LIST_JWT_ACCEPT)
             .send()
             .await?;

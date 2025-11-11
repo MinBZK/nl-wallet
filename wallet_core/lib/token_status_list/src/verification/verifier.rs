@@ -2,9 +2,9 @@ use chrono::DateTime;
 use chrono::Utc;
 use log::warn;
 use rustls_pki_types::TrustAnchor;
+use url::Url;
 
 use crypto::x509::BorrowingCertificate;
-use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 
 use crate::status_list::StatusType;
@@ -32,15 +32,15 @@ where
         &self,
         issuer_trust_anchors: &[TrustAnchor<'_>],
         attestation_signing_certificate: &BorrowingCertificate,
-        uri: &HttpsUri,
+        url: Url,
         time: &impl Generator<DateTime<Utc>>,
         index: usize,
     ) -> RevocationStatus {
-        match self.0.fetch(uri).await {
+        match self.0.fetch(url.clone()).await {
             Ok(status_list_token) => match status_list_token.parse_and_verify(
                 issuer_trust_anchors,
                 attestation_signing_certificate,
-                uri,
+                &url,
                 time,
             ) {
                 Ok(status_list) => match status_list.single_unpack(index) {
@@ -67,10 +67,10 @@ mod test {
     use chrono::Days;
     use chrono::Utc;
     use futures::FutureExt;
+    use url::Url;
 
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use http_utils::urls::HttpsUri;
     use jwt::error::JwtError;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -85,7 +85,7 @@ mod test {
     struct StatusListClientStub(KeyPair);
 
     impl StatusListClient for StatusListClientStub {
-        async fn fetch(&self, _uri: &HttpsUri) -> Result<StatusListToken, StatusListClientError> {
+        async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
             let (_, _, status_list_token) =
                 create_status_list_token(&self.0, Utc::now().add(Days::new(1)).timestamp()).await;
 
@@ -108,7 +108,7 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate(),
-                &"https://example.com/statuslists/1".parse().unwrap(),
+                "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
             )
@@ -121,7 +121,7 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate(),
-                &"https://example.com/statuslists/1".parse().unwrap(),
+                "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 3,
             )
@@ -134,7 +134,7 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate(),
-                &"https://different_uri".parse().unwrap(),
+                "https://different_uri".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
             )
@@ -147,7 +147,7 @@ mod test {
             .verify(
                 &[],
                 iss_keypair.certificate(),
-                &"https://example.com/statuslists/1".parse().unwrap(),
+                "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
             )
@@ -160,7 +160,7 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate(),
-                &"https://example.com/statuslists/1".parse().unwrap(),
+                "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::new(Utc::now().add(Days::new(2))),
                 1,
             )
@@ -173,7 +173,7 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 ca.generate_pid_issuer_mock().unwrap().certificate(),
-                &"https://example.com/statuslists/1".parse().unwrap(),
+                "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
             )
@@ -191,7 +191,7 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate(),
-                &"https://example.com/statuslists/1".parse().unwrap(),
+                "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
             )
