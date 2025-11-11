@@ -377,6 +377,7 @@ mod tests {
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
             vec![],
+            MockStatusListService::default(),
         )
     }
 

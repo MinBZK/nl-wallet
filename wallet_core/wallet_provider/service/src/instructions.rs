@@ -1369,6 +1369,7 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
     use semver::Version;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use uuid::Uuid;
 
     use crypto::server_keys::generate::Ca;
@@ -1434,6 +1435,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1496,6 +1498,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1563,6 +1566,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1618,6 +1622,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1676,6 +1681,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1717,6 +1723,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1768,6 +1775,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1802,6 +1810,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1834,6 +1843,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1878,6 +1888,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1962,6 +1973,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2231,6 +2243,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2274,6 +2287,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2332,6 +2346,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2373,6 +2388,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2445,6 +2461,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2487,6 +2504,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2530,6 +2548,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2573,6 +2592,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2603,6 +2623,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2642,6 +2663,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2681,6 +2703,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2723,6 +2746,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2760,6 +2784,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2809,6 +2834,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2852,6 +2878,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2894,6 +2921,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2935,6 +2963,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2976,6 +3005,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3014,6 +3044,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3058,6 +3089,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3100,6 +3132,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3142,6 +3175,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3184,6 +3218,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )

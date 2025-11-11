@@ -281,7 +281,8 @@ mod tests {
             .expect("generate issuer cert failed")
             .into();
 
-        let status_list_keypair = Ca::generate_status_list_mock(issuer_ca)
+        let status_list_keypair = issuer_ca
+            .generate_status_list_mock()
             .expect("generate tsl cert failed")
             .into();
 
@@ -357,7 +358,8 @@ mod tests {
             .generate_issuer_mock()
             .expect("generate issuer cert without issuer registration");
 
-        let status_list_keypair = Ca::generate_status_list_mock(&issuer_ca)
+        let status_list_keypair = issuer_ca
+            .generate_status_list_mock()
             .expect("generate tsl cert failed")
             .into();
 

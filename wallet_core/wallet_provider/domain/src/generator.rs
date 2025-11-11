@@ -27,7 +27,7 @@ pub mod mock {
 
     impl Generator<Uuid> for MockGenerators {
         fn generate(&self) -> Uuid {
-            uuid!("c9723aef-022b-4ab7-9cc3-ff4227ec1cc9")
+            Uuid::new_v4()
         }
     }
 

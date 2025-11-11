@@ -1675,19 +1675,20 @@ pub mod mock {
     pub type MockUserState =
         UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService>;
 
-    pub fn user_state<R>(
+    pub fn user_state<R, S>(
         repositories: R,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
         pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
-    ) -> UserState<R, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
-        UserState::<R, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
+        status_list_service: S,
+    ) -> UserState<R, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
+        UserState::<R, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
             repositories,
             wallet_user_hsm,
             wua_issuer: MockWuaIssuer,
             wrapping_key_identifier,
             pid_issuer_trust_anchors,
-            status_list_service: MockStatusListService::default(),
+            status_list_service,
         }
     }
 
@@ -2091,7 +2092,13 @@ mod tests {
             transfer_session: None,
         };
 
-        let user_state = mock::user_state(repo, hsm, wrapping_key_identifier, vec![]);
+        let user_state = mock::user_state(
+            repo,
+            hsm,
+            wrapping_key_identifier,
+            vec![],
+            MockStatusListService::default(),
+        );
 
         (setup, account_server, hw_privkey, cert, user_state)
     }

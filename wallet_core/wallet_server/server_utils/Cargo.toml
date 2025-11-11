@@ -14,6 +14,7 @@ doctest = false
 parsed_key_pair_conversion = []
 # Include session storage in PostgreSQL
 postgres = ["dep:serde_json", "dep:sea-orm", "dep:strum"]
+test = []
 
 [dependencies]
 anyhow.workspace = true
