@@ -667,7 +667,9 @@ where
             .all(&self.connection)
             .await?;
 
-        // The database guarantees reading commits, so we can use `result.len()` as version
+        // We can use the number of revocations as version because revocations
+        // are irreversible and the database will always return committed rows,
+        // so no interleaving can happen.
         let version = result.len();
         self.config
             .publish_dir
