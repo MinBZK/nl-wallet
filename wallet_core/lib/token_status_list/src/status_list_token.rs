@@ -108,11 +108,11 @@ pub mod verification {
     use chrono::Duration;
     use chrono::Utc;
     use rustls_pki_types::TrustAnchor;
+    use url::Url;
 
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
-    use http_utils::urls::HttpsUri;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::error::JwtX5cError;
     use utils::generator::Generator;
@@ -145,7 +145,7 @@ pub mod verification {
             &self,
             issuer_trust_anchors: &[TrustAnchor],
             attestation_signing_certificate: &BorrowingCertificate,
-            uri: &HttpsUri,
+            url: &Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<PackedStatusList, StatusListTokenVerificationError> {
             let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
@@ -167,7 +167,7 @@ pub mod verification {
                 return Err(StatusListTokenVerificationError::DifferentDN);
             }
 
-            if *uri != claims.sub {
+            if *url != claims.sub {
                 return Err(StatusListTokenVerificationError::UnexpectedSubject);
             }
 
