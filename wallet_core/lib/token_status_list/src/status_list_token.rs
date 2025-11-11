@@ -117,7 +117,7 @@ pub mod verification {
     use jwt::error::JwtX5cError;
     use utils::generator::Generator;
 
-    use crate::status_list::StatusList;
+    use crate::status_list::PackedStatusList;
     use crate::status_list_token::StatusListToken;
 
     const EXP_LEEWAY: Duration = Duration::seconds(60);
@@ -147,7 +147,7 @@ pub mod verification {
             attestation_signing_certificate: &BorrowingCertificate,
             uri: &HttpsUri,
             time: &impl Generator<DateTime<Utc>>,
-        ) -> Result<StatusList, StatusListTokenVerificationError> {
+        ) -> Result<PackedStatusList, StatusListTokenVerificationError> {
             let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
                 issuer_trust_anchors,
                 time,
@@ -175,7 +175,7 @@ pub mod verification {
                 return Err(StatusListTokenVerificationError::Expired);
             }
 
-            Ok(claims.status_list.unpack())
+            Ok(claims.status_list)
         }
     }
 }

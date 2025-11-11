@@ -43,7 +43,7 @@ where
                 uri,
                 time,
             ) {
-                Ok(status_list) => match status_list.get(index) {
+                Ok(status_list) => match status_list.single_unpack(index) {
                     StatusType::Valid => RevocationStatus::Valid,
                     _ => RevocationStatus::Invalid,
                 },
