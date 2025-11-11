@@ -124,13 +124,13 @@ pub mod verification {
 
     #[derive(Debug, thiserror::Error)]
     pub enum StatusListTokenVerificationError {
-        #[error("jwt verification failed: {0}")]
+        #[error("JWT verification failed: {0}")]
         JwtVerification(#[from] JwtX5cError),
 
-        #[error("jwt is expired")]
+        #[error("JWT is expired")]
         Expired,
 
-        #[error("jwt subject claim does not match uri claim of Reference Token")]
+        #[error("JWT subject claim does not match uri claim of Reference Token")]
         UnexpectedSubject,
 
         #[error("DN is missing in certificate")]

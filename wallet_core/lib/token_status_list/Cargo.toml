@@ -21,6 +21,7 @@ dashmap = { workspace = true, optional = true }
 derive_more = { workspace = true, features = ["from_str", "into"] }
 flate2.workspace = true
 http = { workspace = true, optional = true }
+log.workspace = true
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }
@@ -36,7 +37,6 @@ crypto.path = "../crypto"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
 utils.path = "../utils"
-log = "0.4.25"
 
 [dev-dependencies]
 assert_matches.workspace = true
