@@ -116,6 +116,7 @@ use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance_with_wua;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
+use crate::pin_policy::PinRecoveryPinPolicy;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
@@ -361,6 +362,7 @@ impl From<PinPolicyEvaluation> for InstructionError {
                 })
             }
             PinPolicyEvaluation::BlockedPermanently => InstructionError::AccountBlocked,
+            PinPolicyEvaluation::InPinRecovery => panic!("wrong PIN cannot happen during PIN recovery"),
         }
     }
 }
@@ -1092,7 +1094,6 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<StartPinRecovery>,
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
-        pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<InstructionResult<StartPinRecoveryResult>, InstructionError>
     where
@@ -1124,7 +1125,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         .await?;
 
         let (wallet_user, instruction_payload) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |_| {
+            .verify_and_extract_instruction(instruction, generators, &PinRecoveryPinPolicy, user_state, |_| {
                 encrypted_pin_pubkey.clone()
             })
             .await?;
@@ -3224,7 +3225,6 @@ mod tests {
                 instruction,
                 (&instruction_result_signing_key, &setup.signing_key),
                 &MockGenerators,
-                &TimeoutPinPolicy,
                 &user_state,
             )
             .await
@@ -3362,7 +3362,6 @@ mod tests {
                 instruction,
                 (&instruction_result_signing_key, &setup.signing_key),
                 &MockGenerators,
-                &TimeoutPinPolicy,
                 &user_state,
             )
             .await
