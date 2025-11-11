@@ -37,7 +37,6 @@ use crypto::EcdsaKeySend;
 use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::BaseUrlError;
-use http_utils::urls::HttpsUri;
 use http_utils::urls::HttpsUriError;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
@@ -624,7 +623,7 @@ where
     }
 
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
-        let sub = HttpsUri::try_new(self.base_url.join(external_id).to_string())?;
+        let sub = self.base_url.join(external_id);
         let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
             StatusListToken::builder(sub, StatusList::new(self.list_size.as_usize()).pack())
                 .sign(&self.key_pair)

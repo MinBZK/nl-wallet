@@ -10,10 +10,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
 use serde_with::serde_as;
+use url::Url;
 
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
-use http_utils::urls::HttpsUri;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
@@ -32,7 +32,7 @@ pub static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
 pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithX5c>);
 
 impl StatusListToken {
-    pub fn builder(sub: HttpsUri, status_list: PackedStatusList) -> StatusListTokenBuilder {
+    pub fn builder(sub: Url, status_list: PackedStatusList) -> StatusListTokenBuilder {
         StatusListTokenBuilder {
             exp: None,
             sub,
@@ -44,7 +44,7 @@ impl StatusListToken {
 
 pub struct StatusListTokenBuilder {
     exp: Option<DateTime<Utc>>,
-    sub: HttpsUri,
+    sub: Url,
     ttl: Option<Duration>,
     status_list: PackedStatusList,
 }
@@ -86,7 +86,7 @@ pub struct StatusListClaims {
 
     /// The sub (subject) claim MUST specify the URI of the Status List Token. The value MUST be equal to that of the
     /// `uri` claim contained in the `status_list` claim of the Referenced Token
-    pub sub: HttpsUri,
+    pub sub: Url,
 
     /// If present, MUST specify the maximum amount of time, in seconds, that the Status List Token can be cached by a
     /// consumer before a fresh copy SHOULD be retrieved.
