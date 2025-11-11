@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart';
 import 'package:wallet/src/domain/usecase/transfer/impl/observe_transfer_session_state_usecase_impl.dart';
 
@@ -92,5 +93,25 @@ void main() {
       );
       verify(mockTransferRepository.getWalletTransferState()).called(1);
     });
+
+    test(
+      'should emit the error thrown by the repository as an ApplicationError (or more specifically GenericError in this case)',
+      () async {
+        // Arrange
+        when(mockTransferRepository.getWalletTransferState()).thenAnswer(
+          (_) async => throw Exception('test error'),
+        );
+
+        // Act
+        final stream = useCase.invoke();
+
+        // Assert
+        await expectLater(
+          stream,
+          emitsInOrder([emitsError(isA<GenericError>())]),
+        );
+        verify(mockTransferRepository.getWalletTransferState()).called(1);
+      },
+    );
   });
 }
