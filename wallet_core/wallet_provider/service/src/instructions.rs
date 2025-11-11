@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
+use std::time::Duration;
 
 use base64::prelude::*;
 use chrono::DateTime;
@@ -73,6 +74,8 @@ use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use crate::wua_issuer::WuaIssuer;
+
+pub const WUA_EXPIRY: Duration = Duration::from_secs(5 * 60);
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -529,18 +532,21 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
+    // generate WUA ID
     let wua_id = Uuid::new_v4();
+    let exp = Utc::now() + WUA_EXPIRY;
     let _status_claim = user_state
         .status_list_service
         .obtain_status_claims(
             WUA_ATTESTATION_TYPE_IDENTIFIER,
             wua_id,
-            None,              // TODO decide on WUA expiry
-            NonZeroUsize::MIN, // only one is needed
+            Some(exp.into()),
+            NonZeroUsize::MIN, // only one WUA is issued
         )
         .await
         .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)));
 
+    // link WUA ID to Wallet user ID
     let tx = user_state.repositories.begin_transaction().await?;
     user_state
         .repositories
@@ -550,7 +556,7 @@ where
 
     let (wua_wrapped_key, wua_key_id, wua) = user_state
         .wua_issuer
-        .issue_wua()
+        .issue_wua(exp)
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 

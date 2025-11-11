@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::time::Duration;
 
+use chrono::Utc;
 use derive_more::Debug;
 use futures::FutureExt;
 use itertools::Itertools;
@@ -169,7 +171,7 @@ impl IssuanceWscd for MockRemoteWscd {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                WuaClaims::new(),
+                WuaClaims::new(Utc::now() + Duration::from_secs(600)),
             )
             .now_or_never()
             .unwrap()

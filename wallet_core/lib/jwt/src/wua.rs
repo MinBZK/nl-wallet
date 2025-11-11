@@ -1,7 +1,6 @@
 use std::sync::LazyLock;
 
 use chrono::DateTime;
-use chrono::Duration;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use derive_more::Constructor;
@@ -19,28 +18,13 @@ use crate::error::JwtError;
 use crate::jwk::jwk_to_p256;
 use crate::pop::JwtPopClaims;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
 pub struct WuaClaims {
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
 }
 
-pub const WUA_EXPIRY: Duration = Duration::minutes(5);
 pub const WUA_JWT_TYP: &str = "wua+jwt";
-
-impl WuaClaims {
-    pub fn new() -> Self {
-        Self {
-            exp: Utc::now() + WUA_EXPIRY,
-        }
-    }
-}
-
-impl Default for WuaClaims {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
 pub struct WuaDisclosure(

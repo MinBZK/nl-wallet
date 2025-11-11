@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use chrono::DateTime;
+use chrono::Utc;
 use derive_more::Constructor;
 use p256::ecdsa::VerifyingKey;
 
@@ -22,6 +24,7 @@ pub trait WuaIssuer {
 
     async fn issue_wua(
         &self,
+        exp: DateTime<Utc>,
     ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
@@ -53,13 +56,13 @@ where
 
     async fn issue_wua(
         &self,
-        // TODO status_claim: ... (PVW-4574)
+        exp: DateTime<Utc>, // TODO status_claim: ... (PVW-4574)
     ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
         // TODO add `status_claim` to WuaClaims (PVW-4574)
-        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims::new())
+        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims::new(exp))
             .await?
             .into();
 
@@ -78,6 +81,8 @@ where
 pub mod mock {
     use std::convert::Infallible;
 
+    use chrono::DateTime;
+    use chrono::Utc;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
@@ -96,6 +101,7 @@ pub mod mock {
 
         async fn issue_wua(
             &self,
+            exp: DateTime<Utc>,
         ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
@@ -104,7 +110,7 @@ pub mod mock {
                 pubkey,
                 &privkey, // Sign the WUA with its own private key in this test
                 "iss".to_string(),
-                WuaClaims::new(),
+                WuaClaims::new(exp),
             )
             .await
             .unwrap()
@@ -134,6 +140,8 @@ mod tests {
     use hsm::service::HsmError;
     use jwt::jwk::jwk_to_p256;
 
+    use crate::instructions::WUA_EXPIRY;
+
     use super::HsmWuaIssuer;
     use super::WuaIssuer;
 
@@ -152,7 +160,7 @@ mod tests {
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
-        let (wua_privkey, _key_id, wua) = wua_issuer.issue_wua().await.unwrap();
+        let (wua_privkey, _key_id, wua) = wua_issuer.issue_wua(Utc::now() + WUA_EXPIRY).await.unwrap();
 
         let (_, wua_claims) = wua
             .parse_and_verify(&wua_verifying_key.into(), &DEFAULT_VALIDATIONS)

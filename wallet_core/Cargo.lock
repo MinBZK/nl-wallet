@@ -8585,6 +8585,7 @@ name = "wscd"
 version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
+ "chrono",
  "crypto",
  "derive_more",
  "futures",
