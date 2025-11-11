@@ -420,14 +420,14 @@ where
         };
         let attestation_batch_id = attestation_batch::Entity::insert(model).exec(tx).await?.last_insert_id;
 
-        for (list_id, indices) in list_indices {
-            let model = attestation_batch_list_indices::ActiveModel {
-                attestation_batch_id: Set(attestation_batch_id),
-                status_list_id: Set(list_id),
-                indices: Set(indices),
-            };
-            attestation_batch_list_indices::Entity::insert(model).exec(tx).await?;
-        }
+        let models = list_indices.map(|(list_id, indices)| attestation_batch_list_indices::ActiveModel {
+            attestation_batch_id: Set(attestation_batch_id),
+            status_list_id: Set(list_id),
+            indices: Set(indices),
+        });
+        attestation_batch_list_indices::Entity::insert_many(models)
+            .exec(tx)
+            .await?;
 
         Ok(())
     }
