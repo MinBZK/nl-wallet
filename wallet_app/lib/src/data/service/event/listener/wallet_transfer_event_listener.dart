@@ -37,4 +37,12 @@ class WalletTransferEventListener extends AppEventListener {
         break;
     }
   }
+
+  @override
+  Future<void> onDashboardShown() async {
+    final WalletState state = await _getWalletStateUseCase.invoke();
+    if (state is WalletStateTransferring && state.role == TransferRole.source) {
+      await _cancelWalletTransferUseCase.invoke();
+    }
+  }
 }
