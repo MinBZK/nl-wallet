@@ -43,4 +43,6 @@ enum FlutterApiErrorType {
   verifier,
   @JsonValue('WrongDigid')
   wrongDigid,
+  @JsonValue('DeniedDigid')
+  deniedDigid,
 }

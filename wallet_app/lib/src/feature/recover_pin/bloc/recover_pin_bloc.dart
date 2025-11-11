@@ -185,6 +185,8 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
     switch (error) {
       case WrongDigidError():
         emit(const RecoverPinDigidMismatch());
+      case DeniedDigidError():
+        emit(const RecoverPinDigidLoginCancelled());
       case NetworkError():
         emit(RecoverPinNetworkError(hasInternet: error.hasInternet, error: error));
       case RedirectUriError():

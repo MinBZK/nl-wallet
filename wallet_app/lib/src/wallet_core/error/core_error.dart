@@ -64,6 +64,10 @@ class CoreWrongDigidError extends CoreError {
   const CoreWrongDigidError(super.description, {super.data});
 }
 
+class CoreDeniedDigidError extends CoreError {
+  const CoreDeniedDigidError(super.description, {super.data});
+}
+
 class CoreRelyingPartyError extends CoreError {
   final List<LocalizedString>? organizationName;
 
