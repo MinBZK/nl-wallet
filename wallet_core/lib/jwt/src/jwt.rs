@@ -223,7 +223,6 @@ where
         let certificates = self.extract_x5c_certificates()?;
 
         // Verify the certificate chain against the trust anchors.
-        let certificates = VecNonEmpty::try_from(certificates).map_err(|_| JwtX5cError::MissingCertificates)?;
         let leaf_cert = certificates.first();
 
         leaf_cert
@@ -287,7 +286,7 @@ where
         expected_verifying_key: &VerifyingKey,
         validation_options: &Validation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtError> {
-        let (header, payload) = self.parse_and_verify(&(expected_verifying_key).into(), validation_options)?;
+        let (header, payload) = self.parse_and_verify(&expected_verifying_key.into(), validation_options)?;
 
         // Compare the specified key against the one in the JWT header
         let contained_key = jwk_to_p256(&header.jwk)?;

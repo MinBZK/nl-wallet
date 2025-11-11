@@ -6854,16 +6854,23 @@ dependencies = [
 name = "token_status_list"
 version = "0.4.0-dev"
 dependencies = [
+ "assert_matches",
  "base64 0.22.1",
  "chrono",
  "crypto",
  "dashmap 6.1.0",
  "derive_more",
  "flate2",
+ "futures",
+ "http",
  "http_utils",
  "jwt",
+ "log",
+ "mockall",
  "regex",
+ "reqwest",
  "rstest",
+ "rustls-pki-types",
  "serde",
  "serde_json",
  "serde_with",
