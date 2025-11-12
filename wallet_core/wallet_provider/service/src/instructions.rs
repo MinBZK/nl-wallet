@@ -541,7 +541,8 @@ where
             NonZeroUsize::MIN, // only one WUA is issued
         )
         .await
-        .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)));
+        .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)))?
+        .into_first(); // only one was requested
 
     // link WUA ID to Wallet user ID
     let tx = user_state.repositories.begin_transaction().await?;
