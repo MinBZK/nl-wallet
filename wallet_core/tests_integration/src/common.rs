@@ -68,6 +68,7 @@ use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::AttestationPresentation;
+use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
@@ -832,7 +833,7 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
 
 pub async fn do_pid_issuance(mut wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
     let redirect_url = wallet
-        .create_pid_issuance_auth_url()
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("Could not create pid issuance auth url");
     let _attestations = wallet

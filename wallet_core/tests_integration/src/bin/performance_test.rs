@@ -18,6 +18,7 @@ use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use wallet::DisclosureUriSource;
+use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
@@ -93,7 +94,7 @@ async fn main() {
     wallet.register(pin).await.expect("Could not register wallet");
 
     let authorization_url = wallet
-        .create_pid_issuance_auth_url()
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("Could not create pid issuance auth url");
 

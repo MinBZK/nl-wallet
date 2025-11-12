@@ -92,8 +92,12 @@ pub enum IssuanceError {
     SessionState,
 
     #[error("PID already present")]
-    #[category(expected)]
+    #[category(critical)]
     PidAlreadyPresent,
+
+    #[error("cannot recover PIN without a PID")]
+    #[category(critical)]
+    NoPidPresent,
 
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
@@ -200,6 +204,12 @@ pub struct IssuanceResult {
     pub transfer_session_id: Option<TransferSessionId>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PidIssuancePurpose {
+    Enrollment,
+    Renewal,
+}
+
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -213,7 +223,7 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, IssuanceError> {
+    pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
         info!("Checking if blocked");
@@ -245,7 +255,10 @@ where
             .has_any_attestations_with_types(&pid_attributes.pid_attestation_types())
             .await
             .map_err(IssuanceError::AttestationQuery)?;
-        if has_pid {
+        if purpose == PidIssuancePurpose::Enrollment && has_pid {
+            return Err(IssuanceError::PidAlreadyPresent);
+        }
+        if purpose == PidIssuancePurpose::Renewal && !has_pid {
             return Err(IssuanceError::PidAlreadyPresent);
         }
 
@@ -777,7 +790,7 @@ mod tests {
 
         // Have the `Wallet` generate a DigiD authentication URL and test it.
         let auth_url = wallet
-            .create_pid_issuance_auth_url()
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
             .await
             .expect("Could not generate PID issuance auth URL");
 
@@ -794,7 +807,7 @@ mod tests {
         // Creating a DigiD authentication URL on
         // a locked wallet should result in an error.
         let error = wallet
-            .create_pid_issuance_auth_url()
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
@@ -809,7 +822,7 @@ mod tests {
         // Creating a DigiD authentication URL on an
         // unregistered wallet should result in an error.
         let error = wallet
-            .create_pid_issuance_auth_url()
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
@@ -826,7 +839,7 @@ mod tests {
         // Creating a DigiD authentication URL on a `Wallet` that
         // has an active DigiD session should return an error.
         let error = wallet
-            .create_pid_issuance_auth_url()
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
@@ -847,7 +860,7 @@ mod tests {
         // Creating a DigiD authentication URL on a `Wallet` that has
         // an active OpenID4VCI session should return an error.
         let error = wallet
-            .create_pid_issuance_auth_url()
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
@@ -872,7 +885,7 @@ mod tests {
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
         let error = wallet
-            .create_pid_issuance_auth_url()
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
@@ -1376,7 +1389,7 @@ mod tests {
             .return_once(|_| Ok(true));
 
         let err = wallet
-            .create_pid_issuance_auth_url()
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
             .await
             .expect_err("creating new PID issuance auth URL when there already is a PID should fail");
         assert_matches!(err, IssuanceError::PidAlreadyPresent);

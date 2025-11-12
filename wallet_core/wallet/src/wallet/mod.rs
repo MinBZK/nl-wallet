@@ -56,6 +56,7 @@ pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::issuance::IssuanceError;
 pub use self::issuance::IssuanceResult;
+pub use self::issuance::PidIssuancePurpose;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;

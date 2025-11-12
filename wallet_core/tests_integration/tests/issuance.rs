@@ -12,6 +12,7 @@ use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use wallet::AttestationAttributeValue;
+use wallet::PidIssuancePurpose;
 use wallet::attestation_data::Attribute;
 use wallet::attestation_data::AttributeValue;
 use wallet::errors::IssuanceError;
@@ -170,7 +171,7 @@ async fn test_pid_missing_required_attributes() {
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
     let redirect_url = wallet
-        .create_pid_issuance_auth_url()
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("should create PID issuance redirect URL");
     let _unsigned_mdocs = wallet
