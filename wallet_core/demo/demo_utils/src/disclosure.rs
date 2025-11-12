@@ -41,9 +41,8 @@ impl MayHaveUniqueId for DemoDisclosedAttestations {
 
 #[cfg(test)]
 mod test {
+    use chrono::DateTime;
     use indexmap::IndexMap;
-
-    use serde_with::chrono::DateTime;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;

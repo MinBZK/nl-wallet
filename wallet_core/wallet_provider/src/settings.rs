@@ -38,6 +38,7 @@ pub struct Settings {
     pub pin_public_disclosure_protection_key_identifier: String,
     pub wua_signing_key_identifier: String,
     pub wua_issuer_identifier: String,
+    pub wua_valid_days: u64,
     pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
     pub database: DatabaseSettings,
     pub webserver: Webserver,
@@ -140,6 +141,7 @@ impl Settings {
             .set_default("wua_status_list.create_threshold", 0.001)?
             .set_default("wua_signing_key_identifier", "wua_signing_key")?
             .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
+            .set_default("wua_valid_days", 365)?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 8001)?
             .set_default("pin_policy.rounds", 4)?

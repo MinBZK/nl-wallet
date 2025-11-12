@@ -131,6 +131,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use chrono::Utc;
     use jwt::DEFAULT_VALIDATIONS;
     use p256::ecdsa::SigningKey;
@@ -139,8 +141,6 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::jwk::jwk_to_p256;
-
-    use crate::instructions::WUA_EXPIRY;
 
     use super::HsmWuaIssuer;
     use super::WuaIssuer;
@@ -160,7 +160,10 @@ mod tests {
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
-        let (wua_privkey, _key_id, wua) = wua_issuer.issue_wua(Utc::now() + WUA_EXPIRY).await.unwrap();
+        let (wua_privkey, _key_id, wua) = wua_issuer
+            .issue_wua(Utc::now() + Duration::from_secs(600))
+            .await
+            .unwrap();
 
         let (_, wua_claims) = wua
             .parse_and_verify(&wua_verifying_key.into(), &DEFAULT_VALIDATIONS)

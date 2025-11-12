@@ -1875,6 +1875,7 @@ dependencies = [
  "attestation_types",
  "axum",
  "base64 0.22.1",
+ "chrono",
  "crypto",
  "dcql",
  "http_utils",

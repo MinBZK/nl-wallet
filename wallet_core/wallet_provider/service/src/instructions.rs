@@ -2,7 +2,6 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
-use std::time::Duration;
 
 use base64::prelude::*;
 use chrono::DateTime;
@@ -74,8 +73,6 @@ use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use crate::wua_issuer::WuaIssuer;
-
-pub const WUA_EXPIRY: Duration = Duration::from_secs(5 * 60);
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -534,7 +531,7 @@ where
 {
     // generate WUA ID
     let wua_id = Uuid::new_v4();
-    let exp = Utc::now() + WUA_EXPIRY;
+    let exp = Utc::now() + user_state.wua_validity;
     let _status_claim = user_state
         .status_list_service
         .obtain_status_claims(

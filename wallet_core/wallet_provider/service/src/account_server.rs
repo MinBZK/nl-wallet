@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use base64::prelude::*;
 use chrono::DateTime;
+use chrono::Days;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use derive_more::Constructor;
@@ -506,6 +507,7 @@ pub struct UserState<R, H, W, S> {
     pub repositories: R,
     pub wallet_user_hsm: H,
     pub wua_issuer: W,
+    pub wua_validity: Days,
     pub wrapping_key_identifier: String,
     pub pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     pub status_list_service: S,
@@ -1686,6 +1688,7 @@ pub mod mock {
             repositories,
             wallet_user_hsm,
             wua_issuer: MockWuaIssuer,
+            wua_validity: Days::new(1),
             wrapping_key_identifier,
             pid_issuer_trust_anchors,
             status_list_service,
@@ -1832,6 +1835,7 @@ mod tests {
     use assert_matches::assert_matches;
     use base64::prelude::*;
     use chrono::DateTime;
+    use chrono::Days;
     use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
@@ -2036,6 +2040,7 @@ mod tests {
             repositories: wallet_user_repo,
             wallet_user_hsm: hsm,
             wua_issuer: MockWuaIssuer,
+            wua_validity: Days::new(1),
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
             pid_issuer_trust_anchors: vec![], // not needed in these tests
             status_list_service: MockStatusListService::default(),
@@ -3372,6 +3377,7 @@ mod tests {
             repositories,
             wallet_user_hsm: user_state.wallet_user_hsm,
             wua_issuer: user_state.wua_issuer,
+            wua_validity: Days::new(1),
             wrapping_key_identifier: user_state.wrapping_key_identifier,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
             status_list_service: MockStatusListService::default(),

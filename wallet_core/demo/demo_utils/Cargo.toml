@@ -33,6 +33,7 @@ openid4vc.path = "../../lib/openid4vc"
 utils.path = "../../lib/utils"
 
 [dev-dependencies]
+chrono.workspace = true
 indexmap.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
