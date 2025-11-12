@@ -96,6 +96,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -321,102 +322,146 @@
 <td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.7</strong></p></td>
-<td><p><strong>System displays screen ‘Wallet is ready’</strong><ul><li>Message: Your NL Wallet is ready</li><li>Actions: To my overview</li></ul></p></td>
+<td><p><strong>System determines if user has a wallet that is eligable for transfer</strong></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.7a</p></td>
+<td><p>Case: User has a wallet eligible for transfer</p></td>
+<td><p>1.8</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.7b</p></td>
+<td><p>Case: User does not have a wallet eligible for transfer</p></td>
+<td><p>1.9</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.8</strong></p></td>
+<td><p><strong>System displays screen ‘Do you want to move your wallet’</strong><ul><li>Message: You can transfer your wallet to this device</li><li>Actions: Yes move, No create a new wallet, Help, Close</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.8a</p></td>
+<td><p>User selects Yes move</p></td>
+<td><p>Go to: <a class="reference internal" href="UC9.10_TransferWallet.html"><span class="doc std std-doc">UC9.10 Wallet transfer</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.8b</p></td>
+<td><p>User selects No create a new wallet</p></td>
+<td><p>1.9</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.8c</p></td>
+<td><p>User selects Close</p></td>
+<td><p>1.9</p></td>
+</tr>
+<tr class="row-even"><td><p>1.8d</p></td>
+<td><p>User selects Get help</p></td>
+<td><p>Go to: <a class="reference internal" href="UC9.6_GetHelp.html"><span class="std std-doc">UC9.6 Get help</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.9</strong></p></td>
+<td><p><strong>System displays prompt ‘Create new NL Wallet’</strong><ul><li>Message: A new NL Wallet will be created/li&gt;<li>Actions: OK, Cancel</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.9a</p></td>
+<td><p>User selects OK</p></td>
+<td><p>1.10</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.9b</p></td>
+<td><p>User selects Cancel</p></td>
+<td><p>1.8</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.10</strong></p></td>
+<td><p><strong>System displays screen ‘Wallet is ready’</strong><ul><li>Message: Your NL Wallet is ready</li><li>Actions: To my overview</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.10a</p></td>
 <td><p>User selects To my overview</p></td>
 <td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="doc std std-doc">UC7.1 Show all available cards</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>2</strong></p></td>
+<tr class="row-even"><td><p><strong>2</strong></p></td>
 <td><p><strong>WHEN DIGID AUTHENTICATION FAILS</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>2.1</strong></p></td>
+<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
 <td><p><strong>System displays screen ‘Login failed’</strong><ul><li>Message: Login again to get data</li><li>Actions: Login again, Go to DigiD website</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>2.1a</p></td>
+<tr class="row-even"><td><p>2.1a</p></td>
 <td><p>User selects Login again</p></td>
 <td><p>1.2</p></td>
 </tr>
-<tr class="row-even"><td><p>2.2b</p></td>
+<tr class="row-odd"><td><p>2.2b</p></td>
 <td><p>User selects Go to DigiD website <br>→ System opens DigiD website in browser and suspends app</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>3</strong></p></td>
+<tr class="row-even"><td><p><strong>3</strong></p></td>
 <td><p><strong>WHEN USER ABORTS OR EXPIRES</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>3.1</strong></p></td>
+<tr class="row-odd"><td><p><strong>3.1</strong></p></td>
 <td><p><strong>System displays screen ‘Login stopped’</strong><ul><li>Message: To continue login again</li><li>Actions: Login again, Go to DigiD website</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>3.1a</p></td>
+<tr class="row-even"><td><p>3.1a</p></td>
 <td><p>User selects Login again</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p>3.1b</p></td>
+<tr class="row-odd"><td><p>3.1b</p></td>
 <td><p>User selects Go to DigiD website</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>4</strong></p></td>
+<tr class="row-even"><td><p><strong>4</strong></p></td>
 <td><p><strong>WHEN USER ABORTS DIGID FROM APP</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>4.1</strong></p></td>
+<tr class="row-odd"><td><p><strong>4.1</strong></p></td>
 <td><p><strong>System displays prompt ‘Are you sure?’</strong><ul><li>Actions: Back, Stop Login</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>4.1a</p></td>
+<tr class="row-even"><td><p>4.1a</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p>4.1b</p></td>
+<tr class="row-odd"><td><p>4.1b</p></td>
 <td><p>User selects Stop Login</p></td>
 <td><p>4.2</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>4.2</strong></p></td>
+<tr class="row-even"><td><p><strong>4.2</strong></p></td>
 <td><p><strong>System displays screen ‘Login stopped’</strong><ul><li>Actions: Login again, Go to DigiD website</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>4.2a</p></td>
+<tr class="row-odd"><td><p>4.2a</p></td>
 <td><p>User selects Login again</p></td>
 <td><p>1.2</p></td>
 </tr>
-<tr class="row-odd"><td><p>4.2b</p></td>
+<tr class="row-even"><td><p>4.2b</p></td>
 <td><p>User selects Go to DigiD website <br>→ System opens browser and suspends app</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>5</strong></p></td>
+<tr class="row-odd"><td><p><strong>5</strong></p></td>
 <td><p><strong>WHEN PID ISSUANCE FAILS</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>5.1</strong></p></td>
+<tr class="row-even"><td><p><strong>5.1</strong></p></td>
 <td><p><strong>System displays screen ‘Details are incorrect’</strong><ul><li>Message: Details Incorrect</li><li>Actions: Stop, Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>5.1a</p></td>
+<tr class="row-odd"><td><p>5.1a</p></td>
 <td><p>User selects Stop</p></td>
 <td><p>1.1</p></td>
 </tr>
-<tr class="row-odd"><td><p>5.1b</p></td>
+<tr class="row-even"><td><p>5.1b</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>6</strong></p></td>
+<tr class="row-odd"><td><p><strong>6</strong></p></td>
 <td><p><strong>WHEN USER REJECTS ISSUED PID</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>6.1</strong></p></td>
+<tr class="row-even"><td><p><strong>6.1</strong></p></td>
 <td><p><strong>System displays screen ‘Details are incorrect’</strong><ul><li>Message: Details Incorrect</li><li>Actions: Stop, Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>6.1a</p></td>
+<tr class="row-odd"><td><p>6.1a</p></td>
 <td><p>User selects Stop</p></td>
 <td><p>1.1</p></td>
 </tr>
-<tr class="row-odd"><td><p>6.1b</p></td>
+<tr class="row-even"><td><p>6.1b</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>

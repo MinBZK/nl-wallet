@@ -96,6 +96,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -201,7 +202,7 @@
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../errors.html#generic-error"><span class="std std-ref">Generic Error</span></a></li><li><a class="reference internal" href="../errors.html#session-expired"><span class="std std-ref">Session Expired</span></a></ul></li></p></td>
+<td><p><ul><li><a class="reference internal" href="../errors.html#generic-error"><span class="std std-ref">Generic Error</span></a></li><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No internet</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
 <td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc6"><span class="std std-ref">LTC6 Invalid universal link</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc7"><span class="std std-ref">LTC7 cross-device generic issuance</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc18"><span class="std std-ref">LTC18 cross-device share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc24"><span class="std std-ref">LTC24 cross-device login</span></a></li></ul></p></td>
@@ -296,9 +297,25 @@
 <td><p>Case: QR resolves to login flow</p></td>
 <td><p>Go to: <a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html"><span class="std std-doc">UC5.2 Log in to Relying Party application</span></a></p></td>
 </tr>
+<tr class="row-odd"><td><p>1.5d</p></td>
+<td><p>Case: QR resolves to transfer wallet flow</p></td>
+<td><p>Go to: <a class="reference internal" href="UC9.10_TransferWallet.html"><span class="std std-doc">UC9.10 Wallet device transfer</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.5c</p></td>
+<td><p>Case: QR resolves to login flow</p></td>
+<td><p>Go to: <a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html"><span class="std std-doc">UC5.2 Log in to Relying Party application</span></a></p></td>
+</tr>
 <tr class="row-odd"><td><p>1.1e</p></td>
 <td><p>Error: Generic</p></td>
 <td><p>Error flow: <a class="reference internal" href="../errors.html#generic-error"><span class="std std-ref">Generic</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.1f</p></td>
+<td><p>Error: No internet</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.1g</p></td>
+<td><p>Error: Server unreachable</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>2</strong></p></td>
 <td><p><strong>WHEN NO CAMERA PERMISSION</strong></p></td>

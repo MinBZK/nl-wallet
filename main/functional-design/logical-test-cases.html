@@ -96,6 +96,7 @@
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -1217,6 +1218,44 @@ again</p>
 <hr class="docutils" />
 <section id="id5">
 <h3>LTC79<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="wallet-transfer-happy-flow">
+<h4>Wallet transfer happy flow<a class="headerlink" href="#wallet-transfer-happy-flow" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has an existing active source wallet
+<strong>And</strong> user has completed PID issuance on its destination wallet
+<strong>When</strong> user completes wallet transfer
+<strong>Then</strong> the destination wallet contains the data of the source wallet
+<strong>And</strong> the destination wallet is active
+<strong>And</strong> the source wallet does not contain data
+<strong>And</strong> the source wallet is inactive</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ltc80">
+<h3>LTC80<a class="headerlink" href="#ltc80" title="Link to this heading"></a></h3>
+<section id="user-stops-transfer-flow-on-source-device">
+<h4>User stops transfer flow on source device<a class="headerlink" href="#user-stops-transfer-flow-on-source-device" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has an existing active source wallet
+<strong>And</strong> user has completed PID issuance on its destination wallet
+<strong>When</strong> user aborts wallet transfer on the source device
+<strong>Then</strong> the source wallet displays the dashboard screen
+<strong>And</strong> user is prompted on the destination device to try again</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ltc81">
+<h3>LTC81<a class="headerlink" href="#ltc81" title="Link to this heading"></a></h3>
+<section id="user-stops-transfer-flow-on-destination-device">
+<h4>User stops transfer flow on destination device<a class="headerlink" href="#user-stops-transfer-flow-on-destination-device" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has an existing active source wallet
+<strong>And</strong> user has completed PID issuance on its destination wallet
+<strong>When</strong> user aborts wallet transfer on the destination device
+<strong>Then</strong> user is prompted on the destination device to try again
+<strong>And</strong> the source wallet displays the dashboard screen</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ltc82">
+<h3>LTC82<a class="headerlink" href="#ltc82" title="Link to this heading"></a></h3>
 <section id="user-selects-another-card-to-be-disclosed">
 <h4>User selects another card to be disclosed<a class="headerlink" href="#user-selects-another-card-to-be-disclosed" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has multiple cards that can fulfill a disclosure request

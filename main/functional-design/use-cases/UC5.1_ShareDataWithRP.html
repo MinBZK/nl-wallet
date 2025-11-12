@@ -96,6 +96,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -204,7 +205,7 @@
 <td><p><ul><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></li><li><a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></li><li><a class="reference internal" href="../errors.html#session-expired"><span class="std std-ref">Session Expired</span></a></li><li><a class="reference internal" href="../errors.html#known-verifier-error"><span class="std std-ref">Known Verifier Error</span></a></li><li><a class="reference internal" href="../errors.html#unknown-verifier-error"><span class="std std-ref">Unknown Verifier Error</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc17"><span class="std std-ref">LTC17 Share data happy flow</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc18"><span class="std std-ref">LTC18 Cross-device share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc19"><span class="std std-ref">LTC19 User does not give consent to share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc20"><span class="std std-ref">LTC20 User stops at Share data approve organization</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc21"><span class="std std-ref">LTC21 User continues after initially cancelling</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc26"><span class="std std-ref">LTC26 Disclosure fails</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc27"><span class="std std-ref">LTC27 Wallet does not contain requested attributes</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc17"><span class="std std-ref">LTC17 Share data happy flow</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc18"><span class="std std-ref">LTC18 Cross-device share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc19"><span class="std std-ref">LTC19 User does not give consent to share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc20"><span class="std std-ref">LTC20 User stops at Share data approve organization</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc21"><span class="std std-ref">LTC21 User continues after initially cancelling</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc26"><span class="std std-ref">LTC26 Disclosure fails</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc27"><span class="std std-ref">LTC27 Wallet does not contain requested attributes</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc27"><span class="std std-ref">LTC27 Wallet does not contain requested attributes</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc82"><span class="std std-ref">LTC82 User selects another card to be disclosed </span></a></li></ul></p></td>
 </tr>
 </tbody>
 </table>
@@ -413,18 +414,42 @@
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>4.1</strong></p></td>
-<td><p><strong>System displays screen ‘Requested data’</strong><ul><li># from [Card Title]</li><li>Actions: Details Incorrect, Help, Back</li></ul></p></td>
+<td><p><strong>System displays screen ‘Approve Organization’</strong><ul><li>Message: Information about logging in at [organization]?</li><li>Actions: [organization], View data, Read the agreement, Help, Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p>4.1a</p></td>
+<td><p>User selects [organization]</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>4.1b</p></td>
+<td><p>User selects View data</p></td>
+<td><p>4.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>4.1c</p></td>
+<td><p>User selects Read the agreement</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-even"><td><p>4.1d</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Go to: <a class="reference internal" href="UC9.6_GetHelp.html"><span class="std std-doc">UC9.6 Get help</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>4.1e</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>4.2</strong></p></td>
+<td><p><strong>System displays screen ‘Requested data’</strong><ul><li># from [Card Title]</li><li>Actions: Details Incorrect, Help, Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>4.2a</p></td>
 <td><p>User selects Details Incorrect</p></td>
 <td><p>5</p></td>
 </tr>
-<tr class="row-even"><td><p>4.1b</p></td>
+<tr class="row-even"><td><p>4.2b</p></td>
 <td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
+<td><p>Go to: <a class="reference internal" href="UC9.6_GetHelp.html"><span class="std std-doc">UC9.6 Get help</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p>4.1c</p></td>
+<tr class="row-odd"><td><p>4.2c</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>

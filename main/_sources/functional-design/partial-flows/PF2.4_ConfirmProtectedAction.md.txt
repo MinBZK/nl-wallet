@@ -20,7 +20,7 @@
 ## Flow
 
 | #       | Description                                                                                                                     | Next                                                      |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| ------- |---------------------------------------------------------------------------------------------------------------------------------| --------------------------------------------------------- |
 | **1**   | **PRIMARY SCENARIO**                                                                                                            |                                                           |
 | **1.1** | **System displays PIN screen**<ul><li>Input: 6 digits (0-9) PIN field</li><li>Actions: Back, Cancel, Forgot Pin, Help</li></ul> |                                                           |
 | 1.1a    | User enters PIN                                                                                                                 | 1.2                                                       |
@@ -32,7 +32,7 @@
 | 1.2a    | Result: Valid PIN                                                                                                               | 1.3                                                       |
 | 1.2b    | Result: Retry                                                                                                                   | 1.1                                                       |
 | 1.2c    | Result: Back                                                                                                                    | Back                                                      |
-| **1.3** | **System executes partial flow [PF1.4 Apply update policy](PF1.4_ApplyAppUpdatePolicy.md)**                                   |                                                           |
+| **1.3** | **System executes partial flow [PF1.4 Apply update policy](PF1.4_ApplyAppUpdatePolicy.md)**                                     |                                                           |
 | 1.3a    | Result: App version is allowed                                                                                                  | Result: Confirm                                           |
 | **2**   | **RECOVER FROM FORGOTTEN PIN**                                                                                                  |                                                           |
 | **2.1** | **System displays forgot PIN screen**<ul><li>Forgot PIN?</li><li>Actions: Delete Wallet, Back</li></ul>                         |                                                           |

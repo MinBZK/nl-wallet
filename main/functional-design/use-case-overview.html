@@ -104,6 +104,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -200,6 +201,8 @@ UNLOCK[&quot;&lt;a href='use-cases/UC2.3_UnlockTheApp.html'&gt;2.3 Unlock the ap
 OBTAIN_PID[&quot;&lt;a href='use-cases/UC3.1_ObtainPidFromProvider.html'&gt;3.1 Obtain PID&lt;/a&gt;&quot;]
 
 ALL_CARDS[&quot;&lt;a href='use-cases/UC7.1_ShowAllAvailableCards.html'&gt;7.1 Show all cards&lt;/a&gt;&quot;]
+TRANSFER[&quot;&lt;a href='use-cases/UC9.10_TransferWallet.html'&gt;9.10 Transfer wallet&lt;/a&gt;&quot;]
+END((&quot; &quot;))
 
 APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
 WIPE[&quot;&lt;a href='use-cases/UC9.4_WipeAllAppData.html'&gt;9.4 Wipe app data&lt;/a&gt;&quot;]
@@ -215,6 +218,9 @@ UNLOCK --&gt; WIPE
 INTRODUCE --&gt; SETUP_PIN
 
 OBTAIN_PID --&gt; ALL_CARDS
+OBTAIN_PID --&gt; TRANSFER
+
+TRANSFER --&gt; END
 
 WIPE --&gt; INTRODUCE
 
