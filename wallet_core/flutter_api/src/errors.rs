@@ -17,6 +17,7 @@ use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
 use wallet::errors::PinRecoveryError;
+use wallet::errors::RecoveryCodeError;
 use wallet::errors::ResetError;
 use wallet::errors::TransferError;
 use wallet::errors::UpdatePolicyError;
@@ -505,8 +506,11 @@ impl FlutterApiErrorFields for PinRecoveryError {
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
             PinRecoveryError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
-            PinRecoveryError::IncorrectRecoveryCode { .. } => FlutterApiErrorType::WrongDigid,
-            PinRecoveryError::MissingPid | PinRecoveryError::MissingRecoveryCode => FlutterApiErrorType::Issuer,
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
+                FlutterApiErrorType::WrongDigid
+            }
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingPid)
+            | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode) => FlutterApiErrorType::Issuer,
             PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
         }

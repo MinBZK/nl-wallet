@@ -69,6 +69,7 @@ use crate::storage::TransferData;
 use crate::transfer::TransferSessionId;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::recovery_code::RecoveryCodeError;
 
 use super::Wallet;
 
@@ -94,10 +95,6 @@ pub enum IssuanceError {
     #[error("PID already present")]
     #[category(critical)]
     PidAlreadyPresent,
-
-    #[error("cannot recover PIN without a PID")]
-    #[category(critical)]
-    NoPidPresent,
 
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
@@ -180,6 +177,9 @@ pub enum IssuanceError {
 
     #[error("error storing transfer data in database: {0}")]
     TransferDataStorage(#[source] StorageError),
+
+    #[error("recovery code error: {0}")]
+    RecoveryCode(#[from] RecoveryCodeError),
 }
 
 impl From<DigidError> for IssuanceError {
@@ -421,11 +421,20 @@ where
         )
         .await?;
 
-        let preview_attestation_types = issuance_session
-            .normalized_credential_preview()
+        let previews = issuance_session.normalized_credential_preview();
+        let preview_attestation_types = previews
             .iter()
             .map(|preview| preview.content.credential_payload.attestation_type.as_str())
             .collect();
+
+        let config = self.config_repository.get();
+        if is_pid {
+            self.compare_recovery_code_against_stored(
+                Self::pid_preview(previews, &config.pid_attributes)?,
+                &config.pid_attributes,
+            )
+            .await?;
+        }
 
         let stored = self
             .storage
@@ -439,14 +448,9 @@ where
         // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
         // the list of stored attestations. This means the oldest attestation is matched first.
         let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<Uuid>)> =
-            match_preview_and_stored_attestations(
-                issuance_session.normalized_credential_preview(),
-                stored,
-                &TimeGenerator,
-            );
+            match_preview_and_stored_attestations(previews, stored, &TimeGenerator);
 
         info!("successfully received token and previews from issuer");
-        let wallet_config = self.config_repository.get();
         let organization = &issuance_session.issuer_registration().organization;
         let attestations = previews_and_identity
             .into_iter()
@@ -456,7 +460,7 @@ where
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     &preview_data.content.credential_payload.attributes,
-                    &wallet_config.pid_attributes,
+                    &config.pid_attributes,
                 )
                 .map_err(|error| IssuanceError::Attestation {
                     organization: organization.clone(),
