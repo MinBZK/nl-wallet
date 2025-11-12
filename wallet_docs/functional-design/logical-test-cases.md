@@ -999,6 +999,44 @@ again
 
 ### LTC79
 
+#### Wallet transfer happy flow
+
+**Given** user has an existing active source wallet 
+**And** user has completed PID issuance on its destination wallet
+**When** user completes wallet transfer
+**Then** the destination wallet contains the data of the source wallet
+**And** the destination wallet is active
+**And** the source wallet does not contain data
+**And** the source wallet is inactive
+
+---
+
+### LTC80
+
+#### User stops transfer flow on source device
+
+**Given** user has an existing active source wallet
+**And** user has completed PID issuance on its destination wallet
+**When** user aborts wallet transfer on the source device
+**Then** the source wallet displays the dashboard screen
+**And** user is prompted on the destination device to try again
+
+---
+
+### LTC81
+
+#### User stops transfer flow on destination device
+
+**Given** user has an existing active source wallet
+**And** user has completed PID issuance on its destination wallet
+**When** user aborts wallet transfer on the destination device
+**Then** user is prompted on the destination device to try again
+**And** the source wallet displays the dashboard screen
+
+---
+
+### LTC82
+
 #### User selects another card to be disclosed
 
 **Given** user has multiple cards that can fulfill a disclosure request
