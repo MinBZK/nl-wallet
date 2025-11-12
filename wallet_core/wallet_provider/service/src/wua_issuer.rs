@@ -1,8 +1,10 @@
 use std::error::Error;
 
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
+use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 
 use crypto::keys::SecureEcdsaKey;
@@ -24,6 +26,7 @@ pub trait WuaIssuer {
     async fn issue_wua(
         &self,
         exp: DateTime<Utc>,
+        status_claim: StatusClaim,
     ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
@@ -55,15 +58,18 @@ where
 
     async fn issue_wua(
         &self,
-        exp: DateTime<Utc>, // TODO status_claim: ... (PVW-4574)
+        exp: DateTime<Utc>,
+        status_claim: StatusClaim,
     ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
-        // TODO add `status_claim` to WuaClaims (PVW-4574)
-        let jwt = WuaClaims::into_signed(&pubkey, &self.private_key, self.iss.clone(), exp)
-            .await?
-            .into();
+        let jwt = SignedJwt::sign(
+            &WuaClaims::new(&pubkey, self.iss.clone(), exp, status_claim)?,
+            &self.private_key,
+        )
+        .await?
+        .into();
 
         Ok((wrapped_privkey, verifying_key_sha256(&pubkey), jwt))
     }
@@ -80,8 +86,10 @@ where
 pub mod mock {
     use std::convert::Infallible;
 
+    use attestation_types::status_claim::StatusClaim;
     use chrono::DateTime;
     use chrono::Utc;
+    use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
@@ -100,15 +108,14 @@ pub mod mock {
         async fn issue_wua(
             &self,
             exp: DateTime<Utc>,
+            status_claim: StatusClaim,
         ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
-            let jwt = WuaClaims::into_signed(
-                pubkey,
+            let jwt = SignedJwt::sign(
+                &WuaClaims::new(pubkey, "iss".to_string(), exp, status_claim).unwrap(),
                 &privkey, // Sign the WUA with its own private key in this test
-                "iss".to_string(),
-                exp,
             )
             .await
             .unwrap()
@@ -131,6 +138,7 @@ pub mod mock {
 mod tests {
     use std::time::Duration;
 
+    use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use jwt::DEFAULT_VALIDATIONS;
     use p256::ecdsa::SigningKey;
@@ -158,7 +166,7 @@ mod tests {
         };
 
         let (wua_privkey, _key_id, wua) = wua_issuer
-            .issue_wua(Utc::now() + Duration::from_secs(600))
+            .issue_wua(Utc::now() + Duration::from_secs(600), StatusClaim::new_mock())
             .await
             .unwrap();
 

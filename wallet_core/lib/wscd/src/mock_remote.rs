@@ -10,6 +10,7 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 
+use attestation_types::status_claim::StatusClaim;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -166,11 +167,15 @@ impl IssuanceWscd for MockRemoteWscd {
 
             // If no WUA signing key is configured, just use the WUA's private key to sign it
             let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.key);
-            let wua = WuaClaims::into_signed(
-                wua_key.verifying_key(),
+            let wua = SignedJwt::sign(
+                &WuaClaims::new(
+                    wua_key.verifying_key(),
+                    MOCK_WALLET_CLIENT_ID.to_string(),
+                    Utc::now() + Duration::from_secs(600),
+                    StatusClaim::new_mock(),
+                )
+                .unwrap(),
                 wua_signing_key,
-                MOCK_WALLET_CLIENT_ID.to_string(),
-                Utc::now() + Duration::from_secs(600),
             )
             .now_or_never()
             .unwrap()

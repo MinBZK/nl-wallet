@@ -27,6 +27,7 @@ serde_json = { workspace = true, features = ["std"] }
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 
+attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 utils.path = "../utils"

@@ -3,17 +3,17 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use crypto::EcdsaKey;
 use derive_more::Constructor;
 use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation_types::status_claim::StatusClaim;
+
 use crate::DEFAULT_VALIDATIONS;
 use crate::EcdsaDecodingKey;
 use crate::JwtTyp;
-use crate::SignedJwt;
 use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
@@ -29,24 +29,23 @@ pub struct WuaClaims {
 
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
+
+    pub status: StatusClaim,
 }
 
 impl WuaClaims {
-    pub async fn into_signed(
+    pub fn new(
         holder_pubkey: &VerifyingKey,
-        issuer_privkey: &impl EcdsaKey,
         iss: String,
         exp: DateTime<Utc>,
-    ) -> Result<SignedJwt<Self>, JwtError> {
-        let claims = WuaClaims {
+        status: StatusClaim,
+    ) -> Result<Self, JwtError> {
+        Ok(Self {
             confirmation: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
             iss,
             exp,
-        };
-
-        let jwt = SignedJwt::sign(&claims, issuer_privkey).await?;
-
-        Ok(jwt)
+            status,
+        })
     }
 }
 

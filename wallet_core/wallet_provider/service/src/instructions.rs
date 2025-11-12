@@ -532,7 +532,7 @@ where
     // generate WUA ID
     let wua_id = Uuid::new_v4();
     let exp = Utc::now() + user_state.wua_validity;
-    let _status_claim = user_state
+    let status_claim = user_state
         .status_list_service
         .obtain_status_claims(
             WUA_ATTESTATION_TYPE_IDENTIFIER,
@@ -554,7 +554,7 @@ where
 
     let (wua_wrapped_key, wua_key_id, wua) = user_state
         .wua_issuer
-        .issue_wua(exp)
+        .issue_wua(exp, status_claim)
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 

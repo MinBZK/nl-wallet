@@ -24,6 +24,7 @@ use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
@@ -39,7 +40,6 @@ use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
-use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -773,9 +773,9 @@ mod examples {
     use serde_json::json;
 
     use attestation_types::qualification::AttestationQualification;
+    use attestation_types::status_claim::StatusClaim;
     use jwt::confirmation::ConfirmationClaim;
     use jwt::jwk::jwk_from_p256;
-    use token_status_list::status_claim::StatusClaim;
     use utils::generator::Generator;
 
     use super::SdJwtVcClaims;
