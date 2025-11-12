@@ -114,7 +114,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             play_integrity_client,
         );
 
-        // TODO refactor wallet_provider_database to generic database module to share with issuance server
+        // TODO refactor wallet_provider_database to generic database module to share with issuance server (PVW-5196)
         let db = Db::new(settings.database.url, settings.database.options).await?;
         let status_list_db_connection = match settings.wua_status_list.list_settings.storage_url.as_ref() {
             Some(url) => Db::new(url.to_owned(), ConnectionOptions::default())
