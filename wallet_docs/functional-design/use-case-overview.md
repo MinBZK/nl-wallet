@@ -21,6 +21,8 @@ UNLOCK["<a href='use-cases/UC2.3_UnlockTheApp.html'>2.3 Unlock the app</a>"]
 OBTAIN_PID["<a href='use-cases/UC3.1_ObtainPidFromProvider.html'>3.1 Obtain PID</a>"]
 
 ALL_CARDS["<a href='use-cases/UC7.1_ShowAllAvailableCards.html'>7.1 Show all cards</a>"]
+TRANSFER["<a href='use-cases/UC9.10_TransferWallet.html'>9.10 Transfer wallet</a>"]
+END((" "))
 
 APP_INFO["<a href='use-cases/UC9.2_GetAppInformation.html'>9.2 Get app info</a>"]
 WIPE["<a href='use-cases/UC9.4_WipeAllAppData.html'>9.4 Wipe app data</a>"]
@@ -36,6 +38,9 @@ UNLOCK --> WIPE
 INTRODUCE --> SETUP_PIN
 
 OBTAIN_PID --> ALL_CARDS
+OBTAIN_PID --> TRANSFER
+
+TRANSFER --> END
 
 WIPE --> INTRODUCE
 
