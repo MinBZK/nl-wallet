@@ -106,7 +106,10 @@ impl<A, G> WalletRegistration<A, G> {
 
 #[derive(Debug)]
 enum Session<DS, IS, DCS> {
-    Digid(DS),
+    Digid {
+        purpose: PidIssuancePurpose,
+        session: DS,
+    },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
     PinRecovery {

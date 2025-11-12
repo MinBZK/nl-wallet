@@ -275,7 +275,7 @@ where
 
         info!("DigiD auth URL generated");
         let auth_url = session.auth_url().clone();
-        self.session.replace(Session::Digid(session));
+        self.session.replace(Session::Digid { purpose, session });
 
         Ok(auth_url)
     }
@@ -300,7 +300,7 @@ where
             return Err(IssuanceError::Locked);
         }
 
-        let has_active_session = matches!(self.session, Some(Session::Digid(..)) | Some(Session::Issuance(..)));
+        let has_active_session = matches!(self.session, Some(Session::Digid { .. }) | Some(Session::Issuance(..)));
 
         Ok(has_active_session)
     }
@@ -326,7 +326,7 @@ where
         }
 
         info!("Checking if there is an active issuance session");
-        if !matches!(self.session, Some(Session::Digid(..)) | Some(Session::Issuance(..))) {
+        if !matches!(self.session, Some(Session::Digid { .. }) | Some(Session::Issuance(..))) {
             return Err(IssuanceError::SessionState);
         }
 
@@ -376,12 +376,12 @@ where
         }
 
         info!("Checking if there is an active DigiD issuance session");
-        if !matches!(self.session, Some(Session::Digid(..))) {
+        if !matches!(self.session, Some(Session::Digid { .. })) {
             return Err(IssuanceError::SessionState);
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Digid(session)) = self.session.take() else {
+        let Some(Session::Digid { session, .. }) = self.session.take() else {
             panic!()
         };
 
@@ -834,7 +834,10 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+        wallet.session = Some(Session::Digid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session: MockDigidSession::new(),
+        });
 
         // Creating a DigiD authentication URL on a `Wallet` that
         // has an active DigiD session should return an error.
@@ -897,7 +900,10 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+        wallet.session = Some(Session::Digid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session: MockDigidSession::new(),
+        });
 
         assert!(wallet.session.is_some());
 
@@ -1120,14 +1126,20 @@ mod tests {
     async fn setup_wallet_with_digid_session() -> TestWalletMockStorage {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Digid(mock_digid_session()));
+        wallet.session = Some(Session::Digid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session: mock_digid_session(),
+        });
         wallet
     }
 
     async fn setup_wallet_with_digid_session_and_database_mock() -> TestWalletMockStorage {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Digid(mock_digid_session()));
+        wallet.session = Some(Session::Digid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session: mock_digid_session(),
+        });
         wallet
     }
 
