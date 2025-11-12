@@ -1369,7 +1369,6 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
     use semver::Version;
-    use token_status_list::status_list_service::mock::MockStatusListService;
     use uuid::Uuid;
 
     use crypto::server_keys::generate::Ca;
@@ -1383,6 +1382,7 @@ mod tests {
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
+    use token_status_list::status_list_service::mock::MockStatusListService;
 
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CancelTransfer;

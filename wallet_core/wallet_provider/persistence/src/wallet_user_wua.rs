@@ -8,6 +8,7 @@ use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::RelationTrait;
 use uuid::Uuid;
+
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
