@@ -11,11 +11,31 @@ pub struct Model {
     pub batch_id: Uuid,
     pub expiration_date: Option<Date>,
     pub is_revoked: bool,
-    #[sea_orm(column_type = "JsonBinary")]
-    pub status_list_locations: Json,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::attestation_batch_list_indices::Entity")]
+    AttestationBatchListIndices,
+}
+
+impl Related<super::attestation_batch_list_indices::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AttestationBatchListIndices.def()
+    }
+}
+
+impl Related<super::status_list::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::attestation_batch_list_indices::Relation::StatusList.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::attestation_batch_list_indices::Relation::AttestationBatch
+                .def()
+                .rev(),
+        )
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

@@ -50,13 +50,13 @@ pub struct StatusListTokenBuilder {
 }
 
 impl StatusListTokenBuilder {
-    pub fn exp(mut self, exp: DateTime<Utc>) -> Self {
-        self.exp = Some(exp);
+    pub fn exp(mut self, exp: Option<DateTime<Utc>>) -> Self {
+        self.exp = exp;
         self
     }
 
-    pub fn ttl(mut self, ttl: Duration) -> Self {
-        self.ttl = Some(ttl);
+    pub fn ttl(mut self, ttl: Option<Duration>) -> Self {
+        self.ttl = ttl;
         self
     }
 
@@ -221,8 +221,8 @@ pub mod mock {
 
         let status_list_token =
             StatusListToken::builder(expected_claims.sub.clone(), expected_claims.status_list.clone())
-                .exp(expected_claims.exp.unwrap())
-                .ttl(expected_claims.ttl.unwrap())
+                .exp(expected_claims.exp)
+                .ttl(expected_claims.ttl)
                 .sign(keypair)
                 .await
                 .unwrap();

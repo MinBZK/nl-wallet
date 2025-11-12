@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod attestation_batch;
+pub mod attestation_batch_list_indices;
 pub mod attestation_type;
 pub mod status_list;
 pub mod status_list_item;

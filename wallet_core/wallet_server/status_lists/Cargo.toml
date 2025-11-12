@@ -28,6 +28,7 @@ log.workspace = true
 nutype.workspace = true
 rand.workspace = true
 rstest.workspace = true
+rustix = { workspace = true, features = ["fs"] }
 sea-orm = { workspace = true, features = [
     "macros",
     "runtime-tokio-rustls",
