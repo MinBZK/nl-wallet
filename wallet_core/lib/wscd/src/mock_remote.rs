@@ -18,7 +18,6 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use jwt::SignedJwt;
-use jwt::credential::JwtCredentialClaims;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
@@ -167,13 +166,11 @@ impl IssuanceWscd for MockRemoteWscd {
 
             // If no WUA signing key is configured, just use the WUA's private key to sign it
             let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.key);
-            let wua = JwtCredentialClaims::new_signed(
+            let wua = WuaClaims::into_signed(
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                WuaClaims {
-                    exp: Utc::now() + Duration::from_secs(600),
-                },
+                Utc::now() + Duration::from_secs(600),
             )
             .now_or_never()
             .unwrap()

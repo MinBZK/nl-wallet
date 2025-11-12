@@ -15,6 +15,7 @@ use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
 use jwt::Header;
 use jwt::JwtTyp;
+use jwt::confirmation::ConfirmationClaim;
 use jwt::jwk::jwk_to_p256;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
@@ -25,7 +26,6 @@ use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
-use crate::key_binding_jwt::RequiredKeyBinding;
 use crate::sd_alg::SdAlg;
 use crate::sd_jwt::SdJwtClaims;
 use crate::sd_jwt::SdJwtVcClaims;
@@ -63,7 +63,7 @@ pub struct SdJwtExampleClaims {
 
     pub iss: Option<HttpsUri>,
 
-    pub cnf: Option<RequiredKeyBinding>,
+    pub cnf: Option<ConfirmationClaim>,
 
     pub iat: Option<DateTimeSeconds>,
 
@@ -88,7 +88,7 @@ impl SdJwtClaims for SdJwtExampleClaims {
         &self.claims
     }
 
-    fn cnf(&self) -> &RequiredKeyBinding {
+    fn cnf(&self) -> &ConfirmationClaim {
         self.cnf.as_ref().unwrap()
     }
 }

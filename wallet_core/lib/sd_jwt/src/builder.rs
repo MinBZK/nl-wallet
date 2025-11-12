@@ -97,10 +97,9 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// # use attestation_types::claim_path::ClaimPath;
 /// # use chrono::Utc;
 /// # use crypto::server_keys::generate::Ca;
-/// # use jwt::jwk::jwk_from_p256;
+/// # use jwt::confirmation::ConfirmationClaim;
 /// # use p256::ecdsa::SigningKey;
 /// # use rand_core::OsRng;
-/// # use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 /// # use sd_jwt::builder::SdJwtBuilder;
 /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
 /// # use utils::date_time_seconds::DateTimeSeconds;
@@ -109,7 +108,7 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// let holder_key = SigningKey::random(&mut OsRng);
 /// let claims = SdJwtVcClaims {
 ///     _sd_alg: None,
-///     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_key.verifying_key())?),
+///     cnf: ConfirmationClaim::from_verifying_key(&holder_key.verifying_key())?,
 ///     vct: "urn:example:vct".into(),
 ///     vct_integrity: None,
 ///     iss: "https://issuer.example.com".parse()?,
@@ -165,11 +164,10 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// ```
     /// # use attestation_types::claim_path::ClaimPath;
     /// # use chrono::Utc;
-    /// # use jwt::jwk::jwk_from_p256;
+    /// # use jwt::confirmation::ConfirmationClaim;
     /// # use p256::ecdsa::SigningKey;
     /// # use serde_json::json;
     /// # use sd_jwt::builder::SdJwtBuilder;
-    /// # use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
     /// # use utils::date_time_seconds::DateTimeSeconds;
     /// # use utils::vec_at_least::VecNonEmpty;
@@ -177,7 +175,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///
     /// let builder = SdJwtBuilder::new(SdJwtVcClaims {
     ///     _sd_alg: None,
-    ///     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&SigningKey::random(&mut OsRng).verifying_key())?),
+    ///     cnf: ConfirmationClaim::from_verifying_key(&SigningKey::random(&mut OsRng).verifying_key())?,
     ///     vct: "com:example:vct".into(),
     ///     vct_integrity: None,
     ///     iss: "https://issuer.example.com".parse()?  ,

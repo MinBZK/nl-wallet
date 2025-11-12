@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::EcdsaKey;
 use derive_more::Constructor;
 use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
@@ -11,30 +12,56 @@ use serde::Serialize;
 
 use crate::DEFAULT_VALIDATIONS;
 use crate::EcdsaDecodingKey;
+use crate::JwtTyp;
+use crate::SignedJwt;
 use crate::UnverifiedJwt;
-use crate::credential::JwtCredentialClaims;
+use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
-use crate::jwk::jwk_to_p256;
 use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WuaClaims {
+    #[serde(rename = "cnf")]
+    pub confirmation: ConfirmationClaim,
+
+    pub iss: String,
+
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
 }
 
+impl WuaClaims {
+    pub async fn into_signed(
+        holder_pubkey: &VerifyingKey,
+        issuer_privkey: &impl EcdsaKey,
+        iss: String,
+        exp: DateTime<Utc>,
+    ) -> Result<SignedJwt<Self>, JwtError> {
+        let claims = WuaClaims {
+            confirmation: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
+            iss,
+            exp,
+        };
+
+        let jwt = SignedJwt::sign(&claims, issuer_privkey).await?;
+
+        Ok(jwt)
+    }
+}
+
 pub const WUA_JWT_TYP: &str = "wua+jwt";
 
+impl JwtTyp for WuaClaims {
+    const TYP: &'static str = WUA_JWT_TYP;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WuaDisclosure(
-    UnverifiedJwt<JwtCredentialClaims<WuaClaims>>,
-    UnverifiedJwt<JwtPopClaims>,
-);
+pub struct WuaDisclosure(UnverifiedJwt<WuaClaims>, UnverifiedJwt<JwtPopClaims>);
 
 #[cfg(feature = "test")]
 impl WuaDisclosure {
-    pub fn wua(&self) -> &UnverifiedJwt<JwtCredentialClaims<WuaClaims>> {
+    pub fn wua(&self) -> &UnverifiedJwt<WuaClaims> {
         &self.0
     }
 
@@ -62,7 +89,7 @@ impl WuaDisclosure {
         expected_nonce: &str,
     ) -> Result<VerifyingKey, WuaError> {
         let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
-        let wua_pubkey = jwk_to_p256(&verified_wua_claims.confirmation.jwk)?;
+        let wua_pubkey = verified_wua_claims.confirmation.verifying_key()?;
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);

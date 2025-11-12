@@ -11,7 +11,6 @@ use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use jwt::UnverifiedJwt;
-use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
 use jwt::wua::WuaClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
@@ -25,7 +24,7 @@ pub trait WuaIssuer {
     async fn issue_wua(
         &self,
         exp: DateTime<Utc>,
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -57,12 +56,12 @@ where
     async fn issue_wua(
         &self,
         exp: DateTime<Utc>, // TODO status_claim: ... (PVW-4574)
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
         // TODO add `status_claim` to WuaClaims (PVW-4574)
-        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims { exp })
+        let jwt = WuaClaims::into_signed(&pubkey, &self.private_key, self.iss.clone(), exp)
             .await?
             .into();
 
@@ -89,7 +88,6 @@ pub mod mock {
     use crypto::p256_der::verifying_key_sha256;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::UnverifiedJwt;
-    use jwt::credential::JwtCredentialClaims;
     use jwt::wua::WuaClaims;
 
     use super::WuaIssuer;
@@ -102,15 +100,15 @@ pub mod mock {
         async fn issue_wua(
             &self,
             exp: DateTime<Utc>,
-        ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+        ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
-            let jwt = JwtCredentialClaims::new_signed(
+            let jwt = WuaClaims::into_signed(
                 pubkey,
                 &privkey, // Sign the WUA with its own private key in this test
                 "iss".to_string(),
-                WuaClaims { exp },
+                exp,
             )
             .await
             .unwrap()
@@ -140,7 +138,6 @@ mod tests {
 
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::jwk::jwk_to_p256;
 
     use super::HsmWuaIssuer;
     use super::WuaIssuer;
@@ -171,11 +168,11 @@ mod tests {
 
         assert_eq!(
             wua_privkey.public_key(),
-            &jwk_to_p256(&wua_claims.confirmation.jwk).unwrap()
+            &wua_claims.confirmation.verifying_key().unwrap()
         );
 
         // Check that the fields have the expected contents
-        assert_eq!(wua_claims.contents.iss, iss.to_string());
-        assert!(wua_claims.contents.attributes.exp > Utc::now());
+        assert_eq!(wua_claims.iss, iss.to_string());
+        assert!(wua_claims.exp > Utc::now());
     }
 }
