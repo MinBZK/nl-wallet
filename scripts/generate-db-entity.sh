@@ -29,7 +29,7 @@ if [[ -z $crate || $crate == 'wallet_provider' ]]; then
     rm -f "$BASE_DIR/wallet_core/wallet_server/wallet_provider/src/entity"/*
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider" \
-        --ignore-tables "seaql_migrations,attestation_batch,attestation_type,status_list,status_list_item" \
+        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,status_list,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_provider/persistence/src/entity"
 
     # Append manual fix for external crate dependency on status_lists
