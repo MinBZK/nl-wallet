@@ -472,6 +472,10 @@ then
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider" cargo run --package wallet_provider_migrations --bin wallet_provider_migrations -- fresh
         popd
 
+        echo -e "${INFO}Cleaning status lists${NC}"
+        rm -rf "${WP_DIR}/resources/status-lists"
+        mkdir "${WP_DIR}/resources/status-lists"
+
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
         RUST_LOG=debug cargo run --package wallet_provider --bin wallet_provider --features=android_emulator > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 

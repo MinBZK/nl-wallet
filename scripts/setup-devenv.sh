@@ -417,6 +417,7 @@ render_template "${DEVENV}/status_lists.toml.template" "${STATUS_LISTS_DIR}/stat
 # Ensure the status_lists dirs exists
 mkdir -p "${ISSUANCE_SERVER_DIR}/resources/status-lists"
 mkdir -p "${PID_ISSUER_DIR}/resources/status-lists"
+mkdir -p "${WP_DIR}/resources/status-lists"
 mkdir -p "${BASE_DIR}/wallet_core/tests_integration/resources/status-lists"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
