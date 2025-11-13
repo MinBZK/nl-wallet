@@ -40,9 +40,8 @@ import '../wallet_core/error/core_error_mapper.dart';
 
 class WalletMapperProvider extends StatelessWidget {
   final Widget child;
-  final bool provideMocks;
 
-  const WalletMapperProvider({required this.child, this.provideMocks = false, super.key});
+  const WalletMapperProvider({required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {
