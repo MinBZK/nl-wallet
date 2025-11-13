@@ -133,7 +133,7 @@ void main() {
     build: createBloc,
     setUp: () => when(mockCancelWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) => bloc.add(const WalletTransferStopRequestedEvent()),
-    expect: () => [isA<WalletTransferStopped>()],
+    expect: () => [isA<WalletTransferCancelling>(), isA<WalletTransferStopped>()],
     verify: (_) => verify(mockCancelWalletTransferUseCase.invoke()).called(1),
   );
 

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-11-04T16:39:18+01:00",
+    "@@last_modified": "2025-11-11T11:11:51+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1507,6 +1507,8 @@
     "walletTransferFaqScreenTitle": "Transfer NL Wallet to a new phone?",
     "walletTransferLoadingQrDescription": "Transfer QR-code is being created",
     "walletTransferLoadingQrTitle": "Please wait",
+    "walletTransferScreenCancellingDescription": "The action is being stopped",
+    "walletTransferScreenCancellingTitle": "Please wait",
     "walletTransferScreenFailedDescription": "This action was unsuccessful. This may have several reasons. Please try again.",
     "walletTransferScreenFailedTitle": "Move failed",
     "walletTransferScreenLoadingDescription": "Your request is being retrieved",
@@ -1520,7 +1522,7 @@
     "walletTransferSourceScreenSuccessCta": "Create new NL Wallet",
     "walletTransferSourceScreenSuccessDescription": "This app is empty and no longer active.\n\nClose this app or create new NL Wallet on this device.",
     "walletTransferSourceScreenSuccessTitle": "Move completed",
-    "walletTransferSourceScreenTransferringDescription": "Do not close this screen or stop this action. This will take a few minutes.",
+    "walletTransferSourceScreenTransferringDescription": "Do not close this screen or stop this action. This may take a few minutes.",
     "walletTransferSourceScreenTransferringTitle": "NL Wallet is being moved",
     "walletTransferSourceStopSheetCancelCta": "No",
     "walletTransferSourceStopSheetConfirmCta": "Yes, stop",
