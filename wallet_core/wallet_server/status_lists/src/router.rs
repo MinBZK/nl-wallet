@@ -24,8 +24,8 @@ use tower_http::compression::CompressionLayer;
 
 use crate::publish::PublishDir;
 
-const ALL_MEDIA_TYPE: MediaType = MediaType::new(Name::new_unchecked("*"), Name::new_unchecked("*"));
-const JWT_MEDIA_TYPE: MediaType = MediaType::from_parts(
+const STATUSLIST_ALL_MEDIA_TYPE: MediaType = MediaType::new(Name::new_unchecked("*"), Name::new_unchecked("*"));
+const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::from_parts(
     Name::new_unchecked("application"),
     Name::new_unchecked("statuslist"),
     Some(Name::new_unchecked("jwt")),
@@ -89,7 +89,7 @@ async fn serve_status_list(
     };
 
     Response::builder()
-        .header(header::CONTENT_TYPE, JWT_MEDIA_TYPE.to_string())
+        .header(header::CONTENT_TYPE, STATUSLIST_JWT_MEDIA_TYPE.to_string())
         .header(header::CACHE_CONTROL, state.cache_control.as_str())
         .header(header::ETAG, etag.to_string())
         .body(Body::from(bytes))
@@ -113,14 +113,17 @@ fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, Stat
 /// both. For the moment only the JWT format is supported in this code base.
 fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
     let header = ascii_header(header, "accept")?;
-    for media_type in MediaTypeList::new(header) {
-        let media_type = media_type.map_err(|err| {
+    let content_types = MediaTypeList::new(header)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|err| {
             tracing::info!("invalid accept header `{}`: {}", header, err);
             StatusCode::BAD_REQUEST
         })?;
-        if media_type == ALL_MEDIA_TYPE || media_type == JWT_MEDIA_TYPE {
-            return Ok(());
-        }
+    if content_types
+        .into_iter()
+        .any(|media_type| media_type == STATUSLIST_ALL_MEDIA_TYPE || media_type == STATUSLIST_JWT_MEDIA_TYPE)
+    {
+        return Ok(());
     }
     Err(StatusCode::UNSUPPORTED_MEDIA_TYPE)
 }
