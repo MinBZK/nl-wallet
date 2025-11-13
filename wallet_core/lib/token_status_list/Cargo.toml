@@ -21,7 +21,6 @@ dashmap = { workspace = true, optional = true }
 derive_more = { workspace = true, features = ["from_str", "into"] }
 flate2.workspace = true
 http = { workspace = true, optional = true }
-log.workspace = true
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }
@@ -29,6 +28,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
 thiserror.workspace = true
+tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 uuid.workspace = true

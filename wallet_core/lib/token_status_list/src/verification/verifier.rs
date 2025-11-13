@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
-use log::warn;
 use rustls_pki_types::TrustAnchor;
+use tracing::warn;
 use url::Url;
 
 use crypto::x509::BorrowingCertificate;
