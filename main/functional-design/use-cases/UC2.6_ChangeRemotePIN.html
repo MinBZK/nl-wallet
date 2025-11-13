@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 2.6 Change remote PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
@@ -111,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
@@ -202,10 +204,10 @@
 <td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/pin-validation.html"><span class="doc std std-doc">PIN validation</span></a></li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></li><li><a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></li></ul></p></td>
+<td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical Test Cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc76"><span class="std std-ref">LTC56 PIN Change Happy flow</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc77"><span class="std std-ref">LTC61 PIN entries do not match, try again</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc76"><span class="std std-ref">LTC62 PIN entries do not match, choose new PIN</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc77"><span class="std std-ref">LTC63 PIN entry does not conform to policy</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc77"><span class="std std-ref">LTC64 PIN change fails, could not reach server</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc57"><span class="std std-ref">LTC65 PIN change fails, no internet</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc76"><span class="std std-ref">LTC56 PIN Change Happy flow</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc77"><span class="std std-ref">LTC64 PIN change fails, could not reach server</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc57"><span class="std std-ref">LTC65 PIN change fails, no internet</span></a></li></ul></p></td>
 </tr>
 </tbody>
 </table>
@@ -238,120 +240,28 @@
 <td><p>Back</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>1.2</strong></p></td>
-<td><p><strong>Displays screen ‘Choose new PIN’</strong><ul><li>Message: Choose a new 6-digit PIN</li><li>Input: 6 digits (0-9) PIN field</li><li>Actions: Back</li></ul></p></td>
+<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.9_SetupPin.html"><span class="std std-doc">PF2.9 Setup PIN</span></a></strong></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.2a</p></td>
-<td><p>User enters PIN</p></td>
+<td><p>Result: PIN setup succeeds</p></td>
 <td><p>1.3</p></td>
 </tr>
 <tr class="row-even"><td><p>1.2b</p></td>
-<td><p>User selects Back</p></td>
+<td><p>Result: Back</p></td>
 <td><p>Back</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.2c</p></td>
-<td><p>Error: No internet</p></td>
-<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p>1.2d</p></td>
-<td><p>Error: Server unreachable</p></td>
-<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.3</strong></p></td>
-<td><p><strong>System validates entered PIN against PIN policy</strong><ul><li>Duration: 0.0 - 0.1 seconds</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>1.3a</p></td>
-<td><p>Case: PIN matches PIN policy</p></td>
-<td><p>1.4</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.3b</p></td>
-<td><p>Case: PIN does not match PIN policy</p></td>
-<td><p>2</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>1.4</strong></p></td>
-<td><p><strong>System displays screen ‘Repeat PIN’</strong><ul><li>Message: Repeat your new PIN</li><li>Input: 6 digits (0-9) PIN field</li><li>Actions: Back</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>1.4a</p></td>
-<td><p>User enters PIN</p></td>
-<td><p>1.5</p></td>
-</tr>
-<tr class="row-even"><td><p>1.4b</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>1.5</strong></p></td>
-<td><p><strong>System validates PINs match</strong><ul><li>Duration: 0.0 - 0.1 seconds</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>1.5a</p></td>
-<td><p>Case: PINs match</p></td>
-<td><p>1.6</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.5b</p></td>
-<td><p>Case: PINs do not match first time</p></td>
-<td><p>3</p></td>
-</tr>
-<tr class="row-even"><td><p>1.5c</p></td>
-<td><p>Case: PINs do not match second time</p></td>
-<td><p>4</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.5d</p></td>
-<td><p>Error: No internet</p></td>
-<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p>1.5e</p></td>
-<td><p>Error: Server unreachable</p></td>
-<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>1.6</strong></p></td>
 <td><p><strong>System displays screen ‘PIN change success’</strong><ul><li>Message: Success!</li><li>Actions: Dashboard, Settings</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>1.6a</p></td>
+<tr class="row-even"><td><p>1.3a</p></td>
 <td><p>User selects Dashboard</p></td>
 <td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.6b</p></td>
+<tr class="row-odd"><td><p>1.3b</p></td>
 <td><p>User selects Settings</p></td>
 <td><p>End</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>2</strong></p></td>
-<td><p><strong>WHEN PIN DOES NOT SATISFY POLICY (TOO SIMPLE)</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
-<td><p><strong>System displays PIN too simple message</strong><ul><li>Actions: OK</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>2.1a</p></td>
-<td><p>User selects OK</p></td>
-<td><p>1.2</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>3</strong></p></td>
-<td><p><strong>WHEN PINs ARE NOT EQUAL (FIRST TIME)</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>3.1</strong></p></td>
-<td><p><strong>System displays PIN is different message</strong><ul><li>Actions: Try Again</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>3.1a</p></td>
-<td><p>User selects Try again</p></td>
-<td><p>1.4</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>4</strong></p></td>
-<td><p><strong>WHEN PINs ARE NOT EQUAL (SECOND TIME)</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>4.1</strong></p></td>
-<td><p><strong>System displays PIN is different message</strong><ul><li>Actions: Choose New Pin</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>4.1a</p></td>
-<td><p>User selects Choose New Pin</p></td>
-<td><p>1.2</p></td>
 </tr>
 </tbody>
 </table>

@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
@@ -111,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
 <li class="toctree-l2"><a class="reference internal" href="partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
 <li class="toctree-l2"><a class="reference internal" href="partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="errors.html">Errors</a></li>
@@ -1220,12 +1222,12 @@ again</p>
 <h3>LTC79<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
 <section id="wallet-transfer-happy-flow">
 <h4>Wallet transfer happy flow<a class="headerlink" href="#wallet-transfer-happy-flow" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has an existing active source wallet
-<strong>And</strong> user has completed PID issuance on its destination wallet
-<strong>When</strong> user completes wallet transfer
-<strong>Then</strong> the destination wallet contains the data of the source wallet
-<strong>And</strong> the destination wallet is active
-<strong>And</strong> the source wallet does not contain data
+<p><strong>Given</strong> user has an existing active source wallet<br />
+<strong>And</strong> user has completed PID issuance on its destination wallet<br />
+<strong>When</strong> user completes wallet transfer<br />
+<strong>Then</strong> the destination wallet contains the data of the source wallet<br />
+<strong>And</strong> the destination wallet is active<br />
+<strong>And</strong> the source wallet does not contain data<br />
 <strong>And</strong> the source wallet is inactive</p>
 </section>
 </section>
@@ -1234,10 +1236,10 @@ again</p>
 <h3>LTC80<a class="headerlink" href="#ltc80" title="Link to this heading"></a></h3>
 <section id="user-stops-transfer-flow-on-source-device">
 <h4>User stops transfer flow on source device<a class="headerlink" href="#user-stops-transfer-flow-on-source-device" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has an existing active source wallet
-<strong>And</strong> user has completed PID issuance on its destination wallet
-<strong>When</strong> user aborts wallet transfer on the source device
-<strong>Then</strong> the source wallet displays the dashboard screen
+<p><strong>Given</strong> user has an existing active source wallet<br />
+<strong>And</strong> user has completed PID issuance on its destination wallet<br />
+<strong>When</strong> user aborts wallet transfer on the source device<br />
+<strong>Then</strong> the source wallet displays the dashboard screen<br />
 <strong>And</strong> user is prompted on the destination device to try again</p>
 </section>
 </section>
@@ -1246,10 +1248,10 @@ again</p>
 <h3>LTC81<a class="headerlink" href="#ltc81" title="Link to this heading"></a></h3>
 <section id="user-stops-transfer-flow-on-destination-device">
 <h4>User stops transfer flow on destination device<a class="headerlink" href="#user-stops-transfer-flow-on-destination-device" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has an existing active source wallet
-<strong>And</strong> user has completed PID issuance on its destination wallet
-<strong>When</strong> user aborts wallet transfer on the destination device
-<strong>Then</strong> user is prompted on the destination device to try again
+<p><strong>Given</strong> user has an existing active source wallet<br />
+<strong>And</strong> user has completed PID issuance on its destination wallet<br />
+<strong>When</strong> user aborts wallet transfer on the destination device<br />
+<strong>Then</strong> user is prompted on the destination device to try again<br />
 <strong>And</strong> the source wallet displays the dashboard screen</p>
 </section>
 </section>
@@ -1258,11 +1260,22 @@ again</p>
 <h3>LTC82<a class="headerlink" href="#ltc82" title="Link to this heading"></a></h3>
 <section id="user-selects-another-card-to-be-disclosed">
 <h4>User selects another card to be disclosed<a class="headerlink" href="#user-selects-another-card-to-be-disclosed" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has multiple cards that can fulfill a disclosure request
+<p><strong>Given</strong> user has multiple cards that can fulfill a disclosure request<br />
 <strong>When</strong> user starts disclosure<br />
 <strong>Then</strong> system offers user option to select another card<br />
-<strong>When</strong> user selects a card
+<strong>When</strong> user selects a card<br />
 <strong>Then</strong> the requested attributes are disclosed from the previously selected card</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ltc83">
+<h3>LTC83<a class="headerlink" href="#ltc83" title="Link to this heading"></a></h3>
+<section id="recover-pin-happy-flow">
+<h4>Recover PIN happy flow<a class="headerlink" href="#recover-pin-happy-flow" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user start PIN recovery<br />
+<strong>When</strong> user changes PIN successfully<br />
+<strong>Then</strong> user can use new PIN<br />
+<strong>And</strong> user can not use old PIN</p>
 </section>
 </section>
 </section>
