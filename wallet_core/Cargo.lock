@@ -517,6 +517,7 @@ version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "310c9bcae737a48ef5cdee3174184e6d548b292739ede61a1f955ef76a738861"
 dependencies = [
+ "flate2",
  "futures-core",
  "memchr",
  "pin-project-lite",
@@ -6488,6 +6489,7 @@ dependencies = [
  "thiserror 2.0.11",
  "token_status_list",
  "tokio",
+ "tower-http",
  "url",
  "utils",
  "uuid",

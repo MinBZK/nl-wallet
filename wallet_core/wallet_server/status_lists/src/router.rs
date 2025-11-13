@@ -20,6 +20,7 @@ use etag::EntityTag;
 use mediatype::MediaType;
 use mediatype::MediaTypeList;
 use mediatype::Name;
+use tower_http::compression::CompressionLayer;
 
 use crate::publish::PublishDir;
 
@@ -56,6 +57,8 @@ pub fn create_status_list_routers(serve_dirs: HashMap<String, PublishDir>, ttl: 
             )
         })
         .layer(middleware::from_fn(add_vary_header))
+        // The HTTP response SHOULD use gzip Content-Encoding as defined in [RFC9110].
+        .layer(CompressionLayer::new())
 }
 
 async fn add_vary_header(request: Request, next: Next) -> Response {

@@ -21,7 +21,7 @@ path = "tests/router.rs"
 required-features = ["integration_test", "test"]
 
 [features]
-axum = ["dep:axum", "dep:etag", "dep:mediatype"]
+axum = ["dep:axum", "dep:etag", "dep:mediatype", "tower-http/compression-gzip"]
 integration_test = ["axum", "dep:reqwest"]
 test = []
 
@@ -56,6 +56,7 @@ etag = { workspace = true, optional = true }
 mediatype = { workspace = true, optional = true }
 
 reqwest = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
