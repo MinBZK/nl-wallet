@@ -65,8 +65,9 @@ A session between the app and a verifying or issuing organization has expired. L
 
 **Possible causes:**
 
-- User session timed out due to inactivity.
-- Token expired.
+- User did not respond fast enough (before session timed out).
+- Session timeout too strict.
+- Technical issue with Verifier or Issuer.
 
 **Possible resolutions:**
 
