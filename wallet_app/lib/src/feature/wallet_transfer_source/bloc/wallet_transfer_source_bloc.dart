@@ -89,7 +89,17 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     final result = await _startWalletTransferUseCase.invoke();
     await result.process(
       onSuccess: (_) => Fimber.d('transferWallet (upload) success'),
-      onError: _handleError,
+      onError: (error) async {
+        try {
+          // PVW-5194 (startWalletTransferUseCase fails when session is stopped on destination)
+          final transferSessionState = await _observeTransferSessionStateUseCase.invoke().first;
+          if (transferSessionState == TransferSessionState.cancelled) emit(const WalletTransferStopped());
+        } catch (e) {
+          Fimber.i('Failed to get state. This happens if cancelled was already reached through polling.', ex: e);
+        } finally {
+          if (state is! WalletTransferStopped) unawaited(_handleError(error));
+        }
+      },
     );
   }
 
