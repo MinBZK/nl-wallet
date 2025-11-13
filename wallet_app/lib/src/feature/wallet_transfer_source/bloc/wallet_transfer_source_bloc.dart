@@ -55,6 +55,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
       case WalletTransferInitial():
       case WalletTransferLoading():
       case WalletTransferIntroduction():
+      case WalletTransferCancelling():
       case WalletTransferStopped():
       case WalletTransferGenericError():
       case WalletTransferNetworkError():
@@ -96,6 +97,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     WalletTransferStopRequestedEvent event,
     Emitter<WalletTransferSourceState> emit,
   ) async {
+    emit(const WalletTransferCancelling());
     final result = await _cancelWalletTransferUsecase.invoke();
     // We only want to emit a new state if the wallet is not already in a success/error state
     bool maintainState(WalletTransferSourceState state) => state is WalletTransferSuccess || state is ErrorState;
