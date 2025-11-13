@@ -1001,12 +1001,12 @@ again
 
 #### Wallet transfer happy flow
 
-**Given** user has an existing active source wallet 
-**And** user has completed PID issuance on its destination wallet
-**When** user completes wallet transfer
-**Then** the destination wallet contains the data of the source wallet
-**And** the destination wallet is active
-**And** the source wallet does not contain data
+**Given** user has an existing active source wallet  
+**And** user has completed PID issuance on its destination wallet  
+**When** user completes wallet transfer  
+**Then** the destination wallet contains the data of the source wallet  
+**And** the destination wallet is active  
+**And** the source wallet does not contain data  
 **And** the source wallet is inactive
 
 ---
@@ -1015,11 +1015,11 @@ again
 
 #### User stops transfer flow on source device
 
-**Given** user has an existing active source wallet
-**And** user has completed PID issuance on its destination wallet
-**When** user aborts wallet transfer on the source device
-**Then** the source wallet displays the dashboard screen
-**And** user is prompted on the destination device to try again
+**Given** user has an existing active source wallet  
+**And** user has completed PID issuance on its destination wallet  
+**When** user aborts wallet transfer on the source device  
+**Then** the source wallet displays the dashboard screen  
+**And** user is prompted on the destination device to try again  
 
 ---
 
@@ -1027,10 +1027,10 @@ again
 
 #### User stops transfer flow on destination device
 
-**Given** user has an existing active source wallet
-**And** user has completed PID issuance on its destination wallet
-**When** user aborts wallet transfer on the destination device
-**Then** user is prompted on the destination device to try again
+**Given** user has an existing active source wallet  
+**And** user has completed PID issuance on its destination wallet  
+**When** user aborts wallet transfer on the destination device  
+**Then** user is prompted on the destination device to try again  
 **And** the source wallet displays the dashboard screen
 
 ---
@@ -1039,8 +1039,19 @@ again
 
 #### User selects another card to be disclosed
 
-**Given** user has multiple cards that can fulfill a disclosure request
+**Given** user has multiple cards that can fulfill a disclosure request  
 **When** user starts disclosure  
-**Then** system offers user option to select another card  
-**When** user selects a card
+**Then** system offers user option to select another card    
+**When** user selects a card  
 **Then** the requested attributes are disclosed from the previously selected card
+
+---
+
+### LTC83
+
+#### Recover PIN happy flow
+
+**Given** user start PIN recovery  
+**When** user changes PIN successfully  
+**Then** user can use new PIN  
+**And** user can not use old PIN
