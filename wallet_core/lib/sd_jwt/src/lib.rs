@@ -170,6 +170,7 @@ pub mod test;
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::collections::HashSet;
 
     use assert_matches::assert_matches;
     use rstest::rstest;
@@ -332,6 +333,30 @@ mod tests {
             .unwrap_err();
 
         verify_expected_error(error);
+    }
+
+    #[rstest]
+    #[case(all_claims(), vec![])]
+    #[case(selected_claims(), vec![vec_nonempty![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], vec_nonempty![ClaimPath::SelectByKey("root_value".to_string())]])]
+    fn test_non_selectable_claims(
+        #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
+        #[case] expected: Vec<VecNonEmpty<ClaimPath>>,
+    ) {
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
+
+        let input = test_object();
+
+        // conceal claims, and encode as an SD-JWT
+        let sd_jwt = conceal_and_sign(&issuer_keypair, input, concealed_claims);
+        let verified_sd_jwt = sd_jwt.into_verified();
+
+        let result = verified_sd_jwt.non_selectable_claims().unwrap();
+
+        assert_eq!(
+            result.into_iter().collect::<HashSet<_>>(),
+            expected.into_iter().collect::<HashSet<_>>()
+        );
     }
 
     fn all_claims() -> Vec<VecNonEmpty<ClaimPath>> {
