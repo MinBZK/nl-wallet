@@ -851,11 +851,16 @@ mod tests {
     #[case(json!({"a": 1, "b": true}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("a".to_string())], vec_nonempty![ClaimPath::SelectByKey("b".to_string())]]))]
     #[case(json!([1, 2]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
     #[case(json!([1, "a", true]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
+    #[case(json!([{"a": 1}, {"a": 2}]), Ok(vec![vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectByKey("a".to_string())]]))]
+    #[case(json!({"a": [1, 2]}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("a".to_string()), ClaimPath::SelectAll]]))]
     #[case(json!([1, { "a": 2 }]), Err(NonSelectableClaimsError::ArrayStructure(MultipleItemsFound)))]
     #[case(json!([
         1, 2, 3,
         { "...": "some_digest" }
     ]), Err(NonSelectableClaimsError::ArrayMixtureOfValuesAndHashes))]
+    #[case(json!([
+        { "...": "some_digest" }
+    ]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
     fn non_selectable_claims(
         #[case] value: serde_json::Value,
         #[case] expected_result: Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectableClaimsError>,
