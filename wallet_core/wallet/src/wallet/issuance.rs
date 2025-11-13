@@ -44,6 +44,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -448,7 +449,12 @@ where
         // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
         // the list of stored attestations. This means the oldest attestation is matched first.
         let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<Uuid>)> =
-            match_preview_and_stored_attestations(previews, stored, &TimeGenerator);
+            match_preview_and_stored_attestations(
+                previews,
+                stored,
+                &TimeGenerator,
+                is_pid.then(|| &config.pid_attributes),
+            );
 
         info!("successfully received token and previews from issuer");
         let organization = &issuance_session.issuer_registration().organization;
@@ -688,6 +694,7 @@ fn match_preview_and_stored_attestations<'a>(
     previews: &'a [NormalizedCredentialPreview],
     stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
+    pid_config: Option<&PidAttributesConfiguration>,
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
     let stored_credential_payloads: Vec<(PreviewableCredentialPayload, Uuid)> = stored_attestations
         .into_iter()
@@ -705,10 +712,19 @@ fn match_preview_and_stored_attestations<'a>(
             let identity = stored_credential_payloads
                 .iter()
                 .find(|(stored_preview, _)| {
-                    preview
-                        .content
-                        .credential_payload
-                        .matches_existing(stored_preview, time_generator)
+                    pid_config.map_or(
+                        // If this is not PID issuance, then match existing cards of the same attestation types.
+                        preview
+                            .content
+                            .credential_payload
+                            .matches_existing(stored_preview, time_generator),
+                        // If this is PID issuance, then match an existing PID if present.
+                        |pid_config| {
+                            let pid_types = pid_config.pid_attestation_types();
+                            pid_types.contains(&preview.content.credential_payload.attestation_type)
+                                && pid_types.contains(&stored_preview.attestation_type)
+                        },
+                    )
                 })
                 .map(|(_, id)| *id);
 
@@ -1717,7 +1733,7 @@ mod tests {
 
         // When the attestation already exists in the database, we expect the identity to be known
         let previews = [create_example_preview_data(&time_generator, Format::MsoMdoc)];
-        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator);
+        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![Some(attestation_id)], identities);
 
@@ -1726,7 +1742,7 @@ mod tests {
         let mut preview = create_example_preview_data(&time_generator, Format::MsoMdoc);
         preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
         let previews = [preview];
-        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator);
+        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![None], identities);
 
@@ -1734,7 +1750,7 @@ mod tests {
         let mut preview = create_example_preview_data(&time_generator, Format::MsoMdoc);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         let previews = [preview];
-        let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator);
+        let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator, None);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![None], identities);
     }

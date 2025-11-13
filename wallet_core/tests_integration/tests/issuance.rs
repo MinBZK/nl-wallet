@@ -52,6 +52,9 @@ async fn test_pid_ok() {
         .find(|a| a.key.iter().eq([PID_RECOVERY_CODE]));
 
     assert_eq!(recovery_code_result, None);
+
+    // After the wallet is enrolled and has a PID, the PID can be renewed.
+    do_pid_renewal(wallet, pin.to_owned()).await;
 }
 
 fn pid_without_optionals() -> IssuableDocument {

@@ -831,9 +831,21 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
     wallet
 }
 
-pub async fn do_pid_issuance(mut wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
+pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
+    do_pid_issuance_with_purpose(wallet, pin, PidIssuancePurpose::Enrollment).await
+}
+
+pub async fn do_pid_renewal(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
+    do_pid_issuance_with_purpose(wallet, pin, PidIssuancePurpose::Renewal).await
+}
+
+pub async fn do_pid_issuance_with_purpose(
+    mut wallet: WalletWithStorage,
+    pin: String,
+    purpose: PidIssuancePurpose,
+) -> WalletWithStorage {
     let redirect_url = wallet
-        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
+        .create_pid_issuance_auth_url(purpose)
         .await
         .expect("Could not create pid issuance auth url");
     let _attestations = wallet
