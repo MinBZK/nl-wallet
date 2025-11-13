@@ -14,32 +14,37 @@ class WalletTransferSourceConfirmPinPage extends StatelessWidget {
   /// Callback for when confirming pin fails with an unrecoverable error.
   final OnPinErrorCallback onPinConfirmationFailed;
 
-  @visibleForTesting
-  final PinBloc? bloc;
-
   const WalletTransferSourceConfirmPinPage({
     required this.onPinConfirmed,
     required this.onPinConfirmationFailed,
-    this.bloc,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<PinBloc>(
-      create: (BuildContext context) =>
-          bloc ?? context.read<PinBloc?>() ?? PinBloc(context.read<ConfirmWalletTransferUseCase>()),
-      child: PinPage(
-        headerBuilder: (context, attempts, isFinalRound) =>
-            PinHeader(title: context.l10n.walletTransferSourceConfirmPinPageTitle),
-        onPinValidated: onPinConfirmed,
-        onPinError: onPinConfirmationFailed,
-        onStateChanged: (context, state) {
-          if (state is PinValidateTimeout) context.read<CancelWalletTransferUseCase>().invoke();
-          if (state is PinValidateBlocked) context.read<CancelWalletTransferUseCase>().invoke();
-          return false;
-        },
-      ),
+    if (context.read<PinBloc?>() != null) {
+      // BLoC provided, simply build so PinPage so we do not manage lifecycle of the BLoC. (fixes PVW-5185)
+      return _buildPinPage();
+    } else {
+      // No BLoC provided, instantiate and manage internally.
+      return BlocProvider<PinBloc>(
+        create: (BuildContext context) => PinBloc(context.read<ConfirmWalletTransferUseCase>()),
+        child: _buildPinPage(),
+      );
+    }
+  }
+
+  Widget _buildPinPage() {
+    return PinPage(
+      headerBuilder: (context, attempts, isFinalRound) =>
+          PinHeader(title: context.l10n.walletTransferSourceConfirmPinPageTitle),
+      onPinValidated: onPinConfirmed,
+      onPinError: onPinConfirmationFailed,
+      onStateChanged: (context, state) {
+        if (state is PinValidateTimeout) context.read<CancelWalletTransferUseCase>().invoke();
+        if (state is PinValidateBlocked) context.read<CancelWalletTransferUseCase>().invoke();
+        return false;
+      },
     );
   }
 }
