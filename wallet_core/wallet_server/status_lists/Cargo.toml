@@ -31,7 +31,6 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true
-log.workspace = true
 nutype.workspace = true
 rand.workspace = true
 rstest.workspace = true
@@ -47,6 +46,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tracing.workspace = true
 uuid.workspace = true
 url.workspace = true
 

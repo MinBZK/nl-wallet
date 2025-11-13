@@ -106,7 +106,7 @@ impl PublishLock {
                 Ok(version) => version,
                 Err(err) => {
                     // Default to CREATE_VERSION if reading fails
-                    log::warn!("Could not read lock file `{}`: {}", path.display(), err);
+                    tracing::warn!("Could not read lock file `{}`: {}", path.display(), err);
                     Self::CREATE_VERSION
                 }
             };
@@ -127,7 +127,7 @@ impl PublishLock {
             _ = file
                 .rewind()
                 .and_then(|_| Self::write_version(&mut file, version))
-                .inspect_err(|err| log::warn!("Could not write lock file `{}`: {}", path.display(), err));
+                .inspect_err(|err| tracing::warn!("Could not write lock file `{}`: {}", path.display(), err));
         })
         .await
         .map_err(Into::into)?;

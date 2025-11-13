@@ -94,14 +94,14 @@ async fn serve_status_list(
         .header(header::ETAG, etag.to_string())
         .body(Body::from(bytes))
         .map_err(|err| {
-            log::warn!("could not read `{}`: {}", path.display(), err);
+            tracing::warn!("could not read `{}`: {}", path.display(), err);
             StatusCode::INTERNAL_SERVER_ERROR
         })
 }
 
 fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, StatusCode> {
     header.to_str().map_err(|err| {
-        log::info!("non-ascii header for {}: {}", name, err);
+        tracing::info!("non-ascii header for {}: {}", name, err);
         StatusCode::BAD_REQUEST
     })
 }
@@ -115,7 +115,7 @@ fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
     let header = ascii_header(header, "accept")?;
     for media_type in MediaTypeList::new(header) {
         let media_type = media_type.map_err(|err| {
-            log::info!("invalid accept header `{}`: {}", header, err);
+            tracing::info!("invalid accept header `{}`: {}", header, err);
             StatusCode::BAD_REQUEST
         })?;
         if media_type == ALL_MEDIA_TYPE || media_type == JWT_MEDIA_TYPE {
@@ -128,7 +128,7 @@ fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
 fn check_if_none_match(header: &HeaderValue, etag: &EntityTag) -> Result<bool, StatusCode> {
     let header = ascii_header(header, "if-none-match")?;
     let request_etag = header.parse::<EntityTag>().map_err(|err| {
-        log::info!("invalid if-none-match header `{}`: {}", header, err);
+        tracing::info!("invalid if-none-match header `{}`: {}", header, err);
         StatusCode::BAD_REQUEST
     })?;
     Ok(request_etag.weak_eq(etag))
@@ -138,7 +138,7 @@ fn map_io_error(path: &std::path::Path, err: &std::io::Error) -> StatusCode {
     if err.kind() == ErrorKind::NotFound {
         return StatusCode::NOT_FOUND;
     }
-    log::warn!("could not read `{}`: {}", path.display(), err);
+    tracing::warn!("could not read `{}`: {}", path.display(), err);
     StatusCode::INTERNAL_SERVER_ERROR
 }
 
