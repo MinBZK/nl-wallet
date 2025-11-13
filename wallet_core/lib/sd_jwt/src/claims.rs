@@ -12,6 +12,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
 use attestation_types::claim_path::ClaimPath;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use utils::vec_at_least::VecNonEmptyUnique;
 
 use crate::disclosure::Disclosure;
@@ -21,7 +22,7 @@ use crate::encoder::SdObjectEncoder;
 use crate::error::ClaimError;
 use crate::error::EncoderError;
 use crate::hasher::Hasher;
-use crate::sd_jwt::SelectiveDisclosability;
+use crate::sd_jwt::verify_disclosability;
 
 #[nutype(
     validate(predicate = |name| !["...", "_sd"].contains(&name)),
@@ -213,7 +214,7 @@ impl ObjectClaims {
         claim_path: &[ClaimPath],
         claim_path_index: usize,
         disclosures: &IndexMap<String, Disclosure>,
-        metadata: &HashMap<Vec<ClaimPath>, SelectiveDisclosability>,
+        metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
         claim: &str,
     ) -> Result<(), ClaimError> {
         let head = &claim_path[..=claim_path_index];
@@ -222,16 +223,16 @@ impl ObjectClaims {
 
         let should_be_disclosable = metadata
             .get(&head.to_vec())
-            .unwrap_or(&SelectiveDisclosability::Allowed);
+            .unwrap_or(&ClaimSelectiveDisclosureMetadata::Allowed);
 
         if let Some(claim_value) = self.get(&claim.parse()?) {
-            should_be_disclosable.verify_against_actual_disclosability(false, head)?;
+            verify_disclosability(should_be_disclosable, false, head)?;
             if has_next {
                 claim_value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, metadata)?;
             }
             Ok(())
         } else if let Some(digest) = self.find_disclosure_digest(claim, disclosures) {
-            should_be_disclosable.verify_against_actual_disclosability(true, head)?;
+            verify_disclosability(should_be_disclosable, true, head)?;
             // unwrap is safe, because `find_disclosure_digest` returned a result
             let disclosure = disclosures.get(digest).unwrap();
             let (_, _, claim_value) = disclosure.content.try_as_object_property(digest)?;
@@ -449,7 +450,7 @@ impl ClaimValue {
         claim_path: &[ClaimPath],
         claim_path_index: usize,
         disclosures: &IndexMap<String, Disclosure>,
-        metadata: &HashMap<Vec<ClaimPath>, SelectiveDisclosability>,
+        metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
     ) -> Result<(), ClaimError> {
         // Verify whether the index is valid
         if claim_path.len() <= claim_path_index {
@@ -546,7 +547,7 @@ impl ArrayClaim {
         claim_path: &[ClaimPath],
         claim_path_index: usize,
         disclosures: &IndexMap<String, Disclosure>,
-        metadata: &HashMap<Vec<ClaimPath>, SelectiveDisclosability>,
+        metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
     ) -> Result<(), ClaimError> {
         let head = &claim_path[..=claim_path_index];
 
@@ -554,11 +555,11 @@ impl ArrayClaim {
 
         let should_be_disclosable = metadata
             .get(&head.to_vec())
-            .unwrap_or(&SelectiveDisclosability::Allowed);
+            .unwrap_or(&ClaimSelectiveDisclosureMetadata::Allowed);
 
         match self {
             ArrayClaim::Hash { digest } => {
-                should_be_disclosable.verify_against_actual_disclosability(true, head)?;
+                verify_disclosability(should_be_disclosable, true, head)?;
                 let Some(disclosure) = disclosures.get(digest) else {
                     // This could be a decoy hash, so we cannot recurse any further.
                     return Ok(());
@@ -573,7 +574,7 @@ impl ArrayClaim {
                 Ok(())
             }
             ArrayClaim::Value(value) => {
-                should_be_disclosable.verify_against_actual_disclosability(false, head)?;
+                verify_disclosability(should_be_disclosable, false, head)?;
                 if has_next {
                     value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, metadata)?;
                 }

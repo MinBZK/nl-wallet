@@ -177,12 +177,12 @@ mod tests {
 
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
+    use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use crate::error::ClaimError;
     use crate::sd_jwt::SdJwtVcClaims;
-    use crate::sd_jwt::SelectiveDisclosability;
     use crate::test::conceal_and_sign;
     use crate::test::disclose_claims;
 
@@ -248,25 +248,25 @@ mod tests {
     }
 
     #[rstest]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Always, true)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Allowed, true)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Never, false)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], SelectiveDisclosability::Always, true)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, true)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], SelectiveDisclosability::Always, true)]
-    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Always, false)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Allowed, true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], SelectiveDisclosability::Never, true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], SelectiveDisclosability::Never, true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, true)] // ClaimError::SelectiveDisclosabilityMismatch
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], SelectiveDisclosability::Always, true)]
-    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectAll], SelectiveDisclosability::Always, false)]
-    #[case(double_concealed_array_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll, ClaimPath::SelectByKey("array_object_value".to_string())], SelectiveDisclosability::Always, false)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], ClaimSelectiveDisclosureMetadata::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], ClaimSelectiveDisclosureMetadata::Allowed, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], ClaimSelectiveDisclosureMetadata::Never, false)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], ClaimSelectiveDisclosureMetadata::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], ClaimSelectiveDisclosureMetadata::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], ClaimSelectiveDisclosureMetadata::Always, true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectAll], ClaimSelectiveDisclosureMetadata::Always, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], ClaimSelectiveDisclosureMetadata::Always, false)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], ClaimSelectiveDisclosureMetadata::Allowed, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], ClaimSelectiveDisclosureMetadata::Never, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], ClaimSelectiveDisclosureMetadata::Never, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], ClaimSelectiveDisclosureMetadata::Always, true)] // ClaimError::ClaimSelectiveDisclosureMetadataMismatch
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], ClaimSelectiveDisclosureMetadata::Always, true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectAll], ClaimSelectiveDisclosureMetadata::Always, false)]
+    #[case(double_concealed_array_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll, ClaimPath::SelectByKey("array_object_value".to_string())], ClaimSelectiveDisclosureMetadata::Always, false)]
     fn test_verify_selective_disclosability(
         #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
         #[case] path: Vec<ClaimPath>,
-        #[case] sd: SelectiveDisclosability,
+        #[case] sd: ClaimSelectiveDisclosureMetadata,
         #[case] should_succeed: bool,
     ) {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();

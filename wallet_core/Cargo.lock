@@ -5473,6 +5473,7 @@ dependencies = [
  "rand_core",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
  "serde_with",

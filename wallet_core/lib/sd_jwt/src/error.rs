@@ -8,6 +8,7 @@ use attestation_types::claim_path::ClaimPath;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 
 use crate::claims::ArrayClaim;
 use crate::claims::ClaimName;
@@ -16,7 +17,6 @@ use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
 use crate::claims::ObjectClaims;
 use crate::sd_alg::SdAlg;
-use crate::sd_jwt::SelectiveDisclosability;
 
 #[derive(Debug, thiserror::Error)]
 #[error("no hasher implemented for sd_alg: {0:?}")]
@@ -75,7 +75,7 @@ pub enum ClaimError {
     DisclosureNotFound(String, Vec<ClaimPath>),
 
     #[error("expected selective disclosability for claim `{0:?}` is `{1:?}`, but it was {2}")]
-    SelectiveDisclosabilityMismatch(Vec<ClaimPath>, SelectiveDisclosability, bool),
+    SelectiveDisclosabilityMismatch(Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata, bool),
 }
 
 #[derive(Debug, thiserror::Error)]
