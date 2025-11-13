@@ -195,7 +195,7 @@ impl From<DigidError> for IssuanceError {
 
 #[derive(Debug, Clone, Constructor)]
 pub struct WalletIssuanceSession<IS> {
-    is_pid: bool,
+    pid_purpose: Option<PidIssuancePurpose>, // None if we're not doing PID issuance
     preview_attestations: VecNonEmpty<AttestationPresentation>,
     protocol_state: IS,
 }
@@ -382,7 +382,7 @@ where
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Digid { session, .. }) = self.session.take() else {
+        let Some(Session::Digid { session, purpose }) = self.session.take() else {
             panic!()
         };
 
@@ -397,7 +397,7 @@ where
             token_request,
             config.pid_issuance.pid_issuer_url.clone(),
             &config.issuer_trust_anchors(),
-            true,
+            Some(purpose),
         )
         .await
     }
@@ -408,7 +408,7 @@ where
         token_request: TokenRequest,
         issuer_url: BaseUrl,
         issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
-        is_pid: bool,
+        pid_purpose: Option<PidIssuancePurpose>,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
@@ -429,7 +429,7 @@ where
             .collect();
 
         let config = self.config_repository.get();
-        if is_pid {
+        if pid_purpose.is_some() {
             self.compare_recovery_code_against_stored(
                 Self::pid_preview(previews, &config.pid_attributes)?,
                 &config.pid_attributes,
@@ -453,7 +453,7 @@ where
                 previews,
                 stored,
                 &TimeGenerator,
-                is_pid.then(|| &config.pid_attributes),
+                pid_purpose.is_some().then(|| &config.pid_attributes),
             );
 
         info!("successfully received token and previews from issuer");
@@ -481,7 +481,7 @@ where
         // returns at least one value, so this unwrap() is safe.
         let event_attestations = attestations.clone().try_into().unwrap();
         self.session.replace(Session::Issuance(WalletIssuanceSession::new(
-            is_pid,
+            pid_purpose,
             event_attestations,
             issuance_session,
         )));
@@ -542,7 +542,11 @@ where
 
         let issuance_result = issuance_session
             .protocol_state
-            .accept_issuance(&config.issuer_trust_anchors(), &remote_wscd, issuance_session.is_pid)
+            .accept_issuance(
+                &config.issuer_trust_anchors(),
+                &remote_wscd,
+                issuance_session.pid_purpose.is_some(),
+            )
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session.protocol_state));
 
@@ -566,10 +570,12 @@ where
             _ => unreachable!(),
         };
 
-        let transfer_session_id = if issuance_session.is_pid {
+        let transfer_session_id = if issuance_session.pid_purpose.is_some() {
             info!("This is a PID issuance session, therefore disclosing recovery code");
             self.disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
                 .await?
+                // If we're doing PID renwal as opposed to enrolling, we don't want to transfer.
+                .filter(|_| issuance_session.pid_purpose == Some(PidIssuancePurpose::Enrollment))
         } else {
             None
         };
@@ -875,7 +881,7 @@ mod tests {
 
         // Setup a mock OpenID4VCI session.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
         )));
@@ -946,7 +952,7 @@ mod tests {
             client
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
@@ -1276,7 +1282,7 @@ mod tests {
             client
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
@@ -1324,7 +1330,7 @@ mod tests {
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             attestations,
             pid_issuer,
         )));
@@ -1534,7 +1540,7 @@ mod tests {
             client
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
@@ -1627,7 +1633,7 @@ mod tests {
             client
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
@@ -1660,7 +1666,7 @@ mod tests {
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             attestations,
             pid_issuer,
         )));

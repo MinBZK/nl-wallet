@@ -153,7 +153,7 @@ where
                 token_request,
                 credential_offer.credential_issuer,
                 &config.issuer_trust_anchors(),
-                false,
+                None, // we're not doing PID issuance
             )
             .await?;
 
