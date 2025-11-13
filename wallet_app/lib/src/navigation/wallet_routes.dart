@@ -96,7 +96,6 @@ class WalletRoutes {
     introductionPrivacyRoute,
     privacyPolicyRoute,
     aboutRoute,
-    setupSecurityRoute,
     pinRoute,
     pinTimeoutRoute,
     pinRecoveryRoute,

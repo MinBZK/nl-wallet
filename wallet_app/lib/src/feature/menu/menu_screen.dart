@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -11,7 +9,6 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_constants.dart';
-import '../common/mixin/lock_state_mixin.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -21,10 +18,9 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
-import '../dashboard/dashboard_screen.dart';
 import 'bloc/menu_bloc.dart';
 
-class MenuScreen extends StatefulWidget {
+class MenuScreen extends StatelessWidget {
   final bool showDesignSystemRow;
 
   const MenuScreen({
@@ -32,11 +28,6 @@ class MenuScreen extends StatefulWidget {
     super.key,
   });
 
-  @override
-  State<MenuScreen> createState() => _MenuScreenState();
-}
-
-class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,7 +133,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
         onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
       ),
     ];
-    if (widget.showDesignSystemRow) {
+    if (showDesignSystemRow) {
       final designSystemItem = MenuItem(
         label: Text.rich(context.l10n.menuScreenDesignCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.design_services),
@@ -161,13 +152,4 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
     }
     return defaultMenuItems;
   }
-
-  @override
-  void onLock() {
-    /// PVW-3104: Pop the MenuScreen if it's visible while the app gets locked
-    if (ModalRoute.of(context)?.isCurrent ?? false) DashboardScreen.show(context);
-  }
-
-  @override
-  FutureOr<void> onUnlock() {}
 }

@@ -4,12 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import 'package:wallet/src/feature/common/widget/wallet_logo.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/pin_overlay.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
+import '../../test_util/golden_utils.dart';
 
 void main() {
   late IsWalletInitializedUseCase isWalletInitializedUseCase;
@@ -43,7 +45,7 @@ void main() {
     expect(titleFinder, findsOneWidget);
   });
 
-  testWidgets('verify PinOverlay hides child when status is locked & registered', (tester) async {
+  testWidgets('Child is still rendered below PinOverlay when app is locked', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       PinOverlay(
         bloc: PinBloc(Mocks.create()),
@@ -62,9 +64,49 @@ void main() {
 
     // Setup finders
     final titleFinder = find.text('child', findRichText: true);
+    final pinOverlayFinder = find.byType(PinOverlay);
 
-    // Verify the locked widget is NOT shown
-    expect(titleFinder, findsNothing);
+    // Verify title widget is in the tree (so potential state is kept)
+    expect(titleFinder, findsOneWidget);
+
+    // Verify the pinOverlay is rendered to block the UI below
+    expect(pinOverlayFinder, findsOneWidget);
+  });
+
+  testGoldens('PinOverlay obscures content when locked', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      PinOverlay(
+        bloc: PinBloc(Mocks.create()),
+        isLockedStream: Stream.value(true),
+        child: const Center(child: WalletLogo(size: 50)),
+      ),
+      providers: [
+        RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+        RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    await screenMatchesGolden('pin_overlay/locked');
+  });
+
+  testGoldens('PinOverlay should NOT obscure content when unlocked', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      PinOverlay(
+        bloc: PinBloc(Mocks.create()),
+        isLockedStream: Stream.value(false),
+        child: const Center(child: WalletLogo(size: 50)),
+      ),
+      providers: [
+        RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+        RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    await screenMatchesGolden('pin_overlay/unlocked');
   });
 
   testWidgets('verify PinOverlay shows child when status is locked & NOT registered', (tester) async {

@@ -11,7 +11,6 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/helper/dialog_helper.dart';
 import '../../wallet_assets.dart';
-import '../common/mixin/lock_state_mixin.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/sheet/error_details_sheet.dart';
@@ -40,7 +39,7 @@ class WalletTransferTargetScreen extends StatefulWidget {
 }
 
 class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
-    with AfterLayoutMixin<WalletTransferTargetScreen>, LockStateMixin {
+    with AfterLayoutMixin<WalletTransferTargetScreen> {
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) {
     final showTransferStoppedDialog = ModalRoute.of(context)?.settings.arguments == true;
@@ -247,17 +246,6 @@ class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
       );
     }
   }
-
-  @override
-  FutureOr<void> onLock() {
-    if (context.mounted && context.bloc.state is WalletTransferSuccess) {
-      Fimber.d('Locking app after completing transfer, navigating to dashboard while locking');
-      DashboardScreen.show(context); // PVW-5086
-    }
-  }
-
-  @override
-  FutureOr<void> onUnlock() {}
 }
 
 extension _WalletTransferTargetScreenExtension on BuildContext {

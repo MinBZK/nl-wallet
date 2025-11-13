@@ -20,27 +20,30 @@ class PinScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: const Key('pinScreen'),
-      appBar: const WalletAppBar(
-        automaticallyImplyLeading: false,
-        actions: [InfoIconButton()],
-        fadeInTitleOnScroll: false,
-      ),
-      body: FutureBuilder<bool>(
-        future: context.read<IsBiometricLoginEnabledUseCase>().invoke(),
-        initialData: false,
-        builder: (context, snapshot) {
-          final showBiometricUnlock = snapshot.data ?? false;
-          return AutoBiometricUnlockTrigger(
-            onTriggerBiometricUnlock: _performBiometricUnlock,
-            child: PinPage(
-              onPinValidated: (_) => onUnlock,
-              showTopDivider: true,
-              onBiometricUnlockRequested: showBiometricUnlock ? () => _performBiometricUnlock(context) : null,
-            ),
-          );
-        },
+    return PrimaryScrollController(
+      controller: ScrollController(),
+      child: Scaffold(
+        key: const Key('pinScreen'),
+        appBar: const WalletAppBar(
+          automaticallyImplyLeading: false,
+          actions: [InfoIconButton()],
+          fadeInTitleOnScroll: false,
+        ),
+        body: FutureBuilder<bool>(
+          future: context.read<IsBiometricLoginEnabledUseCase>().invoke(),
+          initialData: false,
+          builder: (context, snapshot) {
+            final showBiometricUnlock = snapshot.data ?? false;
+            return AutoBiometricUnlockTrigger(
+              onTriggerBiometricUnlock: _performBiometricUnlock,
+              child: PinPage(
+                onPinValidated: (_) => onUnlock,
+                showTopDivider: true,
+                onBiometricUnlockRequested: showBiometricUnlock ? () => _performBiometricUnlock(context) : null,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
