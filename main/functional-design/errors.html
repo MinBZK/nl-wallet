@@ -234,8 +234,9 @@
 <p>A session between the app and a verifying or issuing organization has expired. Likely to occur when the organization sets very limited time constraints, or users get distracted in the process.</p>
 <p><strong>Possible causes:</strong></p>
 <ul class="simple">
-<li><p>User session timed out due to inactivity.</p></li>
-<li><p>Token expired.</p></li>
+<li><p>User did not respond fast enough (before session timed out).</p></li>
+<li><p>Session timeout too strict.</p></li>
+<li><p>Technical issue with Verifier or Issuer.</p></li>
 </ul>
 <p><strong>Possible resolutions:</strong></p>
 <ol class="arabic simple">
