@@ -33,7 +33,7 @@ class IntroductionTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC13 Introduction Happy flow")
-    @Tags(Tag("smokeIOS"), Tag("smoke"))
+    @Tags(Tag("smokeIOS"), Tag("smoke"), Tag("a11yBatch1"))
     fun verifyWelcomeScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
