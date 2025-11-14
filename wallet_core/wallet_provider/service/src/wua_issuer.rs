@@ -62,7 +62,7 @@ where
         let pubkey = *wrapped_privkey.public_key();
 
         // TODO add `status_claim` to WuaClaims (PVW-4574)
-        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims::new(exp))
+        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims { exp })
             .await?
             .into();
 
@@ -110,7 +110,7 @@ pub mod mock {
                 pubkey,
                 &privkey, // Sign the WUA with its own private key in this test
                 "iss".to_string(),
-                WuaClaims::new(exp),
+                WuaClaims { exp },
             )
             .await
             .unwrap()

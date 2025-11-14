@@ -171,7 +171,9 @@ impl IssuanceWscd for MockRemoteWscd {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                WuaClaims::new(Utc::now() + Duration::from_secs(600)),
+                WuaClaims {
+                    exp: Utc::now() + Duration::from_secs(600),
+                },
             )
             .now_or_never()
             .unwrap()

@@ -18,7 +18,7 @@ use crate::error::JwtError;
 use crate::jwk::jwk_to_p256;
 use crate::pop::JwtPopClaims;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WuaClaims {
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
