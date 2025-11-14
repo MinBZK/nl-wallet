@@ -24,7 +24,7 @@ use tower_http::compression::CompressionLayer;
 
 use crate::publish::PublishDir;
 
-const STATUSLIST_ALL_MEDIA_TYPE: MediaType = MediaType::new(Name::new_unchecked("*"), Name::new_unchecked("*"));
+const ALL_MEDIA_TYPE: MediaType = MediaType::new(Name::new_unchecked("*"), Name::new_unchecked("*"));
 const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::from_parts(
     Name::new_unchecked("application"),
     Name::new_unchecked("statuslist"),
@@ -121,7 +121,7 @@ fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
         })?;
     if content_types
         .into_iter()
-        .any(|media_type| media_type == STATUSLIST_ALL_MEDIA_TYPE || media_type == STATUSLIST_JWT_MEDIA_TYPE)
+        .any(|media_type| media_type == ALL_MEDIA_TYPE || media_type == STATUSLIST_JWT_MEDIA_TYPE)
     {
         return Ok(());
     }
