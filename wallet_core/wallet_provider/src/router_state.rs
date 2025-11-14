@@ -170,7 +170,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 repositories,
                 wallet_user_hsm,
                 wua_issuer,
-                wua_validity: Days::new(settings.wua_valid_days * 24 * 60 * 60),
+                wua_validity: Days::new(settings.wua_valid_days),
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
                 pid_issuer_trust_anchors: settings
                     .pid_issuer_trust_anchors
