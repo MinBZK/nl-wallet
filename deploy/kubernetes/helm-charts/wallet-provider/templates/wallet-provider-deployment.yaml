@@ -55,26 +55,11 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
 
-            - name: WALLET_PROVIDER__DATABASE__NAME
+            - name: WALLET_PROVIDER__DATABASE__URL
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.database.secretName }}
-                  key: database
-            - name: WALLET_PROVIDER__DATABASE__HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: host
-            - name: WALLET_PROVIDER__DATABASE__USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: username
-            - name: WALLET_PROVIDER__DATABASE__PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: password
+                  key: url
             - name: WALLET_PROVIDER__HSM__USER_PIN
               valueFrom:
                 secretKeyRef:
@@ -108,12 +93,15 @@ spec:
             - name: WALLET_PROVIDER__HSM__MAX_SESSION_LIFETIME_IN_SEC
               value: {{ .Values.hsm.maxSessionLifeTimeInSec | quote }}
 
-
             - name: WALLET_PROVIDER__PID_ISSUER_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: issuer_trust_anchors
+
+            - name: WALLET_PROVIDER__STATUS_LISTS__PUBLISH_DIR
+              value: "/status-lists"
+
             - name: WALLET_PROVIDER__STRUCTURED_LOGGING
               value: "true"
             - name: WALLET_PROVIDER__CAPTURE_AND_REDIRECT_LOGGING
@@ -131,9 +119,11 @@ spec:
             - name: gcloud-service-account
               mountPath: /google-cloud-service-account.json
               subPath: {{ .Values.android.serviceAccount.secretKey }}
-            - name: wallet-provider-config
+            - name: settings
               mountPath: /home/nonroot/wallet_provider.toml
               subPath: wallet_provider.toml
+            - name: status-lists
+              mountPath: /status-lists
 
       initContainers:
         - name: {{ include "common.names.fullname" . }}-log
@@ -160,6 +150,9 @@ spec:
         - name: gcloud-service-account
           secret:
             secretName: {{ .Values.android.serviceAccount.secretName }}
-        - name: wallet-provider-config
+        - name: settings
           configMap:
             name: {{ include "common.names.fullname" . }}
+        - name: status-lists
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}
