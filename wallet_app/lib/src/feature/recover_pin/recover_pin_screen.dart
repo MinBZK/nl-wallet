@@ -10,7 +10,6 @@ import '../../data/service/navigation_service.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/model/result/application_error.dart';
-import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/list_extension.dart';
@@ -119,7 +118,7 @@ class RecoverPinScreen extends StatelessWidget {
       RecoverPinChooseNewPin() => false,
       RecoverPinConfirmNewPin() => false,
       RecoverPinUpdatingPin() => false,
-      RecoverPinSuccess() => true,
+      RecoverPinSuccess() => false,
       RecoverPinSelectPinFailed() => true,
       RecoverPinConfirmPinFailed() => true,
       RecoverPinDigidFailure() => true,
@@ -193,10 +192,10 @@ class RecoverPinScreen extends StatelessWidget {
             );
           case RecoverPinAwaitingDigidAuthentication():
             page = GenericLoadingPage(
-              contextImage: const SvgOrImage(asset: WalletAssets.logo_wallet, height: 64, width: 64),
-              title: c.l10n.recoverPinGenericLoadingTitle,
-              description: c.l10n.recoverPinAwaitingDigidAuthenticationDescription,
+              title: c.l10n.recoverPinContinueWithDigiDTitle,
+              description: c.l10n.recoverPinContinueWithDigiDDescription,
               cancelCta: c.l10n.generalStop,
+              loadingIndicator: const SizedBox.shrink(),
               onCancel: () => _stopRecoverPin(c),
             );
           case RecoverPinVerifyingDigidAuthentication():
@@ -259,12 +258,13 @@ class RecoverPinScreen extends StatelessWidget {
               illustration: const PageIllustration(asset: WalletAssets.svg_pin_set),
               primaryButtonCta: c.l10n.recoverPinSuccessPageToOverviewCta,
               onPrimaryPressed: () => Navigator.of(c).resetToDashboard(),
-              secondaryButtonCta: c.l10n.recoverPinSuccessPageToHistoryCta,
+              // Re-introduce secondary button in PVW-5058 (also see PVW-5141)
+              /* secondaryButtonCta: c.l10n.recoverPinSuccessPageToHistoryCta,
               onSecondaryButtonPressed: () {
                 Navigator.of(c)
                   ..resetToDashboard()
                   ..pushNamed(WalletRoutes.walletHistoryRoute);
-              },
+              }, */
             );
           case RecoverPinSelectPinFailed():
             page = const CenteredLoadingIndicator();
@@ -331,15 +331,18 @@ class RecoverPinScreen extends StatelessWidget {
   /// sure the correct stop action (dialog/sheet/pop) will be executed.
   Future<void> _stopRecoverPin(BuildContext context) async {
     final state = context.bloc.state;
-    if (state is ErrorState) {
-      Navigator.pop(context);
-    } else if (state is RecoverPinAwaitingDigidAuthentication) {
-      // This is a special case, for which we show the stop dialog
-      unawaited(_showStopDigidLoginDialog(context));
-    } else {
-      // Confirm with user through the stop sheet
-      final stoppedByUser = await RecoverPinStopSheet.show(context);
-      if (stoppedByUser && context.mounted) context.bloc.add(const RecoverPinStopPressed());
+    switch (state) {
+      case ErrorState():
+        Navigator.pop(context);
+      case RecoverPinSuccess():
+        unawaited(Navigator.of(context).resetToDashboard());
+      case RecoverPinAwaitingDigidAuthentication():
+        // This is a special case, for which we show the stop dialog
+        unawaited(_showStopDigidLoginDialog(context));
+      default:
+        // Confirm with user through the stop sheet
+        final stoppedByUser = await RecoverPinStopSheet.show(context);
+        if (stoppedByUser && context.mounted) context.bloc.add(const RecoverPinStopPressed());
     }
   }
 

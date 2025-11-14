@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
-import '../../../common/mixin/lock_state_mixin.dart';
 import '../../../common/screen/placeholder_screen.dart';
 import '../../../common/widget/bullet_list.dart';
 import '../../../common/widget/button/bottom_back_button.dart';
@@ -16,16 +13,10 @@ import '../../../common/widget/text/headline_small_text.dart';
 import '../../../common/widget/text/title_text.dart';
 import '../../../common/widget/wallet_app_bar.dart';
 import '../../../common/widget/wallet_scrollbar.dart';
-import '../../../dashboard/dashboard_screen.dart';
 
-class ContactScreen extends StatefulWidget {
+class ContactScreen extends StatelessWidget {
   const ContactScreen({super.key});
 
-  @override
-  State<ContactScreen> createState() => _ContactScreenState();
-}
-
-class _ContactScreenState extends State<ContactScreen> with LockStateMixin<ContactScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,13 +78,4 @@ class _ContactScreenState extends State<ContactScreen> with LockStateMixin<Conta
       ],
     );
   }
-
-  @override
-  FutureOr<void> onLock() {
-    /// PVW-3104: Pop the MenuScreen if it's visible while the app gets locked
-    if (ModalRoute.of(context)?.isCurrent ?? false) DashboardScreen.show(context);
-  }
-
-  @override
-  FutureOr<void> onUnlock() {}
 }

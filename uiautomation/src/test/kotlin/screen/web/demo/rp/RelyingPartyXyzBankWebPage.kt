@@ -10,9 +10,7 @@ class RelyingPartyXyzBankWebPage : MobileActions() {
     val body = DemoBody()
     val popup = DemoPopup()
 
-    private val accountCreatedTextLocator = By.xpath("//span[text()='Identificatie gelukt']")
-
-    fun identificationSucceededMessageVisible() = isWebElementVisible(findWebElement(accountCreatedTextLocator))
+    fun sharedAttributeVisible(attributeValue: String) = isWebElementVisible(findWebElement(By.xpath("//dd[normalize-space(text())='$attributeValue']")))
 
     fun openSameDeviceWalletFlow() {
         body.clickStartButton()

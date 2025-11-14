@@ -10,6 +10,15 @@ import helper.GbaDataHelper.Field.STREET
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.assertAll
+import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.error.NoInternetErrorScreen
 import screen.issuance.PersonalizeAuthenticatingWithDigidScreen
@@ -21,13 +30,6 @@ import screen.issuance.TransferWalletScreen
 import screen.security.PinScreen
 import screen.web.digid.DigidLoginMockWebPage
 import screen.web.digid.DigidLoginStartWebPage
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.TestMethodOrder
-import org.junit.jupiter.api.assertAll
-import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 3.1 Obtain PID")
@@ -62,6 +64,7 @@ class PidIssuanceTests : TestBase() {
         dashboardScreen = DashboardScreen()
         noInternetErrorScreen = NoInternetErrorScreen()
         transferWalletScreen = TransferWalletScreen()
+        digidLoginStartWebPage = DigidLoginStartWebPage()
 
         gbaData = GbaDataHelper()
     }
@@ -75,7 +78,6 @@ class PidIssuanceTests : TestBase() {
 
         personalizeInformScreen.clickDigidLoginButton()
 
-        val digidLoginStartWebPage = DigidLoginStartWebPage()
         digidLoginStartWebPage.switchToWebViewContext()
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
 
@@ -128,6 +130,7 @@ class PidIssuanceTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC3 Authentication with auth server fails")
+    @Tags(Tag("a11yBatch1"))
     fun verifySessionCanceledScreen(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()

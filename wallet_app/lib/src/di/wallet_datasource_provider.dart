@@ -14,9 +14,8 @@ import '../wallet_core/typed/typed_wallet_core.dart';
 
 class WalletDataSourceProvider extends StatelessWidget {
   final Widget child;
-  final bool provideMocks;
 
-  const WalletDataSourceProvider({required this.child, this.provideMocks = false, super.key});
+  const WalletDataSourceProvider({required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {

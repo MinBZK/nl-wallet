@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.issuance.PersonalizeInformScreen
+import screen.issuance.PersonalizePidPreviewScreen
 import screen.menu.MenuScreen
 import screen.security.InactivityLockWarningNotification
 import screen.security.PinScreen
@@ -24,7 +24,7 @@ class UserLocksWalletTests : TestBase() {
 
     private lateinit var menuScreen: MenuScreen
     private lateinit var pinScreen: PinScreen
-    private lateinit var personalizeInformScreen: PersonalizeInformScreen
+    private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
     private lateinit var inactivityLockWarningNotification: InactivityLockWarningNotification
 
     fun setUp(testInfo: TestInfo) {
@@ -32,7 +32,7 @@ class UserLocksWalletTests : TestBase() {
 
         menuScreen = MenuScreen()
         pinScreen = PinScreen()
-        personalizeInformScreen = PersonalizeInformScreen()
+        personalizePidPreviewScreen = PersonalizePidPreviewScreen()
         inactivityLockWarningNotification = InactivityLockWarningNotification()
     }
 
@@ -60,15 +60,16 @@ class UserLocksWalletTests : TestBase() {
     fun verifyAppLocksAfterBackground(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
-        personalizeInformScreen.putAppInBackground(122)
+        personalizePidPreviewScreen.putAppInBackground(122)
         pinScreen.switchToNativeContext()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
         pinScreen.enterPin(DEFAULT_PIN)
-        assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
+        assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC72 User confirms logout on inactivity prompt, LTC73 User dismisses inactivity prompt")
+    @Tags(Tag("a11yBatch2"))
     fun verifyWarningNotificationBeforeLock(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
@@ -76,6 +77,7 @@ class UserLocksWalletTests : TestBase() {
         inactivityLockWarningNotification.switchToNativeContext()
         assertTrue(inactivityLockWarningNotification.visible())
         assertTrue(inactivityLockWarningNotification.confirmButtonVisible())
+
         inactivityLockWarningNotification.clickConfirmButton()
         assertTrue(!inactivityLockWarningNotification.visible(), "inactivity warning notification is visible")
         Thread.sleep(102000)

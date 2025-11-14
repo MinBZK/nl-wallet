@@ -6,17 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' as mock;
 
 import 'environment.dart';
 import 'src/di/wallet_dependency_provider.dart';
+import 'src/domain/usecase/biometrics/impl/get_available_biometrics_usecase_impl.dart';
 import 'src/feature/common/widget/flutter_app_configuration_provider.dart';
 import 'src/feature/common/widget/privacy_cover.dart';
 import 'src/feature/lock/auto_lock_observer.dart';
 import 'src/feature/root/root_checker.dart';
 import 'src/feature/update/update_checker.dart';
+import 'src/util/helper/onboarding_helper.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
 import 'src/wallet_error_handler.dart';
@@ -65,13 +68,20 @@ FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
   return event;
 }
 
-//ignore: avoid_void_async
-void mainImpl() async {
+FutureOr<void> mainImpl() async {
   // Debug specific setup
   if (kDebugMode) {
     Fimber.plantTree(DebugTree());
     Bloc.observer = WalletAppBlocObserver();
   }
+
+  // Make sure nr. of onboarding steps is readily available
+  await OnboardingHelper.init(
+    GetAvailableBiometricsUseCaseImpl(
+      LocalAuthentication(),
+      Platform.isAndroid ? TargetPlatform.android : TargetPlatform.iOS,
+    ),
+  );
 
   runApp(
     RootChecker(

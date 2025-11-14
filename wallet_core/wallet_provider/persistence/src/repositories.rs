@@ -305,6 +305,7 @@ impl WalletUserRepository for Repositories {
             wallet_user::reset_wallet_user_state(transaction, wallet_user_id).await?;
         }
         wallet_user::reset_wallet_user_state(transaction, destination_wallet_user_id).await?;
+        wallet_transfer::set_wallet_transfer_data(transaction, transfer_session_id, None).await?;
         wallet_transfer::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Created).await
     }
 

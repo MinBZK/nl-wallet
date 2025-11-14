@@ -113,6 +113,19 @@ impl PinPolicyEvaluator for PinPolicy {
     }
 }
 
+pub struct PinRecoveryPinPolicy;
+
+impl PinPolicyEvaluator for PinRecoveryPinPolicy {
+    fn evaluate(
+        &self,
+        _attempts: u8,
+        _last_failed_pin: Option<DateTime<Utc>>,
+        _current_datetime: DateTime<Utc>,
+    ) -> PinPolicyEvaluation {
+        PinPolicyEvaluation::InPinRecovery
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::path::PathBuf;
 
 use chrono::DateTime;
 use derive_more::From;
@@ -13,10 +14,12 @@ use sea_orm::DatabaseTransaction;
 use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::IntoActiveModel;
+use sea_orm::JoinType;
 use sea_orm::NotSet;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
+use sea_orm::RelationTrait;
 use sea_orm::SelectColumns;
 use sea_orm::Set;
 use sea_orm::TransactionTrait;
@@ -31,23 +34,34 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
-use http_utils::urls::BaseUrl;
+use crypto::EcdsaKey;
+use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
+use jwt::UnverifiedJwt;
+use jwt::error::JwtError;
+use jwt::headers::HeaderWithTyp;
+use jwt::headers::HeaderWithX5c;
+use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
+use token_status_list::status_list::StatusList;
+use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListService;
+use token_status_list::status_list_token::StatusListClaims;
+use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
-use utils::ints::NonZeroU31;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 
+use crate::config::StatusListConfig;
+use crate::config::StatusListConfigs;
 use crate::entity::attestation_batch;
+use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
-use crate::settings::StatusListsSettings;
+use crate::publish::PublishLockError;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
 const STATUS_LIST_EXTERNAL_ID_SIZE: usize = 12;
@@ -59,7 +73,7 @@ const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
 ///
 /// See [PostgresStatusListService] for more.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListServices(HashMap<String, PostgresStatusListService>);
+pub struct PostgresStatusListServices<K: EcdsaKey + Clone>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -78,17 +92,18 @@ pub struct PostgresStatusListServices(HashMap<String, PostgresStatusListService>
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListService {
+pub struct PostgresStatusListService<K: EcdsaKey + Clone> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
-
-    list_size: NonZeroU31,
-    create_threshold: NonZeroU31,
+    config: StatusListConfig<K>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListServiceError {
+    #[error("attestation batch not found: {0}")]
+    AttestationBatchNotFound(Uuid),
+
     #[error("base url error: {0}")]
     BaseUrl(#[from] BaseUrlError),
 
@@ -98,11 +113,26 @@ pub enum StatusListServiceError {
     #[error("could not randomize indices: {0}")]
     Indices(#[from] JoinError),
 
-    #[error("could not serialize / deserialize: {0}")]
-    Serde(#[from] serde_json::Error),
+    #[error("invalid publish dir: {0}")]
+    InvalidPublishDir(PathBuf),
+
+    #[error("io error: {0}")]
+    IO(#[from] std::io::Error),
+
+    #[error("io error for `{0}`: {1}")]
+    IOWithPath(PathBuf, #[source] std::io::Error),
+
+    #[error("could write JWT: {0}")]
+    JWT(#[from] JwtError),
 
     #[error("no status list available and could not create one")]
     NoStatusListAvailable(),
+
+    #[error("could not lock for publish: {0}")]
+    PublishLock(#[from] PublishLockError),
+
+    #[error("could not serialize / deserialize: {0}")]
+    Serde(#[from] serde_json::Error),
 
     #[error("too many claims requested: {0}")]
     TooManyClaimsRequested(usize),
@@ -118,14 +148,16 @@ pub struct StatusListLocation {
     pub index: u32,
 }
 
-impl StatusListService for PostgresStatusListServices {
+impl<K> StatusListService for PostgresStatusListServices<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
     type Error = StatusListServiceError;
 
     async fn obtain_status_claims(
         &self,
         attestation_type: &str,
         batch_id: Uuid,
-        base_url: BaseUrl,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error> {
@@ -142,67 +174,76 @@ impl StatusListService for PostgresStatusListServices {
                 attestation_type.to_string(),
             ))?;
 
-        service.obtain_status_claims(batch_id, base_url, expires, copies).await
+        service.obtain_status_claims(batch_id, expires, copies).await
     }
 }
 
-impl PostgresStatusListServices {
+impl PostgresStatusListServices<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
-        settings: StatusListsSettings,
-        attestation_types: &[String],
+        configs: StatusListConfigs<PrivateKeyVariant>,
     ) -> Result<Self, StatusListServiceError> {
-        let services = initialize_attestation_type_ids(&connection, attestation_types)
-            .await?
+        let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
+        let services = configs
             .into_iter()
-            .map(|(attestation_type, attestation_type_id)| {
+            .map(|(attestation_type, config)| {
+                let attestation_type_id = *attestation_type_ids
+                    .get(&attestation_type)
+                    .expect("attestation_type_ids should have entry for initialized types");
                 let service = PostgresStatusListService {
                     connection: connection.clone(),
                     attestation_type_id,
-                    list_size: settings.list_size,
-                    create_threshold: settings.create_threshold,
+                    config,
                 };
                 (attestation_type, service)
             })
             .collect();
         Ok(PostgresStatusListServices(services))
     }
+}
 
+impl<K> PostgresStatusListServices<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
     }
 }
 
-impl PostgresStatusListService {
+impl PostgresStatusListService<PrivateKeyVariant> {
     pub async fn try_new(
         connection: DatabaseConnection,
-        settings: StatusListsSettings,
-        attestation_type: String,
+        attestation_type: &str,
+        config: StatusListConfig<PrivateKeyVariant>,
     ) -> Result<Self, StatusListServiceError> {
-        let attestation_types = vec_nonempty![attestation_type];
-        let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types.as_ref()).await?;
+        let attestation_types = vec![attestation_type];
+        let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types).await?;
 
-        // `initialize_attestation_type_ids` guarantees the requested types exist
         let attestation_type_id = *attestation_type_ids
-            .get(attestation_types.first())
+            .get(attestation_type)
             .expect("attestation_type_ids should have entry for initialized types");
+
         Ok(Self {
             connection,
             attestation_type_id,
-            list_size: settings.list_size,
-            create_threshold: settings.create_threshold,
+            config,
         })
     }
+}
 
+impl<K> PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
     pub async fn obtain_status_claims(
         &self,
         batch_id: Uuid,
-        base_url: BaseUrl,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<VecNonEmpty<StatusClaim>, StatusListServiceError> {
-        self.obtain_status_claims_and_scheduled_tasks(batch_id, base_url, expires, copies)
+        self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
             .await
             .map(|(claims, _)| claims)
     }
@@ -210,7 +251,6 @@ impl PostgresStatusListService {
     pub async fn obtain_status_claims_and_scheduled_tasks(
         &self,
         batch_id: Uuid,
-        base_url: BaseUrl,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<(VecNonEmpty<StatusClaim>, Vec<JoinHandle<()>>), StatusListServiceError> {
@@ -218,7 +258,7 @@ impl PostgresStatusListService {
 
         // If issuer requests more copies than the size of a complete status list,
         // this is a configuration issue.
-        if copies > self.list_size.into_inner() as usize {
+        if copies > self.config.list_size.as_usize() {
             return Err(StatusListServiceError::TooManyClaimsRequested(copies));
         }
 
@@ -231,15 +271,10 @@ impl PostgresStatusListService {
             &tx,
             batch_id,
             expires.map(|d| DateTime::from(d).date_naive()),
-            lists_with_items
-                .iter()
-                .flat_map(|(list, items)| {
-                    items.iter().map(|item| StatusListLocation {
-                        list_id: list.id,
-                        index: item.index as u32,
-                    })
-                })
-                .collect(),
+            lists_with_items.iter().map(|(list, items)| {
+                let indices = items.iter().map(|item| item.index).collect();
+                (list.id, indices)
+            }),
         )
         .await?;
         tx.commit().await?;
@@ -251,7 +286,7 @@ impl PostgresStatusListService {
         let claims = lists_with_items
             .into_iter()
             .flat_map(|(list, items)| {
-                let url = base_url.join(&list.external_id);
+                let url = self.config.base_url.join(&list.external_id);
                 items.into_iter().map(move |item| {
                     StatusClaim::StatusList(StatusListClaim {
                         idx: item.index as u32,
@@ -290,9 +325,9 @@ impl PostgresStatusListService {
 
             if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
                 log::warn!(
-                    "Creating status list in flight, increase threshold to at least {}",
-                    copies
-                );
+                    "Creating status list in flight for attestation type ID {}, increase create_threshold or list_size",
+                    self.attestation_type_id,
+                )
             } else if tries == 0 {
                 return Err(StatusListServiceError::NoStatusListAvailable());
             }
@@ -300,7 +335,10 @@ impl PostgresStatusListService {
 
             let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or_default();
             if !self.create_status_list(next_sequence_no, true).await? {
-                log::warn!("Failed to create status list in flight");
+                log::warn!(
+                    "Failed to create status list in flight for attestation type ID {}",
+                    self.attestation_type_id,
+                );
             }
         }
     }
@@ -321,14 +359,13 @@ impl PostgresStatusListService {
             .filter(status_list_item::Column::SequenceNo.gte(start_sequence_no))
             .order_by_asc(status_list_item::Column::SequenceNo)
             .limit(num_copies)
-            .into_model::<status_list_item::Model>()
             .all(tx)
             .await?;
         if items.len() != num_copies as usize {
             panic!(
                 "Insufficient number of items in status list: fetched: {}, requested: {}",
                 items.len(),
-                num_copies
+                num_copies,
             );
         }
 
@@ -369,16 +406,24 @@ impl PostgresStatusListService {
         tx: &DatabaseTransaction,
         batch_id: Uuid,
         expiration_date: Option<NaiveDate>,
-        locations: Vec<StatusListLocation>,
+        list_indices: impl Iterator<Item = (i64, Vec<i32>)>,
     ) -> Result<(), StatusListServiceError> {
         let model = attestation_batch::ActiveModel {
             id: NotSet,
             batch_id: Set(batch_id),
             expiration_date: Set(expiration_date),
             is_revoked: Set(false),
-            status_list_locations: Set(serde_json::to_value(locations)?),
         };
-        attestation_batch::Entity::insert(model).exec(tx).await?;
+        let attestation_batch_id = attestation_batch::Entity::insert(model).exec(tx).await?.last_insert_id;
+
+        let models = list_indices.map(|(list_id, indices)| attestation_batch_list_indices::ActiveModel {
+            attestation_batch_id: Set(attestation_batch_id),
+            status_list_id: Set(list_id),
+            indices: Set(indices),
+        });
+        attestation_batch_list_indices::Entity::insert_many(models)
+            .exec(tx)
+            .await?;
 
         Ok(())
     }
@@ -412,12 +457,13 @@ impl PostgresStatusListService {
         }
 
         // Create new list
-        let list_size = self.list_size.into_inner();
+        let external_id = crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE);
+        let list_size = self.config.list_size.into_inner();
         let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
         let list = status_list::ActiveModel {
             id: NotSet,
             attestation_type_id: Set(self.attestation_type_id),
-            external_id: Set(crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE)),
+            external_id: Set(external_id.clone()),
             available: Set(list_size),
             size: Set(list_size),
             next_sequence_no: Set(new_next_sequence_no),
@@ -435,6 +481,10 @@ impl PostgresStatusListService {
             TryInsertResult::Inserted(inserted) => inserted.last_insert_id,
             _ => return Ok(false),
         };
+
+        // Publish status list
+        let service = self.clone();
+        let publish = tokio::spawn(async move { service.publish_new_status_list(&external_id).await });
 
         // Create new list items
         let indices = tokio::task::spawn_blocking(move || {
@@ -464,18 +514,21 @@ impl PostgresStatusListService {
         // Update next sequence no of attestation type
         assert_eq!(
             next_sequence_no, new_next_sequence_no as usize,
-            "Inserted items did not match calculated sequence number"
+            "Inserted items did not match calculated sequence number",
         );
         let mut attestation_type = attestation_type.into_active_model();
         attestation_type.next_sequence_no = Set(new_next_sequence_no);
         attestation_type::Entity::update(attestation_type).exec(&tx).await?;
+
+        // Wait for publish to complete before committing
+        publish.await??;
 
         tx.commit().await?;
         Ok(true)
     }
 
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
-        log::info!("Initializing status lists");
+        log::info!("Initializing status lists for ID: {}", self.attestation_type_id);
 
         // Fetch all lists that still have list items in the database
         let lists = status_list::Entity::find()
@@ -489,7 +542,6 @@ impl PostgresStatusListService {
                         .to_owned(),
                 ),
             )
-            .into_model::<status_list::Model>()
             .all(&self.connection)
             .await?;
 
@@ -504,7 +556,7 @@ impl PostgresStatusListService {
                 .unwrap_or_else(|| panic!("Missing attestation type for ID {}", self.attestation_type_id));
 
             log::info!(
-                "Schedule creation of status list items for {}",
+                "Schedule creation of status list items for list ID {}",
                 self.attestation_type_id
             );
             let service = self.clone();
@@ -522,16 +574,16 @@ impl PostgresStatusListService {
         let mut tasks = Vec::new();
         for list in lists {
             if list.available == 0 {
-                log::info!("Schedule deletion of status list items for ID {}", list.id);
+                log::info!("Schedule deletion of status list items for list ID {}", list.id);
 
                 let connection = self.connection.clone();
                 let list_id = list.id;
                 tasks.push(tokio::spawn(Self::delete_status_list_items(connection, list_id)));
             }
-            if list.available <= self.create_threshold.into_inner() {
+            if list.available <= self.config.create_threshold.into_inner() {
                 log::info!(
                     "Schedule creation of status list items for attestation type ID {}",
-                    list.attestation_type_id
+                    list.attestation_type_id,
                 );
 
                 let service = self.clone();
@@ -552,9 +604,13 @@ impl PostgresStatusListService {
         match self.create_status_list(next_sequence_no, false).await {
             Ok(created) if created => log::info!(
                 "Created status list for attestation type ID {}",
-                self.attestation_type_id
+                self.attestation_type_id,
             ),
-            Err(err) => log::warn!("Failed to create status list: {}", err),
+            Err(err) => log::warn!(
+                "Failed to create status list for attestation type ID {}: {}",
+                self.attestation_type_id,
+                err,
+            ),
             _ => {}
         };
     }
@@ -569,16 +625,132 @@ impl PostgresStatusListService {
             log::warn!("Failed to delete status list items of {}: {}", id, err);
         }
     }
+
+    async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
+        // Build empty status list
+        let sub = self.config.base_url.join(external_id);
+        let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
+            StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
+                .ttl(self.config.ttl)
+                .sign(&self.config.key_pair)
+                .await?
+                .into();
+
+        // Write to disk
+        let publish_lock = self.config.publish_dir.lock_for(external_id);
+        let jwt_path = self.config.publish_dir.jwt_path(external_id);
+        tokio::task::spawn_blocking(move || {
+            // create because a new status list external id can be reused if the transaction fails
+            publish_lock.create()?;
+            std::fs::write(&jwt_path, jwt.serialization().as_bytes())
+                .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
+        })
+        .await?
+    }
+
+    async fn publish_status_list(&self, list_id: i64, external_id: &str) -> Result<bool, StatusListServiceError> {
+        // Fetch all revoked attestation for this status list
+        let result: Vec<Vec<i32>> = attestation_batch_list_indices::Entity::find()
+            .join(
+                JoinType::InnerJoin,
+                attestation_batch_list_indices::Relation::AttestationBatch.def(),
+            )
+            .select_only()
+            .select_column(attestation_batch_list_indices::Column::Indices)
+            .filter(attestation_batch_list_indices::Column::StatusListId.eq(list_id))
+            .filter(attestation_batch::Column::IsRevoked.eq(true))
+            .into_tuple()
+            .all(&self.connection)
+            .await?;
+
+        // We can use the number of revocations as version because revocations
+        // are irreversible and the database will always return committed rows,
+        // so no interleaving can happen.
+        let version = result.len();
+        self.config
+            .publish_dir
+            .lock_for(external_id)
+            .with_lock_if_newer(version, async || {
+                // Build packed status list
+                let sub = self.config.base_url.join(external_id);
+                let mut status_list = StatusList::new(self.config.list_size.as_usize());
+                let builder = tokio::task::spawn_blocking(move || {
+                    for indices in result {
+                        for index in indices {
+                            status_list.insert(index as usize, StatusType::Invalid);
+                        }
+                    }
+                    StatusListToken::builder(sub, status_list.pack())
+                })
+                .await?;
+
+                // Sign
+                let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
+                    builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?.into();
+
+                // Write to a tempfile and atomically move via rename
+                let jwt_path = self.config.publish_dir.jwt_path(external_id);
+                let tmp_path = self.config.publish_dir.tmp_path(external_id);
+                tokio::task::spawn_blocking(move || {
+                    std::fs::write(&tmp_path, jwt.serialization())
+                        .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
+                    std::fs::rename(&tmp_path, &jwt_path)
+                        .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
+                })
+                .await??;
+
+                Ok(())
+            })
+            .await
+    }
+
+    pub async fn revoke_attestation_batch(&self, batch_id: Uuid) -> Result<(), StatusListServiceError> {
+        // Find batch by batch_id
+        let batch = attestation_batch::Entity::find()
+            .filter(attestation_batch::Column::BatchId.eq(batch_id))
+            .one(&self.connection)
+            .await?
+            .ok_or_else(|| StatusListServiceError::AttestationBatchNotFound(batch_id))?;
+
+        // Update revocation
+        let attestation_batch_id = batch.id;
+        let mut update = batch.into_active_model();
+        update.is_revoked = Set(true);
+        attestation_batch::Entity::update(update).exec(&self.connection).await?;
+
+        // Find status list and external id for all related status lists
+        let list_and_external_ids: Vec<(i64, String)> = attestation_batch_list_indices::Entity::find()
+            .join(
+                JoinType::InnerJoin,
+                attestation_batch_list_indices::Relation::StatusList.def(),
+            )
+            .select_only()
+            .select_column(status_list::Column::Id)
+            .select_column(status_list::Column::ExternalId)
+            .filter(attestation_batch_list_indices::Column::AttestationBatchId.eq(attestation_batch_id))
+            .into_tuple()
+            .all(&self.connection)
+            .await?;
+
+        // Publish new status list
+        try_join_all(list_and_external_ids.into_iter()
+            .map(|(list_id, external_id)| {
+                async move { self.publish_status_list(list_id, external_id.as_str()).await }
+            })
+        ).await?;
+
+        Ok(())
+    }
 }
 
 async fn initialize_attestation_type_ids(
     connection: &DatabaseConnection,
-    attestation_types: &[String],
+    attestation_types: Vec<&str>,
 ) -> Result<HashMap<String, i16>, DbErr> {
-    let map = fetch_attestation_type_ids(connection, attestation_types).await?;
+    let map = fetch_attestation_type_ids(connection, attestation_types.iter().copied()).await?;
     let insert = attestation_types
         .iter()
-        .filter_map(|attestation_type| match map.get(attestation_type) {
+        .filter_map(|attestation_type| match map.get(*attestation_type) {
             None => Some(attestation_type::ActiveModel {
                 id: NotSet,
                 name: Set(attestation_type.to_string()),
@@ -599,12 +771,6 @@ async fn initialize_attestation_type_ids(
         TryInsertResult::Empty => Ok(map),
         _ => {
             let map = fetch_attestation_type_ids(connection, attestation_types).await?;
-            if !attestation_types
-                .iter()
-                .all(|attestation_type| map.contains_key(attestation_type))
-            {
-                panic!("Missing attestation types from database, even after inserting");
-            }
             Ok(map)
         }
     }
@@ -612,7 +778,7 @@ async fn initialize_attestation_type_ids(
 
 async fn fetch_attestation_type_ids(
     connection: &DatabaseConnection,
-    attestation_types: impl IntoIterator<Item = &String>,
+    attestation_types: impl IntoIterator<Item = &str>,
 ) -> Result<HashMap<String, i16>, DbErr> {
     attestation_type::Entity::find()
         .filter(attestation_type::Column::Name.is_in(attestation_types))
@@ -630,14 +796,27 @@ async fn fetch_attestation_type_ids(
 mod tests {
     use assert_matches::assert_matches;
 
+    use crypto::server_keys::generate::Ca;
+
+    use crate::publish::PublishDir;
+
     use super::*;
 
-    fn mock_service() -> PostgresStatusListService {
+    fn mock_service() -> PostgresStatusListService<impl EcdsaKeySend + Clone> {
         PostgresStatusListService {
             connection: DatabaseConnection::default(),
             attestation_type_id: 1,
-            list_size: 1.try_into().unwrap(),
-            create_threshold: 1.try_into().unwrap(),
+            config: StatusListConfig {
+                list_size: 1.try_into().unwrap(),
+                create_threshold: 1.try_into().unwrap(),
+                ttl: None,
+                base_url: "https://example.com/tsl".parse().unwrap(),
+                publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
+                key_pair: Ca::generate_issuer_mock_ca()
+                    .unwrap()
+                    .generate_status_list_mock()
+                    .unwrap(),
+            },
         }
     }
 
@@ -646,9 +825,8 @@ mod tests {
         let service = PostgresStatusListServices([("pid".to_string(), mock_service())].into());
 
         let batch_id = Uuid::new_v4();
-        let base_url: BaseUrl = "https://example.com/tsl".parse().unwrap();
         let result = service
-            .obtain_status_claims("invalid", batch_id, base_url, None, 1.try_into().unwrap())
+            .obtain_status_claims("invalid", batch_id, None, 1.try_into().unwrap())
             .await;
         assert_matches!(result, Err(StatusListServiceError::UnknownAttestationType(attestation_type)) if attestation_type == "invalid");
     }
@@ -658,9 +836,8 @@ mod tests {
         let service = mock_service();
 
         let batch_id = Uuid::new_v4();
-        let base_url: BaseUrl = "https://example.com/tsl".parse().unwrap();
         let result = service
-            .obtain_status_claims_and_scheduled_tasks(batch_id, base_url, None, 3.try_into().unwrap())
+            .obtain_status_claims_and_scheduled_tasks(batch_id, None, 3.try_into().unwrap())
             .await;
         assert_matches!(result, Err(StatusListServiceError::TooManyClaimsRequested(size)) if size == 3);
     }

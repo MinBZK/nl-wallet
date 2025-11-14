@@ -6,6 +6,8 @@ import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.assertAll
@@ -58,6 +60,7 @@ class UserEntersPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.")
+    @Tags(Tag("a11yBatch2"))
     fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
         setUp(testInfo)
         try {
@@ -68,6 +71,7 @@ class UserEntersPinTests : TestBase() {
                 { assertTrue(noInternetErrorScreen.descriptionVisible(), "Description is not visible") },
                 { assertTrue(noInternetErrorScreen.tryAgainButtonVisible(), "Try again button is not visible") }
             )
+
             noInternetErrorScreen.seeDetails()
             assertAll(
                 { assertTrue(noInternetErrorScreen.appVersionLabelVisible(), "App version is not visible") },

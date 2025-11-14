@@ -51,6 +51,15 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_loading.light');
     });
+    testGoldens('WalletTransferCancelling', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
+          MockWalletTransferSourceBloc(),
+          const WalletTransferCancelling(),
+        ),
+      );
+      await screenMatchesGolden('wallet_transfer_cancelling.light');
+    });
     testGoldens('WalletTransferIntroduction', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(

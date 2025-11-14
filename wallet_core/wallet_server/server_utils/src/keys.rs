@@ -17,6 +17,7 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 use crate::settings::PrivateKey;
 use crate::settings::SecretKey;
 
+#[derive(Debug, Clone)]
 pub enum PrivateKeyVariant {
     Software(SigningKey),
     Hsm(HsmEcdsaKey),

@@ -56,6 +56,10 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
           data: flutterApiError.data,
           organizationName: localizedStrings.takeIf((it) => it.isNotEmpty),
         );
+      case FlutterApiErrorType.wrongDigid:
+        return CoreWrongDigidError(flutterApiError.description);
+      case FlutterApiErrorType.deniedDigid:
+        return CoreDeniedDigidError(flutterApiError.description);
     }
   }
 

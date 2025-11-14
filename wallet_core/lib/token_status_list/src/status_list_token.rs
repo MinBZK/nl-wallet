@@ -1,43 +1,38 @@
 use std::time::Duration;
 
-#[cfg(feature = "axum")]
-use axum::http::header::CONTENT_TYPE;
-#[cfg(feature = "axum")]
-use axum::response::IntoResponse;
-#[cfg(feature = "axum")]
-use axum::response::Response;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
 use derive_more::FromStr;
+use derive_more::Into;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
 use serde_with::serde_as;
+use url::Url;
 
 use crypto::EcdsaKey;
-use http_utils::urls::HttpsUri;
+use crypto::server_keys::KeyPair;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithX5c;
 
 use crate::status_list::PackedStatusList;
 
-static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
-#[cfg(feature = "axum")]
-static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
+pub static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
 
 /// A Status List Token embeds a Status List into a token that is cryptographically signed and protects the integrity of
 /// the Status List.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
-#[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
-pub struct StatusListToken(UnverifiedJwt<StatusListClaims>);
+#[derive(Debug, Clone, FromStr, Into, Serialize, Deserialize)]
+pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithX5c>);
 
 impl StatusListToken {
-    pub fn builder(sub: HttpsUri, status_list: PackedStatusList) -> StatusListTokenBuilder {
+    pub fn builder(sub: Url, status_list: PackedStatusList) -> StatusListTokenBuilder {
         StatusListTokenBuilder {
             exp: None,
             sub,
@@ -49,23 +44,23 @@ impl StatusListToken {
 
 pub struct StatusListTokenBuilder {
     exp: Option<DateTime<Utc>>,
-    sub: HttpsUri,
+    sub: Url,
     ttl: Option<Duration>,
     status_list: PackedStatusList,
 }
 
 impl StatusListTokenBuilder {
-    pub fn exp(mut self, exp: DateTime<Utc>) -> Self {
-        self.exp = Some(exp);
+    pub fn exp(mut self, exp: Option<DateTime<Utc>>) -> Self {
+        self.exp = exp;
         self
     }
 
-    pub fn ttl(mut self, ttl: Duration) -> Self {
-        self.ttl = Some(ttl);
+    pub fn ttl(mut self, ttl: Option<Duration>) -> Self {
+        self.ttl = ttl;
         self
     }
 
-    pub async fn sign(self, key: &impl EcdsaKey) -> Result<StatusListToken, JwtError> {
+    pub async fn sign(self, keypair: &KeyPair<impl EcdsaKey>) -> Result<StatusListToken, JwtError> {
         let claims = StatusListClaims {
             iat: Utc::now(),
             exp: self.exp,
@@ -74,15 +69,8 @@ impl StatusListTokenBuilder {
             status_list: self.status_list,
         };
 
-        let jwt = SignedJwt::sign(&claims, key).await?;
-        Ok(StatusListToken(jwt.into()))
-    }
-}
-
-#[cfg(feature = "axum")]
-impl IntoResponse for StatusListToken {
-    fn into_response(self) -> Response {
-        ([(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER)], self.0.to_string()).into_response()
+        let jwt = SignedJwt::sign_with_certificate(&claims, keypair).await?;
+        Ok(StatusListToken(jwt.into_unverified()))
     }
 }
 
@@ -91,46 +79,132 @@ impl IntoResponse for StatusListToken {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StatusListClaims {
     #[serde(with = "ts_seconds")]
-    iat: DateTime<Utc>,
+    pub iat: DateTime<Utc>,
 
     #[serde(with = "ts_seconds_option")]
-    exp: Option<DateTime<Utc>>,
+    pub exp: Option<DateTime<Utc>>,
 
     /// The sub (subject) claim MUST specify the URI of the Status List Token. The value MUST be equal to that of the
     /// `uri` claim contained in the `status_list` claim of the Referenced Token
-    sub: HttpsUri,
+    pub sub: Url,
 
     /// If present, MUST specify the maximum amount of time, in seconds, that the Status List Token can be cached by a
     /// consumer before a fresh copy SHOULD be retrieved.
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
-    ttl: Option<Duration>,
+    pub ttl: Option<Duration>,
 
-    status_list: PackedStatusList,
+    pub status_list: PackedStatusList,
 }
 
 impl JwtTyp for StatusListClaims {
     const TYP: &'static str = TOKEN_STATUS_LIST_JWT_TYP;
 }
 
-#[cfg(test)]
-mod test {
-    use p256::ecdsa::SigningKey;
-    use p256::elliptic_curve::rand_core::OsRng;
+#[cfg(feature = "verification")]
+pub mod verification {
+    use std::ops::Add;
+
+    use chrono::DateTime;
+    use chrono::Duration;
+    use chrono::Utc;
+    use rustls_pki_types::TrustAnchor;
+    use url::Url;
+
+    use crypto::x509::BorrowingCertificate;
+    use crypto::x509::CertificateError;
+    use crypto::x509::CertificateUsage;
+    use jwt::DEFAULT_VALIDATIONS;
+    use jwt::error::JwtX5cError;
+    use utils::generator::Generator;
+
+    use crate::status_list::PackedStatusList;
+    use crate::status_list_token::StatusListToken;
+
+    const EXP_LEEWAY: Duration = Duration::seconds(60);
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum StatusListTokenVerificationError {
+        #[error("JWT verification failed: {0}")]
+        JwtVerification(#[from] JwtX5cError),
+
+        #[error("JWT is expired")]
+        Expired,
+
+        #[error("JWT subject claim does not match uri claim of Reference Token")]
+        UnexpectedSubject,
+
+        #[error("DN is missing in certificate")]
+        MissingDN(#[source] CertificateError),
+
+        #[error("DN from SLT is different than from attestation")]
+        DifferentDN,
+    }
+
+    impl StatusListToken {
+        pub fn parse_and_verify(
+            &self,
+            issuer_trust_anchors: &[TrustAnchor],
+            attestation_signing_certificate: &BorrowingCertificate,
+            url: &Url,
+            time: &impl Generator<DateTime<Utc>>,
+        ) -> Result<PackedStatusList, StatusListTokenVerificationError> {
+            let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
+                issuer_trust_anchors,
+                time,
+                CertificateUsage::OAuthStatusSigning,
+                &DEFAULT_VALIDATIONS,
+            )?;
+
+            if header
+                .x5c
+                .first()
+                .distinguished_name()
+                .map_err(StatusListTokenVerificationError::MissingDN)?
+                != attestation_signing_certificate
+                    .distinguished_name()
+                    .map_err(StatusListTokenVerificationError::MissingDN)?
+            {
+                return Err(StatusListTokenVerificationError::DifferentDN);
+            }
+
+            if *url != claims.sub {
+                return Err(StatusListTokenVerificationError::UnexpectedSubject);
+            }
+
+            if claims.exp.is_some_and(|exp| exp.add(EXP_LEEWAY) < time.generate()) {
+                return Err(StatusListTokenVerificationError::Expired);
+            }
+
+            Ok(claims.status_list)
+        }
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use base64::Engine;
+    use base64::prelude::BASE64_STANDARD;
     use serde_json::json;
 
-    use jwt::DEFAULT_VALIDATIONS;
+    use crypto::server_keys::KeyPair;
     use jwt::headers::HeaderWithTyp;
+    use jwt::headers::HeaderWithX5c;
 
-    use super::*;
+    use crate::status_list_token::StatusListClaims;
+    use crate::status_list_token::StatusListToken;
+    use crate::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 
-    #[tokio::test]
-    async fn test_status_list_token() {
+    pub async fn create_status_list_token(
+        keypair: &KeyPair,
+        exp: i64,
+    ) -> (HeaderWithX5c<HeaderWithTyp>, StatusListClaims, StatusListToken) {
         let example_header = json!({
             "alg": "ES256",
-            "typ": "statuslist+jwt"
+            "typ": "statuslist+jwt",
+            "x5c": vec![BASE64_STANDARD.encode(keypair.certificate().to_vec())],
         });
         let example_payload = json!({
-            "exp": 2291720170_i64,
+            "exp": exp,
             "iat": 1686920170,
             "status_list": {
                 "bits": 1,
@@ -140,22 +214,52 @@ mod test {
             "ttl": 43200
         });
 
-        let expected_header: HeaderWithTyp = serde_json::from_value(example_header).unwrap();
-        assert!(expected_header.typ == TOKEN_STATUS_LIST_JWT_TYP);
+        let expected_header: HeaderWithX5c<HeaderWithTyp> = serde_json::from_value(example_header).unwrap();
+        assert_eq!(expected_header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
 
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
-        let key = SigningKey::random(&mut OsRng);
-        let signed = StatusListToken::builder(expected_claims.sub.clone(), expected_claims.status_list.clone())
-            .exp(expected_claims.exp.unwrap())
-            .ttl(expected_claims.ttl.unwrap())
-            .sign(&key)
-            .await
-            .unwrap();
+        let status_list_token =
+            StatusListToken::builder(expected_claims.sub.clone(), expected_claims.status_list.clone())
+                .exp(expected_claims.exp)
+                .ttl(expected_claims.ttl)
+                .sign(keypair)
+                .await
+                .unwrap();
+
+        (expected_header, expected_claims, status_list_token)
+    }
+}
+
+#[cfg(all(test, feature = "verification"))]
+mod test {
+    use std::ops::Add;
+
+    use assert_matches::assert_matches;
+    use chrono::Days;
+
+    use crypto::server_keys::generate::Ca;
+    use jwt::DEFAULT_VALIDATIONS;
+    use jwt::error::JwtX5cError;
+    use utils::generator::mock::MockTimeGenerator;
+
+    use crate::status_list_token::mock::create_status_list_token;
+    use crate::status_list_token::verification::StatusListTokenVerificationError;
+
+    use super::*;
+
+    const SLT_EXP: i64 = 2291720170;
+
+    #[tokio::test]
+    async fn test_status_list_token() {
+        let ca = Ca::generate("test", Default::default()).unwrap();
+        let keypair = ca.generate_status_list_mock().unwrap();
+
+        let (expected_header, expected_claims, signed) = create_status_list_token(&keypair, SLT_EXP).await;
 
         let verified = signed
             .0
-            .into_verified(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .into_verified(&keypair.private_key().verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
         assert_eq!(*verified.header(), expected_header);
         // the `iat` claim is set when signing the token
@@ -165,60 +269,54 @@ mod test {
         assert_eq!(verified.payload().exp, expected_claims.exp);
     }
 
-    #[cfg(feature = "axum")]
-    async fn start_mock_server() -> http_utils::urls::BaseUrl {
-        use axum::Router;
-        use axum::routing::get;
-        use tokio::net::TcpListener;
-
-        use http_utils::urls::BaseUrl;
-        use tests_integration::common::wait_for_server;
-
-        use crate::status_list::test::EXAMPLE_STATUS_LIST_ONE;
-
-        let listener = TcpListener::bind("localhost:0").await.unwrap();
-        let port = listener.local_addr().unwrap().port();
-
-        let token_status_list = StatusListToken::builder(
-            "https://example.com/statuslists/1".parse().unwrap(),
-            EXAMPLE_STATUS_LIST_ONE.to_owned().pack(),
-        )
-        .exp(Utc::now() + Duration::from_secs(3600))
-        .ttl(Duration::from_secs(43200))
-        .sign(&SigningKey::random(&mut OsRng))
-        .await
-        .unwrap();
-
-        let app = Router::new()
-            .route("/", get(move || async { token_status_list }))
-            .into_make_service();
-
-        tokio::spawn(async move {
-            axum::serve(listener, app).await.unwrap();
-        });
-
-        let url: BaseUrl = format!("http://localhost:{port}/").as_str().parse().unwrap();
-        wait_for_server(url.clone(), std::iter::empty()).await;
-        url
-    }
-
     #[tokio::test]
-    #[cfg(feature = "axum")]
-    async fn test_token_status_list_into_response() {
-        let url = start_mock_server().await;
+    async fn test_status_list_token_verification() {
+        let ca = Ca::generate("test", Default::default()).unwrap();
+        let keypair = ca.generate_status_list_mock().unwrap();
+        let iss_keypair = ca.generate_issuer_mock().unwrap();
 
-        let response = reqwest::Client::new()
-            .get(url.into_inner())
-            .send()
-            .await
-            .expect("Failed to send request");
+        let (_, expected_claims, signed) = create_status_list_token(&keypair, SLT_EXP).await;
 
-        assert_eq!(
-            response.headers().get("Content-Type").unwrap(),
-            TOKEN_STATUS_LIST_JWT_HEADER
+        let err = signed
+            .parse_and_verify(
+                &[],
+                iss_keypair.certificate(),
+                &expected_claims.sub,
+                &MockTimeGenerator::default(),
+            )
+            .expect_err("should not verify for empty trust anchors");
+        assert_matches!(
+            err,
+            StatusListTokenVerificationError::JwtVerification(JwtX5cError::CertificateValidation(_))
         );
-        let status_list_token: StatusListToken = response.text().await.unwrap().parse().unwrap();
-        let (_, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
-        assert!(!payload.status_list.is_empty());
+
+        let err = signed
+            .parse_and_verify(
+                &[ca.to_trust_anchor()],
+                ca.generate_pid_issuer_mock().unwrap().certificate(),
+                &expected_claims.sub,
+                &MockTimeGenerator::default(),
+            )
+            .expect_err("should not verify for attestation signing certificate with different DN");
+        assert_matches!(err, StatusListTokenVerificationError::DifferentDN);
+
+        let err = signed
+            .parse_and_verify(
+                &[ca.to_trust_anchor()],
+                iss_keypair.certificate(),
+                &expected_claims.sub,
+                &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
+            )
+            .expect_err("should not verify when jwt is expired");
+        assert_matches!(err, StatusListTokenVerificationError::Expired);
+
+        signed
+            .parse_and_verify(
+                &[ca.to_trust_anchor()],
+                iss_keypair.certificate(),
+                &expected_claims.sub,
+                &MockTimeGenerator::default(),
+            )
+            .unwrap();
     }
 }

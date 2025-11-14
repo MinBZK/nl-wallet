@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fimber/fimber.dart';
 import 'package:wallet_core/core.dart';
 
@@ -16,40 +18,40 @@ abstract class WalletUseCase {
   Future<Result<T>> tryCatch<T>(Future<T> Function() future, String errorDescription) async {
     try {
       return Result.success(await future());
-    } on ApplicationError catch (ex) {
-      Fimber.e(errorDescription, ex: ex);
-      return Result.error(ex);
-    } on CoreError catch (ex) {
-      Fimber.e(errorDescription, ex: ex);
-      return Result.error(await ex.asApplicationError());
-    } on WalletInstructionError catch (ex) {
-      Fimber.e(errorDescription, ex: ex);
-      final checkPinResult = ex.asCheckPinResult();
-      return Result.error(CheckPinError(checkPinResult, sourceError: ex));
     } catch (ex) {
       Fimber.e(errorDescription, ex: ex);
-      return Result.error(GenericError(ex.toString(), sourceError: ex));
+      return Result.error(await exceptionToApplicationError(ex));
     }
+  }
+
+  static Future<ApplicationError> exceptionToApplicationError(Object ex) async {
+    if (ex is ApplicationError) {
+      return ex;
+    } else if (ex is CoreError) {
+      return ex.asApplicationError();
+    } else if (ex is WalletInstructionError) {
+      final checkPinResult = ex.asCheckPinResult();
+      return CheckPinError(checkPinResult, sourceError: ex);
+    } else if (ex is StateError) {
+      Fimber.e('StateErrors indicate programming errors and should not be handled gracefully', ex: ex);
+      exit(1);
+    }
+    return GenericError(ex.toString(), sourceError: ex);
   }
 }
 
 extension WalletUseCaseStreamExtension<T> on Stream<T> {
   /// Helper method for Stream exposing usecases. This method makes sure any errors exposed by
   /// the source stream are converted into [ApplicationError]s.
+  /// Note: do not use for streams that might emit after the listener has cancelled the subscription.
   Stream<T> handleAppError(String errorMessage) async* {
     try {
       await for (final value in this) {
         yield value;
       }
-    } on ApplicationError catch (ex) {
-      Fimber.e(errorMessage, ex: ex);
-      rethrow;
-    } on CoreError catch (ex) {
-      Fimber.e(errorMessage, ex: ex);
-      throw await ex.asApplicationError();
     } catch (ex) {
       Fimber.e(errorMessage, ex: ex);
-      throw GenericError(ex.toString(), sourceError: ex);
+      throw (await WalletUseCase.exceptionToApplicationError(ex));
     }
   }
 }

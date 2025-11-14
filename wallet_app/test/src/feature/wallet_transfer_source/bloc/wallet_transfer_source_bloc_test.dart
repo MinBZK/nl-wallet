@@ -133,7 +133,7 @@ void main() {
     build: createBloc,
     setUp: () => when(mockCancelWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) => bloc.add(const WalletTransferStopRequestedEvent()),
-    expect: () => [isA<WalletTransferStopped>()],
+    expect: () => [isA<WalletTransferCancelling>(), isA<WalletTransferStopped>()],
     verify: (_) => verify(mockCancelWalletTransferUseCase.invoke()).called(1),
   );
 
@@ -233,6 +233,33 @@ void main() {
       isA<WalletTransferTransferring>(),
       isA<WalletTransferNetworkError>(),
     ],
+  );
+
+  blocTest(
+    'verify that bloc ends up in stopped state when _startWalletTransferUseCase throws an error after being cancelled',
+    build: createBloc,
+    setUp: () {
+      when(mockPairWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(
+        mockObserveTransferSessionStateUseCase.invoke(),
+      ).thenAnswer((_) => Stream.value(TransferSessionState.cancelled));
+    },
+    act: (bloc) {
+      // Arrange _startWalletTransferUseCase to throw an error
+      when(mockStartWalletTransferUseCase.invoke()).thenAnswer(
+        (_) async => const Result.error(GenericError('test_error', sourceError: 'test')),
+      );
+      // Simulate the PinConfirmed, which moves state to [WalletTransferTransferring] and calls _startWalletTransferUseCase
+      bloc.add(const WalletTransferPinConfirmedEvent());
+    },
+    expect: () => [
+      isA<WalletTransferTransferring>(),
+      isA<WalletTransferStopped>(),
+    ],
+    verify: (bloc) {
+      // Verify transfer session state is queried
+      verify(mockObserveTransferSessionStateUseCase.invoke()).called(1);
+    },
   );
 
   blocTest(

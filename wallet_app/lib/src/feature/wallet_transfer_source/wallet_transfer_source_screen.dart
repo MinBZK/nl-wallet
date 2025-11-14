@@ -63,6 +63,10 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
                 description: context.l10n.walletTransferScreenLoadingDescription,
                 onCancel: () => _showStopSheet(context),
               ),
+              WalletTransferCancelling() => GenericLoadingPage(
+                title: context.l10n.walletTransferScreenCancellingTitle,
+                description: context.l10n.walletTransferScreenCancellingDescription,
+              ),
               WalletTransferIntroduction() => TerminalPage(
                 title: context.l10n.walletTransferSourceScreenIntroductionTitle,
                 description: context.l10n.walletTransferSourceScreenIntroductionDescription,
@@ -161,6 +165,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
       case WalletTransferConfirmPin():
         return CloseIconButton(onPressed: () => _showStopSheet(context));
       case WalletTransferTransferring():
+      case WalletTransferCancelling():
       case WalletTransferSuccess():
       case WalletTransferStopped():
       case WalletTransferGenericError():
@@ -208,6 +213,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
         return true;
       case WalletTransferIntroduction():
       case WalletTransferLoading():
+      case WalletTransferCancelling():
       case WalletTransferConfirmPin():
       case WalletTransferTransferring():
       case WalletTransferSuccess():
@@ -248,6 +254,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
             : TitleText(context.l10n.errorScreenNoInternetHeadline),
       WalletTransferSessionExpired() => TitleText(context.l10n.errorScreenSessionExpiredHeadline),
       WalletTransferFailed() => TitleText(context.l10n.walletTransferScreenFailedTitle),
+      WalletTransferCancelling() => const SizedBox.shrink(),
     };
   }
 }

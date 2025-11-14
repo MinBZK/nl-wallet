@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use chrono::Days;
 use derive_more::AsRef;
 use derive_more::From;
+use derive_more::IntoIterator;
 use futures::future::join_all;
 use indexmap::IndexMap;
 use rustls_pki_types::TrustAnchor;
@@ -17,7 +18,6 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
-use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use openid4vc::Format;
 use openid4vc::issuer::AttestationTypeConfig;
@@ -30,6 +30,7 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
+use status_lists::settings::StatusListAttestationSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 
@@ -53,8 +54,8 @@ pub struct IssuerSettings {
     pub server_settings: Settings,
 }
 
-#[derive(Clone, Deserialize, From, AsRef)]
-pub struct AttestationTypesConfigSettings(HashMap<String, AttestationTypeConfigSettings>);
+#[derive(Clone, Deserialize, From, IntoIterator, AsRef)]
+pub struct AttestationTypesConfigSettings(#[into_iterator(owned, ref)] HashMap<String, AttestationTypeConfigSettings>);
 
 #[derive(Clone, Deserialize)]
 pub struct AttestationTypeConfigSettings {
@@ -64,7 +65,7 @@ pub struct AttestationTypeConfigSettings {
     pub valid_days: u64,
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
 
-    pub status_list: StatusListSettings,
+    pub status_list: StatusListAttestationSettings,
 
     #[serde(default)]
     pub attestation_qualification: AttestationQualification,
@@ -72,14 +73,6 @@ pub struct AttestationTypeConfigSettings {
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct StatusListSettings {
-    pub base_url: BaseUrl,
-
-    #[serde(flatten)]
-    pub keypair: KeyPair,
 }
 
 fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<TypeMetadataByVct, D::Error>
@@ -146,7 +139,6 @@ impl AttestationTypesConfigSettings {
                     Days::new(attestation.valid_days),
                     attestation.copies_per_format,
                     issuer_uri,
-                    attestation.status_list.base_url,
                     attestation.attestation_qualification,
                     metadata_documents,
                 )?;
@@ -276,9 +268,10 @@ mod tests {
     use server_utils::settings::Server;
     use server_utils::settings::Settings;
     use server_utils::settings::Storage;
+    use status_lists::publish::PublishDir;
+    use status_lists::settings::StatusListAttestationSettings;
 
     use crate::settings::IssuerSettingsError;
-    use crate::settings::StatusListSettings;
 
     use super::AttestationTypeConfigSettings;
     use super::IssuerSettings;
@@ -299,9 +292,10 @@ mod tests {
                     keypair,
                     valid_days: 365,
                     copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
-                    status_list: StatusListSettings {
+                    status_list: StatusListAttestationSettings {
                         base_url: "https://cdn.example.com/tsl".parse().unwrap(),
                         keypair: status_list_keypair,
+                        publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                     },
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
@@ -374,9 +368,10 @@ mod tests {
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
-                status_list: StatusListSettings {
+                status_list: StatusListAttestationSettings {
                     base_url: "https://cdn.example.com/tsl".parse().unwrap(),
                     keypair: status_list_keypair,
+                    publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 },
                 attestation_qualification: Default::default(),
                 certificate_san: None,

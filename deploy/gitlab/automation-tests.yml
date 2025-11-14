@@ -32,6 +32,7 @@ scheduled-automation-tests-trigger:
     - set -euxo pipefail
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
+    ENABLE_BROWSERSTACK_A11Y_CHECKS: false
 
 .run-automation-tests-common-setup:
   resource_group: automation-tests
@@ -118,6 +119,152 @@ run-automation-english-tests:
     - compgen -G "build/test-results/testEnglish/*.xml"
   rules:
     - !reference [.on-schedule-automation, rules]
+
+run-automation-a11y-batch1-tests:
+  extends: .run-automation-tests-common-setup
+  script:
+    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - ./gradlew --no-daemon --info --stacktrace testA11yBatch1
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8 || true
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  variables:
+    ENABLE_BROWSERSTACK_A11Y_CHECKS: true
+
+run-automation-a11y-batch2-tests:
+  extends: .run-automation-tests-common-setup
+  script:
+    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - ./gradlew --no-daemon --info --stacktrace testA11yBatch2
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8 || true
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  variables:
+    ENABLE_BROWSERSTACK_A11Y_CHECKS: true
+
+browserstack-a11y-merge:
+  extends: .run-automation-tests-base
+  needs:
+    - { job: run-automation-a11y-batch1-tests }
+    - { job: run-automation-a11y-batch2-tests }
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  variables:
+    BROWSERSTACK_API_BASE: "https://api-app-accessibility.browserstack.com/automate/api/v1"
+  before_script:
+    - BROWSERSTACK_PROJECT_ID=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.project_id}' | base64 --decode)
+    - export BROWSERSTACK_PROJECT_ID
+  script:
+    # Get the last 2 builds for this project whose name == CI_PIPELINE_ID
+    - |
+      echo "Fetching builds for project ${BROWSERSTACK_PROJECT_ID}…"
+      curl -sfS "${BROWSERSTACK_API_BASE}/project/${BROWSERSTACK_PROJECT_ID}/build?page_size=50&page=1" \
+        -u "${BROWSERSTACK_USER}:${BROWSERSTACK_KEY}" \
+        -o builds_raw.json
+
+      echo "Filtering builds with name == CI_PIPELINE_ID (${CI_PIPELINE_ID}) and selecting the last 2…"
+      jq --arg pipeline_id "$CI_PIPELINE_ID" '
+        {
+          success,
+          info,
+          filters,
+          builds: (
+            [ .builds[]
+              | select(.name == $pipeline_id)
+            ]
+            | sort_by(.created_at)  # oldest → newest
+            | reverse               # newest → oldest
+            | .[:2]                 # take the last 2
+          )
+        }
+      ' builds_raw.json > builds.json
+
+      echo "Checking we have at least 2 matching builds…"
+      jq -e '
+        .success == true
+        and (.builds | length >= 2)
+      ' builds.json > /dev/null || {
+        echo "ERROR: Need at least 2 builds with name == \"${CI_PIPELINE_ID}\". Got:"
+        jq '{builds: [.builds[] | {id, th_build_id, name, created_at}]}' builds.json
+        exit 1
+      }
+
+    # Create a combined summary
+    - |
+      echo "Creating combined summary…"
+      jq -n --slurpfile r builds.json '
+      def to_num:
+        if type=="number" then .
+        elif type=="string" then (tonumber? // 0)
+        else 0 end;
+
+      # severity_count can be: object, array of objects, null → return numeric for key
+      def sev_get(o; k):
+        if o == null then 0
+        elif (o|type)=="object" then ((o[k] // 0) | to_num)
+        elif (o|type)=="array"  then ((o | map(. [k] // 0 | to_num) | add) // 0)
+        else 0 end;
+
+      # sum a severity key across all builds
+      def sev_sum(k):
+        ([$r[0].builds[]
+          | .issue_summary
+          | if . == null then {} else . end
+          | .severity_count
+          | sev_get(.; k)
+        ] | add) // 0;
+
+      {
+        project_id: ($r[0].builds[0].project_id // $r[0].project_id),
+        generated_at: (now | strflocaltime("%Y-%m-%dT%H:%M:%SZ")),
+        source: { page: $r[0].info.page, page_size: $r[0].info.page_size, count: $r[0].info.count },
+        builds: [
+          $r[0].builds[] |
+          { id, th_build_id, name, created_at, started_at, status, issue_summary }
+        ],
+        summary: {
+          build_count: ($r[0].builds | length),
+          statuses: (
+            reduce ($r[0].builds[] | .status) as $s ({}; .[$s] = ((.[$s] // 0) + 1) )
+          ),
+          totals: {
+            total_issues: ([$r[0].builds[].issue_summary.total] | map((. // 0) | to_num) | add),
+            scan_count:   ([$r[0].builds[].issue_summary.scan_count] | map((. // 0) | to_num) | add),
+            severity_count: {
+              minor:            sev_sum("minor"),
+              moderate:         sev_sum("moderate"),
+              serious:          sev_sum("serious"),
+              critical:         sev_sum("critical"),
+              failed_issues:    sev_sum("failed_issues"),
+              needs_review:     sev_sum("needs_review"),
+              confirmed:        sev_sum("confirmed"),
+              hidden_issues:    sev_sum("hidden_issues"),
+              duplicate_issues: sev_sum("duplicate_issues")
+            }
+          }
+        }
+      }' > combined_summary.json
+
+    # Verify summary
+    - |
+      jq -e '
+        (.builds | length == 2)
+        and (.summary.build_count == 2)
+        and (.summary.totals.total_issues | type == "number")
+      ' combined_summary.json > /dev/null || {
+        echo "ERROR: combined_summary.json sanity check failed"
+        cat combined_summary.json || true
+        exit 1
+      }
+  after_script:
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-results/a11y.zip uiautomation/combined_summary.json
+  artifacts:
+    name: browserstack-a11y
+    when: always
+    paths:
+      - uiautomation/combined_summary.json
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup

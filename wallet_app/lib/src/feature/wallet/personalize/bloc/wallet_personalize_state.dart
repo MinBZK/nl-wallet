@@ -21,7 +21,7 @@ class WalletPersonalizeInitial extends WalletPersonalizeState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: SetupHelper.totalSetupSteps - 3, totalSteps: SetupHelper.totalSetupSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 3, totalSteps: OnboardingHelper.totalSteps);
 }
 
 class WalletPersonalizeLoadingIssuanceUrl extends WalletPersonalizeState {
@@ -50,7 +50,7 @@ class WalletPersonalizeCheckData extends WalletPersonalizeState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: SetupHelper.totalSetupSteps - 2, totalSteps: SetupHelper.totalSetupSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 2, totalSteps: OnboardingHelper.totalSteps);
 
   @override
   List<Object?> get props => [availableAttributes, ...super.props];
@@ -64,7 +64,7 @@ class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: SetupHelper.totalSetupSteps - 1, totalSteps: SetupHelper.totalSetupSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 1, totalSteps: OnboardingHelper.totalSteps);
 
   @override
   bool get canGoBack => true;
@@ -81,7 +81,7 @@ class WalletPersonalizeSuccess extends WalletPersonalizeState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: SetupHelper.totalSetupSteps, totalSteps: SetupHelper.totalSetupSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps, totalSteps: OnboardingHelper.totalSteps);
 
   @override
   List<Object?> get props => [addedCards, userCanTransfer, ...super.props];

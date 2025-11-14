@@ -27,4 +27,5 @@ class ForgotPinScreen : MobileActions() {
 
     fun recoverButtonVisible() = elementWithTextVisible(recoverPinButton)
 
+    fun clickResetPinButton() = clickElementWithText(recoverPinButton)
 }

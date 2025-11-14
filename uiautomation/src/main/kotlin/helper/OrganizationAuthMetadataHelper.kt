@@ -58,20 +58,20 @@ class OrganizationAuthMetadataHelper {
             Organization.UNIVERSITY -> universityIssuerAuthJSON
             Organization.JOBFINDER -> jobFinderAuthJSON
         }
-
         val pathParts = attributePath.split(".")
         var current: Any = json
-
         for (part in pathParts) {
             if (current is JSONObject && current.has(part)) {
                 current = current.get(part)
             } else {
-                throw IllegalArgumentException("Invalid attribute path: '$attributePath'. Missing part: '$part'")
+                throw IllegalArgumentException(
+                    "Invalid attribute path: '$attributePath'. Missing part: '$part'"
+                )
             }
         }
-
-        if (current is JSONObject && current.has(language)) {
-            return current.getString(language)
+        if (current is JSONObject) {
+            val preferred = current.optString(language, current.optString("nl"))
+            return preferred
         }
         return current.toString()
     }
