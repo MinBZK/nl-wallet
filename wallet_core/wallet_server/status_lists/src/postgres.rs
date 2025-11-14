@@ -32,17 +32,13 @@ use uuid::Uuid;
 
 use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
-use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
-use jwt::headers::HeaderWithTyp;
-use jwt::headers::HeaderWithX5c;
 use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_claim::StatusClaim;
 use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListService;
-use token_status_list::status_list_token::StatusListClaims;
 use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
@@ -614,12 +610,10 @@ where
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
         // Build empty status list
         let sub = self.config.base_url.join(external_id);
-        let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
-            StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
-                .ttl(self.config.ttl)
-                .sign(&self.config.key_pair)
-                .await?
-                .into();
+        let token = StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
+            .ttl(self.config.ttl)
+            .sign(&self.config.key_pair)
+            .await?;
 
         // Write to disk
         let publish_lock = self.config.publish_dir.lock_for(external_id);
@@ -627,7 +621,7 @@ where
         tokio::task::spawn_blocking(move || {
             // create because a new status list external id can be reused if the transaction fails
             publish_lock.create()?;
-            std::fs::write(&jwt_path, jwt.serialization().as_bytes())
+            std::fs::write(&jwt_path, token.as_ref().serialization().as_bytes())
                 .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
         })
         .await?
@@ -670,14 +664,13 @@ where
                 .await?;
 
                 // Sign
-                let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
-                    builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?.into();
+                let token = builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?;
 
                 // Write to a tempfile and atomically move via rename
                 let jwt_path = self.config.publish_dir.jwt_path(external_id);
                 let tmp_path = self.config.publish_dir.tmp_path(external_id);
                 tokio::task::spawn_blocking(move || {
-                    std::fs::write(&tmp_path, jwt.serialization())
+                    std::fs::write(&tmp_path, token.as_ref().serialization())
                         .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
                     std::fs::rename(&tmp_path, &jwt_path)
                         .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))

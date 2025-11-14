@@ -6,7 +6,6 @@ use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
 use derive_more::AsRef;
 use derive_more::FromStr;
-use derive_more::Into;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -29,7 +28,7 @@ pub static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
 /// the Status List.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
-#[derive(Debug, Clone, FromStr, Into, AsRef, Serialize, Deserialize)]
+#[derive(Debug, Clone, FromStr, AsRef, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithX5c>);
 

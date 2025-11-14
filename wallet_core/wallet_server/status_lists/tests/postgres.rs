@@ -26,7 +26,6 @@ use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
-use jwt::UnverifiedJwt;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
@@ -170,7 +169,8 @@ async fn assert_published_list<K: EcdsaKey + Clone>(
         .unwrap();
 
     let verifying_key = EcdsaDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
-    let (header, claims) = UnverifiedJwt::from(status_list_token)
+    let (header, claims) = status_list_token
+        .as_ref()
         .parse_and_verify(&verifying_key, &DEFAULT_VALIDATIONS)
         .unwrap();
     assert_eq!(header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
