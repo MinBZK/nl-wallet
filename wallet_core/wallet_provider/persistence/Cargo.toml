@@ -49,7 +49,6 @@ sea-orm = { workspace = true, features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
     "with-chrono",
-    "with-json",
     "with-uuid",
 ] }
 semver = { workspace = true }
