@@ -9,6 +9,3 @@ pub mod wallet_user_apple_attestation;
 pub mod wallet_user_instruction_challenge;
 pub mod wallet_user_key;
 pub mod wallet_user_wua;
-
-// added by generate-db-entity.sh to fix external crate dependency
-use status_lists::entity::attestation_batch;

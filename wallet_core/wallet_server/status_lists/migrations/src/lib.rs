@@ -1,7 +1,7 @@
 use sea_orm_migration::prelude::*;
 
 mod m20250925_000001_create_attestation_type;
-pub mod m20250925_000002_create_attestation_batch;
+mod m20250925_000002_create_attestation_batch;
 mod m20250925_000003_create_status_lists;
 mod m20250925_000004_create_status_list_item;
 mod m20250925_000005_create_attestation_batch_list_indices;

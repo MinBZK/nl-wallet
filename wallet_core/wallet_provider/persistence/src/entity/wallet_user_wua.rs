@@ -13,14 +13,6 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::attestation_batch::Entity",
-        from = "Column::WuaId",
-        to = "super::attestation_batch::Column::BatchId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    AttestationBatch,
-    #[sea_orm(
         belongs_to = "super::wallet_user::Entity",
         from = "Column::WalletUserId",
         to = "super::wallet_user::Column::Id",
@@ -28,12 +20,6 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     WalletUser,
-}
-
-impl Related<super::attestation_batch::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::AttestationBatch.def()
-    }
 }
 
 impl Related<super::wallet_user::Entity> for Entity {

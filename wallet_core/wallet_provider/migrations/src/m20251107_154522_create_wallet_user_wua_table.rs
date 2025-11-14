@@ -1,8 +1,6 @@
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::*;
 
-use status_lists_migrations::m20250925_000002_create_attestation_batch::AttestationBatch;
-
 use crate::m20250102_000010_create_wallet_user_table::WalletUser;
 
 #[derive(DeriveMigrationName)]
@@ -17,13 +15,6 @@ impl MigrationTrait for Migration {
                     .table(WalletUserWua::Table)
                     .col(uuid(WalletUserWua::WuaId).primary_key())
                     .col(uuid(WalletUserWua::WalletUserId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk_wallet_user_wua_batch_id")
-                            .from(WalletUserWua::Table, WalletUserWua::WuaId)
-                            .to(AttestationBatch::Table, AttestationBatch::BatchId)
-                            .on_delete(ForeignKeyAction::NoAction),
-                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_wua_wallet_user_id")
