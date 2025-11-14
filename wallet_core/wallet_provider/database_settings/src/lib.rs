@@ -37,15 +37,15 @@ impl Settings {
     pub fn new() -> Result<Self, config::ConfigError> {
         config::Config::builder()
             .add_source(
-                config::Environment::with_prefix("wallet_provider_database_settings")
-                    .separator("__")
-                    .prefix_separator("__"),
-            )
-            .add_source(
                 config::File::from(
                     utils::path::prefix_local_path("wallet_provider_database_settings.toml".as_ref()).as_ref(),
                 )
                 .required(false),
+            )
+            .add_source(
+                config::Environment::with_prefix("wallet_provider_database_settings")
+                    .separator("__")
+                    .prefix_separator("__"),
             )
             .build()?
             .try_deserialize()
