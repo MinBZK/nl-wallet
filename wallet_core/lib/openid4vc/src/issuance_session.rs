@@ -994,7 +994,8 @@ impl CredentialResponse {
                 )?;
 
                 // Verify whether each claims selective disclosability matches the metadata.
-                verify_selective_disclosability(&sd_jwt, issued_claims, &preview.normalized_metadata)?;
+                // This validation is SD-JWT specific, and therefor cannot be part of `validate_credential`.
+                Self::verify_selective_disclosability(&sd_jwt, issued_claims, preview.normalized_metadata.clone())?;
 
                 Ok(IssuedCredential::SdJwt { key_identifier, sd_jwt })
             }
@@ -1032,36 +1033,40 @@ impl CredentialResponse {
 
         Ok(())
     }
-}
 
-fn verify_selective_disclosability(
-    sd_jwt: &VerifiedSdJwt,
-    issued_claims: Vec<VecNonEmpty<ClaimPath>>,
-    metadata: &NormalizedTypeMetadata,
-) -> Result<(), IssuanceSessionError> {
-    let metadata = metadata
-        .claims()
-        .iter()
-        .map(|md| (md.path.iter().cloned().collect(), md.sd))
-        .collect();
+    fn verify_selective_disclosability(
+        sd_jwt: &VerifiedSdJwt,
+        issued_claims: Vec<VecNonEmpty<ClaimPath>>,
+        metadata: NormalizedTypeMetadata,
+    ) -> Result<(), IssuanceSessionError> {
+        let sd_metadata = metadata
+            .into_presentation_components()
+            .2
+            .into_iter()
+            .map(|md| (md.path.into_inner(), md.sd))
+            .collect();
 
-    for issued_claim in issued_claims {
-        verify_claim_selective_disclosability(sd_jwt, &issued_claim, &metadata)?;
+        // Iterate over the issued_claims, validating each element in the path against the metadata.
+        // This implementation will ignore any (optional) claims that do exist in the metadata, but are not issued.
+        // Validating whether all required claims are issued is done by `validate_credential`.
+        for issued_claim in issued_claims {
+            Self::verify_claim_selective_disclosability(sd_jwt, issued_claim.as_slice(), &sd_metadata)?;
+        }
+
+        Ok(())
     }
 
-    Ok(())
-}
+    fn verify_claim_selective_disclosability(
+        sd_jwt: &VerifiedSdJwt,
+        claim_to_verify: &[ClaimPath],
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+    ) -> Result<(), IssuanceSessionError> {
+        sd_jwt
+            .verify_selective_disclosure(claim_to_verify, sd_metadata)
+            .map_err(DecoderError::ClaimStructure)?;
 
-fn verify_claim_selective_disclosability(
-    sd_jwt: &VerifiedSdJwt,
-    claim_to_verify: &VecNonEmpty<ClaimPath>,
-    claims_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
-) -> Result<(), IssuanceSessionError> {
-    sd_jwt
-        .verify_selective_disclosure(claim_to_verify.as_slice(), claims_metadata)
-        .map_err(DecoderError::ClaimStructure)?;
-
-    Ok(())
+        Ok(())
+    }
 }
 
 impl IssuanceState {
@@ -1969,7 +1974,11 @@ mod tests {
         );
         let sd_jwt: VerifiedSdJwt = signed_sd_jwt.into_verified();
 
-        let result = verify_claim_selective_disclosability(&sd_jwt, &claim_to_verify, &claims_metadata);
+        let result = CredentialResponse::verify_claim_selective_disclosability(
+            &sd_jwt,
+            claim_to_verify.as_slice(),
+            &claims_metadata,
+        );
 
         match expected {
             ExpectedResult::Ok => result.unwrap(),

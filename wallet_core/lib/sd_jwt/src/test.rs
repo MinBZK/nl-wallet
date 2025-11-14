@@ -44,24 +44,25 @@ pub fn conceal_and_sign(
     input: SdJwtVcClaims,
     claims_to_conceal: Vec<VecNonEmpty<ClaimPath>>,
 ) -> SignedSdJwt {
-    let mut builder = SdJwtBuilder::new(input);
-
-    for claim_to_conceal in claims_to_conceal {
-        builder = builder.make_concealable(claim_to_conceal).unwrap();
-    }
-
-    builder.finish(issuer_keypair).now_or_never().unwrap().unwrap()
+    claims_to_conceal
+        .into_iter()
+        .fold(SdJwtBuilder::new(input), |builder, claim_to_conceal| {
+            builder.make_concealable(claim_to_conceal).unwrap()
+        })
+        .finish(issuer_keypair)
+        .now_or_never()
+        .unwrap()
+        .unwrap()
 }
 
 pub fn disclose_claims(
     verified_sd_jwt: VerifiedSdJwt,
     all_claims: &[VecNonEmpty<ClaimPath>],
 ) -> UnsignedSdJwtPresentation {
-    let mut presentation_builder = verified_sd_jwt.into_presentation_builder();
-
-    for claim_path in all_claims {
-        presentation_builder = presentation_builder.disclose(claim_path).unwrap();
-    }
-
-    presentation_builder.finish()
+    all_claims
+        .iter()
+        .fold(verified_sd_jwt.into_presentation_builder(), |builder, claim_path| {
+            builder.disclose(claim_path).unwrap()
+        })
+        .finish()
 }

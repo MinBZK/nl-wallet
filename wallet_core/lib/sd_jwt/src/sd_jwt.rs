@@ -380,7 +380,8 @@ impl VerifiedSdJwt {
     }
 }
 
-pub fn verify_disclosability(
+#[inline]
+pub fn verify_selective_disclosure(
     sd: &ClaimSelectiveDisclosureMetadata,
     is_actually_disclosable: bool,
     claim_path: &[ClaimPath],

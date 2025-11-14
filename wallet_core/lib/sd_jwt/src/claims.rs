@@ -22,7 +22,7 @@ use crate::encoder::SdObjectEncoder;
 use crate::error::ClaimError;
 use crate::error::EncoderError;
 use crate::hasher::Hasher;
-use crate::sd_jwt::verify_disclosability;
+use crate::sd_jwt::verify_selective_disclosure;
 
 #[nutype(
     validate(predicate = |name| !["...", "_sd"].contains(&name)),
@@ -214,35 +214,34 @@ impl ObjectClaims {
         claim_path: &[ClaimPath],
         claim_path_index: usize,
         disclosures: &IndexMap<String, Disclosure>,
-        metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
         claim: &str,
     ) -> Result<(), ClaimError> {
         let head = &claim_path[..=claim_path_index];
 
         let has_next = !claim_path[claim_path_index + 1..].is_empty();
 
-        let should_be_disclosable = metadata
+        let should_be_disclosable = sd_metadata
             .get(&head.to_vec())
             .unwrap_or(&ClaimSelectiveDisclosureMetadata::Allowed);
 
-        if let Some(claim_value) = self.get(&claim.parse()?) {
-            verify_disclosability(should_be_disclosable, false, head)?;
-            if has_next {
-                claim_value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, metadata)?;
-            }
-            Ok(())
+        let claim_value = if let Some(claim_value) = self.get(&claim.parse()?) {
+            verify_selective_disclosure(should_be_disclosable, false, head)?;
+            claim_value
         } else if let Some(digest) = self.find_disclosure_digest(claim, disclosures) {
-            verify_disclosability(should_be_disclosable, true, head)?;
-            // unwrap is safe, because `find_disclosure_digest` returned a result
+            verify_selective_disclosure(should_be_disclosable, true, head)?;
+            // unwrap is safe, because `find_disclosure_digest` returned `Some`
             let disclosure = disclosures.get(digest).unwrap();
             let (_, _, claim_value) = disclosure.content.try_as_object_property(digest)?;
-            if has_next {
-                claim_value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, metadata)?;
-            }
-            Ok(())
+            claim_value
         } else {
-            Err(ClaimError::ObjectFieldNotFound(claim.parse()?, Box::new(self.clone())))
+            return Err(ClaimError::ObjectFieldNotFound(claim.parse()?, Box::new(self.clone())));
+        };
+
+        if has_next {
+            claim_value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, sd_metadata)?;
         }
+        Ok(())
     }
 }
 
@@ -441,16 +440,17 @@ impl ClaimValue {
         }
     }
 
-    /// Traverses the claim structure and disclosures for [`claim_paths`] to discover whether the claim is selectively
-    /// disclosable.
-    /// Returns true when any of the path elements are resolved by a disclosure.
-    /// Errors when the [`claim_paths`] does not resolve to an existing claim.
+    /// Traverses the claim structure and disclosures for [`claim_path`] and verifies for each path element whether its
+    /// selective disclosability matches with the `sd_metadata`.
+    ///
+    /// Errors when the [`claim_paths`] does not resolve to an existing claim or the selective disclosability accorting
+    /// to the `sd_metadata`.
     pub(crate) fn verify_selective_disclosability(
         &self,
         claim_path: &[ClaimPath],
         claim_path_index: usize,
         disclosures: &IndexMap<String, Disclosure>,
-        metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
     ) -> Result<(), ClaimError> {
         // Verify whether the index is valid
         if claim_path.len() <= claim_path_index {
@@ -463,12 +463,11 @@ impl ClaimValue {
             (ClaimPath::SelectByIndex(index), _) => {
                 Err(ClaimError::UnsupportedTraversalPath(ClaimPath::SelectByIndex(*index)))
             }
-            (ClaimPath::SelectByKey(key), ClaimValue::Object(object_claims)) => {
-                object_claims.verify_selective_disclosability(claim_path, claim_path_index, disclosures, metadata, key)
-            }
+            (ClaimPath::SelectByKey(key), ClaimValue::Object(object_claims)) => object_claims
+                .verify_selective_disclosability(claim_path, claim_path_index, disclosures, sd_metadata, key),
             (ClaimPath::SelectAll, ClaimValue::Array(array_claims)) => {
                 for array_claim in array_claims {
-                    array_claim.verify_selective_disclosure(claim_path, claim_path_index, disclosures, metadata)?;
+                    array_claim.verify_selective_disclosure(claim_path, claim_path_index, disclosures, sd_metadata)?;
                 }
                 Ok(())
             }
@@ -559,7 +558,7 @@ impl ArrayClaim {
 
         match self {
             ArrayClaim::Hash { digest } => {
-                verify_disclosability(should_be_disclosable, true, head)?;
+                verify_selective_disclosure(should_be_disclosable, true, head)?;
                 let Some(disclosure) = disclosures.get(digest) else {
                     // This could be a decoy hash, so we cannot recurse any further.
                     return Ok(());
@@ -574,7 +573,7 @@ impl ArrayClaim {
                 Ok(())
             }
             ArrayClaim::Value(value) => {
-                verify_disclosability(should_be_disclosable, false, head)?;
+                verify_selective_disclosure(should_be_disclosable, false, head)?;
                 if has_next {
                     value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, metadata)?;
                 }
