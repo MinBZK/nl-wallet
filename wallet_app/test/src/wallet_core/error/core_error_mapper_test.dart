@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
 import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
+import 'package:wallet_core/core.dart';
 
 void main() {
   const defaultDescription = 'core error description';
@@ -128,5 +129,123 @@ void main() {
         expect(result, CoreExpiredSessionError(defaultDescription, canRetry: true, data: data));
       },
     );
+
+    test('mapping FlutterApiErrorType.hardwareKeyUnsupported results in CoreHardwareKeyUnsupportedError', () {
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.hardwareKeyUnsupported,
+        description: defaultDescription,
+        data: null,
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, const CoreHardwareKeyUnsupportedError(defaultDescription));
+    });
+
+    test('mapping FlutterApiErrorType.disclosureSourceMismatch results in CoreDisclosureSourceMismatchError', () {
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.disclosureSourceMismatch,
+        description: defaultDescription,
+        data: null,
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, const CoreDisclosureSourceMismatchError(defaultDescription, isCrossDevice: false));
+    });
+
+    test(
+      'mapping FlutterApiErrorType.disclosureSourceMismatch with isCrossDevice results in CoreDisclosureSourceMismatchError',
+      () {
+        final error = FlutterApiError(
+          type: FlutterApiErrorType.disclosureSourceMismatch,
+          description: defaultDescription,
+          data: {'session_type': 'cross_device'},
+        );
+        final errorJson = jsonEncode(error);
+        final result = errorMapper.map(errorJson);
+        expect(
+          result,
+          CoreDisclosureSourceMismatchError(defaultDescription, isCrossDevice: true, data: error.data),
+        );
+      },
+    );
+
+    test('mapping FlutterApiErrorType.cancelledSession results in CoreCancelledSessionError', () {
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.cancelledSession,
+        description: defaultDescription,
+        data: null,
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, const CoreCancelledSessionError(defaultDescription));
+    });
+
+    test('mapping FlutterApiErrorType.issuer results in CoreRelyingPartyError', () {
+      final error = FlutterApiError(type: FlutterApiErrorType.issuer, description: defaultDescription, data: null);
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, CoreRelyingPartyError(defaultDescription));
+    });
+
+    test('mapping FlutterApiErrorType.issuer with organization name results in CoreRelyingPartyError', () {
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.issuer,
+        description: defaultDescription,
+        data: {
+          'organization_name': {'en': 'Test'},
+        },
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(
+        result,
+        CoreRelyingPartyError(
+          defaultDescription,
+          data: error.data,
+          organizationName: [const LocalizedString(language: 'en', value: 'Test')],
+        ),
+      );
+    });
+
+    test('mapping FlutterApiErrorType.verifier results in CoreRelyingPartyError', () {
+      final error = FlutterApiError(type: FlutterApiErrorType.verifier, description: defaultDescription, data: null);
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, CoreRelyingPartyError(defaultDescription));
+    });
+
+    test('mapping FlutterApiErrorType.verifier with organization name results in CoreRelyingPartyError', () {
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.verifier,
+        description: defaultDescription,
+        data: {
+          'organization_name': {'en': 'Test'},
+        },
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(
+        result,
+        CoreRelyingPartyError(
+          defaultDescription,
+          data: error.data,
+          organizationName: [const LocalizedString(language: 'en', value: 'Test')],
+        ),
+      );
+    });
+
+    test('mapping FlutterApiErrorType.wrongDigid results in CoreWrongDigidError', () {
+      final error = FlutterApiError(type: FlutterApiErrorType.wrongDigid, description: defaultDescription, data: null);
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, const CoreWrongDigidError(defaultDescription));
+    });
+
+    test('mapping FlutterApiErrorType.deniedDigid results in CoreDeniedDigidError', () {
+      final error = FlutterApiError(type: FlutterApiErrorType.deniedDigid, description: defaultDescription, data: null);
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, const CoreDeniedDigidError(defaultDescription));
+    });
   });
 }

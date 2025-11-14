@@ -10,9 +10,9 @@ class RelyingPartyAmsterdamWebPage : MobileActions() {
     val body = DemoBody()
     val popup = DemoPopup()
 
-    private val loggedInHeaderTextDutchLocator = By.xpath("//h2[text()='Welkom in Mijn Amsterdam']")
+    private val loggedInHeaderTextLocator = By.xpath("//div[contains(@class, 'notification ')]")
 
-    fun loggedInMessageVisible() = isWebElementVisible(findWebElement(loggedInHeaderTextDutchLocator))
+    fun loggedInMessageVisible() = isWebElementVisible(findWebElement(loggedInHeaderTextLocator))
 
     fun openSameDeviceWalletFlow() {
         body.clickStartButton()

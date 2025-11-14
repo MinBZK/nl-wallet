@@ -244,4 +244,28 @@ void main() {
       isA<WalletPersonalizeGenericError>(),
     ],
   );
+
+  blocTest(
+    'emits WalletPersonalizeDigidCancelled when a DeniedDigidError is received',
+    build: () => WalletPersonalizeBloc(
+      mockGetWalletCardsUseCase,
+      mockGetPidIssuanceUrlUseCase,
+      mockCancelPidIssuanceUseCase,
+      mockContinuePidIssuanceUseCase,
+      mockIsWalletInitializedWithPidUseCase,
+    ),
+    setUp: () {
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
+        (_) async => const Result.error(DeniedDigidError(sourceError: 'test')),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
+    },
+    expect: () => [
+      const WalletPersonalizeAuthenticating(),
+      isA<WalletPersonalizeLoadInProgress>(),
+      isA<WalletPersonalizeDigidCancelled>(),
+    ],
+  );
 }

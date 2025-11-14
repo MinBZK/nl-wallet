@@ -12,7 +12,7 @@ doctest = false
 
 [dependencies]
 chrono.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "from"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 rustls-pki-types.workspace = true
@@ -30,6 +30,7 @@ openid4vc.path = "../../lib/openid4vc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils.path = "../../lib/utils"
 server_utils.path = "../server_utils"
+status_lists.path = "../status_lists"
 
 [dev-dependencies]
 assert_matches.workspace = true

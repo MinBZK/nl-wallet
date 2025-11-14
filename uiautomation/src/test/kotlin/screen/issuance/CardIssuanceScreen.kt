@@ -27,7 +27,10 @@ class CardIssuanceScreen : MobileActions() {
         clickElementWithText(stopButton)
     }
 
-    fun viewDetailsOfCard(cardIdentifier: String) = findElementByPartialTextAndPartialSiblingText(viewDetailsButton, cardIdentifier).click()
+    fun viewDetailsOfCard(cardIdentifier: String) {
+        scrollToEndOfScreen()
+        findElementByPartialTextAndPartialSiblingText(viewDetailsButton, cardIdentifier).click()
+    }
 
     fun labelVisible(label: String) = elementContainingTextVisible(label)
 

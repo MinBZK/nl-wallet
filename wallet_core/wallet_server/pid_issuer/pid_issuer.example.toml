@@ -13,9 +13,7 @@ metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 
 [status_lists]
-base_url = "https://cdn.example.com/tsl"
 list_size = 100_000
-create_threshold = 1000
 
 [wallet_server]
 ip = '127.0.0.1'
@@ -62,12 +60,14 @@ certificate = "MIJ..."
 
 [attestation_settings."com.example.pid".status_list]
 base_url = "https://cdn.example.com/tsl"
+publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "MIG..."
 certificate = "MIJ..."
 
 [attestation_settings."com.example.address".status_list]
 base_url = "https://cdn.example.com/tsl"
+publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "MIG..."
 certificate = "MIJ..."

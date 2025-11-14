@@ -17,7 +17,6 @@ impl MigrationTrait for Migration {
                     .col(uuid(AttestationBatch::BatchId))
                     .col(date_null(AttestationBatch::ExpirationDate))
                     .col(boolean(AttestationBatch::IsRevoked))
-                    .col(json_binary(AttestationBatch::StatusListLocations))
                     .index(
                         Index::create()
                             .unique()
@@ -38,6 +37,17 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(AttestationBatch::Table)
+                    .name("attestation_batch_revoked")
+                    .col(AttestationBatch::IsRevoked)
+                    .and_where(Expr::col(AttestationBatch::IsRevoked).eq(true))
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 }
@@ -49,5 +59,4 @@ pub enum AttestationBatch {
     BatchId,
     ExpirationDate,
     IsRevoked,
-    StatusListLocations,
 }

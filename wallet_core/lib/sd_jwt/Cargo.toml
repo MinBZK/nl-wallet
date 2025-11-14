@@ -13,7 +13,7 @@ path = "tests/api_test.rs"
 required-features = ["examples"]
 
 [features]
-examples = ["futures", "rand_core", "utils/mock_time"]
+examples = ["futures", "rand_core", "token_status_list/mock", "utils/mock_time"]
 mock = []
 test = []
 
@@ -42,6 +42,7 @@ attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
+sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 token_status_list.path = "../token_status_list"
 utils.path = "../utils"
 

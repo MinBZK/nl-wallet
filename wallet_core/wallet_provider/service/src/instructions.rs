@@ -965,13 +965,7 @@ impl HandleInstruction for ResetTransfer {
         )
         .await?;
 
-        if ![
-            TransferSessionState::Canceled,
-            TransferSessionState::Error,
-            TransferSessionState::Created,
-        ]
-        .contains(&transfer_session.state)
-        {
+        if TransferSessionState::Success == transfer_session.state {
             return Err(InstructionError::AccountTransferIllegalState);
         }
 
@@ -2594,8 +2588,7 @@ mod tests {
         wallet_user.recovery_code = Some(String::from("recovery_code"));
 
         let transfer_session_id = Uuid::new_v4();
-        let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
-        transfer_session.state = TransferSessionState::Uploaded;
+        let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Success);
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo

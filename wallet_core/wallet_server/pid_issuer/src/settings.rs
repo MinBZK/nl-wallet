@@ -55,7 +55,7 @@ impl ServerSettings for PidIssuerSettings {
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
             .set_default("status_lists.list_size", 100_000)?
-            .set_default("status_lists.create_threshold", 1_000)?
+            .set_default("status_lists.create_threshold", 0.1)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",

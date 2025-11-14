@@ -39,7 +39,6 @@ use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::error::DecoderError;
 use sd_jwt::key_binding_jwt::RequiredKeyBinding;
-use sd_jwt::sd_jwt::SelectiveDisclosability;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -996,7 +995,8 @@ impl CredentialResponse {
                 )?;
 
                 // Verify whether each claims selective disclosability matches the metadata.
-                verify_selective_disclosability(&sd_jwt, issued_claims, &preview.normalized_metadata)?;
+                // This validation is SD-JWT specific, and therefore cannot be part of `validate_credential`.
+                Self::verify_selective_disclosability(&sd_jwt, issued_claims, preview.normalized_metadata.clone())?;
 
                 Ok(IssuedCredential::SdJwt { key_identifier, sd_jwt })
             }
@@ -1034,45 +1034,41 @@ impl CredentialResponse {
 
         Ok(())
     }
-}
 
-fn verify_selective_disclosability(
-    sd_jwt: &VerifiedSdJwt,
-    issued_claims: Vec<VecNonEmpty<ClaimPath>>,
-    metadata: &NormalizedTypeMetadata,
-) -> Result<(), IssuanceSessionError> {
-    let metadata = metadata
-        .claims()
-        .iter()
-        .map(|md| {
-            (
-                md.path.iter().cloned().collect(),
-                match md.sd {
-                    ClaimSelectiveDisclosureMetadata::Always => SelectiveDisclosability::Always,
-                    ClaimSelectiveDisclosureMetadata::Allowed => SelectiveDisclosability::Allowed,
-                    ClaimSelectiveDisclosureMetadata::Never => SelectiveDisclosability::Never,
-                },
-            )
-        })
-        .collect();
+    fn verify_selective_disclosability(
+        sd_jwt: &VerifiedSdJwt,
+        issued_claims: Vec<VecNonEmpty<ClaimPath>>,
+        metadata: NormalizedTypeMetadata,
+    ) -> Result<(), IssuanceSessionError> {
+        let sd_metadata = metadata
+            .into_presentation_components()
+            .2
+            .into_iter()
+            .map(|md| (md.path.into_inner(), md.sd))
+            .collect();
 
-    for issued_claim in issued_claims {
-        verify_claim_selective_disclosability(sd_jwt, &issued_claim, &metadata)?;
+        // Iterate over the issued_claims, validating each element in the path against the metadata.
+        // This implementation will ignore any (optional) claims that do exist in the metadata but are not issued.
+        // Validating whether all required claims are issued is done by `validate_credential`.
+        // This will also prevent traversing and decoding the same disclosures several times for nested disclosures.
+        for issued_claim in issued_claims {
+            Self::verify_claim_selective_disclosability(sd_jwt, issued_claim.as_slice(), &sd_metadata)?;
+        }
+
+        Ok(())
     }
 
-    Ok(())
-}
+    fn verify_claim_selective_disclosability(
+        sd_jwt: &VerifiedSdJwt,
+        claim_to_verify: &[ClaimPath],
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+    ) -> Result<(), IssuanceSessionError> {
+        sd_jwt
+            .verify_selective_disclosability(claim_to_verify, sd_metadata)
+            .map_err(DecoderError::ClaimStructure)?;
 
-fn verify_claim_selective_disclosability(
-    sd_jwt: &VerifiedSdJwt,
-    claim_to_verify: &VecNonEmpty<ClaimPath>,
-    claims_metadata: &HashMap<Vec<ClaimPath>, SelectiveDisclosability>,
-) -> Result<(), IssuanceSessionError> {
-    sd_jwt
-        .verify_selective_disclosure(claim_to_verify.as_slice(), claims_metadata)
-        .map_err(DecoderError::ClaimStructure)?;
-
-    Ok(())
+        Ok(())
+    }
 }
 
 impl IssuanceState {
@@ -1902,16 +1898,16 @@ mod tests {
     #[rstest]
     #[case(vec_nonempty![ClaimPath::SelectByKey("non_existing".to_string())], vec![], ExpectedResult::ObjectFieldNotFound("non_existing".parse().unwrap()))]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_always".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_value_always".to_string())]], ExpectedResult::Ok)]
-    #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_always".to_string())], vec![], ExpectedResult::SelectivelyDisclosability(SelectiveDisclosability::Always, false))]
+    #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_always".to_string())], vec![], ExpectedResult::SelectivelyDisclosability(ClaimSelectiveDisclosureMetadata::Always, false))]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_allow".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_value_allow".to_string())]], ExpectedResult::Ok)]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_allow".to_string())], vec![], ExpectedResult::Ok)]
-    #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_never".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_value_never".to_string())]], ExpectedResult::SelectivelyDisclosability(SelectiveDisclosability::Never, true))]
+    #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_never".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_value_never".to_string())]], ExpectedResult::SelectivelyDisclosability(ClaimSelectiveDisclosureMetadata::Never, true))]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_value_never".to_string())], vec![], ExpectedResult::Ok)]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_always".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_array_always".to_string())]], ExpectedResult::Ok)]
-    #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_always".to_string())], vec![], ExpectedResult::SelectivelyDisclosability(SelectiveDisclosability::Always, false))]
+    #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_always".to_string())], vec![], ExpectedResult::SelectivelyDisclosability(ClaimSelectiveDisclosureMetadata::Always, false))]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_allow".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_array_allow".to_string())]], ExpectedResult::Ok)]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_allow".to_string())], vec![], ExpectedResult::Ok)]
-    #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())]], ExpectedResult::SelectivelyDisclosability(SelectiveDisclosability::Never, true))]
+    #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())]], ExpectedResult::SelectivelyDisclosability(ClaimSelectiveDisclosureMetadata::Never, true))]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())], vec![], ExpectedResult::Ok)]
     fn test_verify_claim_selective_disclosability(
         #[case] claim_to_verify: VecNonEmpty<ClaimPath>,
@@ -1921,30 +1917,30 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
 
-        let claims_metadata: HashMap<Vec<ClaimPath>, SelectiveDisclosability> = HashMap::from_iter([
+        let claims_metadata: HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata> = HashMap::from_iter([
             (
                 vec![ClaimPath::SelectByKey("root_value_always".to_string())],
-                SelectiveDisclosability::Always,
+                ClaimSelectiveDisclosureMetadata::Always,
             ),
             (
                 vec![ClaimPath::SelectByKey("root_value_allow".to_string())],
-                SelectiveDisclosability::Allowed,
+                ClaimSelectiveDisclosureMetadata::Allowed,
             ),
             (
                 vec![ClaimPath::SelectByKey("root_value_never".to_string())],
-                SelectiveDisclosability::Never,
+                ClaimSelectiveDisclosureMetadata::Never,
             ),
             (
                 vec![ClaimPath::SelectByKey("root_array_always".to_string())],
-                SelectiveDisclosability::Always,
+                ClaimSelectiveDisclosureMetadata::Always,
             ),
             (
                 vec![ClaimPath::SelectByKey("root_array_allow".to_string())],
-                SelectiveDisclosability::Allowed,
+                ClaimSelectiveDisclosureMetadata::Allowed,
             ),
             (
                 vec![ClaimPath::SelectByKey("root_array_never".to_string())],
-                SelectiveDisclosability::Never,
+                ClaimSelectiveDisclosureMetadata::Never,
             ),
         ]);
 
@@ -1980,7 +1976,11 @@ mod tests {
         );
         let sd_jwt: VerifiedSdJwt = signed_sd_jwt.into_verified();
 
-        let result = verify_claim_selective_disclosability(&sd_jwt, &claim_to_verify, &claims_metadata);
+        let result = CredentialResponse::verify_claim_selective_disclosability(
+            &sd_jwt,
+            claim_to_verify.as_slice(),
+            &claims_metadata,
+        );
 
         match expected {
             ExpectedResult::Ok => result.unwrap(),
@@ -2004,6 +2004,6 @@ mod tests {
     enum ExpectedResult {
         Ok,
         ObjectFieldNotFound(ClaimName),
-        SelectivelyDisclosability(SelectiveDisclosability, bool),
+        SelectivelyDisclosability(ClaimSelectiveDisclosureMetadata, bool),
     }
 }

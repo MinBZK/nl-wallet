@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
+import '../domain/model/result/application_error.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
 import '../feature/about/about_screen.dart';
@@ -76,7 +77,8 @@ import '../feature/wallet/personalize/wallet_personalize_screen.dart';
 import '../feature/wallet_transfer_faq/wallet_transfer_faq_screen.dart';
 import '../feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
 import '../feature/wallet_transfer_source/wallet_transfer_source_screen.dart';
-import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
+import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart'
+    hide WalletTransferGenericError, WalletTransferUpdateStateEvent;
 import '../feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
 import '../util/cast_util.dart';
 import 'secured_page_route.dart';
@@ -94,7 +96,6 @@ class WalletRoutes {
     introductionPrivacyRoute,
     privacyPolicyRoute,
     aboutRoute,
-    setupSecurityRoute,
     pinRoute,
     pinTimeoutRoute,
     pinRecoveryRoute,
@@ -601,7 +602,12 @@ WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
               context.read(),
               context.read(),
             );
-            if (argument.peek() != null) bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
+            if (argument.peek() != null) {
+              bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
+            } else {
+              final state = WalletTransferGenericError(GenericError('No valid uri', sourceError: argument));
+              bloc.add(WalletTransferUpdateStateEvent(state));
+            }
             return bloc;
           },
         ),

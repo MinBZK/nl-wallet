@@ -8,6 +8,7 @@ class PinScreen : MobileActions() {
     private val setupSecuritySelectPinPageTitle = l10n.getString("setupSecuritySelectPinPageTitle")
     private val pinScreenHeader = l10n.getString("pinScreenHeader")
     private val confirmPinScreen = l10n.getString("setupSecurityConfirmationPageTitle")
+    private val confirmRecoverPinScreen = l10n.getString("recoverPinConfirmNewPinPageTitle")
     private val personalizeConfirmPinScreen = l10n.getString("walletPersonalizeConfirmPinPageTitle")
     private val backButton = l10n.getString("generalWCAGBack")
     private val appInfoButton = l10n.getString("generalWCAGInfo")
@@ -30,6 +31,8 @@ class PinScreen : MobileActions() {
     fun pinScreenVisible() = elementWithTextVisible(pinScreenHeader)
 
     fun confirmPinScreenVisible() = elementWithTextVisible(confirmPinScreen)
+
+    fun confirmRecoverPinScreenVisible() = elementWithTextVisible(confirmRecoverPinScreen)
 
     fun personalizeConfirmPinScreenVisible() = elementWithTextVisible(personalizeConfirmPinScreen)
 

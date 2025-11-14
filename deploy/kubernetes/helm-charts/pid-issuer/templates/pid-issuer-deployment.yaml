@@ -45,21 +45,23 @@ spec:
             - name: http
               containerPort: 8001
           volumeMounts:
-            - name: pid-issuer-private-keys
+            - name: private-keys
               mountPath: /pid_issuer.toml
               subPath: pid_issuer.toml
-            - name: pid-issuer-metadata
+            - name: metadata
               mountPath: /eudi:pid:1.json
               subPath: eudi_pid_1.json
-            - name: pid-issuer-metadata
+            - name: metadata
               mountPath: /eudi:pid:nl:1.json
               subPath: eudi_pid_nl_1.json
-            - name: pid-issuer-metadata
+            - name: metadata
               mountPath: /eudi:pid-address:1.json
               subPath: eudi_pid-address_1.json
-            - name: pid-issuer-metadata
+            - name: metadata
               mountPath: /eudi:pid-address:nl:1.json
               subPath: eudi_pid-address_nl_1.json
+            - name: status-lists
+              mountPath: /status-lists
           env:
             - name: PID_ISSUER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
@@ -103,12 +105,17 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-pid-issuer-recovery-code-secret-key
                   key: secret_key
+            - name: PID_ISSUER__STATUS_LISTS__PUBLISH_DIR
+              value: "/status-lists"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: pid-issuer-private-keys
+        - name: private-keys
           secret:
             secretName: nl-wallet-pid-issuer-private-keys
-        - name: pid-issuer-metadata
+        - name: metadata
           configMap:
             name: nl-wallet-pid-issuer-metadata
+        - name: status-lists
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}

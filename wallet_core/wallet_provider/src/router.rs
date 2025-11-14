@@ -339,7 +339,6 @@ async fn start_pin_recovery<GRC, PIC>(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
             state.as_ref(),
-            &state.pin_policy,
             &state.user_state,
         )
         .await

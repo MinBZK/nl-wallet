@@ -372,6 +372,10 @@ then
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer" cargo run --package pid_issuer_migrations --bin pid_issuer_migrations -- fresh
         popd
 
+        echo -e "${INFO}Cleaning status lists${NC}"
+        rm -rf "${PID_ISSUER_DIR}/resources/status-lists"
+        mkdir "${PID_ISSUER_DIR}/resources/status-lists"
+
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
         RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
@@ -433,6 +437,10 @@ then
         echo -e "${INFO}Running issuance_server database migrations${NC}"
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_server" cargo run --package issuance_server_migrations --bin issuance_server_migrations -- fresh
         popd
+
+        echo -e "${INFO}Cleaning status lists${NC}"
+        rm -rf "${ISSUANCE_SERVER_DIR}/resources/status-lists"
+        mkdir "${ISSUANCE_SERVER_DIR}/resources/status-lists"
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
         RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &

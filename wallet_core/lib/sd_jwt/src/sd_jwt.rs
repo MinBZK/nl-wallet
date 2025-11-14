@@ -37,6 +37,7 @@ use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
@@ -369,14 +370,14 @@ impl VerifiedSdJwt {
         serialization.dangerous_parse_unverified()
     }
 
-    pub fn verify_selective_disclosure(
+    pub fn verify_selective_disclosability(
         &self,
         claim_path: &[ClaimPath],
-        metadata: &HashMap<Vec<ClaimPath>, SelectiveDisclosability>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
     ) -> Result<(), ClaimError> {
         self.claims()
             .claims
-            .verify_selective_disclosability(claim_path, 0, &self.disclosures, metadata)
+            .verify_selective_disclosability(claim_path, 0, &self.disclosures, sd_metadata)
     }
 
     pub fn non_selectable_claims(&self) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectableClaimsError> {
@@ -384,28 +385,21 @@ impl VerifiedSdJwt {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SelectiveDisclosability {
-    Always,
-    Allowed,
-    Never,
-}
-
-impl SelectiveDisclosability {
-    pub fn verify_against_actual_disclosability(
-        &self,
-        is_actually_disclosable: bool,
-        claim_path: &[ClaimPath],
-    ) -> Result<(), ClaimError> {
-        if (*self == Self::Always && !is_actually_disclosable) || (*self == Self::Never && is_actually_disclosable) {
+#[inline]
+pub fn verify_selective_disclosability(
+    should_be_disclosable: &ClaimSelectiveDisclosureMetadata,
+    is_actually_disclosable: bool,
+    claim_path: &[ClaimPath],
+) -> Result<(), ClaimError> {
+    match (should_be_disclosable, is_actually_disclosable) {
+        (ClaimSelectiveDisclosureMetadata::Always, false) | (ClaimSelectiveDisclosureMetadata::Never, true) => {
             Err(ClaimError::SelectiveDisclosabilityMismatch(
                 claim_path.to_vec(),
-                *self,
+                *should_be_disclosable,
                 is_actually_disclosable,
             ))
-        } else {
-            Ok(())
         }
+        _ => Ok(()),
     }
 }
 

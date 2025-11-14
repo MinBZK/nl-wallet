@@ -94,11 +94,11 @@ class SetupSecurityScreen extends StatelessWidget {
           ),
           SetupSecurityPinConfirmationFailed() => _buildPinConfirmationPage(context, enteredDigits: kPinDigits),
           SetupSecurityCreatingWallet() => _buildCreatingWallet(context, state),
-          SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
           SetupSecurityGenericError() => _buildSetupFailed(context),
           SetupSecurityNetworkError() => _buildSetupFailed(context),
           SetupSecurityDeviceIncompatibleError() => _buildSetupFailed(context),
           SetupSecurityConfigureBiometrics() => _buildConfigureBiometricsPage(context, state),
+          SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },

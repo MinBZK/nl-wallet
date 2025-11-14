@@ -125,8 +125,8 @@ account.
 
 Our mobile apps require at least the following operating system versions:
 
-- Android 7.0 (API-level 24)
-- iOS 14.0
+- Android 10.0 (API-level 29)
+- iOS 15.0
 
 The app does not put a particulary heavy load on the device, so CPU and memory
 requirements are low to average. Note that this is subject to change.

@@ -66,8 +66,11 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   Future<void> _handleApplicationError(ApplicationError error, Emitter<RenewPidState> emit) async {
     await _cancelPidIssuanceUseCase.invoke(); // Always attempt to cancel the session, then render the specific error
 
-    // TODO(Rob): Handle DigiDMismatch and emit [RenewPidDigidMismatch]
     switch (error) {
+      case WrongDigidError():
+        emit(const RenewPidDigidMismatch());
+      case DeniedDigidError():
+        emit(const RenewPidDigidLoginCancelled());
       case NetworkError():
         emit(RenewPidNetworkError(hasInternet: error.hasInternet, error: error));
       case RedirectUriError():

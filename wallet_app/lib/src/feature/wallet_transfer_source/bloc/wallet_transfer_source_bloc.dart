@@ -55,6 +55,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
       case WalletTransferInitial():
       case WalletTransferLoading():
       case WalletTransferIntroduction():
+      case WalletTransferCancelling():
       case WalletTransferStopped():
       case WalletTransferGenericError():
       case WalletTransferNetworkError():
@@ -88,7 +89,17 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     final result = await _startWalletTransferUseCase.invoke();
     await result.process(
       onSuccess: (_) => Fimber.d('transferWallet (upload) success'),
-      onError: _handleError,
+      onError: (error) async {
+        try {
+          // PVW-5194 (startWalletTransferUseCase fails when session is stopped on destination)
+          final transferSessionState = await _observeTransferSessionStateUseCase.invoke().first;
+          if (transferSessionState == TransferSessionState.cancelled) emit(const WalletTransferStopped());
+        } catch (e) {
+          Fimber.i('Failed to get state. This happens if cancelled was already reached through polling.', ex: e);
+        } finally {
+          if (state is! WalletTransferStopped) unawaited(_handleError(error));
+        }
+      },
     );
   }
 
@@ -96,6 +107,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     WalletTransferStopRequestedEvent event,
     Emitter<WalletTransferSourceState> emit,
   ) async {
+    emit(const WalletTransferCancelling());
     final result = await _cancelWalletTransferUsecase.invoke();
     // We only want to emit a new state if the wallet is not already in a success/error state
     bool maintainState(WalletTransferSourceState state) => state is WalletTransferSuccess || state is ErrorState;
