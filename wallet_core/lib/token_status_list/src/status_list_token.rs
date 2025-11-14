@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
+use derive_more::AsRef;
 use derive_more::FromStr;
 use derive_more::Into;
 use serde::Deserialize;
@@ -28,7 +29,8 @@ pub static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
 /// the Status List.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
-#[derive(Debug, Clone, FromStr, Into, Serialize, Deserialize)]
+#[derive(Debug, Clone, FromStr, Into, AsRef, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithX5c>);
 
 impl StatusListToken {
@@ -196,7 +198,8 @@ pub mod mock {
 
     pub async fn create_status_list_token(
         keypair: &KeyPair,
-        exp: i64,
+        exp: Option<i64>,
+        ttl: Option<i64>,
     ) -> (HeaderWithX5c<HeaderWithTyp>, StatusListClaims, StatusListToken) {
         let example_header = json!({
             "alg": "ES256",
@@ -211,7 +214,7 @@ pub mod mock {
                 "lst": "eNrbuRgAAhcBXQ"
             },
             "sub": "https://example.com/statuslists/1",
-            "ttl": 43200
+            "ttl": ttl,
         });
 
         let expected_header: HeaderWithX5c<HeaderWithTyp> = serde_json::from_value(example_header).unwrap();
@@ -249,13 +252,15 @@ mod test {
     use super::*;
 
     const SLT_EXP: i64 = 2291720170;
+    const SLT_TTL: i64 = 43200;
 
     #[tokio::test]
     async fn test_status_list_token() {
         let ca = Ca::generate("test", Default::default()).unwrap();
         let keypair = ca.generate_status_list_mock().unwrap();
 
-        let (expected_header, expected_claims, signed) = create_status_list_token(&keypair, SLT_EXP).await;
+        let (expected_header, expected_claims, signed) =
+            create_status_list_token(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         let verified = signed
             .0
@@ -275,7 +280,7 @@ mod test {
         let keypair = ca.generate_status_list_mock().unwrap();
         let iss_keypair = ca.generate_issuer_mock().unwrap();
 
-        let (_, expected_claims, signed) = create_status_list_token(&keypair, SLT_EXP).await;
+        let (_, expected_claims, signed) = create_status_list_token(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         let err = signed
             .parse_and_verify(
