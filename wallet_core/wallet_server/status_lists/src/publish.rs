@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs::File;
 use std::io::Read;
 use std::io::Seek;
@@ -12,8 +13,14 @@ use tokio::task::JoinError;
 
 use utils::path::prefix_local_path;
 
-#[nutype(derive(Debug, Clone, TryFrom, Into, AsRef, Deserialize), validate(with=PublishDir::validate, error=PublishDirError))]
+#[nutype(derive(Debug, Clone, TryFrom, Into, AsRef, PartialEq, Deserialize), validate(with=PublishDir::validate, error=PublishDirError))]
 pub struct PublishDir(PathBuf);
+
+impl Display for PublishDir {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_ref().display().fmt(f)
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum PublishDirError {

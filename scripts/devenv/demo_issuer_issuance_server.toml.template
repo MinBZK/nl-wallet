@@ -21,9 +21,6 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[status_lists]
-serve_directories = { "/tsl" = "resources/status-lists" }
-
 [disclosure_settings.university_mdoc]
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
@@ -66,7 +63,7 @@ private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
 
 [attestation_settings."com.example.degree".status_list]
-base_url = "http://${SERVICES_HOST}:${ISSUANCE_SERVER_WS_PORT}/tsl/"
+context_path = "tsl"
 publish_dir = "resources/status-lists"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_TSL}"
@@ -97,7 +94,7 @@ private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
 
 [attestation_settings."com.example.insurance".status_list]
-base_url = "http://${SERVICES_HOST}:${ISSUANCE_SERVER_WS_PORT}/tsl/"
+context_path = "tsl"
 publish_dir = "resources/status-lists"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
@@ -128,7 +125,7 @@ base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/housing/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [attestation_settings."com.example.housing".status_list]
-base_url = "http://${SERVICES_HOST}:${ISSUANCE_SERVER_WS_PORT}/tsl/"
+context_path = "tsl"
 publish_dir = "resources/status-lists"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_HOUSING_TSL}"

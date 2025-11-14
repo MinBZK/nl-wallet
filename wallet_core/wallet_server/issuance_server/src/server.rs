@@ -38,7 +38,7 @@ pub async fn serve<A, L, IS, DS>(
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
     status_list_service: L,
-    status_list_router: Router,
+    status_list_router: Option<Router>,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -68,7 +68,7 @@ pub async fn serve_with_listener<A, L, IS, DS>(
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
     status_list_service: L,
-    status_list_router: Router,
+    status_list_router: Option<Router>,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -131,12 +131,11 @@ where
     )
     .create_wallet_router(disclosure_sessions, Some(Box::new(result_handler)));
 
-    listen(
-        listener,
-        Router::new()
-            .nest("/issuance", decorate_router(issuance_router, log_requests))
-            .nest("/disclosure", decorate_router(disclosure_router, log_requests))
-            .merge(status_list_router),
-    )
-    .await
+    let mut router = Router::new()
+        .nest("/issuance", decorate_router(issuance_router, log_requests))
+        .nest("/disclosure", decorate_router(disclosure_router, log_requests));
+    if let Some(status_list_router) = status_list_router {
+        router = router.merge(status_list_router);
+    }
+    listen(listener, router).await
 }

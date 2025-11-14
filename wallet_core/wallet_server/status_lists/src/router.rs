@@ -38,13 +38,45 @@ struct RouterState {
     cache_control: String,
 }
 
-pub fn create_status_list_routers(serve_dirs: HashMap<String, PublishDir>, ttl: Option<Duration>) -> Router {
+#[derive(Debug, thiserror::Error)]
+#[cfg_attr(test, derive(PartialEq))]
+pub enum RouterError {
+    #[error("empty path")]
+    EmptyPath,
+    #[error("duplicate context path `{0}` for same publish dir: {1} vs {2}")]
+    DuplicatePath(String, PublishDir, PublishDir),
+}
+
+fn check_serve_directories(
+    serve_dirs: impl IntoIterator<Item = (String, PublishDir)>,
+) -> Result<HashMap<String, PublishDir>, RouterError> {
+    let iter = serve_dirs.into_iter();
+    let mut result = HashMap::with_capacity(iter.size_hint().0);
+    for (path, publish_dir) in iter {
+        if path.is_empty() {
+            return Err(RouterError::EmptyPath);
+        }
+        if let Some(inserted_dir) = result.remove(&path)
+            && inserted_dir != publish_dir
+        {
+            return Err(RouterError::DuplicatePath(path, inserted_dir, publish_dir));
+        }
+        result.insert(path, publish_dir);
+    }
+    Ok(result)
+}
+
+pub fn create_status_list_routers(
+    serve_dirs: impl IntoIterator<Item = (String, PublishDir)>,
+    ttl: Option<Duration>,
+) -> Result<Router, RouterError> {
     let cache_control = match ttl {
         None => "no-cache".to_string(),
         Some(ttl) => format!("max-age={}; must-revalidate", ttl.as_secs()),
     };
 
-    serve_dirs
+    let serve_dirs = check_serve_directories(serve_dirs)?;
+    Ok(serve_dirs
         .into_iter()
         .fold(Router::new(), |router, (path, publish_dir)| {
             let state = RouterState {
@@ -58,7 +90,7 @@ pub fn create_status_list_routers(serve_dirs: HashMap<String, PublishDir>, ttl: 
         })
         .layer(middleware::from_fn(add_vary_header))
         // The HTTP response SHOULD use gzip Content-Encoding as defined in [RFC9110].
-        .layer(CompressionLayer::new())
+        .layer(CompressionLayer::new()))
 }
 
 async fn add_vary_header(request: Request, next: Next) -> Response {
@@ -152,6 +184,37 @@ mod tests {
     use crate::router::check_accept;
 
     use super::*;
+
+    #[test]
+    fn check_serve_dir_errors_on_empty_path() {
+        let dir = PublishDir::try_new(std::env::temp_dir()).unwrap();
+
+        let result = check_serve_directories([("".to_string(), dir.clone())]);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), RouterError::EmptyPath);
+    }
+
+    #[test]
+    fn check_serve_dir_allow_duplicate_path_for_same_publish_dir() {
+        let path = "path".to_string();
+        let dir = PublishDir::try_new(std::env::temp_dir()).unwrap();
+
+        let result = check_serve_directories([(path.clone(), dir.clone()), (path.clone(), dir.clone())]);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), [(path, dir)].into());
+    }
+
+    #[test]
+    fn check_serve_dir_err_on_duplicate_path_for_different_publish_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = "path".to_string();
+        let dir_a = PublishDir::try_new(std::env::temp_dir()).unwrap();
+        let dir_b = PublishDir::try_new(tmp.path().to_path_buf()).unwrap();
+
+        let result = check_serve_directories([(path.clone(), dir_a.clone()), (path.clone(), dir_b.clone())]);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), RouterError::DuplicatePath(path, dir_a, dir_b));
+    }
 
     #[test]
     fn non_ascii_header() {

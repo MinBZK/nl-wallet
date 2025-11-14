@@ -59,14 +59,14 @@ private_key = "MIG..."                                  # DER-encoded private ke
 certificate = "MIJ..."
 
 [attestation_settings."com.example.pid".status_list]
-base_url = "https://cdn.example.com/tsl"
+context_path = "tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "MIG..."
 certificate = "MIJ..."
 
 [attestation_settings."com.example.address".status_list]
-base_url = "https://cdn.example.com/tsl"
+context_path = "tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "MIG..."

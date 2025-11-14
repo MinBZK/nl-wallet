@@ -1183,29 +1183,14 @@ cat <<EOF > "$TARGET_DIR/parts/12-status-lists.toml"
 [status_lists]
 list_size = 100_000
 create_threshold = 0.1
-serve_directories = {}
+serve = true
 EOF
 ```
 
-By default the issuance server will not serve the status lists it creates.
-You can opt in to do so, by adding an entry to the serve_directories map.
-The key is the URL path and the value is the filesystem path e.g.
-
-```shell
-cd nl-wallet
-export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
-cat <<EOF > "$TARGET_DIR/parts/12-status-lists.toml"
-
-[status_lists]
-serve_directories = { "/tsl" = "/srv/html/tsl" }
-EOF
-```
-
-<div class="admonition note">
-<p class="title">Serve status lists yourself</p>
-You can serve the status lists yourselve as well. Ensure that you map a request
-with URL path ending on `/id` to filesystem path of with name `id.jwt`.
-</div>
+By default the issuance server will serve the status lists it creates. You can
+opt out of this behaviour and serve the status lists yourself. Ensure that you
+map a request with URL path ending on `/id` to filesystem path of with name
+`id.jwt`.
 
 By default the status lists uses the same database as configured for the
 session store. If you have a memory store as session store you need to configure
@@ -1328,11 +1313,12 @@ Next to the previously done `[status_lists]` settings, which control how big and
 when status lists are created, an `attestation_settings` associated
 `status_list` block.
 
-This block configures the `base_url`, which is added to the attestation as a
-location for the Status List Claim. This url needs to be publicly reachable
-by the NL Wallet app and the verifiers.
+This block configures the `context_path`, which together with a `base_url` (if
+empty the `public_url` of the issuance server is used) is added to the
+attestation as a location for the Status List Claim. This url needs to be
+publicly reachable by the NL Wallet app and the verifiers.
 
-Next to the `base_url` a `publish_dir` needs to be configured where the status
+Next to the location a `publish_dir` needs to be configured where the status
 lists need to be published. This can be served via either a separate static
 file server or via the issuance server.
 
@@ -1349,7 +1335,7 @@ export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/17-attestation-status-list.toml"
 
 [attestation_settings.insurance.status_list]
-base_url = "https://cdn.example.com/tsl"
+context_path = "tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "$(< "${TARGET_DIR}/tsl.${IDENTIFIER}.key.der" $BASE64)"

@@ -655,7 +655,7 @@ pub async fn start_issuance_server(
             disclosure_settings,
             attributes_fetcher,
             MockStatusListService::default(),
-            Router::new(),
+            None,
         )
         .await
         {
@@ -699,7 +699,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
             MockStatusListService::default(),
-            Router::new(),
+            None,
         )
         .await
         {

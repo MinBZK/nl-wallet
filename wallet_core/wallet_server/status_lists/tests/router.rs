@@ -19,7 +19,7 @@ async fn setup_server(publish_dir: &TempDir, ttl: Option<Duration>) -> anyhow::R
     let router = create_status_list_routers(
         [("/tsl".into(), publish_dir)].into_iter().collect::<HashMap<_, _>>(),
         ttl,
-    );
+    )?;
     let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
     let port = listener.local_addr()?.port();
     tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });

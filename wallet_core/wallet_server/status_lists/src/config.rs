@@ -33,16 +33,15 @@ pub struct StatusListConfigs<K: Clone>(HashMap<String, StatusListConfig<K>>);
 
 impl StatusListConfigs<PrivateKeyVariant> {
     pub async fn from_settings(
+        public_url: &BaseUrl,
         settings: &StatusListsSettings,
         pairs: impl IntoIterator<Item = (String, StatusListAttestationSettings)>,
         hsm: &Option<Pkcs11Hsm>,
     ) -> Result<Self, PrivateKeySettingsError> {
         let (types, attestation_settings): (Vec<_>, Vec<_>) = pairs.into_iter().unzip();
-        let configs = try_join_all(
-            attestation_settings
-                .into_iter()
-                .map(|attestation| StatusListConfig::from_settings(settings, attestation, hsm.clone())),
-        )
+        let configs = try_join_all(attestation_settings.into_iter().map(|attestation| {
+            StatusListConfig::from_settings_with_public_url(public_url, settings, attestation, hsm.clone())
+        }))
         .await?;
 
         let map = Self(types.into_iter().zip(configs.into_iter()).collect::<HashMap<_, _>>());
@@ -54,8 +53,36 @@ impl StatusListConfigs<PrivateKeyVariant> {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum StatusListConfigError {
+    #[error("missing base url")]
+    MissingBaseUrl,
+
+    #[error("private key error: {0}")]
+    PrivateKey(#[from] PrivateKeySettingsError),
+}
+
 impl StatusListConfig<PrivateKeyVariant> {
     pub async fn from_settings(
+        settings: &StatusListsSettings,
+        attestation: StatusListAttestationSettings,
+        hsm: Option<Pkcs11Hsm>,
+    ) -> Result<Self, StatusListConfigError> {
+        let Some(base_url) = attestation.base_url else {
+            return Err(StatusListConfigError::MissingBaseUrl);
+        };
+        Ok(StatusListConfig {
+            list_size: settings.list_size,
+            create_threshold: settings.create_threshold.of_nonzero_u31(settings.list_size),
+            ttl: settings.ttl,
+            base_url: base_url.join_base_url(&attestation.context_path),
+            publish_dir: attestation.publish_dir,
+            key_pair: attestation.keypair.parse(hsm).await?,
+        })
+    }
+
+    async fn from_settings_with_public_url(
+        public_url: &BaseUrl,
         settings: &StatusListsSettings,
         attestation: StatusListAttestationSettings,
         hsm: Option<Pkcs11Hsm>,
@@ -64,7 +91,10 @@ impl StatusListConfig<PrivateKeyVariant> {
             list_size: settings.list_size,
             create_threshold: settings.create_threshold.of_nonzero_u31(settings.list_size),
             ttl: settings.ttl,
-            base_url: attestation.base_url,
+            base_url: attestation
+                .base_url
+                .unwrap_or_else(|| public_url.clone())
+                .join_base_url(&attestation.context_path),
             publish_dir: attestation.publish_dir,
             key_pair: attestation.keypair.parse(hsm).await?,
         })

@@ -25,7 +25,7 @@ pub async fn serve<A, C, IS>(
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
     status_list_service: C,
-    status_list_router: Router,
+    status_list_router: Option<Router>,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
@@ -55,7 +55,7 @@ pub async fn serve_with_listener<A, C, IS>(
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
     status_list_service: C,
-    status_list_router: Router,
+    status_list_router: Option<Router>,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
@@ -78,11 +78,9 @@ where
         status_list_service,
     )));
 
-    listen(
-        listener,
-        Router::new()
-            .nest("/issuance", decorate_router(wallet_issuance_router, log_requests))
-            .merge(status_list_router),
-    )
-    .await
+    let mut router = Router::new().nest("/issuance", decorate_router(wallet_issuance_router, log_requests));
+    if let Some(status_list_router) = status_list_router {
+        router = router.merge(status_list_router);
+    }
+    listen(listener, router).await
 }
