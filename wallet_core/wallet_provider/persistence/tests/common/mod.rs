@@ -2,7 +2,6 @@ use std::convert::Infallible;
 
 use chrono::DateTime;
 use chrono::Utc;
-use ctor::ctor;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -32,16 +31,6 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::entity::wallet_user_instruction_challenge;
 use wallet_provider_persistence::wallet_user::create_wallet_user;
 use wallet_provider_persistence::wallet_user::update_instruction_challenge_and_sequence_number;
-
-#[ctor]
-fn init_logging() {
-    let _ = tracing::subscriber::set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .with_test_writer()
-            .finish(),
-    );
-}
 
 pub async fn db_from_env() -> Result<Db, PersistenceError> {
     let settings = Settings::new().unwrap();
