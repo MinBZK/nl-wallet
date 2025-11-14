@@ -6482,7 +6482,6 @@ dependencies = [
  "rustix 1.1.2",
  "sea-orm",
  "serde",
- "serde_json",
  "server_utils",
  "tempfile",
  "thiserror 2.0.11",

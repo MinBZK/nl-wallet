@@ -3,8 +3,6 @@ use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use chrono::DateTime;
-use derive_more::From;
-use derive_more::Into;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use rand::seq::SliceRandom;
@@ -30,8 +28,6 @@ use sea_orm::sea_query::LockType;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
-use serde::Deserialize;
-use serde::Serialize;
 use uuid::Uuid;
 
 use crypto::EcdsaKeySend;
@@ -130,21 +126,11 @@ pub enum StatusListServiceError {
     #[error("could not lock for publish: {0}")]
     PublishLock(#[from] PublishLockError),
 
-    #[error("could not serialize / deserialize: {0}")]
-    Serde(#[from] serde_json::Error),
-
     #[error("too many claims requested: {0}")]
     TooManyClaimsRequested(usize),
 
     #[error("unknown attestation type: {0}")]
     UnknownAttestationType(String),
-}
-
-#[derive(Debug, Clone, PartialEq, From, Into, Serialize, Deserialize)]
-#[serde(into = "(i64,u32)", try_from = "(i64,u32)")]
-pub struct StatusListLocation {
-    pub list_id: i64,
-    pub index: u32,
 }
 
 impl<K> StatusListService for PostgresStatusListServices<K>
