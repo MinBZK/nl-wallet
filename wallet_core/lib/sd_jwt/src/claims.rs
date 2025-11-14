@@ -546,13 +546,13 @@ impl ArrayClaim {
         claim_path: &[ClaimPath],
         claim_path_index: usize,
         disclosures: &IndexMap<String, Disclosure>,
-        metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
     ) -> Result<(), ClaimError> {
         let head = &claim_path[..=claim_path_index];
 
         let has_next = !claim_path[claim_path_index + 1..].is_empty();
 
-        let should_be_disclosable = metadata
+        let should_be_disclosable = sd_metadata
             .get(&head.to_vec())
             .unwrap_or(&ClaimSelectiveDisclosureMetadata::Allowed);
 
@@ -567,7 +567,7 @@ impl ArrayClaim {
                 if let Some(value) = array_claim.resolve_to_value(disclosures)?
                     && has_next
                 {
-                    value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, metadata)?;
+                    value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, sd_metadata)?;
                 }
 
                 Ok(())
@@ -575,7 +575,7 @@ impl ArrayClaim {
             ArrayClaim::Value(value) => {
                 verify_selective_disclosure(should_be_disclosable, false, head)?;
                 if has_next {
-                    value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, metadata)?;
+                    value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, sd_metadata)?;
                 }
 
                 Ok(())

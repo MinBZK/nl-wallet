@@ -372,11 +372,11 @@ impl VerifiedSdJwt {
     pub fn verify_selective_disclosure(
         &self,
         claim_path: &[ClaimPath],
-        metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
     ) -> Result<(), ClaimError> {
         self.claims()
             .claims
-            .verify_selective_disclosability(claim_path, 0, &self.disclosures, metadata)
+            .verify_selective_disclosability(claim_path, 0, &self.disclosures, sd_metadata)
     }
 }
 
