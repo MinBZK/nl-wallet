@@ -369,7 +369,7 @@ impl VerifiedSdJwt {
         serialization.dangerous_parse_unverified()
     }
 
-    pub fn verify_selective_disclosure(
+    pub fn verify_selective_disclosability(
         &self,
         claim_path: &[ClaimPath],
         sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
@@ -381,21 +381,20 @@ impl VerifiedSdJwt {
 }
 
 #[inline]
-pub fn verify_selective_disclosure(
-    sd: &ClaimSelectiveDisclosureMetadata,
+pub fn verify_selective_disclosability(
+    should_be_disclosable: &ClaimSelectiveDisclosureMetadata,
     is_actually_disclosable: bool,
     claim_path: &[ClaimPath],
 ) -> Result<(), ClaimError> {
-    if (*sd == ClaimSelectiveDisclosureMetadata::Always && !is_actually_disclosable)
-        || (*sd == ClaimSelectiveDisclosureMetadata::Never && is_actually_disclosable)
-    {
-        Err(ClaimError::SelectiveDisclosabilityMismatch(
-            claim_path.to_vec(),
-            *sd,
-            is_actually_disclosable,
-        ))
-    } else {
-        Ok(())
+    match (should_be_disclosable, is_actually_disclosable) {
+        (ClaimSelectiveDisclosureMetadata::Always, false) | (ClaimSelectiveDisclosureMetadata::Never, true) => {
+            Err(ClaimError::SelectiveDisclosabilityMismatch(
+                claim_path.to_vec(),
+                *should_be_disclosable,
+                is_actually_disclosable,
+            ))
+        }
+        _ => Ok(()),
     }
 }
 

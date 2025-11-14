@@ -280,7 +280,7 @@ mod tests {
 
         let metadata = HashMap::from_iter([(path.clone(), sd)]);
 
-        let result = verified_sd_jwt.verify_selective_disclosure(&path, &metadata);
+        let result = verified_sd_jwt.verify_selective_disclosability(&path, &metadata);
         if should_succeed {
             result.unwrap();
         } else {
@@ -328,7 +328,7 @@ mod tests {
         let verified_sd_jwt = sd_jwt.into_verified();
 
         let error = verified_sd_jwt
-            .verify_selective_disclosure(&path, &HashMap::new())
+            .verify_selective_disclosability(&path, &HashMap::new())
             .unwrap_err();
 
         verify_expected_error(error);
