@@ -28,3 +28,10 @@ appiumLogs: true
 disableAnimations: true
 
 staticWebDriver: false
+
+accessibility: "${ENABLE_BROWSERSTACK_A11Y_CHECKS}"
+accessibilityOptions:
+  wcagVersion: wcag21aa
+  includeIssueType:
+    bestPractice: false
+  scannerProcessingTimeout: 10

@@ -82,6 +82,7 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC17 LTC21 Share data flow, Opening a bank account. MDOC")
+    @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountXyzBankMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -91,17 +92,20 @@ class DisclosureTests : TestBase() {
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+
         disclosureScreen.viewDisclosureOrganizationDetails()
         assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", XYZ)))
+
         disclosureScreen.goBack();
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
         assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
+
         disclosureScreen.goBack()
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
-        assertTrue(xyzBankWebPage.identificationSucceededMessageVisible(), "User not identified correctly")
+        assertTrue(xyzBankWebPage.sharedAttributeVisible(DEFAULT_BSN), "User not identified correctly")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -125,12 +129,12 @@ class DisclosureTests : TestBase() {
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
-        assertTrue(xyzBankWebPage.identificationSucceededMessageVisible(), "User not identified correctly")
+        assertTrue(xyzBankWebPage.sharedAttributeVisible(DEFAULT_BSN), "User not identified correctly")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC23 LTC25 RP Login flow, MDOC")
-    @Tags(Tag("smoke"))
+    @Tags(Tag("smoke"), Tag("a11yBatch1"))
     fun verifyDisclosureLoginMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -141,20 +145,26 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
+
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM).plus("\nGemeente"))
+        disclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)
+            .plus("\n" + organizationAuthMetadata.getAttributeValueForOrganization("organization.category", AMSTERDAM)))
+
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
+
         disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
         assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
+
         disclosureScreen.goBack()
         disclosureScreen.viewLoginDisclosureDetails()
         disclosureScreen.readTerms()
         assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
+
         disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.login()
@@ -240,6 +250,7 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC27 Wallet does not contain requested attributes")
+    @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountMonkeyBike(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -249,11 +260,9 @@ class DisclosureTests : TestBase() {
         monkeyBikeWebPage.openSameDeviceWalletFlow()
         monkeyBikeWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
+
         disclosureScreen.stopRequestAfterMissingAttributeFailure()
-    //TODO enable after PVW-4916
-//        disclosureScreen.goToWebsite()
-//        monkeyBikeWebPage.switchToWebViewContext()
-//        assertTrue(monkeyBikeWebPage.loginFailedMessageVisible(), "Login failed message not visible")
+        assertTrue(dashboardScreen.visible(), "App dashboard not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

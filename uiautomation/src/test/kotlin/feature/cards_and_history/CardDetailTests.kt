@@ -7,10 +7,6 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.CardNavigator
 import navigator.screen.CardNavigatorScreen
-import screen.card.CardDataIncorrectScreen
-import screen.card.CardDataScreen
-import screen.card.CardDetailScreen
-import screen.dashboard.DashboardScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -20,6 +16,10 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.card.CardDataIncorrectScreen
+import screen.card.CardDataScreen
+import screen.card.CardDetailScreen
+import screen.dashboard.DashboardScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC7.2 Shows card details")
@@ -46,6 +46,7 @@ class CardDetailTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC33 Show Card Details")
+    @Tags(Tag("a11yBatch1"))
     fun verifyCardDetailScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(

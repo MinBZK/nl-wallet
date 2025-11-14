@@ -69,6 +69,7 @@ class UserLocksWalletTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC72 User confirms logout on inactivity prompt, LTC73 User dismisses inactivity prompt")
+    @Tags(Tag("a11yBatch2"))
     fun verifyWarningNotificationBeforeLock(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
@@ -76,6 +77,7 @@ class UserLocksWalletTests : TestBase() {
         inactivityLockWarningNotification.switchToNativeContext()
         assertTrue(inactivityLockWarningNotification.visible())
         assertTrue(inactivityLockWarningNotification.confirmButtonVisible())
+
         inactivityLockWarningNotification.clickConfirmButton()
         assertTrue(!inactivityLockWarningNotification.visible(), "inactivity warning notification is visible")
         Thread.sleep(102000)

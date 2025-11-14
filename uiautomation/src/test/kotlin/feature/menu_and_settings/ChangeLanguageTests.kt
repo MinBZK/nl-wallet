@@ -31,7 +31,7 @@ class ChangeLanguageTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @Tags(Tag("english"))
+    @Tags(Tag("english"), Tag("a11yBatch2"))
     @DisplayName("LTC38, LTC39 Select a new language, English")
     fun verifyDutchLanguageSelect(testInfo: TestInfo) {
         setUp(testInfo)
