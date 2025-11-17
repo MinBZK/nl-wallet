@@ -82,8 +82,6 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: reader_trust_anchors
-            - name: ISSUANCE_SERVER__STATUS_LISTS__PUBLISH_DIR
-              value: "/status-lists"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

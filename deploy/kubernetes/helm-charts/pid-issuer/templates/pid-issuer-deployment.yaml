@@ -105,8 +105,6 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-pid-issuer-recovery-code-secret-key
                   key: secret_key
-            - name: PID_ISSUER__STATUS_LISTS__PUBLISH_DIR
-              value: "/status-lists"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
