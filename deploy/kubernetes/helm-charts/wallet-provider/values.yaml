@@ -188,5 +188,5 @@ logSidecar:
 ## @param wuaStatusList.certificate WUA status list certificate
 ##
 wuaStatusList:
- secretName: null
- certificate: null
+  secretName: null
+  certificate: null
