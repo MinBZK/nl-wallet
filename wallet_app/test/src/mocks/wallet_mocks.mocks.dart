@@ -121,6 +121,7 @@ import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dar
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart' as _i76;
 import 'package:wallet/src/domain/usecase/wallet/get_wallet_state_usecase.dart' as _i125;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i59;
+import 'package:wallet/src/domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart' as _i127;
 import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart' as _i94;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i60;
 import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart' as _i78;
@@ -6147,6 +6148,42 @@ class MockReceiveWalletTransferUseCase extends _i1.Mock implements _i126.Receive
             ),
           )
           as _i10.Future<_i57.Result<void>>);
+
+  @override
+  _i10.Future<_i57.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#tryCatch, [future, errorDescription]),
+            returnValue: _i10.Future<_i57.Result<T>>.value(
+              _i14.dummyValue<_i57.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i57.Result<T>>.value(
+              _i14.dummyValue<_i57.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+          )
+          as _i10.Future<_i57.Result<T>>);
+}
+
+/// A class which mocks [IsWalletRegisteredAndUnlockedUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIsWalletRegisteredAndUnlockedUseCase extends _i1.Mock implements _i127.IsWalletRegisteredAndUnlockedUseCase {
+  @override
+  _i10.Future<bool> invoke() =>
+      (super.noSuchMethod(
+            Invocation.method(#invoke, []),
+            returnValue: _i10.Future<bool>.value(false),
+            returnValueForMissingStub: _i10.Future<bool>.value(false),
+          )
+          as _i10.Future<bool>);
 
   @override
   _i10.Future<_i57.Result<T>> tryCatch<T>(

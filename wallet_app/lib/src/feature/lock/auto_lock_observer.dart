@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:clock/clock.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,8 +32,7 @@ class AutoLockObserver extends StatefulWidget {
 }
 
 class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBindingObserver {
-  // final PublishSubject<void> _userInteractionStream = PublishSubject();
-  final Stopwatch _backgroundStopwatch = Stopwatch();
+  final Stopwatch _backgroundStopwatch = clock.stopwatch();
   StreamSubscription? _semanticsSubscription;
   StreamSubscription? _inactiveWarningSubscription;
   StreamSubscription? _inactiveSubscription;

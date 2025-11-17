@@ -29,20 +29,6 @@ void main() {
     startDisclosureUseCase = MockStartDisclosureUseCase();
     cancelDisclosureUseCase = MockCancelDisclosureUseCase();
     getMostRecentWalletEventUsecase = MockGetMostRecentWalletEventUseCase();
-    provideDummy<Result<StartDisclosureResult>>(
-      Result.success(
-        StartDisclosureReadyToDisclose(
-          relyingParty: WalletMockData.organization,
-          originUrl: 'http://origin.org',
-          requestPurpose: 'requestPurpose'.untranslated,
-          sessionType: DisclosureSessionType.crossDevice,
-          type: DisclosureType.login,
-          policy: WalletMockData.policy,
-          sharedDataWithOrganizationBefore: false,
-          cardRequests: [],
-        ),
-      ),
-    );
   });
 
   test('initial state is correct', () {

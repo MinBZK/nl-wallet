@@ -21,8 +21,6 @@ void main() {
   late RequestBiometricsUseCase requestBiometricsUsecase;
 
   setUp(() {
-    provideDummy<Result<BiometricAuthenticationResult>>(const Result.success(BiometricAuthenticationResult.success));
-
     getSupportedBiometricsUseCase = MockGetSupportedBiometricsUseCase();
     getAvailableBiometricsUseCase = MockGetAvailableBiometricsUseCase();
     setBiometricsUseCase = MockSetBiometricsUseCase();

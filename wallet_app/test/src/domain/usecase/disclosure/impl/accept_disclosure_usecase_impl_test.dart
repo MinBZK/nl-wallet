@@ -13,7 +13,6 @@ void main() {
   final mockRepo = Mocks.create<DisclosureRepository>() as MockDisclosureRepository;
 
   setUp(() {
-    provideDummy<AcceptDisclosureResult>(const AcceptDisclosureResult.ok());
     usecase = AcceptDisclosureUseCaseImpl(mockRepo, []);
   });
 

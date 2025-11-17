@@ -16,8 +16,6 @@ void main() {
   late NetworkRepository networkRepository;
 
   setUp(() {
-    // Provide a fallback dummy value for mockito, required here but likely overridden.
-    provideDummy<CheckPinResult>(CheckPinResultBlocked());
     checkPinUseCase = MockCheckPinUseCase();
     networkRepository = Mocks.create();
     bloc = PinBloc(checkPinUseCase);

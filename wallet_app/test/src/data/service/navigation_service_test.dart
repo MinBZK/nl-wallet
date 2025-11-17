@@ -14,7 +14,6 @@ void main() {
   late MockBuildContext context;
 
   setUp(() {
-    provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
     navigatorKey = MockNavigatorKey();
     navigatorState = MockNavigatorState();
     context = MockBuildContext();

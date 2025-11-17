@@ -13,9 +13,7 @@ import '../../../../mocks/wallet_mocks.mocks.dart';
 void main() {
   late FetchTourVideosUseCase fetchTourVideosUseCase;
 
-  setUp(() {
-    provideDummy<Result<List<TourVideo>>>(const Result.success([]));
-  });
+  setUp(() {});
 
   blocTest(
     'when usecase returns success with 3 videos, emit TourLoaded with 3 videos',
