@@ -2,12 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/disclosure/core/core_disclosure_repository.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart' as ui;
-import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart' as ui;
-import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart' as ui;
-import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet_core/core.dart';
 
-import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
@@ -15,20 +11,6 @@ void main() {
   late MockTypedWalletCore mockTypedWalletCore;
 
   setUp(() {
-    provideDummy<Policy>(WalletMockData.policy);
-    provideDummy<ui.DisclosureType>(ui.DisclosureType.login);
-    provideDummy<AcceptDisclosureResult>(const AcceptDisclosureResult_Ok());
-    provideDummy<ui.DisclosureSessionType>(ui.DisclosureSessionType.crossDevice);
-    provideDummy<StartDisclosureResult>(
-      const StartDisclosureResult.requestAttributesMissing(
-        relyingParty: Organization(legalName: [], displayName: [], description: [], category: []),
-        missingAttributes: [],
-        requestOriginBaseUrl: '',
-        sharedDataWithRelyingPartyBefore: false,
-        sessionType: DisclosureSessionType.CrossDevice,
-        requestPurpose: [],
-      ),
-    );
     mockTypedWalletCore = MockTypedWalletCore();
     repository = CoreDisclosureRepository(
       mockTypedWalletCore,

@@ -1,8 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/renew_pid/bloc/renew_pid_bloc.dart';
@@ -18,10 +16,6 @@ void main() {
   late MockGetPidCardsUseCase getPidCardsUseCase;
 
   setUp(() {
-    // Provide dummies
-    provideDummy<Result<List<Attribute>>>(const Result.success([]));
-    provideDummy<Result<List<WalletCard>>>(const Result.success([]));
-    provideDummy<Result<bool>>(const Result.success(true));
     // Create mock usecases
     getPidRenewalUrlUseCase = MockGetPidRenewalUrlUseCase();
     continuePidIssuanceUseCase = MockContinuePidIssuanceUseCase();

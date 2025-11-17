@@ -2,8 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
-import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
@@ -26,9 +24,6 @@ void main() {
     mockCancelPidIssuanceUseCase = MockCancelPidIssuanceUseCase();
     mockContinuePidIssuanceUseCase = MockContinuePidIssuanceUseCase();
     mockIsWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
-    provideDummy<Result<List<WalletCard>>>(const Result.success([]));
-    provideDummy<Result<bool>>(const Result.success(true));
-    provideDummy<Result<List<Attribute>>>(const Result.success([]));
   });
 
   blocTest(

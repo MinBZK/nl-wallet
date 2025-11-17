@@ -310,5 +310,162 @@ void main() {
       when(core.crateApiFullResetWallet()).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.resetWallet(), throwsA(isA<CoreError>()));
     });
+
+    test('checkPin', () async {
+      when(core.crateApiFullCheckPin(pin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.checkPin(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('changePin', () async {
+      when(core.crateApiFullChangePin(oldPin: _kSamplePin, newPin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.changePin(_kSamplePin, _kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('continueChangePin', () async {
+      when(core.crateApiFullContinueChangePin(pin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.continueChangePin(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('createPidRenewalRedirectUri', () async {
+      when(core.crateApiFullCreatePidRenewalRedirectUri()).thenThrow(ffiException);
+      expect(() => typedWalletCore.createPidRenewalRedirectUri(), throwsA(isA<CoreError>()));
+    });
+
+    test('continuePidIssuance', () async {
+      when(core.crateApiFullContinuePidIssuance(uri: 'https://example.org')).thenThrow(ffiException);
+      expect(() => typedWalletCore.continuePidIssuance('https://example.org'), throwsA(isA<CoreError>()));
+    });
+
+    test('continueDisclosureBasedIssuance', () async {
+      when(
+        core.crateApiFullContinueDisclosureBasedIssuance(pin: _kSamplePin, selectedIndices: []),
+      ).thenThrow(ffiException);
+      expect(() => typedWalletCore.continueDisclosureBasedIssuance(_kSamplePin, []), throwsA(isA<CoreError>()));
+    });
+
+    test('acceptDisclosure', () async {
+      when(core.crateApiFullAcceptDisclosure(pin: _kSamplePin, selectedIndices: [])).thenThrow(ffiException);
+      expect(() => typedWalletCore.acceptDisclosure(_kSamplePin, []), throwsA(isA<CoreError>()));
+    });
+
+    test('startDisclosure', () async {
+      when(core.crateApiFullStartDisclosure(uri: 'https://example.org', isQrCode: false)).thenThrow(ffiException);
+      expect(() => typedWalletCore.startDisclosure('https://example.org'), throwsA(isA<CoreError>()));
+    });
+
+    test('getHistory', () async {
+      when(core.crateApiFullGetHistory()).thenThrow(ffiException);
+      expect(() => typedWalletCore.getHistory(), throwsA(isA<CoreError>()));
+    });
+
+    test('getHistoryForCard', () async {
+      when(core.crateApiFullGetHistoryForCard(attestationId: '0')).thenThrow(ffiException);
+      expect(() => typedWalletCore.getHistoryForCard('0'), throwsA(isA<CoreError>()));
+    });
+
+    test('isBiometricLoginEnabled', () async {
+      when(core.crateApiFullIsBiometricUnlockEnabled()).thenThrow(ffiException);
+      expect(() => typedWalletCore.isBiometricLoginEnabled(), throwsA(isA<CoreError>()));
+    });
+
+    test('setBiometricUnlock', () async {
+      when(core.crateApiFullSetBiometricUnlock(enable: true)).thenThrow(ffiException);
+      expect(() => typedWalletCore.setBiometricUnlock(enabled: true), throwsA(isA<CoreError>()));
+    });
+
+    test('unlockWithBiometrics', () async {
+      when(core.crateApiFullUnlockWalletWithBiometrics()).thenThrow(ffiException);
+      expect(() => typedWalletCore.unlockWithBiometrics(), throwsA(isA<CoreError>()));
+    });
+
+    test('getVersionString', () async {
+      when(core.crateApiFullGetVersionString()).thenThrow(ffiException);
+      expect(() => typedWalletCore.getVersionString(), throwsA(isA<CoreError>()));
+    });
+
+    test('createPinRecoveryRedirectUri', () async {
+      when(core.crateApiFullCreatePinRecoveryRedirectUri()).thenThrow(ffiException);
+      expect(() => typedWalletCore.createPinRecoveryRedirectUri(), throwsA(isA<CoreError>()));
+    });
+
+    test('continuePinRecovery', () async {
+      when(core.crateApiFullContinuePinRecovery(uri: 'https://example.org')).thenThrow(ffiException);
+      expect(() => typedWalletCore.continuePinRecovery('https://example.org'), throwsA(isA<CoreError>()));
+    });
+
+    test('completePinRecovery', () async {
+      when(core.crateApiFullCompletePinRecovery(pin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.completePinRecovery(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('cancelPinRecovery', () async {
+      when(core.crateApiFullCancelPinRecovery()).thenThrow(ffiException);
+      expect(() => typedWalletCore.cancelPinRecovery(), throwsA(isA<CoreError>()));
+    });
+
+    test('initWalletTransfer', () async {
+      when(core.crateApiFullInitWalletTransfer()).thenThrow(ffiException);
+      expect(() => typedWalletCore.initWalletTransfer(), throwsA(isA<CoreError>()));
+    });
+
+    test('pairWalletTransfer', () async {
+      when(core.crateApiFullPairWalletTransfer(uri: 'https://example.org')).thenThrow(ffiException);
+      expect(() => typedWalletCore.pairWalletTransfer('https://example.org'), throwsA(isA<CoreError>()));
+    });
+
+    test('confirmWalletTransfer', () async {
+      when(core.crateApiFullConfirmWalletTransfer(pin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.confirmWalletTransfer(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('transferWallet', () async {
+      when(core.crateApiFullTransferWallet()).thenThrow(ffiException);
+      expect(() => typedWalletCore.transferWallet(), throwsA(isA<CoreError>()));
+    });
+
+    test('receiveWalletTransfer', () async {
+      when(core.crateApiFullReceiveWalletTransfer()).thenThrow(ffiException);
+      expect(() => typedWalletCore.receiveWalletTransfer(), throwsA(isA<CoreError>()));
+    });
+
+    test('cancelWalletTransfer', () async {
+      when(core.crateApiFullCancelWalletTransfer()).thenThrow(ffiException);
+      expect(() => typedWalletCore.cancelWalletTransfer(), throwsA(isA<CoreError>()));
+    });
+
+    test('getWalletTransferState', () async {
+      when(core.crateApiFullGetWalletTransferState()).thenThrow(ffiException);
+      expect(() => typedWalletCore.getWalletTransferState(), throwsA(isA<CoreError>()));
+    });
+
+    test('skipWalletTransfer', () async {
+      when(core.crateApiFullSkipWalletTransfer()).thenThrow(ffiException);
+      expect(() => typedWalletCore.skipWalletTransfer(), throwsA(isA<CoreError>()));
+    });
+
+    test('getWalletState', () async {
+      when(core.crateApiFullGetWalletState()).thenThrow(ffiException);
+      expect(() => typedWalletCore.getWalletState(), throwsA(isA<CoreError>()));
+    });
+
+    test('acceptPidIssuance', () async {
+      when(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.acceptPidIssuance(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('hasActiveDisclosureSession', () async {
+      when(core.crateApiFullHasActiveDisclosureSession()).thenThrow(ffiException);
+      expect(() => typedWalletCore.hasActiveDisclosureSession(), throwsA(isA<CoreError>()));
+    });
+
+    test('hasActiveIssuanceSession', () async {
+      when(core.crateApiFullHasActiveIssuanceSession()).thenThrow(ffiException);
+      expect(() => typedWalletCore.hasActiveIssuanceSession(), throwsA(isA<CoreError>()));
+    });
+
+    test('cancelDisclosure', () async {
+      when(core.crateApiFullCancelDisclosure()).thenThrow(ffiException);
+      expect(() => typedWalletCore.cancelDisclosure(), throwsA(isA<CoreError>()));
+    });
   });
 }

@@ -16,7 +16,6 @@ void main() {
   late GetVersionStringUseCase getVersionUsecase;
 
   setUp(() async {
-    provideDummy<Result<String>>(const Result.success('1.0'));
     getVersionUsecase = MockGetVersionStringUseCase();
     when(getVersionUsecase.invoke()).thenAnswer((_) async => const Result.success('1.2.3 (123)'));
   });

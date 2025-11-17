@@ -17,7 +17,6 @@ void main() {
   late MockCheckHasPermissionUseCase checkHasPermissionUseCase;
 
   setUp(() {
-    provideDummy<Result<NavigationRequest>>(const Result.success(GenericNavigationRequest('')));
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('vibration'),
       (MethodCall methodCall) {

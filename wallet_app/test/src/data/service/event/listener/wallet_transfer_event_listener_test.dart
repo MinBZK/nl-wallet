@@ -13,8 +13,6 @@ void main() {
   late WalletTransferEventListener listener;
 
   setUp(() {
-    provideDummy<WalletState>(WalletStateReady());
-
     navigationService = MockNavigationService();
     getWalletStateUseCase = MockGetWalletStateUseCase();
     cancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
@@ -91,9 +89,28 @@ void main() {
     );
 
     test(
+      'should cancel wallet transfer onDashboardShown on source device',
+      () async {
+        when(getWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateTransferring(TransferRole.source));
+        await listener.onDashboardShown();
+
+        verify(cancelWalletTransferUseCase.invoke()).called(1);
+      },
+    );
+
+    test(
+      'should NOT cancel wallet transfer onDashboardShown on destination device',
+      () async {
+        when(getWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateTransferring(TransferRole.target));
+        await listener.onDashboardShown();
+
+        verifyNever(cancelWalletTransferUseCase.invoke());
+      },
+    );
+
+    test(
       'should do nothing when irrelevant listeners are triggered',
       () async {
-        await listener.onDashboardShown();
         await listener.onWalletLocked();
 
         verifyNever(cancelWalletTransferUseCase.invoke());

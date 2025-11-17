@@ -20,9 +20,11 @@ const kGoldenSize = Size(350, 300);
 
 void main() {
   late MockConfigurationRepository configurationRepository;
+  late MockGetVersionStringUseCase getVersionStringUseCase;
 
   setUp(() {
-    provideDummy<Result<String>>(const Result.success('1.0'));
+    getVersionStringUseCase = MockGetVersionStringUseCase();
+    when(getVersionStringUseCase.invoke()).thenAnswer((_) async => const Result.success('1.0'));
     configurationRepository = MockConfigurationRepository();
     when(configurationRepository.appConfiguration).thenAnswer(
       (_) => Stream.value(
@@ -43,7 +45,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const ErrorDetailsSheet()
-              .withDependency<GetVersionStringUseCase>((c) => MockGetVersionStringUseCase())
+              .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
               .withDependency<ConfigurationRepository>((c) => configurationRepository),
           surfaceSize: kGoldenSize,
         );
@@ -62,7 +64,7 @@ void main() {
                   sourceError: Exception('Some exception message'),
                 ),
               )
-              .withDependency<GetVersionStringUseCase>((c) => MockGetVersionStringUseCase())
+              .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
               .withDependency<ConfigurationRepository>((c) => configurationRepository),
           surfaceSize: const Size(350, 341),
         );
@@ -76,7 +78,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const ErrorDetailsSheet()
-              .withDependency<GetVersionStringUseCase>((c) => MockGetVersionStringUseCase())
+              .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
               .withDependency<ConfigurationRepository>((c) => configurationRepository),
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
@@ -91,7 +93,7 @@ void main() {
     testWidgets('version widgets are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ErrorDetailsSheet()
-            .withDependency<GetVersionStringUseCase>((c) => MockGetVersionStringUseCase())
+            .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
             .withDependency<ConfigurationRepository>((c) => configurationRepository),
       );
 

@@ -31,4 +31,10 @@ abstract class CoreMockData {
     category: [LocalizedString(language: 'en', value: 'category')],
     description: [LocalizedString(language: 'en', value: 'description')],
   );
+
+  static const RequestPolicy policy = RequestPolicy(
+    dataSharedWithThirdParties: true,
+    dataDeletionPossible: true,
+    policyUrl: 'https://example.org',
+  );
 }

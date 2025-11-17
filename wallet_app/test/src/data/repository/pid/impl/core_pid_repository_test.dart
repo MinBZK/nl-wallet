@@ -25,7 +25,6 @@ void main() {
 
   setUp(() {
     core = Mocks.create();
-    provideDummy<PidIssuanceResult>(const PidIssuanceResult.ok(transferAvailable: true));
     cardMapper = CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),

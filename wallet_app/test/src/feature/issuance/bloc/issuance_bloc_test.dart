@@ -29,11 +29,7 @@ void main() {
   final MockStartIssuanceUseCase startIssuanceUseCase = MockStartIssuanceUseCase();
   final MockCancelIssuanceUseCase cancelIssuanceUseCase = MockCancelIssuanceUseCase();
 
-  setUp(() {
-    provideDummy<Result<StartIssuanceResult>>(
-      Result.success(_kDefaultReadyToDiscloseResponse),
-    );
-  });
+  setUp(() {});
 
   IssuanceBloc createBloc({bool isRefreshFlow = false}) => IssuanceBloc(
     startIssuanceUseCase,
