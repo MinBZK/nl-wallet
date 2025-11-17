@@ -33,24 +33,9 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
-            - name: WALLET_PROVIDER__DATABASE__HOST
+            - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.database.secretName }}
-                  key: host
-            - name: WALLET_PROVIDER__DATABASE__NAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: database
-            - name: WALLET_PROVIDER__DATABASE__USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: username
-            - name: WALLET_PROVIDER__DATABASE__PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: password
+                  key: url
       restartPolicy: Never
