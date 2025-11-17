@@ -18,10 +18,11 @@ pub struct CachedStatusListClient<C> {
 }
 
 struct CachedExpiry {
+    /// TTL when Status List Token has no `ttl` specified
     default_ttl: Duration,
+    /// TTL when an error occurred, te prevent retrying always on an error
+    error_ttl: Duration,
 }
-
-const ZERO_DURATION: Duration = Duration::from_secs(0);
 
 impl Expiry<Url, CachedResult> for CachedExpiry {
     fn expire_after_create(&self, _key: &Url, value: &CachedResult, _created_at: Instant) -> Option<Duration> {
@@ -29,13 +30,10 @@ impl Expiry<Url, CachedResult> for CachedExpiry {
             Ok(token) => token
                 .as_ref()
                 .dangerous_parse_unverified()
-                // This ok() means that an unparseable JWT is still cached for the default TTL. The
-                // default TTL is meant to be low to prevent doing the same request in a very short
-                // time frame. Upstream probably didn't republish in that very short time frame.
-                .ok()
-                .and_then(|(_, claims)| claims.ttl)
+                .map(|(_, claims)| claims.ttl)
+                .unwrap_or(Some(self.error_ttl))
                 .unwrap_or(self.default_ttl),
-            Err(_) => ZERO_DURATION,
+            Err(_) => self.error_ttl,
         };
         Some(duration)
     }
@@ -48,10 +46,10 @@ impl<C: StatusListClient> StatusListClient for CachedStatusListClient<C> {
 }
 
 impl<C> CachedStatusListClient<C> {
-    pub fn new(client: C, capacity: u64, default_ttl: Duration) -> Self {
+    pub fn new(client: C, capacity: u64, default_ttl: Duration, error_ttl: Duration) -> Self {
         let cache = Cache::builder()
             .max_capacity(capacity)
-            .expire_after(CachedExpiry { default_ttl })
+            .expire_after(CachedExpiry { default_ttl, error_ttl })
             .build();
         Self { cache, client }
     }
@@ -75,6 +73,8 @@ mod test {
     use crate::verification::client::MockStatusListClient;
 
     use super::*;
+
+    const TEN_MINUTES: Duration = Duration::from_secs(600);
 
     async fn setup_mock_tokens<I, F>(tokens: I) -> MockStatusListClient
     where
@@ -106,7 +106,7 @@ mod test {
         let keypair = ca.generate_status_list_mock().unwrap();
 
         let client = setup_mock_tokens([create_status_list_token(&keypair, None, None)]).await;
-        let cached = CachedStatusListClient::new(client, 10, Duration::from_secs(600));
+        let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, TEN_MINUTES);
 
         let res1 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
         let res2 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
@@ -124,7 +124,7 @@ mod test {
             create_status_list_token(&keypair, None, Some(20)),
         ])
         .await;
-        let cached = CachedStatusListClient::new(client, 10, Duration::from_secs(600));
+        let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, TEN_MINUTES);
 
         let res1 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
         let res2 = cached.fetch("https://localhost:8008".parse().unwrap()).await.unwrap();
@@ -142,12 +142,12 @@ mod test {
             create_status_list_token(&keypair, Some(20), None),
         ])
         .await;
-        let cached = CachedStatusListClient::new(client, 10, Duration::from_millis(20));
+        let cached = CachedStatusListClient::new(client, 10, Duration::from_millis(100), TEN_MINUTES);
 
         let res1a = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
         tokio::time::sleep(Duration::from_millis(10)).await;
         let res1b = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(40)).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
         let res2 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
 
         assert_eq!(res1a, res1b);
@@ -164,7 +164,7 @@ mod test {
             create_status_list_token(&keypair, Some(20), Some(2)),
         ])
         .await;
-        let cached = CachedStatusListClient::new(client, 10, Duration::from_secs(600));
+        let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, TEN_MINUTES);
 
         let res1a = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -186,12 +186,12 @@ mod test {
             create_status_list_token(&keypair, Some(20), Some(2)),
         ])
         .await;
-        let cached = CachedStatusListClient::new(client, 10, Duration::from_millis(100));
+        let cached = CachedStatusListClient::new(client, 10, Duration::from_millis(100), TEN_MINUTES);
 
         let res1a = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        tokio::time::sleep(Duration::from_millis(200)).await;
         let res1b = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(550)).await;
+        tokio::time::sleep(Duration::from_millis(900)).await;
         let res2 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
 
         assert_eq!(res1a, res1b);
@@ -199,7 +199,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn should_not_cache_on_err() {
+    async fn should_cache_error_ttl_on_err() {
         let ca = Ca::generate("test", Default::default()).unwrap();
         let keypair = ca.generate_status_list_mock().unwrap();
 
@@ -207,12 +207,17 @@ mod test {
             Err(StatusListClientError::JwtParsing(JwtError::MissingX5c.into())),
             Ok(create_status_list_token(&keypair, Some(20), None).await.2),
         ]);
-        let cached = CachedStatusListClient::new(client, 10, Duration::from_secs(600));
+        let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, Duration::from_millis(100));
 
-        let res = cached.fetch("https://localhost:8080".parse().unwrap()).await;
-        assert!(res.is_err());
-        let res = cached.fetch("https://localhost:8080".parse().unwrap()).await;
-        assert!(res.is_ok());
+        let res1a = cached.fetch("https://localhost:8080".parse().unwrap()).await;
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        let res1b = cached.fetch("https://localhost:8080".parse().unwrap()).await;
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        let res2 = cached.fetch("https://localhost:8080".parse().unwrap()).await;
+
+        assert!(res1a.is_err());
+        assert!(res1b.is_err());
+        assert!(res2.is_ok());
     }
 
     struct SlowStatusListClient(CachedResult, Duration);
@@ -231,7 +236,7 @@ mod test {
 
         let expected = create_status_list_token(&keypair, None, None).await.2;
         let client = SlowStatusListClient(Ok(expected.clone()), Duration::from_millis(100));
-        let cached = CachedStatusListClient::new(client, 10, Duration::from_secs(600));
+        let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, TEN_MINUTES);
 
         let results = try_join_all((0..3).map(|_| cached.fetch("https://localhost:8080".parse().unwrap())))
             .await
