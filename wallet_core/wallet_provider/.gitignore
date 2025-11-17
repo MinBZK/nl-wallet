@@ -1,3 +1,4 @@
 /wallet_provider.toml
 /wallet.toml
 /google-cloud-service-account.json
+wallet_provider_database_settings.toml

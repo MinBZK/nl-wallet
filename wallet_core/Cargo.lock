@@ -1875,6 +1875,7 @@ dependencies = [
  "attestation_types",
  "axum",
  "base64 0.22.1",
+ "chrono",
  "crypto",
  "dcql",
  "http_utils",
@@ -7873,6 +7874,7 @@ dependencies = [
  "serde_with",
  "serial_test",
  "spki",
+ "status_lists",
  "tempfile",
  "thiserror 2.0.11",
  "tokio",
@@ -7896,6 +7898,8 @@ dependencies = [
  "config",
  "serde",
  "serde_with",
+ "url",
+ "utils",
 ]
 
 [[package]]
@@ -7926,6 +7930,7 @@ version = "0.4.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
+ "status_lists_migrations",
  "tokio",
  "wallet_provider_database_settings",
 ]
@@ -7946,10 +7951,12 @@ dependencies = [
  "rand_core",
  "sea-orm",
  "semver",
+ "status_lists",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
  "utils",
  "uuid",
  "wallet_account",
@@ -7990,7 +7997,10 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "server_utils",
+ "status_lists",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -8579,6 +8589,7 @@ name = "wscd"
 version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
+ "chrono",
  "crypto",
  "derive_more",
  "futures",

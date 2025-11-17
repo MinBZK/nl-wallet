@@ -15,7 +15,6 @@ use p256::pkcs8::DecodePrivateKey;
 use reqwest::Certificate;
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring;
-use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
@@ -121,12 +120,6 @@ pub fn local_pid_base_url(port: u16) -> BaseUrl {
     format!("http://localhost:{port}/issuance/")
         .parse()
         .expect("hardcoded values should always parse successfully")
-}
-
-pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
-    Database::connect(settings.database.connection_string())
-        .await
-        .expect("Could not open database connection")
 }
 
 #[derive(Debug, Clone, Copy)]

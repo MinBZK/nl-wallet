@@ -36,6 +36,7 @@ db_test = [
     "tokio/macros",
     "dep:tracing-subscriber",
     "sea-orm/debug-print",
+    "wallet_provider_database_settings/test",
     "wallet_provider_domain/mock",
 ]
 
@@ -53,6 +54,7 @@ sea-orm = { workspace = true, features = [
 semver = { workspace = true }
 tokio = { workspace = true, features = ["parking_lot", "rt"] }
 tracing.workspace = true
+url.workspace = true
 uuid.workspace = true
 
 ctor = { workspace = true, optional = true }
@@ -71,6 +73,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
+status_lists.path = "../../wallet_server/status_lists"
 utils.path = "../../lib/utils"
 wallet_account.path = "../wallet_account"
 wallet_provider_database_settings.path = "../database_settings"

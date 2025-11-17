@@ -22,4 +22,5 @@ sea-orm-migration = { workspace = true, features = [
 ] }
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
 
+status_lists_migrations.path = "../../wallet_server/status_lists/migrations"
 wallet_provider_database_settings.path = "../database_settings"

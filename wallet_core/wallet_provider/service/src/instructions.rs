@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use base64::prelude::*;
@@ -24,6 +25,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
+use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -69,6 +71,7 @@ use crate::account_server::InstructionValidationError;
 use crate::account_server::RecoveryCodeConfig;
 use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
+use crate::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
@@ -313,7 +316,7 @@ pub trait HandleInstruction {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -330,7 +333,7 @@ impl HandleInstruction for CheckPin {
         self,
         _wallet_user: &WalletUser,
         _generators: &G,
-        _user_state: &UserState<R, H, impl WuaIssuer>,
+        _user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -350,7 +353,7 @@ impl HandleInstruction for ChangePinCommit {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -374,7 +377,8 @@ impl HandleInstruction for ChangePinCommit {
 
 pub(super) async fn perform_issuance_with_wua<T, R, H>(
     instruction: PerformIssuance,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    wallet_user: &WalletUser,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, (WrappedKey, String)), InstructionError>
 where
     T: Committable,
@@ -382,7 +386,7 @@ where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let (issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id) =
-        perform_issuance(instruction, true, user_state).await?;
+        perform_issuance(instruction, Some(wallet_user), user_state).await?;
 
     let issuance_result = PerformIssuanceWithWuaResult {
         issuance_result,
@@ -396,8 +400,8 @@ where
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
-    issue_wua: bool,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    wallet_user: Option<&WalletUser>,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<
     (
         PerformIssuanceResult,
@@ -432,20 +436,18 @@ where
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wua_key_and_id, wua_disclosure) = if issue_wua {
-        let (key, key_id, wua_disclosure) = wua(&claims, user_state).await?;
-        (Some((key, key_id)), Some(wua_disclosure))
+    let (wua_key_and_id, wua_disclosure, key_count_including_wua) = if let Some(wallet_user) = wallet_user {
+        let (key, key_id, wua_disclosure) = wua(&claims, wallet_user, user_state).await?;
+        (
+            Some((key, key_id)),
+            Some(wua_disclosure),
+            instruction.key_count.get() + 1,
+        )
     } else {
-        (None, None)
+        (None, None, instruction.key_count.get())
     };
 
     let pops = issuance_pops(&attestation_keys, &claims).await?;
-
-    let key_count_including_wua = if issue_wua {
-        instruction.key_count.get() + 1
-    } else {
-        instruction.key_count.get()
-    };
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_key_and_id.as_ref().map(|(key, _)| attestation_key(key, user_state));
         Some(
@@ -475,13 +477,13 @@ where
     Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id))
 }
 
-async fn persist_issuance_keys<T, R, H>(
+async fn persist_issuance_keys<T, R, H, S>(
     wrapped_keys: Vec<WrappedKey>,
     key_ids: Vec<String>,
     wua_key_and_id: Option<(WrappedKey, String)>,
     wallet_user: &WalletUser,
     uuid_generator: &impl Generator<Uuid>,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer, S>,
 ) -> Result<(), InstructionError>
 where
     T: Committable,
@@ -519,16 +521,40 @@ where
 
 async fn wua<T, R, H>(
     claims: &JwtPopClaims,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    wallet_user: &WalletUser,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
 ) -> Result<(WrappedKey, String, WuaDisclosure), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
+    // generate WUA ID
+    let wua_id = Uuid::new_v4();
+    let exp = Utc::now() + user_state.wua_validity;
+    let _status_claim = user_state
+        .status_list_service
+        .obtain_status_claims(
+            WUA_ATTESTATION_TYPE_IDENTIFIER,
+            wua_id,
+            Some(exp.into()),
+            NonZeroUsize::MIN, // only one WUA is issued
+        )
+        .await
+        .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)))?
+        .into_first(); // only one was requested
+
+    // link WUA ID to Wallet user ID
+    let tx = user_state.repositories.begin_transaction().await?;
+    user_state
+        .repositories
+        .store_wua_id(&tx, wallet_user.id, wua_id)
+        .await?;
+    tx.commit().await?;
+
     let (wua_wrapped_key, wua_key_id, wua) = user_state
         .wua_issuer
-        .issue_wua()
+        .issue_wua(exp)
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
@@ -562,9 +588,9 @@ where
     Ok(pops)
 }
 
-fn attestation_key<'a, T, R, H>(
+fn attestation_key<'a, T, R, H, S>(
     wrapped_key: &'a WrappedKey,
-    user_state: &'a UserState<R, H, impl WuaIssuer>,
+    user_state: &'a UserState<R, H, impl WuaIssuer, S>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
     T: Committable,
@@ -585,7 +611,7 @@ impl HandleInstruction for PerformIssuance {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -594,7 +620,7 @@ impl HandleInstruction for PerformIssuance {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, false, user_state).await?;
+        let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,
@@ -617,7 +643,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -627,7 +653,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
-            perform_issuance_with_wua(self.issuance_instruction, user_state).await?;
+            perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,
@@ -654,7 +680,7 @@ impl HandleInstruction for Sign {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
     where
@@ -724,7 +750,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -794,7 +820,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -846,7 +872,7 @@ impl HandleInstruction for PairTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -895,7 +921,7 @@ impl HandleInstruction for CancelTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -946,7 +972,7 @@ impl HandleInstruction for ResetTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -992,7 +1018,7 @@ impl HandleInstruction for GetTransferStatus {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1026,7 +1052,7 @@ impl HandleInstruction for ConfirmTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1072,7 +1098,7 @@ impl HandleInstruction for SendWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1119,7 +1145,7 @@ impl HandleInstruction for ReceiveWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<ReceiveWalletPayloadResult, InstructionError>
     where
@@ -1160,7 +1186,7 @@ impl HandleInstruction for CompleteTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1354,6 +1380,7 @@ mod tests {
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
+    use token_status_list::status_list_service::mock::MockStatusListService;
 
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CancelTransfer;
@@ -1406,6 +1433,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1468,6 +1496,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1535,6 +1564,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1590,6 +1620,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1648,6 +1679,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1689,6 +1721,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1740,6 +1773,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1774,6 +1808,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1806,6 +1841,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1850,6 +1886,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1923,6 +1960,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo.expect_save_keys().returning(|_, _| Ok(()));
+        wallet_user_repo.expect_store_wua_id().returning(|_, _, _| Ok(()));
 
         instruction
             .handle(
@@ -1933,6 +1971,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2202,6 +2241,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2245,6 +2285,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2303,6 +2344,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2344,6 +2386,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2416,6 +2459,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2458,6 +2502,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2501,6 +2546,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2544,6 +2590,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2574,6 +2621,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2613,6 +2661,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2652,6 +2701,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2694,6 +2744,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2731,6 +2782,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2780,6 +2832,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2823,6 +2876,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2865,6 +2919,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2906,6 +2961,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2947,6 +3003,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2985,6 +3042,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3029,6 +3087,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3071,6 +3130,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3113,6 +3173,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3155,6 +3216,7 @@ mod tests {
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
                     vec![],
+                    MockStatusListService::default(),
                 ),
                 &mock::RECOVERY_CODE_CONFIG,
             )

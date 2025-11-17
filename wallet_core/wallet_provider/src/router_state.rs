@@ -1,10 +1,14 @@
+use std::collections::HashMap;
 use std::error::Error;
 
 use chrono::DateTime;
+use chrono::Days;
 use chrono::Duration;
 use chrono::Utc;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use status_lists::config::StatusListConfig;
+use status_lists::postgres::PostgresStatusListServices;
 use tracing::info;
 use uuid::Uuid;
 
@@ -17,6 +21,8 @@ use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionResultMessage;
+use wallet_provider_database_settings::ConnectionOptions;
+use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
@@ -32,6 +38,7 @@ use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::pin_policy::PinPolicy;
 use wallet_provider_service::wua_issuer::HsmWuaIssuer;
+use wallet_provider_service::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
@@ -41,24 +48,24 @@ pub struct RouterState<GRC, PIC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>>,
+    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>, PostgresStatusListServices>,
     pub max_transfer_upload_size_in_bytes: usize,
 }
 
 impl<GRC, PIC> RouterState<GRC, PIC> {
     pub async fn new_from_settings(
         settings: Settings,
-        hsm: Pkcs11Hsm,
+        wallet_user_hsm: Pkcs11Hsm,
         google_crl_client: GRC,
         play_integrity_client: PIC,
     ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
         let certificate_signing_key = WalletCertificateSigning(HsmEcdsaKey::new(
             settings.certificate_signing_key_identifier,
-            hsm.clone(),
+            wallet_user_hsm.clone(),
         ));
         let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
             settings.instruction_result_signing_key_identifier,
-            hsm.clone(),
+            wallet_user_hsm.clone(),
         ));
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
@@ -108,11 +115,31 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             play_integrity_client,
         );
 
-        let db = Db::new(
-            settings.database.connection_string(),
-            settings.database.connection_options,
+        // TODO refactor wallet_provider_database to generic database module to share with issuance server (PVW-5196)
+        let db = Db::new(settings.database.url, settings.database.options).await?;
+        let status_list_db_connection = match settings.wua_status_list.list_settings.storage_url.as_ref() {
+            Some(url) => Db::new(url.to_owned(), ConnectionOptions::default())
+                .await?
+                .connection()
+                .to_owned(),
+            None => db.connection().to_owned(),
+        };
+
+        let status_list_service = PostgresStatusListServices::try_new(
+            status_list_db_connection,
+            HashMap::from([(
+                WUA_ATTESTATION_TYPE_IDENTIFIER.to_owned(),
+                StatusListConfig::from_settings(
+                    &settings.wua_status_list.list_settings,
+                    settings.wua_status_list.attestation_settings,
+                    None,
+                )
+                .await?,
+            )])
+            .into(),
         )
         .await?;
+        status_list_service.initialize_lists().await?;
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,
@@ -127,9 +154,9 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
 
         let repositories = Repositories::from(db);
         let wua_issuer = HsmWuaIssuer::new(
-            HsmEcdsaKey::new(settings.wua_signing_key_identifier, hsm.clone()),
+            HsmEcdsaKey::new(settings.wua_signing_key_identifier, wallet_user_hsm.clone()),
             settings.wua_issuer_identifier,
-            hsm.clone(),
+            wallet_user_hsm.clone(),
             settings.attestation_wrapping_key_identifier.clone(),
         );
 
@@ -141,14 +168,16 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             max_transfer_upload_size_in_bytes: settings.max_transfer_upload_size_in_bytes,
             user_state: UserState {
                 repositories,
-                wallet_user_hsm: hsm,
+                wallet_user_hsm,
                 wua_issuer,
+                wua_validity: Days::new(settings.wua_valid_days),
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
                 pid_issuer_trust_anchors: settings
                     .pid_issuer_trust_anchors
                     .iter()
                     .map(|anchor| anchor.to_owned_trust_anchor())
                     .collect(),
+                status_list_service,
             },
         };
 

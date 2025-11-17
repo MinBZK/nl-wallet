@@ -34,7 +34,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crypto::EcdsaKey;
 use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
 use jwt::UnverifiedJwt;
@@ -73,7 +72,7 @@ const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
 ///
 /// See [PostgresStatusListService] for more.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListServices<K: EcdsaKey + Clone>(HashMap<String, PostgresStatusListService<K>>);
+pub struct PostgresStatusListServices<K: Clone = PrivateKeyVariant>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -92,7 +91,7 @@ pub struct PostgresStatusListServices<K: EcdsaKey + Clone>(HashMap<String, Postg
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug, Clone)]
-pub struct PostgresStatusListService<K: EcdsaKey + Clone> {
+pub struct PostgresStatusListService<K: Clone = PrivateKeyVariant> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
@@ -797,12 +796,13 @@ mod tests {
     use assert_matches::assert_matches;
 
     use crypto::server_keys::generate::Ca;
+    use p256::ecdsa::SigningKey;
 
     use crate::publish::PublishDir;
 
     use super::*;
 
-    fn mock_service() -> PostgresStatusListService<impl EcdsaKeySend + Clone> {
+    fn mock_service() -> PostgresStatusListService<SigningKey> {
         PostgresStatusListService {
             connection: DatabaseConnection::default(),
             attestation_type_id: 1,

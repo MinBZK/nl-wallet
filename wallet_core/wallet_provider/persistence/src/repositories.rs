@@ -29,6 +29,7 @@ use crate::transaction::Transaction;
 use crate::wallet_transfer;
 use crate::wallet_user;
 use crate::wallet_user_key;
+use crate::wallet_user_wua;
 
 #[derive(From)]
 pub struct Repositories(Db);
@@ -355,6 +356,15 @@ impl WalletUserRepository for Repositories {
 
         Ok(())
     }
+
+    async fn store_wua_id(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        wua_id: Uuid,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_wua::create(transaction, wallet_user_id, wua_id).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -579,6 +589,13 @@ pub mod mock {
                 transfer_session_id: Uuid,
                 source_wallet_user_id: Uuid,
                 destination_wallet_user_id: Uuid,
+            ) -> Result<(), PersistenceError>;
+
+            async fn store_wua_id(
+                &self,
+                transaction: &MockTransaction,
+                wallet_user_id: Uuid,
+                wua_id: Uuid,
             ) -> Result<(), PersistenceError>;
         }
 
@@ -869,6 +886,15 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Uuid,
             _destination_wallet_user_id: Uuid,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn store_wua_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wua_id: Uuid,
+            _wallet_user_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

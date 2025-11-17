@@ -9,7 +9,6 @@ use chrono::Utc;
 use config::Config;
 use config::File;
 use futures::future::try_join_all;
-use p256::ecdsa::SigningKey;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -23,13 +22,13 @@ use url::Url;
 use uuid::Uuid;
 
 use crypto::EcdsaKey;
-use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
 use jwt::UnverifiedJwt;
 use server_utils::keys::PrivateKeyVariant;
+use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigs;
 use status_lists::entity::attestation_batch;
@@ -63,15 +62,6 @@ async fn connection_from_settings() -> anyhow::Result<DatabaseConnection> {
         .try_deserialize()?;
     let connection = server_utils::store::postgres::new_connection(settings.storage_url).await?;
     Ok(connection)
-}
-
-async fn private_key_variant(pair: KeyPair<SigningKey>) -> KeyPair<PrivateKeyVariant> {
-    KeyPair::new(
-        PrivateKeyVariant::Software(pair.private_key().clone()),
-        pair.certificate().clone(),
-    )
-    .await
-    .unwrap()
 }
 
 async fn create_status_list_service(

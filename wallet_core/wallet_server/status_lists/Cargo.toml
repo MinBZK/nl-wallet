@@ -13,10 +13,11 @@ doctest = false
 [[test]]
 name = "postgres"
 path = "tests/postgres.rs"
-required-features = ["integration_test"]
+required-features = ["integration_test", "test"]
 
 [features]
 integration_test = []
+test = []
 
 [dependencies]
 anyhow.workspace = true
@@ -63,4 +64,4 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 uuid = { workspace = true, features = ["v4"] }
 
 crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
-server_utils = { path = "../server_utils", features = ["parsed_key_pair_conversion", "postgres"] }
+server_utils = { path = "../server_utils", features = ["parsed_key_pair_conversion", "postgres", "test"] }

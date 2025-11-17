@@ -35,6 +35,7 @@ test-rust:
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
+    DB_HOST: "postgres"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
@@ -43,10 +44,6 @@ test-rust:
         POSTGRES_PASSWORD: "postgres"
         POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
   script:
-    - |
-      cat > scripts/.env <<EOD
-      export DB_HOST=postgres
-      EOD
     - ./scripts/setup-devenv.sh
     - ./scripts/migrate-db.sh fresh
     - cd wallet_core
@@ -107,6 +104,7 @@ test-sea-orm-generate-entity:
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
+    DB_HOST: "postgres"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
@@ -115,11 +113,6 @@ test-sea-orm-generate-entity:
         POSTGRES_PASSWORD: "postgres"
         POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
   script:
-    - |
-      cat > scripts/.env <<EOD
-      export DB_HOST=postgres
-      EOD
-    - ./scripts/setup-devenv.sh # Only needed for wallet-provider settings
     - ./scripts/migrate-db.sh fresh
     - ./scripts/generate-db-entity.sh
     - git diff

@@ -6,3 +6,4 @@ pub use super::wallet_user_android_attestation::Entity as WalletUserAndroidAttes
 pub use super::wallet_user_apple_attestation::Entity as WalletUserAppleAttestation;
 pub use super::wallet_user_instruction_challenge::Entity as WalletUserInstructionChallenge;
 pub use super::wallet_user_key::Entity as WalletUserKey;
+pub use super::wallet_user_wua::Entity as WalletUserWua;

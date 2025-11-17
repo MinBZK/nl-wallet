@@ -159,13 +159,13 @@ where
 /// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the (verified) wallet
 ///   certificate
 /// - Return the [`WalletUser`].
-pub async fn verify_wallet_certificate<T, R, H, F>(
+pub async fn verify_wallet_certificate<T, R, H, F, S>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinCheckOptions,
     pin_pubkey: F,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer, S>,
 ) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
 where
     T: Committable,
@@ -339,6 +339,7 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -361,7 +362,7 @@ mod tests {
         hw_pubkey: VerifyingKey,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
         hsm: MockPkcs11Client<HsmError>,
-    ) -> UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer> {
+    ) -> UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
         user_state(
             WalletUserTestRepo {
                 hw_pubkey,
@@ -376,6 +377,7 @@ mod tests {
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
             vec![],
+            MockStatusListService::default(),
         )
     }
 

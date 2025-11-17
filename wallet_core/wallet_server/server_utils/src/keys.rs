@@ -109,3 +109,19 @@ impl SecretKeyVariant {
         Ok(key)
     }
 }
+
+#[cfg(feature = "test")]
+pub mod test {
+    use crypto::server_keys::KeyPair;
+
+    use super::*;
+
+    pub async fn private_key_variant(pair: KeyPair<SigningKey>) -> KeyPair<PrivateKeyVariant> {
+        KeyPair::new(
+            PrivateKeyVariant::Software(pair.private_key().clone()),
+            pair.certificate().clone(),
+        )
+        .await
+        .unwrap()
+    }
+}

@@ -12,7 +12,7 @@ use tokio::task::JoinError;
 
 use utils::path::prefix_local_path;
 
-#[nutype(derive(Debug, Clone, Into, AsRef, Deserialize), validate(with=PublishDir::validate, error=PublishDirError))]
+#[nutype(derive(Debug, Clone, TryFrom, Into, AsRef, Deserialize), validate(with=PublishDir::validate, error=PublishDirError))]
 pub struct PublishDir(PathBuf);
 
 #[derive(Debug, thiserror::Error)]

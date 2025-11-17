@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use base64::prelude::*;
 use chrono::DateTime;
+use chrono::Days;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use derive_more::Constructor;
@@ -71,6 +72,7 @@ use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -301,6 +303,9 @@ pub enum InstructionError {
 
     #[error("cannot recover PIN: received PID does not belong to this wallet account")]
     PinRecoveryAccountMismatch,
+
+    #[error("error obtaining status claim: {0}")]
+    ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -498,12 +503,14 @@ pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityCl
     play_integrity_client: PIC,
 }
 
-pub struct UserState<R, H, W> {
+pub struct UserState<R, H, W, S> {
     pub repositories: R,
     pub wallet_user_hsm: H,
     pub wua_issuer: W,
+    pub wua_validity: Days,
     pub wrapping_key_identifier: String,
     pub pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+    pub status_list_service: S,
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
@@ -530,11 +537,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(challenge)
     }
 
-    pub async fn register<T, R, H>(
+    pub async fn register<T, R, H, W, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         registration_message: ChallengeResponse<Registration>,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, W, S>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         GRC: GoogleCrlProvider,
@@ -759,11 +766,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(wallet_certificate)
     }
 
-    pub async fn instruction_challenge<T, R, H>(
+    pub async fn instruction_challenge<T, R, H, W, S>(
         &self,
         challenge_request: InstructionChallengeRequest,
         time_generator: &impl Generator<DateTime<Utc>>,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, W, S>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -853,7 +860,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -890,7 +897,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: HwSignedInstruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -969,13 +976,13 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     // Changing the PIN is implemented by saving the current PIN in a separate location and replacing it by the new
     // PIN. From then on, the new PIN is used, although the pin change has to be committed first. A rollback is
     // verified against the previous PIN that is stored separately.
-    pub async fn handle_change_pin_start_instruction<T, R, G, H>(
+    pub async fn handle_change_pin_start_instruction<T, R, G, H, S>(
         &self,
         instruction: Instruction<ChangePinStart>,
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, S>,
     ) -> Result<InstructionResult<WalletCertificate>, InstructionError>
     where
         T: Committable,
@@ -1049,13 +1056,13 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     // The ChangePinRollback instruction is handled here explicitly instead of relying on the generic instruction
     // handling mechanism. The reason is that the wallet_certificate included in the instruction has to be verified
     // against the temporarily saved previous pin public key of the wallet_user.
-    pub async fn handle_change_pin_rollback_instruction<T, R, G, H>(
+    pub async fn handle_change_pin_rollback_instruction<T, R, G, H, S>(
         &self,
         instruction: Instruction<ChangePinRollback>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, S>,
     ) -> Result<InstructionResult<()>, InstructionError>
     where
         T: Committable,
@@ -1094,7 +1101,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<StartPinRecovery>,
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<StartPinRecoveryResult>, InstructionError>
     where
         T: Committable,
@@ -1133,7 +1140,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_with_wua_result, keys, _) = perform_issuance_with_wua(issuance_instruction, user_state).await?;
+        let (issuance_with_wua_result, keys, _) =
+            perform_issuance_with_wua(issuance_instruction, &wallet_user, user_state).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -1203,12 +1211,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(result)
     }
 
-    async fn verify_and_extract_instruction<T, R, I, G, H, F>(
+    async fn verify_and_extract_instruction<T, R, I, G, H, F, S>(
         &self,
         instruction: Instruction<I>,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer, S>,
         pin_pubkey: F,
     ) -> Result<(WalletUser, I), InstructionError>
     where
@@ -1248,14 +1256,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     /// Verify the provided user's PIN and the provided instruction.
     ///
     /// The `pin_pubkey` is used if provided; if not, the PIN public key from the `wallet_user` is used.
-    async fn verify_pin_and_extract_instruction<T, R, I, G, H>(
+    async fn verify_pin_and_extract_instruction<T, R, I, G, H, W, S>(
         &self,
         wallet_user: &WalletUser,
         instruction: Instruction<I>,
         generators: &G,
         pin_pubkey: Encrypted<VerifyingKey>,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, W, S>,
     ) -> Result<I, InstructionError>
     where
         T: Committable,
@@ -1586,6 +1594,7 @@ pub mod mock {
     use platform_support::attested_key::mock::MockAppleAttestedKey;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::sd_jwt::UnverifiedSdJwt;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::vec_nonempty;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -1665,20 +1674,24 @@ pub mod mock {
         )
     }
 
-    pub type MockUserState = UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer>;
+    pub type MockUserState =
+        UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService>;
 
-    pub fn user_state<R>(
+    pub fn user_state<R, S>(
         repositories: R,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
         pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
-    ) -> UserState<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
-        UserState::<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
+        status_list_service: S,
+    ) -> UserState<R, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
+        UserState::<R, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
             repositories,
             wallet_user_hsm,
             wua_issuer: MockWuaIssuer,
+            wua_validity: Days::new(1),
             wrapping_key_identifier,
             pid_issuer_trust_anchors,
+            status_list_service,
         }
     }
 
@@ -1822,6 +1835,7 @@ mod tests {
     use assert_matches::assert_matches;
     use base64::prelude::*;
     use chrono::DateTime;
+    use chrono::Days;
     use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
@@ -1853,6 +1867,7 @@ mod tests {
     use jwt::EcdsaDecodingKey;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -2025,8 +2040,10 @@ mod tests {
             repositories: wallet_user_repo,
             wallet_user_hsm: hsm,
             wua_issuer: MockWuaIssuer,
+            wua_validity: Days::new(1),
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
             pid_issuer_trust_anchors: vec![], // not needed in these tests
+            status_list_service: MockStatusListService::default(),
         };
 
         account_server
@@ -2080,7 +2097,13 @@ mod tests {
             transfer_session: None,
         };
 
-        let user_state = mock::user_state(repo, hsm, wrapping_key_identifier, vec![]);
+        let user_state = mock::user_state(
+            repo,
+            hsm,
+            wrapping_key_identifier,
+            vec![],
+            MockStatusListService::default(),
+        );
 
         (setup, account_server, hw_privkey, cert, user_state)
     }
@@ -3334,8 +3357,9 @@ mod tests {
             .returning(|_, _, _| Ok(()));
         repositories
             .expect_begin_transaction()
-            .times(3)
+            .times(4)
             .returning(|| Ok(MockTransaction));
+        repositories.expect_store_wua_id().once().returning(|_, _, _| Ok(()));
 
         repositories
             .expect_change_pin()
@@ -3353,8 +3377,10 @@ mod tests {
             repositories,
             wallet_user_hsm: user_state.wallet_user_hsm,
             wua_issuer: user_state.wua_issuer,
+            wua_validity: Days::new(1),
             wrapping_key_identifier: user_state.wrapping_key_identifier,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
+            status_list_service: MockStatusListService::default(),
         };
 
         account_server
