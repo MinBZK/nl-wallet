@@ -302,6 +302,10 @@ impl DisclosableAttestation {
         &self.partial_attestation
     }
 
+    pub fn into_partial_attestation(self) -> PartialAttestation {
+        self.partial_attestation
+    }
+
     pub fn presentation(&self) -> &AttestationPresentation {
         &self.presentation
     }

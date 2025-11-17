@@ -35,9 +35,11 @@ use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
+use sd_jwt::claims::NonSelectableClaimsError;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecAtLeastN;
 use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -143,6 +145,12 @@ pub enum DisclosureError {
         expected: RedirectUriPurpose,
         found: RedirectUriPurpose,
     },
+    #[error("non-selectable claim: {0:?} not in metadata for requested vct values: {1:?}")]
+    #[category(critical)]
+    NonSelectableClaimNotInMetadata(VecNonEmpty<ClaimPath>, Vec<String>),
+    #[error("non-selectable claim error: {0}")]
+    #[category(critical)]
+    NonSelectableClaim(#[from] NonSelectableClaimsError),
 }
 
 impl DisclosureError {
@@ -446,9 +454,13 @@ where
         .await
         .map_err(DisclosureError::AttestationRetrieval)?
         .into_iter()
-        .zip(session.credential_requests().as_ref())
-        .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id().clone(), attestations)))
-        .collect::<IndexMap<_, _>>();
+        .zip(session.credential_requests().as_ref());
+
+        Self::verify_non_selectively_disclosable_claims(candidate_attestations.clone())?;
+
+        let candidate_attestations = candidate_attestations
+            .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id().clone(), attestations)))
+            .collect::<IndexMap<_, _>>();
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
@@ -543,6 +555,32 @@ where
             )));
 
         Ok(proposal)
+    }
+
+    fn verify_non_selectively_disclosable_claims<'a>(
+        candidate_attestations: impl Iterator<
+            Item = (
+                Option<VecNonEmpty<DisclosableAttestation>>,
+                &'a NormalizedCredentialRequest,
+            ),
+        >,
+    ) -> Result<(), DisclosureError> {
+        for (attestations, request) in candidate_attestations {
+            for attestation in attestations.map(VecAtLeastN::into_inner).unwrap_or(Vec::new()) {
+                if let PartialAttestation::SdJwt { sd_jwt, .. } = attestation.into_partial_attestation() {
+                    for non_selectable_claim in sd_jwt.as_ref().as_ref().non_selectable_claims()? {
+                        if !request.claim_paths().contains(&non_selectable_claim) {
+                            return Err(DisclosureError::NonSelectableClaimNotInMetadata(
+                                non_selectable_claim,
+                                request.credential_types().map(ToString::to_string).collect_vec(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 
     async fn terminate_disclosure_session(
