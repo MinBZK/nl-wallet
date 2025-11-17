@@ -371,12 +371,12 @@ impl CredentialPayload {
             .claim_paths(AttributesTraversalBehaviour::AllPaths)
             .into_iter()
             .try_fold(SdJwtBuilder::new(self.try_into()?), |builder, claims| {
-                let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
+                let should_be_selectively_disclosable = match sd_by_claims.get(&claims) {
                     Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
                     None => true,
                 };
 
-                if !should_be_selectively_discloseable {
+                if !should_be_selectively_disclosable {
                     return Ok(builder);
                 }
 

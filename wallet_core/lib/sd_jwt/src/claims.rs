@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::iter::Peekable;
 
 use derive_more::Display;
@@ -11,6 +12,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
 use attestation_types::claim_path::ClaimPath;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use utils::vec_at_least::VecNonEmptyUnique;
 
 use crate::disclosure::Disclosure;
@@ -20,6 +22,7 @@ use crate::encoder::SdObjectEncoder;
 use crate::error::ClaimError;
 use crate::error::EncoderError;
 use crate::hasher::Hasher;
+use crate::sd_jwt::verify_selective_disclosability;
 
 #[nutype(
     validate(predicate = |name| !["...", "_sd"].contains(&name)),
@@ -204,6 +207,41 @@ impl ObjectClaims {
                     .is_some_and(|name| name.as_str() == key)
             })
         })
+    }
+
+    fn verify_selective_disclosability(
+        &self,
+        claim_path: &[ClaimPath],
+        claim_path_index: usize,
+        disclosures: &IndexMap<String, Disclosure>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+        claim: &str,
+    ) -> Result<(), ClaimError> {
+        let head = &claim_path[..=claim_path_index];
+
+        let has_next = !claim_path[claim_path_index + 1..].is_empty();
+
+        let should_be_disclosable = sd_metadata
+            .get(&head.to_vec())
+            .unwrap_or(&ClaimSelectiveDisclosureMetadata::Allowed);
+
+        let claim_value = if let Some(claim_value) = self.get(&claim.parse()?) {
+            verify_selective_disclosability(should_be_disclosable, false, head)?;
+            claim_value
+        } else if let Some(digest) = self.find_disclosure_digest(claim, disclosures) {
+            verify_selective_disclosability(should_be_disclosable, true, head)?;
+            // unwrap is safe, because `find_disclosure_digest` returned `Some`
+            let disclosure = disclosures.get(digest).unwrap();
+            let (_, _, claim_value) = disclosure.content.try_as_object_property(digest)?;
+            claim_value
+        } else {
+            return Err(ClaimError::ObjectFieldNotFound(claim.parse()?, Box::new(self.clone())));
+        };
+
+        if has_next {
+            claim_value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, sd_metadata)?;
+        }
+        Ok(())
     }
 }
 
@@ -401,6 +439,49 @@ impl ClaimValue {
             )),
         }
     }
+
+    /// Traverses the claim structure and disclosures for [`claim_path`] and verifies for each path element whether its
+    /// selective disclosability matches with the `sd_metadata`.
+    ///
+    /// Errors when the [`claim_paths`] does not resolve to an existing claim or the selective disclosability accorting
+    /// to the `sd_metadata`.
+    pub(crate) fn verify_selective_disclosability(
+        &self,
+        claim_path: &[ClaimPath],
+        claim_path_index: usize,
+        disclosures: &IndexMap<String, Disclosure>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+    ) -> Result<(), ClaimError> {
+        // Verify whether the index is valid
+        if claim_path.len() <= claim_path_index {
+            return Err(ClaimError::EmptyPath);
+        }
+
+        let path_item = &claim_path[claim_path_index];
+
+        match (path_item, self) {
+            (ClaimPath::SelectByIndex(index), _) => {
+                Err(ClaimError::UnsupportedTraversalPath(ClaimPath::SelectByIndex(*index)))
+            }
+            (ClaimPath::SelectByKey(key), ClaimValue::Object(object_claims)) => object_claims
+                .verify_selective_disclosability(claim_path, claim_path_index, disclosures, sd_metadata, key),
+            (ClaimPath::SelectAll, ClaimValue::Array(array_claims)) => {
+                for array_claim in array_claims {
+                    array_claim.verify_selective_disclosability(
+                        claim_path,
+                        claim_path_index,
+                        disclosures,
+                        sd_metadata,
+                    )?;
+                }
+                Ok(())
+            }
+            (_, claim_value) => Err(ClaimError::UnexpectedElement(
+                Box::new(claim_value.clone()),
+                claim_path[..=claim_path_index].to_vec(),
+            )),
+        }
+    }
 }
 
 #[serde_as]
@@ -427,7 +508,7 @@ impl ArrayClaim {
         disclosures: &'a IndexMap<String, Disclosure>,
         digests: &mut Vec<&'a str>,
     ) -> Result<Option<&'a ClaimValue>, ClaimError> {
-        let result = match self {
+        match self {
             ArrayClaim::Hash { digest } => {
                 // We're disclosing something within a selectively disclosable array entry.
                 // For the verifier to be able to verify that, we'll also have to disclose that entry.
@@ -436,17 +517,73 @@ impl ArrayClaim {
                 match disclosures.get(digest) {
                     Some(disclosure) => {
                         let (_, value) = disclosure.content.try_as_array_element(digest.as_ref())?;
-                        value.process_digests_to_disclose(disclosures, digests)?
+                        value.process_digests_to_disclose(disclosures, digests)
                     }
-                    None => None,
+                    None => Ok(None),
                 }
             }
             ArrayClaim::Value(entry) => {
                 // This array entry is not selectively disclosable, so we just return it verbatim.
-                Some(entry)
+                Ok(Some(entry))
+            }
+        }
+    }
+
+    pub(crate) fn resolve_to_value<'a>(
+        &'a self,
+        disclosures: &'a IndexMap<String, Disclosure>,
+    ) -> Result<Option<&'a ClaimValue>, ClaimError> {
+        match self {
+            ArrayClaim::Hash { digest } => {
+                if let Some(disclosure) = disclosures.get(digest) {
+                    let (_, array_claim) = disclosure.content.try_as_array_element(digest)?;
+                    array_claim.resolve_to_value(disclosures)
+                } else {
+                    Ok(None)
+                }
+            }
+            ArrayClaim::Value(claim_value) => Ok(Some(claim_value)),
+        }
+    }
+
+    fn verify_selective_disclosability(
+        &self,
+        claim_path: &[ClaimPath],
+        claim_path_index: usize,
+        disclosures: &IndexMap<String, Disclosure>,
+        sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
+    ) -> Result<(), ClaimError> {
+        let head = &claim_path[..=claim_path_index];
+
+        let has_next = !claim_path[claim_path_index + 1..].is_empty();
+
+        let should_be_disclosable = sd_metadata
+            .get(&head.to_vec())
+            .unwrap_or(&ClaimSelectiveDisclosureMetadata::Allowed);
+
+        let value = match self {
+            ArrayClaim::Hash { digest } => {
+                verify_selective_disclosability(should_be_disclosable, true, head)?;
+                let Some(disclosure) = disclosures.get(digest) else {
+                    // There is no disclosure for this digest, this is not an error because this could be a decoy hash.
+                    return Ok(());
+                };
+                let (_, array_claim) = disclosure.content.try_as_array_element(digest)?;
+                array_claim.resolve_to_value(disclosures)?
+            }
+            ArrayClaim::Value(value) => {
+                verify_selective_disclosability(should_be_disclosable, false, head)?;
+                Some(value)
             }
         };
-        Ok(result)
+
+        if let Some(value) = value
+            && has_next
+        {
+            value.verify_selective_disclosability(claim_path, claim_path_index + 1, disclosures, sd_metadata)?;
+        }
+
+        Ok(())
     }
 }
 

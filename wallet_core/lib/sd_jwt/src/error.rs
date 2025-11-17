@@ -8,6 +8,7 @@ use attestation_types::claim_path::ClaimPath;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 
 use crate::claims::ArrayClaim;
 use crate::claims::ClaimName;
@@ -69,6 +70,12 @@ pub enum ClaimError {
 
     #[error("cannot traverse object for path: {0}")]
     UnsupportedTraversalPath(ClaimPath),
+
+    #[error("no disclosure found with digest: {0}, for path: `{1:?}`")]
+    DisclosureNotFound(String, Vec<ClaimPath>),
+
+    #[error("expected selective disclosability for claim `{0:?}` is `{1:?}`, but it was {2}")]
+    SelectiveDisclosabilityMismatch(Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata, bool),
 }
 
 #[derive(Debug, thiserror::Error)]
