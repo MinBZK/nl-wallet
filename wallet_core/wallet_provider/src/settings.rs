@@ -22,7 +22,12 @@ use apple_app_attest::AttestationEnvironment;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
-use status_lists::settings::StatusListAttestationSettings;
+use http_utils::urls::BaseUrl;
+use server_utils::keys::PrivateKeySettingsError;
+use server_utils::keys::PrivateKeyVariant;
+use server_utils::settings::KeyPair;
+use status_lists::config::StatusListConfig;
+use status_lists::publish::PublishDir;
 use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -85,8 +90,14 @@ pub struct WuaStatusListsSettings {
     #[serde(flatten)]
     pub list_settings: StatusListsSettings,
 
+    /// Base url for the status list
+    pub base_url: BaseUrl,
+    /// Path to directory for the published status list
+    pub publish_dir: PublishDir,
+    /// Key pair to sign status list
+    // TODO: PVW-4573 Replace with hsm key
     #[serde(flatten)]
-    pub attestation_settings: StatusListAttestationSettings,
+    pub keypair: KeyPair,
 }
 
 #[serde_as]
@@ -197,5 +208,21 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         let public_key = RootPublicKey::try_from(value.as_slice())?;
         Ok(AndroidRootPublicKey(public_key))
+    }
+}
+
+impl WuaStatusListsSettings {
+    pub async fn into_config(self) -> Result<StatusListConfig<PrivateKeyVariant>, PrivateKeySettingsError> {
+        Ok(StatusListConfig {
+            list_size: self.list_settings.list_size,
+            create_threshold: self
+                .list_settings
+                .create_threshold
+                .of_nonzero_u31(self.list_settings.list_size),
+            ttl: self.list_settings.ttl,
+            base_url: self.base_url,
+            publish_dir: self.publish_dir,
+            key_pair: self.keypair.parse(None).await?,
+        })
     }
 }

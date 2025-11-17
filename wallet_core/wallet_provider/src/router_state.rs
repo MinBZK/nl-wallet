@@ -7,7 +7,6 @@ use chrono::Duration;
 use chrono::Utc;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListServices;
 use tracing::info;
 use uuid::Uuid;
@@ -21,7 +20,6 @@ use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionResultMessage;
-use wallet_provider_database_settings::ConnectionOptions;
 use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
@@ -117,24 +115,12 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
 
         // TODO refactor wallet_provider_database to generic database module to share with issuance server (PVW-5196)
         let db = Db::new(settings.database.url, settings.database.options).await?;
-        let status_list_db_connection = match settings.wua_status_list.list_settings.storage_url.as_ref() {
-            Some(url) => Db::new(url.to_owned(), ConnectionOptions::default())
-                .await?
-                .connection()
-                .to_owned(),
-            None => db.connection().to_owned(),
-        };
 
         let status_list_service = PostgresStatusListServices::try_new(
-            status_list_db_connection,
+            db.connection().to_owned(),
             HashMap::from([(
                 WUA_ATTESTATION_TYPE_IDENTIFIER.to_owned(),
-                StatusListConfig::from_settings(
-                    &settings.wua_status_list.list_settings,
-                    settings.wua_status_list.attestation_settings,
-                    None,
-                )
-                .await?,
+                settings.wua_status_list.into_config().await?,
             )])
             .into(),
         )

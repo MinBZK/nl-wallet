@@ -33,13 +33,10 @@ fn default_serve() -> bool {
 pub struct StatusListAttestationSettings {
     /// Base url for the status list if different from public url of the server
     pub base_url: Option<BaseUrl>,
-
     /// Context path for the status list joined with base_url, also used for serving
     pub context_path: String,
-
     /// Path to directory for the published status list
     pub publish_dir: PublishDir,
-
     /// Key pair to sign status list
     #[serde(flatten)]
     pub keypair: KeyPair,
