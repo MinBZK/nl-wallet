@@ -1094,7 +1094,6 @@ mod tests {
     use chrono::Utc;
     use futures::FutureExt;
     use indexmap::IndexMap;
-    use jwt::jwk::jwk_to_p256;
     use rstest::rstest;
     use serde_bytes::ByteBuf;
     use serde_json::json;
@@ -1112,6 +1111,7 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
+    use jwt::jwk::jwk_to_p256;
     use mdoc::utils::serialization::TaggedBytes;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::claims::ClaimName;

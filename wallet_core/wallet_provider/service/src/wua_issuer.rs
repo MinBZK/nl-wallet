@@ -1,17 +1,17 @@
 use std::error::Error;
 
-use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
-use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 
+use attestation_types::status_claim::StatusClaim;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::verifying_key_sha256;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use jwt::wua::WuaClaims;
@@ -86,15 +86,15 @@ where
 pub mod mock {
     use std::convert::Infallible;
 
-    use attestation_types::status_claim::StatusClaim;
     use chrono::DateTime;
     use chrono::Utc;
-    use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::status_claim::StatusClaim;
     use crypto::p256_der::verifying_key_sha256;
     use hsm::model::wrapped_key::WrappedKey;
+    use jwt::SignedJwt;
     use jwt::UnverifiedJwt;
     use jwt::wua::WuaClaims;
 
@@ -138,14 +138,14 @@ pub mod mock {
 mod tests {
     use std::time::Duration;
 
-    use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
-    use jwt::DEFAULT_VALIDATIONS;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::status_claim::StatusClaim;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
+    use jwt::DEFAULT_VALIDATIONS;
 
     use super::HsmWuaIssuer;
     use super::WuaIssuer;
