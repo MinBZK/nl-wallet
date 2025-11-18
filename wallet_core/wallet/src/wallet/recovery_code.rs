@@ -105,7 +105,7 @@ where
             .credential_payload
             .attributes
             .get(&Self::recovery_code_path(
-                &pid_config,
+                pid_config,
                 &pid_preview.content.credential_payload.attestation_type,
             ))
             .expect("failed to retrieve recovery code from PID")
@@ -140,7 +140,7 @@ where
             .await
             .map_err(RecoveryCodeError::AttestationQuery)?
             .pop()
-            .map(|stored| {
+            .and_then(|stored| {
                 let attestation_type = stored.attestation_type().to_string();
 
                 stored
@@ -148,8 +148,7 @@ where
                     .get(&Self::recovery_code_path(pid_config, &attestation_type))
                     .expect("failed to retrieve recovery code from PID")
                     .cloned()
-            })
-            .flatten();
+            });
 
         Ok(recovery_code)
     }

@@ -240,7 +240,7 @@ where
             .await?;
 
         let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), &pid_config)?;
-        self.compare_recovery_code_against_stored(&pid_preview, &pid_config)
+        self.compare_recovery_code_against_stored(pid_preview, &pid_config)
             .await?;
 
         self.session.replace(Session::PinRecovery {
