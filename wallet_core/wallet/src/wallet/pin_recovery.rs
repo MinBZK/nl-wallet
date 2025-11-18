@@ -526,8 +526,8 @@ mod tests {
     use crate::wallet::recovery_code::RecoveryCodeError;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
-    use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
 
@@ -608,7 +608,7 @@ mod tests {
             client
                 .expect_normalized_credential_previews()
                 .once()
-                .return_const(vec![create_example_preview_data(
+                .return_const(vec![create_example_pid_preview_data(
                     &MockTimeGenerator::default(),
                     Format::SdJwt,
                 )]);
@@ -843,7 +843,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
 
             // Remove the recovery code attribute from the preview
-            let mut preview = create_example_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+            let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             preview
                 .content
                 .credential_payload
@@ -903,7 +903,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
 
             // Change the recovery code attribute from the preview
-            let mut preview = create_example_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+            let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
             let attributes = &mut preview.content.credential_payload.attributes;
             attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);

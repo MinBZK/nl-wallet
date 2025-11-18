@@ -154,9 +154,10 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 /// `NormalizedTypeMetadata`.
 pub fn create_example_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
+    attestation_type: &str,
 ) -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::example_with_attributes(
-        PID_ATTESTATION_TYPE,
+        attestation_type,
         Attributes::example([
             (["family_name"], AttributeValue::Text("De Bruijn".to_string())),
             (["given_name"], AttributeValue::Text("Willeke Liselotte".to_string())),
@@ -169,7 +170,7 @@ pub fn create_example_credential_payload(
     );
 
     let metadata = TypeMetadata::example_with_claim_names(
-        PID_ATTESTATION_TYPE,
+        attestation_type,
         &[
             ("family_name", JsonSchemaPropertyType::String, None),
             ("given_name", JsonSchemaPropertyType::String, None),
@@ -183,18 +184,26 @@ pub fn create_example_credential_payload(
         ],
     );
 
-    let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-    let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(&attestation_type).unwrap();
+    let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
+    let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(attestation_type).unwrap();
 
     (credential_payload, raw_metadata, normalized_metadata)
+}
+
+pub fn create_example_pid_credential_payload(
+    time_generator: &impl Generator<DateTime<Utc>>,
+) -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
+    create_example_credential_payload(time_generator, PID_ATTESTATION_TYPE)
 }
 
 /// Generate valid `CredentialPreviewData`.
 pub fn create_example_preview_data(
     time_generator: &impl Generator<DateTime<Utc>>,
     format: Format,
+    attestation_type: &str,
 ) -> NormalizedCredentialPreview {
-    let (credential_payload, raw_metadata, normalized_metadata) = create_example_credential_payload(time_generator);
+    let (credential_payload, raw_metadata, normalized_metadata) =
+        create_example_credential_payload(time_generator, attestation_type);
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
@@ -205,6 +214,14 @@ pub fn create_example_preview_data(
         normalized_metadata,
         raw_metadata,
     }
+}
+
+/// Generate valid `CredentialPreviewData`.
+pub fn create_example_pid_preview_data(
+    time_generator: &impl Generator<DateTime<Utc>>,
+    format: Format,
+) -> NormalizedCredentialPreview {
+    create_example_preview_data(time_generator, format, PID_ATTESTATION_TYPE)
 }
 
 /// Generates a valid [`VerifiedSdJwt`] that contains a full mdoc PID.
