@@ -219,7 +219,7 @@ issuer/verstrekkende-voorziening.</p>
 <li><p><a class="reference internal" href="#issuance-server-setup" id="id15">Issuance server setup</a></p>
 <ul>
 <li><p><a class="reference internal" href="#obtaining-the-software" id="id16">Obtaining the software</a></p></li>
-<li><p><a class="reference internal" href="#using-a-database-backend-optional" id="id17">Using a database backend (optional)</a></p>
+<li><p><a class="reference internal" href="#using-a-database-backend" id="id17">Using a database backend</a></p>
 <ul>
 <li><p><a class="reference internal" href="#setting-up-postgresql" id="id18">Setting up PostgreSQL</a></p></li>
 <li><p><a class="reference internal" href="#create-user-and-database" id="id19">Create user and database</a></p></li>
@@ -1092,16 +1092,17 @@ allow you to talk to an <code class="docutils literal notranslate"><span class="
 so anyway, accidentally or not, could expose you to man-in-the-middle attacks.</p>
 </div>
 </section>
-<section id="using-a-database-backend-optional">
-<h3>Using a database backend (optional)<a class="headerlink" href="#using-a-database-backend-optional" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, when compiled with the <code class="docutils literal notranslate"><span class="pre">postgres</span></code> feature flag
-(which is the default), can use a PostgreSQL database backend to store state.
+<section id="using-a-database-backend">
+<h3>Using a database backend<a class="headerlink" href="#using-a-database-backend" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> needs a PostgreSQL database for maintaining status lists.
+When compiled with the <code class="docutils literal notranslate"><span class="pre">postgres</span></code> feature flag (which is the default), it can
+also use a PostgreSQL database backend to store state.
 This is done by configuring a <code class="docutils literal notranslate"><span class="pre">postgres://</span></code> storage URL in the
 <code class="docutils literal notranslate"><span class="pre">issuance_server.toml</span></code> configuration file. In this section, we’ll create a
 PostgreSQL database, configure credentials and configure the schema
 (tables, columns).</p>
 <div class="admonition tip">
-<p class="admonition-title">You can also run without a database backend</p>
+<p class="admonition-title">You can also run with a memory session store</p>
 <p>Note that you can run <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> with a storage URL <code class="docutils literal notranslate"><span class="pre">memory://</span></code>
 This makes the server store session state in memory. <strong>When using in-memory
 session state, on server shutdown or crash, any session state will be lost.</strong></p>
@@ -1474,16 +1475,27 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <span class="s">[status_lists]</span>
 <span class="s">list_size = 100_000</span>
 <span class="s">create_threshold = 0.1</span>
+<span class="s">serve = true</span>
 <span class="s">EOF</span>
 </pre></div>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Using a <code class="docutils literal notranslate"><span class="pre">storage_url</span></code> under <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code></p>
+<p>By default the issuance server will serve the status lists it creates. You can
+opt out of this behaviour and serve the status lists yourself. Ensure that you
+map a request with URL path ending on <code class="docutils literal notranslate"><span class="pre">/id</span></code> to filesystem path of with name
+<code class="docutils literal notranslate"><span class="pre">id.jwt</span></code>.</p>
 <p>By default the status lists uses the same database as configured for the
 session store. If you have a memory store as session store you need to configure
 a PostgreSQL <code class="docutils literal notranslate"><span class="pre">storage_url</span></code> under the <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code> block. You can also
 configure a <code class="docutils literal notranslate"><span class="pre">storage_url</span></code> under the <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code> block if you want to store
-the status list in a different database or use a different user.</p>
+the status list in a different database or use a different user.</p></p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/12-status-lists.toml&quot;</span>
+
+<span class="s">[status_lists]</span>
+<span class="s">url = &quot;postgres://$DB_USERNAME:$DB_PASSWORD@$PGHOST:$PGPORT/$DB_NAME&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
 </div>
 </section>
 <section id="configuring-disclosure-based-issuance-elements">
@@ -1585,10 +1597,11 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <p>Next to the previously done <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code> settings, which control how big and
 when status lists are created, an <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> associated
 <code class="docutils literal notranslate"><span class="pre">status_list</span></code> block.</p>
-<p>This block configures the <code class="docutils literal notranslate"><span class="pre">base_url</span></code>, which is added to the attestation as a
-location for the Status List Claim. This url needs to be publicly reachable
-by the NL Wallet app and the verifiers.</p>
-<p>Next to the <code class="docutils literal notranslate"><span class="pre">base_url</span></code> a <code class="docutils literal notranslate"><span class="pre">publish_dir</span></code> needs to be configured where the status
+<p>This block configures the <code class="docutils literal notranslate"><span class="pre">context_path</span></code>, which together with a <code class="docutils literal notranslate"><span class="pre">base_url</span></code> (if
+empty the <code class="docutils literal notranslate"><span class="pre">public_url</span></code> of the issuance server is used) is added to the
+attestation as a location for the Status List Claim. This url needs to be
+publicly reachable by the NL Wallet app and the verifiers.</p>
+<p>Next to the location a <code class="docutils literal notranslate"><span class="pre">publish_dir</span></code> needs to be configured where the status
 lists need to be published. This can be served via either a separate static
 file server or via the issuance server.</p>
 <p>Additionally, the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> settings are used to sign the Status Token List,
@@ -1602,7 +1615,7 @@ reachable by the NL Wallet app and the verifiers. Let’s create it:</p>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/17-attestation-status-list.toml&quot;</span>
 
 <span class="s">[attestation_settings.insurance.status_list]</span>
-<span class="s">base_url = &quot;https://cdn.example.com/tsl&quot;</span>
+<span class="s">context_path = &quot;tsl&quot;</span>
 <span class="s">publish_dir = &quot;/srv/html/tsl&quot;</span>
 <span class="s">private_key_type = &quot;software&quot;</span>
 <span class="s">private_key = &quot;$(&lt; &quot;${TARGET_DIR}/tsl.${IDENTIFIER}.key.der&quot; $BASE64)&quot;</span>

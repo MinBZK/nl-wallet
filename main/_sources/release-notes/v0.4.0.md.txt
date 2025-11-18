@@ -85,7 +85,9 @@
   support a protocol that allows the user to reauthenticate using DigiD and
   choose a new PIN.
 - The PID issuer and the Issuance Server now maintain a table of issued
-  attestation batches and the corresponding issued status token claims.
+  attestation batches and the corresponding issued Status Token Claims.
+- The PID issuer and the Issuance Server can now serve the Status List
+  Token for the attestations they issue.
 - The PID attestation types with recovery code has to be configured for the
   wallet-provider.
 - The wallet supports selecting one of a set of candidate attestations for
