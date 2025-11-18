@@ -136,7 +136,7 @@ certificate = "MIJ..."
 
 # Example "com.example.degree" associated status list settings
 [attestation_settings."com.example.degree".status_list]
-context_path = "tsl"
+context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "MIG..."

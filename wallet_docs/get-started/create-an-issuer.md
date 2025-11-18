@@ -1335,7 +1335,7 @@ export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/17-attestation-status-list.toml"
 
 [attestation_settings.insurance.status_list]
-context_path = "tsl"
+context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "$(< "${TARGET_DIR}/tsl.${IDENTIFIER}.key.der" $BASE64)"
