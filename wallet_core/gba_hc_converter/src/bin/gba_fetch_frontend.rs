@@ -22,6 +22,8 @@ use axum::routing::post;
 use axum_csrf::CsrfConfig;
 use axum_csrf::CsrfLayer;
 use axum_csrf::CsrfToken;
+use derive_more::AsRef;
+use derive_more::From;
 use http::StatusCode;
 use http::request::Parts;
 use nutype::nutype;
@@ -67,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     serve(settings).await
 }
 
-#[nutype(derive(Debug, From, AsRef))]
+#[derive(Debug, From, AsRef)]
 pub struct Error(anyhow::Error);
 
 impl IntoResponse for Error {
