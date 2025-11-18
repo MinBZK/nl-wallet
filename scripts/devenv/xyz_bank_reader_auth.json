@@ -52,7 +52,8 @@
       ["urn:eudi:pid:nl:1", "bsn"],
       ["given_name"],
       ["family_name"],
-      ["birthdate"]
+      ["birthdate"],
+      ["bsn"]
     ],
     "urn:eudi:pid:1": [
       ["given_name"],
