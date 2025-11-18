@@ -456,6 +456,7 @@ where
         .into_iter()
         .zip(session.credential_requests().as_ref());
 
+        // Verify whether all non selectively disclosable claims are requested
         Self::verify_non_selectively_disclosable_claims(candidate_attestations.clone())?;
 
         let candidate_attestations = candidate_attestations
@@ -943,6 +944,8 @@ mod tests {
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use mockall::predicate::function;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
@@ -957,6 +960,7 @@ mod tests {
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -991,7 +995,9 @@ mod tests {
     use openid4vc::errors::GetRequestErrorCode;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::SessionType;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -2854,5 +2860,101 @@ mod tests {
         };
 
         assert_eq!(event_count.load(Ordering::Relaxed), expected_event_count);
+    }
+
+    #[tokio::test]
+    async fn test_start_disclosure_error_non_selectable_claim_not_requested() {
+        let my_attestation_type = "my.attestation.type";
+        let my_selectable_claim = "selectable_claim";
+        let my_non_selectable_claim = "non_selectable_claim";
+
+        // Populate a registered wallet with an example PID.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Create a request that only requests the selectable claim
+        let credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+            &[my_attestation_type],
+            &[&[my_selectable_claim]], // NOTE: here we omit `my_non_selectable_claim`
+        )]);
+
+        let _verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
+
+        // Create metadata with a selectable and a non_selectable claim
+        let mut type_metadata_with_non_selectively_disclosable_claim = UncheckedTypeMetadata::example_with_claim_names(
+            my_attestation_type,
+            &[
+                (my_selectable_claim, JsonSchemaPropertyType::String, None),
+                (my_non_selectable_claim, JsonSchemaPropertyType::String, None),
+            ],
+        );
+        for claim in &mut type_metadata_with_non_selectively_disclosable_claim.claims {
+            if claim.path == vec_nonempty![ClaimPath::SelectByKey(my_non_selectable_claim.to_string())] {
+                claim.sd = sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata::Never;
+            }
+        }
+        let type_metadata_with_non_selectively_disclocable_claim =
+            NormalizedTypeMetadata::from_single_example(type_metadata_with_non_selectively_disclosable_claim);
+
+        // Create a credential payload with a selectable and a non-selectable claim
+        let previewable_payload = CredentialPayload::example_with_attributes(
+            my_attestation_type,
+            Attributes::example([
+                (
+                    [my_selectable_claim],
+                    AttributeValue::Text("Some Selectable Claim".to_string()),
+                ),
+                (
+                    [my_non_selectable_claim],
+                    AttributeValue::Text("Some Non Selectable Claim".to_string()),
+                ),
+            ]),
+            SigningKey::random(&mut OsRng).verifying_key(),
+            &MockTimeGenerator::epoch(),
+        );
+
+        // Create an attestation for the above metadata and credential payload
+        let attestation = example_stored_attestation_copy(
+            CredentialFormat::SdJwt,
+            previewable_payload,
+            type_metadata_with_non_selectively_disclocable_claim,
+        );
+
+        // Mock the wallet database to return the attestation for the requested attestation type
+        let (attestation_type, attestations) = (my_attestation_type, vec![attestation]);
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_types_and_format()
+            .withf(move |attestation_types, format| {
+                *attestation_types == HashSet::from([attestation_type]) && *format == CredentialFormat::SdJwt
+            })
+            .times(1)
+            .return_once(move |_, _| Ok(attestations));
+
+        // The wallet will not check in the database if data was shared with the RP before.
+        wallet.mut_storage().expect_did_share_data_with_relying_party().never();
+
+        // Starting disclosure should not cause attestation copy usage counts to be incremented.
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .never();
+
+        // Starting disclosure should not cause a disclosure event to be recorded.
+        wallet.mut_storage().expect_log_disclosure_event().never();
+
+        // Starting disclosure should fail with a non selectable claim verification error
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect_err("starting disclosure should fail");
+
+        assert_matches!(
+            error,
+            DisclosureError::NonSelectableClaimNotInMetadata(claims, attestation_type) if
+                claims == vec_nonempty![my_non_selectable_claim.parse().unwrap()] &&
+                attestation_type == vec![my_attestation_type.to_string()]
+        );
+
+        wallet.mut_storage().checkpoint();
     }
 }
