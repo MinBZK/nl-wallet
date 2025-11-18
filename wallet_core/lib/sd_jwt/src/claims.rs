@@ -535,16 +535,22 @@ impl ClaimValue {
                         .into_iter()
                         .map(|value| {
                             let ArrayClaim::Value(claim) = value else {
-                                unreachable!()
+                                unreachable!("values contains only ArrayClaim::Value, as result of partition")
                             };
                             claim.non_selectable_claims()
                         })
                         .partition(|c| c.is_ok());
+                    // Return the first error if any
                     errors.into_iter().collect::<Result<Vec<_>, _>>()?;
-                    match oks.into_iter().map(Result::unwrap).single_unique() {
-                        Ok(Some(claim)) => Ok(prefix_all(claim, ClaimPath::SelectAll)),
-                        Ok(None) => Ok(vec![vec_nonempty![ClaimPath::SelectAll]]),
-                        Err(error) => Err(error)?,
+                    // The `single_unique` requires that all sub-elements in the array are uniform, i.e. have the same
+                    // `ClaimPath` structure. This requirement can be invalidated when the array contains a combination
+                    // of primitive values, objects and arrays, e.g.:
+                    // - [ 1, [] ]
+                    // - [ 1, { "claim": 2 } ]
+                    // Instances like this are considered invalid, and should be reported back to the issuer.
+                    match oks.into_iter().map(Result::unwrap).single_unique()? {
+                        Some(sub_claims) => Ok(prefix_all(sub_claims, ClaimPath::SelectAll)),
+                        None => Ok(vec![vec_nonempty![ClaimPath::SelectAll]]),
                     }
                 } else if values.is_empty() {
                     Ok(vec![vec_nonempty![ClaimPath::SelectAll]])
@@ -854,9 +860,11 @@ mod tests {
     #[case(json!({"a": 1, "b": true}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("a".to_string())], vec_nonempty![ClaimPath::SelectByKey("b".to_string())]]))]
     #[case(json!([1, 2]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
     #[case(json!([1, "a", true]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
+    #[case(json!([["a"], [2]]), Ok(vec![vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectAll]]))]
     #[case(json!([{"a": 1}, {"a": 2}]), Ok(vec![vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectByKey("a".to_string())]]))]
     #[case(json!({"a": [1, 2]}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("a".to_string()), ClaimPath::SelectAll]]))]
     #[case(json!([1, { "a": 2 }]), Err(NonSelectableClaimsError::ArrayStructure(MultipleItemsFound)))]
+    #[case(json!([1, [2]]), Err(NonSelectableClaimsError::ArrayStructure(MultipleItemsFound)))]
     #[case(json!([
         1, 2, 3,
         { "...": "some_digest" }
