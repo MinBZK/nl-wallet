@@ -24,7 +24,6 @@ use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use server_utils::keys::PrivateKeySettingsError;
-use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::KeyPair;
 use status_lists::config::StatusListConfig;
 use status_lists::publish::PublishDir;
@@ -212,7 +211,7 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
 }
 
 impl WuaStatusListsSettings {
-    pub async fn into_config(self) -> Result<StatusListConfig<PrivateKeyVariant>, PrivateKeySettingsError> {
+    pub async fn into_config(self) -> Result<StatusListConfig, PrivateKeySettingsError> {
         Ok(StatusListConfig {
             list_size: self.list_settings.list_size,
             create_threshold: self
