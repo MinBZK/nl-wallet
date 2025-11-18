@@ -224,15 +224,15 @@ mod tests {
     #[case("https://example.com/?query=param", Ok("https://example.com/?query=param".to_string()))]
     #[case("https://example.com#fragment", Ok("https://example.com#fragment".to_string()))]
     #[case("https://example.com/#fragment", Ok("https://example.com/#fragment".to_string()))]
-    #[case("http://example.com/", Err(()))]
-    #[case("data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD", Err(()))]
+    #[case("http://example.com/", Err(HttpsUriError::PredicateViolated))]
+    #[case(
+        "data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD",
+        Err(HttpsUriError::PredicateViolated)
+    )]
     #[tokio::test]
-    async fn https_uri(#[case] value: &str, #[case] expected: Result<String, ()>) {
+    async fn https_uri(#[case] value: &str, #[case] expected: Result<String, HttpsUriError>) {
         // The `HttpsUriError` that `nutype` returns does not implement `PartialEq`
-        assert_eq!(
-            value.parse::<HttpsUri>().map(|u| u.to_string()).map_err(|_| ()),
-            expected
-        );
+        assert_eq!(value.parse::<HttpsUri>().map(|u| u.to_string()), expected);
     }
 
     fn origin_urls(urls: Vec<&'static str>) -> CorsOrigin {

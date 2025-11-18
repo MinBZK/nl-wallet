@@ -3,10 +3,11 @@ use core::result::Result as StdResult;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
-use nutype::nutype;
+use derive_more::AsRef;
+use derive_more::From;
 use tracing::warn;
 
-#[nutype(derive(Debug, From, AsRef))]
+#[derive(Debug, From, AsRef)]
 pub struct Error(anyhow::Error);
 
 impl IntoResponse for Error {
