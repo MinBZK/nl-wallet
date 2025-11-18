@@ -165,6 +165,7 @@ impl GoogleRevocationListClient {
 mod tests {
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
+    use http::header::CACHE_CONTROL;
     use rstest::rstest;
     use wiremock::Mock;
     use wiremock::MockServer;
@@ -195,7 +196,7 @@ mod tests {
             .respond_with(
                 ResponseTemplate::new(200)
                     .set_body_bytes(TEST_ASSETS_STATUS_BYTES)
-                    .append_header("Cache-Control", "max-age=3600"),
+                    .append_header(CACHE_CONTROL, "max-age=3600"),
             )
             .expect(1)
             .mount(&server)

@@ -15,8 +15,14 @@ name = "postgres"
 path = "tests/postgres.rs"
 required-features = ["integration_test", "test"]
 
+[[test]]
+name = "router"
+path = "tests/router.rs"
+required-features = ["integration_test", "test"]
+
 [features]
-integration_test = []
+axum = ["dep:axum", "dep:etag", "dep:mediatype", "tower-http/compression-gzip"]
+integration_test = ["axum", "dep:reqwest"]
 test = []
 
 [dependencies]
@@ -25,7 +31,6 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true
-log.workspace = true
 nutype.workspace = true
 rand.workspace = true
 rstest.workspace = true
@@ -35,15 +40,21 @@ sea-orm = { workspace = true, features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
     "with-chrono",
-    "with-json",
     "with-uuid",
 ] }
 serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tracing.workspace = true
 uuid.workspace = true
 url.workspace = true
+
+axum = { workspace = true, optional = true }
+etag = { workspace = true, optional = true }
+mediatype = { workspace = true, optional = true }
+
+reqwest = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"

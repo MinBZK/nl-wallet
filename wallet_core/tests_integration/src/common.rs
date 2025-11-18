@@ -222,7 +222,7 @@ pub async fn setup_env_default() -> (
         wallet_provider_settings(),
         verification_server_settings(),
         pid_issuer_settings(),
-        crate::common::issuance_server_settings(),
+        issuance_server_settings(),
     )
     .await
 }
@@ -349,15 +349,14 @@ pub async fn setup_in_memory_wallet(
 }
 
 /// Create an instance of [`Wallet`] having temporary file storage.
-pub async fn setup_wallet<F, Fut>(
+pub async fn setup_wallet<F>(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
     storage_generator: F,
 ) -> WalletWithStorage
 where
-    F: FnOnce() -> Fut,
-    Fut: Future<Output = MockHardwareDatabaseStorage>,
+    F: AsyncFnOnce() -> MockHardwareDatabaseStorage,
 {
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
@@ -471,7 +470,7 @@ pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
 }
 
 pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
@@ -487,7 +486,7 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrus
 }
 
 pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
@@ -503,7 +502,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 }
 
 pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     let play_integrity_client = MockPlayIntegrityClient::new(
@@ -656,6 +655,7 @@ pub async fn start_issuance_server(
             disclosure_settings,
             attributes_fetcher,
             MockStatusListService::default(),
+            None,
         )
         .await
         {
@@ -699,6 +699,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
             MockStatusListService::default(),
+            None,
         )
         .await
         {

@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::net::SocketAddr;
-use std::net::TcpListener;
 
 use axum::Router;
 use axum::extract::State;
@@ -12,6 +11,7 @@ use http::HeaderMap;
 use http::HeaderValue;
 use http::StatusCode;
 use http::header;
+use tokio::net::TcpListener;
 use tracing::debug;
 use tracing::info;
 
@@ -22,14 +22,14 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port))?;
+    let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port)).await?;
     serve_with_listener(listener, settings).await
 }
 
 pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> Result<(), Box<dyn Error>> {
     info!("{}", version_string());
     info!("listening on {}", listener.local_addr()?);
-    listener.set_nonblocking(true)?;
+    let listener = listener.into_std()?;
 
     let config_entity_tag = EntityTag::from_data(settings.wallet_config_jwt.jwt().serialization().as_bytes());
     let app = Router::new().merge(health_router()).nest(

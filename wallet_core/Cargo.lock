@@ -517,6 +517,7 @@ version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "310c9bcae737a48ef5cdee3174184e6d548b292739ede61a1f955ef76a738861"
 dependencies = [
+ "flate2",
  "futures-core",
  "memchr",
  "pin-project-lite",
@@ -3882,6 +3883,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "mediatype"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "120fa187be19d9962f0926633453784691731018a2bf936ddb4e29101b79c4a7"
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6455,29 +6462,33 @@ version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "axum",
  "chrono",
  "config",
  "crypto",
  "derive_more",
+ "etag",
  "futures",
  "hsm",
  "http_utils",
  "itertools 0.14.0",
  "jwt",
- "log",
+ "mediatype",
  "nutype",
  "p256",
  "rand",
+ "reqwest",
  "rstest",
  "rustix 1.1.2",
  "sea-orm",
  "serde",
- "serde_json",
  "server_utils",
  "tempfile",
  "thiserror 2.0.11",
  "token_status_list",
  "tokio",
+ "tower-http",
+ "tracing",
  "url",
  "utils",
  "uuid",
@@ -6869,7 +6880,6 @@ dependencies = [
  "http",
  "http_utils",
  "jwt",
- "log",
  "mockall",
  "regex",
  "reqwest",
@@ -6880,6 +6890,7 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.11",
  "tokio",
+ "tracing",
  "trait-variant",
  "url",
  "utils",
@@ -7873,6 +7884,7 @@ dependencies = [
  "serde",
  "serde_with",
  "serial_test",
+ "server_utils",
  "spki",
  "status_lists",
  "tempfile",

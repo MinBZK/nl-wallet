@@ -33,6 +33,7 @@ pub struct StatusListConfigs<K: Clone>(HashMap<String, StatusListConfig<K>>);
 
 impl StatusListConfigs<PrivateKeyVariant> {
     pub async fn from_settings(
+        public_url: &BaseUrl,
         settings: &StatusListsSettings,
         pairs: impl IntoIterator<Item = (String, StatusListAttestationSettings)>,
         hsm: &Option<Pkcs11Hsm>,
@@ -41,7 +42,7 @@ impl StatusListConfigs<PrivateKeyVariant> {
         let configs = try_join_all(
             attestation_settings
                 .into_iter()
-                .map(|attestation| StatusListConfig::from_settings(settings, attestation, hsm.clone())),
+                .map(|attestation| StatusListConfig::from_settings(public_url, settings, attestation, hsm.clone())),
         )
         .await?;
 
@@ -56,6 +57,7 @@ impl StatusListConfigs<PrivateKeyVariant> {
 
 impl StatusListConfig<PrivateKeyVariant> {
     pub async fn from_settings(
+        public_url: &BaseUrl,
         settings: &StatusListsSettings,
         attestation: StatusListAttestationSettings,
         hsm: Option<Pkcs11Hsm>,
@@ -64,7 +66,10 @@ impl StatusListConfig<PrivateKeyVariant> {
             list_size: settings.list_size,
             create_threshold: settings.create_threshold.of_nonzero_u31(settings.list_size),
             ttl: settings.ttl,
-            base_url: attestation.base_url,
+            base_url: attestation
+                .base_url
+                .unwrap_or_else(|| public_url.clone())
+                .join_base_url(&attestation.context_path),
             publish_dir: attestation.publish_dir,
             key_pair: attestation.keypair.parse(hsm).await?,
         })

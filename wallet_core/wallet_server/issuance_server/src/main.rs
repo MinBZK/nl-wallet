@@ -13,6 +13,7 @@ use server_utils::store::StoreConnection;
 use server_utils::store::postgres::new_connection;
 use status_lists::config::StatusListConfigs;
 use status_lists::postgres::PostgresStatusListServices;
+use status_lists::router::create_status_list_routers;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -56,6 +57,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         )),
     }?;
     let status_list_configs = StatusListConfigs::from_settings(
+        &settings.issuer_settings.server_settings.public_url,
         &settings.status_lists,
         (&settings.issuer_settings.attestation_settings)
             .into_iter()
@@ -65,6 +67,23 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
     .await?;
     let status_list_service = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
     status_list_service.initialize_lists().await?;
+    let status_list_router = settings
+        .status_lists
+        .serve
+        .then(|| {
+            create_status_list_routers(
+                (&settings.issuer_settings.attestation_settings)
+                    .into_iter()
+                    .map(|(_, settings)| {
+                        (
+                            settings.status_list.context_path.clone(),
+                            settings.status_list.publish_dir.clone(),
+                        )
+                    }),
+                settings.status_lists.ttl,
+            )
+        })
+        .transpose()?;
 
     // This will block until the server shuts down.
     server::serve(
@@ -74,6 +93,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         disclosure_sessions,
         attributes_fetcher,
         status_list_service,
+        status_list_router,
     )
     .await
 }

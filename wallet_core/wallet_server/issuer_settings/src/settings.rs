@@ -294,7 +294,8 @@ mod tests {
                     valid_days: 365,
                     copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
                     status_list: StatusListAttestationSettings {
-                        base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                        base_url: None,
+                        context_path: "tsl".to_string(),
                         keypair: status_list_keypair,
                         publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                     },
@@ -371,7 +372,8 @@ mod tests {
                 valid_days: 365,
                 copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
                 status_list: StatusListAttestationSettings {
-                    base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                    base_url: None,
+                    context_path: "tsl".to_string(),
                     keypair: status_list_keypair,
                     publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 },

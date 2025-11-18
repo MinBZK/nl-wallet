@@ -3,3 +3,6 @@ pub mod entity;
 pub mod postgres;
 pub mod publish;
 pub mod settings;
+
+#[cfg(feature = "axum")]
+pub mod router;

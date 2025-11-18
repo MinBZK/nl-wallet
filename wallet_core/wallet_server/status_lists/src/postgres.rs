@@ -3,8 +3,6 @@ use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use chrono::DateTime;
-use derive_more::From;
-use derive_more::Into;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use rand::seq::SliceRandom;
@@ -30,8 +28,6 @@ use sea_orm::sea_query::LockType;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
-use serde::Deserialize;
-use serde::Serialize;
 use uuid::Uuid;
 
 use crypto::EcdsaKeySend;
@@ -130,21 +126,11 @@ pub enum StatusListServiceError {
     #[error("could not lock for publish: {0}")]
     PublishLock(#[from] PublishLockError),
 
-    #[error("could not serialize / deserialize: {0}")]
-    Serde(#[from] serde_json::Error),
-
     #[error("too many claims requested: {0}")]
     TooManyClaimsRequested(usize),
 
     #[error("unknown attestation type: {0}")]
     UnknownAttestationType(String),
-}
-
-#[derive(Debug, Clone, PartialEq, From, Into, Serialize, Deserialize)]
-#[serde(into = "(i64,u32)", try_from = "(i64,u32)")]
-pub struct StatusListLocation {
-    pub list_id: i64,
-    pub index: u32,
 }
 
 impl<K> StatusListService for PostgresStatusListServices<K>
@@ -160,7 +146,7 @@ where
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error> {
-        log::debug!(
+        tracing::debug!(
             "Obtaining status claims for {} with {} copies",
             attestation_type,
             copies
@@ -323,7 +309,7 @@ where
             }
 
             if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
-                log::warn!(
+                tracing::warn!(
                     "Creating status list in flight for attestation type ID {}, increase create_threshold or list_size",
                     self.attestation_type_id,
                 )
@@ -334,7 +320,7 @@ where
 
             let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or_default();
             if !self.create_status_list(next_sequence_no, true).await? {
-                log::warn!(
+                tracing::warn!(
                     "Failed to create status list in flight for attestation type ID {}",
                     self.attestation_type_id,
                 );
@@ -527,7 +513,7 @@ where
     }
 
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
-        log::info!("Initializing status lists for ID: {}", self.attestation_type_id);
+        tracing::info!("Initializing status lists for ID: {}", self.attestation_type_id);
 
         // Fetch all lists that still have list items in the database
         let lists = status_list::Entity::find()
@@ -554,7 +540,7 @@ where
                 .await?
                 .unwrap_or_else(|| panic!("Missing attestation type for ID {}", self.attestation_type_id));
 
-            log::info!(
+            tracing::info!(
                 "Schedule creation of status list items for list ID {}",
                 self.attestation_type_id
             );
@@ -573,14 +559,14 @@ where
         let mut tasks = Vec::new();
         for list in lists {
             if list.available == 0 {
-                log::info!("Schedule deletion of status list items for list ID {}", list.id);
+                tracing::info!("Schedule deletion of status list items for list ID {}", list.id);
 
                 let connection = self.connection.clone();
                 let list_id = list.id;
                 tasks.push(tokio::spawn(Self::delete_status_list_items(connection, list_id)));
             }
             if list.available <= self.config.create_threshold.into_inner() {
-                log::info!(
+                tracing::info!(
                     "Schedule creation of status list items for attestation type ID {}",
                     list.attestation_type_id,
                 );
@@ -601,11 +587,11 @@ where
         //  - when the threshold is hit and the status list is not created yet.
         // Waiting will only hog connections from the DB pool waiting for the lock.
         match self.create_status_list(next_sequence_no, false).await {
-            Ok(created) if created => log::info!(
+            Ok(created) if created => tracing::info!(
                 "Created status list for attestation type ID {}",
                 self.attestation_type_id,
             ),
-            Err(err) => log::warn!(
+            Err(err) => tracing::warn!(
                 "Failed to create status list for attestation type ID {}: {}",
                 self.attestation_type_id,
                 err,
@@ -621,7 +607,7 @@ where
             .await;
 
         if let Err(err) = result {
-            log::warn!("Failed to delete status list items of {}: {}", id, err);
+            tracing::warn!("Failed to delete status list items of {}: {}", id, err);
         }
     }
 

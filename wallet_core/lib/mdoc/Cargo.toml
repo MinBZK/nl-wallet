@@ -11,7 +11,7 @@ workspace = true
 # Include examples from the ISO specification
 examples = []
 # Include miscellaneous test utilities
-test = ["crypto/generate", "crypto/mock", "dep:regex"]
+test = ["crypto/generate", "crypto/mock", "dep:regex", "token_status_list/mock"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include example based constructors to several types for testing
