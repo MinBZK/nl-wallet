@@ -7,7 +7,7 @@ publish_to: 'none'
 version: 0.4.0-dev
 
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.10.0
 
 dependencies:
   after_layout: ^1.2.0
@@ -72,7 +72,6 @@ dev_dependencies:
     sdk: flutter
   get_it: ^8.2.0
   mockito: ^5.5.0
-  semantic_announcement_tester: ^0.0.6
   sentry_dart_plugin: ^3.1.1
   test: ^1.26.2
   translations_cleaner: ^0.0.5

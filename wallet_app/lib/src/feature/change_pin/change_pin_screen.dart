@@ -1,14 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../data/service/announcement_service.dart';
 import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/helper/announcements_helper.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
@@ -32,10 +31,7 @@ const _kSelectNewPinPageKey = ValueKey('select_new_pin_page');
 const _kConfirmNewPinPageKey = ValueKey('confirm_new_pin_page');
 
 class ChangePinScreen extends StatelessWidget {
-  @visibleForTesting
-  final bool forceAnnouncements;
-
-  const ChangePinScreen({this.forceAnnouncements = false, super.key});
+  const ChangePinScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -198,24 +194,25 @@ class ChangePinScreen extends StatelessWidget {
   }
 
   Future<void> _runAnnouncements(BuildContext context, ChangePinState state) async {
-    if (!context.isScreenReaderEnabled && !forceAnnouncements) return;
+    final AnnouncementService announcementService = context.read();
+    if (!announcementService.announcementsEnabled) return; // Early return optimization
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
 
     if (state is ChangePinSelectNewPinInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
     if (state is ChangePinConfirmNewPinInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
-        await SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+        await announcementService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
   }

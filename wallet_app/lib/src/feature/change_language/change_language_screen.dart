@@ -8,6 +8,7 @@ import 'package:intl/locale.dart' as intl;
 
 import '../../../environment.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../data/service/announcement_service.dart';
 import '../../theme/base_wallet_theme.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/object_extension.dart';
@@ -189,6 +190,6 @@ class ChangeLanguageScreen extends StatelessWidget {
   Future<void> _announceNewLanguage(BuildContext context, Language language) async {
     final systemL10n = _lookupSystemLocalizations(context);
     final announcement = systemL10n.generalWCAGLanguageUpdatedAnnouncement(language.name);
-    await SemanticsService.announce(announcement, TextDirection.ltr);
+    await context.read<AnnouncementService>().announce(announcement);
   }
 }

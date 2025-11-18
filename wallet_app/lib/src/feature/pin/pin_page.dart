@@ -6,11 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../environment.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../data/service/announcement_service.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
-import '../../util/helper/announcements_helper.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/button_content.dart';
 import '../common/widget/button/list_button.dart';
@@ -89,7 +89,7 @@ class PinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) async {
-        _runEnteredDigitsAnnouncement(state, context.l10n);
+        _runEnteredDigitsAnnouncement(context, state);
 
         /// Check for state interceptions
         if (onStateChanged?.call(context, state) ?? false) return;
@@ -132,26 +132,24 @@ class PinPage extends StatelessWidget {
     );
   }
 
-  void _runEnteredDigitsAnnouncement(PinState state, AppLocalizations l10n) {
+  void _runEnteredDigitsAnnouncement(BuildContext context, PinState state) {
+    final AppLocalizations l10n = context.l10n;
+    final AnnouncementService announcementService = context.read();
     switch (state) {
       case PinEntryInProgress():
         unawaited(
           Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then(
             (value) {
               if (state.afterBackspacePressed) {
-                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+                announcementService.announceEnteredDigits(l10n, state.enteredDigits);
               } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+                announcementService.announceEnteredDigits(l10n, state.enteredDigits);
               }
             },
           ),
         );
       case PinValidateInProgress():
-        SemanticsService.announce(
-          l10n.pinEnteredWCAGAnnouncement,
-          TextDirection.ltr,
-          assertiveness: Assertiveness.assertive,
-        );
+        announcementService.announce(l10n.pinEnteredWCAGAnnouncement, assertiveness: Assertiveness.assertive);
       default:
         return;
     }

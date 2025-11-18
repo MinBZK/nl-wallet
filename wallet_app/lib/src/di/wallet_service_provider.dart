@@ -2,6 +2,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/service/announcement_service.dart';
 import '../data/service/app_lifecycle_service.dart';
 import '../data/service/auto_lock_service.dart';
 import '../data/service/country_code_service.dart';
@@ -64,6 +65,7 @@ class WalletServiceProvider extends StatelessWidget {
           ),
           lazy: false,
         ),
+        RepositoryProvider<AnnouncementService>(create: AnnouncementService.new),
         RepositoryProvider<AppEventCoordinator>(
           create: (context) => AppEventCoordinator(
             context.read(),

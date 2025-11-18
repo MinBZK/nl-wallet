@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../environment.dart';
+import '../../data/service/announcement_service.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
@@ -41,7 +41,7 @@ class MenuScreen extends StatelessWidget {
             DoOnInit(
               onInit: (_) {
                 final announcement = context.l10n.menuScreenWCAGPageAnnouncement(_buildMenuItems(context).length);
-                SemanticsService.announce(announcement, TextDirection.ltr);
+                context.read<AnnouncementService>().announce(announcement);
               },
             ),
             Expanded(

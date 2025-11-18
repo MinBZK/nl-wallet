@@ -3,7 +3,7 @@ import PlatformSupport
 import Flutter
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var platformSupport: PlatformSupport?
 
   override func application(
@@ -17,8 +17,10 @@ import Flutter
     let dummy_frb = dummy_method_to_enforce_bundling_frb()
     print(dummy_frb)
 
-    GeneratedPluginRegistrant.register(with: self)
-
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+  
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
 }

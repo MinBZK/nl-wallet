@@ -1,15 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../data/service/announcement_service.dart';
 import '../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/helper/announcements_helper.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
@@ -106,24 +105,25 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Future<void> _runAnnouncements(BuildContext context, SetupSecurityState state) async {
-    if (!context.isScreenReaderEnabled) return;
+    final AnnouncementService announcementService = context.read();
+    if (!announcementService.announcementsEnabled) return; // Early return optimization
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
 
     if (state is SetupSecuritySelectPinInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
     if (state is SetupSecurityPinConfirmationInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
-        await SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+        await announcementService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
   }

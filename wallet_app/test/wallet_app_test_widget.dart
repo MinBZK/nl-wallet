@@ -5,10 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
+import 'package:wallet/src/data/service/announcement_service.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/theme/wallet_theme.dart';
 import 'package:wallet/src/util/extension/build_context_extension.dart';
 
+import 'src/mocks/wallet_mocks.dart';
 import 'src/test_util/test_asset_bundle.dart';
 
 /// Widget that is to be used to wrap pumped test widgets.
@@ -59,6 +61,7 @@ WidgetWrapper walletAppWrapper({
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<ActiveLocaleProvider>(create: (context) => TestLocaleProvider(activeLocale: locale)),
+        RepositoryProvider<AnnouncementService>(create: (context) => MockAnnouncementService()),
         ...providers,
       ],
       child: WalletAppTestWidget(

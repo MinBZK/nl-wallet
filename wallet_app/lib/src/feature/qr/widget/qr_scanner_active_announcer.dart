@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/service/announcement_service.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 const kAnnouncementInterval = Duration(seconds: 10);
@@ -28,9 +29,8 @@ class _QrScannerActiveAnnouncerState extends State<QrScannerActiveAnnouncer> {
     _subscription = periodStream.listen(_onData);
   }
 
-  void _onData(dynamic event) {
-    SemanticsService.announce(context.l10n.qrScreenScanScannerActiveWCAGAnnouncement, TextDirection.ltr);
-  }
+  void _onData(dynamic event) =>
+      context.read<AnnouncementService>().announce(context.l10n.qrScreenScanScannerActiveWCAGAnnouncement);
 
   @override
   Widget build(BuildContext context) => widget.child ?? const SizedBox.shrink();

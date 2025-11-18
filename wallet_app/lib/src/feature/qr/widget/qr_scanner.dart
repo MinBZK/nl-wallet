@@ -1,9 +1,9 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../data/service/announcement_service.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -109,13 +109,14 @@ class _QrScannerState extends State<QrScanner> {
 
   void _toggleFlashLight(BuildContext context) {
     final l10n = context.l10n;
+    final announcementService = context.read<AnnouncementService>();
     final currentOnState = cameraController.value.torchState.isOn;
     final postToggleOnState = !currentOnState;
     cameraController.toggleTorch().then((value) async {
       if (postToggleOnState) {
-        await SemanticsService.announce(l10n.flashlightEnabledWCAGAnnouncement, TextDirection.ltr);
+        await announcementService.announce(l10n.flashlightEnabledWCAGAnnouncement);
       } else {
-        await SemanticsService.announce(l10n.flashlightDisabledWCAGAnnouncement, TextDirection.ltr);
+        await announcementService.announce(l10n.flashlightDisabledWCAGAnnouncement);
       }
     });
   }
