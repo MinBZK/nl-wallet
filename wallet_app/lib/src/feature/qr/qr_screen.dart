@@ -1,9 +1,9 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../environment.dart';
+import '../../data/service/announcement_service.dart';
 import '../../data/service/navigation_service.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
@@ -73,9 +73,7 @@ class QrScreen extends StatelessWidget {
       QrScanSuccess() => context.l10n.qrScreenScanSuccessfulWCAGAnnouncement,
       _ => null,
     };
-    if (announcement != null) {
-      SemanticsService.announce(announcement, TextDirection.ltr);
-    }
+    if (announcement != null) context.read<AnnouncementService>().announce(announcement);
   }
 
   void _handleScanSuccess(BuildContext context, QrScanSuccess state) {

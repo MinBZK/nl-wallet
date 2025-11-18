@@ -4,12 +4,12 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../environment.dart';
+import '../../data/service/announcement_service.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -326,7 +326,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     _announcementStream.add(announcement);
   }
 
-  void _announce(String announcement) => SemanticsService.announce(announcement, TextDirection.ltr);
+  void _announce(String announcement) => context.read<AnnouncementService>().announce(announcement);
 
   Widget? _buildBackButton() {
     if (_currentPage < 0.5) return null;

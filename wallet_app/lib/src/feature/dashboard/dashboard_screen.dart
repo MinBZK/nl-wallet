@@ -2,11 +2,11 @@ import 'dart:math';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../data/service/announcement_service.dart';
 import '../../data/service/event/app_event_coordinator.dart';
 import '../../domain/model/card/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
@@ -58,7 +58,7 @@ class DashboardScreen extends StatelessWidget {
         onVisibilityChanged: (visibilityInfo) {
           if (visibilityInfo.visibleFraction >= 1) {
             context.read<AppEventCoordinator>().onDashboardShown();
-            SemanticsService.announce(context.l10n.dashboardScreenOverviewAnnouncement, TextDirection.ltr);
+            context.read<AnnouncementService>().announce(context.l10n.dashboardScreenOverviewAnnouncement);
           }
         },
         child: _buildBody(context),
