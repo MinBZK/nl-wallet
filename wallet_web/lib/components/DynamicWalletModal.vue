@@ -32,7 +32,7 @@ const emit = defineEmits<{
 
 const isMobile = inject(isMobileKey)
 
-const pollHandle = ref<NodeJS.Timeout>()
+const pollHandle = ref<ReturnType<typeof setTimeout>>()
 const modalState = ref<ModalState>({ kind: "creating" })
 
 watch(modalState, (state) => {
