@@ -114,6 +114,10 @@ fn pid_missing_required() -> IssuableDocument {
                 PID_BIRTH_DATE.to_string(),
                 Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
             ),
+            (
+                PID_RECOVERY_CODE.to_string(),
+                Attribute::Single(AttributeValue::Text("123".to_string())),
+            ),
             // bsn is missing, which is required
         ])
         .into(),
