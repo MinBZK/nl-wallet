@@ -387,8 +387,7 @@ render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_i
 
 
 # Generate relying party ephemeral ID secret
-generate_ws_random_key ephemeral_id_secret
-DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/demo_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
+DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(openssl rand -hex 64 | tr -d '\n')
 export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_index.toml"

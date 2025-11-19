@@ -256,12 +256,6 @@ function generate_wp_random_key {
     random_bytes 32 | LC_ALL=C tr '\000\n' "XY" > "${TARGET_DIR}/wallet_provider/$1.key"
 }
 
-# Generate a random key (64 bytes)
-function generate_ws_random_key {
-    echo -e "${INFO}Generating random wallet server key${NC}"
-    random_bytes 64 > "${TARGET_DIR}/demo_relying_party/$1.key"
-}
-
 # Generate an EC root CA for issuer
 function generate_issuer_root_ca {
     echo -e "${INFO}Generating Issuer CA key pair${NC}"
