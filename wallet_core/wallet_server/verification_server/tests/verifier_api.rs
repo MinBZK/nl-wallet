@@ -34,6 +34,7 @@ use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_regist
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialFormat;
@@ -71,7 +72,6 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
-use token_status_list::status_claim::StatusClaim;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 use verification_server::server;

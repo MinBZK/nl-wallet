@@ -21,6 +21,8 @@ use tempfile::TempDir;
 use url::Url;
 use uuid::Uuid;
 
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use crypto::EcdsaKey;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
@@ -38,8 +40,6 @@ use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::publish::PublishDir;
-use token_status_list::status_claim::StatusClaim;
-use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;

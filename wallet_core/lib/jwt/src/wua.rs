@@ -9,32 +9,57 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation_types::status_claim::StatusClaim;
+
 use crate::DEFAULT_VALIDATIONS;
 use crate::EcdsaDecodingKey;
+use crate::JwtTyp;
 use crate::UnverifiedJwt;
-use crate::credential::JwtCredentialClaims;
+use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
-use crate::jwk::jwk_to_p256;
 use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WuaClaims {
+    pub cnf: ConfirmationClaim,
+
+    pub iss: String,
+
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
+
+    pub status: StatusClaim,
+}
+
+impl WuaClaims {
+    pub fn new(
+        holder_pubkey: &VerifyingKey,
+        iss: String,
+        exp: DateTime<Utc>,
+        status: StatusClaim,
+    ) -> Result<Self, JwtError> {
+        Ok(Self {
+            cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
+            iss,
+            exp,
+            status,
+        })
+    }
 }
 
 pub const WUA_JWT_TYP: &str = "wua+jwt";
 
+impl JwtTyp for WuaClaims {
+    const TYP: &'static str = WUA_JWT_TYP;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WuaDisclosure(
-    UnverifiedJwt<JwtCredentialClaims<WuaClaims>>,
-    UnverifiedJwt<JwtPopClaims>,
-);
+pub struct WuaDisclosure(UnverifiedJwt<WuaClaims>, UnverifiedJwt<JwtPopClaims>);
 
 #[cfg(feature = "test")]
 impl WuaDisclosure {
-    pub fn wua(&self) -> &UnverifiedJwt<JwtCredentialClaims<WuaClaims>> {
+    pub fn wua(&self) -> &UnverifiedJwt<WuaClaims> {
         &self.0
     }
 
@@ -62,7 +87,7 @@ impl WuaDisclosure {
         expected_nonce: &str,
     ) -> Result<VerifyingKey, WuaError> {
         let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
-        let wua_pubkey = jwk_to_p256(&verified_wua_claims.confirmation.jwk)?;
+        let wua_pubkey = verified_wua_claims.cnf.verifying_key()?;
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);

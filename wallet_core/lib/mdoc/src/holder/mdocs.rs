@@ -120,12 +120,12 @@ mod test {
     use indexmap::IndexMap;
     use ssri::Integrity;
 
+    use attestation_types::status_claim::StatusClaim;
     use crypto::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
-    use token_status_list::status_claim::StatusClaim;
     use utils::generator::Generator;
 
     use crate::iso::disclosure::IssuerSigned;
