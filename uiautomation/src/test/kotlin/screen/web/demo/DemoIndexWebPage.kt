@@ -11,6 +11,7 @@ class DemoIndexWebPage : MobileActions() {
     private val amsterdamSdJwtButtonLocator = By.xpath("//a[@id='mijn_amsterdam_sd_jwt']")
     private val xyzBankMdocButtonLocator = By.xpath("//a[@id='xyz_bank_mdoc']")
     private val xyzBankSdJwtButtonLocator = By.xpath("//a[@id='xyz_bank_sd_jwt']")
+    private val xyzBankSdJwtEuPidButtonLocator = By.xpath("//a[@id='xyz_bank_sd_jwt_eu']")
 
     private val marketplaceButtonLocator = By.xpath("//a[@id='online_marketplace']")
     private val monkeyBikeButtonLocator = By.xpath("//a[@id='monkey_bike']")
@@ -30,6 +31,8 @@ class DemoIndexWebPage : MobileActions() {
     fun clickXyzBankMdocButton() = clickWebElement(findWebElement(xyzBankMdocButtonLocator))
 
     fun clickXyzBankSdJwtButton() = clickWebElement(findWebElement(xyzBankSdJwtButtonLocator))
+
+    fun clickXyzBankSdJwtEuPidButton() = clickWebElement(findWebElement(xyzBankSdJwtEuPidButtonLocator))
 
     fun clickMarketplaceButton() = clickWebElement(findWebElement(marketplaceButtonLocator))
 
