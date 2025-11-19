@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use derive_more::AsRef;
 use http::header;
 use url::Url;
@@ -26,9 +28,10 @@ impl StatusListClient for StatusListReqwestClient {
             .get(url)
             .header(header::ACCEPT, STATUS_LIST_JWT_ACCEPT)
             .send()
-            .await?;
+            .await
+            .map_err(Arc::new)?;
 
-        let status_list_token = response.text().await?.parse()?;
+        let status_list_token = response.text().await.map_err(Arc::new)?.parse().map_err(Arc::new)?;
 
         Ok(status_list_token)
     }

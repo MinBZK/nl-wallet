@@ -1,16 +1,18 @@
+use std::sync::Arc;
+
 use url::Url;
 
 use jwt::error::JwtError;
 
 use crate::status_list_token::StatusListToken;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum StatusListClientError {
     #[error("networking error: {0}")]
-    Networking(#[from] reqwest::Error),
+    Networking(#[from] Arc<reqwest::Error>),
 
     #[error("jwt parsing error: {0}")]
-    JwtParsing(#[from] JwtError),
+    JwtParsing(#[from] Arc<JwtError>),
 }
 
 #[cfg_attr(test, mockall::automock)]

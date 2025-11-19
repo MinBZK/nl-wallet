@@ -87,7 +87,7 @@ mod test {
     impl StatusListClient for StatusListClientStub {
         async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
             let (_, _, status_list_token) =
-                create_status_list_token(&self.0, Utc::now().add(Days::new(1)).timestamp()).await;
+                create_status_list_token(&self.0, Some(Utc::now().add(Days::new(1)).timestamp()), None).await;
 
             Ok(status_list_token)
         }
@@ -185,7 +185,7 @@ mod test {
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .returning(|_| Err(StatusListClientError::JwtParsing(JwtError::MissingX5c)));
+            .returning(|_| Err(StatusListClientError::JwtParsing(JwtError::MissingX5c.into())));
         let verifier = RevocationVerifier::new(client);
         let status = verifier
             .verify(
