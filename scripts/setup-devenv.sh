@@ -47,6 +47,15 @@ source "${SCRIPTS_DIR}/utils.sh"
 # Check prerequisites
 ########################################################################
 
+if [[ ${BASH_VERSINFO[0]} -lt 5 ]]; then
+    error "Install a modern bash version"
+    if is_macos; then
+        echo "You can install modern bash via Homebrew"
+        echo "> brew install bash"
+    fi
+    exit 1
+fi
+
 # Use gsed on macOS, sed on others
 is_macos && SED="gsed" || SED="sed"
 have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
