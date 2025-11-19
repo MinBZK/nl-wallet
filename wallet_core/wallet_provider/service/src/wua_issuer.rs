@@ -174,10 +174,7 @@ mod tests {
             .parse_and_verify(&wua_verifying_key.into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 
-        assert_eq!(
-            wua_privkey.public_key(),
-            &wua_claims.confirmation.verifying_key().unwrap()
-        );
+        assert_eq!(wua_privkey.public_key(), &wua_claims.cnf.verifying_key().unwrap());
 
         // Check that the fields have the expected contents
         assert_eq!(wua_claims.iss, iss.to_string());

@@ -22,8 +22,7 @@ use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WuaClaims {
-    #[serde(rename = "cnf")]
-    pub confirmation: ConfirmationClaim,
+    pub cnf: ConfirmationClaim,
 
     pub iss: String,
 
@@ -41,7 +40,7 @@ impl WuaClaims {
         status: StatusClaim,
     ) -> Result<Self, JwtError> {
         Ok(Self {
-            confirmation: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
+            cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
             iss,
             exp,
             status,
@@ -88,7 +87,7 @@ impl WuaDisclosure {
         expected_nonce: &str,
     ) -> Result<VerifyingKey, WuaError> {
         let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
-        let wua_pubkey = verified_wua_claims.confirmation.verifying_key()?;
+        let wua_pubkey = verified_wua_claims.cnf.verifying_key()?;
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);

@@ -2003,7 +2003,7 @@ mod tests {
                 .dangerous_parse_unverified()
                 .unwrap()
                 .1
-                .confirmation
+                .cnf
                 .verifying_key()
                 .unwrap();
 
