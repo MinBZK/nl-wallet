@@ -29,6 +29,7 @@ impl Expiry<Url, CachedResult> for CachedExpiry {
         let duration = match value.as_ref() {
             Ok(token) => token
                 .as_ref()
+                // TODO: PVW-5222 Only cache with verified `ttl` and `exp`
                 .dangerous_parse_unverified()
                 .map(|(_, claims)| claims.ttl)
                 .unwrap_or(Some(self.error_ttl))
