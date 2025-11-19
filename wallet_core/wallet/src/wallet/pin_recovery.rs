@@ -16,12 +16,10 @@ use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oidc::OidcError;
-use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
-use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -228,43 +226,14 @@ where
             unreachable!("session contained no PinRecoveryDigid"); // we just checked this above
         };
 
+        // Fetch issuance previews
         let config = self.config_repository.get();
         let token_request = session
             .into_token_request(&config.pid_issuance.digid_http_config, redirect_uri)
             .await?;
-
-        // Check the recovery code in the received PID against the one in the stored PID, as otherwise
-        // the WP will reject our PIN recovery instructions.
-        let (pid_attestation_type, issuance_session) = self
-            .pin_recovery_start_issuance(token_request, &pid_config, &config)
-            .await?;
-
-        let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), &pid_config)?;
-        self.compare_recovery_code_against_stored(pid_preview, &pid_config)
-            .await?;
-
-        self.session.replace(Session::PinRecovery {
-            pid_config,
-            session: PinRecoverySession::Issuance {
-                pid_attestation_type,
-                issuance_session,
-            },
-        });
-
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
-    async fn pin_recovery_start_issuance(
-        &mut self,
-        token_request: TokenRequest,
-        pid_config: &PidAttributesConfiguration,
-        config: &WalletConfiguration,
-    ) -> Result<(String, IS), PinRecoveryError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
             .expect("Could not build reqwest HTTP client");
-
         let issuance_session = IS::start_issuance(
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
             config.pid_issuance.pid_issuer_url.clone(),
@@ -274,13 +243,24 @@ where
         .await
         .map_err(IssuanceError::from)?;
 
-        let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), pid_config)?;
-
         info!("successfully received token and previews from issuer");
-        Ok((
-            pid_preview.content.credential_payload.attestation_type.clone(),
-            issuance_session,
-        ))
+
+        // Check the recovery code in the received PID against the one in the stored PID, as otherwise
+        // the WP will reject our PIN recovery instructions.
+        let previews = issuance_session.normalized_credential_preview();
+        let pid_preview = Self::pid_preview(previews, &pid_config)?;
+        self.compare_recovery_code_against_stored(pid_preview, &pid_config)
+            .await?;
+
+        self.session.replace(Session::PinRecovery {
+            pid_config,
+            session: PinRecoverySession::Issuance {
+                pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
+                issuance_session,
+            },
+        });
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
