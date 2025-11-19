@@ -244,26 +244,6 @@ function generate_wp_signing_key {
     private_key_to_pem "$1"
 }
 
-# Generate a private EC key and a self-signed certificate
-#
-# $1 name of the key
-# $2 common name to use in the certificate
-function generate_wp_self_signed_certificate {
-    generate_ec_key "$1"
-
-    openssl req \
-            -new \
-            -subj "/CN=$2" \
-            -days 1825 \
-            -x509 \
-            -sha256 \
-            -outform der \
-            -key "${TARGET_DIR}/wallet_provider/$1.ec.key" \
-            -out "${TARGET_DIR}/wallet_provider/$1.crt" > /dev/null
-
-    private_key_to_pem "$1"
-}
-
 # Generate a random key (32 bytes)
 #
 # random_data may contain the null byte (00) or newline (0a). `softhsm2-util --aes` uses fgets to read
