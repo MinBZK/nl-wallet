@@ -19,7 +19,7 @@ pub struct CachedStatusListClient<C> {
     client: C,
 }
 
-struct CachedExpiry {
+struct TokenExpiry {
     /// TTL when Status List Token has no `ttl` specified
     default_ttl: Duration,
     /// TTL when an error occurred, te prevent retrying always on an error
@@ -28,7 +28,7 @@ struct CachedExpiry {
 
 const ZERO_DURATION: Duration = Duration::from_secs(0);
 
-impl Expiry<Url, CachedResult> for CachedExpiry {
+impl Expiry<Url, CachedResult> for TokenExpiry {
     fn expire_after_create(&self, _key: &Url, value: &CachedResult, _created_at: Instant) -> Option<Duration> {
         let duration = match value.as_ref() {
             Ok(token) => token
@@ -63,7 +63,7 @@ impl<C> CachedStatusListClient<C> {
     pub fn new(client: C, capacity: u64, default_ttl: Duration, error_ttl: Duration) -> Self {
         let cache = Cache::builder()
             .max_capacity(capacity)
-            .expire_after(CachedExpiry { default_ttl, error_ttl })
+            .expire_after(TokenExpiry { default_ttl, error_ttl })
             .build();
         Self { cache, client }
     }
