@@ -238,6 +238,8 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
     use sd_jwt::builder::SignedSdJwt;
+    use token_status_list::verification::client::mock::StatusListClientStub;
+    use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -500,7 +502,10 @@ mod tests {
             &MockTimeGenerator::default(),
             &[ca.to_trust_anchor()],
             &ExtendingVctRetrieverStub,
+            &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
         )
+        .now_or_never()
+        .unwrap()
         .expect("decrypting and verifying VPDisclosureSession authorization response should succeed");
 
         // Finally, check that the disclosed attestations match exactly those provided.

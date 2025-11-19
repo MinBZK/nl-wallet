@@ -735,6 +735,8 @@ mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use token_status_list::verification::client::mock::StatusListClientStub;
+    use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -923,7 +925,7 @@ mod test {
             "iat": 61,
             "status": {
                 "status_list": {
-                    "idx": 0,
+                    "idx": 1,
                     "uri": "https://example.com/statuslists/1"
                 }
             },
@@ -1138,7 +1140,14 @@ mod test {
 
         let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap().into_unverified();
         presented_sd_jwt
-            .into_verified_against_trust_anchors(&[ca.to_trust_anchor()], &kb_verification_options, &time_generator)
+            .into_verified_against_trust_anchors(
+                &[ca.to_trust_anchor()],
+                &kb_verification_options,
+                &time_generator,
+                &RevocationVerifier::new(StatusListClientStub::new(issuer_key_pair)),
+            )
+            .now_or_never()
+            .unwrap()
             .unwrap();
     }
 

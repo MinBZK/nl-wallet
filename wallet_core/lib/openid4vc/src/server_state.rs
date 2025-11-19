@@ -74,7 +74,7 @@ where
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
-        Self: Send + Sync + 'static,
+        Self: Sync + 'static,
     {
         let mut interval = time::interval(interval);
         interval.set_missed_tick_behavior(MissedTickBehavior::Delay);

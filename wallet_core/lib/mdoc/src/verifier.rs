@@ -2,6 +2,7 @@
 
 use chrono::DateTime;
 use chrono::Utc;
+use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::SecretKey;
@@ -13,6 +14,10 @@ use tracing::warn;
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
+use token_status_list::status_claim::StatusClaim;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationStatus;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -35,6 +40,7 @@ pub struct DisclosedDocument {
     pub attestation_qualification: AttestationQualification,
     pub ca: String,
     pub validity_info: ValidityInfo,
+    pub revocation_status: Option<RevocationStatus>,
     pub device_key: VerifyingKey,
 }
 
@@ -84,13 +90,17 @@ impl DeviceResponse {
     ///   signed by the holder.
     /// - `time` - a generator of the current time.
     /// - `trust_anchors` - trust anchors against which verification is done.
-    pub fn verify(
+    pub async fn verify<C>(
         &self,
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<Vec<DisclosedDocument>> {
+        trust_anchors: &[TrustAnchor<'_>],
+        revocation_verifier: &RevocationVerifier<C>,
+    ) -> Result<Vec<DisclosedDocument>>
+    where
+        C: StatusListClient,
+    {
         if let Some(errors) = &self.document_errors {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
@@ -99,25 +109,33 @@ impl DeviceResponse {
             return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
 
-        let disclosed_documents = self
-            .documents
-            .as_ref()
-            .ok_or(Error::from(VerificationError::NoDocuments))?
-            .iter()
-            .map(|document| {
-                debug!("verifying document with doc_type: {}", document.doc_type);
+        let disclosed_documents = try_join_all(
+            self.documents
+                .as_ref()
+                .ok_or(Error::from(VerificationError::NoDocuments))?
+                .iter()
+                .map(|document| async {
+                    debug!("verifying document with doc_type: {}", document.doc_type);
 
-                let disclosed_document = document
-                    .verify(eph_reader_key, session_transcript, time, trust_anchors)
-                    .inspect_err(|error| {
-                        warn!("document verification failed: {error}");
-                    })?;
+                    let disclosed_document = document
+                        .verify(
+                            eph_reader_key,
+                            session_transcript,
+                            time,
+                            trust_anchors,
+                            revocation_verifier,
+                        )
+                        .await
+                        .inspect_err(|error| {
+                            warn!("document verification failed: {error}");
+                        })?;
 
-                debug!("document OK");
+                    debug!("document OK");
 
-                Ok(disclosed_document)
-            })
-            .collect::<Result<_, Error>>()?;
+                    Ok::<_, Error>(disclosed_document)
+                }),
+        )
+        .await?;
 
         Ok(disclosed_documents)
     }
@@ -245,13 +263,17 @@ impl MobileSecurityObject {
 }
 
 impl Document {
-    pub fn verify(
+    pub async fn verify<C>(
         &self,
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedDocument> {
+        trust_anchors: &[TrustAnchor<'_>],
+        revocation_verifier: &RevocationVerifier<C>,
+    ) -> Result<DisclosedDocument>
+    where
+        C: StatusListClient,
+    {
         debug!("verifying document with doc_type: {:?}", &self.doc_type);
         debug!("verify issuer_signed");
         let IssuerSignedVerificationResult {
@@ -303,6 +325,23 @@ impl Document {
         }
         debug!("signature valid");
 
+        let revocation_status = match &mso.status {
+            Some(StatusClaim::StatusList(status_list_claim)) => {
+                let issuer_certificate = &self.issuer_signed.issuer_auth.signing_cert()?;
+                let revocation_status = revocation_verifier
+                    .verify(
+                        trust_anchors,
+                        issuer_certificate,
+                        status_list_claim.uri.clone(),
+                        time,
+                        status_list_claim.idx.try_into().unwrap(),
+                    )
+                    .await;
+                Some(revocation_status)
+            }
+            _ => None,
+        };
+
         let disclosed_document = DisclosedDocument {
             doc_type: mso.doc_type,
             attributes,
@@ -311,6 +350,7 @@ impl Document {
             attestation_qualification,
             ca: ca_common_name,
             validity_info: mso.validity_info,
+            revocation_status,
             device_key,
         };
 
@@ -327,6 +367,7 @@ mod tests {
 
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
+    use token_status_list::verification::client::mock::StatusListClientStub;
 
     use crate::examples::EXAMPLE_ATTR_NAME;
     use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -409,7 +450,9 @@ mod tests {
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
+                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
             )
+            .await
             .unwrap();
         println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 

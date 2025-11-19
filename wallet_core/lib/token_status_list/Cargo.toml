@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "dep:http_utils", "http_utils/client"]
-mock = ["dep:dashmap", "dep:http_utils"]
+mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
 [dependencies]
 base64.workspace = true
@@ -21,6 +21,7 @@ dashmap = { workspace = true, optional = true }
 derive_more = { workspace = true, features = ["from_str", "into"] }
 flate2.workspace = true
 http = { workspace = true, optional = true }
+mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }

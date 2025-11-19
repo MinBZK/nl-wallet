@@ -1,6 +1,8 @@
 use chrono::DateTime;
 use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
+use serde::Deserialize;
+use serde::Serialize;
 use tracing::warn;
 use url::Url;
 
@@ -10,7 +12,7 @@ use utils::generator::Generator;
 use crate::status_list::StatusType;
 use crate::verification::client::StatusListClient;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RevocationStatus {
     Valid,
     Invalid,
@@ -18,6 +20,7 @@ pub enum RevocationStatus {
     Corrupted,
 }
 
+#[derive(Debug)]
 pub struct RevocationVerifier<C>(C);
 
 impl<C> RevocationVerifier<C>
@@ -67,31 +70,16 @@ mod test {
     use chrono::Days;
     use chrono::Utc;
     use futures::FutureExt;
-    use url::Url;
 
-    use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use jwt::error::JwtError;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::status_list_token::StatusListToken;
-    use crate::status_list_token::mock::create_status_list_token;
-    use crate::verification::client::MockStatusListClient;
-    use crate::verification::client::StatusListClient;
     use crate::verification::client::StatusListClientError;
+    use crate::verification::client::mock::MockStatusListClient;
+    use crate::verification::client::mock::StatusListClientStub;
     use crate::verification::verifier::RevocationStatus;
     use crate::verification::verifier::RevocationVerifier;
-
-    struct StatusListClientStub(KeyPair);
-
-    impl StatusListClient for StatusListClientStub {
-        async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
-            let (_, _, status_list_token) =
-                create_status_list_token(&self.0, Utc::now().add(Days::new(1)).timestamp()).await;
-
-            Ok(status_list_token)
-        }
-    }
 
     #[test]
     fn test_verify() {
@@ -99,9 +87,7 @@ mod test {
         let keypair = ca.generate_status_list_mock().unwrap();
         let iss_keypair = ca.generate_issuer_mock().unwrap();
 
-        let client = StatusListClientStub(keypair);
-
-        let verifier = RevocationVerifier::new(client);
+        let verifier = RevocationVerifier::new(StatusListClientStub::new(keypair));
 
         // Index 1 is valid
         let status = verifier

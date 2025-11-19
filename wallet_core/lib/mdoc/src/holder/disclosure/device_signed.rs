@@ -78,6 +78,8 @@ mod tests {
 
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
+    use token_status_list::verification::client::mock::StatusListClientStub;
+    use token_status_list::verification::verifier::RevocationVerifier;
 
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceSigned;
@@ -120,7 +122,9 @@ mod tests {
                 &session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
+                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
             )
+            .await
             .unwrap();
     }
 }
