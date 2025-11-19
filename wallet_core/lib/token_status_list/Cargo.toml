@@ -35,6 +35,7 @@ trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 uuid.workspace = true
 
+attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 http_utils = { path = "../http_utils", optional = true }
 jwt.path = "../jwt"

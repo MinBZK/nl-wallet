@@ -12,9 +12,9 @@ use tracing::debug;
 use tracing::warn;
 
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
-use token_status_list::status_claim::StatusClaim;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;

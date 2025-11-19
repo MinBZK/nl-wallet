@@ -687,8 +687,10 @@ version = "0.4.0-dev"
 dependencies = [
  "itertools 0.14.0",
  "serde",
+ "serde_json",
  "serde_with",
  "strum 0.26.3",
+ "url",
 ]
 
 [[package]]
@@ -3640,6 +3642,7 @@ name = "jwt"
 version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation_types",
  "base64 0.22.1",
  "chrono",
  "crypto",
@@ -6430,6 +6433,7 @@ version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "attestation_types",
  "axum",
  "chrono",
  "config",
@@ -6840,6 +6844,7 @@ name = "token_status_list"
 version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation_types",
  "base64 0.22.1",
  "chrono",
  "crypto",
@@ -8527,6 +8532,7 @@ name = "wscd"
 version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation_types",
  "chrono",
  "crypto",
  "derive_more",

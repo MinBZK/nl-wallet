@@ -532,7 +532,7 @@ where
     // generate WUA ID
     let wua_id = Uuid::new_v4();
     let exp = Utc::now() + user_state.wua_validity;
-    let _status_claim = user_state
+    let status_claim = user_state
         .status_list_service
         .obtain_status_claims(
             WUA_ATTESTATION_TYPE_IDENTIFIER,
@@ -554,7 +554,7 @@ where
 
     let (wua_wrapped_key, wua_key_id, wua) = user_state
         .wua_issuer
-        .issue_wua(exp)
+        .issue_wua(exp, status_claim)
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
@@ -1377,7 +1377,6 @@ mod tests {
     use jwt::UnverifiedJwt;
     use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
-    use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use token_status_list::status_list_service::mock::MockStatusListService;
@@ -1999,23 +1998,21 @@ mod tests {
             .collect_vec();
 
         let wua_key = wua_with_disclosure.map(|wua_with_disclosure| {
-            let wua_key = jwk_to_p256(
-                &wua_with_disclosure
-                    .wua()
-                    .dangerous_parse_unverified()
-                    .unwrap()
-                    .1
-                    .confirmation
-                    .jwk,
-            )
-            .unwrap();
+            let wua_key = &wua_with_disclosure
+                .wua()
+                .dangerous_parse_unverified()
+                .unwrap()
+                .1
+                .cnf
+                .verifying_key()
+                .unwrap();
 
             wua_with_disclosure
                 .wua_pop()
-                .parse_and_verify(&(&wua_key).into(), &validations)
+                .parse_and_verify(&wua_key.into(), &validations)
                 .unwrap();
 
-            wua_key
+            *wua_key
         });
 
         let keys = keys.into_iter().chain(wua_key).collect_vec();

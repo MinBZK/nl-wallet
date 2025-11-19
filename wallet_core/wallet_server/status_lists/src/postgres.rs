@@ -30,12 +30,12 @@ use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
 use uuid::Uuid;
 
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
 use jwt::error::JwtError;
 use server_utils::keys::PrivateKeyVariant;
-use token_status_list::status_claim::StatusClaim;
-use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListService;

@@ -326,11 +326,11 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::status_claim::StatusClaim;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-    use token_status_list::status_claim::StatusClaim;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 

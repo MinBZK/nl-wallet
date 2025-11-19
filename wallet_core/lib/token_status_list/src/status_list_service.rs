@@ -2,10 +2,9 @@ use std::num::NonZeroUsize;
 
 use uuid::Uuid;
 
+use attestation_types::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
-
-use crate::status_claim::StatusClaim;
 
 #[trait_variant::make(Send)]
 pub trait StatusListService {
@@ -26,9 +25,8 @@ pub mod mock {
 
     use dashmap::DashMap;
 
+    use attestation_types::status_claim::StatusListClaim;
     use http_utils::urls::BaseUrl;
-
-    use crate::status_claim::StatusListClaim;
 
     use super::*;
 

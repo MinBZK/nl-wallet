@@ -19,7 +19,7 @@
 //!     only `Sha256` is implemented via `Sha256Hasher`.
 //! - JWT. The underlying JWT handling (sign/verify) is provided by the `jwt` crate. This crate uses:
 //!   - `HeaderWithX5c` when issuing SD-JWTs (issuer certificate chain embedded in `x5c`),
-//!   - the holder key binding lives in the `cnf` claim as a JWK (`RequiredKeyBinding`).
+//!   - the holder key binding lives in the `cnf` claim as a JWK (`ConfirmationClaim`).
 //! - SD-JWTs. Note: to be able to parse the examples from the spec, generics `<C, H>` are provided, but limited to
 //!   what's needed in the examples/tests:
 //!   - [`UnverifiedSdJwt`](sd_jwt::UnverifiedSdJwt): raw serialization received over an untrusted channel. Can be
@@ -66,6 +66,7 @@
 //! # use attestation_types::claim_path::ClaimPath;
 //! # use chrono::Utc;
 //! # use crypto::server_keys::generate::Ca;
+//! # use jwt::confirmation::ConfirmationClaim;
 //! # use jwt::headers::HeaderWithX5c;
 //! # use jwt::jwk::jwk_from_p256;
 //! # use p256::ecdsa::{SigningKey, VerifyingKey};
@@ -77,7 +78,6 @@
 //! # use sd_jwt::disclosure::Disclosure;
 //! # use sd_jwt::key_binding_jwt::KbVerificationOptions;
 //! # use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
-//! # use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 //! # use sd_jwt::sd_jwt::{SdJwtVcClaims, VerifiedSdJwt};
 //! # use std::time::Duration;
 //! # use token_status_list::verification::client::mock::StatusListClientStub;
@@ -92,7 +92,7 @@
 //! let holder_privkey = SigningKey::random(&mut OsRng);
 //! let claims = SdJwtVcClaims {
 //!     _sd_alg: None,
-//!     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_privkey.verifying_key())?),
+//!     cnf: ConfirmationClaim::Jwk(jwk_from_p256(&holder_privkey.verifying_key())?),
 //!     vct: "com:example:vct".into(),
 //!     vct_integrity: None,
 //!     iss: "https://issuer.example.com".parse()?,

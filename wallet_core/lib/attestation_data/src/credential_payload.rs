@@ -11,10 +11,12 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
+use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
 use mdoc::DeviceKeyInfo;
@@ -34,14 +36,12 @@ use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::claims::ClaimNameError;
-use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwtVcClaims;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
-use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 
@@ -63,7 +63,7 @@ pub struct CredentialPayload {
     /// Contains the attestation's public key, of which the corresponding private key is used by the wallet during
     /// disclosure to sign the RP's nonce into a PoP
     #[serde(rename = "cnf")]
-    pub confirmation_key: RequiredKeyBinding,
+    pub confirmation_key: ConfirmationClaim,
 
     /// Contains the integrity digest of the type metadata document of this `vct`.
     #[serde(rename = "vct#integrity")]
@@ -283,7 +283,7 @@ impl CredentialPayload {
     fn new(
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTimeSeconds,
-        confirmation_key: RequiredKeyBinding,
+        confirmation_key: ConfirmationClaim,
         metadata: &NormalizedTypeMetadata,
         vct_integrity: Integrity,
         status: StatusClaim,
@@ -312,7 +312,7 @@ impl CredentialPayload {
         Self::new(
             previewable_payload,
             issued_at.into(),
-            RequiredKeyBinding::Jwk(confirmation_key),
+            ConfirmationClaim::Jwk(confirmation_key),
             metadata,
             metadata_integrity,
             status,
@@ -347,7 +347,7 @@ impl CredentialPayload {
         Ok(Self::new(
             previewable_payload,
             issued_at,
-            RequiredKeyBinding::Jwk(confirmation_key),
+            ConfirmationClaim::Jwk(confirmation_key),
             metadata,
             type_metadata_integrity.ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
             status.ok_or(MdocCredentialPayloadError::MissingStatusClaim)?,
@@ -459,7 +459,7 @@ fn split_sd_jwt(
     (
         PreviewableCredentialPayload,
         DateTimeSeconds,
-        RequiredKeyBinding,
+        ConfirmationClaim,
         Option<Integrity>,
         Option<StatusClaim>,
     ),
@@ -549,7 +549,6 @@ mod examples {
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use jwt::jwk::jwk_from_p256;
-    use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     use utils::generator::Generator;
 
     use crate::attributes::AttributeValue;
@@ -567,7 +566,7 @@ mod examples {
         ) -> Result<Self, JwkConversionError> {
             let payload = CredentialPayload {
                 issued_at: issued_at.into(),
-                confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
+                confirmation_key: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
                 vct_integrity: metadata_integrity,
                 status,
                 previewable_payload,
@@ -587,7 +586,7 @@ mod examples {
 
             Self {
                 issued_at: time.into(),
-                confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
+                confirmation_key: ConfirmationClaim::Jwk(confirmation_key.clone()),
                 vct_integrity: Integrity::from(""),
                 status: StatusClaim::new_mock(),
                 previewable_payload,
@@ -729,7 +728,6 @@ mod test {
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt::KbVerificationOptions;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
-    use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     use sd_jwt::sd_jwt::SdJwtVcClaims;
     use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -905,7 +903,7 @@ mod test {
 
         let payload = CredentialPayload {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
-            confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
+            confirmation_key: ConfirmationClaim::Jwk(confirmation_key.clone()),
             vct_integrity: Integrity::from(""),
             status: StatusClaim::new_mock(),
             previewable_payload: PreviewableCredentialPayload {

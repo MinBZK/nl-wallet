@@ -11,10 +11,13 @@ workspace = true
 doctest = false
 
 [features]
+mock = []
 pid_constants = []
 
 [dependencies]
+url = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }

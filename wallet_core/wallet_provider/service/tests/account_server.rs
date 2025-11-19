@@ -2,12 +2,13 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
 use base64::prelude::*;
-use crypto::server_keys::generate::Ca;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
+use attestation_types::status_claim::StatusClaim;
+use crypto::server_keys::generate::Ca;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -275,7 +276,7 @@ async fn test_wua_status() {
         )
         .await;
 
-    account_server
+    let result = account_server
         .handle_instruction(
             instruction,
             &certificate_signing_key,
@@ -294,5 +295,20 @@ async fn test_wua_status() {
     tx.commit().await.unwrap();
 
     // assert that one WUA has been stored in the database, linked to this wallet
-    assert!(wua_ids.len() == 1)
+    assert!(wua_ids.len() == 1);
+
+    assert!(matches!(
+        result
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .result
+            .wua_disclosure
+            .wua()
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .status,
+        StatusClaim::StatusList(_)
+    ));
 }

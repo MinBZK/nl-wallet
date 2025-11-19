@@ -8,8 +8,6 @@ use derive_more::Display;
 use derive_more::FromStr;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
-use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -22,8 +20,6 @@ use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
-use jwt::error::JwkConversionError;
-use jwt::jwk::jwk_to_p256;
 use utils::generator::Generator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -220,24 +216,6 @@ pub struct KeyBindingJwtClaims {
     pub aud: String,
     pub nonce: String,
     pub sd_hash: String,
-}
-
-/// Proof of possession of a given key.
-///
-/// Currently, only Jwk is supported. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more
-/// details.
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum RequiredKeyBinding {
-    /// Json Web Key (JWK).
-    Jwk(Jwk),
-}
-
-impl RequiredKeyBinding {
-    pub fn verifying_key(&self) -> Result<VerifyingKey, JwkConversionError> {
-        let Self::Jwk(jwk) = self;
-        jwk_to_p256(jwk)
-    }
 }
 
 #[cfg(test)]

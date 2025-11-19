@@ -24,9 +24,9 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
-use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 
 use crate::utils::cose::CoseKey;
