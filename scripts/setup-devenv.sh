@@ -261,7 +261,6 @@ export ISSUER_CA_CRT
 
 # Generate key for WUA signing
 generate_wp_signing_key wua_signing
-export WP_WUA_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wua_signing.pem"
 WP_WUA_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wua_signing.pub.der" ${BASE64})
 export WP_WUA_PUBLIC_KEY
 
@@ -479,12 +478,10 @@ WALLET_PROVIDER_SERVER_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.ke
 export WALLET_PROVIDER_SERVER_KEY
 
 generate_wp_signing_key certificate_signing
-export WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
-export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
@@ -522,12 +519,9 @@ render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${W
 render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
 
 ########################################################################
-# Configure HSM
+# Import secret keys into HSM
 ########################################################################
 
-softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "${HSM_TOKEN}"
-softhsm2-util --import "${WP_WUA_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wua_signing" | xxd -p)" --label "wua_signing_key" --token "${HSM_TOKEN}"
-softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "${HSM_TOKEN}"
 softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "${HSM_TOKEN}"
 softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "${HSM_TOKEN}"
 
@@ -560,7 +554,7 @@ export CONFIG_SERVER_CERT
 CONFIG_SERVER_KEY=$(< "${TARGET_DIR}/configuration_server/config_server.key.der" ${BASE64})
 export CONFIG_SERVER_KEY
 
-generate_wp_signing_key config_signing
+generate_config_signing_key_pair
 CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
 export CONFIG_SIGNING_PUBLIC_KEY
 
