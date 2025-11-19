@@ -1,6 +1,8 @@
+use std::cmp::min;
 use std::time::Duration;
 use std::time::Instant;
 
+use chrono::Utc;
 use moka::Expiry;
 use moka::future::Cache;
 use url::Url;
@@ -24,6 +26,8 @@ struct CachedExpiry {
     error_ttl: Duration,
 }
 
+const ZERO_DURATION: Duration = Duration::from_secs(0);
+
 impl Expiry<Url, CachedResult> for CachedExpiry {
     fn expire_after_create(&self, _key: &Url, value: &CachedResult, _created_at: Instant) -> Option<Duration> {
         let duration = match value.as_ref() {
@@ -31,9 +35,18 @@ impl Expiry<Url, CachedResult> for CachedExpiry {
                 .as_ref()
                 // TODO: PVW-5222 Only cache with verified `ttl` and `exp`
                 .dangerous_parse_unverified()
-                .map(|(_, claims)| claims.ttl)
-                .unwrap_or(Some(self.error_ttl))
-                .unwrap_or(self.default_ttl),
+                .map(|(_, claims)| {
+                    let ttl = claims.ttl.unwrap_or(self.default_ttl);
+                    match claims.exp {
+                        None => ttl,
+                        Some(exp) => min(
+                            ttl,
+                            // `.to_std` errors on negative duration
+                            (exp - Utc::now()).to_std().unwrap_or(ZERO_DURATION),
+                        ),
+                    }
+                })
+                .unwrap_or(self.error_ttl),
             Err(_) => self.error_ttl,
         };
         Some(duration)
@@ -138,9 +151,10 @@ mod test {
         let ca = Ca::generate("test", Default::default()).unwrap();
         let keypair = ca.generate_status_list_mock().unwrap();
 
+        let now = Utc::now().timestamp();
         let client = setup_mock_tokens([
-            create_status_list_token(&keypair, Some(10), None),
-            create_status_list_token(&keypair, Some(20), None),
+            create_status_list_token(&keypair, Some(now + 100), None),
+            create_status_list_token(&keypair, Some(now + 200), None),
         ])
         .await;
         let cached = CachedStatusListClient::new(client, 10, Duration::from_millis(100), TEN_MINUTES);
@@ -161,8 +175,8 @@ mod test {
         let keypair = ca.generate_status_list_mock().unwrap();
 
         let client = setup_mock_tokens([
-            create_status_list_token(&keypair, Some(10), Some(1)),
-            create_status_list_token(&keypair, Some(20), Some(2)),
+            create_status_list_token(&keypair, None, Some(1)),
+            create_status_list_token(&keypair, None, Some(2)),
         ])
         .await;
         let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, TEN_MINUTES);
@@ -183,8 +197,8 @@ mod test {
         let keypair = ca.generate_status_list_mock().unwrap();
 
         let client = setup_mock_tokens([
-            create_status_list_token(&keypair, Some(10), Some(1)),
-            create_status_list_token(&keypair, Some(20), Some(2)),
+            create_status_list_token(&keypair, None, Some(1)),
+            create_status_list_token(&keypair, None, Some(2)),
         ])
         .await;
         let cached = CachedStatusListClient::new(client, 10, Duration::from_millis(100), TEN_MINUTES);
@@ -200,13 +214,53 @@ mod test {
     }
 
     #[tokio::test]
+    async fn should_cache_on_exp_if_lower_than_ttl() {
+        let ca = Ca::generate("test", Default::default()).unwrap();
+        let keypair = ca.generate_status_list_mock().unwrap();
+
+        let now = Utc::now().timestamp();
+        let client = setup_mock_tokens([
+            create_status_list_token(&keypair, Some(now), Some(100)),
+            create_status_list_token(&keypair, Some(now + 100), None),
+        ])
+        .await;
+        let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, TEN_MINUTES);
+
+        let res1 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        let res2 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
+
+        assert_ne!(res1, res2);
+    }
+
+    #[tokio::test]
+    async fn should_cache_on_exp_if_lower_than_default_ttl() {
+        let ca = Ca::generate("test", Default::default()).unwrap();
+        let keypair = ca.generate_status_list_mock().unwrap();
+
+        let now = Utc::now().timestamp();
+        let client = setup_mock_tokens([
+            create_status_list_token(&keypair, Some(now), None),
+            create_status_list_token(&keypair, Some(now + 100), None),
+        ])
+        .await;
+        let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, TEN_MINUTES);
+
+        let res1 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        let res2 = cached.fetch("https://localhost:8080".parse().unwrap()).await.unwrap();
+
+        assert_ne!(res1, res2);
+    }
+
+    #[tokio::test]
     async fn should_cache_error_ttl_on_err() {
         let ca = Ca::generate("test", Default::default()).unwrap();
         let keypair = ca.generate_status_list_mock().unwrap();
 
         let client = setup_mock_results([
             Err(StatusListClientError::JwtParsing(JwtError::MissingX5c.into())),
-            Ok(create_status_list_token(&keypair, Some(20), None).await.2),
+            Ok(create_status_list_token(&keypair, None, None).await.2),
         ]);
         let cached = CachedStatusListClient::new(client, 10, TEN_MINUTES, Duration::from_millis(100));
 
