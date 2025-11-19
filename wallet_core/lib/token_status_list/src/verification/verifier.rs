@@ -171,7 +171,7 @@ mod test {
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .returning(|_| Err(StatusListClientError::JwtParsing(JwtError::MissingX5c)));
+            .returning(|_| Err(StatusListClientError::JwtParsing(JwtError::MissingX5c.into())));
         let verifier = RevocationVerifier::new(client);
         let status = verifier
             .verify(

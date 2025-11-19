@@ -299,4 +299,21 @@ class DisclosureTests : TestBase() {
         disclosureScreen.goToWebsite()
         assertTrue(jobFinderWebPage.sharedAttributeVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last()), "Attribute of selected card not visible")
     }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC17 Share data flow, Opening a bank account. SD-JWT, extended VCT")
+    fun verifyDisclosureCreateAccountXyzBankSdJwtExtendingVct(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickXyzBankSdJwtEuPidButton()
+        xyzBankWebPage.openSameDeviceWalletFlow()
+        xyzBankWebPage.switchToNativeContext()
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+        disclosureScreen.share()
+        pinScreen.enterPin(DEFAULT_PIN)
+        disclosureScreen.goToWebsite()
+        assertTrue(xyzBankWebPage.sharedAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "User not identified correctly")
+    }
 }

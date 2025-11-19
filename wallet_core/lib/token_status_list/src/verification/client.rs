@@ -1,16 +1,18 @@
+use std::sync::Arc;
+
 use url::Url;
 
 use jwt::error::JwtError;
 
 use crate::status_list_token::StatusListToken;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum StatusListClientError {
     #[error("networking error: {0}")]
-    Networking(#[from] reqwest::Error),
+    Networking(#[from] Arc<reqwest::Error>),
 
     #[error("jwt parsing error: {0}")]
-    JwtParsing(#[from] JwtError),
+    JwtParsing(#[from] Arc<JwtError>),
 }
 
 #[trait_variant::make(Send)]
@@ -22,6 +24,7 @@ pub trait StatusListClient {
 pub mod mock {
     use std::collections::HashMap;
     use std::ops::Add;
+    use std::sync::Arc;
     use std::time::Duration;
 
     use chrono::Days;
@@ -55,7 +58,7 @@ pub mod mock {
     {
         async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
             let (_, _, status_list_token) =
-                create_status_list_token(&self.0, Utc::now().add(Days::new(1)).timestamp()).await;
+                create_status_list_token(&self.0, Some(Utc::now().add(Days::new(1)).timestamp()), None).await;
 
             Ok(status_list_token)
         }
@@ -84,7 +87,8 @@ pub mod mock {
             let status_list_token = StatusListToken::builder(url, StatusList::new(10).pack())
                 .ttl(Some(Duration::from_secs(3600)))
                 .sign(keypair)
-                .await?;
+                .await
+                .map_err(Arc::new)?;
 
             Ok(status_list_token)
         }

@@ -18,9 +18,10 @@ mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 base64.workspace = true
 chrono.workspace = true
 dashmap = { workspace = true, optional = true }
-derive_more = { workspace = true, features = ["from_str", "into"] }
+derive_more = { workspace = true, features = ["as_ref", "from_str"] }
 flate2.workspace = true
 http = { workspace = true, optional = true }
+moka = { workspace = true, features = ["future"] }
 mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
