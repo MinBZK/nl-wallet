@@ -83,7 +83,8 @@ then
 # export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
 # export HSM_SO_PIN=${HSM_SO_PIN}
 # export HSM_USER_PIN=${HSM_USER_PIN}
-# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}" \
+# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}
+# export HSM_TOKEN=${HSM_TOKEN}" \
     > "${SCRIPTS_DIR}/.env"
     echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}."
     echo -e "${INFO}Edit this file to reflect your environment, and un-comment the relevant variables.${NC}"
@@ -208,14 +209,19 @@ if [[ ! -f "$HSM_LIBRARY_PATH" ]]; then
 fi
 
 mkdir -p "${HOME}/.config/softhsm2"
-if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
+if [[ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]]; then
   mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"
 fi
 
 render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
 
-softhsm2-util --delete-token --token test_token --force > /dev/null || true
-softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
+HSM_SLOT=$(softhsm2-util --show-slots | awk '/^Slot / { slot=$1 } /^ *Label: +'"${HSM_TOKEN}"' *$/ { print slot; exit }')
+if [[ -z $HSM_SLOT ]]; then
+    softhsm2-util --init-token --free --label "${HSM_TOKEN}" --so-pin "${HSM_SO_PIN}" --pin "${HSM_USER_PIN}"
+else
+    softhsm2-util --init-token --token "${HSM_TOKEN}" --label "${HSM_TOKEN}" --so-pin "${HSM_SO_PIN}" --pin "${HSM_USER_PIN}"
+fi
+HSM_TOKEN_URL="$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep -e "model=SoftHSM%20v2;.*;token=${HSM_TOKEN}")"
 
 render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/hsm.toml"
 
@@ -520,18 +526,18 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 # Configure HSM
 ########################################################################
 
-softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
-softhsm2-util --import "${WP_WUA_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wua_signing" | xxd -p)" --label "wua_signing_key" --token "test_token"
-softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
-softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "test_token"
-softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "test_token"
+softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_WUA_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wua_signing" | xxd -p)" --label "wua_signing_key" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "${HSM_TOKEN}"
 
 p11tool --login --write \
-  --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" \
+  --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
   --set-pin "${HSM_USER_PIN}" \
   --label="pin_public_disclosure_protection_key" \
   --provider="${HSM_LIBRARY_PATH}" \
-  "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
+  "${HSM_TOKEN_URL}"
 
 ########################################################################
 # Configure configuration-server
