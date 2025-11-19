@@ -70,7 +70,7 @@ fi
 
 source "${SCRIPTS_DIR}"/configuration.sh
 
-if [ ! -f "${SCRIPTS_DIR}/.env" ]
+if [[ ! -f "${SCRIPTS_DIR}/.env" ]]
 then
     echo -e "${INFO}Saving initial environment variables${NC}"
     echo -e \
@@ -245,7 +245,7 @@ DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.ke
 export DEMO_ISSUER_ATTESTATION_SERVER_KEY
 
 # Generate root CA for issuer
-if [ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]; then
+if [[ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]]; then
     generate_issuer_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.issuer.key.pem' already exists, not (re-)generating issuer root CA"
@@ -280,7 +280,7 @@ PID_ISSUER_TSL_CRT=$(< "${TARGET_DIR}/pid_issuer/tsl.crt.der" ${BASE64})
 export PID_ISSUER_TSL_CRT
 
 # Generate root CA for reader
-if [ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]; then
+if [[ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]]; then
     generate_reader_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"

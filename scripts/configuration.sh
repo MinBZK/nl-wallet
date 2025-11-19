@@ -20,7 +20,7 @@ DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 
 # source user variables
-[ -f "${SCRIPTS_DIR}/.env" ] && . "${SCRIPTS_DIR}/.env"
+[[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"
 
 # Path and repository of the nl-rdo-max repository
 export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}"/nl-rdo-max}
