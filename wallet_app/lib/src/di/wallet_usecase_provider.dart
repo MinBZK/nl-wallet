@@ -52,11 +52,13 @@ import '../domain/usecase/permission/check_has_permission_usecase.dart';
 import '../domain/usecase/permission/impl/check_has_permission_usecase_impl.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
+import '../domain/usecase/pid/check_is_pid.dart';
 import '../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../domain/usecase/pid/get_pid_renewal_url_usecase.dart';
 import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
+import '../domain/usecase/pid/impl/check_is_pid_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_renewal_url_usecase_impl.dart';
@@ -359,6 +361,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ReceiveWalletTransferUseCase>(
           create: (context) => ReceiveWalletTransferUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CheckIsPidUseCase>(
+          create: (context) => CheckIsPidUseCaseImpl(context.read()),
         ),
       ],
       child: child,

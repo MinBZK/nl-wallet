@@ -316,7 +316,8 @@ WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     final CardDetailScreenArgument argument = CardDetailScreen.getArgument(settings);
     return BlocProvider<CardDetailBloc>(
-      create: (context) => CardDetailBloc(context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
+      create: (context) =>
+          CardDetailBloc(context.read(), context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
       child: CardDetailScreen(cardTitle: argument.cardTitle.l10nValue(context)),
     );
   };

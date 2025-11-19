@@ -91,6 +91,7 @@ import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_acti
 import 'package:wallet/src/domain/usecase/permission/check_has_permission_usecase.dart' as _i12;
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i68;
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart' as _i85;
+import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart' as _i131;
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i86;
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i84;
 import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart' as _i115;
@@ -6226,6 +6227,52 @@ class MockIsWalletRegisteredAndUnlockedUseCase extends _i1.Mock implements _i130
             returnValueForMissingStub: _i10.Future<bool>.value(false),
           )
           as _i10.Future<bool>);
+
+  @override
+  _i10.Future<_i60.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#tryCatch, [future, errorDescription]),
+            returnValue: _i10.Future<_i60.Result<T>>.value(
+              _i14.dummyValue<_i60.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i60.Result<T>>.value(
+              _i14.dummyValue<_i60.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+          )
+          as _i10.Future<_i60.Result<T>>);
+}
+
+/// A class which mocks [CheckIsPidUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCheckIsPidUseCase extends _i1.Mock implements _i131.CheckIsPidUseCase {
+  @override
+  _i10.Future<_i60.Result<bool>> invoke(_i9.WalletCard? card) =>
+      (super.noSuchMethod(
+            Invocation.method(#invoke, [card]),
+            returnValue: _i10.Future<_i60.Result<bool>>.value(
+              _i14.dummyValue<_i60.Result<bool>>(
+                this,
+                Invocation.method(#invoke, [card]),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i60.Result<bool>>.value(
+              _i14.dummyValue<_i60.Result<bool>>(
+                this,
+                Invocation.method(#invoke, [card]),
+              ),
+            ),
+          )
+          as _i10.Future<_i60.Result<bool>>);
 
   @override
   _i10.Future<_i60.Result<T>> tryCatch<T>(

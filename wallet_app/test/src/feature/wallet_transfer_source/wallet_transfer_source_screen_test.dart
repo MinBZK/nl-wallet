@@ -165,6 +165,7 @@ void main() {
                     idleLockTimeout: Duration.zero,
                     idleWarningTimeout: Duration.zero,
                     staticAssetsBaseUrl: 'https://example.org/',
+                    pidAttestationTypes: ['com.example.attestationType'],
                     version: 1337,
                   ),
                 ),

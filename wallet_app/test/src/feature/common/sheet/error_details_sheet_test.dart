@@ -33,6 +33,7 @@ void main() {
           idleWarningTimeout: Duration.zero,
           backgroundLockTimeout: Duration.zero,
           staticAssetsBaseUrl: 'https://example.com/',
+          pidAttestationTypes: ['com.example.attestationType'],
           version: 1337,
         ),
       ),

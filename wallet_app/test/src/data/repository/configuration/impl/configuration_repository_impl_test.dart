@@ -37,6 +37,7 @@ void main() {
         idleLockTimeout: Duration(seconds: 5),
         backgroundLockTimeout: Duration(seconds: 10),
         staticAssetsBaseUrl: 'https://example.com/',
+        pidAttestationTypes: ['urn:eudi:pid:nl:1'],
         version: 0,
       ),
     );

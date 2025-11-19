@@ -54,6 +54,7 @@ import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_acti
 import 'package:wallet/src/domain/usecase/permission/check_has_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart';
@@ -210,6 +211,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<GetWalletStateUseCase>()])
 @GenerateNiceMocks([MockSpec<ReceiveWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletRegisteredAndUnlockedUseCase>()])
+@GenerateNiceMocks([MockSpec<CheckIsPidUseCase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants
@@ -310,6 +312,7 @@ class Mocks {
             idleWarningTimeout: Duration(minutes: 1),
             backgroundLockTimeout: Duration(minutes: 1),
             staticAssetsBaseUrl: 'https://example.com/',
+            pidAttestationTypes: ['com.example.attestationType'],
             version: 1,
           ),
         ),
