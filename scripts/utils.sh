@@ -244,14 +244,15 @@ function generate_wp_signing_key {
     private_key_to_pem "$1"
 }
 
-# Generate a random key (32 bytes)
+# Generate a random AES key (32 bytes)
 #
 # random_data may contain the null byte (00) or newline (0a). `softhsm2-util --aes` uses fgets to read
 # the key. It stops reading when encountering a null byte or newline. Therefore these are stripped out.
+# This bug is fixed in newer versions: https://github.com/softhsm/SoftHSMv2/issues/746
 #
 # $1 name of the key
-function generate_wp_random_key {
-    echo -e "${INFO}Generating random wallet provider key${NC}"
+function generate_wp_aes_key {
+    echo -e "${INFO}Generating AES wallet provider key${NC}"
     # Replace '00' and '0a' by fixed values 'X' and 'Y'
     random_bytes 32 | LC_ALL=C tr '\000\n' "XY" > "${TARGET_DIR}/wallet_provider/$1.key"
 }
