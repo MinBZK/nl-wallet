@@ -215,8 +215,8 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::create_example_pid_sd_jwt;
     use super::super::test::create_example_pid_preview_data;
+    use super::super::test::create_example_pid_sd_jwt;
 
     const PIN: &str = "051097";
 

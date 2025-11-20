@@ -247,8 +247,7 @@ where
 
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
-        let previews = issuance_session.normalized_credential_preview();
-        let pid_preview = Self::pid_preview(previews, &pid_config)?;
+        let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), &pid_config)?;
         self.compare_recovery_code_against_stored(pid_preview, &pid_config)
             .await?;
 

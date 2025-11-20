@@ -923,7 +923,7 @@ mod tests {
 
         // Setup a mock OpenID4VCI session.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            Some(PidIssuancePurpose::Enrollment),
+            Some(purpose),
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
         )));
@@ -1077,7 +1077,7 @@ mod tests {
             Ok(client)
         });
 
-        let copy1 = {
+        let stored = {
             let (sd_jwt, metadata) = create_example_pid_sd_jwt();
             StoredAttestationCopy::new(
                 Uuid::new_v4(),
@@ -1089,17 +1089,17 @@ mod tests {
                 metadata,
             )
         };
-        let copy2 = copy1.clone();
+        let stored_clone = stored.clone();
 
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_types()
-            .return_once(move |_| Ok(vec![copy1]));
+            .return_once(move |_| Ok(vec![stored]));
 
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_types_and_format()
-            .return_once(move |_, _| Ok(vec![copy2]));
+            .return_once(move |_, _| Ok(vec![stored_clone]));
 
         // Continuing PID issuance should result in one preview `Attestation`.
         let attestations = wallet

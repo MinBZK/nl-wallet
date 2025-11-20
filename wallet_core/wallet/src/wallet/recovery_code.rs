@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::sync::Arc;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_types::claim_path::ClaimPath;
@@ -10,16 +9,12 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use platform_support::attested_key::AttestedKeyHolder;
-use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
-use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
-use crate::repository::Repository;
 use crate::storage::Storage;
 
 use super::Wallet;
@@ -56,14 +51,11 @@ pub enum RecoveryCodeError {
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
-    CR: Repository<Arc<WalletConfiguration>>,
-    UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     IS: IssuanceSession,
     DCC: DisclosureClient,
-    APC: AccountProviderClient,
 {
     pub(super) fn recovery_code_path(
         pid_config: &PidAttributesConfiguration,
