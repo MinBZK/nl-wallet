@@ -70,11 +70,7 @@ async fn create_status_list_service(
     create_threshold: i32,
     ttl: Option<Duration>,
     publish_dir: &TempDir,
-) -> anyhow::Result<(
-    String,
-    StatusListConfig<PrivateKeyVariant>,
-    PostgresStatusListService<PrivateKeyVariant>,
-)> {
+) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService)> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
@@ -95,8 +91,8 @@ async fn create_status_list_service(
 async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     attestation_type: &str,
-    config: StatusListConfig<PrivateKeyVariant>,
-) -> anyhow::Result<PostgresStatusListService<PrivateKeyVariant>> {
+    config: StatusListConfig,
+) -> anyhow::Result<PostgresStatusListService> {
     let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
@@ -152,12 +148,12 @@ async fn assert_status_list_items(
     items
 }
 
-async fn assert_empty_published_list<K: EcdsaKey + Clone>(config: &StatusListConfig<K>, list: &status_list::Model) {
+async fn assert_empty_published_list(config: &StatusListConfig, list: &status_list::Model) {
     assert_published_list(config, list, vec![]).await
 }
 
-async fn assert_published_list<K: EcdsaKey + Clone>(
-    config: &StatusListConfig<K>,
+async fn assert_published_list(
+    config: &StatusListConfig,
     list: &status_list::Model,
     revoked: impl IntoIterator<Item = usize>,
 ) {

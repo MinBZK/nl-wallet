@@ -159,10 +159,10 @@ where
     }
 }
 
-impl PostgresStatusListServices<PrivateKeyVariant> {
+impl PostgresStatusListServices {
     pub async fn try_new(
         connection: DatabaseConnection,
-        configs: StatusListConfigs<PrivateKeyVariant>,
+        configs: StatusListConfigs,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
         let services = configs
@@ -193,11 +193,11 @@ where
     }
 }
 
-impl PostgresStatusListService<PrivateKeyVariant> {
+impl PostgresStatusListService {
     pub async fn try_new(
         connection: DatabaseConnection,
         attestation_type: &str,
-        config: StatusListConfig<PrivateKeyVariant>,
+        config: StatusListConfig,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_types = vec![attestation_type];
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types).await?;
