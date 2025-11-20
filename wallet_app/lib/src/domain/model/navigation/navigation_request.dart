@@ -48,6 +48,8 @@ sealed class NavigationRequest extends Equatable {
   @override
   List<Object?> get props => [destination, removeUntil, argument, navigatePrerequisites, preNavigationActions];
 
+  factory NavigationRequest.dashboard() => DashboardNavigationRequest();
+
   factory NavigationRequest.pidIssuance(String uri) => PidIssuanceNavigationRequest(uri);
 
   factory NavigationRequest.pidRenewal(String uri) => PidRenewalNavigationRequest(uri);
@@ -89,6 +91,17 @@ class GenericNavigationRequest extends NavigationRequest {
     super.navigatePrerequisites,
     super.preNavigationActions,
   });
+}
+
+class DashboardNavigationRequest extends NavigationRequest {
+  DashboardNavigationRequest()
+    : super(
+        WalletRoutes.dashboardRoute,
+        removeUntil: WalletRoutes.splashRoute,
+        navigatePrerequisites: [
+          NavigationPrerequisite.pidInitialized,
+        ],
+      );
 }
 
 class PidIssuanceNavigationRequest extends NavigationRequest {
