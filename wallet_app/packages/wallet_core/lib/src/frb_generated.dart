@@ -78,7 +78,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 248411463;
+  int get rustContentHash => 1496629093;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -149,10 +149,6 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletState> crateApiFullGetWalletState();
 
   Future<TransferSessionState> crateApiFullGetWalletTransferState();
-
-  Future<bool> crateApiFullHasActiveDisclosureSession();
-
-  Future<bool> crateApiFullHasActiveIssuanceSession();
 
   Future<bool> crateApiFullHasRegistration();
 
@@ -871,52 +867,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullGetWalletTransferStateConstMeta => const TaskConstMeta(
     debugName: "get_wallet_transfer_state",
-    argNames: [],
-  );
-
-  @override
-  Future<bool> crateApiFullHasActiveDisclosureSession() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__full__has_active_disclosure_session(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullHasActiveDisclosureSessionConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiFullHasActiveDisclosureSessionConstMeta => const TaskConstMeta(
-    debugName: "has_active_disclosure_session",
-    argNames: [],
-  );
-
-  @override
-  Future<bool> crateApiFullHasActiveIssuanceSession() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__full__has_active_issuance_session(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullHasActiveIssuanceSessionConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiFullHasActiveIssuanceSessionConstMeta => const TaskConstMeta(
-    debugName: "has_active_issuance_session",
     argNames: [],
   );
 
@@ -2177,24 +2127,26 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return WalletState_Ready();
       case 1:
-        return WalletState_TransferPossible();
+        return WalletState_Locked();
       case 2:
+        return WalletState_TransferPossible();
+      case 3:
         return WalletState_Transferring(
           role: dco_decode_wallet_transfer_role(raw[1]),
         );
-      case 3:
+      case 4:
         return WalletState_Registration(
           hasPin: dco_decode_bool(raw[1]),
         );
-      case 4:
-        return WalletState_Disclosure();
       case 5:
-        return WalletState_Issuance();
+        return WalletState_Disclosure();
       case 6:
-        return WalletState_PinChange();
+        return WalletState_Issuance();
       case 7:
-        return WalletState_PinRecovery();
+        return WalletState_PinChange();
       case 8:
+        return WalletState_PinRecovery();
+      case 9:
         return WalletState_WalletBlocked(
           reason: dco_decode_wallet_blocked_reason(raw[1]),
         );
@@ -3049,22 +3001,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return WalletState_Ready();
       case 1:
-        return WalletState_TransferPossible();
+        return WalletState_Locked();
       case 2:
+        return WalletState_TransferPossible();
+      case 3:
         var var_role = sse_decode_wallet_transfer_role(deserializer);
         return WalletState_Transferring(role: var_role);
-      case 3:
+      case 4:
         var var_hasPin = sse_decode_bool(deserializer);
         return WalletState_Registration(hasPin: var_hasPin);
-      case 4:
-        return WalletState_Disclosure();
       case 5:
-        return WalletState_Issuance();
+        return WalletState_Disclosure();
       case 6:
-        return WalletState_PinChange();
+        return WalletState_Issuance();
       case 7:
-        return WalletState_PinRecovery();
+        return WalletState_PinChange();
       case 8:
+        return WalletState_PinRecovery();
+      case 9:
         var var_reason = sse_decode_wallet_blocked_reason(deserializer);
         return WalletState_WalletBlocked(reason: var_reason);
       default:
@@ -3904,24 +3858,26 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case WalletState_Ready():
         sse_encode_i_32(0, serializer);
-      case WalletState_TransferPossible():
+      case WalletState_Locked():
         sse_encode_i_32(1, serializer);
-      case WalletState_Transferring(role: final role):
+      case WalletState_TransferPossible():
         sse_encode_i_32(2, serializer);
+      case WalletState_Transferring(role: final role):
+        sse_encode_i_32(3, serializer);
         sse_encode_wallet_transfer_role(role, serializer);
       case WalletState_Registration(hasPin: final hasPin):
-        sse_encode_i_32(3, serializer);
+        sse_encode_i_32(4, serializer);
         sse_encode_bool(hasPin, serializer);
       case WalletState_Disclosure():
-        sse_encode_i_32(4, serializer);
-      case WalletState_Issuance():
         sse_encode_i_32(5, serializer);
-      case WalletState_PinChange():
+      case WalletState_Issuance():
         sse_encode_i_32(6, serializer);
-      case WalletState_PinRecovery():
+      case WalletState_PinChange():
         sse_encode_i_32(7, serializer);
-      case WalletState_WalletBlocked(reason: final reason):
+      case WalletState_PinRecovery():
         sse_encode_i_32(8, serializer);
+      case WalletState_WalletBlocked(reason: final reason):
+        sse_encode_i_32(9, serializer);
         sse_encode_wallet_blocked_reason(reason, serializer);
     }
   }

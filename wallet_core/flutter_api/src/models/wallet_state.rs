@@ -1,5 +1,6 @@
 pub enum WalletState {
     Ready,
+    Locked,
     TransferPossible,
     Transferring { role: WalletTransferRole },
     Registration { has_pin: bool },
@@ -24,6 +25,7 @@ impl From<wallet::WalletState> for WalletState {
     fn from(source: wallet::WalletState) -> Self {
         match source {
             wallet::WalletState::Ready => WalletState::Ready,
+            wallet::WalletState::Locked => WalletState::Locked,
             wallet::WalletState::TransferPossible => WalletState::TransferPossible,
             wallet::WalletState::Transferring { role } => WalletState::Transferring { role: role.into() },
             wallet::WalletState::Registration { has_pin } => WalletState::Registration { has_pin: has_pin },

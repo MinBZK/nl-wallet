@@ -17,16 +17,23 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::TransferData;
 use crate::storage::TransferKeyData;
+use crate::wallet::disclosure::DisclosureError;
+use crate::wallet::issuance::IssuanceError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletStateError {
     #[error("error fetching data from storage: {0}")]
     Storage(#[from] StorageError),
+    #[error("error checking for active issuance session: {0}")]
+    Issuance(#[from] IssuanceError),
+    #[error("error checking for active disclosure session: {0}")]
+    Disclosure(#[from] DisclosureError),
 }
 
 pub enum WalletState {
     Ready,
+    Locked,
     TransferPossible,
     Transferring { role: WalletTransferRole },
     Registration { has_pin: bool },
@@ -60,6 +67,16 @@ where
 {
     #[instrument(skip_all)]
     pub async fn get_state(&self) -> Result<WalletState, WalletStateError> {
+        if !self.has_registration() {
+            return Ok(WalletState::Registration { has_pin: false });
+        }
+
+        if self.is_locked() {
+            return Ok(WalletState::Locked);
+        }
+
+        // TODO: return Ok(WalletState::Registration { has_pin: true }); if wallet contains attestations
+
         if let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? {
             return Ok(transfer_data
                 .key_data
@@ -71,6 +88,14 @@ where
                     WalletState::Transferring { role }
                 })
                 .unwrap_or(WalletState::TransferPossible));
+        }
+
+        if self.has_active_disclosure_session()? {
+            return Ok(WalletState::Disclosure);
+        }
+
+        if self.has_active_issuance_session()? {
+            return Ok(WalletState::Issuance);
         }
 
         Ok(WalletState::Ready)

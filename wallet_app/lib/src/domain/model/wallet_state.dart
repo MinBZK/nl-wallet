@@ -6,6 +6,10 @@ class WalletStateReady extends WalletState {
   const WalletStateReady();
 }
 
+class WalletStateLocked extends WalletState {
+  const WalletStateLocked();
+}
+
 class WalletStateTransferPossible extends WalletState {
   const WalletStateTransferPossible();
 }

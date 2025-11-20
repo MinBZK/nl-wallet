@@ -228,12 +228,6 @@ class WalletCoreMock implements WalletCoreApi {
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream() => _eventLog.logStream;
 
   @override
-  Future<bool> crateApiFullHasActiveDisclosureSession() async => _disclosureManager.hasActiveDisclosureSession;
-
-  @override
-  Future<bool> crateApiFullHasActiveIssuanceSession() async => _issuanceManager.hasActiveIssuanceSession;
-
-  @override
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
     required List<int> selectedIndices,
     required String pin,

@@ -18,6 +18,7 @@ sealed class WalletState with _$WalletState {
   const WalletState._();
 
   const factory WalletState.ready() = WalletState_Ready;
+  const factory WalletState.locked() = WalletState_Locked;
   const factory WalletState.transferPossible() = WalletState_TransferPossible;
   const factory WalletState.transferring({
     required WalletTransferRole role,

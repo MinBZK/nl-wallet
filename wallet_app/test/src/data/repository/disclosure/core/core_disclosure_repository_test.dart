@@ -29,11 +29,6 @@ void main() {
     verify(mockTypedWalletCore.cancelDisclosure()).called(1);
   });
 
-  test('Call to hasActiveDisclosureSession is forwarded to wallet core', () async {
-    await repository.hasActiveDisclosureSession();
-    verify(mockTypedWalletCore.hasActiveDisclosureSession()).called(1);
-  });
-
   test('Call to acceptDisclosure is forwarded to wallet core with correct argument', () async {
     await repository.acceptDisclosure('123123', [0]);
     verify(mockTypedWalletCore.acceptDisclosure('123123', [0])).called(1);

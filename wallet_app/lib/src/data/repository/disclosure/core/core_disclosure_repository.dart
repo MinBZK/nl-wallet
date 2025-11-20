@@ -71,7 +71,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
   Future<String?> cancelDisclosure() => _walletCore.cancelDisclosure();
 
   @override
-  Future<bool> hasActiveDisclosureSession() => _walletCore.hasActiveDisclosureSession();
+  Future<bool> hasActiveDisclosureSession() async => await _walletCore.getWalletState() is core.WalletState_Disclosure;
 
   @override
   Future<String?> acceptDisclosure(String pin, List<int> selectedIndices) async {

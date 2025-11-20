@@ -96,8 +96,15 @@ class CoreIssuanceRepository implements IssuanceRepository {
 
   @override
   Future<String?> cancelIssuance() async {
-    if (await _walletCore.hasActiveDisclosureSession()) return _walletCore.cancelDisclosure();
-    if (await _walletCore.hasActiveIssuanceSession()) await _walletCore.cancelIssuance();
+    final state = await _walletCore.getWalletState();
+    switch (state) {
+      case core.WalletState_Disclosure():
+        return _walletCore.cancelDisclosure();
+      case core.WalletState_Issuance():
+        await _walletCore.cancelIssuance();
+      default:
+        break;
+    }
     return null;
   }
 }

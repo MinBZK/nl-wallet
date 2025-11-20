@@ -1263,41 +1263,45 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.tag = 0;
       return;
     }
-    if (apiObj is WalletState_TransferPossible) {
+    if (apiObj is WalletState_Locked) {
       wireObj.tag = 1;
+      return;
+    }
+    if (apiObj is WalletState_TransferPossible) {
+      wireObj.tag = 2;
       return;
     }
     if (apiObj is WalletState_Transferring) {
       var pre_role = cst_encode_wallet_transfer_role(apiObj.role);
-      wireObj.tag = 2;
+      wireObj.tag = 3;
       wireObj.kind.Transferring.role = pre_role;
       return;
     }
     if (apiObj is WalletState_Registration) {
       var pre_has_pin = cst_encode_bool(apiObj.hasPin);
-      wireObj.tag = 3;
+      wireObj.tag = 4;
       wireObj.kind.Registration.has_pin = pre_has_pin;
       return;
     }
     if (apiObj is WalletState_Disclosure) {
-      wireObj.tag = 4;
-      return;
-    }
-    if (apiObj is WalletState_Issuance) {
       wireObj.tag = 5;
       return;
     }
-    if (apiObj is WalletState_PinChange) {
+    if (apiObj is WalletState_Issuance) {
       wireObj.tag = 6;
       return;
     }
-    if (apiObj is WalletState_PinRecovery) {
+    if (apiObj is WalletState_PinChange) {
       wireObj.tag = 7;
+      return;
+    }
+    if (apiObj is WalletState_PinRecovery) {
+      wireObj.tag = 8;
       return;
     }
     if (apiObj is WalletState_WalletBlocked) {
       var pre_reason = cst_encode_wallet_blocked_reason(apiObj.reason);
-      wireObj.tag = 8;
+      wireObj.tag = 9;
       wireObj.kind.WalletBlocked.reason = pre_reason;
       return;
     }
@@ -2077,36 +2081,6 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__get_wallet_transfer_state = _wire__crate__api__full__get_wallet_transfer_statePtr
       .asFunction<void Function(int)>();
-
-  void wire__crate__api__full__has_active_disclosure_session(
-    int port_,
-  ) {
-    return _wire__crate__api__full__has_active_disclosure_session(
-      port_,
-    );
-  }
-
-  late final _wire__crate__api__full__has_active_disclosure_sessionPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__has_active_disclosure_session',
-      );
-  late final _wire__crate__api__full__has_active_disclosure_session =
-      _wire__crate__api__full__has_active_disclosure_sessionPtr.asFunction<void Function(int)>();
-
-  void wire__crate__api__full__has_active_issuance_session(
-    int port_,
-  ) {
-    return _wire__crate__api__full__has_active_issuance_session(
-      port_,
-    );
-  }
-
-  late final _wire__crate__api__full__has_active_issuance_sessionPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__has_active_issuance_session',
-      );
-  late final _wire__crate__api__full__has_active_issuance_session =
-      _wire__crate__api__full__has_active_issuance_sessionPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__has_registration(
     int port_,
