@@ -5,6 +5,7 @@ use std::sync::Arc;
 use chrono::Utc;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Either;
 use itertools::Itertools;
 use tracing::error;
@@ -36,6 +37,7 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
+use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -145,9 +147,9 @@ pub enum DisclosureError {
         expected: RedirectUriPurpose,
         found: RedirectUriPurpose,
     },
-    #[error("non-selectively-disclosable claim: {0:?} not requested for requested vct values: {1:?}")]
+    #[error("non-selectively-disclosable claims: {0:?} not requested for requested vct values: {1:?}")]
     #[category(critical)]
-    NonSelectivelyDisclosableClaimNotRequested(VecNonEmpty<ClaimPath>, Vec<String>),
+    NonSelectivelyDisclosableClaimsNotRequested(Vec<VecNonEmpty<ClaimPath>>, Vec<String>),
     #[error("non-selectively-disclosable claim error: {0}")]
     #[category(critical)]
     NonSelectivelyDisclosableClaim(#[from] NonSelectivelyDisclosableClaimsError),
@@ -569,21 +571,30 @@ where
         for (attestations, request) in candidate_attestations {
             for attestation in attestations.map(VecAtLeastN::into_inner).unwrap_or(Vec::new()) {
                 if let PartialAttestation::SdJwt { sd_jwt, .. } = attestation.into_partial_attestation() {
-                    for non_selectively_disclosable_claims in
-                        sd_jwt.as_ref().as_ref().non_selectively_disclosable_claims()?
-                    {
-                        if !request.claim_paths().contains(&non_selectively_disclosable_claims) {
-                            return Err(DisclosureError::NonSelectivelyDisclosableClaimNotRequested(
-                                non_selectively_disclosable_claims,
-                                request.credential_types().map(ToString::to_string).collect_vec(),
-                            ));
-                        }
-                    }
+                    Self::verify_sd_jwt_non_selectively_disclosable_claims(&sd_jwt, request)?;
                 }
             }
         }
-
         Ok(())
+    }
+
+    fn verify_sd_jwt_non_selectively_disclosable_claims(
+        sd_jwt: &UnsignedSdJwtPresentation,
+        request: &NormalizedCredentialRequest,
+    ) -> Result<(), DisclosureError> {
+        let non_selectively_disclosable_claims = sd_jwt.as_ref().non_selectively_disclosable_claims()?;
+        let requested_claims = request.claim_paths().cloned().collect::<IndexSet<_>>();
+        let mut non_requested_claims = non_selectively_disclosable_claims
+            .difference(&requested_claims)
+            .peekable();
+        if non_requested_claims.peek().is_some() {
+            Err(DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(
+                non_requested_claims.cloned().collect(),
+                request.credential_types().map(ToString::to_string).collect_vec(),
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     async fn terminate_disclosure_session(
@@ -2868,7 +2879,8 @@ mod tests {
     async fn test_start_disclosure_error_non_selectable_claim_not_requested() {
         let my_attestation_type = "my.attestation.type";
         let my_selectable_claim = "selectable_claim";
-        let my_non_selectable_claim = "non_selectable_claim";
+        let my_first_non_selectable_claim = "first_non_selectable_claim";
+        let my_second_non_selectable_claim = "second_non_selectable_claim";
 
         // Populate a registered wallet with an example PID.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -2876,7 +2888,7 @@ mod tests {
         // Create a request that only requests the selectable claim
         let credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
             &[my_attestation_type],
-            &[&[my_selectable_claim]], // NOTE: here we omit `my_non_selectable_claim`
+            &[&[my_selectable_claim], &[my_second_non_selectable_claim]], // NOTE: here we omit `my_first_non_selectable_claim`
         )]);
 
         let _verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
@@ -2886,11 +2898,17 @@ mod tests {
             my_attestation_type,
             &[
                 (my_selectable_claim, JsonSchemaPropertyType::String, None),
-                (my_non_selectable_claim, JsonSchemaPropertyType::String, None),
+                (my_first_non_selectable_claim, JsonSchemaPropertyType::String, None),
+                (my_second_non_selectable_claim, JsonSchemaPropertyType::String, None),
             ],
         );
         for claim in &mut type_metadata_with_non_selectively_disclosable_claim.claims {
-            if claim.path == vec_nonempty![ClaimPath::SelectByKey(my_non_selectable_claim.to_string())] {
+            if [
+                vec_nonempty![ClaimPath::SelectByKey(my_first_non_selectable_claim.to_string())],
+                vec_nonempty![ClaimPath::SelectByKey(my_second_non_selectable_claim.to_string())],
+            ]
+            .contains(&claim.path)
+            {
                 claim.sd = sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata::Never;
             }
         }
@@ -2906,7 +2924,11 @@ mod tests {
                     AttributeValue::Text("Some Selectable Claim".to_string()),
                 ),
                 (
-                    [my_non_selectable_claim],
+                    [my_first_non_selectable_claim],
+                    AttributeValue::Text("Some Non Selectable Claim".to_string()),
+                ),
+                (
+                    [my_second_non_selectable_claim],
                     AttributeValue::Text("Some Non Selectable Claim".to_string()),
                 ),
             ]),
@@ -2952,8 +2974,8 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::NonSelectivelyDisclosableClaimNotRequested(claims, attestation_type) if
-                claims == vec_nonempty![my_non_selectable_claim.parse().unwrap()] &&
+            DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(claims, attestation_type) if
+                claims == vec![vec_nonempty![my_first_non_selectable_claim.parse().unwrap()]] &&
                 attestation_type == vec![my_attestation_type.to_string()]
         );
 

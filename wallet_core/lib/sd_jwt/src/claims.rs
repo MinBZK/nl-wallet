@@ -3,6 +3,7 @@ use std::iter::Peekable;
 
 use derive_more::Display;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
@@ -251,7 +252,7 @@ impl ObjectClaims {
 
     fn non_selectively_disclosable_claims(
         &self,
-    ) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
+    ) -> Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
         self.claims
             .iter()
             .map(|(name, claim)| {
@@ -268,15 +269,12 @@ impl ObjectClaims {
 pub enum NonSelectivelyDisclosableClaimsError {
     #[error("invalid array structure")]
     ArrayStructure(#[from] MultipleItemsFound),
-
-    #[error("array is a mixture of digests and values")]
-    ArrayMixtureOfValuesAndHashes,
 }
 
 /// Inserts `[path]` at the beginning of all elements in `[sub_claims]`.
-fn prefix_all(sub_claims: Vec<VecNonEmpty<ClaimPath>>, path: ClaimPath) -> Vec<VecNonEmpty<ClaimPath>> {
+fn prefix_all(sub_claims: IndexSet<VecNonEmpty<ClaimPath>>, path: ClaimPath) -> IndexSet<VecNonEmpty<ClaimPath>> {
     if sub_claims.is_empty() {
-        vec![vec_nonempty![path]]
+        IndexSet::from_iter([vec_nonempty![path]])
     } else {
         sub_claims
             .into_iter()
@@ -528,14 +526,14 @@ impl ClaimValue {
 
     pub(crate) fn non_selectively_disclosable_claims(
         &self,
-    ) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
+    ) -> Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
         match self {
             ClaimValue::Array(array_claims) => {
                 let (values, digests): (Vec<_>, Vec<_>) = array_claims
                     .iter()
                     .partition(|claim| matches!(claim, ArrayClaim::Value(_)));
 
-                if !values.is_empty() && digests.is_empty() {
+                if !values.is_empty() {
                     let oks: Vec<_> = values
                         .into_iter()
                         .map(|value| {
@@ -553,19 +551,19 @@ impl ClaimValue {
                     // Instances like this are considered invalid, and should be reported back to the issuer.
                     match oks.into_iter().single_unique()? {
                         Some(sub_claims) => Ok(prefix_all(sub_claims, ClaimPath::SelectAll)),
-                        None => Ok(vec![vec_nonempty![ClaimPath::SelectAll]]),
+                        None => Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])),
                     }
-                } else if values.is_empty() {
-                    Ok(vec![vec_nonempty![ClaimPath::SelectAll]])
+                } else if !digests.is_empty() {
+                    Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]]))
                 } else {
-                    Err(NonSelectivelyDisclosableClaimsError::ArrayMixtureOfValuesAndHashes)
+                    Ok(IndexSet::new())
                 }
             }
             ClaimValue::Object(object_claims) => object_claims.non_selectively_disclosable_claims(),
-            ClaimValue::Null => Ok(vec![]),
-            ClaimValue::Bool(_) => Ok(vec![]),
-            ClaimValue::Number(_) => Ok(vec![]),
-            ClaimValue::String(_) => Ok(vec![]),
+            ClaimValue::Null => Ok(IndexSet::new()),
+            ClaimValue::Bool(_) => Ok(IndexSet::new()),
+            ClaimValue::Number(_) => Ok(IndexSet::new()),
+            ClaimValue::String(_) => Ok(IndexSet::new()),
         }
     }
 }
@@ -853,31 +851,26 @@ mod tests {
     }
 
     #[rstest]
-    #[case(json!(1), Ok(vec![]))]
-    #[case(json!(true), Ok(vec![]))]
-    #[case(json!(null), Ok(vec![]))]
-    #[case(json!("".to_string()), Ok(vec![]))]
-    #[case(json!({}), Ok(vec![]))]
-    #[case(json!([]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
-    #[case(json!({"value": 5}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("value".to_string())]]))]
-    #[case(json!({"a": 1, "b": true}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("a".to_string())], vec_nonempty![ClaimPath::SelectByKey("b".to_string())]]))]
-    #[case(json!([1, 2]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
-    #[case(json!([1, "a", true]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
-    #[case(json!([["a"], [2]]), Ok(vec![vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectAll]]))]
-    #[case(json!([{"a": 1}, {"a": 2}]), Ok(vec![vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectByKey("a".to_string())]]))]
-    #[case(json!({"a": [1, 2]}), Ok(vec![vec_nonempty![ClaimPath::SelectByKey("a".to_string()), ClaimPath::SelectAll]]))]
+    #[case(json!(1), Ok(IndexSet::new()))]
+    #[case(json!(true), Ok(IndexSet::new()))]
+    #[case(json!(null), Ok(IndexSet::new()))]
+    #[case(json!("".to_string()), Ok(IndexSet::new()))]
+    #[case(json!({}), Ok(IndexSet::new()))]
+    #[case(json!([]), Ok(IndexSet::new()))]
+    #[case(json!({"value": 5}), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectByKey("value".to_string())]])))]
+    #[case(json!({"a": 1, "b": true}), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectByKey("a".to_string())], vec_nonempty![ClaimPath::SelectByKey("b".to_string())]])))]
+    #[case(json!([1, 2]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
+    #[case(json!([1, "a", true]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
+    #[case(json!([["a"], [2]]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectAll]])))]
+    #[case(json!([{"a": 1}, {"a": 2}]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectByKey("a".to_string())]])))]
+    #[case(json!({"a": [1, 2]}), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectByKey("a".to_string()), ClaimPath::SelectAll]])))]
     #[case(json!([1, { "a": 2 }]), Err(NonSelectivelyDisclosableClaimsError::ArrayStructure(MultipleItemsFound)))]
     #[case(json!([1, [2]]), Err(NonSelectivelyDisclosableClaimsError::ArrayStructure(MultipleItemsFound)))]
-    #[case(json!([
-        1, 2, 3,
-        { "...": "some_digest" }
-    ]), Err(NonSelectivelyDisclosableClaimsError::ArrayMixtureOfValuesAndHashes))]
-    #[case(json!([
-        { "...": "some_digest" }
-    ]), Ok(vec![vec_nonempty![ClaimPath::SelectAll]]))]
+    #[case(json!([1, 2, 3, { "...": "some_digest" }]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
+    #[case(json!([{ "...": "some_digest" }]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
     fn non_selectively_disclosable_claims(
         #[case] value: serde_json::Value,
-        #[case] expected_result: Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError>,
+        #[case] expected_result: Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError>,
     ) {
         let value: ClaimValue = serde_json::from_value(value).unwrap();
 
@@ -890,10 +883,6 @@ mod tests {
                     NonSelectivelyDisclosableClaimsError::ArrayStructure(_)
                 )
             }
-            Err(NonSelectivelyDisclosableClaimsError::ArrayMixtureOfValuesAndHashes) => assert_matches!(
-                result.unwrap_err(),
-                NonSelectivelyDisclosableClaimsError::ArrayMixtureOfValuesAndHashes
-            ),
         }
     }
 }

@@ -9,6 +9,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -382,7 +383,7 @@ impl VerifiedSdJwt {
 
     pub fn non_selectively_disclosable_claims(
         &self,
-    ) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
+    ) -> Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
         self.issuer_signed.payload().claims.non_selectively_disclosable_claims()
     }
 }
