@@ -47,7 +47,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
-use crate::claims::NonSelectableClaimsError;
+use crate::claims::NonSelectivelyDisclosableClaimsError;
 use crate::claims::ObjectClaims;
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
@@ -380,8 +380,10 @@ impl VerifiedSdJwt {
             .verify_selective_disclosability(claim_path, 0, &self.disclosures, sd_metadata)
     }
 
-    pub fn non_selectable_claims(&self) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectableClaimsError> {
-        self.issuer_signed.payload().claims.non_selectable_claims()
+    pub fn non_selectively_disclosable_claims(
+        &self,
+    ) -> Result<Vec<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
+        self.issuer_signed.payload().claims.non_selectively_disclosable_claims()
     }
 }
 

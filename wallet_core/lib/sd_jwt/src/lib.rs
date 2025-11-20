@@ -351,7 +351,7 @@ mod tests {
         let sd_jwt = conceal_and_sign(&issuer_keypair, input, concealed_claims);
         let verified_sd_jwt = sd_jwt.into_verified();
 
-        let result = verified_sd_jwt.non_selectable_claims().unwrap();
+        let result = verified_sd_jwt.non_selectively_disclosable_claims().unwrap();
 
         assert_eq!(
             result.into_iter().collect::<HashSet<_>>(),
