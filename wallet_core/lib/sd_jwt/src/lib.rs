@@ -86,6 +86,10 @@
 //! # use utils::vec_nonempty;
 //!
 //! # tokio_test::block_on(async {
+//! // Issuer setup
+//! let ca = Ca::generate_issuer_mock_ca()?;
+//! let issuer_keypair = ca.generate_issuer_mock()?;
+//!
 //! // 1) Issuer constructs SD-JWT VC claims, including the holder's public key.
 //! let holder_privkey = SigningKey::random(&mut OsRng);
 //! let claims = SdJwtVcClaims {
@@ -103,10 +107,6 @@
 //!         "name": "alice"
 //!     }))?,
 //! };
-//!
-//! // Issuer setup
-//! let ca = Ca::generate_issuer_mock_ca()?;
-//! let issuer_keypair = ca.generate_issuer_mock()?;
 //!
 //! // 2) Issuer marks fields as concealable and signs with issuer key.
 //! let signed = SdJwtBuilder::new(claims)
@@ -126,7 +126,7 @@
 //!     &TimeGenerator::default()
 //! )?;
 //!
-//! // 4) Holder creates a presentation with (a subset of) disclosures and signs a KB-JWT.
+//! // 5) Holder creates a presentation with (a subset of) disclosures and signs a KB-JWT.
 //! let presentation = verified
 //!     .into_presentation_builder()
 //!     .disclose(&vec_nonempty![ClaimPath::SelectByKey("name".into())])?
@@ -134,7 +134,7 @@
 //! let kb = KeyBindingJwtBuilder::new("https://verifier.example.com".into(), "nonce-123".into());
 //! let signed_presentation = presentation.sign(kb, &holder_privkey, &TimeGenerator::default()).await?;
 //!
-//! // 5) Verifier verifies the presentation (SD-JWT via trust anchors + KB-JWT via cnf JWK) and decodes claims.
+//! // 6) Verifier verifies the presentation (SD-JWT via trust anchors + KB-JWT via cnf JWK) and decodes claims.
 //! let verified_presentation = signed_presentation.into_unverified().into_verified_against_trust_anchors(
 //!     &trust_anchors,
 //!     &KbVerificationOptions {
