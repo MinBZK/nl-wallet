@@ -559,7 +559,7 @@ where
     }
 
     fn verify_non_selectively_disclosable_claims<'a>(
-        candidate_attestations: impl Iterator<
+        candidate_attestations: impl IntoIterator<
             Item = (
                 Option<VecNonEmpty<DisclosableAttestation>>,
                 &'a NormalizedCredentialRequest,
@@ -2942,7 +2942,7 @@ mod tests {
         // Starting disclosure should not cause a disclosure event to be recorded.
         wallet.mut_storage().expect_log_disclosure_event().never();
 
-        // Starting disclosure should fail with a non selectable claim verification error
+        // Starting disclosure should fail with a non-selectively disclosable claim verification error
         let error = wallet
             .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
             .await

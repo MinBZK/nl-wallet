@@ -253,7 +253,7 @@ impl ObjectClaims {
         self.claims
             .iter()
             .map(|(name, claim)| {
-                let path = ClaimPath::SelectByKey(name.as_str().to_string());
+                let path = ClaimPath::SelectByKey(name.to_string());
                 let sub_claims = claim.non_selectable_claims()?;
                 Ok(prefix_all(sub_claims, path))
             })
@@ -531,7 +531,7 @@ impl ClaimValue {
                     .partition(|claim| matches!(claim, ArrayClaim::Value(_)));
 
                 if !values.is_empty() && digests.is_empty() {
-                    let (oks, errors): (Vec<_>, Vec<_>) = values
+                    let oks = values
                         .into_iter()
                         .map(|value| {
                             let ArrayClaim::Value(claim) = value else {
@@ -539,16 +539,14 @@ impl ClaimValue {
                             };
                             claim.non_selectable_claims()
                         })
-                        .partition(|c| c.is_ok());
-                    // Return the first error if any
-                    errors.into_iter().collect::<Result<Vec<_>, _>>()?;
+                        .collect::<Result<Vec<_>, _>>()?;
                     // The `single_unique` requires that all sub-elements in the array are uniform, i.e. have the same
                     // `ClaimPath` structure. This requirement can be invalidated when the array contains a combination
                     // of primitive values, objects and arrays, e.g.:
                     // - [ 1, [] ]
                     // - [ 1, { "claim": 2 } ]
                     // Instances like this are considered invalid, and should be reported back to the issuer.
-                    match oks.into_iter().map(Result::unwrap).single_unique()? {
+                    match oks.into_iter().single_unique()? {
                         Some(sub_claims) => Ok(prefix_all(sub_claims, ClaimPath::SelectAll)),
                         None => Ok(vec![vec_nonempty![ClaimPath::SelectAll]]),
                     }
