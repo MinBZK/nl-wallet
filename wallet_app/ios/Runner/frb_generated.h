@@ -406,8 +406,18 @@ typedef struct wire_cst_WalletState_Transferring {
   int32_t role;
 } wire_cst_WalletState_Transferring;
 
+typedef struct wire_cst_WalletState_Registration {
+  bool has_pin;
+} wire_cst_WalletState_Registration;
+
+typedef struct wire_cst_WalletState_WalletBlocked {
+  int32_t reason;
+} wire_cst_WalletState_WalletBlocked;
+
 typedef union WalletStateKind {
   struct wire_cst_WalletState_Transferring Transferring;
+  struct wire_cst_WalletState_Registration Registration;
+  struct wire_cst_WalletState_WalletBlocked WalletBlocked;
 } WalletStateKind;
 
 typedef struct wire_cst_wallet_state {

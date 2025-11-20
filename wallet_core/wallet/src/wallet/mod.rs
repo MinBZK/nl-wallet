@@ -62,6 +62,7 @@ pub use self::lock::WalletUnlockError;
 pub use self::pin_recovery::PinRecoveryError;
 pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
+pub use self::state::WalletBlockedReason;
 pub use self::state::WalletState;
 pub use self::state::WalletTransferRole;
 pub use self::transfer::TransferError;

@@ -8,6 +8,11 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'wallet_state.freezed.dart';
 
+enum WalletBlockedReason {
+  RequiresAppUpdate,
+  BlockedByWalletProvider,
+}
+
 @freezed
 sealed class WalletState with _$WalletState {
   const WalletState._();
@@ -17,6 +22,16 @@ sealed class WalletState with _$WalletState {
   const factory WalletState.transferring({
     required WalletTransferRole role,
   }) = WalletState_Transferring;
+  const factory WalletState.registration({
+    required bool hasPin,
+  }) = WalletState_Registration;
+  const factory WalletState.disclosure() = WalletState_Disclosure;
+  const factory WalletState.issuance() = WalletState_Issuance;
+  const factory WalletState.pinChange() = WalletState_PinChange;
+  const factory WalletState.pinRecovery() = WalletState_PinRecovery;
+  const factory WalletState.walletBlocked({
+    required WalletBlockedReason reason,
+  }) = WalletState_WalletBlocked;
 }
 
 enum WalletTransferRole {

@@ -129,7 +129,7 @@ void _setupMockitoDummies() {
 
   // Wallet state dummies
   provideDummy<core.WalletState>(const core.WalletState_Ready());
-  provideDummy<WalletState>(WalletStateReady());
+  provideDummy<WalletState>(const WalletStateReady());
 
   // Pin-related dummies
   provideDummy<CheckPinResult>(CheckPinResultBlocked());

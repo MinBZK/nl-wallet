@@ -28,7 +28,7 @@ void main() {
       'should navigate to wallet transfer screen when state is transfer possible (with isRetry=false)',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer(
-          (_) async => WalletStateTransferPossible(),
+          (_) async => const WalletStateTransferPossible(),
         );
 
         await listener.onWalletUnlocked();
@@ -47,7 +47,7 @@ void main() {
       'should cancel transfer and navigate to transfer screen when state is transferring as target (with isRetry=true)',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer(
-          (_) async => WalletStateTransferring(TransferRole.target),
+          (_) async => const WalletStateTransferring(TransferRole.target),
         );
 
         await listener.onWalletUnlocked();
@@ -66,7 +66,7 @@ void main() {
       'should cancel transfer and not navigate when state is transferring as source',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer(
-          (_) async => WalletStateTransferring(TransferRole.source),
+          (_) async => const WalletStateTransferring(TransferRole.source),
         );
 
         await listener.onWalletUnlocked();
@@ -79,7 +79,7 @@ void main() {
     test(
       'should do nothing when wallet state is not transfer related',
       () async {
-        when(getWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateReady());
+        when(getWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateReady());
 
         await listener.onWalletUnlocked();
 
@@ -91,7 +91,9 @@ void main() {
     test(
       'should cancel wallet transfer onDashboardShown on source device',
       () async {
-        when(getWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateTransferring(TransferRole.source));
+        when(
+          getWalletStateUseCase.invoke(),
+        ).thenAnswer((_) async => const WalletStateTransferring(TransferRole.source));
         await listener.onDashboardShown();
 
         verify(cancelWalletTransferUseCase.invoke()).called(1);
@@ -101,7 +103,9 @@ void main() {
     test(
       'should NOT cancel wallet transfer onDashboardShown on destination device',
       () async {
-        when(getWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateTransferring(TransferRole.target));
+        when(
+          getWalletStateUseCase.invoke(),
+        ).thenAnswer((_) async => const WalletStateTransferring(TransferRole.target));
         await listener.onDashboardShown();
 
         verifyNever(cancelWalletTransferUseCase.invoke());

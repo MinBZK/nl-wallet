@@ -1347,6 +1347,16 @@ impl CstDecode<u8> for u8 {
         self
     }
 }
+impl CstDecode<crate::models::wallet_state::WalletBlockedReason> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::wallet_state::WalletBlockedReason {
+        match self {
+            0 => crate::models::wallet_state::WalletBlockedReason::RequiresAppUpdate,
+            1 => crate::models::wallet_state::WalletBlockedReason::BlockedByWalletProvider,
+            _ => unreachable!("Invalid variant for WalletBlockedReason: {}", self),
+        }
+    }
+}
 impl CstDecode<crate::models::wallet_state::WalletTransferRole> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::wallet_state::WalletTransferRole {
@@ -2214,6 +2224,18 @@ impl SseDecode for () {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
 }
 
+impl SseDecode for crate::models::wallet_state::WalletBlockedReason {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::models::wallet_state::WalletBlockedReason::RequiresAppUpdate,
+            1 => crate::models::wallet_state::WalletBlockedReason::BlockedByWalletProvider,
+            _ => unreachable!("Invalid variant for WalletBlockedReason: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::models::wallet_event::WalletEvent {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2322,6 +2344,26 @@ impl SseDecode for crate::models::wallet_state::WalletState {
             2 => {
                 let mut var_role = <crate::models::wallet_state::WalletTransferRole>::sse_decode(deserializer);
                 return crate::models::wallet_state::WalletState::Transferring { role: var_role };
+            }
+            3 => {
+                let mut var_hasPin = <bool>::sse_decode(deserializer);
+                return crate::models::wallet_state::WalletState::Registration { has_pin: var_hasPin };
+            }
+            4 => {
+                return crate::models::wallet_state::WalletState::Disclosure;
+            }
+            5 => {
+                return crate::models::wallet_state::WalletState::Issuance;
+            }
+            6 => {
+                return crate::models::wallet_state::WalletState::PinChange;
+            }
+            7 => {
+                return crate::models::wallet_state::WalletState::PinRecovery;
+            }
+            8 => {
+                let mut var_reason = <crate::models::wallet_state::WalletBlockedReason>::sse_decode(deserializer);
+                return crate::models::wallet_state::WalletState::WalletBlocked { reason: var_reason };
             }
             _ => {
                 unimplemented!("");
@@ -2973,6 +3015,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::transfer::TransferSessionS
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::WalletBlockedReason {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::RequiresAppUpdate => 0.into_dart(),
+            Self::BlockedByWalletProvider => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::wallet_state::WalletBlockedReason {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::wallet_state::WalletBlockedReason>
+    for crate::models::wallet_state::WalletBlockedReason
+{
+    fn into_into_dart(self) -> crate::models::wallet_state::WalletBlockedReason {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3091,6 +3151,16 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::WalletState 
             crate::models::wallet_state::WalletState::TransferPossible => [1.into_dart()].into_dart(),
             crate::models::wallet_state::WalletState::Transferring { role } => {
                 [2.into_dart(), role.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::wallet_state::WalletState::Registration { has_pin } => {
+                [3.into_dart(), has_pin.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::wallet_state::WalletState::Disclosure => [4.into_dart()].into_dart(),
+            crate::models::wallet_state::WalletState::Issuance => [5.into_dart()].into_dart(),
+            crate::models::wallet_state::WalletState::PinChange => [6.into_dart()].into_dart(),
+            crate::models::wallet_state::WalletState::PinRecovery => [7.into_dart()].into_dart(),
+            crate::models::wallet_state::WalletState::WalletBlocked { reason } => {
+                [8.into_dart(), reason.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -3874,6 +3944,22 @@ impl SseEncode for () {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
 }
 
+impl SseEncode for crate::models::wallet_state::WalletBlockedReason {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::models::wallet_state::WalletBlockedReason::RequiresAppUpdate => 0,
+                crate::models::wallet_state::WalletBlockedReason::BlockedByWalletProvider => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::models::wallet_event::WalletEvent {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3977,6 +4063,26 @@ impl SseEncode for crate::models::wallet_state::WalletState {
             crate::models::wallet_state::WalletState::Transferring { role } => {
                 <i32>::sse_encode(2, serializer);
                 <crate::models::wallet_state::WalletTransferRole>::sse_encode(role, serializer);
+            }
+            crate::models::wallet_state::WalletState::Registration { has_pin } => {
+                <i32>::sse_encode(3, serializer);
+                <bool>::sse_encode(has_pin, serializer);
+            }
+            crate::models::wallet_state::WalletState::Disclosure => {
+                <i32>::sse_encode(4, serializer);
+            }
+            crate::models::wallet_state::WalletState::Issuance => {
+                <i32>::sse_encode(5, serializer);
+            }
+            crate::models::wallet_state::WalletState::PinChange => {
+                <i32>::sse_encode(6, serializer);
+            }
+            crate::models::wallet_state::WalletState::PinRecovery => {
+                <i32>::sse_encode(7, serializer);
+            }
+            crate::models::wallet_state::WalletState::WalletBlocked { reason } => {
+                <i32>::sse_encode(8, serializer);
+                <crate::models::wallet_state::WalletBlockedReason>::sse_encode(reason, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -4692,6 +4798,22 @@ mod io {
                     let ans = unsafe { self.kind.Transferring };
                     crate::models::wallet_state::WalletState::Transferring {
                         role: ans.role.cst_decode(),
+                    }
+                }
+                3 => {
+                    let ans = unsafe { self.kind.Registration };
+                    crate::models::wallet_state::WalletState::Registration {
+                        has_pin: ans.has_pin.cst_decode(),
+                    }
+                }
+                4 => crate::models::wallet_state::WalletState::Disclosure,
+                5 => crate::models::wallet_state::WalletState::Issuance,
+                6 => crate::models::wallet_state::WalletState::PinChange,
+                7 => crate::models::wallet_state::WalletState::PinRecovery,
+                8 => {
+                    let ans = unsafe { self.kind.WalletBlocked };
+                    crate::models::wallet_state::WalletState::WalletBlocked {
+                        reason: ans.reason.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -6060,12 +6182,24 @@ mod io {
     #[derive(Clone, Copy)]
     pub union WalletStateKind {
         Transferring: wire_cst_WalletState_Transferring,
+        Registration: wire_cst_WalletState_Registration,
+        WalletBlocked: wire_cst_WalletState_WalletBlocked,
         nil__: (),
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletState_Transferring {
         role: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletState_Registration {
+        has_pin: bool,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletState_WalletBlocked {
+        reason: i32,
     }
 }
 #[cfg(not(target_family = "wasm"))]

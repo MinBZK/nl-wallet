@@ -29,6 +29,17 @@ pub enum WalletState {
     Ready,
     TransferPossible,
     Transferring { role: WalletTransferRole },
+    Registration { has_pin: bool },
+    Disclosure,
+    Issuance,
+    PinChange,
+    PinRecovery,
+    WalletBlocked { reason: WalletBlockedReason },
+}
+
+pub enum WalletBlockedReason {
+    RequiresAppUpdate,
+    BlockedByWalletProvider,
 }
 
 pub enum WalletTransferRole {

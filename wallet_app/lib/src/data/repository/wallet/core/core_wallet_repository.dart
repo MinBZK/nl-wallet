@@ -75,12 +75,21 @@ class CoreWalletRepository implements WalletRepository {
   Future<WalletState> getWalletState() async {
     final state = await _walletCore.getWalletState();
     return switch (state) {
-      core.WalletState_Ready() => WalletStateReady(),
+      core.WalletState_Ready() => const WalletStateReady(),
       core.WalletState_Transferring() => WalletStateTransferring(switch (state.role) {
-        core.WalletTransferRole.Source => TransferRole.source,
-        core.WalletTransferRole.Destination => TransferRole.target,
+        core.WalletTransferRole.Source => .source,
+        core.WalletTransferRole.Destination => .target,
       }),
-      core.WalletState_TransferPossible() => WalletStateTransferPossible(),
+      core.WalletState_TransferPossible() => const WalletStateTransferPossible(),
+      core.WalletState_Registration() => WalletStateRegistration(hasConfiguredPin: state.hasPin),
+      core.WalletState_Disclosure() => const WalletStateDisclosure(),
+      core.WalletState_Issuance() => const WalletStateIssuance(),
+      core.WalletState_PinChange() => const WalletStatePinChange(),
+      core.WalletState_PinRecovery() => const WalletStatePinRecovery(),
+      core.WalletState_WalletBlocked() => WalletStateWalletBlocked(switch (state.reason) {
+        core.WalletBlockedReason.RequiresAppUpdate => .requiresAppUpdate,
+        core.WalletBlockedReason.BlockedByWalletProvider => .blockedByWalletProvider,
+      }),
     };
   }
 }
