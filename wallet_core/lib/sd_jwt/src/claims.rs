@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::iter::Peekable;
+use std::iter::repeat_n;
 
 use derive_more::Display;
 use indexmap::IndexMap;
@@ -273,17 +274,16 @@ pub enum NonSelectivelyDisclosableClaimsError {
 
 /// Inserts `[path]` at the beginning of all elements in `[sub_claims]`.
 fn prefix_all(sub_claims: IndexSet<VecNonEmpty<ClaimPath>>, path: ClaimPath) -> IndexSet<VecNonEmpty<ClaimPath>> {
-    if sub_claims.is_empty() {
-        IndexSet::from_iter([vec_nonempty![path]])
-    } else {
-        sub_claims
-            .into_iter()
-            .map(|mut claim| {
-                claim.insert(0, path.clone());
-                claim
-            })
-            .collect()
-    }
+    let sub_claims_len = sub_claims.len();
+    sub_claims
+        .into_iter()
+        .zip(repeat_n(path.clone(), sub_claims_len))
+        .map(|(mut claim, path)| {
+            claim.insert(0, path);
+            claim
+        })
+        .chain([vec_nonempty![path]])
+        .collect()
 }
 
 #[cfg_attr(test, derive(derive_more::Unwrap), unwrap(ref))]
@@ -856,9 +856,9 @@ mod tests {
     #[case(json!({"a": 1, "b": true}), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectByKey("a".to_string())], vec_nonempty![ClaimPath::SelectByKey("b".to_string())]])))]
     #[case(json!([1, 2]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
     #[case(json!([1, "a", true]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
-    #[case(json!([["a"], [2]]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectAll]])))]
-    #[case(json!([{"a": 1}, {"a": 2}]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectByKey("a".to_string())]])))]
-    #[case(json!({"a": [1, 2]}), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectByKey("a".to_string()), ClaimPath::SelectAll]])))]
+    #[case(json!([["a"], [2]]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectAll], vec_nonempty![ClaimPath::SelectAll]])))]
+    #[case(json!([{"a": 1}, {"a": 2}]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectByKey("a".to_string())], vec_nonempty![ClaimPath::SelectAll]])))]
+    #[case(json!({"a": [1, 2]}), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectByKey("a".to_string()), ClaimPath::SelectAll], vec_nonempty![ClaimPath::SelectByKey("a".to_string())]])))]
     #[case(json!([1, { "a": 2 }]), Err(NonSelectivelyDisclosableClaimsError::ArrayStructure(MultipleItemsFound)))]
     #[case(json!([1, [2]]), Err(NonSelectivelyDisclosableClaimsError::ArrayStructure(MultipleItemsFound)))]
     #[case(json!([1, 2, 3, { "...": "some_digest" }]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
