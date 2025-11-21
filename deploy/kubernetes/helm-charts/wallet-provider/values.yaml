@@ -145,6 +145,12 @@ appIdentifier: null
 recoveryCodePaths:
   "urn:eudi:pid:nl:1": ["recovery_code"]
 
+## @section WUA status list parameters
+## Parameters for the WUA status list configuration
+## @param wuaStatusList.certificate WUA status list certificate
+##
+wuaStatusList:
+  certificate: null
 
 ## @section Migration parameters
 ## Parameters for the migration configuration
@@ -181,12 +187,3 @@ logSidecar:
     limits:
       cpu: "400m"
       memory: "128Mi"
-
-## @section WUA status list parameters
-## Parameters for the WUA status list configuration
-## @param wuaStatusList.secretName Name of the secret containing the WUA status list private key
-## @param wuaStatusList.certificate WUA status list certificate
-##
-wuaStatusList:
-  secretName: null
-  certificate: null

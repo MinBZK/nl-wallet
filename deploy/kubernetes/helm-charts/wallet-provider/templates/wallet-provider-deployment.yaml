@@ -104,14 +104,7 @@ spec:
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: WALLET_PROVIDER__WUA_STATUS_LIST__PUBLISH_DIR
               value: "/status-lists"
-            - name: WALLET_PROVIDER__WUA_STATUS_LIST__PRIVATE_KEY_TYPE
-              value: "software"
-            - name: WALLET_PROVIDER__WUA_STATUS_LIST__PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.wuaStatusList.secretName }}
-                  key: private_key
-            - name: WALLET_PROVIDER__WUA_STATUS_LIST__CERTIFICATE
+            - name: WALLET_PROVIDER__WUA_STATUS_LIST__KEY_CERTIFICATE
               value: {{ .Values.wuaStatusList.certificate }}
 
             - name: WALLET_PROVIDER__STRUCTURED_LOGGING

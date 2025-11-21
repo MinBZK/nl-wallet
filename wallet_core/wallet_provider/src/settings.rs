@@ -155,6 +155,7 @@ impl Settings {
             )?
             .set_default("wua_status_list.list_size", 100_000)?
             .set_default("wua_status_list.create_threshold", 0.01)?
+            .set_default("wua_status_list.key_identifier", "wua_tsl_key")?
             .set_default("wua_signing_key_identifier", "wua_signing_key")?
             .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
             .set_default("wua_valid_days", 365)?
