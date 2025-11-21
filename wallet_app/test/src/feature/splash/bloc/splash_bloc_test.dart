@@ -1,76 +1,91 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/wallet_state.dart';
 import 'package:wallet/src/feature/splash/bloc/splash_bloc.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
 void main() {
-  late MockIsWalletInitializedUseCase isWalletInitializedUseCase;
-  late MockIsWalletInitializedWithPidUseCase isWalletInitializedWithPidUseCase;
+  late MockGetWalletStateUseCase mockGetWalletStateUseCase;
 
   setUp(() {
-    isWalletInitializedUseCase = MockIsWalletInitializedUseCase();
-    isWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
+    mockGetWalletStateUseCase = MockGetWalletStateUseCase();
   });
 
   blocTest(
     'verify initial state',
-    build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
     verify: (bloc) => expect(bloc.state, SplashInitial()),
   );
 
   blocTest(
-    'if isWalletInitializedUseCase app initialization should fail',
+    'if mockGetWalletStateUseCase app initialization should fail',
     setUp: () {
-      when(isWalletInitializedUseCase.invoke()).thenThrow(StateError('error'));
+      when(mockGetWalletStateUseCase.invoke()).thenThrow(StateError('error'));
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
     errors: () => [isA<StateError>()],
   );
 
   blocTest(
-    'if isWalletInitializedWithPidUseCase app initialization should fail',
+    'if mockGetWalletStateUseCase app initialization should fail',
     setUp: () {
-      when(isWalletInitializedUseCase.invoke()).thenAnswer((_) async => true);
-      when(isWalletInitializedWithPidUseCase.invoke()).thenThrow(StateError('error'));
+      when(mockGetWalletStateUseCase.invoke()).thenThrow(StateError('error'));
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
     errors: () => [isA<StateError>()],
   );
 
   blocTest(
-    'validate state when not initialized and pid not available',
+    'validate state when locked, registered and pid not available',
     setUp: () {
-      when(isWalletInitializedUseCase.invoke()).thenAnswer((_) async => false);
-      when(isWalletInitializedWithPidUseCase.invoke()).thenAnswer((_) async => false);
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateLocked(WalletStateEmpty()));
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),
-    expect: () => [const SplashLoaded(isRegistered: false, hasPid: false)],
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.pidRetrieval)],
   );
 
   blocTest(
-    'validate state when initialized and pid not available',
+    'validate state when registered and pid not available',
     setUp: () {
-      when(isWalletInitializedUseCase.invoke()).thenAnswer((_) async => true);
-      when(isWalletInitializedWithPidUseCase.invoke()).thenAnswer((_) async => false);
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateEmpty());
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),
-    expect: () => [const SplashLoaded(isRegistered: true, hasPid: false)],
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.pidRetrieval)],
   );
 
   blocTest(
-    'validate state when initialized and pid available',
+    'validate state when not registered',
     setUp: () {
-      when(isWalletInitializedUseCase.invoke()).thenAnswer((_) async => true);
-      when(isWalletInitializedWithPidUseCase.invoke()).thenAnswer((_) async => true);
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateRegistration());
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),
-    expect: () => [const SplashLoaded(isRegistered: true, hasPid: true)],
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.onboarding)],
+  );
+
+  blocTest(
+    'validate state when registered and pid available',
+    setUp: () {
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateReady());
+    },
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.dashboard)],
+  );
+
+  blocTest(
+    'validate state when locked, registered and pid available',
+    setUp: () {
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateLocked(WalletStateReady()));
+    },
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.dashboard)],
   );
 }

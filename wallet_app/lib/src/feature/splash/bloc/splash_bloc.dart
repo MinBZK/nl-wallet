@@ -2,27 +2,45 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../environment.dart';
-import '../../../domain/usecase/app/check_is_app_initialized_usecase.dart';
-import '../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
+import '../../../domain/model/wallet_state.dart';
+import '../../../domain/usecase/wallet/get_wallet_state_usecase.dart';
+import '../../../util/cast_util.dart';
 import '../../../wallet_constants.dart';
 
 part 'splash_event.dart';
 part 'splash_state.dart';
 
 class SplashBloc extends Bloc<SplashEvent, SplashState> {
-  final IsWalletInitializedUseCase isWalletInitializedUseCase;
-  final IsWalletInitializedWithPidUseCase isWalletInitializedWithPidUseCase;
+  final GetWalletStateUseCase _getWalletStateUseCase;
 
-  SplashBloc(this.isWalletInitializedUseCase, this.isWalletInitializedWithPidUseCase) : super(SplashInitial()) {
+  SplashBloc(this._getWalletStateUseCase) : super(SplashInitial()) {
     on<InitSplashEvent>(_initApp);
   }
 
   Future<void> _initApp(InitSplashEvent event, Emitter<SplashState> emit) async {
     final skipDelay = Environment.isTest || !Environment.mockRepositories;
     await Future.delayed(skipDelay ? Duration.zero : kDefaultMockDelay);
-    //TODO(Rob): Refactor this based on new getWalletState() api.
-    final isInitialized = await isWalletInitializedUseCase.invoke();
-    final containsPid = await isWalletInitializedWithPidUseCase.invoke();
-    emit(SplashLoaded(isRegistered: isInitialized, hasPid: containsPid));
+
+    final state = await _getWalletStateUseCase.invoke();
+    final derivedState = tryCast<WalletStateLocked>(state)?.substate ?? state;
+    switch (derivedState) {
+      case WalletStateLocked():
+        throw StateError('Derived state should never be $derivedState');
+      case WalletStateEmpty():
+        emit(const SplashLoaded(.pidRetrieval));
+      case WalletStateTransferring():
+      case WalletStateTransferPossible():
+        emit(const SplashLoaded(.transfer));
+      case WalletStateRegistration():
+        emit(const SplashLoaded(.onboarding));
+      case WalletStateWalletBlocked():
+        emit(const SplashLoaded(.blocked));
+      case WalletStateReady():
+      case WalletStateDisclosure():
+      case WalletStateIssuance():
+      case WalletStatePinChange():
+      case WalletStatePinRecovery():
+        emit(const SplashLoaded(.dashboard));
+    }
   }
 }

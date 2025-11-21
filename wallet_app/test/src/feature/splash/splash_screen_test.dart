@@ -49,7 +49,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
-          const SplashLoaded(isRegistered: false, hasPid: false),
+          const SplashLoaded(.onboarding),
         ),
         providers: [
           RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
@@ -63,7 +63,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
-          const SplashLoaded(isRegistered: true, hasPid: false),
+          const SplashLoaded(.pidRetrieval),
         ),
         providers: [
           RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
@@ -77,7 +77,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
-          const SplashLoaded(isRegistered: true, hasPid: true),
+          const SplashLoaded(.dashboard),
         ),
         providers: [
           RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),

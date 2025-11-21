@@ -328,7 +328,23 @@ class WalletCoreMock implements WalletCoreApi {
   Future<TransferSessionState> crateApiFullGetWalletTransferState() => _transferManager.getTransferState();
 
   @override
-  Future<WalletState> crateApiFullGetWalletState() async => const WalletState.ready();
+  Future<WalletState> crateApiFullGetWalletState() async {
+    if (!_pinManager.isRegistered) return const WalletState.registration();
+
+    // Support basic [WalletState]s for the mock build
+    WalletState state = const WalletState.ready();
+    if (_wallet.isEmpty) {
+      state = const WalletState.empty();
+    } else if (_issuanceManager.hasActiveIssuanceSession) {
+      state = WalletState.issuance(pid: _wallet.isEmpty);
+    } else if (_disclosureManager.hasActiveDisclosureSession) {
+      state = const WalletState.disclosure();
+    }
+    // Wrap in Locked state when wallet is locked
+    final locked = await _wallet.lockedStream.first;
+    if (locked) return WalletState.locked(subState: state);
+    return state;
+  }
 
   @override
   Future<void> crateApiFullReceiveWalletTransfer() => Future.delayed(const Duration(seconds: 2));

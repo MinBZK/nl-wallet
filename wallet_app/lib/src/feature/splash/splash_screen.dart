@@ -1,3 +1,4 @@
+import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -25,12 +26,19 @@ class SplashScreen extends StatelessWidget {
         listenWhen: (prev, current) => current is SplashLoaded,
         listener: (context, state) {
           if (state is SplashLoaded) {
-            if (state.hasPid && state.isRegistered) {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute);
-            } else if (state.isRegistered) {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
-            } else {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.demoRoute);
+            switch (state.destination) {
+              case PostSplashDestination.onboarding:
+                Navigator.pushReplacementNamed(context, WalletRoutes.demoRoute);
+              case PostSplashDestination.pidRetrieval:
+                Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
+              case PostSplashDestination.transfer:
+                // Navigation handled on from Dashboard (onUnlock) in [WalletTransferEventListener]
+                Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
+              case PostSplashDestination.dashboard:
+                Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
+              case PostSplashDestination.blocked:
+                // UI updated by [UpdateChecker] & [RootChecker]. WP Block yet to be handled.
+                Fimber.d('Not navigating, state is blocked');
             }
           }
         },
