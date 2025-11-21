@@ -3,12 +3,12 @@
 pub struct MultipleItemsFound;
 
 pub trait SingleUnique<T> {
-    /// Reduces `[T]` (typically a collection or an iterator) into a single unique value.
+    /// Reduces `T` (typically a collection or an iterator) into a single unique value.
     ///
     /// Returns
-    /// - `[None]` if there is no input
-    /// - `[Some(value)]` if there is a single unique value
-    /// - `[Err(MultipleItemsFound)]` if there are multiple different values
+    /// - `Ok(None)` if the input is empty
+    /// - `Ok(Some(value))` if all elements in `T` are equal to `value`
+    /// - `Err(MultipleItemsFound)` if there are multiple different values in `T`
     fn single_unique(self) -> Result<Option<T>, MultipleItemsFound>;
 }
 
