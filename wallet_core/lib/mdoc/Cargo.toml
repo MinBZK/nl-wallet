@@ -16,12 +16,12 @@ test = ["crypto/generate", "crypto/mock", "dep:regex", "token_status_list/mock"]
 mock = []
 # Include example based constructors to several types for testing
 mock_example_constructors = [
-    "examples",
-    "test",
     "attestation_types/pid_constants",
     "crypto/examples",
+    "examples",
+    "sd_jwt_vc_metadata/example_constructors",
+    "test",
     "utils/mock_time",
-    "dep:sd_jwt_vc_metadata"
 ]
 
 [dependencies]
@@ -61,7 +61,7 @@ http_utils.path = "../http_utils"
 token_status_list = { path = "../token_status_list", features = ["verification"] }
 utils.path = "../utils"
 
-sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
+sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

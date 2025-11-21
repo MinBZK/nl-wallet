@@ -13,7 +13,7 @@ doctest = false
 
 [features]
 # Enable issuance
-issuance = ["dep:axum-extra"]
+issuance = ["axum-extra/typed-header"]
 # Enable disclosure
 disclosure = ["dep:ring"]
 
@@ -25,7 +25,7 @@ serde = { workspace = true, features = ["derive"] }
 tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
 
-axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
+axum-extra = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
 
 attestation_data.path = "../attestation_data"

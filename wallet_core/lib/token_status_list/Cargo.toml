@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "dep:http_utils", "http_utils/client"]
+verification = ["dep:http", "dep:rustls-pki-types", "http_utils/client", "reqwest/rustls-tls-webpki-roots"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
 [dependencies]
@@ -23,7 +23,7 @@ flate2.workspace = true
 http = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"] }
 mockall = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
+reqwest = { workspace = true, optional = true }
 rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }

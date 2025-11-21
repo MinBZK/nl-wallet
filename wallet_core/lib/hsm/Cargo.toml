@@ -12,9 +12,9 @@ doctest = false
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
-settings = ["dep:serde", "dep:serde_with"]
-test = ["dep:async-dropper", "dep:async-trait", "dep:config", "dep:rand_core"]
+mock = ["dep:dashmap", "dep:rand", "dep:sha2", "hmac/std"]
+settings = ["serde/derive", "serde_with/base64"]
+test = ["async-dropper/simple", "async-dropper/tokio", "config/toml", "dep:async-trait", "dep:rand_core"]
 
 [[test]]
 name = "hsm"
@@ -31,15 +31,15 @@ r2d2-cryptoki.workspace = true
 sec1.workspace = true
 thiserror.workspace = true
 
-async-dropper = { workspace = true, optional = true, features = ["simple", "tokio"] }
+async-dropper = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
-config = { workspace = true, optional = true, features = ["toml"] }
+config = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
-hmac = { workspace = true, optional = true, features = ["std"] }
+hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-serde = { workspace = true, optional = true, features = ["derive"] }
-serde_with = { workspace = true, optional = true, features = ["base64"] }
+serde = { workspace = true, optional = true }
+serde_with = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
