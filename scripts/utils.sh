@@ -298,7 +298,7 @@ function generate_pid_issuer_key_pair {
 
     generate_hsm_key_pair pid_issuer_key pid_issuer/issuer.pub.pem
 
-    # Generate a certificate for the public key including issuer authentication
+    # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca issuer-cert \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
@@ -341,23 +341,21 @@ function generate_pid_issuer_tsl_key_pair {
 function generate_wallet_provider_tsl_key_pair {
     echo -e "${INFO}Generating Wallet Provider WUA TSL key pair${NC}"
 
+    generate_hsm_key_pair wua_tsl_key wallet_provider/wua_tsl.pub.pem
+
     # Generate a certificate for the public key including issuer authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca tsl \
+        --bin wallet_ca tsl-cert \
+        --public-key-file "${TARGET_DIR}/wallet_provider/wua_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "wallet_provider.example.com" \
-        --file-prefix "${TARGET_DIR}/wallet_provider/tsl" \
+        --common-name "wua-issuer.example.com" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/wua_tsl" \
         --force
 
-    # Convert the PEM key to DER format
-    openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/wallet_provider/tsl.key.pem" \
-        -out "${TARGET_DIR}/wallet_provider/tsl.key.der" -nocrypt
-
     # Convert the PEM certificate to DER format
-    openssl x509 -in "${TARGET_DIR}/wallet_provider/tsl.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/wallet_provider/tsl.crt.der"
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/wua_tsl.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/wua_tsl.crt.der"
 }
 
 # Generate an EC key pairs for the demo_issuer

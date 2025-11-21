@@ -120,7 +120,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             db.connection().to_owned(),
             HashMap::from([(
                 WUA_ATTESTATION_TYPE_IDENTIFIER.to_owned(),
-                settings.wua_status_list.into_config().await?,
+                settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
             )])
             .into(),
         )

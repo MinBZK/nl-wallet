@@ -275,9 +275,7 @@ export WP_WUA_PUBLIC_KEY
 
 # Generate key for WUA tsl
 generate_wallet_provider_tsl_key_pair
-WUA_TSL_KEY=$(< "${TARGET_DIR}/wallet_provider/tsl.key.der" ${BASE64})
-export WUA_TSL_KEY
-WUA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/tsl.crt.der" ${BASE64})
+WUA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wua_tsl.crt.der" ${BASE64})
 export WUA_TSL_CRT
 
 # Generate pid issuer key and cert

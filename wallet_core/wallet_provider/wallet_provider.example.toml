@@ -19,8 +19,19 @@ pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protect
 # Identifier for key used to issue WUAs to wallets
 wua_signing_key_identifier = "wua_signing_key"
 
-# Identifier for the WUA issuer. Must equal the CN from the WUA trust anchor CA certificate.
+# Identifier for the WUA issuer.
 wua_issuer_identifier = "wua-issuer.example.com"
+
+# Status List configuration for the WUA
+[wua_status_lists]
+# Base URL for the Status List Claims
+base_url = "http://cdn.example.com/tsl"
+# Directory to publish the Status List Tokens
+publish_dir = "/srv/html/tsl"
+# Identifier for key inused to sign Status List Token
+key_identifier = "instruction_result_signing_key"
+# Base64 DER encoded certificate containing the public key
+key_certificate = "MIJ..."
 
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
