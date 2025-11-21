@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
 use base64::prelude::*;
@@ -14,7 +13,7 @@ use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
-use status_lists::postgres::PostgresStatusListServices;
+use status_lists::postgres::PostgresStatusListService;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -64,7 +63,7 @@ async fn do_registration(
     WalletCertificate,
     MockHardwareKey,
     WalletCertificateClaims,
-    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListServices>,
+    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService>,
 ) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
@@ -120,12 +119,10 @@ async fn do_registration(
         key_pair, // unused
     };
 
-    let status_list_service = PostgresStatusListServices::try_new(
-        db_connection,
-        HashMap::from([(WUA_ATTESTATION_TYPE_IDENTIFIER.to_owned(), wua_status_list_config)]).into(),
-    )
-    .await
-    .unwrap();
+    let status_list_service =
+        PostgresStatusListService::try_new(db_connection, WUA_ATTESTATION_TYPE_IDENTIFIER, wua_status_list_config)
+            .await
+            .unwrap();
 
     let user_state = mock::user_state(
         Repositories::from(db),

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::error::Error;
 
 use chrono::DateTime;
@@ -7,7 +6,7 @@ use chrono::Duration;
 use chrono::Utc;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use status_lists::postgres::PostgresStatusListServices;
+use status_lists::postgres::PostgresStatusListService;
 use tracing::info;
 use uuid::Uuid;
 
@@ -46,7 +45,7 @@ pub struct RouterState<GRC, PIC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>, PostgresStatusListServices>,
+    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>, PostgresStatusListService>,
     pub max_transfer_upload_size_in_bytes: usize,
 }
 
@@ -116,13 +115,10 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         // TODO refactor wallet_provider_database to generic database module to share with issuance server (PVW-5196)
         let db = Db::new(settings.database.url, settings.database.options).await?;
 
-        let status_list_service = PostgresStatusListServices::try_new(
+        let status_list_service = PostgresStatusListService::try_new(
             db.connection().to_owned(),
-            HashMap::from([(
-                WUA_ATTESTATION_TYPE_IDENTIFIER.to_owned(),
-                settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
-            )])
-            .into(),
+            WUA_ATTESTATION_TYPE_IDENTIFIER,
+            settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
         )
         .await?;
         status_list_service.initialize_lists().await?;
