@@ -1,12 +1,11 @@
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::x509::DistinguishedName;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::warn;
 use url::Url;
-
-use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
 
 use crate::status_list::StatusType;
@@ -34,7 +33,7 @@ where
     pub async fn verify(
         &self,
         issuer_trust_anchors: &[TrustAnchor<'_>],
-        attestation_signing_certificate: &BorrowingCertificate,
+        attestation_signing_certificate_dn: DistinguishedName,
         url: Url,
         time: &impl Generator<DateTime<Utc>>,
         index: usize,
@@ -42,7 +41,7 @@ where
         match self.0.fetch(url.clone()).await {
             Ok(status_list_token) => match status_list_token.parse_and_verify(
                 issuer_trust_anchors,
-                attestation_signing_certificate,
+                attestation_signing_certificate_dn,
                 &url,
                 time,
             ) {
@@ -72,6 +71,7 @@ mod test {
     use futures::FutureExt;
 
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::DistinguishedName;
     use jwt::error::JwtError;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -93,7 +93,7 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
@@ -106,7 +106,7 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 3,
@@ -119,7 +119,7 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 "https://different_uri".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
@@ -132,7 +132,7 @@ mod test {
         let status = verifier
             .verify(
                 &[],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
@@ -145,7 +145,7 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::new(Utc::now().add(Days::new(2))),
                 1,
@@ -158,7 +158,7 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                ca.generate_pid_issuer_mock().unwrap().certificate(),
+                DistinguishedName::new(String::from("CN=Different CA")),
                 "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,
@@ -176,7 +176,7 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 "https://example.com/statuslists/1".parse().unwrap(),
                 &MockTimeGenerator::default(),
                 1,

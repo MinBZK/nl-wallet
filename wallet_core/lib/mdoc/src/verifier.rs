@@ -331,7 +331,7 @@ impl Document {
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
-                        issuer_certificate,
+                        issuer_certificate.distinguished_name_canonical()?,
                         status_list_claim.uri.clone(),
                         time,
                         status_list_claim.idx.try_into().unwrap(),

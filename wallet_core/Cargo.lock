@@ -1499,6 +1499,7 @@ dependencies = [
  "hex-literal",
  "http_utils",
  "indexmap 2.7.1",
+ "itertools 0.14.0",
  "p256",
  "parking_lot",
  "rand",
@@ -1507,6 +1508,7 @@ dependencies = [
  "ring",
  "rustls-pki-types",
  "rustls-webpki",
+ "sea-orm",
  "serde",
  "serde_json",
  "sha2",
@@ -2096,6 +2098,7 @@ version = "0.4.0-dev"
 dependencies = [
  "attestation_data",
  "chrono",
+ "crypto",
  "derive_more",
  "sd_jwt_vc_metadata",
  "sea-orm",

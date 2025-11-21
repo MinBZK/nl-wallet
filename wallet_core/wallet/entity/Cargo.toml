@@ -20,4 +20,5 @@ uuid.workspace = true
 zstd.workspace = true
 
 attestation_data.path = "../../lib/attestation_data"
+crypto = { path = "../../lib/crypto", features = ["persistence"] }
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"

@@ -111,9 +111,9 @@ pub mod verification {
     use rustls_pki_types::TrustAnchor;
     use url::Url;
 
-    use crypto::x509::BorrowingCertificate;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
+    use crypto::x509::DistinguishedName;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::error::JwtX5cError;
     use utils::generator::Generator;
@@ -138,14 +138,17 @@ pub mod verification {
         MissingDN(#[source] CertificateError),
 
         #[error("DN from SLT ('{slt}') is different from attestation ('{attestation}')")]
-        DifferentDN { slt: String, attestation: String },
+        DifferentDN {
+            slt: DistinguishedName,
+            attestation: DistinguishedName,
+        },
     }
 
     impl StatusListToken {
         pub fn parse_and_verify(
             &self,
             issuer_trust_anchors: &[TrustAnchor],
-            attestation_signing_certificate: &BorrowingCertificate,
+            attestation_signing_certificate_dn: DistinguishedName,
             url: &Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<PackedStatusList, StatusListTokenVerificationError> {
@@ -159,15 +162,12 @@ pub mod verification {
             let slt_dn = header
                 .x5c
                 .first()
-                .distinguished_name()
+                .distinguished_name_canonical()
                 .map_err(StatusListTokenVerificationError::MissingDN)?;
-            let attestation_dn = attestation_signing_certificate
-                .distinguished_name()
-                .map_err(StatusListTokenVerificationError::MissingDN)?;
-            if slt_dn != attestation_dn {
+            if slt_dn != attestation_signing_certificate_dn {
                 return Err(StatusListTokenVerificationError::DifferentDN {
                     slt: slt_dn,
-                    attestation: attestation_dn,
+                    attestation: attestation_signing_certificate_dn,
                 });
             }
 
@@ -294,7 +294,7 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &[],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )
@@ -307,7 +307,11 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &[ca.to_trust_anchor()],
-                ca.generate_pid_issuer_mock().unwrap().certificate(),
+                ca.generate_pid_issuer_mock()
+                    .unwrap()
+                    .certificate()
+                    .distinguished_name_canonical()
+                    .unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )
@@ -317,7 +321,7 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &"http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
             )
@@ -327,7 +331,7 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
             )
@@ -337,7 +341,7 @@ mod test {
         signed
             .parse_and_verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )

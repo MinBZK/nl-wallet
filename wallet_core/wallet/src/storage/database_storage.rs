@@ -39,6 +39,7 @@ use uuid::Uuid;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_types::status_claim::StatusClaim;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use dcql::CredentialFormat;
@@ -982,26 +983,61 @@ fn create_attestation_copy_models(
         .into_iter()
         .map(|credential| match credential {
             IssuedCredential::MsoMdoc { mdoc } => {
-                let attestation_bytes = cbor_serialize(mdoc.issuer_signed())?;
+                let issuer_certificate_dn = mdoc
+                    .issuer_certificate()
+                    .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
+                    .distinguished_name_canonical()
+                    .expect("the issuer certificate should contain a valid DN at this point");
+
+                let (mso, private_key_id, issuer_signed) = mdoc.into_components();
+
+                let attestation_bytes = cbor_serialize(&issuer_signed)?;
+                let (status_uri, status_index) = mso
+                    .status
+                    .map(|status| match status {
+                        StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    })
+                    .unwrap_or((None, None));
+
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
                     attestation_format: Set(AttestationFormat::Mdoc),
-                    key_identifier: Set(mdoc.into_private_key_id()),
+                    key_identifier: Set(private_key_id),
+                    status_list_url: Set(status_uri),
+                    status_list_index: Set(status_index),
+                    issuer_certificate_dn: Set(issuer_certificate_dn),
                     attestation: Set(CompressedBlob::new(&attestation_bytes)?),
                 };
 
                 Ok::<_, StorageError>(model)
             }
             IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
+                let issuer_certificate_dn = sd_jwt
+                    .issuer_certificate()
+                    .distinguished_name_canonical()
+                    .expect("the issuer certificate should contain a valid DN at this point");
+                let attestation_bytes = sd_jwt.to_string().into_bytes();
+
+                let (status_uri, status_index) = sd_jwt
+                    .into_claims()
+                    .status
+                    .map(|status| match status {
+                        StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    })
+                    .unwrap_or((None, None));
+
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
                     attestation_format: Set(AttestationFormat::SdJwt),
                     key_identifier: Set(key_identifier),
-                    attestation: Set(CompressedBlob::new(&sd_jwt.to_string().into_bytes())?),
+                    status_list_url: Set(status_uri),
+                    status_list_index: Set(status_index),
+                    issuer_certificate_dn: Set(issuer_certificate_dn),
+                    attestation: Set(CompressedBlob::new(&attestation_bytes)?),
                 };
 
                 Ok(model)
