@@ -72,56 +72,80 @@ required-features = ["integration_test"]
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc?/allow_insecure_url"]
+
 # Initialize global logging using tracing-subscriber
-logging = ["dep:tracing", "dep:tracing-subscriber"]
+logging = [
+    "dep:tracing",
+    "tracing-subscriber/ansi",
+    "tracing-subscriber/env-filter",
+    "tracing-subscriber/fmt",
+    "tracing-subscriber/parking_lot",
+    "tracing-subscriber/smallvec",
+    "tracing-subscriber/std",
+    "tracing-subscriber/tracing-log",
+]
+
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
+    "apple_app_attest/mock",
+    "attestation_data/example_credential_payloads",
+    "attestation_data/mock",
+    "attestation_data/test_credential",
+    "axum-server/tls-rustls-no-provider",
+    "axum/http1",
+    "axum/json",
+    "axum/tokio",
     "crypto",
-    "hsm",
-    "itertools",
-    "logging",
-    "rustls",
+    "dcql/mock",
     "dep:android_attest",
-    "dep:apple_app_attest",
-    "dep:attestation_data",
-    "dep:axum",
-    "dep:axum-server",
     "dep:chrono",
     "dep:configuration_server",
     "dep:ctor",
-    "dep:dcql",
-    "dep:gba_hc_converter",
     "dep:futures",
-    "dep:http_utils",
+    "dep:gba_hc_converter",
     "dep:indexmap",
     "dep:issuance_server",
     "dep:issuer_settings",
     "dep:openid4vc",
-    "dep:openid4vc_server",
-    "dep:p256",
-    "dep:pid_issuer",
-    "dep:platform_support",
-    "dep:reqwest",
-    "dep:sea-orm",
     "dep:semver",
-    "dep:serde_urlencoded",
     "dep:serde_json",
+    "dep:serde_urlencoded",
     "dep:server_utils",
     "dep:tempfile",
-    "dep:tokio",
     "dep:update_policy_server",
     "dep:url",
-    "dep:verification_server",
-    "dep:wallet",
     "dep:utils",
+    "dep:verification_server",
     "dep:wallet_configuration",
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
-    "dep:wallet_provider_service",
-    "dep:wscd",
+    "hsm/test",
+    "http_utils/client",
+    "http_utils/server",
+    "logging",
+    "openid4vc_server/disclosure",
+    "openid4vc_server/issuance",
+    "p256/pkcs8",
+    "pid_issuer/mock",
+    "platform_support/mock",
+    "reqwest/rustls-tls-webpki-roots",
+    "rustls/ring",
+    "sea-orm/debug-print",
+    "sea-orm/macros",
+    "sea-orm/runtime-tokio-rustls",
+    "sea-orm/sqlx-postgres",
+    "sea-orm/with-uuid",
+    "tokio/parking_lot",
+    "tokio/rt",
+    "tokio/time",
+    "wallet/test",
+    "wallet_provider_service/mock",
+    "wscd/mock",
 ]
+
 # Include the fake_digid submodule
-fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
+fake_digid = ["http_utils/client", "reqwest/rustls-tls-webpki-roots", "dep:url", "dep:wallet_configuration"]
+
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "pid_issuer?/db_test",
@@ -129,26 +153,31 @@ db_test = [
     "wallet_provider_service?/db_test",
     "verification_server?/db_test",
 ]
+
 # Include and run test that depend on a configured HSM
 hsm_test = ["wallet_provider?/hsm_test"]
+
 # Feature used for enabling all integration tests
 integration_test = [
     "allow_insecure_url",
-    "test_common",
     "db_test",
-    "hsm_test",
     "dep:assert_matches",
-    "dep:jsonwebtoken",
-    "dep:p256",
     "dep:rand_core",
     "dep:regex",
     "dep:rstest",
     "dep:serial_test",
     "dep:zstd",
-    "dep:tokio",
+    "hsm_test",
+    "jsonwebtoken/use_pem",
+    "p256/pkcs8",
+    "test_common",
     "tokio/macros",
+    "tokio/parking_lot",
+    "tokio/rt",
     "tokio/sync",
+    "tokio/time",
 ]
+
 # Optional feature for running integration tests that depend on the DigiD connector
 digid_test = [
     "fake_digid",
@@ -158,108 +187,100 @@ digid_test = [
     "dep:rustls-pki-types",
     "dep:serial_test",
 ]
+
 # Should be enabled when building the performance_test binary
 performance_test = [
-    "logging",
-    "fake_digid",
+    "apple_app_attest/mock",
+    "dcql/mock",
     "dep:ctor",
-    "dep:apple_app_attest",
+    "dep:dotenvy",
     "dep:indexmap",
-    "dep:dcql",
-    "dep:reqwest",
-    "dep:tokio",
+    "dep:openid4vc",
+    "dep:server_utils",
+    "dep:serde_urlencoded",
+    "dep:tempfile",
     "dep:tracing",
     "dep:url",
-    "dep:openid4vc",
-    "dep:openid4vc_server",
-    "dep:pid_issuer",
-    "dep:platform_support",
-    "dep:tempfile",
-    "dep:wallet",
     "dep:utils",
-    "dep:serde_urlencoded",
-    "dep:server_utils",
     "dep:verification_server",
-    "dep:dotenvy",
+    "fake_digid",
+    "logging",
+    "openid4vc_server/disclosure",
+    "openid4vc_server/issuance",
+    "pid_issuer/mock",
+    "platform_support/mock",
     "platform_support/mock_attested_key_apple_ca",
+    "reqwest/rustls-tls-webpki-roots",
+    "tokio/parking_lot",
+    "tokio/rt",
+    "tokio/time",
+    "wallet/test",
 ]
 
 [dependencies]
 assert_matches = { workspace = true, optional = true }
-axum = { workspace = true, optional = true, features = ["http1", "json", "tokio"] }
-axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
+axum = { workspace = true, optional = true }
+axum-server = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
-jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }
-reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
-sea-orm = { workspace = true, optional = true, features = [
-    "sqlx-postgres",
-    "runtime-tokio-rustls",
-    "macros",
-    "with-uuid",
-    "debug-print",
-] }
+jsonwebtoken = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+sea-orm = { workspace = true, optional = true }
+
+
 semver = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-p256 = { workspace = true, optional = true, features = ["pkcs8"] }
+p256 = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
-rustls = { workspace = true, optional = true, features = ["ring"] }
+rustls = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
-tokio = { workspace = true, optional = true, features = ["rt", "time", "parking_lot"] }
+tokio = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, optional = true, features = [
-    "std",
-    "fmt",
-    "tracing-log",
-    "smallvec",
-    "parking_lot",
-    "env-filter",
-    "ansi",
-] }
+tracing-subscriber = { workspace = true, optional = true }
+
+
 url = { workspace = true, optional = true }
 zstd = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }
-apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }
-attestation_data = { path = "../lib/attestation_data", optional = true, features = [
-    "example_credential_payloads",
-    "mock",
-    "test_credential",
-] }
+apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
+attestation_data = { path = "../lib/attestation_data", optional = true }
+
+
 configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
-dcql = { path = "../lib/dcql", optional = true, features = ["mock"] }
+dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
-hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
-http_utils = { path = "../lib/http_utils", optional = true, features = ["client", "server"] }
+hsm = { path = "../lib/hsm", optional = true }
+http_utils = { path = "../lib/http_utils", optional = true }
 issuance_server = { path = "../wallet_server/issuance_server", optional = true }
 issuer_settings = { path = "../wallet_server/issuer_settings", optional = true }
 jwt.path = "../lib/jwt"
 openid4vc = { path = "../lib/openid4vc", optional = true }
-openid4vc_server = { path = "../lib/openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
-wscd = { path = "../lib/wscd", optional = true, features = ["mock"] }
-pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
-platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
+openid4vc_server = { path = "../lib/openid4vc_server", optional = true }
+wscd = { path = "../lib/wscd", optional = true }
+pid_issuer = { path = "../wallet_server/pid_issuer", optional = true }
+platform_support = { path = "../wallet/platform_support", optional = true }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 token_status_list = { path = "../lib/token_status_list", features = ["mock"] }
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
-wallet = { path = "../wallet", optional = true, features = ["test"] }
+wallet = { path = "../wallet", optional = true }
 utils = { path = "../lib/utils", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
-wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }
+wallet_provider_service = { path = "../wallet_provider/service", optional = true }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }

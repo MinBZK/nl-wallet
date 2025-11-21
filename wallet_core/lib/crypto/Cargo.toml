@@ -14,9 +14,9 @@ doctest = false
 # Include examples from the ISO specification
 examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Include code for generating certificates and keys
-generate = ["dep:rcgen", "dep:time"]
+generate = ["dep:time", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 # Include mock implementations and constructors for testing
-mock = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
+mock = ["dep:parking_lot", "dep:rand_core", "futures/std"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 mock_secure_keys = []
 
@@ -44,12 +44,12 @@ http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 anyhow = { workspace = true, optional = true }
-futures = { workspace = true, optional = true, features = ["std"] }
+futures = { workspace = true, optional = true }
 hex = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_rs"] }
+rcgen = { workspace = true, optional = true }
 time = { workspace = true, optional = true }
 
 [dev-dependencies]

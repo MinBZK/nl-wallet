@@ -27,15 +27,20 @@ required-features = ["db_test"]
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["mockall", "dep:rand_core", "wallet_provider_domain/mock"]
+mock = ["dep:rand_core", "mockall", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "dep:ctor",
     "dep:rand_core",
     "dep:thiserror",
-    "tokio/macros",
-    "dep:tracing-subscriber",
     "sea-orm/debug-print",
+    "tokio/macros",
+    "tracing-subscriber/ansi",
+    "tracing-subscriber/fmt",
+    "tracing-subscriber/parking_lot",
+    "tracing-subscriber/smallvec",
+    "tracing-subscriber/std",
+    "tracing-subscriber/tracing-log",
     "wallet_provider_database_settings/test",
     "wallet_provider_domain/mock",
 ]
@@ -61,14 +66,7 @@ ctor = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, optional = true, features = [
-    "std",
-    "fmt",
-    "tracing-log",
-    "smallvec",
-    "parking_lot",
-    "ansi",
-] }
+tracing-subscriber = { workspace = true, optional = true }
 
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"

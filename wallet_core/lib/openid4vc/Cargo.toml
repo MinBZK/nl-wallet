@@ -22,15 +22,15 @@ required-features = ["integration"]
 
 [features]
 # Include implementations of the axum IntoResponse trait.
-axum = ["dep:axum"]
+axum = ["axum/json"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
-mock = ["dep:mockall", "wscd/mock", "crypto/generate"]
+mock = ["crypto/generate", "dep:mockall", "wscd/mock"]
 # Include miscellaneous test utilities
-test = ["jwt/test", "wscd/mock", "dep:assert_matches", "dep:parking_lot"]
+test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "wscd/mock"]
 # All features needed to run the integration test
-integration = ["mock", "test", "example_constructors"]
+integration = ["example_constructors", "mock", "test"]
 # Credential payload examples
 example_credential_payloads = []
 # Offers example constructors
@@ -82,7 +82,7 @@ url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["serde"] }
 
 assert_matches = { workspace = true, optional = true }
-axum = { workspace = true, optional = true, features = ["json"] }
+axum = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 
