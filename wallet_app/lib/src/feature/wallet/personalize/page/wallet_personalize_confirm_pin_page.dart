@@ -5,7 +5,6 @@ import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/pin_header.dart';
-import '../../../forgot_pin/forgot_pin_screen.dart';
 import '../../../pin/bloc/pin_bloc.dart';
 import '../../../pin/pin_page.dart';
 import '../wallet_personalize_setup_failed_screen.dart';
@@ -43,7 +42,6 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
             PinPage.showPinErrorDialog(
               context,
               context.l10n.pinErrorDialogRestartSetupWarning,
-              recoveryMethod: PinRecoveryMethod.resetWallet,
             );
             return true;
           }
