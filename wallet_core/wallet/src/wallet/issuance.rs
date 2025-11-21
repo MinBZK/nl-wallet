@@ -722,17 +722,16 @@ fn match_preview_and_stored_attestations<'a>(
             let identity = stored_credential_payloads
                 .iter()
                 .find(|(stored_preview, _)| {
-                    pid_config.map_or(
-                        // If this is not PID issuance, then match existing cards of the same attestation types.
-                        preview
-                            .content
-                            .credential_payload
-                            .matches_existing(stored_preview, time_generator),
-                        // If this is PID issuance, then match an existing PID if present.
+                    pid_config.map_or_else(
+                        // If this is not PID issuance, then the two cards match if their contents is identical.
+                        || compare_contents(preview, stored_preview, time_generator),
+                        // If this is PID issuance, and the two cards are both PIDs, then they match.
+                        // If not, fall back two contents comparison.
                         |pid_config| {
                             let pid_types = pid_config.pid_attestation_types();
-                            pid_types.contains(&preview.content.credential_payload.attestation_type)
-                                && pid_types.contains(&stored_preview.attestation_type)
+                            let both_pid = pid_types.contains(&preview.content.credential_payload.attestation_type)
+                                && pid_types.contains(&stored_preview.attestation_type);
+                            both_pid || compare_contents(preview, stored_preview, time_generator)
                         },
                     )
                 })
@@ -741,6 +740,17 @@ fn match_preview_and_stored_attestations<'a>(
             (preview, identity)
         })
         .collect_vec()
+}
+
+fn compare_contents(
+    preview: &NormalizedCredentialPreview,
+    stored_preview: &PreviewableCredentialPayload,
+    time_generator: &impl Generator<DateTime<Utc>>,
+) -> bool {
+    preview
+        .content
+        .credential_payload
+        .matches_existing(stored_preview, time_generator)
 }
 
 #[cfg(test)]
