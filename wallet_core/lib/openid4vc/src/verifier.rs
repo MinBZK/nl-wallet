@@ -899,7 +899,7 @@ where
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these
     ///   CAs.
     /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
-    #[expect(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
         use_cases: US,
         sessions: Arc<S>,
