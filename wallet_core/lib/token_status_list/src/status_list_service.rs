@@ -31,6 +31,13 @@ pub trait StatusListService {
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
 }
 
+#[trait_variant::make(Send)]
+pub trait StatusListRevocationService {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), Self::Error>;
+}
+
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use std::convert::Infallible;
@@ -86,6 +93,14 @@ pub mod mock {
                 .try_into()
                 .unwrap();
             Ok(claims)
+        }
+    }
+
+    impl StatusListRevocationService for MockStatusListServices {
+        type Error = Infallible;
+
+        async fn revoke_attestation_batches(&self, _batch_ids: VecNonEmpty<Uuid>) -> Result<(), Self::Error> {
+            Ok(())
         }
     }
 

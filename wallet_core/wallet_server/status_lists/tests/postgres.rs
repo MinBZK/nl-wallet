@@ -9,6 +9,7 @@ use chrono::Utc;
 use config::Config;
 use config::File;
 use futures::future::try_join_all;
+use itertools::Itertools;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -43,12 +44,15 @@ use status_lists::publish::PublishDir;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::num::NonZeroU31;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 #[derive(Debug, Clone, Deserialize)]
 struct TestSettings {
@@ -529,7 +533,7 @@ async fn test_service_create_status_claims_concurrently() {
 }
 
 #[tokio::test]
-async fn test_service_revoke_attestation_batch_multiple_lists() {
+async fn test_service_revoke_attestation_batches_multiple_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
@@ -558,7 +562,10 @@ async fn test_service_revoke_attestation_batch_multiple_lists() {
         .unwrap();
 
     // Revoke all attestation
-    service.revoke_attestation_batch(batch_id).await.unwrap();
+    service
+        .revoke_attestation_batches(vec_nonempty![batch_id])
+        .await
+        .unwrap();
 
     // Check if published list matches database
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -589,7 +596,7 @@ async fn test_service_revoke_attestation_batch_multiple_lists() {
 }
 
 #[tokio::test]
-async fn test_service_revoke_attestation_batch_concurrently() {
+async fn test_service_revoke_attestation_batches() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
@@ -601,7 +608,11 @@ async fn test_service_revoke_attestation_batch_concurrently() {
 
     // Obtain claims for multiple attestation batches
     let concurrent = 7;
-    let batch_ids = (0..concurrent).map(|_| Uuid::new_v4()).collect::<Vec<_>>();
+    let batch_ids: VecNonEmpty<Uuid> = (0..concurrent)
+        .map(|_| Uuid::new_v4())
+        .collect_vec()
+        .try_into()
+        .unwrap();
     let claims_per_batch = try_join_all(
         batch_ids
             .iter()
@@ -611,14 +622,7 @@ async fn test_service_revoke_attestation_batch_concurrently() {
     .await
     .unwrap();
 
-    // Revoke concurrently
-    try_join_all(
-        batch_ids
-            .into_iter()
-            .map(|batch_id| service.revoke_attestation_batch(batch_id)),
-    )
-    .await
-    .unwrap();
+    service.revoke_attestation_batches(batch_ids).await.unwrap();
 
     // Check if published list matches database
     let db_lists = fetch_status_list(&connection, type_id).await;
