@@ -13,6 +13,7 @@ use serde_json::json;
 use attestation_types::claim_path::ClaimPath;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd;
+use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::CertificateUsage;
 use jwt::jwk::jwk_from_p256;
@@ -28,6 +29,8 @@ use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+use token_status_list::verification::client::mock::StatusListClientStub;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -36,7 +39,7 @@ async fn make_sd_jwt(
     claims: Value,
     disclosable_values: impl IntoIterator<Item = VecNonEmpty<ClaimPath>>,
     holder_pubkey: &VerifyingKey,
-) -> (SignedSdJwt, Vec<TrustAnchor<'static>>) {
+) -> (SignedSdJwt, Vec<TrustAnchor<'static>>, KeyPair) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
@@ -50,7 +53,7 @@ async fn make_sd_jwt(
         .await
         .unwrap();
 
-    (sd_jwt, vec![ca.to_trust_anchor().to_owned()])
+    (sd_jwt, vec![ca.to_trust_anchor().to_owned()], issuer_keypair)
 }
 
 #[test]
@@ -92,7 +95,7 @@ fn complex_sd_jwt_vc() {
 #[tokio::test]
 async fn concealing_property_of_concealable_value_works() {
     let holder_signing_key = SigningKey::random(&mut OsRng);
-    let (signed_sd_jwt, _) = make_sd_jwt(
+    let (signed_sd_jwt, _, _) = make_sd_jwt(
         json!({
             "parent": {
                 "property1": "value1",
@@ -137,7 +140,7 @@ async fn concealing_property_of_concealable_value_works() {
 async fn sd_jwt_without_disclosures_works() {
     let time = MockTimeGenerator::default();
     let holder_signing_key = SigningKey::random(&mut OsRng);
-    let (signed_sd_jwt, trust_anchors) = make_sd_jwt(
+    let (signed_sd_jwt, trust_anchors, issuer_keypair) = make_sd_jwt(
         json!({
             "parent": {
                 "property1": "value1",
@@ -182,7 +185,13 @@ async fn sd_jwt_without_disclosures_works() {
         .to_string()
         .parse::<UnverifiedSdJwtPresentation>()
         .unwrap()
-        .into_verified_against_trust_anchors(&trust_anchors, &kb_verification_options, &MockTimeGenerator::default())
+        .into_verified_against_trust_anchors(
+            &trust_anchors,
+            &kb_verification_options,
+            &MockTimeGenerator::default(),
+            &RevocationVerifier::new(StatusListClientStub::new(issuer_keypair)),
+        )
+        .await
         .unwrap();
 
     assert!(with_kb.sd_jwt().disclosures().is_empty());
@@ -191,7 +200,7 @@ async fn sd_jwt_without_disclosures_works() {
 #[tokio::test]
 async fn sd_jwt_sd_hash() {
     let holder_signing_key = SigningKey::random(&mut OsRng);
-    let (signed_sd_jwt, _) = make_sd_jwt(
+    let (signed_sd_jwt, _, _) = make_sd_jwt(
         json!({
             "parent": {
                 "property1": "value1",
@@ -372,7 +381,9 @@ async fn test_presentation() {
             &[ca.to_trust_anchor()],
             &kb_verification_options,
             &MockTimeGenerator::default(),
+            &RevocationVerifier::new(StatusListClientStub::new(issuer_keypair)),
         )
+        .await
         .unwrap();
 
     let disclosed_paths = parsed_presentation
@@ -455,7 +466,10 @@ fn test_wscd_presentation() {
             &[ca.to_trust_anchor()],
             &kb_verification_options,
             &MockTimeGenerator::default(),
+            &RevocationVerifier::new(StatusListClientStub::new(issuer_key_pair)),
         )
+        .now_or_never()
+        .unwrap()
         .expect("validating SD-JWT presentation should succeed");
 
     let disclosed_object = serde_json::to_value(verified_sd_jwt_presentation.sd_jwt().decoded_claims().unwrap())

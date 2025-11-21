@@ -16,28 +16,46 @@ use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::built_info::version_string;
 
 use crate::settings::VerifierSettings;
 
-pub async fn serve<S>(settings: VerifierSettings, hsm: Option<Pkcs11Hsm>, disclosure_sessions: Arc<S>) -> Result<()>
+pub async fn serve<S, C>(
+    settings: VerifierSettings,
+    hsm: Option<Pkcs11Hsm>,
+    disclosure_sessions: Arc<S>,
+    status_list_client: C,
+) -> Result<()>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    C: StatusListClient + Sync + 'static,
 {
     let wallet_listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
     let requester_listener = create_requester_listener(&settings.requester_server).await?;
-    serve_with_listeners(wallet_listener, requester_listener, settings, hsm, disclosure_sessions).await
+    serve_with_listeners(
+        wallet_listener,
+        requester_listener,
+        settings,
+        hsm,
+        disclosure_sessions,
+        status_list_client,
+    )
+    .await
 }
 
-pub async fn serve_with_listeners<S>(
+pub async fn serve_with_listeners<S, C>(
     wallet_listener: TcpListener,
     requester_listener: Option<TcpListener>,
     settings: VerifierSettings,
     hsm: Option<Pkcs11Hsm>,
     disclosure_sessions: Arc<S>,
+    status_list_client: C,
 ) -> Result<()>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    C: StatusListClient + Sync + 'static,
 {
     // Needed when called directly
     check_requester_listener_with_settings(&requester_listener, &settings);
@@ -52,6 +70,8 @@ where
         )
         .await?;
 
+    let revocation_verifier = RevocationVerifier::new(status_list_client);
+
     let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
         settings.server_settings.public_url.join_base_url("disclosure/sessions"),
         settings.universal_link_base_url,
@@ -65,7 +85,7 @@ where
         settings.wallet_client_ids,
         settings.extending_vct_values.unwrap_or_default(),
     )
-    .create_routers(settings.allow_origins, disclosure_sessions, None);
+    .create_routers(settings.allow_origins, disclosure_sessions, revocation_verifier, None);
 
     let requester_router = secure_requester_router(&settings.requester_server, requester_router);
 

@@ -80,6 +80,8 @@
 //! # use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 //! # use sd_jwt::sd_jwt::{SdJwtVcClaims, VerifiedSdJwt};
 //! # use std::time::Duration;
+//! # use token_status_list::verification::client::mock::StatusListClientStub;
+//! # use token_status_list::verification::verifier::RevocationVerifier;
 //! # use utils::date_time_seconds::DateTimeSeconds;
 //! # use utils::generator::TimeGenerator;
 //! # use utils::vec_at_least::VecNonEmpty;
@@ -143,8 +145,9 @@
 //!         iat_leeway: Duration::ZERO,
 //!         iat_acceptance_window: Duration::from_secs(300),
 //!     },
-//!     &TimeGenerator::default()
-//! )?;
+//!     &TimeGenerator::default(),
+//!     &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock()?)),
+//! ).await?;
 //! let disclosed = verified_presentation.sd_jwt().decoded_claims()?;
 //! assert_eq!(disclosed.claims.get(&ClaimName::try_from("name").unwrap()), Some(&ClaimValue::String("alice".to_owned())));
 //! # Ok::<(), Box<dyn std::error::Error>>(())

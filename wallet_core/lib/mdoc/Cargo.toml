@@ -58,7 +58,7 @@ attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
-token_status_list.path = "../token_status_list"
+token_status_list = { path = "../token_status_list", features = ["verification"] }
 utils.path = "../utils"
 
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
@@ -73,4 +73,5 @@ tokio = { workspace = true, features = ["macros"] }
 attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
+token_status_list = { path = "../token_status_list", features = ["mock"] }
 utils = { path = "../utils", features = ["mock_time"] }

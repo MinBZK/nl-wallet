@@ -35,6 +35,15 @@ pub mod mock {
         index_map: DashMap<String, u32>,
     }
 
+    impl MockStatusListService {
+        pub fn from_base_url(base_url: BaseUrl) -> Self {
+            Self {
+                base_url,
+                index_map: Default::default(),
+            }
+        }
+    }
+
     impl Default for MockStatusListService {
         fn default() -> Self {
             Self {

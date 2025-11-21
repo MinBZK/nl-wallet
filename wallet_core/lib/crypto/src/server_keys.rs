@@ -338,6 +338,10 @@ pub mod generate {
                     Default::default(),
                 )
             }
+
+            pub fn generate_status_list_mock_with_dn(&self, dn: &str) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(dn, CertificateUsage::OAuthStatusSigning, Default::default())
+            }
         }
     }
 }

@@ -36,7 +36,7 @@ pub struct StatusListClaim {
 impl StatusClaim {
     pub fn new_mock() -> Self {
         StatusClaim::StatusList(StatusListClaim {
-            idx: 0,
+            idx: 1,
             uri: "https://example.com/statuslists/1".parse().unwrap(),
         })
     }

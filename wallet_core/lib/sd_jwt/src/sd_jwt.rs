@@ -40,6 +40,9 @@ use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationStatus;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -497,12 +500,16 @@ impl UnverifiedSdJwtPresentation {
     /// 1) validating the issuer-signed JWT against `trust_anchors`,
     /// 2) validating the KB-JWT against the public key from the `cnf` claim in the verified issuer-signed JWT,
     /// 3) parsing/verifying disclosures.
-    pub fn into_verified_against_trust_anchors(
+    pub async fn into_verified_against_trust_anchors<C>(
         self,
-        trust_anchors: &[TrustAnchor],
-        kb_verification_options: &KbVerificationOptions,
+        trust_anchors: &[TrustAnchor<'_>],
+        kb_verification_options: &KbVerificationOptions<'_>,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedSdJwtPresentation, DecoderError> {
+        revocation_verifier: &RevocationVerifier<C>,
+    ) -> Result<VerifiedSdJwtPresentation, DecoderError>
+    where
+        C: StatusListClient,
+    {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
         // before parsing the disclosures
         let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
@@ -522,12 +529,31 @@ impl UnverifiedSdJwtPresentation {
             &self.sd_jwt.disclosures,
             issuer_signed.payload(),
         )?;
+
+        let revocation_status = match &issuer_signed.payload().status {
+            Some(StatusClaim::StatusList(status_list_claim)) => {
+                let issuer_certificate = issuer_signed.header().x5c.first();
+                let revocation_status = revocation_verifier
+                    .verify(
+                        trust_anchors,
+                        issuer_certificate,
+                        status_list_claim.uri.clone(),
+                        time,
+                        status_list_claim.idx.try_into().unwrap(),
+                    )
+                    .await;
+                Some(revocation_status)
+            }
+            _ => None,
+        };
+
         Ok(VerifiedSdJwtPresentation {
             sd_jwt: VerifiedSdJwt {
                 issuer_signed,
                 disclosures,
             },
             key_binding_jwt,
+            revocation_status,
         })
     }
 }
@@ -537,6 +563,7 @@ impl UnverifiedSdJwtPresentation {
 pub struct VerifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
     sd_jwt: VerifiedSdJwt<C, H>,
     key_binding_jwt: VerifiedKeyBindingJwt,
+    revocation_status: Option<RevocationStatus>,
 }
 
 impl<C, H> Display for VerifiedSdJwtPresentation<C, H> {
@@ -548,6 +575,10 @@ impl<C, H> Display for VerifiedSdJwtPresentation<C, H> {
 impl<C, H> VerifiedSdJwtPresentation<C, H> {
     pub fn sd_jwt(&self) -> &VerifiedSdJwt<C, H> {
         &self.sd_jwt
+    }
+
+    pub fn revocation_status(&self) -> Option<RevocationStatus> {
+        self.revocation_status
     }
 
     pub fn into_claims(self) -> C {
@@ -758,6 +789,7 @@ where
                 disclosures,
             },
             key_binding_jwt,
+            revocation_status: Some(RevocationStatus::Valid),
         })
     }
 }

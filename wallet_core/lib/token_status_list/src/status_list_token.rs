@@ -131,14 +131,14 @@ pub mod verification {
         #[error("JWT is expired")]
         Expired,
 
-        #[error("JWT subject claim does not match uri claim of Reference Token")]
-        UnexpectedSubject,
+        #[error("JWT subject claim ('{sub}') does not match url claim of Reference Token ('{url}')")]
+        UnexpectedSubject { sub: String, url: String },
 
         #[error("DN is missing in certificate")]
         MissingDN(#[source] CertificateError),
 
-        #[error("DN from SLT is different than from attestation")]
-        DifferentDN,
+        #[error("DN from SLT ('{slt}') is different from attestation ('{attestation}')")]
+        DifferentDN { slt: String, attestation: String },
     }
 
     impl StatusListToken {
@@ -156,20 +156,26 @@ pub mod verification {
                 &DEFAULT_VALIDATIONS,
             )?;
 
-            if header
+            let slt_dn = header
                 .x5c
                 .first()
                 .distinguished_name()
-                .map_err(StatusListTokenVerificationError::MissingDN)?
-                != attestation_signing_certificate
-                    .distinguished_name()
-                    .map_err(StatusListTokenVerificationError::MissingDN)?
-            {
-                return Err(StatusListTokenVerificationError::DifferentDN);
+                .map_err(StatusListTokenVerificationError::MissingDN)?;
+            let attestation_dn = attestation_signing_certificate
+                .distinguished_name()
+                .map_err(StatusListTokenVerificationError::MissingDN)?;
+            if slt_dn != attestation_dn {
+                return Err(StatusListTokenVerificationError::DifferentDN {
+                    slt: slt_dn,
+                    attestation: attestation_dn,
+                });
             }
 
             if *url != claims.sub {
-                return Err(StatusListTokenVerificationError::UnexpectedSubject);
+                return Err(StatusListTokenVerificationError::UnexpectedSubject {
+                    sub: claims.sub.to_string(),
+                    url: url.to_string(),
+                });
             }
 
             if claims.exp.is_some_and(|exp| exp.add(EXP_LEEWAY) < time.generate()) {
@@ -187,6 +193,7 @@ pub mod mock {
     use base64::prelude::BASE64_STANDARD;
     use serde_json::json;
 
+    use crypto::EcdsaKey;
     use crypto::server_keys::KeyPair;
     use jwt::headers::HeaderWithTyp;
     use jwt::headers::HeaderWithX5c;
@@ -195,11 +202,14 @@ pub mod mock {
     use crate::status_list_token::StatusListToken;
     use crate::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 
-    pub async fn create_status_list_token(
-        keypair: &KeyPair,
+    pub async fn create_status_list_token<S>(
+        keypair: &KeyPair<S>,
         exp: Option<i64>,
         ttl: Option<i64>,
-    ) -> (HeaderWithX5c<HeaderWithTyp>, StatusListClaims, StatusListToken) {
+    ) -> (HeaderWithX5c<HeaderWithTyp>, StatusListClaims, StatusListToken)
+    where
+        S: EcdsaKey,
+    {
         let example_header = json!({
             "alg": "ES256",
             "typ": "statuslist+jwt",
@@ -302,7 +312,17 @@ mod test {
                 &MockTimeGenerator::default(),
             )
             .expect_err("should not verify for attestation signing certificate with different DN");
-        assert_matches!(err, StatusListTokenVerificationError::DifferentDN);
+        assert_matches!(err, StatusListTokenVerificationError::DifferentDN { .. });
+
+        let err = signed
+            .parse_and_verify(
+                &[ca.to_trust_anchor()],
+                iss_keypair.certificate(),
+                &"http://example.com/sub".parse().unwrap(),
+                &MockTimeGenerator::default(),
+            )
+            .expect_err("should not verify for attestation signing certificate with different sub claim");
+        assert_matches!(err, StatusListTokenVerificationError::UnexpectedSubject { .. });
 
         let err = signed
             .parse_and_verify(
