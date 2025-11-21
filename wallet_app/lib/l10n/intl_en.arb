@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-11-11T11:11:51+01:00",
+    "@@last_modified": "2025-11-21T09:38:57+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -712,7 +712,6 @@
     "introductionPrivacyScreenNextCta": "Next",
     "introductionPrivacyScreenPrivacyCta": "Read the privacy statement",
     "introductionSkipCta": "Skip",
-    "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
     "introductionWCAGPauseButtonLabel": "Moving image is playing, Pause",
     "introductionWCAGPlayButtonLabel": "Moving image is stopped, Play",
     "invalidQrDialogCta": "OK",
@@ -1519,6 +1518,8 @@
     "walletTransferSourceScreenIntroductionDescription": "After moving, the NL Wallet no longer works on this device.",
     "walletTransferSourceScreenIntroductionTitle": "Do you want to move your NL Wallet to your other device?",
     "walletTransferSourceScreenStoppedDescription": "Because you stopped, no data will be moved to your other device.",
+    "walletTransferSourceScreenStoppedForgotPinCta": "To forgot PIN",
+    "walletTransferSourceScreenStoppedForgotPinVariantDescription": "Because you stopped, no data will be moved to your other device.\n\nYou can now create a new PIN. After that you can start the move again.",
     "walletTransferSourceScreenSuccessCta": "Create new NL Wallet",
     "walletTransferSourceScreenSuccessDescription": "This app is empty and no longer active.\n\nClose this app or create new NL Wallet on this device.",
     "walletTransferSourceScreenSuccessTitle": "Move completed",
@@ -1527,6 +1528,8 @@
     "walletTransferSourceStopSheetCancelCta": "No",
     "walletTransferSourceStopSheetConfirmCta": "Yes, stop",
     "walletTransferSourceStopSheetDescription": "If you stop, no data will be moved to your other device.",
+    "walletTransferSourceStopSheetForgotPinVariantDescription": "You want to create a new PIN. This will stop the transfer and no data will be moved to your other device.\n\nAfter you create a new PIN, you can start moving the NL Wallet again.",
+    "walletTransferSourceStopSheetForgotPinVariantTitle": "Stop moving to create a new PIN?",
     "walletTransferSourceStopSheetTitle": "Are you sure you want to stop?",
     "walletTransferTargetOptOutDialogDescription": "A new NL Wallet will be created on this device. NL Wallet apps are not connected.",
     "walletTransferTargetOptOutDialogTitle": "Create new NL Wallet?",

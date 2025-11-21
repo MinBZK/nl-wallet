@@ -53,8 +53,11 @@ typedef OnPinValidatedCallback<T> = void Function(T);
 
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
-  /// Called when pin entry was successful
+  /// Called when pin entry was successful.
   final OnPinValidatedCallback onPinValidated;
+
+  /// When provided, replaces the default behaviour of the 'Forgot PIN?' button (in-page & dialog)
+  final VoidCallback? onForgotPinPressed;
 
   /// Called when the user presses the biometrics key, setting this callback will make
   /// the 'biometrics' key appear on the [PinKeyboard].
@@ -79,6 +82,7 @@ class PinPage extends StatelessWidget {
     required this.onPinValidated,
     this.onStateChanged,
     this.onPinError,
+    this.onForgotPinPressed,
     this.onBiometricUnlockRequested,
     this.headerBuilder,
     this.showTopDivider = false,
@@ -274,7 +278,7 @@ class PinPage extends StatelessWidget {
     return ListButton(
       mainAxisAlignment: context.isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
       icon: const Icon(Icons.help_outline_rounded),
-      onPressed: () => ForgotPinScreen.show(context),
+      onPressed: onForgotPinPressed ?? () => ForgotPinScreen.show(context),
       iconPosition: IconPosition.start,
       text: Text.rich(context.l10n.pinScreenForgotPinCta.toTextSpan(context)),
       dividerSide: DividerSide.top,
@@ -349,13 +353,13 @@ class PinPage extends StatelessWidget {
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
     final body = _pinErrorDialogBody(context, reason);
-    return showPinErrorDialog(context, body);
+    return showPinErrorDialog(context, body, onForgotPinPressed: onForgotPinPressed);
   }
 
   static Future<void> showPinErrorDialog(
     BuildContext context,
     String description, {
-    PinRecoveryMethod? recoveryMethod,
+    VoidCallback? onForgotPinPressed,
   }) async {
     final title = context.l10n.pinErrorDialogTitle;
     return showDialog<void>(
@@ -371,7 +375,11 @@ class PinPage extends StatelessWidget {
               child: Text.rich(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase().toTextSpan(context)),
               onPressed: () {
                 Navigator.of(context).pop();
-                ForgotPinScreen.show(context);
+                if (onForgotPinPressed != null) {
+                  onForgotPinPressed();
+                } else {
+                  ForgotPinScreen.show(context);
+                }
               },
             ),
             TextButton(

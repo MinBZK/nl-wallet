@@ -115,7 +115,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
       onSuccess: (_) {
         _stopObservingSessionState();
         if (maintainState(state)) return;
-        emit(const WalletTransferStopped());
+        emit(WalletTransferStopped(reason: event.reason));
       },
       onError: (ex) {
         Fimber.e('Failed to cancel wallet transfer', ex: ex);

@@ -9,14 +9,19 @@ import '../../pin/bloc/pin_bloc.dart';
 import '../../pin/pin_page.dart';
 
 class WalletTransferSourceConfirmPinPage extends StatelessWidget {
+  /// Callback for when the correct pin is provided
   final OnPinValidatedCallback onPinConfirmed;
 
-  /// Callback for when confirming pin fails with an unrecoverable error.
+  /// Callback for when confirming pin fails with an unrecoverable error
   final OnPinErrorCallback onPinConfirmationFailed;
+
+  /// When provided, replaces the default behaviour of the 'Forgot PIN?' button (in-page & dialog)
+  final VoidCallback? onForgotPinPressed;
 
   const WalletTransferSourceConfirmPinPage({
     required this.onPinConfirmed,
     required this.onPinConfirmationFailed,
+    this.onForgotPinPressed,
     super.key,
   });
 
@@ -45,6 +50,7 @@ class WalletTransferSourceConfirmPinPage extends StatelessWidget {
         if (state is PinValidateBlocked) context.read<CancelWalletTransferUseCase>().invoke();
         return false;
       },
+      onForgotPinPressed: onForgotPinPressed,
     );
   }
 }
