@@ -18,16 +18,19 @@ sealed class WalletState with _$WalletState {
   const WalletState._();
 
   const factory WalletState.ready() = WalletState_Ready;
-  const factory WalletState.locked() = WalletState_Locked;
+  const factory WalletState.registration() = WalletState_Registration;
+  const factory WalletState.empty() = WalletState_Empty;
+  const factory WalletState.locked({
+    required WalletState subState,
+  }) = WalletState_Locked;
   const factory WalletState.transferPossible() = WalletState_TransferPossible;
   const factory WalletState.transferring({
     required WalletTransferRole role,
   }) = WalletState_Transferring;
-  const factory WalletState.registration({
-    required bool hasPin,
-  }) = WalletState_Registration;
   const factory WalletState.disclosure() = WalletState_Disclosure;
-  const factory WalletState.issuance() = WalletState_Issuance;
+  const factory WalletState.issuance({
+    required bool pid,
+  }) = WalletState_Issuance;
   const factory WalletState.pinChange() = WalletState_PinChange;
   const factory WalletState.pinRecovery() = WalletState_PinRecovery;
   const factory WalletState.walletBlocked({

@@ -33,12 +33,13 @@ pub enum WalletStateError {
 
 pub enum WalletState {
     Ready,
-    Locked,
+    Registration,
+    Empty,
+    Locked { sub_state: Box<WalletState> },
     TransferPossible,
     Transferring { role: WalletTransferRole },
-    Registration { has_pin: bool },
     Disclosure,
-    Issuance,
+    Issuance { pid: bool },
     PinChange,
     PinRecovery,
     WalletBlocked { reason: WalletBlockedReason },
@@ -68,11 +69,13 @@ where
     #[instrument(skip_all)]
     pub async fn get_state(&self) -> Result<WalletState, WalletStateError> {
         if !self.has_registration() {
-            return Ok(WalletState::Registration { has_pin: false });
+            return Ok(WalletState::Registration);
         }
 
         if self.is_locked() {
-            return Ok(WalletState::Locked);
+            return Ok(WalletState::Locked {
+                sub_state: Box::new(WalletState::Ready),
+            });
         }
 
         // TODO: return Ok(WalletState::Registration { has_pin: true }); if wallet contains attestations
@@ -95,7 +98,7 @@ where
         }
 
         if self.has_active_issuance_session()? {
-            return Ok(WalletState::Issuance);
+            return Ok(WalletState::Issuance { pid: false });
         }
 
         Ok(WalletState::Ready)

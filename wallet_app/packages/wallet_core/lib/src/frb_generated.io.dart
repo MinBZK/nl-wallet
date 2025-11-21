@@ -94,6 +94,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionError dco_decode_box_autoadd_wallet_instruction_error(dynamic raw);
 
   @protected
+  WalletState dco_decode_box_wallet_state(dynamic raw);
+
+  @protected
   ClaimDisplayMetadata dco_decode_claim_display_metadata(dynamic raw);
 
   @protected
@@ -316,6 +319,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   WalletInstructionError sse_decode_box_autoadd_wallet_instruction_error(SseDeserializer deserializer);
+
+  @protected
+  WalletState sse_decode_box_wallet_state(SseDeserializer deserializer);
 
   @protected
   ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer);
@@ -624,6 +630,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_wallet_instruction_error();
     cst_api_fill_to_wire_wallet_instruction_error(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_wallet_state> cst_encode_box_wallet_state(WalletState raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_wallet_state();
+    cst_api_fill_to_wire_wallet_state(raw, ptr.ref);
     return ptr;
   }
 
@@ -955,6 +969,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_box_wallet_state(WalletState apiObj, ffi.Pointer<wire_cst_wallet_state> wireObj) {
+    cst_api_fill_to_wire_wallet_state(apiObj, wireObj.ref);
+  }
+
+  @protected
   void cst_api_fill_to_wire_claim_display_metadata(
     ClaimDisplayMetadata apiObj,
     wire_cst_claim_display_metadata wireObj,
@@ -1263,45 +1282,51 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.tag = 0;
       return;
     }
-    if (apiObj is WalletState_Locked) {
+    if (apiObj is WalletState_Registration) {
       wireObj.tag = 1;
       return;
     }
-    if (apiObj is WalletState_TransferPossible) {
+    if (apiObj is WalletState_Empty) {
       wireObj.tag = 2;
+      return;
+    }
+    if (apiObj is WalletState_Locked) {
+      var pre_sub_state = cst_encode_box_wallet_state(apiObj.subState);
+      wireObj.tag = 3;
+      wireObj.kind.Locked.sub_state = pre_sub_state;
+      return;
+    }
+    if (apiObj is WalletState_TransferPossible) {
+      wireObj.tag = 4;
       return;
     }
     if (apiObj is WalletState_Transferring) {
       var pre_role = cst_encode_wallet_transfer_role(apiObj.role);
-      wireObj.tag = 3;
+      wireObj.tag = 5;
       wireObj.kind.Transferring.role = pre_role;
       return;
     }
-    if (apiObj is WalletState_Registration) {
-      var pre_has_pin = cst_encode_bool(apiObj.hasPin);
-      wireObj.tag = 4;
-      wireObj.kind.Registration.has_pin = pre_has_pin;
-      return;
-    }
     if (apiObj is WalletState_Disclosure) {
-      wireObj.tag = 5;
-      return;
-    }
-    if (apiObj is WalletState_Issuance) {
       wireObj.tag = 6;
       return;
     }
-    if (apiObj is WalletState_PinChange) {
+    if (apiObj is WalletState_Issuance) {
+      var pre_pid = cst_encode_bool(apiObj.pid);
       wireObj.tag = 7;
+      wireObj.kind.Issuance.pid = pre_pid;
+      return;
+    }
+    if (apiObj is WalletState_PinChange) {
+      wireObj.tag = 8;
       return;
     }
     if (apiObj is WalletState_PinRecovery) {
-      wireObj.tag = 8;
+      wireObj.tag = 9;
       return;
     }
     if (apiObj is WalletState_WalletBlocked) {
       var pre_reason = cst_encode_wallet_blocked_reason(apiObj.reason);
-      wireObj.tag = 9;
+      wireObj.tag = 10;
       wireObj.kind.WalletBlocked.reason = pre_reason;
       return;
     }
@@ -1417,6 +1442,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_box_autoadd_wallet_instruction_error(WalletInstructionError self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_wallet_state(WalletState self, SseSerializer serializer);
 
   @protected
   void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer);
@@ -2536,6 +2564,16 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_wallet_instruction_error = _cst_new_box_autoadd_wallet_instruction_errorPtr
       .asFunction<ffi.Pointer<wire_cst_wallet_instruction_error> Function()>();
 
+  ffi.Pointer<wire_cst_wallet_state> cst_new_box_wallet_state() {
+    return _cst_new_box_wallet_state();
+  }
+
+  late final _cst_new_box_wallet_statePtr = _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_wallet_state> Function()>>(
+    'frbgen_wallet_core_cst_new_box_wallet_state',
+  );
+  late final _cst_new_box_wallet_state = _cst_new_box_wallet_statePtr
+      .asFunction<ffi.Pointer<wire_cst_wallet_state> Function()>();
+
   ffi.Pointer<wire_cst_list_String> cst_new_list_String(
     int len,
   ) {
@@ -3020,6 +3058,42 @@ final class wire_cst_wallet_instruction_error extends ffi.Struct {
   external WalletInstructionErrorKind kind;
 }
 
+final class wire_cst_WalletState_Transferring extends ffi.Struct {
+  @ffi.Int32()
+  external int role;
+}
+
+final class wire_cst_WalletState_Issuance extends ffi.Struct {
+  @ffi.Bool()
+  external bool pid;
+}
+
+final class wire_cst_WalletState_WalletBlocked extends ffi.Struct {
+  @ffi.Int32()
+  external int reason;
+}
+
+final class WalletStateKind extends ffi.Union {
+  external wire_cst_WalletState_Locked Locked;
+
+  external wire_cst_WalletState_Transferring Transferring;
+
+  external wire_cst_WalletState_Issuance Issuance;
+
+  external wire_cst_WalletState_WalletBlocked WalletBlocked;
+}
+
+final class wire_cst_wallet_state extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external WalletStateKind kind;
+}
+
+final class wire_cst_WalletState_Locked extends ffi.Struct {
+  external ffi.Pointer<wire_cst_wallet_state> sub_state;
+}
+
 final class wire_cst_list_String extends ffi.Struct {
   external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
 
@@ -3275,34 +3349,4 @@ final class wire_cst_wallet_instruction_result extends ffi.Struct {
   external int tag;
 
   external WalletInstructionResultKind kind;
-}
-
-final class wire_cst_WalletState_Transferring extends ffi.Struct {
-  @ffi.Int32()
-  external int role;
-}
-
-final class wire_cst_WalletState_Registration extends ffi.Struct {
-  @ffi.Bool()
-  external bool has_pin;
-}
-
-final class wire_cst_WalletState_WalletBlocked extends ffi.Struct {
-  @ffi.Int32()
-  external int reason;
-}
-
-final class WalletStateKind extends ffi.Union {
-  external wire_cst_WalletState_Transferring Transferring;
-
-  external wire_cst_WalletState_Registration Registration;
-
-  external wire_cst_WalletState_WalletBlocked WalletBlocked;
-}
-
-final class wire_cst_wallet_state extends ffi.Struct {
-  @ffi.Int32()
-  external int tag;
-
-  external WalletStateKind kind;
 }

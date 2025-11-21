@@ -74,15 +74,19 @@ class CoreWalletRepository implements WalletRepository {
   @override
   Future<WalletState> getWalletState() async {
     final state = await _walletCore.getWalletState();
+    return _mapWalletState(state);
+  }
+
+  WalletState _mapWalletState(core.WalletState state) {
     return switch (state) {
       core.WalletState_Ready() => const WalletStateReady(),
-      core.WalletState_Locked() => const WalletStateLocked(),
+      core.WalletState_Locked() => WalletStateLocked(_mapWalletState(state.subState)),
       core.WalletState_Transferring() => WalletStateTransferring(switch (state.role) {
         core.WalletTransferRole.Source => .source,
         core.WalletTransferRole.Destination => .target,
       }),
       core.WalletState_TransferPossible() => const WalletStateTransferPossible(),
-      core.WalletState_Registration() => WalletStateRegistration(hasConfiguredPin: state.hasPin),
+      core.WalletState_Registration() => const WalletStateRegistration(),
       core.WalletState_Disclosure() => const WalletStateDisclosure(),
       core.WalletState_Issuance() => const WalletStateIssuance(),
       core.WalletState_PinChange() => const WalletStatePinChange(),
@@ -91,6 +95,7 @@ class CoreWalletRepository implements WalletRepository {
         core.WalletBlockedReason.RequiresAppUpdate => .requiresAppUpdate,
         core.WalletBlockedReason.BlockedByWalletProvider => .blockedByWalletProvider,
       }),
+      core.WalletState_Empty() => const WalletStateEmpty(),
     };
   }
 }

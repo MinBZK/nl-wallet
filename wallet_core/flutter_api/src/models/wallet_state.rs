@@ -1,11 +1,12 @@
 pub enum WalletState {
     Ready,
-    Locked,
+    Registration,
+    Empty,
+    Locked { sub_state: Box<WalletState> },
     TransferPossible,
     Transferring { role: WalletTransferRole },
-    Registration { has_pin: bool },
     Disclosure,
-    Issuance,
+    Issuance { pid: bool },
     PinChange,
     PinRecovery,
     WalletBlocked { reason: WalletBlockedReason },
@@ -25,15 +26,18 @@ impl From<wallet::WalletState> for WalletState {
     fn from(source: wallet::WalletState) -> Self {
         match source {
             wallet::WalletState::Ready => WalletState::Ready,
-            wallet::WalletState::Locked => WalletState::Locked,
+            wallet::WalletState::Locked { sub_state } => WalletState::Locked {
+                sub_state: Box::new(WalletState::Ready),
+            },
             wallet::WalletState::TransferPossible => WalletState::TransferPossible,
             wallet::WalletState::Transferring { role } => WalletState::Transferring { role: role.into() },
-            wallet::WalletState::Registration { has_pin } => WalletState::Registration { has_pin: has_pin },
+            wallet::WalletState::Registration => WalletState::Registration,
             wallet::WalletState::Disclosure => WalletState::Disclosure,
-            wallet::WalletState::Issuance => WalletState::Issuance,
+            wallet::WalletState::Issuance { pid } => WalletState::Issuance { pid: pid.into() },
             wallet::WalletState::PinChange => WalletState::PinChange,
             wallet::WalletState::PinRecovery => WalletState::PinRecovery,
             wallet::WalletState::WalletBlocked { reason } => WalletState::WalletBlocked { reason: reason.into() },
+            wallet::WalletState::Empty => WalletState::Empty,
         }
     }
 }
