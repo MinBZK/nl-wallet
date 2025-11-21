@@ -72,13 +72,19 @@ where
             return Ok(WalletState::Registration);
         }
 
+        let is_empty = self.storage.read().await.fetch_unique_attestations().await?.is_empty();
+        let sub_state = if is_empty {
+            WalletState::Empty
+        } else {
+            WalletState::Ready
+        };
+
+        // TODO: Implement logic for other WalletStates, this is a temp. implementation to allow the app to start.
         if self.is_locked() {
             return Ok(WalletState::Locked {
-                sub_state: Box::new(WalletState::Ready),
+                sub_state: Box::new(sub_state),
             });
         }
-
-        // TODO: return Ok(WalletState::Registration { has_pin: true }); if wallet contains attestations
 
         if let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? {
             return Ok(transfer_data

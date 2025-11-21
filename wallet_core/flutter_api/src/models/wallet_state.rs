@@ -27,7 +27,7 @@ impl From<wallet::WalletState> for WalletState {
         match source {
             wallet::WalletState::Ready => WalletState::Ready,
             wallet::WalletState::Locked { sub_state } => WalletState::Locked {
-                sub_state: Box::new(WalletState::Ready),
+                sub_state: Box::new((*sub_state).into()),
             },
             wallet::WalletState::TransferPossible => WalletState::TransferPossible,
             wallet::WalletState::Transferring { role } => WalletState::Transferring { role: role.into() },
