@@ -529,33 +529,28 @@ impl ClaimValue {
     ) -> Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
         match self {
             ClaimValue::Array(array_claims) => {
-                let (values, digests): (Vec<_>, Vec<_>) = array_claims
+                let non_sd_claims_per_element: Vec<_> = array_claims
                     .iter()
-                    .partition(|claim| matches!(claim, ArrayClaim::Value(_)));
+                    .filter_map(|claim| match claim {
+                        ArrayClaim::Value(value) => Some(value),
+                        ArrayClaim::Hash { .. } => None,
+                    })
+                    .map(ClaimValue::non_selectively_disclosable_claims)
+                    .try_collect()?;
 
-                if !values.is_empty() {
-                    let oks: Vec<_> = values
-                        .into_iter()
-                        .map(|value| {
-                            let ArrayClaim::Value(claim) = value else {
-                                unreachable!("values contains only ArrayClaim::Value, as result of partition")
-                            };
-                            claim.non_selectively_disclosable_claims()
-                        })
-                        .try_collect()?;
+                if !non_sd_claims_per_element.is_empty() {
                     // The `single_unique` requires that all sub-elements in the array are uniform, i.e. have the same
                     // `ClaimPath` structure. This requirement can be invalidated when the array contains a combination
                     // of primitive values, objects and arrays, e.g.:
                     // - [ 1, [] ]
                     // - [ 1, { "claim": 2 } ]
                     // Instances like this are considered invalid, and should be reported back to the issuer.
-                    match oks.into_iter().single_unique()? {
+                    match non_sd_claims_per_element.into_iter().single_unique()? {
                         Some(sub_claims) => Ok(prefix_all(sub_claims, ClaimPath::SelectAll)),
                         None => Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])),
                     }
-                } else if !digests.is_empty() {
-                    Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]]))
                 } else {
+                    // Nothing non-selectively disclosable here
                     Ok(IndexSet::new())
                 }
             }
@@ -867,7 +862,7 @@ mod tests {
     #[case(json!([1, { "a": 2 }]), Err(NonSelectivelyDisclosableClaimsError::ArrayStructure(MultipleItemsFound)))]
     #[case(json!([1, [2]]), Err(NonSelectivelyDisclosableClaimsError::ArrayStructure(MultipleItemsFound)))]
     #[case(json!([1, 2, 3, { "...": "some_digest" }]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
-    #[case(json!([{ "...": "some_digest" }]), Ok(IndexSet::from_iter([vec_nonempty![ClaimPath::SelectAll]])))]
+    #[case(json!([{ "...": "some_digest" }]), Ok(IndexSet::new()))]
     fn non_selectively_disclosable_claims(
         #[case] value: serde_json::Value,
         #[case] expected_result: Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError>,

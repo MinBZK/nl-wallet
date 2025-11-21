@@ -337,7 +337,7 @@ mod tests {
 
     #[rstest]
     #[case(all_claims(), vec![])]
-    #[case(selected_claims(), vec![vec_nonempty![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectAll], vec_nonempty![ClaimPath::SelectByKey("root_value".to_string())]])]
+    #[case(selected_claims(), vec![vec_nonempty![ClaimPath::SelectByKey("root_array".to_string())], vec_nonempty![ClaimPath::SelectByKey("root_value".to_string())]])]
     fn test_non_selectively_disclosable_claims(
         #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
         #[case] expected: Vec<VecNonEmpty<ClaimPath>>,
