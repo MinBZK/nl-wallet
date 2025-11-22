@@ -49,6 +49,12 @@ class TransferManager {
     final currentState = _currentState;
 
     // Mock state transitions for the next time this is polled
+    _updateStateTransition(currentState);
+
+    return currentState;
+  }
+
+  void _updateStateTransition(TransferSessionState currentState) {
     switch (currentState) {
       case TransferSessionState.Created:
         _currentState = TransferSessionState.Paired;
@@ -62,14 +68,15 @@ class TransferManager {
         _currentState = TransferSessionState.Success;
       case TransferSessionState.Success:
         // Log successful transfer event
-        if (isSourceDevice) {
-          _wallet.reset();
-          _wallet.unlock(); // Avoid showing unlock overlay
-        }
+        if (isSourceDevice) _resetAndUnlock();
       case TransferSessionState.Canceled:
       case TransferSessionState.Error:
         log('Terminal state, no transition needed');
     }
-    return currentState;
+  }
+
+  void _resetAndUnlock() {
+    _wallet.reset();
+    _wallet.unlock(); // Avoid showing unlock overlay
   }
 }

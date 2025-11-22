@@ -14,6 +14,7 @@ import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/helper/dialog_helper.dart';
 import '../../../util/launch_util.dart';
 import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
@@ -78,52 +79,58 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildPage() {
     return BlocConsumer<WalletPersonalizeBloc, WalletPersonalizeState>(
-      listener: (context, state) {
-        context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
-        _closeOpenDialogs(context); // Make sure the StopDigidLoginDialog is dismissed on state changes.
-        if (state is WalletPersonalizeConnectDigid) _loginWithDigid(context, state.authUrl);
-        if (state is WalletPersonalizeSuccess && state.userCanTransfer) {
-          Navigator.pushNamed(context, WalletRoutes.walletTransferTargetRoute);
-        }
-      },
-      builder: (context, state) {
-        final Widget result = switch (state) {
-          WalletPersonalizeInitial() => _buildWalletIntroPage(context, state),
-          WalletPersonalizeLoadingIssuanceUrl() => _buildAuthenticatingWithDigid(
-            context,
-            progress: state.stepperProgress,
-            stage: DigiDAuthStage.fetchingAuthUrl,
-          ),
-          WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(
-            context,
-            progress: state.stepperProgress,
-            stage: DigiDAuthStage.awaitingUserAction,
-          ),
-          WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(
-            context,
-            progress: state.stepperProgress,
-            stage: DigiDAuthStage.processingResult,
-          ),
-          WalletPersonalizeLoadInProgress() => _buildLoading(context, progress: state.stepperProgress),
-          WalletPersonalizeCheckData() => _buildCheckDataOfferingPage(context, state),
-          WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
-          WalletPersonalizeSuccess() => _buildSuccessPage(context, state),
-          WalletPersonalizeFailure() => _buildErrorPage(context),
-          WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
-          WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
-          WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
-          WalletPersonalizeGenericError() => _buildGenericError(context, state),
-          WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
-          WalletPersonalizeAddingCards() => _buildAddingCards(context, progress: state.stepperProgress),
-          WalletPersonalizeRelyingPartyError() => _buildRelyingPartyError(context, state),
-        };
-        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
-      },
+      listener: _listenerForState,
+      builder: _builderForState,
     );
   }
 
-  /// Closes any dialogs opened on top of this [WalletPersonalizeScreen], ignored if none exist.
-  void _closeOpenDialogs(BuildContext context) => Navigator.popUntil(context, (route) => route is! DialogRoute);
+  void _listenerForState(BuildContext context, WalletPersonalizeState state) {
+    context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
+    DialogHelper.dismissOpenDialogs(context); // Make sure the StopDigidLoginDialog is dismissed on state changes.
+
+    if (state is WalletPersonalizeConnectDigid) _loginWithDigid(context, state.authUrl);
+    if (state is WalletPersonalizeSuccess && state.userCanTransfer) {
+      Navigator.pushNamed(context, WalletRoutes.walletTransferTargetRoute);
+    }
+  }
+
+  Widget _builderForState(BuildContext context, WalletPersonalizeState state) {
+    final Widget result = switch (state) {
+      WalletPersonalizeInitial() => _buildWalletIntroPage(context, state),
+      WalletPersonalizeLoadingIssuanceUrl() => _buildAuthenticatingWithDigid(
+        context,
+        progress: state.stepperProgress,
+        stage: DigiDAuthStage.fetchingAuthUrl,
+      ),
+      WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(
+        context,
+        progress: state.stepperProgress,
+        stage: DigiDAuthStage.awaitingUserAction,
+      ),
+      WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(
+        context,
+        progress: state.stepperProgress,
+        stage: DigiDAuthStage.processingResult,
+      ),
+      WalletPersonalizeLoadInProgress() => _buildLoading(context, progress: state.stepperProgress),
+      WalletPersonalizeCheckData() => _buildCheckDataOfferingPage(context, state),
+      WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
+      WalletPersonalizeSuccess() => _buildSuccessPage(context, state),
+      WalletPersonalizeFailure() => _buildErrorPage(context),
+      WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
+      WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
+      WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
+      WalletPersonalizeGenericError() => _buildGenericError(context, state),
+      WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
+      WalletPersonalizeAddingCards() => _buildAddingCards(context, progress: state.stepperProgress),
+      WalletPersonalizeRelyingPartyError() => _buildRelyingPartyError(context, state),
+    };
+
+    return FakePagingAnimatedSwitcher(
+      animateBackwards: state.didGoBack,
+      child: result,
+    );
+  }
 
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
     return WalletPersonalizeCheckDataOfferingPage(

@@ -63,25 +63,9 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildPage() {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
-      listener: (context, state) async {
-        unawaited(_runAnnouncements(context, state));
-        final bloc = context.bloc;
-        switch (state) {
-          case SetupSecurityGenericError():
-            ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-          case SetupSecurityNetworkError():
-            ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
-          case SetupSecuritySelectPinFailed():
-            await PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
-          case SetupSecurityPinConfirmationFailed():
-            await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
-              bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
-            });
-          case SetupSecurityDeviceIncompatibleError():
-            ErrorScreen.showDeviceIncompatible(context);
-          default:
-            break;
-        }
+      listener: (context, state) {
+        _runAnnouncements(context, state);
+        _listenerForState(context, state);
       },
       builder: (context, state) {
         final Widget result = switch (state) {
@@ -125,6 +109,26 @@ class SetupSecurityScreen extends StatelessWidget {
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
         await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
+    }
+  }
+
+  void _listenerForState(BuildContext context, SetupSecurityState state) {
+    final bloc = context.bloc;
+    switch (state) {
+      case SetupSecurityGenericError():
+        ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
+      case SetupSecurityNetworkError():
+        ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
+      case SetupSecuritySelectPinFailed():
+        PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
+      case SetupSecurityPinConfirmationFailed():
+        PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
+          bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
+        });
+      case SetupSecurityDeviceIncompatibleError():
+        ErrorScreen.showDeviceIncompatible(context);
+      default:
+        break;
     }
   }
 
