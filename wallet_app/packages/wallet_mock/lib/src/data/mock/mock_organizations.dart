@@ -113,7 +113,7 @@ final _kJustisOrganization = Organization(
   image: const Image.asset(path: MockAssets.logo_rijksoverheid),
 );
 
-final _kMarketPlaceOrganization = const Organization(
+const _kMarketPlaceOrganization = Organization(
   //id: kMarketplaceId,
   legalName: [
     LocalizedString(language: 'en', value: 'Marktplek B.V.'),

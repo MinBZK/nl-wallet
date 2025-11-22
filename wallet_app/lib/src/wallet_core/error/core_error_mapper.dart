@@ -14,56 +14,67 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
   CoreError map(String input) {
     final decodedJson = json.decode(input);
     final flutterApiError = FlutterApiError.fromJson(decodedJson);
-    switch (flutterApiError.type) {
-      case FlutterApiErrorType.generic:
-      case FlutterApiErrorType.server:
-        return CoreGenericError(flutterApiError.description, data: flutterApiError.data);
-      case FlutterApiErrorType.networking:
-        return CoreNetworkError(flutterApiError.description, data: flutterApiError.data);
-      case FlutterApiErrorType.walletState:
-        return CoreStateError(flutterApiError.description, data: flutterApiError.data);
-      case FlutterApiErrorType.redirectUri:
-        return CoreRedirectUriError(
-          flutterApiError.description,
-          data: flutterApiError.data,
-          redirectError: _mapRedirectError(flutterApiError.data),
-        );
-      case FlutterApiErrorType.hardwareKeyUnsupported:
-        return CoreHardwareKeyUnsupportedError(flutterApiError.description, data: flutterApiError.data);
-      case FlutterApiErrorType.disclosureSourceMismatch:
-        final isCrossDevice = flutterApiError.data?['session_type'] == 'cross_device';
-        return CoreDisclosureSourceMismatchError(
-          flutterApiError.description,
-          data: flutterApiError.data,
-          isCrossDevice: isCrossDevice,
-        );
-      case FlutterApiErrorType.expiredSession:
-        final canRetry = flutterApiError.data?['can_retry'] == true;
-        return CoreExpiredSessionError(
-          flutterApiError.description,
-          canRetry: canRetry,
-          data: flutterApiError.data,
-        );
-      case FlutterApiErrorType.cancelledSession:
-        return CoreCancelledSessionError(flutterApiError.description, data: flutterApiError.data);
-      case FlutterApiErrorType.issuer:
-      case FlutterApiErrorType.verifier:
-        final organizationName = tryCast<Map<String, dynamic>>(flutterApiError.data?['organization_name']);
-        final List<LocalizedString> localizedStrings = [];
-        organizationName?.forEach((key, value) => localizedStrings.add(LocalizedString(language: key, value: value)));
-        return CoreRelyingPartyError(
-          flutterApiError.description,
-          data: flutterApiError.data,
-          organizationName: localizedStrings.takeIf((it) => it.isNotEmpty),
-        );
-      case FlutterApiErrorType.wrongDigid:
-        return CoreWrongDigidError(flutterApiError.description);
-      case FlutterApiErrorType.deniedDigid:
-        return CoreDeniedDigidError(flutterApiError.description);
-    }
+    return _mapErrorType(flutterApiError);
   }
 
-  RedirectError _mapRedirectError(Map<String, dynamic>? data) {
+  CoreError _mapErrorType(FlutterApiError error) {
+    return switch (error.type) {
+      FlutterApiErrorType.generic ||
+      FlutterApiErrorType.server => CoreGenericError(error.description, data: error.data),
+      FlutterApiErrorType.networking => CoreNetworkError(error.description, data: error.data),
+      FlutterApiErrorType.walletState => CoreStateError(error.description, data: error.data),
+      FlutterApiErrorType.redirectUri => _mapRedirectUriError(error),
+      FlutterApiErrorType.hardwareKeyUnsupported => CoreHardwareKeyUnsupportedError(
+        error.description,
+        data: error.data,
+      ),
+      FlutterApiErrorType.disclosureSourceMismatch => _mapDisclosureSourceMismatchError(error),
+      FlutterApiErrorType.expiredSession => _mapExpiredSessionError(error),
+      FlutterApiErrorType.cancelledSession => CoreCancelledSessionError(error.description, data: error.data),
+      FlutterApiErrorType.issuer || FlutterApiErrorType.verifier => _mapRelyingPartyError(error),
+      FlutterApiErrorType.wrongDigid => CoreWrongDigidError(error.description),
+      FlutterApiErrorType.deniedDigid => CoreDeniedDigidError(error.description),
+    };
+  }
+
+  CoreError _mapRedirectUriError(FlutterApiError error) {
+    return CoreRedirectUriError(
+      error.description,
+      data: error.data,
+      redirectError: _extractRedirectError(error.data),
+    );
+  }
+
+  CoreError _mapDisclosureSourceMismatchError(FlutterApiError error) {
+    final isCrossDevice = error.data?['session_type'] == 'cross_device';
+    return CoreDisclosureSourceMismatchError(
+      error.description,
+      data: error.data,
+      isCrossDevice: isCrossDevice,
+    );
+  }
+
+  CoreError _mapExpiredSessionError(FlutterApiError error) {
+    final canRetry = error.data?['can_retry'] == true;
+    return CoreExpiredSessionError(
+      error.description,
+      canRetry: canRetry,
+      data: error.data,
+    );
+  }
+
+  CoreError _mapRelyingPartyError(FlutterApiError error) {
+    final organizationName = tryCast<Map<String, dynamic>>(error.data?['organization_name']);
+    final localizedStrings = _parseLocalizedStrings(organizationName);
+
+    return CoreRelyingPartyError(
+      error.description,
+      data: error.data,
+      organizationName: localizedStrings.takeIf((it) => it.isNotEmpty),
+    );
+  }
+
+  RedirectError _extractRedirectError(Map<String, dynamic>? data) {
     switch (data?['redirect_error']) {
       case 'access_denied':
         return RedirectError.accessDenied;
@@ -74,5 +85,13 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
       default:
         return RedirectError.unknown;
     }
+  }
+
+  List<LocalizedString> _parseLocalizedStrings(Map<String, dynamic>? organizationName) {
+    final List<LocalizedString> localizedStrings = [];
+    organizationName?.forEach(
+      (key, value) => localizedStrings.add(LocalizedString(language: key, value: value)),
+    );
+    return localizedStrings;
   }
 }

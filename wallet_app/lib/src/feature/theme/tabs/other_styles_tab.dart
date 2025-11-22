@@ -66,7 +66,7 @@ const _kMockPurpose = 'Kaart uitgifte';
 const _kMockUrl = 'https://www.example.org';
 const _kMockOtherKey = 'mock_other';
 
-final _kSampleCardStatus = CardStatus.valid;
+const _kSampleCardStatus = CardStatus.valid;
 final _kSampleCardValidFrom = clock.now().add(const Duration(days: 5));
 final _kSampleCardValidUntil = clock.now().add(const Duration(days: 35));
 
