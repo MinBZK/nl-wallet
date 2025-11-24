@@ -35,7 +35,7 @@ class ClearDataTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC28 Delete App data")
+    @DisplayName("LTC21 Delete App data")
     @Tags(Tag("a11yBatch2"))
     fun verifyClearData(testInfo: TestInfo) {
         setUp(testInfo)

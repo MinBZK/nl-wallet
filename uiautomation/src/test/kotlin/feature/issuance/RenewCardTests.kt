@@ -7,6 +7,13 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.TestMethodOrder
+import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
 import screen.history.HistoryOverviewScreen
@@ -16,13 +23,6 @@ import screen.menu.MenuScreen
 import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.issuer.IssuerWebPage
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.TestMethodOrder
-import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer")
@@ -70,7 +70,7 @@ class RenewCardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC12 Renewing a card")
+    @DisplayName("LTC11 Renew card happy flow")
     fun verifyInsuranceIssuance(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()

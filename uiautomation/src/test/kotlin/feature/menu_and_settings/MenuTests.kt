@@ -34,7 +34,7 @@ class MenuTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC34 LTC35 Show app & Settings menu")
+    @DisplayName("LTC26 LTC27 Show app & Settings menu")
     @Tags(Tag("a11yBatch2"))
     fun verifyMenuScreen(testInfo: TestInfo) {
         setUp(testInfo)

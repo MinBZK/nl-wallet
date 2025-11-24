@@ -3,7 +3,7 @@
 ## Overview
 
 | Aspect                       | Description                                                                                                |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| ---------------------------- |------------------------------------------------------------------------------------------------------------|
 | **Summary**                  | The user opens the language settings screen from the menu, where they can switch between Dutch and English |
 | **Goal**                     | Changing the language of the app to either Dutch or English.                                               |
 | **Preconditions**            | *None*                                                                                                     |
@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Change Language' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li></ul>           |
 | **Additional Documentation** | *None*                                                                                                     |
 | **Possible errors**          | *None*                                                                                                     |
-| **Logical test cases**       | <ul><li>[LTC39 Select a new language](../logical-test-cases.md#ltc39)</li></ul>                            |
+| **Logical test cases**       | <ul><li>[LTC30 Select a new language](../logical-test-cases.md#ltc30)</li></ul>                            |
 
 ---
 

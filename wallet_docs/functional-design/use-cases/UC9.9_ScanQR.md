@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Scan QR' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md)</li><li>User selects 'Scan QR' in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md)</li></ul>                                                                                                            |
 | **Additional documentation** | *None*                                                                                                                                                                                                                                                                                                |
 | **Possible errors**          | <ul><li>[Generic Error](../errors.md#generic-error)</li><li>[No internet](../errors.md#no-internet)</li></ul>                                                                                                                                                                                         |
-| **Logical test cases**       | <ul><li>[LTC6 Invalid universal link](../logical-test-cases.md#ltc6)</li><li>[LTC7 cross-device generic issuance](../logical-test-cases.md#ltc7)</li><li>[LTC18 cross-device share data](../logical-test-cases.md#ltc18)</li><li>[LTC24 cross-device login](../logical-test-cases.md#ltc24)</li></ul> |
+| **Logical test cases**       | <ul><li>[LTC6 Invalid universal link](../logical-test-cases.md#ltc6)</li><li>[LTC7 cross-device generic issuance](../logical-test-cases.md#ltc7)</li><li>[LTC16 cross-device share data](../logical-test-cases.md#ltc16)</li><li>[LTC19 cross-device login](../logical-test-cases.md#ltc19)</li></ul> |
 
 ---
 

@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Remove data' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md)</li><li>User selects 'Forgot PIN' in UC2.2, UC2.3, UC2.6, UC3.1, UC4.1, UC5.1 or UC5.2.</li></ul> |
 | **Additional Documentation** | *None*                                                                                                                                                                              |
 | **Possible errors**          | *None*                                                                                                                                                                              |
-| **Logical test cases**       | <ul><li>[LTC28 Delete App data](../logical-test-cases.md#ltc28)</li><li>[LTC29 Cancel app data deletion](../logical-test-cases.md#ltc29)</li></ul>                                  |
+| **Logical test cases**       | <ul><li>[LTC21 Delete App data](../logical-test-cases.md#ltc21)</li></ul>                                                                                                           |
 
 ---
 

@@ -37,7 +37,7 @@ class UserLocksWalletTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC69 Manual logout from menu")
+    @DisplayName("LTC53 Manual logout from menu")
     @Tags(Tag("smoke"))
     fun verifyLockedState(testInfo: TestInfo) {
         setUp(testInfo)
@@ -47,7 +47,7 @@ class UserLocksWalletTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC70 Logout due to inactivity")
+    @DisplayName("LTC54 Logout due to inactivity")
     fun verifyAppLocksAfterInactive(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -56,7 +56,7 @@ class UserLocksWalletTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC71 Logout due to background timeout")
+    @DisplayName("LTC55 Logout due to background timeout")
     fun verifyAppLocksAfterBackground(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
@@ -68,7 +68,7 @@ class UserLocksWalletTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC72 User confirms logout on inactivity prompt, LTC73 User dismisses inactivity prompt")
+    @DisplayName("LTC56 User confirms logout on inactivity prompt, LTC57 User dismisses inactivity prompt")
     @Tags(Tag("a11yBatch2"))
     fun verifyWarningNotificationBeforeLock(testInfo: TestInfo) {
         setUp(testInfo)

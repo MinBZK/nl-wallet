@@ -34,7 +34,7 @@ class UniversalLinkTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC46 Universal link is opened via external QR scanner")
+    @DisplayName("LTC36 Universal link is opened via external QR scanner")
     fun verifyScanInAppDialog(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -49,7 +49,7 @@ class UniversalLinkTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("PF2.7 LTC54 Wallet not created when universal link is invoked")
+    @DisplayName("LTC44 Wallet not created when universal link is invoked")
     fun verifyWhenAppNotActivated(testInfo: TestInfo) {
         setUp(testInfo)
         demoScreen = DemoScreen()
