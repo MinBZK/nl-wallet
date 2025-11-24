@@ -1,93 +1,170 @@
 ```mermaid
-flowchart TD
-    SoleControl["&lt;*Goal*&gt;<br>**User** has sole control over **PrivKey**"]
-    
-    WBAllowsUserControl["&lt;*Goal*&gt;<br>**WB** allows only **User** to use **PrivKey**"]
-    SoleControl --> WBAllowsUserControl
-    
-    WBAllowsUserControl --> WBChecksDevice["&lt;*Goal*&gt;<br>**WB** only works with genuine **NL Wallet** apps on trustworthy devices"]
+flowchart LR
+ 
+%% =======================
+%% TOP-LEVEL SYSTEM GOALS
+%% =======================
+ 
+G_UserAuthorization["<*Goal*><br>Only the legitimate **User** can authorize operations with **PrivKey**"]
+G_KeyCustody["<*Goal*><br>**PrivKey** remains under exclusive custody of **WB** and is never exposed"]
+ 
+%% Link top-level
+G_UserAuthorization --> S_UserAuthorization
+G_KeyCustody --> S_KeyCustody
+ 
+%% =======================
+%% KEY CUSTODY ARGUMENT
+%% =======================
+ 
+S_KeyCustody[/"<*Strategy*><br>Ensure secure generation, storage, and usage of **PrivKey**"/]
+ 
+G_KeyGenHSM["<*Goal*><br>**PrivKey** is generated inside a certified HSM controlled by **WB**"]
+G_PrivKeyNonExport["<*Goal*><br>**PrivKey** cannot be extracted or copied from HSM"]
+G_TrustedHSMVendor["<*Assumption*><br>**WB** trusts HSM vendor and certification"]
+ 
+S_KeyCustody --> G_KeyGenHSM
+S_KeyCustody --> G_PrivKeyNonExport
+S_KeyCustody --> G_TrustedHSMVendor
+ 
+Sol_HSM(["<*Solution*><br>WB uses certified HSM to generate & protect PrivKey"])
+G_KeyGenHSM --> Sol_HSM
+ 
+Sol_HSM_NonExport(["<*Solution*><br>HSM enforces non-export policy for PrivKey"])
+G_PrivKeyNonExport --> Sol_HSM_NonExport
+ 
+%% =======================
+%% USER AUTHORIZATION
+%% =======================
+ 
+S_UserAuthorization[/"<*Strategy*><br>Use 2FA combining possession & knowledge factors"/]
+ 
+G_PossessionFactor["<*Goal*><br>User proves control of device-bound hardware key"]
+G_KnowledgeFactor["<*Goal*><br>User proves knowledge of PIN"]
+G_DeviceIntegrity["<*Goal*><br>WB verifies that NL Wallet app runs on a trustworthy device"]
+ 
+S_UserAuthorization --> G_PossessionFactor
+S_UserAuthorization --> G_KnowledgeFactor
+ 
+%% =======================
+%% DEVICE INTEGRITY
+%% =======================
+ 
+S_DeviceIntegrity[/"<*Strategy*><br>Use platform app attestations to verify app and device integrity"/]
+G_DeviceIntegrity --> S_DeviceIntegrity
+ 
+S_DeviceIntegrity --> Sol_AppAttest
+S_DeviceIntegrity --> A_AttestationTrust["<*Assumption*><br>WB trusts Apple/Google attestation services"]
 
-    WBAuthenticatesUser["&lt;*Goal*&gt;<br>**WB** authenticates **User** before allowing **PrivKey** usage"]
-    WBAllowsUserControl --> WBAuthenticatesUser
+Sol_AppAttest(["<*Solution*><br>Wallet provides platform app attestation"])
+ 
+ 
+%% =======================
+%% POSSESSION FACTOR
+%% =======================
+ 
+S_Possession[/"<*Strategy*><br>Prove possession via signed nonces with device-bound key"/]
+G_PossessionFactor --> S_Possession
+ 
+S_Possession --> Sol_HWKeyGeneration(["<*Solution*><br>Wallet generates HwPrivateKey inside SE/TEE"])
+S_Possession --> Sol_SignedNonce_HW(["<*Solution*><br>Wallet signs WB nonce with HwPrivateKey"])
+S_Possession --> Sol_KeyAttestation(["<*Solution*><br>Wallet provides Key Attestation to WB for HwPublicKey corresponding to HwPrivateKey"])
+ 
+%% =======================
+%% KNOWLEDGE FACTOR
+%% =======================
+ 
+S_PIN[/"<*Strategy*><br>Verify knowledge via PIN-derived key & signed nonces"/]
+G_KnowledgeFactor --> S_PIN
+ 
+G_PINStrength["<*Goal*><br>PIN has minimum entropy & complexity"]
+G_PINDerivation["<*Goal*><br>Wallet does not store PIN"]
+G_SignedNonce_PIN["<*Goal*><br>Wallet signs WB nonce with PinPrivateKey"]
 
-    UserAuthStrategy[/"&lt;*Strategy*&gt;<br>2FA: possession and knowledge"/]
-    WBAuthenticatesUser --> UserAuthStrategy
+S_PIN --> G_PINStrength
+S_PIN --> G_PINDerivation
+S_PIN --> G_SignedNonce_PIN
 
-    WBSoleControl["&lt;*Goal*&gt;<br>**WB** (Wallet Backend) has sole control over **PrivKey**"]
-    SoleControl --> WBSoleControl
+G_PINStrength --> Sol_PINComplexity(["<*Solution*><br>Wallet enforces PIN complexity rules"])
+G_PINDerivation --> Sol_PINKeyDerive(["<*Solution*><br>Wallet stores salt & derives PinPrivateKey each time"])
+G_SignedNonce_PIN --> Sol_SignPINNonce(["<*Solution*><br>Wallet signs WB nonce with PinPrivateKey"])
 
-    WBusesHSM@{shape: circle, label: "&lt;*Solution*&gt;<br>**WB** generates **PrivKey** inside certified HSM under its control"}
-    WBSoleControl --> WBusesHSM
-
-    TrustHSMCertififier@{shape: stadium, label: "&lt;*Assumption*&gt;<br>**WB** trusts HSM vendor and certifier"}
-    WBSoleControl --> TrustHSMCertififier
-
-    %%%%
-
-    Setup2FA[/"&lt;*Strategy*&gt;<br>Setup 2FA: register possession and knowledge factors"/]
-    UserAuthStrategy --> Setup2FA
-
-    SetupPossessionFactor["&lt;*Goal*&gt;<br>**Wallet** registers and proves control to **WB** over a public key corresponding to HW bound private key"]
-    Setup2FA --> SetupPossessionFactor
-
-    SetupKnowledgeFactor["&lt;*Goal*&gt;<br>**User** registers and proves knowledge of a PIN to **WB**, without sending it directly to the **WB**"]
-    Setup2FA --> SetupKnowledgeFactor
-
-    WalletSendsEnrollmentMessage["&lt;*Goal*&gt;<br>**Wallet** (1) fetches **nonce** from **WB**, (2) sends enrollment message to **WB** signed with **HwPrivateKey** and **PinPrivateKey**, containing (a) **nonce**, (b) key attestation over the **HwPublicKey**, (c) **PinPublicKey**, and (d) App Attestation"]
-    SetupPossessionFactor --> WalletSendsEnrollmentMessage
-    SetupKnowledgeFactor --> WalletSendsEnrollmentMessage
-    WBChecksDevice --> WalletSendsEnrollmentMessage
-
-    SetupKnowledgeFactor --> PINSecrecy@{shape: circle, label: "&lt;*Solution*&gt;<br>**User** agrees in NL Wallet T&C to not share their PIN with anyone"}
-    SetupKnowledgeFactor --> PINComplexity@{shape: circle, label: "&lt;*Solution*&gt;<br>**Wallet** disallows too simple PINs (111111, 123456, etc)"}
-    
-    WalletSendsEnrollmentMessage --> TrustAppleGoogle@{shape: stadium, label: "&lt;*Assumption*&gt;<br>**WB** trusts Key and App Attestations from Apple/Google"}
-    WalletSendsEnrollmentMessage --> KeyAttestation@{shape: circle, label: "&lt;*Solution*&gt;<br>**Wallet** generates SE/TEE bound **HwPrivateKey**, including a Key Attestation over it"}
-    WalletSendsEnrollmentMessage --> RegisterPINKey@{shape: circle, label: "&lt;*Solution*&gt;<br>**User** enters PIN; **Wallet** generates and stores salt; **Wallet** converts PIN+salt to **PinPrivateKey**"}
-
-    %%%%
-
-    Use2FA[/"&lt;*Strategy*&gt;<br>Use 2FA"/]
-    UserAuthStrategy --> Use2FA
-
-    UsePossessionFactor["&lt;*Goal*&gt;<br>**WB** verifies control over possession factor"]
-    Use2FA --> UsePossessionFactor
-
-    UseKnowledgeFactor["&lt;*Goal*&gt;<br>**WB** verifies knowledge of PIN (knowledge factor)"]
-    Use2FA --> UseKnowledgeFactor
-
-    WalletSendsInstruction["&lt;*Goal*&gt;<br>**Wallet** (1) fetches **nonce** from **WB**, (2) sends instruction to **WB** signed with **HwPrivateKey** and **PinPrivateKey**, containing (a) **nonce**, (b) data to be signed using **PrivKey**"]
-    UsePossessionFactor --> WalletSendsInstruction
-    UseKnowledgeFactor --> WalletSendsInstruction
-
-    UsePINKey@{shape: circle, label: "&lt;*Solution*&gt;<br>**User** enters PIN; **Wallet** retrieves salt from storage; **Wallet** converts PIN+salt to **PinPrivateKey**"}
-    SignWithHwKey@{shape: circle, label: "&lt;*Solution*&gt;<br>Wallet uses SE/TEE to sign instruction with **HwPrivateKey**"}
-    WalletSendsInstruction --> SignWithHwKey
-    WalletSendsInstruction --> UsePINKey
-
-    %%%%
-
-    Manage2FA[/"&lt;*Strategy*&gt;<br>Ensure integrity of both 2FA factors"/]
-    UserAuthStrategy --> Manage2FA
-    Manage2FA --> ChangePIN[&lt;*Goal*&gt;<br>Allow **User** to change their PIN]
-    ChangePIN --> WalletSendsInstruction
-    
-    BlockIfDeviceLost[&lt;*Goal*&gt;<br>Allow **User** to remotely block wallet in case of device loss/theft]
-    Manage2FA --> BlockIfDeviceLost
-
-    BlockIfDeviceLost --> BlockWithRevocationCode["&lt;*Goal*&gt;<br>(1) During enrollment, **WB** generates unique **revocation code**. (2) **Wallet** shows **revocation code** to **user**. (3) Later, **user** can enter **revocation code** in online portal. (4) In response, **WB** blocks & revokes wallet."]
-    
-    BlockIfDeviceVulnerable["&lt;*Goal*&gt;<br>**WB** blocks & revokes wallet in case of critical vulnerabilities in device or suspicious user activity"]
-    Manage2FA --> BlockIfDeviceVulnerable
-
-    BlockKeysAndWUA@{shape: circle, label: "&lt;*Solution*&gt;<br>Disallow usage of all **PrivKeys** associated to **Wallet** and revoke WUA"}
-    BlockIfDeviceVulnerable --> BlockKeysAndWUA
-    BlockWithRevocationCode --> BlockKeysAndWUA
-
-    %% Goal["&lt;*Goal*&gt;<br>"]
-    %% Strategy[/"&lt;*Strategy*&gt;<br>"/]
-    %% Context@{ shape: hex, label: "&lt;*Context*&gt;<br>" }
-    %% Solution@{shape: circle, label: "&lt;*Solution*&gt;<br>"}
-    %% Assumption@{shape: stadium, label: "&lt;*Assumption*&gt;<br>"}
-    %% Justification@{shape: stadium, label: "&lt;*Justification*&gt;<br>"}
+A_UserKeepsPINSecret["<*Assumption*><br>User does not share PIN with anyone"]
+S_PIN --> A_UserKeepsPINSecret
+ 
+%% =======================
+%% 2FA ENROLLMENT
+%% =======================
+ 
+S_Enrollment[/"<*Strategy*><br>Register possession & knowledge factors via attested enrollment message"/]
+ 
+G_UserAuthorization --> S_Enrollment
+ 
+G_NonceFreshness["<*Goal*><br>Enrollment proves message freshness"]
+G_EnrollmentMessage["<*Goal*><br>Wallet sends enrollment message containing: signed nonce, HW attestation, app attestation, PinPublicKey"]
+G_AttestationValidity["<*Goal*><br>WB validates app & key attestations"]
+ 
+S_Enrollment --> G_DeviceIntegrity
+S_Enrollment --> G_NonceFreshness
+S_Enrollment --> G_EnrollmentMessage
+S_Enrollment --> G_AttestationValidity
+ 
+Sol_Nonce(["<*Solution*><br>WB provides unique nonce for enrollment"])
+G_NonceFreshness --> Sol_Nonce
+ 
+Sol_EnrollMsg(["<*Solution*><br>Wallet signs enrollment message with both keys"])
+G_EnrollmentMessage --> Sol_EnrollMsg
+ 
+Sol_ValidateAttest(["<*Solution*><br>WB validates app, HW, and PIN key attestations"])
+G_AttestationValidity --> Sol_ValidateAttest
+ 
+%% =======================
+%% 2FA USAGE
+%% =======================
+ 
+S_Use2FA[/"<*Strategy*><br>Each instruction requires both signed nonces (HW + PIN)"/]
+G_UserAuthorization --> S_Use2FA
+ 
+G_InstructionSigned["<*Goal*><br>Instruction to WB is signed with HwPrivateKey & PinPrivateKey"]
+G_InstructionFresh["<*Goal*><br>Instruction includes freshly fetched nonce"]
+S_Use2FA --> G_InstructionSigned
+S_Use2FA --> G_InstructionFresh
+ 
+Sol_SignInstruction(["<*Solution*><br>Wallet signs WB instructions with HW and PIN keys"])
+Sol_GetNonce(["<*Solution*><br>Wallet fetches nonce from WB before operation"])
+ 
+G_InstructionSigned --> Sol_SignInstruction
+G_InstructionFresh --> Sol_GetNonce
+ 
+%% =======================
+%% FACTOR MANAGEMENT
+%% =======================
+ 
+S_Manage2FA[/"<*Strategy*><br>Maintain integrity of both 2FA factors"/]
+G_UserAuthorization --> S_Manage2FA
+ 
+G_ChangePIN["<*Goal*><br>User can securely change PIN"]
+G_BlockDeviceLost["<*Goal*><br>User can block wallet if device is lost"]
+G_BlockVulnerableDevice["<*Goal*><br>WB blocks wallet on detected device compromise"]
+ 
+S_Manage2FA --> G_ChangePIN
+S_Manage2FA --> G_BlockDeviceLost
+S_Manage2FA --> G_BlockVulnerableDevice
+ 
+Sol_PINChange(["<*Solution*><br>PIN change uses normal 2FA process"])
+G_ChangePIN --> Sol_PINChange
+ 
+%% Revocation code
+S_Revocation[/"<*Strategy*><br>Enable out-of-band revocation using server-generated code"/]
+G_BlockDeviceLost --> S_Revocation
+ 
+G_RevCodeUse["<*Goal*><br>User can later submit revocation code to block wallet"]
+ 
+S_Revocation --> Sol_CodeGen(["<*Solution*><br>WB generates revocation code at enrollment"])
+S_Revocation --> Sol_CodeDisplay(["<*Solution*><br>Wallet shows revocation code securely"])
+S_Revocation --> G_RevCodeUse 
+G_RevCodeUse --> Sol_CodeBlock(["<*Solution*><br>WB blocks wallet upon valid revocation code"])
+ 
+%% Device-vulnerability blocking
+Sol_BlockVulnerable(["<*Solution*><br>WB revokes keys & blocks WUA on detected vulnerability"])
+G_BlockVulnerableDevice --> Sol_BlockVulnerable
 ```
