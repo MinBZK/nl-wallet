@@ -2876,36 +2876,36 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_start_disclosure_error_non_selectable_claim_not_requested() {
+    async fn test_start_disclosure_error_non_sd_claim_not_requested() {
         let my_attestation_type = "my.attestation.type";
-        let my_selectable_claim = "selectable_claim";
-        let my_first_non_selectable_claim = "first_non_selectable_claim";
-        let my_second_non_selectable_claim = "second_non_selectable_claim";
+        let my_sd_claim = "sd_claim";
+        let my_first_non_sd_claim = "first_non_sd_claim";
+        let my_second_non_sd_claim = "second_non_sd_claim";
 
-        // Populate a registered wallet with an example PID.
+        // Create a registered wallet
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Create a request that only requests the selectable claim
+        // Create a request that requests the sd claim and only 1 of the non-sd claims
         let credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
             &[my_attestation_type],
-            &[&[my_selectable_claim], &[my_second_non_selectable_claim]], // NOTE: here we omit `my_first_non_selectable_claim`
+            &[&[my_sd_claim], &[my_second_non_sd_claim]], // NOTE: here we omit `my_first_non_sd_claim`
         )]);
 
         let _verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
-        // Create metadata with a selectable and a non_selectable claim
+        // Create metadata with an sd claim and 2 non-sd claims
         let mut type_metadata_with_non_selectively_disclosable_claim = UncheckedTypeMetadata::example_with_claim_names(
             my_attestation_type,
             &[
-                (my_selectable_claim, JsonSchemaPropertyType::String, None),
-                (my_first_non_selectable_claim, JsonSchemaPropertyType::String, None),
-                (my_second_non_selectable_claim, JsonSchemaPropertyType::String, None),
+                (my_sd_claim, JsonSchemaPropertyType::String, None),
+                (my_first_non_sd_claim, JsonSchemaPropertyType::String, None),
+                (my_second_non_sd_claim, JsonSchemaPropertyType::String, None),
             ],
         );
         for claim in &mut type_metadata_with_non_selectively_disclosable_claim.claims {
             if [
-                vec_nonempty![ClaimPath::SelectByKey(my_first_non_selectable_claim.to_string())],
-                vec_nonempty![ClaimPath::SelectByKey(my_second_non_selectable_claim.to_string())],
+                vec_nonempty![ClaimPath::SelectByKey(my_first_non_sd_claim.to_string())],
+                vec_nonempty![ClaimPath::SelectByKey(my_second_non_sd_claim.to_string())],
             ]
             .contains(&claim.path)
             {
@@ -2915,21 +2915,18 @@ mod tests {
         let type_metadata_with_non_selectively_disclocable_claim =
             NormalizedTypeMetadata::from_single_example(type_metadata_with_non_selectively_disclosable_claim);
 
-        // Create a credential payload with a selectable and a non-selectively disclosable claim
+        // Create a credential payload with an sd claim and 2 non-sd claims
         let previewable_payload = CredentialPayload::example_with_attributes(
             my_attestation_type,
             Attributes::example([
+                ([my_sd_claim], AttributeValue::Text("Some Sd Claim".to_string())),
                 (
-                    [my_selectable_claim],
-                    AttributeValue::Text("Some Selectable Claim".to_string()),
+                    [my_first_non_sd_claim],
+                    AttributeValue::Text("Some Non Sd Claim".to_string()),
                 ),
                 (
-                    [my_first_non_selectable_claim],
-                    AttributeValue::Text("Some Non Selectable Claim".to_string()),
-                ),
-                (
-                    [my_second_non_selectable_claim],
-                    AttributeValue::Text("Some Non Selectable Claim".to_string()),
+                    [my_second_non_sd_claim],
+                    AttributeValue::Text("Some Non Sd Claim".to_string()),
                 ),
             ]),
             SigningKey::random(&mut OsRng).verifying_key(),
@@ -2975,7 +2972,7 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(claims, attestation_type) if
-                claims == vec![vec_nonempty![my_first_non_selectable_claim.parse().unwrap()]] &&
+                claims == vec![vec_nonempty![my_first_non_sd_claim.parse().unwrap()]] &&
                 attestation_type == vec![my_attestation_type.to_string()]
         );
 
