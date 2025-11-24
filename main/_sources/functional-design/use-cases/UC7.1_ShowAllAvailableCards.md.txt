@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User completes [UC2.3 Unlock the app](UC2.3_UnlockTheApp.md) when app is personalized.</li><li>User completes [UC3.1 Obtain PID](UC3.1_ObtainPidFromProvider.md).</li><li>User completes [UC4.1 Obtain one or more cards from a (Q)EAA Issuer](UC4.1_ObtainCardsFromEAAIssuer.md).</li></ul> |
 | **Additional Documentation** | *None*                                                                                                                                                                                                                                                                                               |
 | **Possible errors**          | *None*                                                                                                                                                                                                                                                                                               |
-| **Logical test cases**       | <ul><li>[LTC32 Show all available cards](../logical-test-cases.md#ltc32)</li></ul>                                                                                                                                                                                                                   |
+| **Logical test cases**       | <ul><li>[LTC24 View all available cards](../logical-test-cases.md#ltc24)</li></ul>                                                                                                                                                                                                                   |
 
 ## Flow
 

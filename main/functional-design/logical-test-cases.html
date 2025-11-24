@@ -175,12 +175,15 @@
              
   <section id="logical-test-cases">
 <h1>Logical Test Cases<a class="headerlink" href="#logical-test-cases" title="Link to this heading"></a></h1>
-<section id="issuance">
-<h2>Issuance<a class="headerlink" href="#issuance" title="Link to this heading"></a></h2>
+<section id="ltcs">
+<h2>LTCs<a class="headerlink" href="#ltcs" title="Link to this heading"></a></h2>
+<p>This page describes the logical test cases (LTCs) that are used to verify the correct functionality of the wallet app.
+Test are written in Gherkin syntax with a Given When Then structure. Each LTC is implemented with at least one manual
+or automated tests.</p>
 <section id="ltc1">
 <h3>LTC1<a class="headerlink" href="#ltc1" title="Link to this heading"></a></h3>
-<section id="pid-issuance-happy-flow">
-<h4>PID issuance happy flow<a class="headerlink" href="#pid-issuance-happy-flow" title="Link to this heading"></a></h4>
+<section id="pid-issuance">
+<h4>PID issuance<a class="headerlink" href="#pid-issuance" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed security setup<br />
 <strong>When</strong> user authenticates at auth server<br />
 <strong>Then</strong> system displays issued attributes to user for verification<br />
@@ -205,8 +208,8 @@
 <hr class="docutils" />
 <section id="ltc3">
 <h3>LTC3<a class="headerlink" href="#ltc3" title="Link to this heading"></a></h3>
-<section id="authentication-with-auth-server-fails">
-<h4>Authentication with auth server fails<a class="headerlink" href="#authentication-with-auth-server-fails" title="Link to this heading"></a></h4>
+<section id="authentication-at-auth-server-fails">
+<h4>Authentication at auth server fails<a class="headerlink" href="#authentication-at-auth-server-fails" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed security setup<br />
 <strong>And</strong> user authentication at auth server fails<br />
 <strong>Then</strong> system displays message that authentication failed<br />
@@ -216,18 +219,20 @@
 <hr class="docutils" />
 <section id="ltc4">
 <h3>LTC4<a class="headerlink" href="#ltc4" title="Link to this heading"></a></h3>
-<section id="user-rejects-issued-attributes">
-<h4>User rejects issued attributes<a class="headerlink" href="#user-rejects-issued-attributes" title="Link to this heading"></a></h4>
+<section id="rejects-issued-attributes">
+<h4>Rejects issued attributes<a class="headerlink" href="#rejects-issued-attributes" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed security setup<br />
-<strong>When</strong> user authenticates at auth server<br />
-<strong>Then</strong> system displays issued attributes to user for verification</p>
+<strong>And</strong> user authenticates at auth server<br />
+<strong>And</strong> system displays issued attributes to user for verification<br />
+<strong>When</strong> user rejects issued attributes<br />
+<strong>Then</strong> provides a link to try again</p>
 </section>
 </section>
 <hr class="docutils" />
 <section id="ltc5">
 <h3>LTC5<a class="headerlink" href="#ltc5" title="Link to this heading"></a></h3>
-<section id="disclosure-based-issuance-happy-flow">
-<h4>Disclosure based Issuance happy flow<a class="headerlink" href="#disclosure-based-issuance-happy-flow" title="Link to this heading"></a></h4>
+<section id="disclosure-based-issuance">
+<h4>Disclosure based Issuance<a class="headerlink" href="#disclosure-based-issuance" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
 <strong>When</strong> user invokes a universal link from a (Q)EAA issuer<br />
 <strong>Then</strong> system requests approval for disclosure<br />
@@ -247,13 +252,14 @@
 <p><strong>Given</strong> user invokes an invalid universal link<br />
 <strong>Then</strong> system informs user link is not recognized<br />
 <strong>And</strong> provides a link to try again</p>
-</section>
-</section>
 <hr class="docutils" />
+<!-- Manual  -->
+</section>
+</section>
 <section id="ltc7">
 <h3>LTC7<a class="headerlink" href="#ltc7" title="Link to this heading"></a></h3>
 <section id="cross-device-generic-issuance">
-<h4>cross-device generic issuance<a class="headerlink" href="#cross-device-generic-issuance" title="Link to this heading"></a></h4>
+<h4>Cross-device generic issuance<a class="headerlink" href="#cross-device-generic-issuance" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user is on a device with wallet installed<br />
 <strong>When</strong> relying party presents a QR code<br />
 <strong>And</strong> user scans it with wallet<br />
@@ -269,8 +275,8 @@
 <hr class="docutils" />
 <section id="ltc8">
 <h3>LTC8<a class="headerlink" href="#ltc8" title="Link to this heading"></a></h3>
-<section id="user-rejects-disclosure-of-attributes">
-<h4>User rejects disclosure of attributes<a class="headerlink" href="#user-rejects-disclosure-of-attributes" title="Link to this heading"></a></h4>
+<section id="reject-disclosure-of-attributes">
+<h4>Reject disclosure of attributes<a class="headerlink" href="#reject-disclosure-of-attributes" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user starts card issuance<br />
 <strong>When</strong> system asks for disclosure consent<br />
 <strong>And</strong> user selects ‘stop’<br />
@@ -280,32 +286,18 @@
 <hr class="docutils" />
 <section id="ltc9">
 <h3>LTC9<a class="headerlink" href="#ltc9" title="Link to this heading"></a></h3>
-<section id="user-continues-after-initially-cancelling-disclosure">
-<h4>User continues after initially cancelling disclosure<a class="headerlink" href="#user-continues-after-initially-cancelling-disclosure" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user starts disclosure<br />
-<strong>And</strong> selects ‘stop’<br />
-<strong>When</strong> system asks confirmation<br />
-<strong>And</strong> user selects ‘no’<br />
-<strong>Then</strong> disclosure flow continues</p>
+<section id="no-cards-to-be-issued">
+<h4>No cards to be issued<a class="headerlink" href="#no-cards-to-be-issued" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has no cards to be issued available at EAA issuer
+<strong>When</strong> user performs disclosure based issuance to retrieve cards<br />
+<strong>Then</strong> system displays error message that no cards are available for issuance</p>
 </section>
 </section>
 <hr class="docutils" />
 <section id="ltc10">
 <h3>LTC10<a class="headerlink" href="#ltc10" title="Link to this heading"></a></h3>
-<section id="user-continues-after-initially-cancelling-issuance">
-<h4>User continues after initially cancelling issuance<a class="headerlink" href="#user-continues-after-initially-cancelling-issuance" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user starts issuance<br />
-<strong>And</strong> selects ‘stop’<br />
-<strong>When</strong> system asks confirmation<br />
-<strong>And</strong> user selects ‘no’<br />
-<strong>Then</strong> issuance flow continues</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc11">
-<h3>LTC11<a class="headerlink" href="#ltc11" title="Link to this heading"></a></h3>
 <section id="wallet-does-not-contain-requested-attributes">
-<h4>wallet does not contain requested attributes<a class="headerlink" href="#wallet-does-not-contain-requested-attributes" title="Link to this heading"></a></h4>
+<h4>Wallet does not contain requested attributes<a class="headerlink" href="#wallet-does-not-contain-requested-attributes" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> wallet does not contain attributes to fulfill a disclosure request
 from an issuer<br />
 <strong>When</strong> user invokes a universal link from a (Q)EAA issuer<br />
@@ -315,10 +307,10 @@ from an issuer<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc12">
-<h3>LTC12<a class="headerlink" href="#ltc12" title="Link to this heading"></a></h3>
-<section id="renew-card-happy-flow">
-<h4>Renew card happy flow<a class="headerlink" href="#renew-card-happy-flow" title="Link to this heading"></a></h4>
+<section id="ltc11">
+<h3>LTC11<a class="headerlink" href="#ltc11" title="Link to this heading"></a></h3>
+<section id="renew-card">
+<h4>Renew card<a class="headerlink" href="#renew-card" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has an EAA card in its wallet<br />
 <strong>When</strong> user invokes a universal link from issuer of card<br />
 <strong>Then</strong> system requests approval for disclosure<br />
@@ -333,55 +325,32 @@ from an issuer<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc79">
-<h3>LTC79<a class="headerlink" href="#ltc79" title="Link to this heading"></a></h3>
-<section id="no-cards-to-be-issued">
-<h4>No cards to be issued<a class="headerlink" href="#no-cards-to-be-issued" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has no cards to be issued available at EAA issuer
-<strong>When</strong> user performs disclosure based issuance to retrieve cards<br />
-<strong>Then</strong> system displays error message that no cards are available for issuance</p>
-</section>
-</section>
-</section>
-<hr class="docutils" />
-<section id="introduction">
-<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
-<section id="ltc13">
-<h3>LTC13<a class="headerlink" href="#ltc13" title="Link to this heading"></a></h3>
-<section id="introduction-happy-flow">
-<h4>Introduction Happy flow<a class="headerlink" href="#introduction-happy-flow" title="Link to this heading"></a></h4>
+<section id="ltc12">
+<h3>LTC12<a class="headerlink" href="#ltc12" title="Link to this heading"></a></h3>
+<section id="view-introduction">
+<h4>View introduction<a class="headerlink" href="#view-introduction" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> the app is opened<br />
-<strong>And</strong> user has not completed introduction
+<strong>And</strong> user has not completed introduction<br />
 <strong>When</strong> user navigates through the introduction screens<br />
 <strong>Then</strong> system displays set pin screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc14">
-<h3>LTC14<a class="headerlink" href="#ltc14" title="Link to this heading"></a></h3>
-<section id="user-skips-introduction">
-<h4>User skips introduction<a class="headerlink" href="#user-skips-introduction" title="Link to this heading"></a></h4>
+<section id="ltc13">
+<h3>LTC13<a class="headerlink" href="#ltc13" title="Link to this heading"></a></h3>
+<section id="skip-introduction">
+<h4>Skip introduction<a class="headerlink" href="#skip-introduction" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> the app is opened<br />
-<strong>And</strong> user has not completed introduction
+<strong>And</strong> user has not completed introduction<br />
 <strong>When</strong> user skips the introduction screens<br />
 <strong>Then</strong> systems displays the privacy introduction screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc15">
-<h3>LTC15<a class="headerlink" href="#ltc15" title="Link to this heading"></a></h3>
-<section id="user-navigates-back-to-previous-introduction-screen">
-<h4>User navigates back to previous introduction screen<a class="headerlink" href="#user-navigates-back-to-previous-introduction-screen" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has navigated forward to an introduction screen<br />
-<strong>And</strong> user navigates back<br />
-<strong>Then</strong> systems displays the previous introduction screen</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc16">
-<h3>LTC16<a class="headerlink" href="#ltc16" title="Link to this heading"></a></h3>
-<section id="user-views-app-tour">
-<h4>User views app tour<a class="headerlink" href="#user-views-app-tour" title="Link to this heading"></a></h4>
+<section id="ltc14">
+<h3>LTC14<a class="headerlink" href="#ltc14" title="Link to this heading"></a></h3>
+<section id="view-app-tour">
+<h4>View app tour<a class="headerlink" href="#view-app-tour" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has not closed app after obtaining PID<br />
 <strong>When</strong> user views the app dashboard<br />
 <strong>Then</strong> system displays a non-dismissible banner<br />
@@ -394,25 +363,23 @@ from an issuer<br />
 <strong>And</strong> videoplayer contains correct controls</p>
 </section>
 </section>
-</section>
 <hr class="docutils" />
-<section id="disclosure">
-<h2>Disclosure<a class="headerlink" href="#disclosure" title="Link to this heading"></a></h2>
-<section id="ltc17">
-<h3>LTC17<a class="headerlink" href="#ltc17" title="Link to this heading"></a></h3>
-<section id="share-data-happy-flow">
-<h4>Share data happy flow<a class="headerlink" href="#share-data-happy-flow" title="Link to this heading"></a></h4>
+<section id="ltc15">
+<h3>LTC15<a class="headerlink" href="#ltc15" title="Link to this heading"></a></h3>
+<section id="share-data">
+<h4>Share data<a class="headerlink" href="#share-data" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
 <strong>When</strong> user starts disclosure process at relying party<br />
 <strong>Then</strong> system requests user consent<br />
 <strong>When</strong> user approves with PIN<br />
 <strong>Then</strong> system discloses attributes to relying party<br />
 <strong>And</strong> system displays data shared message</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc18">
-<h3>LTC18<a class="headerlink" href="#ltc18" title="Link to this heading"></a></h3>
+<!-- Manual  --> 
+</section>
+</section>
+<section id="ltc16">
+<h3>LTC16<a class="headerlink" href="#ltc16" title="Link to this heading"></a></h3>
 <section id="cross-device-share-data">
 <h4>Cross-device share data<a class="headerlink" href="#cross-device-share-data" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user starts disclosure on a non-mobile device<br />
@@ -425,10 +392,10 @@ from an issuer<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc19">
-<h3>LTC19<a class="headerlink" href="#ltc19" title="Link to this heading"></a></h3>
-<section id="user-does-not-give-consent-to-share-data">
-<h4>User does not give consent to share data<a class="headerlink" href="#user-does-not-give-consent-to-share-data" title="Link to this heading"></a></h4>
+<section id="ltc17">
+<h3>LTC17<a class="headerlink" href="#ltc17" title="Link to this heading"></a></h3>
+<section id="decline-consent-to-share-data">
+<h4>Decline consent to share data<a class="headerlink" href="#decline-consent-to-share-data" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user is shown consent screen<br />
 <strong>When</strong> user selects ‘Stop’<br />
 <strong>Then</strong> system confirms cancellation<br />
@@ -438,54 +405,22 @@ from an issuer<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc20">
-<h3>LTC20<a class="headerlink" href="#ltc20" title="Link to this heading"></a></h3>
-<section id="user-stops-at-share-data-approve-organization">
-<h4>User stops at Share data approve organization<a class="headerlink" href="#user-stops-at-share-data-approve-organization" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user is shown approve organization screen<br />
-<strong>When</strong> user selects ‘Stop’<br />
-<strong>Then</strong> system confirms cancellation<br />
-<strong>When</strong> user confirms<br />
-<strong>Then</strong> system displays the stopped screen<br />
-<strong>And</strong> provides a link to the dashboard</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc21">
-<h3>LTC21<a class="headerlink" href="#ltc21" title="Link to this heading"></a></h3>
-<section id="user-continues-after-initially-cancelling">
-<h4>User continues after initially cancelling<a class="headerlink" href="#user-continues-after-initially-cancelling" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user selects ‘Stop’<br />
-<strong>When</strong> system displays message conforming cancellation<br />
-<strong>And</strong> user selects ‘No’<br />
-<strong>Then</strong> disclosure flow continues</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc22">
-<h3>LTC22<a class="headerlink" href="#ltc22" title="Link to this heading"></a></h3>
-<section id="invalid-universal-link-in-qr">
-<h4>invalid universal link in QR<a class="headerlink" href="#invalid-universal-link-in-qr" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user scans a QR with an invalid link<br />
-<strong>Then</strong> system displays invalid QR message</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc23">
-<h3>LTC23<a class="headerlink" href="#ltc23" title="Link to this heading"></a></h3>
-<section id="rp-login-happy-flow">
-<h4>RP Login happy flow<a class="headerlink" href="#rp-login-happy-flow" title="Link to this heading"></a></h4>
+<section id="ltc18">
+<h3>LTC18<a class="headerlink" href="#ltc18" title="Link to this heading"></a></h3>
+<section id="rp-login">
+<h4>RP Login<a class="headerlink" href="#rp-login" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
 <strong>When</strong> user starts login process at relying party<br />
 <strong>Then</strong> system requests consent to disclose BSN<br />
 <strong>When</strong> user approves with PIN<br />
 <strong>Then</strong> system discloses BSN to relying party<br />
 <strong>And</strong> relying pary displays login success message</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc24">
-<h3>LTC24<a class="headerlink" href="#ltc24" title="Link to this heading"></a></h3>
+<!-- Manual  --> 
+</section>
+</section>
+<section id="ltc19">
+<h3>LTC19<a class="headerlink" href="#ltc19" title="Link to this heading"></a></h3>
 <section id="cross-device-login">
 <h4>Cross-device login<a class="headerlink" href="#cross-device-login" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user starts login on a non-mobile device<br />
@@ -498,19 +433,8 @@ from an issuer<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc25">
-<h3>LTC25<a class="headerlink" href="#ltc25" title="Link to this heading"></a></h3>
-<section id="id1">
-<h4>User continues after initially cancelling<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user selects ‘Stop’<br />
-<strong>When</strong> system displays message confirm cancellation<br />
-<strong>And</strong> user selects ‘No’<br />
-<strong>Then</strong> login flow continues</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc26">
-<h3>LTC26<a class="headerlink" href="#ltc26" title="Link to this heading"></a></h3>
+<section id="ltc20">
+<h3>LTC20<a class="headerlink" href="#ltc20" title="Link to this heading"></a></h3>
 <section id="disclosure-fails">
 <h4>Disclosure fails<a class="headerlink" href="#disclosure-fails" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed security setup<br />
@@ -521,22 +445,8 @@ from an issuer<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc27">
-<h3>LTC27<a class="headerlink" href="#ltc27" title="Link to this heading"></a></h3>
-<section id="id2">
-<h4>Wallet does not contain requested attributes<a class="headerlink" href="#id2" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> wallet does not contain attributes to fulfill a disclosure request
-from a relying party<br />
-<strong>When</strong> user invokes a universal link from a relying party<br />
-<strong>Then</strong> System displays an error message with instructions</p>
-</section>
-</section>
-</section>
-<hr class="docutils" />
-<section id="cards-app-data-settings">
-<h2>Cards, App Data &amp; Settings<a class="headerlink" href="#cards-app-data-settings" title="Link to this heading"></a></h2>
-<section id="ltc28">
-<h3>LTC28<a class="headerlink" href="#ltc28" title="Link to this heading"></a></h3>
+<section id="ltc21">
+<h3>LTC21<a class="headerlink" href="#ltc21" title="Link to this heading"></a></h3>
 <section id="delete-app-data">
 <h4>Delete App data<a class="headerlink" href="#delete-app-data" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
@@ -547,18 +457,8 @@ from a relying party<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc29">
-<h3>LTC29<a class="headerlink" href="#ltc29" title="Link to this heading"></a></h3>
-<section id="cancel-app-data-deletion">
-<h4>Cancel app data deletion<a class="headerlink" href="#cancel-app-data-deletion" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> system displays confirm delete message<br />
-<strong>When</strong> user selects ‘Cancel’<br />
-<strong>Then</strong> system displays the settings menu</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc30">
-<h3>LTC30<a class="headerlink" href="#ltc30" title="Link to this heading"></a></h3>
+<section id="ltc22">
+<h3>LTC22<a class="headerlink" href="#ltc22" title="Link to this heading"></a></h3>
 <section id="view-activity-list">
 <h4>View activity list<a class="headerlink" href="#view-activity-list" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
@@ -572,8 +472,8 @@ from a relying party<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc31">
-<h3>LTC31<a class="headerlink" href="#ltc31" title="Link to this heading"></a></h3>
+<section id="ltc23">
+<h3>LTC23<a class="headerlink" href="#ltc23" title="Link to this heading"></a></h3>
 <section id="view-card-specific-activity-list">
 <h4>View card-specific activity list<a class="headerlink" href="#view-card-specific-activity-list" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
@@ -587,10 +487,10 @@ from a relying party<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc32">
-<h3>LTC32<a class="headerlink" href="#ltc32" title="Link to this heading"></a></h3>
-<section id="show-all-available-cards">
-<h4>Show all available cards<a class="headerlink" href="#show-all-available-cards" title="Link to this heading"></a></h4>
+<section id="ltc24">
+<h3>LTC24<a class="headerlink" href="#ltc24" title="Link to this heading"></a></h3>
+<section id="view-all-available-cards">
+<h4>View all available cards<a class="headerlink" href="#view-all-available-cards" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and unlocked the app<br />
 <strong>When</strong> user completes one of the relevant flows (unlock app, obtain PID, or
 obtain card)<br />
@@ -598,10 +498,10 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc33">
-<h3>LTC33<a class="headerlink" href="#ltc33" title="Link to this heading"></a></h3>
-<section id="show-card-details">
-<h4>Show Card Details<a class="headerlink" href="#show-card-details" title="Link to this heading"></a></h4>
+<section id="ltc25">
+<h3>LTC25<a class="headerlink" href="#ltc25" title="Link to this heading"></a></h3>
+<section id="view-card-details">
+<h4>View Card Details<a class="headerlink" href="#view-card-details" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> dashboard is opened<br />
 <strong>When</strong> user selects a card<br />
 <strong>Then</strong> system displays the card details<br />
@@ -616,8 +516,8 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc34">
-<h3>LTC34<a class="headerlink" href="#ltc34" title="Link to this heading"></a></h3>
+<section id="ltc26">
+<h3>LTC26<a class="headerlink" href="#ltc26" title="Link to this heading"></a></h3>
 <section id="show-app-menu">
 <h4>Show app menu<a class="headerlink" href="#show-app-menu" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
@@ -626,10 +526,10 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc35">
-<h3>LTC35<a class="headerlink" href="#ltc35" title="Link to this heading"></a></h3>
-<section id="settings-menu">
-<h4>Settings menu<a class="headerlink" href="#settings-menu" title="Link to this heading"></a></h4>
+<section id="ltc27">
+<h3>LTC27<a class="headerlink" href="#ltc27" title="Link to this heading"></a></h3>
+<section id="view-settings-menu">
+<h4>View settings menu<a class="headerlink" href="#view-settings-menu" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> app menu is shown<br />
 <strong>When</strong> user selects ‘Settings’<br />
 <strong>Then</strong> system displays settings menu items<br />
@@ -638,18 +538,17 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc36">
-<h3>LTC36<a class="headerlink" href="#ltc36" title="Link to this heading"></a></h3>
-<section id="show-app-information-from-menu">
-<h4>Show app information from menu<a class="headerlink" href="#show-app-information-from-menu" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has completed PID setup and opened the app<br />
-<strong>When</strong> user selects ‘about this app’ from the menu<br />
+<section id="ltc28">
+<h3>LTC28<a class="headerlink" href="#ltc28" title="Link to this heading"></a></h3>
+<section id="view-app-information">
+<h4>View app information<a class="headerlink" href="#view-app-information" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user selects app information<br />
 <strong>Then</strong> system displays the About App screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc37">
-<h3>LTC37<a class="headerlink" href="#ltc37" title="Link to this heading"></a></h3>
+<section id="ltc29">
+<h3>LTC29<a class="headerlink" href="#ltc29" title="Link to this heading"></a></h3>
 <section id="view-privacy-statement">
 <h4>View privacy statement<a class="headerlink" href="#view-privacy-statement" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> About App screen is shown<br />
@@ -660,19 +559,8 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc38">
-<h3>LTC38<a class="headerlink" href="#ltc38" title="Link to this heading"></a></h3>
-<section id="show-language-selection-screen">
-<h4>Show language selection screen<a class="headerlink" href="#show-language-selection-screen" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has completed PID setup and opened the app<br />
-<strong>When</strong> user selects ‘Change Language’ in the settings menu<br />
-<strong>Then</strong> system displays the language selection screen<br />
-<strong>And</strong> displays the currently active language</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc39">
-<h3>LTC39<a class="headerlink" href="#ltc39" title="Link to this heading"></a></h3>
+<section id="ltc30">
+<h3>LTC30<a class="headerlink" href="#ltc30" title="Link to this heading"></a></h3>
 <section id="select-a-new-language">
 <h4>Select a new language<a class="headerlink" href="#select-a-new-language" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> system displays language selection screen<br />
@@ -684,43 +572,18 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc40">
-<h3>LTC40<a class="headerlink" href="#ltc40" title="Link to this heading"></a></h3>
-<section id="show-app-information-on-introduction-screen">
-<h4>Show app information on introduction screen<a class="headerlink" href="#show-app-information-on-introduction-screen" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> system displays an introduction screen<br />
-<strong>When</strong> user selects ‘see details’<br />
-<strong>Then</strong> system displays a bottom sheet with app information</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc41">
-<h3>LTC41<a class="headerlink" href="#ltc41" title="Link to this heading"></a></h3>
-<section id="show-app-information-on-pin-screen">
-<h4>Show app information on PIN screen<a class="headerlink" href="#show-app-information-on-pin-screen" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> system displays a PIN screen<br />
-<strong>When</strong> user selects ‘see details’<br />
-<strong>Then</strong> system displays a bottom sheet with app information</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="id3">
-<h3>LTC79<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
-<section id="get-help-on-pin-screen">
-<h4>Get help on PIN screen<a class="headerlink" href="#get-help-on-pin-screen" title="Link to this heading"></a></h4>
+<section id="ltc31">
+<h3>LTC31<a class="headerlink" href="#ltc31" title="Link to this heading"></a></h3>
+<section id="get-help">
+<h4>Get help<a class="headerlink" href="#get-help" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> system displays a PIN screen<br />
 <strong>When</strong> user selects ‘help’<br />
-<strong>Then</strong> system displays get help screen<br />
-<strong>When</strong> user selects back<br />
-<strong>Then</strong> system displays a PIN screen</p>
-</section>
+<strong>Then</strong> system displays get help screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="app-lock-security">
-<h2>App lock &amp; Security<a class="headerlink" href="#app-lock-security" title="Link to this heading"></a></h2>
-<section id="ltc42">
-<h3>LTC42<a class="headerlink" href="#ltc42" title="Link to this heading"></a></h3>
+<section id="ltc32">
+<h3>LTC32<a class="headerlink" href="#ltc32" title="Link to this heading"></a></h3>
 <section id="open-closed-app">
 <h4>Open closed app<a class="headerlink" href="#open-closed-app" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> the app is installed<br />
@@ -732,33 +595,32 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc43">
-<h3>LTC43<a class="headerlink" href="#ltc43" title="Link to this heading"></a></h3>
+<section id="ltc33">
+<h3>LTC33<a class="headerlink" href="#ltc33" title="Link to this heading"></a></h3>
 <section id="open-app-via-universal-link">
 <h4>Open app via universal link<a class="headerlink" href="#open-app-via-universal-link" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> the app is installed<br />
 <strong>And</strong> wallet is registered<br />
 <strong>When</strong> user opens the app by following a universal link<br />
 <strong>Then</strong> system validates the universal link<br />
-<strong>And</strong> app is opened<br />
-<strong>And</strong> system displays dashoboard</p>
+<strong>And</strong> app is opened</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc44">
-<h3>LTC44<a class="headerlink" href="#ltc44" title="Link to this heading"></a></h3>
-<section id="wallet-is-not-registered">
-<h4>Wallet is not registered<a class="headerlink" href="#wallet-is-not-registered" title="Link to this heading"></a></h4>
+<section id="ltc34">
+<h3>LTC34<a class="headerlink" href="#ltc34" title="Link to this heading"></a></h3>
+<section id="open-app-with-unregistered-wallet">
+<h4>Open app with unregistered wallet<a class="headerlink" href="#open-app-with-unregistered-wallet" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> the app is installed<br />
 <strong>When</strong> user opens the app<br />
 <strong>Then</strong> system displays introduction screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc45">
-<h3>LTC45<a class="headerlink" href="#ltc45" title="Link to this heading"></a></h3>
-<section id="app-is-not-installed-when-universal-link-is-invoked">
-<h4>App is not installed when universal link is invoked<a class="headerlink" href="#app-is-not-installed-when-universal-link-is-invoked" title="Link to this heading"></a></h4>
+<section id="ltc35">
+<h3>LTC35<a class="headerlink" href="#ltc35" title="Link to this heading"></a></h3>
+<section id="invoke-universal-link-when-app-is-not-installed">
+<h4>Invoke universal link when app is not installed<a class="headerlink" href="#invoke-universal-link-when-app-is-not-installed" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user invokes a universal link<br />
 <strong>And</strong> the app is not installed<br />
 <strong>Then</strong> system navigates user to fallback page<br />
@@ -766,17 +628,17 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc46">
-<h3>LTC46<a class="headerlink" href="#ltc46" title="Link to this heading"></a></h3>
-<section id="universal-link-is-opened-via-external-qr-scanner">
-<h4>Universal link is opened via external QR scanner<a class="headerlink" href="#universal-link-is-opened-via-external-qr-scanner" title="Link to this heading"></a></h4>
+<section id="ltc36">
+<h3>LTC36<a class="headerlink" href="#ltc36" title="Link to this heading"></a></h3>
+<section id="open-universal-link-via-external-qr-scanner">
+<h4>Open universal link via external QR scanner<a class="headerlink" href="#open-universal-link-via-external-qr-scanner" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user invokes a universal link using an external QR scanner<br />
 <strong>Then</strong> system displays message to rescan the QR code using the in-app scanner</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc47">
-<h3>LTC47<a class="headerlink" href="#ltc47" title="Link to this heading"></a></h3>
+<section id="ltc37">
+<h3>LTC37<a class="headerlink" href="#ltc37" title="Link to this heading"></a></h3>
 <section id="unlock-app-with-correct-pin">
 <h4>Unlock app with correct PIN<a class="headerlink" href="#unlock-app-with-correct-pin" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed setup of remote PIN and biometrics<br />
@@ -784,11 +646,12 @@ obtain card)<br />
 <strong>Then</strong> system displays PIN screen<br />
 <strong>When</strong> user enters correct PIN<br />
 <strong>Then</strong> system displays dashboard</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc48">
-<h3>LTC48<a class="headerlink" href="#ltc48" title="Link to this heading"></a></h3>
+<!-- Manual  --> 
+</section>
+</section>
+<section id="ltc38">
+<h3>LTC38<a class="headerlink" href="#ltc38" title="Link to this heading"></a></h3>
 <section id="unlock-app-with-biometric">
 <h4>Unlock app with biometric<a class="headerlink" href="#unlock-app-with-biometric" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed setup of remote PIN and biometrics<br />
@@ -796,11 +659,12 @@ obtain card)<br />
 <strong>Then</strong> system requests biometric<br />
 <strong>When</strong> user enters valid biometric<br />
 <strong>Then</strong> system displays dashboard</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc49">
-<h3>LTC49<a class="headerlink" href="#ltc49" title="Link to this heading"></a></h3>
+<!-- Manual  -->
+</section>
+</section>
+<section id="ltc39">
+<h3>LTC39<a class="headerlink" href="#ltc39" title="Link to this heading"></a></h3>
 <section id="unlock-app-with-invalid-biometric">
 <h4>Unlock app with invalid biometric<a class="headerlink" href="#unlock-app-with-invalid-biometric" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed setup of remote PIN and biometrics<br />
@@ -811,8 +675,8 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc50">
-<h3>LTC50<a class="headerlink" href="#ltc50" title="Link to this heading"></a></h3>
+<section id="ltc40">
+<h3>LTC40<a class="headerlink" href="#ltc40" title="Link to this heading"></a></h3>
 <section id="unlock-app-with-invalid-pin">
 <h4>Unlock app with invalid PIN<a class="headerlink" href="#unlock-app-with-invalid-pin" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed setup of remote PIN and biometrics<br />
@@ -823,46 +687,44 @@ obtain card)<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc51">
-<h3>LTC51<a class="headerlink" href="#ltc51" title="Link to this heading"></a></h3>
-<section id="user-selects-forgot-pin">
-<h4>User selects forgot PIN<a class="headerlink" href="#user-selects-forgot-pin" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has completed setup of remote PIN and biometrics<br />
-<strong>When</strong> user opens the app<br />
-<strong>And</strong> user selects ‘Forgot PIN?’<br />
-<strong>Then</strong> system displays forgot PIN screen<br />
-<strong>When</strong> user selects ‘Delete Wallet’<br />
-<strong>Then</strong> user enters UC9.4 Wipe all app data</p>
+<section id="ltc41">
+<h3>LTC41<a class="headerlink" href="#ltc41" title="Link to this heading"></a></h3>
+<section id="recover-pin">
+<h4>Recover PIN<a class="headerlink" href="#recover-pin" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user start PIN recovery<br />
+<strong>When</strong> user changes PIN successfully<br />
+<strong>Then</strong> user can use new PIN<br />
+<strong>And</strong> user can not use old PIN</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc52">
-<h3>LTC52<a class="headerlink" href="#ltc52" title="Link to this heading"></a></h3>
+<section id="ltc42">
+<h3>LTC42<a class="headerlink" href="#ltc42" title="Link to this heading"></a></h3>
 <section id="app-update-is-available">
 <h4>App update is available<a class="headerlink" href="#app-update-is-available" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> the app is installed<br />
 <strong>And</strong> an app update is available<br />
 <strong>When</strong> user opens the app<br />
-<strong>Then</strong> System displays a message on update informing the User that an update
+<strong>Then</strong> System displays a message on update informing user that an update
 is available and offers instructions on how to update</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc53">
-<h3>LTC53<a class="headerlink" href="#ltc53" title="Link to this heading"></a></h3>
+<section id="ltc43">
+<h3>LTC43<a class="headerlink" href="#ltc43" title="Link to this heading"></a></h3>
 <section id="current-app-version-is-blocked">
 <h4>Current app version is blocked<a class="headerlink" href="#current-app-version-is-blocked" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> the app is installed<br />
 <strong>And</strong> an app update is available<br />
 <strong>And</strong> current app version is blocked<br />
 <strong>When</strong> user opens the app<br />
-<strong>Then</strong> System displays a message on update informing the User that current app
+<strong>Then</strong> System displays a message on update informing user that current app
 version is blocked and offers instructions on how to update</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc54">
-<h3>LTC54<a class="headerlink" href="#ltc54" title="Link to this heading"></a></h3>
+<section id="ltc44">
+<h3>LTC44<a class="headerlink" href="#ltc44" title="Link to this heading"></a></h3>
 <section id="wallet-not-created-when-universal-link-is-invoked">
 <h4>Wallet not created when universal link is invoked<a class="headerlink" href="#wallet-not-created-when-universal-link-is-invoked" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user invokes a universal link<br />
@@ -871,26 +733,19 @@ version is blocked and offers instructions on how to update</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc55">
-<h3>LTC55<a class="headerlink" href="#ltc55" title="Link to this heading"></a></h3>
-<section id="id4">
-<h4>Invalid universal link<a class="headerlink" href="#id4" title="Link to this heading"></a></h4>
-<p><strong>When</strong> user invokes an invalid universal link<br />
-<strong>Then</strong> System displays an error message that universal link could not be opened</p>
+<section id="ltc45">
+<h3>LTC45<a class="headerlink" href="#ltc45" title="Link to this heading"></a></h3>
+<section id="change-pin">
+<h4>Change PIN<a class="headerlink" href="#change-pin" title="Link to this heading"></a></h4>
+<p><strong>When</strong> user changes the PIN code<br />
+<strong>Then</strong> the change is successful<br />
+<strong>And</strong> old PIN is unusable<br />
+<strong>And</strong> new PIN is usable</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc56">
-<h3>LTC56<a class="headerlink" href="#ltc56" title="Link to this heading"></a></h3>
-<section id="pin-change-happy-flow">
-<h4>PIN Change Happy flow<a class="headerlink" href="#pin-change-happy-flow" title="Link to this heading"></a></h4>
-<p><strong>When</strong> the user changes the PIN code<br />
-<strong>Then</strong> the change is successful</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc57">
-<h3>LTC57<a class="headerlink" href="#ltc57" title="Link to this heading"></a></h3>
+<section id="ltc46">
+<h3>LTC46<a class="headerlink" href="#ltc46" title="Link to this heading"></a></h3>
 <section id="pin-is-invalid-timeout">
 <h4>PIN is invalid timeout<a class="headerlink" href="#pin-is-invalid-timeout" title="Link to this heading"></a></h4>
 <p><strong>Scenario Outline:</strong><br />
@@ -920,8 +775,8 @@ version is blocked and offers instructions on how to update</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc58">
-<h3>LTC58<a class="headerlink" href="#ltc58" title="Link to this heading"></a></h3>
+<section id="ltc47">
+<h3>LTC47<a class="headerlink" href="#ltc47" title="Link to this heading"></a></h3>
 <section id="pin-is-invalid-block">
 <h4>PIN is invalid Block<a class="headerlink" href="#pin-is-invalid-block" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> system allows 4 rounds of 4 attempts each<br />
@@ -931,106 +786,37 @@ rounds<br />
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc59">
-<h3>LTC59<a class="headerlink" href="#ltc59" title="Link to this heading"></a></h3>
-<section id="mixed-pin-entry-success-and-failure">
-<h4>Mixed PIN entry success and failure<a class="headerlink" href="#mixed-pin-entry-success-and-failure" title="Link to this heading"></a></h4>
-<p><strong>Scenario Outline:</strong><br />
-<strong>Given</strong> system allows 4 rounds of 4 attempts each<br />
-<strong>And</strong> user enters their PIN invalid for <code class="docutils literal notranslate"><span class="pre">&lt;failures&gt;</span></code> attempt(s) in
-round <code class="docutils literal notranslate"><span class="pre">&lt;round&gt;</span></code><br />
-<strong>And</strong> enters their PIN in attempt <code class="docutils literal notranslate"><span class="pre">&lt;success_attempt&gt;</span></code> of the same
-round<br />
-<strong>Then</strong> system grants access without proceeding to timeout or block</p>
-<p><strong>Examples:</strong></p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>round</p></th>
-<th class="head"><p>failures</p></th>
-<th class="head"><p>success_attempt</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>1</p></td>
-<td><p>2</p></td>
-<td><p>3</p></td>
-</tr>
-<tr class="row-odd"><td><p>2</p></td>
-<td><p>1</p></td>
-<td><p>2</p></td>
-</tr>
-<tr class="row-even"><td><p>3</p></td>
-<td><p>3</p></td>
-<td><p>4</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc60">
-<h3>LTC60<a class="headerlink" href="#ltc60" title="Link to this heading"></a></h3>
-<section id="timeout-reset-after-successful-pin-entry">
-<h4>Timeout reset after successful PIN entry<a class="headerlink" href="#timeout-reset-after-successful-pin-entry" title="Link to this heading"></a></h4>
-<p><strong>Scenario Outline:</strong><br />
-<strong>Given</strong> the system allows 4 rounds of 4 attempts each<br />
-<strong>And</strong> user fails to enter their PIN correctly in round <code class="docutils literal notranslate"><span class="pre">&lt;round&gt;</span></code><br />
-<strong>And</strong> the timeout <code class="docutils literal notranslate"><span class="pre">&lt;Z{i}&gt;</span></code> is introduced<br />
-<strong>And</strong> user enters their PIN after the timeout<br />
-<strong>Then</strong> app resets the timeout policy for subsequent rounds</p>
-<p><strong>Examples:</strong></p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>round</p></th>
-<th class="head"><p>Z{i}</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>1</p></td>
-<td><p>1m</p></td>
-</tr>
-<tr class="row-odd"><td><p>2</p></td>
-<td><p>5m</p></td>
-</tr>
-<tr class="row-even"><td><p>3</p></td>
-<td><p>60m</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc61">
-<h3>LTC61<a class="headerlink" href="#ltc61" title="Link to this heading"></a></h3>
+<section id="ltc48">
+<h3>LTC48<a class="headerlink" href="#ltc48" title="Link to this heading"></a></h3>
 <section id="pin-entries-do-not-match-try-again">
 <h4>PIN entries do not match, try again<a class="headerlink" href="#pin-entries-do-not-match-try-again" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> the user enters the correct current PIN<br />
-<strong>When</strong> the user does an invalid confirmation<br />
-<strong>Then</strong> the system displays a message that the PIN entries are not equal and
-offers the user to try again</p>
+<p><strong>Given</strong> user enters the correct current PIN<br />
+<strong>When</strong> user does an invalid confirmation<br />
+<strong>Then</strong> system displays a message that the PIN entries are not equal and
+offers user to try again</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc62">
-<h3>LTC62<a class="headerlink" href="#ltc62" title="Link to this heading"></a></h3>
+<section id="ltc49">
+<h3>LTC49<a class="headerlink" href="#ltc49" title="Link to this heading"></a></h3>
 <section id="pin-entries-do-not-match-choose-new-pin">
 <h4>PIN entries do not match, choose new PIN<a class="headerlink" href="#pin-entries-do-not-match-choose-new-pin" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> the user PIN<br />
-<strong>When</strong> the user does an invalid confirmation<br />
-<strong>Then</strong> the system displays a message that the PIN entries are not equal and
-instructs the user to choose a new PIN</p>
+<p><strong>Given</strong> user enters PIN<br />
+<strong>When</strong> user does an invalid confirmation<br />
+<strong>Then</strong> system displays a message that the PIN entries are not equal and
+instructs user to choose a new PIN</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc63">
-<h3>LTC63<a class="headerlink" href="#ltc63" title="Link to this heading"></a></h3>
+<section id="ltc50">
+<h3>LTC50<a class="headerlink" href="#ltc50" title="Link to this heading"></a></h3>
 <section id="pin-entry-does-not-conform-to-policy">
 <h4>PIN entry does not conform to policy<a class="headerlink" href="#pin-entry-does-not-conform-to-policy" title="Link to this heading"></a></h4>
 <p><strong>Scenario Outline:</strong><br />
-<strong>Given</strong> the user enters the correct current PIN<br />
-<strong>When</strong> the user enters a PIN <code class="docutils literal notranslate"><span class="pre">&lt;pin&gt;</span></code> that does not conform to policy<br />
-<strong>Then</strong> the system displays a message that the PIN entry is not conformant and
-instructs the user to choose a new PIN</p>
+<strong>Given</strong> user enters the correct current PIN<br />
+<strong>When</strong> user enters a PIN <code class="docutils literal notranslate"><span class="pre">&lt;pin&gt;</span></code> that does not conform to policy<br />
+<strong>Then</strong> system displays a message that the PIN entry is not conformant and
+instructs user to choose a new PIN</p>
 <p><strong>Examples:</strong></p>
 <table class="docutils align-default">
 <thead>
@@ -1049,41 +835,20 @@ instructs the user to choose a new PIN</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc64">
-<h3>LTC64<a class="headerlink" href="#ltc64" title="Link to this heading"></a></h3>
-<section id="pin-change-fails-could-not-reach-server">
-<h4>PIN change fails, could not reach server<a class="headerlink" href="#pin-change-fails-could-not-reach-server" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> the server is not reachable<br />
-<strong>When</strong> the user changes the PIN code<br />
-<strong>Then</strong> the system displays message that the PIN change has failed and offers to try
-again</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc65">
-<h3>LTC65<a class="headerlink" href="#ltc65" title="Link to this heading"></a></h3>
-<section id="pin-change-fails-no-internet">
-<h4>PIN change fails, no internet<a class="headerlink" href="#pin-change-fails-no-internet" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> there is no internet connection<br />
-<strong>When</strong> the user changes the PIN code<br />
-<strong>Then</strong> the system displays message that the PIN change has failed and offers to try
-again</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc66">
-<h3>LTC66<a class="headerlink" href="#ltc66" title="Link to this heading"></a></h3>
-<section id="setup-pin-happy-flow">
-<h4>Setup PIN Happy flow<a class="headerlink" href="#setup-pin-happy-flow" title="Link to this heading"></a></h4>
+<section id="ltc51">
+<h3>LTC51<a class="headerlink" href="#ltc51" title="Link to this heading"></a></h3>
+<section id="setup-pin">
+<h4>Setup PIN<a class="headerlink" href="#setup-pin" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user completed introduction<br />
 <strong>When</strong> user enters a valid pin<br />
 <strong>And</strong> user confirms pin<br />
 <strong>Then</strong> remote pin is configured</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc67">
-<h3>LTC67<a class="headerlink" href="#ltc67" title="Link to this heading"></a></h3>
+<!-- Manual  -->
+</section>
+</section>
+<section id="ltc52">
+<h3>LTC52<a class="headerlink" href="#ltc52" title="Link to this heading"></a></h3>
 <section id="setup-pin-fails-device-does-not-pass-app-and-key-attestation">
 <h4>Setup PIN fails device does not pass app and key attestation<a class="headerlink" href="#setup-pin-fails-device-does-not-pass-app-and-key-attestation" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> device can not pass app and key attestation<br />
@@ -1092,76 +857,67 @@ again</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc68">
-<h3>LTC68<a class="headerlink" href="#ltc68" title="Link to this heading"></a></h3>
-<section id="user-forgot-pin">
-<h4>User forgot PIN<a class="headerlink" href="#user-forgot-pin" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> PIN screen is shown<br />
-<strong>When</strong> user selects forgot PIN<br />
-<strong>Then</strong> System displays a link to delete wallet</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc69">
-<h3>LTC69<a class="headerlink" href="#ltc69" title="Link to this heading"></a></h3>
-<section id="manual-logout-from-menu">
-<h4>Manual logout from menu<a class="headerlink" href="#manual-logout-from-menu" title="Link to this heading"></a></h4>
+<section id="ltc53">
+<h3>LTC53<a class="headerlink" href="#ltc53" title="Link to this heading"></a></h3>
+<section id="logout-from-menu">
+<h4>Logout from menu<a class="headerlink" href="#logout-from-menu" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has completed PID setup and opened the app<br />
 <strong>When</strong> user selects ‘Logout’ from the menu<br />
-<strong>Then</strong> system logs out the user<br />
+<strong>Then</strong> system logs out user<br />
 <strong>And</strong> displays the PIN screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc70">
-<h3>LTC70<a class="headerlink" href="#ltc70" title="Link to this heading"></a></h3>
+<section id="ltc54">
+<h3>LTC54<a class="headerlink" href="#ltc54" title="Link to this heading"></a></h3>
 <section id="logout-due-to-inactivity">
 <h4>Logout due to inactivity<a class="headerlink" href="#logout-due-to-inactivity" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user is inactive for warning timeout Z<br />
 <strong>Then</strong> system displays inactivity prompt<br />
 <strong>When</strong> user remains inactive for X - Z minutes<br />
-<strong>Then</strong> system logs out the user<br />
+<strong>Then</strong> system logs out user<br />
 <strong>And</strong> displays the PIN screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc71">
-<h3>LTC71<a class="headerlink" href="#ltc71" title="Link to this heading"></a></h3>
+<section id="ltc55">
+<h3>LTC55<a class="headerlink" href="#ltc55" title="Link to this heading"></a></h3>
 <section id="logout-due-to-background-timeout">
 <h4>Logout due to background timeout<a class="headerlink" href="#logout-due-to-background-timeout" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user puts the app in the background<br />
 <strong>When</strong> background timeout Y elapses<br />
-<strong>Then</strong> system logs out the user<br />
+<strong>Then</strong> system logs out user<br />
 <strong>And</strong> app remains in the background</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc72">
-<h3>LTC72<a class="headerlink" href="#ltc72" title="Link to this heading"></a></h3>
-<section id="user-confirms-logout-on-inactivity-prompt">
-<h4>User confirms logout on inactivity prompt<a class="headerlink" href="#user-confirms-logout-on-inactivity-prompt" title="Link to this heading"></a></h4>
+<section id="ltc56">
+<h3>LTC56<a class="headerlink" href="#ltc56" title="Link to this heading"></a></h3>
+<section id="confirm-logout-on-inactivity-prompt">
+<h4>Confirm logout on inactivity prompt<a class="headerlink" href="#confirm-logout-on-inactivity-prompt" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> system displays inactivity prompt<br />
 <strong>When</strong> user selects ‘Log out’<br />
-<strong>Then</strong> system logs out the user<br />
+<strong>Then</strong> system logs out user<br />
 <strong>And</strong> displays the PIN screen</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc73">
-<h3>LTC73<a class="headerlink" href="#ltc73" title="Link to this heading"></a></h3>
-<section id="user-dismisses-inactivity-prompt">
-<h4>User dismisses inactivity prompt<a class="headerlink" href="#user-dismisses-inactivity-prompt" title="Link to this heading"></a></h4>
+<section id="ltc57">
+<h3>LTC57<a class="headerlink" href="#ltc57" title="Link to this heading"></a></h3>
+<section id="dismiss-inactivity-prompt">
+<h4>Dismiss inactivity prompt<a class="headerlink" href="#dismiss-inactivity-prompt" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> system displays inactivity prompt<br />
 <strong>When</strong> user selects ‘Yes, continue’<br />
 <strong>Then</strong> prompt is dismissed<br />
 <strong>And</strong> system displays the currently active screen</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc74">
-<h3>LTC74<a class="headerlink" href="#ltc74" title="Link to this heading"></a></h3>
-<section id="user-skips-setting-up-biometrics">
-<h4>User skips setting up biometrics<a class="headerlink" href="#user-skips-setting-up-biometrics" title="Link to this heading"></a></h4>
+<!-- Manual  --> 
+</section>
+</section>
+<section id="ltc58">
+<h3>LTC58<a class="headerlink" href="#ltc58" title="Link to this heading"></a></h3>
+<section id="skip-setting-up-biometrics">
+<h4>Skip setting up biometrics<a class="headerlink" href="#skip-setting-up-biometrics" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has set up pin<br />
 <strong>And</strong> device supports biometrics<br />
 <strong>When</strong> user skips setting up biometrics<br />
@@ -1169,29 +925,31 @@ again</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc75">
-<h3>LTC75<a class="headerlink" href="#ltc75" title="Link to this heading"></a></h3>
+<section id="ltc59">
+<h3>LTC59<a class="headerlink" href="#ltc59" title="Link to this heading"></a></h3>
 <section id="device-does-not-support-biometrics">
 <h4>Device does not support biometrics<a class="headerlink" href="#device-does-not-support-biometrics" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> device does not support biometrics<br />
 <strong>When</strong> user open apps settings menu<br />
 <strong>Then</strong> system does not display biometric configuration option</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc76">
-<h3>LTC76<a class="headerlink" href="#ltc76" title="Link to this heading"></a></h3>
-<section id="user-disables-biometrics">
-<h4>User disables biometrics<a class="headerlink" href="#user-disables-biometrics" title="Link to this heading"></a></h4>
+<!-- Manual  --> 
+</section>
+</section>
+<section id="ltc60">
+<h3>LTC60<a class="headerlink" href="#ltc60" title="Link to this heading"></a></h3>
+<section id="disable-biometrics">
+<h4>Disable biometrics<a class="headerlink" href="#disable-biometrics" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has enabled biometrics<br />
 <strong>When</strong> user disables biometrics<br />
 <strong>Then</strong> biometrics is disabled<br />
 <strong>And</strong> user can not use biometric login</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc77">
-<h3>LTC77<a class="headerlink" href="#ltc77" title="Link to this heading"></a></h3>
+<!-- Manual  --> 
+</section>
+</section>
+<section id="ltc61">
+<h3>LTC61<a class="headerlink" href="#ltc61" title="Link to this heading"></a></h3>
 <section id="setup-biometrics-in-settings">
 <h4>Setup biometrics in settings<a class="headerlink" href="#setup-biometrics-in-settings" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has not enabled biometrics<br />
@@ -1202,26 +960,14 @@ again</p>
 <strong>And</strong> user enter biometric<br />
 <strong>Then</strong> biometrics is enabled<br />
 <strong>And</strong> user can use biometric login</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc78">
-<h3>LTC78<a class="headerlink" href="#ltc78" title="Link to this heading"></a></h3>
-<section id="user-enters-invalid-current-pin">
-<h4>User enters invalid current PIN<a class="headerlink" href="#user-enters-invalid-current-pin" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user has completed PID and opened the app<br />
-<strong>And</strong> device supports biometrics<br />
-<strong>When</strong> user enables biometrics<br />
-<strong>And</strong> user enters correct biometric<br />
-<strong>And</strong> user enters invalid PIN<br />
-<strong>Then</strong> system handles it according to retry policy</p>
+<!-- Manual  --> 
 </section>
 </section>
-<hr class="docutils" />
-<section id="id5">
-<h3>LTC79<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
-<section id="wallet-transfer-happy-flow">
-<h4>Wallet transfer happy flow<a class="headerlink" href="#wallet-transfer-happy-flow" title="Link to this heading"></a></h4>
+<section id="ltc62">
+<h3>LTC62<a class="headerlink" href="#ltc62" title="Link to this heading"></a></h3>
+<section id="transfer-wallet">
+<h4>Transfer wallet<a class="headerlink" href="#transfer-wallet" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has an existing active source wallet<br />
 <strong>And</strong> user has completed PID issuance on its destination wallet<br />
 <strong>When</strong> user completes wallet transfer<br />
@@ -1229,25 +975,27 @@ again</p>
 <strong>And</strong> the destination wallet is active<br />
 <strong>And</strong> the source wallet does not contain data<br />
 <strong>And</strong> the source wallet is inactive</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc80">
-<h3>LTC80<a class="headerlink" href="#ltc80" title="Link to this heading"></a></h3>
-<section id="user-stops-transfer-flow-on-source-device">
-<h4>User stops transfer flow on source device<a class="headerlink" href="#user-stops-transfer-flow-on-source-device" title="Link to this heading"></a></h4>
+<!-- Manual  --> 
+</section>
+</section>
+<section id="ltc63">
+<h3>LTC63<a class="headerlink" href="#ltc63" title="Link to this heading"></a></h3>
+<section id="stop-transfer-flow-on-source-device">
+<h4>Stop transfer flow on source device<a class="headerlink" href="#stop-transfer-flow-on-source-device" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has an existing active source wallet<br />
 <strong>And</strong> user has completed PID issuance on its destination wallet<br />
 <strong>When</strong> user aborts wallet transfer on the source device<br />
 <strong>Then</strong> the source wallet displays the dashboard screen<br />
 <strong>And</strong> user is prompted on the destination device to try again</p>
-</section>
-</section>
 <hr class="docutils" />
-<section id="ltc81">
-<h3>LTC81<a class="headerlink" href="#ltc81" title="Link to this heading"></a></h3>
-<section id="user-stops-transfer-flow-on-destination-device">
-<h4>User stops transfer flow on destination device<a class="headerlink" href="#user-stops-transfer-flow-on-destination-device" title="Link to this heading"></a></h4>
+<!-- Manual  -->
+</section>
+</section>
+<section id="ltc64">
+<h3>LTC64<a class="headerlink" href="#ltc64" title="Link to this heading"></a></h3>
+<section id="stop-transfer-flow-on-destination-device">
+<h4>Stop transfer flow on destination device<a class="headerlink" href="#stop-transfer-flow-on-destination-device" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has an existing active source wallet<br />
 <strong>And</strong> user has completed PID issuance on its destination wallet<br />
 <strong>When</strong> user aborts wallet transfer on the destination device<br />
@@ -1256,26 +1004,15 @@ again</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="ltc82">
-<h3>LTC82<a class="headerlink" href="#ltc82" title="Link to this heading"></a></h3>
-<section id="user-selects-another-card-to-be-disclosed">
-<h4>User selects another card to be disclosed<a class="headerlink" href="#user-selects-another-card-to-be-disclosed" title="Link to this heading"></a></h4>
+<section id="ltc65">
+<h3>LTC65<a class="headerlink" href="#ltc65" title="Link to this heading"></a></h3>
+<section id="select-another-card-to-be-disclosed">
+<h4>Select another card to be disclosed<a class="headerlink" href="#select-another-card-to-be-disclosed" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> user has multiple cards that can fulfill a disclosure request<br />
 <strong>When</strong> user starts disclosure<br />
 <strong>Then</strong> system offers user option to select another card<br />
 <strong>When</strong> user selects a card<br />
 <strong>Then</strong> the requested attributes are disclosed from the previously selected card</p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="ltc83">
-<h3>LTC83<a class="headerlink" href="#ltc83" title="Link to this heading"></a></h3>
-<section id="recover-pin-happy-flow">
-<h4>Recover PIN happy flow<a class="headerlink" href="#recover-pin-happy-flow" title="Link to this heading"></a></h4>
-<p><strong>Given</strong> user start PIN recovery<br />
-<strong>When</strong> user changes PIN successfully<br />
-<strong>Then</strong> user can use new PIN<br />
-<strong>And</strong> user can not use old PIN</p>
 </section>
 </section>
 </section>
