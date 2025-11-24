@@ -60,7 +60,7 @@ verify-flutter-localizations:
     - dart run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
-test-flutter-rust-brdige-codegen:
+test-flutter-rust-bridge-codegen:
   extends: [.rust, .flutter]
   rules: !reference [.default-or-release-or-merge-request, rules]
   script:
