@@ -2,16 +2,16 @@
 
 ## Overview
 
-| Aspect                       | Description                                                                                                                                                                                                          |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Summary**                  | The user opens the app menu to access features like app tours, help, settings, activity history, feedback, and app info, with the ability to scan QR codes,<br>log out, or navigate back to the main dashboard.      |
-| **Goal**                     | Navigating to actions via the menu.                                                                                                                                                                                  |
-| **Preconditions**            | _None_                                                                                                                                                                                                               |
-| **Postconditions**           | _None_                                                                                                                                                                                                               |
-| **Triggered by**             | <ul><li>User selects 'Menu' in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md).</li></ul>                                                                                                           |
-| **Additional Documentation** | _None_                                                                                                                                                                                                               |
-| **Possible errors**          | _None_                                                                                                                                                                                                               |
-| **Logical test cases**       | <ul><li>[LTC34 Show app menu](../logical-test-cases.md#ltc34)</li><li>[LTC35 Settings menu](../logical-test-cases.md#ltc35)</li><li>[LTC38 Show language selection screen](../logical-test-cases.md#ltc38)</li></ul> |
+| Aspect                       | Description                                                                                                                                                                                                               |
+| ---------------------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user opens the app menu to access features like app tours, help, settings, activity history, feedback, and app info, with the ability to scan QR codes,<br>log out, or navigate back to the main dashboard.           |
+| **Goal**                     | Navigating to actions via the menu.                                                                                                                                                                                       |
+| **Preconditions**            | _None_                                                                                                                                                                                                                    |
+| **Postconditions**           | _None_                                                                                                                                                                                                                    |
+| **Triggered by**             | <ul><li>User selects 'Menu' in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md).</li></ul>                                                                                                                |
+| **Additional Documentation** | _None_                                                                                                                                                                                                                    |
+| **Possible errors**          | _None_                                                                                                                                                                                                                    |
+| **Logical test cases**       | <ul><li>[LTC26 View app menu](../logical-test-cases.md#ltc26)</li><li>[LTC27 View settings menu](../logical-test-cases.md#ltc27)</li></ul> |
 
 ---
 

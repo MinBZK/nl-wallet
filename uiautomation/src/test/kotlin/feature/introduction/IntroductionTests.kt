@@ -32,7 +32,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC13 Introduction Happy flow")
+    @DisplayName("LTC12 LTC29 Introduction & privacy statement")
     @Tags(Tag("smokeIOS"), Tag("smoke"), Tag("a11yBatch1"))
     fun verifyWelcomeScreen(testInfo: TestInfo) {
         setUp(testInfo)
@@ -61,7 +61,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC14 User skips introduction")
+    @DisplayName("LTC13 User skips introduction")
     fun verifySkipIntroButton(testInfo: TestInfo) {
         setUp(testInfo)
 

@@ -46,7 +46,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC47 Unlock app with correct PIN")
+    @DisplayName("LTC37 Unlock app with correct PIN")
     fun verifyPinScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
@@ -59,7 +59,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.")
+    @DisplayName("LTC37 Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.")
     @Tags(Tag("a11yBatch2"))
     fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
         setUp(testInfo)
@@ -87,7 +87,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC50 Unlock app with invalid PIN")
+    @DisplayName("LTC40 LTC46 Unlock app with invalid PIN")
     fun verifyRetriesAndTimeout(testInfo: TestInfo) {
         setUp(testInfo)
         pinScreen.enterPin("123456")
@@ -121,7 +121,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC47 The PIN entry screen offers an entrance to the App Info page.")
+    @DisplayName("LTC28 The PIN entry screen offers an entrance to the App Info page.")
     fun verifyAppInfoButton(testInfo: TestInfo) {
         setUp(testInfo)
         pinScreen.clickAppInfoButton()

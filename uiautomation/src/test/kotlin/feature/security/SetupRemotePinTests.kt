@@ -36,7 +36,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC66 Setup PIN happy flow")
+    @DisplayName("LTC51 Setup PIN")
     fun verifyChoosePinScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")
@@ -63,7 +63,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC63 PIN entry does not conform to policy")
+    @DisplayName("LTC50 PIN entry does not conform to policy")
     @Tags(Tag("a11yBatch2"))
     fun verifyPinTwoUniqueDigitsError(testInfo: TestInfo) {
         setUp(testInfo)
@@ -90,7 +90,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC61 PIN entries do not match, try again")
+    @DisplayName("LTC48 PIN entries do not match, try again")
     @Tags(Tag("a11yBatch2"))
     fun verifyIncorrectConfirmPin(testInfo: TestInfo) {
         setUp(testInfo)
@@ -102,7 +102,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC62 PIN entries do not match, choose new PIN")
+    @DisplayName("LTC49 PIN entries do not match, choose new PIN")
     @Tags(Tag("a11yBatch2"))
     fun verifyRestartChoosePin(testInfo: TestInfo) {
         setUp(testInfo)
