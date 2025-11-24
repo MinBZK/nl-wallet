@@ -9,6 +9,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -51,6 +52,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
+use crate::claims::NonSelectivelyDisclosableClaimsError;
 use crate::claims::ObjectClaims;
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
@@ -380,6 +382,12 @@ impl VerifiedSdJwt {
         self.claims()
             .claims
             .verify_selective_disclosability(claim_path, 0, &self.disclosures, sd_metadata)
+    }
+
+    pub fn non_selectively_disclosable_claims(
+        &self,
+    ) -> Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
+        self.issuer_signed.payload().claims.non_selectively_disclosable_claims()
     }
 }
 
