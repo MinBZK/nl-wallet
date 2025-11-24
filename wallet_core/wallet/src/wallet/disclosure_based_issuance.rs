@@ -342,6 +342,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::MsoMdoc { mdoc },
             metadata,
+            None,
         );
 
         let expectation_attestation_copy = stored_attestation_copy.clone();

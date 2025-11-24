@@ -39,6 +39,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AttestationCopy::StatusListUrl).text().null())
                     .col(ColumnDef::new(AttestationCopy::StatusListIndex).integer().null())
                     .col(ColumnDef::new(AttestationCopy::IssuerCertificateDn).text().not_null())
+                    .col(ColumnDef::new(AttestationCopy::RevocationStatus).string().null())
                     .col(
                         ColumnDef::new(AttestationCopy::Format)
                             // SQLite doesn't have proper enum support, so we simulate that here with a custom type
@@ -100,4 +101,5 @@ enum AttestationCopy {
     StatusListUrl,
     StatusListIndex,
     IssuerCertificateDn,
+    RevocationStatus,
 }

@@ -1088,6 +1088,7 @@ mod tests {
                     ),
                 },
                 metadata,
+                None,
             ),
             CredentialFormat::SdJwt => StoredAttestationCopy::new(
                 Uuid::new_v4(),
@@ -1101,6 +1102,7 @@ mod tests {
                     ),
                 },
                 metadata,
+                None,
             ),
         }
     }

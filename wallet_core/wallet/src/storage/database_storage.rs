@@ -63,6 +63,7 @@ use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+use token_status_list::verification::verifier::RevocationStatus;
 #[cfg(not(debug_assertions))]
 use utils::built_info::version_identifier;
 
@@ -195,6 +196,7 @@ impl<K> DatabaseStorage<K> {
             .column(attestation_copy::Column::AttestationId)
             .column(attestation_copy::Column::AttestationFormat)
             .column(attestation_copy::Column::KeyIdentifier)
+            .column(attestation_copy::Column::RevocationStatus)
             .column(attestation_copy::Column::Attestation)
             .column(attestation::Column::TypeMetadata)
             .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
@@ -206,10 +208,10 @@ impl<K> DatabaseStorage<K> {
             None => select,
         };
 
-        let copies: Vec<(Uuid, Uuid, AttestationFormat, String, CompressedBlob, TypeMetadataModel)> =
-            select.into_tuple().all(database.connection()).await?;
-
-        let attestations = copies
+        let attestations = select
+            .into_tuple()
+            .all(database.connection())
+            .await?
             .into_iter()
             .map(
                 |(
@@ -217,9 +219,10 @@ impl<K> DatabaseStorage<K> {
                     attestation_id,
                     attestation_format,
                     key_identifier,
+                    revocation_status,
                     attestation_bytes,
                     metadata,
-                )| {
+                ): (_, _, _, _, Option<String>, CompressedBlob, TypeMetadataModel)| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -243,6 +246,8 @@ impl<K> DatabaseStorage<K> {
                         attestation_copy_id,
                         attestation,
                         normalized_metadata,
+                        revocation_status: revocation_status
+                            .map(|status| status.parse().expect("stored revocation status should be parseable")),
                     };
 
                     Ok(stored_copy)
@@ -990,6 +995,23 @@ where
 
         Ok(result.into_iter().map(Into::into).collect_vec())
     }
+
+    async fn update_revocation_status(
+        &self,
+        attestation_copy_id: Uuid,
+        revocation_status: RevocationStatus,
+    ) -> StorageResult<()> {
+        attestation_copy::Entity::update_many()
+            .col_expr(
+                attestation_copy::Column::RevocationStatus,
+                Expr::value(revocation_status.to_string()),
+            )
+            .filter(attestation_copy::Column::Id.eq(attestation_copy_id))
+            .exec(self.database()?.connection())
+            .await?;
+
+        Ok(())
+    }
 }
 
 fn create_attestation_copy_models(
@@ -1026,6 +1048,7 @@ fn create_attestation_copy_models(
                     status_list_url: Set(status_uri),
                     status_list_index: Set(status_index),
                     issuer_certificate_dn: Set(issuer_certificate_dn),
+                    revocation_status: Set(None),
                     attestation: Set(CompressedBlob::new(&attestation_bytes)?),
                 };
 
@@ -1055,6 +1078,7 @@ fn create_attestation_copy_models(
                     status_list_url: Set(status_uri),
                     status_list_index: Set(status_index),
                     issuer_certificate_dn: Set(issuer_certificate_dn),
+                    revocation_status: Set(None),
                     attestation: Set(CompressedBlob::new(&attestation_bytes)?),
                 };
 
@@ -2243,8 +2267,19 @@ pub(crate) mod tests {
         );
     }
 
+    async fn find_revocation_status(db: &impl ConnectionTrait, attestation_copy_id: Uuid) -> Option<RevocationStatus> {
+        attestation_copy::Entity::find_by_id(attestation_copy_id)
+            .select_only()
+            .column(attestation_copy::Column::RevocationStatus)
+            .into_tuple::<Option<String>>()
+            .one(db)
+            .await
+            .unwrap()
+            .and_then(|status| status.map(|s| s.parse().unwrap()))
+    }
+
     #[tokio::test]
-    async fn test_fetch_all_revocation_info() {
+    async fn test_fetch_all_revocation_info_and_update_status() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let state = storage.state().await.unwrap();
@@ -2290,6 +2325,29 @@ pub(crate) mod tests {
         assert_eq!(
             ISSUER_KEY.certificate().distinguished_name_canonical().unwrap(),
             revocation_info.issuer_cert_distinguished_name
+        );
+
+        assert_eq!(
+            None,
+            find_revocation_status(
+                storage.database().unwrap().connection(),
+                revocation_info.attestation_copy_id,
+            )
+            .await
+        );
+
+        storage
+            .update_revocation_status(revocation_info.attestation_copy_id, RevocationStatus::Valid)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            Some(RevocationStatus::Valid),
+            find_revocation_status(
+                storage.database().unwrap().connection(),
+                revocation_info.attestation_copy_id,
+            )
+            .await
         );
     }
 }

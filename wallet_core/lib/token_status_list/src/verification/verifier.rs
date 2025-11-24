@@ -11,7 +11,8 @@ use utils::generator::Generator;
 use crate::status_list::StatusType;
 use crate::verification::client::StatusListClient;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum RevocationStatus {
     Valid,
     Invalid,

@@ -1099,6 +1099,7 @@ mod tests {
                     sd_jwt,
                 },
                 metadata,
+                None,
             )
         };
         let stored_clone = stored.clone();
@@ -1318,6 +1319,7 @@ mod tests {
                 sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
+            None,
         );
 
         let stored_clone = stored.clone();
@@ -1446,6 +1448,7 @@ mod tests {
                         sd_jwt,
                     },
                     metadata,
+                    None,
                 )])
             });
 
@@ -1834,6 +1837,7 @@ mod tests {
                 sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
+            None,
         );
 
         // When the attestation already exists in the database, we expect the identity to be known

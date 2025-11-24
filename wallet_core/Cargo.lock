@@ -2104,6 +2104,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "token_status_list",
  "uuid",
  "zstd",
 ]
@@ -6869,6 +6870,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",
  "tracing",

@@ -13,6 +13,7 @@ use mdoc::holder::disclosure::PartialMdoc;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::AttestationIdentity;
@@ -55,6 +56,7 @@ pub struct StoredAttestationCopy {
     pub(super) attestation_copy_id: Uuid,
     pub(super) attestation: StoredAttestation,
     pub(super) normalized_metadata: NormalizedTypeMetadata,
+    pub(super) revocation_status: Option<RevocationStatus>,
 }
 
 /// A subset of the attributes of an attestation that is present in the wallet database. In this sense it represents a
@@ -371,6 +373,7 @@ mod tests {
             attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestation::MsoMdoc { mdoc },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
+            revocation_status: None,
         };
 
         let bsn_path = vec![
@@ -399,6 +402,7 @@ mod tests {
                 sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
+            revocation_status: None,
         };
 
         let bsn_path = vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap();

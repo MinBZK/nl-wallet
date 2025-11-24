@@ -33,6 +33,7 @@ use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use token_status_list::verification::verifier::RevocationStatus;
 
 use crate::AttestationPresentation;
 use crate::storage::revocation_info::RevocationInfo;
@@ -221,4 +222,9 @@ pub trait Storage {
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 
     async fn fetch_all_revocation_info(&self) -> StorageResult<Vec<RevocationInfo>>;
+    async fn update_revocation_status(
+        &self,
+        attestation_copy_id: Uuid,
+        revocation_status: RevocationStatus,
+    ) -> StorageResult<()>;
 }

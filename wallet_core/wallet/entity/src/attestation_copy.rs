@@ -18,6 +18,7 @@ pub struct Model {
     pub status_list_url: Option<String>,
     pub status_list_index: Option<u32>,
     pub issuer_certificate_dn: DistinguishedName,
+    pub revocation_status: Option<String>,
     pub attestation_format: AttestationFormat,
     pub attestation: CompressedBlob,
 }

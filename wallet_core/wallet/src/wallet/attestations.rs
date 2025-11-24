@@ -137,12 +137,14 @@ mod tests {
                         sd_jwt,
                     },
                     sd_jwt_metadata,
+                    None,
                 ),
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::MsoMdoc { mdoc },
                     mdoc_metadata,
+                    None,
                 ),
             ])
         });

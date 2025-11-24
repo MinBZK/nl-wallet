@@ -610,6 +610,7 @@ mod tests {
                         sd_jwt: create_example_pid_sd_jwt().0,
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
+                    None,
                 )])
             });
 
@@ -914,6 +915,7 @@ mod tests {
                         sd_jwt: create_example_pid_sd_jwt().0,
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
+                    None,
                 )])
             });
 
