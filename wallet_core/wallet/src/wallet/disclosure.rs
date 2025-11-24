@@ -590,7 +590,7 @@ where
         if non_requested_claims.peek().is_some() {
             Err(DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(
                 non_requested_claims.cloned().collect(),
-                request.credential_types().map(ToString::to_string).collect_vec(),
+                request.credential_types().map(ToString::to_string).collect(),
             ))
         } else {
             Ok(())
@@ -2915,7 +2915,7 @@ mod tests {
         let type_metadata_with_non_selectively_disclocable_claim =
             NormalizedTypeMetadata::from_single_example(type_metadata_with_non_selectively_disclosable_claim);
 
-        // Create a credential payload with a selectable and a non-selectable claim
+        // Create a credential payload with a selectable and a non-selectively disclosable claim
         let previewable_payload = CredentialPayload::example_with_attributes(
             my_attestation_type,
             Attributes::example([
