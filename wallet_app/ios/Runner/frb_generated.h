@@ -225,10 +225,6 @@ typedef struct wire_cst_WalletState_Transferring {
   int32_t role;
 } wire_cst_WalletState_Transferring;
 
-typedef struct wire_cst_WalletState_Issuance {
-  bool pid;
-} wire_cst_WalletState_Issuance;
-
 typedef struct wire_cst_WalletState_WalletBlocked {
   int32_t reason;
 } wire_cst_WalletState_WalletBlocked;
@@ -236,7 +232,6 @@ typedef struct wire_cst_WalletState_WalletBlocked {
 typedef union WalletStateKind {
   struct wire_cst_WalletState_Locked Locked;
   struct wire_cst_WalletState_Transferring Transferring;
-  struct wire_cst_WalletState_Issuance Issuance;
   struct wire_cst_WalletState_WalletBlocked WalletBlocked;
 } WalletStateKind;
 

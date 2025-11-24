@@ -13,36 +13,32 @@ use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
+use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::TransferData;
 use crate::storage::TransferKeyData;
-use crate::wallet::disclosure::DisclosureError;
-use crate::wallet::issuance::IssuanceError;
+use crate::wallet::Session;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletStateError {
     #[error("error fetching data from storage: {0}")]
     Storage(#[from] StorageError),
-    #[error("error checking for active issuance session: {0}")]
-    Issuance(#[from] IssuanceError),
-    #[error("error checking for active disclosure session: {0}")]
-    Disclosure(#[from] DisclosureError),
 }
 
 pub enum WalletState {
-    Ready,
+    WalletBlocked { reason: WalletBlockedReason },
     Registration,
     Empty,
     Locked { sub_state: Box<WalletState> },
     TransferPossible,
     Transferring { role: WalletTransferRole },
     Disclosure,
-    Issuance { pid: bool },
+    Issuance,
     PinChange,
     PinRecovery,
-    WalletBlocked { reason: WalletBlockedReason },
+    Ready,
 }
 
 pub enum WalletBlockedReason {
@@ -68,25 +64,33 @@ where
 {
     #[instrument(skip_all)]
     pub async fn get_state(&self) -> Result<WalletState, WalletStateError> {
+        if self.is_blocked() {
+            return Ok(WalletState::WalletBlocked {
+                reason: WalletBlockedReason::RequiresAppUpdate,
+            });
+        }
+
         if !self.has_registration() {
             return Ok(WalletState::Registration);
         }
 
-        let is_empty = self.storage.read().await.fetch_unique_attestations().await?.is_empty();
-        let sub_state = if is_empty {
-            WalletState::Empty
-        } else {
-            WalletState::Ready
-        };
+        let flow_state = self.get_flow_state().await?;
 
-        // TODO: Implement logic for other WalletStates, this is a temp. implementation to allow the app to start.
         if self.is_locked() {
-            return Ok(WalletState::Locked {
-                sub_state: Box::new(sub_state),
-            });
+            Ok(WalletState::Locked {
+                sub_state: Box::new(flow_state),
+            })
+        } else {
+            Ok(flow_state)
         }
+    }
 
-        if let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? {
+    async fn get_flow_state(&self) -> Result<WalletState, WalletStateError> {
+        let read_storage = self.storage.read().await;
+
+        let is_empty = read_storage.fetch_unique_attestations().await?.is_empty();
+
+        if let Some(transfer_data) = read_storage.fetch_data::<TransferData>().await? {
             return Ok(transfer_data
                 .key_data
                 .map(|key_data| {
@@ -99,12 +103,20 @@ where
                 .unwrap_or(WalletState::TransferPossible));
         }
 
-        if self.has_active_disclosure_session()? {
-            return Ok(WalletState::Disclosure);
+        if let Some(session) = &self.session {
+            return match session {
+                Session::Digid(_) => Ok(WalletState::Issuance),
+                Session::Issuance(_) => Ok(WalletState::Issuance),
+                Session::Disclosure(_) => Ok(WalletState::Disclosure),
+                Session::PinRecovery { .. } => Ok(WalletState::PinRecovery),
+            };
+        }
+        if self.storage.get_change_pin_state().await?.is_some() {
+            return Ok(WalletState::PinChange);
         }
 
-        if self.has_active_issuance_session()? {
-            return Ok(WalletState::Issuance { pid: false });
+        if is_empty {
+            return Ok(WalletState::Empty);
         }
 
         Ok(WalletState::Ready)

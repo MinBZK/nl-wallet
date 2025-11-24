@@ -2149,9 +2149,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 6:
         return WalletState_Disclosure();
       case 7:
-        return WalletState_Issuance(
-          pid: dco_decode_bool(raw[1]),
-        );
+        return WalletState_Issuance();
       case 8:
         return WalletState_PinChange();
       case 9:
@@ -3031,8 +3029,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 6:
         return WalletState_Disclosure();
       case 7:
-        var var_pid = sse_decode_bool(deserializer);
-        return WalletState_Issuance(pid: var_pid);
+        return WalletState_Issuance();
       case 8:
         return WalletState_PinChange();
       case 9:
@@ -3897,9 +3894,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_wallet_transfer_role(role, serializer);
       case WalletState_Disclosure():
         sse_encode_i_32(6, serializer);
-      case WalletState_Issuance(pid: final pid):
+      case WalletState_Issuance():
         sse_encode_i_32(7, serializer);
-        sse_encode_bool(pid, serializer);
       case WalletState_PinChange():
         sse_encode_i_32(8, serializer);
       case WalletState_PinRecovery():
