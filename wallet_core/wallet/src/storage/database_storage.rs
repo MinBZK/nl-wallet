@@ -55,6 +55,7 @@ use entity::disclosure_event_attestation;
 use entity::issuance_event;
 use entity::issuance_event_attestation;
 use entity::keyed_data;
+use entity::revocation_info;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::issuance_session::CredentialWithMetadata;
@@ -68,6 +69,7 @@ use utils::built_info::version_identifier;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
+use crate::storage::revocation_info::RevocationInfo;
 
 use super::DatabaseExport;
 use super::Storage;
@@ -971,6 +973,22 @@ where
             .unwrap_or(false);
 
         Ok(exists)
+    }
+
+    async fn fetch_all_revocation_info(&self) -> StorageResult<Vec<RevocationInfo>> {
+        let connection = self.database()?.connection();
+
+        let query = attestation_copy::Entity::find()
+            .select_only()
+            .column(attestation_copy::Column::Id)
+            .column(attestation_copy::Column::StatusListUrl)
+            .column(attestation_copy::Column::StatusListIndex)
+            .column(attestation_copy::Column::IssuerCertificateDn)
+            .into_partial_model::<revocation_info::RevocationInfo>();
+
+        let result = query.all(connection).await?;
+
+        Ok(result.into_iter().map(Into::into).collect_vec())
     }
 }
 
@@ -2222,6 +2240,56 @@ pub(crate) mod tests {
                 .map(|event| event.timestamp())
                 .collect_vec(),
             vec![&timestamp, &timestamp, &timestamp_older, &timestamp_even_older]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_all_revocation_info() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        // Create issued_copies that will be inserted into the database
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
+        let issued_copies =
+            IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential.clone()].try_into().unwrap());
+
+        let attestation_type = sd_jwt.claims().vct.clone();
+        let attestation_presentation = AttestationPresentation::new_mock();
+
+        // Insert sd_jwt
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies.clone(),
+                        attestation_type,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    attestation_presentation.clone(),
+                )],
+            )
+            .await
+            .unwrap();
+
+        let revocation_info = storage.fetch_all_revocation_info().await.unwrap();
+
+        assert_eq!(2, revocation_info.len());
+
+        let revocation_info = revocation_info.first().unwrap();
+        let StatusClaim::StatusList(expected_status_claim) = StatusClaim::new_mock();
+        assert_eq!(Some(expected_status_claim), revocation_info.status_list_claim);
+        assert_eq!(
+            ISSUER_KEY.certificate().distinguished_name_canonical().unwrap(),
+            revocation_info.issuer_cert_distinguished_name
         );
     }
 }

@@ -4,6 +4,7 @@ mod database;
 mod database_storage;
 mod event_log;
 mod key_file;
+mod revocation_info;
 mod sql_cipher_key;
 
 #[cfg(any(test, feature = "test"))]
@@ -34,6 +35,7 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::AttestationPresentation;
+use crate::storage::revocation_info::RevocationInfo;
 use crate::storage::sql_cipher_key::SqlCipherKey;
 
 pub use self::attestation_copy::DisclosableAttestation;
@@ -217,4 +219,6 @@ pub trait Storage {
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>>;
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
+
+    async fn fetch_all_revocation_info(&self) -> StorageResult<Vec<RevocationInfo>>;
 }

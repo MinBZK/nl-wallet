@@ -12,6 +12,7 @@ mod pin_recovery;
 mod recovery_code;
 mod registration;
 mod reset;
+mod revocation;
 mod state;
 mod transfer;
 mod uri;

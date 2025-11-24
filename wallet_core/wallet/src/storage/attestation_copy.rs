@@ -263,6 +263,7 @@ impl DisclosableAttestation {
             attestation_copy_id,
             attestation,
             normalized_metadata,
+            ..
         } = attestation_copy;
 
         let issuer_registration = attestation.issuer_registration();

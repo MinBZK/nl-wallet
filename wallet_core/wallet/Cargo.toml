@@ -78,6 +78,7 @@ openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
 sd_jwt.path = "../lib/sd_jwt"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
+token_status_list.path = "../lib/token_status_list"
 update_policy_model.path = "../update_policy/model"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 utils.path = "../lib/utils"
