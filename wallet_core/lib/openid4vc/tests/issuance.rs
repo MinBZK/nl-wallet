@@ -55,13 +55,13 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-use token_status_list::status_list_service::mock::MockStatusListService;
+use token_status_list::status_list_service::mock::MockStatusListServices;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaPayload;
 use wscd::mock_remote::MockRemoteWscd;
 
-type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusListService>;
+type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusListServices>;
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -126,7 +126,7 @@ fn setup(
         Some(WuaConfig {
             wua_issuer_pubkey: wua_issuer_privkey.verifying_key().into(),
         }),
-        MockStatusListService::default(),
+        MockStatusListServices::default(),
     );
 
     (

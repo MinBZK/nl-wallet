@@ -206,80 +206,52 @@ function generate_ssl_key_pair_with_san {
 
     echo -e "${INFO}Converting SSL CERT to DER${NC}"
     openssl x509 -in "$1/$2.crt" \
-                -outform der -out "$1/$2.crt.der"
+            -outform DER -out "$1/$2.crt.der"
 
     echo -e "${INFO}Converting SSL private key to DER${NC}"
     openssl pkcs8 -topk8 -inform PEM -outform DER \
             -in "$1/$2.key" -out "$1/$2.key.der" -nocrypt
 }
 
+# Generate a private/public key pair in the HSM
+#
 # $1 name of the key
-function generate_ec_key {
-    echo -e "${INFO}Generating EC private key${NC}"
-    openssl ecparam \
-            -genkey \
-            -name prime256v1 \
-            -noout \
-            -out "${TARGET_DIR}/wallet_provider/$1.ec.key" > /dev/null
-    echo -e "${INFO}Generating private key from EC private key${NC}"
-    openssl ec -in "${TARGET_DIR}/wallet_provider/$1.ec.key" -pubout -out "${TARGET_DIR}/wallet_provider/$1.pub.pem"
-    openssl pkey -in "${TARGET_DIR}/wallet_provider/$1.pub.pem" -pubin -outform der -out "${TARGET_DIR}/wallet_provider/$1.pub.der"
+# $2 output path for public key relative to $TARGET_DIR
+function generate_hsm_key_pair {
+    # Generate EC key pair in the HSM
+    p11tool \
+        --provider "${HSM_LIBRARY_PATH}" \
+        --login \
+        --set-pin "${HSM_USER_PIN}" \
+        --label "$1" \
+        --generate-ecc \
+        --curve secp256r1 \
+        --outfile "${TARGET_DIR}/$2"
 }
 
-# $1 name of the key
-function private_key_to_pem {
-    openssl pkcs8 \
-            -topk8 \
-            -nocrypt \
-            -in "${TARGET_DIR}/wallet_provider/$1.ec.key" \
-            -out "${TARGET_DIR}/wallet_provider/$1.pem" > /dev/null
-}
-
-# Generate a private EC key and return the PEM body
+# Generate a private key in the HSM
 #
 # $1 name of the key
 function generate_wp_signing_key {
-    generate_ec_key "$1"
+    echo -e "${INFO}Generating HSM private key${NC}"
 
-    private_key_to_pem "$1"
+    generate_hsm_key_pair "$1_key" "wallet_provider/$1.pub.pem"
+
+    openssl pkey -in "${TARGET_DIR}/wallet_provider/$1.pub.pem" -pubin \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/$1.pub.der"
 }
 
-# Generate a private EC key and a self-signed certificate
-#
-# $1 name of the key
-# $2 common name to use in the certificate
-function generate_wp_self_signed_certificate {
-    generate_ec_key "$1"
-
-    openssl req \
-            -new \
-            -subj "/CN=$2" \
-            -days 1825 \
-            -x509 \
-            -sha256 \
-            -outform der \
-            -key "${TARGET_DIR}/wallet_provider/$1.ec.key" \
-            -out "${TARGET_DIR}/wallet_provider/$1.crt" > /dev/null
-
-    private_key_to_pem "$1"
-}
-
-# Generate a random key (32 bytes)
+# Generate a random AES key (32 bytes)
 #
 # random_data may contain the null byte (00) or newline (0a). `softhsm2-util --aes` uses fgets to read
 # the key. It stops reading when encountering a null byte or newline. Therefore these are stripped out.
+# This bug is fixed in newer versions: https://github.com/softhsm/SoftHSMv2/issues/746
 #
 # $1 name of the key
-function generate_wp_random_key {
-    echo -e "${INFO}Generating random wallet provider key${NC}"
+function generate_wp_aes_key {
+    echo -e "${INFO}Generating AES wallet provider key${NC}"
     # Replace '00' and '0a' by fixed values 'X' and 'Y'
     random_bytes 32 | LC_ALL=C tr '\000\n' "XY" > "${TARGET_DIR}/wallet_provider/$1.key"
-}
-
-# Generate a random key (64 bytes)
-function generate_ws_random_key {
-    echo -e "${INFO}Generating random wallet server key${NC}"
-    random_bytes 64 > "${TARGET_DIR}/demo_relying_party/$1.key"
 }
 
 # Generate an EC root CA for issuer
@@ -289,7 +261,7 @@ function generate_issuer_root_ca {
         --common-name "ca.issuer.example.com" \
         --file-prefix "${TARGET_DIR}/ca.issuer" \
         --force
-    openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -outform der -out "${TARGET_DIR}/ca.issuer.crt.der"
+    openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -outform DER -out "${TARGET_DIR}/ca.issuer.crt.der"
 }
 
 # Generate an EC root CA for reader
@@ -299,32 +271,34 @@ function generate_reader_root_ca {
         --common-name "ca.reader.example.com" \
         --file-prefix "${TARGET_DIR}/ca.reader" \
         --force
-    openssl x509 -in "${TARGET_DIR}/ca.reader.crt.pem" -outform der -out "${TARGET_DIR}/ca.reader.crt.der"
+    openssl x509 -in "${TARGET_DIR}/ca.reader.crt.pem" -outform DER -out "${TARGET_DIR}/ca.reader.crt.der"
+}
+
+# Generate an EC key pair for the config_signing
+function generate_config_signing_key_pair {
+    echo -e "${INFO}Generating config signing key pair${NC}"
+
+    openssl ecparam -genkey -name prime256v1 -noout \
+        -out "${TARGET_DIR}/wallet_provider/config_signing.ec.key" > /dev/null
+    openssl pkcs8 -topk8 -inform PEM \
+        -in "${TARGET_DIR}/wallet_provider/config_signing.ec.key" \
+        -out "${TARGET_DIR}/wallet_provider/config_signing.pem" -nocrypt
+
+    openssl ec -pubout \
+        -in "${TARGET_DIR}/wallet_provider/config_signing.ec.key" \
+        -out "${TARGET_DIR}/wallet_provider/config_signing.pub.pem"
+    openssl pkey -pubin -outform DER \
+        -in "${TARGET_DIR}/wallet_provider/config_signing.pub.pem" \
+        -out "${TARGET_DIR}/wallet_provider/config_signing.pub.der"
 }
 
 # Generate an EC key pair for the pid_issuer
 function generate_pid_issuer_key_pair {
     echo -e "${INFO}Generating PID Issuer key pair in HSM${NC}"
 
-    # Generate EC key pair in the HSM
-    p11tool \
-        --provider "${HSM_LIBRARY_PATH}" \
-        --login \
-        --set-pin "${HSM_USER_PIN}" \
-        --label "pid_issuer_key" \
-        --generate-ecc \
-        --curve secp256r1
+    generate_hsm_key_pair pid_issuer_key pid_issuer/issuer.pub.pem
 
-    # Export the public key as PEM
-    p11tool \
-        --provider "${HSM_LIBRARY_PATH}" \
-        --login \
-        --set-pin "${HSM_USER_PIN}" \
-        --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="${HSM_LIBRARY_PATH}" --list-all --only-urls | grep "pid_issuer_key" | grep public)" \
-        --label "pid_issuer_key" \
-        --outfile "${TARGET_DIR}/pid_issuer/issuer.pub.pem"
-
-    # Generate a certificate for the public key including issuer authentication
+    # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca issuer-cert \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
@@ -367,23 +341,21 @@ function generate_pid_issuer_tsl_key_pair {
 function generate_wallet_provider_tsl_key_pair {
     echo -e "${INFO}Generating Wallet Provider WUA TSL key pair${NC}"
 
+    generate_hsm_key_pair wua_tsl_key wallet_provider/wua_tsl.pub.pem
+
     # Generate a certificate for the public key including issuer authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca tsl \
+        --bin wallet_ca tsl-cert \
+        --public-key-file "${TARGET_DIR}/wallet_provider/wua_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "wallet_provider.example.com" \
-        --file-prefix "${TARGET_DIR}/wallet_provider/tsl" \
+        --common-name "wua-issuer.example.com" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/wua_tsl" \
         --force
 
-    # Convert the PEM key to DER format
-    openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/wallet_provider/tsl.key.pem" \
-        -out "${TARGET_DIR}/wallet_provider/tsl.key.der" -nocrypt
-
     # Convert the PEM certificate to DER format
-    openssl x509 -in "${TARGET_DIR}/wallet_provider/tsl.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/wallet_provider/tsl.crt.der"
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/wua_tsl.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/wua_tsl.crt.der"
 }
 
 # Generate an EC key pairs for the demo_issuer
@@ -417,11 +389,11 @@ function generate_demo_issuer_key_pairs {
         --force
 
     openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.reader.crt.pem" \
-        -outform der -out "${TARGET_DIR}/demo_issuer/$1.reader.crt.der"
+        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.reader.crt.der"
     openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.issuer.crt.pem" \
-        -outform der -out "${TARGET_DIR}/demo_issuer/$1.issuer.crt.der"
+        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.issuer.crt.der"
     openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.tsl.crt.pem" \
-        -outform der -out "${TARGET_DIR}/demo_issuer/$1.tsl.crt.der"
+        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.tsl.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/demo_issuer/$1.reader.key.pem" \
@@ -448,7 +420,7 @@ function generate_demo_relying_party_key_pair {
         --force
 
     openssl x509 -in "${TARGET_DIR}/demo_relying_party/$1.crt.pem" \
-        -outform der -out "${TARGET_DIR}/demo_relying_party/$1.crt.der"
+        -outform DER -out "${TARGET_DIR}/demo_relying_party/$1.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/demo_relying_party/$1.key.pem" -out "${TARGET_DIR}/demo_relying_party/$1.key.der" -nocrypt
@@ -461,22 +433,7 @@ function generate_demo_relying_party_key_pair {
 # $2 - path where the certificate will be written to
 function generate_relying_party_hsm_key_pair {
     # Generate EC key pair in the HSM
-    p11tool \
-        --provider "${HSM_LIBRARY_PATH}" \
-        --login \
-        --set-pin "${HSM_USER_PIN}" \
-        --label "$1_key" \
-        --generate-ecc \
-        --curve secp256r1
-
-    # Export the public key as PEM
-    p11tool \
-        --provider "${HSM_LIBRARY_PATH}" \
-        --login \
-        --set-pin "${HSM_USER_PIN}" \
-        --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="${HSM_LIBRARY_PATH}" --list-all --only-urls | grep "$1_key" | grep public)" \
-        --label "$1_key" \
-        --outfile "${TARGET_DIR}/$2/$1.pub.pem"
+    generate_hsm_key_pair "$1_key" "$2/$1.pub.pem"
 
     # Generate a certificate for the public key including reader authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
@@ -490,11 +447,8 @@ function generate_relying_party_hsm_key_pair {
           --force
 
     # Convert the PEM certificate to DER format
-    openssl x509 \
-            -in "${TARGET_DIR}/$2/$1.crt.pem" \
-            -inform PEM \
-            -outform DER \
-            -out "${TARGET_DIR}/$2/$1.crt.der"
+    openssl x509 -in "${TARGET_DIR}/$2/$1.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/$2/$1.crt.der"
 }
 
 function encrypt_gba_v_responses {

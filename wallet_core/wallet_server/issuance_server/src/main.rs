@@ -66,8 +66,8 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         &hsm,
     )
     .await?;
-    let status_list_service = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
-    status_list_service.initialize_lists().await?;
+    let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
+    status_list_services.initialize_lists().await?;
     let status_list_router = settings
         .status_lists
         .serve
@@ -95,7 +95,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         issuance_sessions,
         disclosure_sessions,
         attributes_fetcher,
-        status_list_service,
+        status_list_services,
         status_list_router,
         status_list_client,
     )

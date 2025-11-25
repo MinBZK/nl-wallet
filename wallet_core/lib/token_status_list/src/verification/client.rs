@@ -64,14 +64,14 @@ pub mod mock {
         }
     }
 
-    // This is the client that belongs to the [`status_list_service::MockStatusListService`] struct.
+    // This is the client that belongs to the [`status_list_service::MockStatusListServices`] struct.
     // It contains a map of keypairs by attestation_type, where the attestation_type that should be
     // used for the lookup is extracted from the `url` parameter in the same manner as the
-    // [`MockStatusListService`].
+    // [`MockStatusListServices`].
     #[derive(Debug, Constructor)]
-    pub struct MockStatusListServiceClient<S>(HashMap<String, KeyPair<S>>);
+    pub struct MockStatusListServicesClient<S>(HashMap<String, KeyPair<S>>);
 
-    impl<S> StatusListClient for MockStatusListServiceClient<S>
+    impl<S> StatusListClient for MockStatusListServicesClient<S>
     where
         S: EcdsaKeySend + Sync,
     {

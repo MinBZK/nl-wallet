@@ -68,8 +68,8 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
-use token_status_list::status_list_service::mock::MockStatusListService;
-use token_status_list::verification::client::mock::MockStatusListServiceClient;
+use token_status_list::status_list_service::mock::MockStatusListServices;
+use token_status_list::verification::client::mock::MockStatusListServicesClient;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
@@ -706,9 +706,9 @@ pub async fn start_issuance_server(
             issuance_sessions,
             disclosure_settings,
             attributes_fetcher,
-            MockStatusListService::default(),
+            MockStatusListServices::default(),
             None,
-            MockStatusListServiceClient::new(attestation_settings),
+            MockStatusListServicesClient::new(attestation_settings),
         )
         .await
         {
@@ -751,7 +751,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             hsm,
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
-            MockStatusListService::default(),
+            MockStatusListServices::default(),
             None,
         )
         .await
@@ -805,7 +805,7 @@ pub async fn start_verification_server(
             settings,
             hsm,
             disclosure_sessions,
-            MockStatusListServiceClient::new(attestation_settings),
+            MockStatusListServicesClient::new(attestation_settings),
         )
         .await
         {

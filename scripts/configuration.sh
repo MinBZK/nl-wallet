@@ -20,7 +20,7 @@ DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 
 # source user variables
-[ -f "${SCRIPTS_DIR}/.env" ] && . "${SCRIPTS_DIR}/.env"
+[[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"
 
 # Path and repository of the nl-rdo-max repository
 export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}"/nl-rdo-max}
@@ -82,6 +82,7 @@ export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
 export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
 export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
 export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
+export HSM_TOKEN=${HSM_TOKEN:-test_token}
 
 # WALLET_CLIENT_ID=$(uuidgen)
 # export WALLET_CLIENT_ID

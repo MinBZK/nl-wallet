@@ -71,7 +71,6 @@ use crate::account_server::InstructionValidationError;
 use crate::account_server::RecoveryCodeConfig;
 use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
-use crate::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
@@ -535,7 +534,6 @@ where
     let status_claim = user_state
         .status_list_service
         .obtain_status_claims(
-            WUA_ATTESTATION_TYPE_IDENTIFIER,
             wua_id,
             Some(exp.into()),
             NonZeroUsize::MIN, // only one WUA is issued

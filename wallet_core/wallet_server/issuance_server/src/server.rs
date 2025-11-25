@@ -24,7 +24,7 @@ use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::server::listen;
-use token_status_list::status_list_service::StatusListService;
+use token_status_list::status_list_service::StatusListServices;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
 
@@ -39,7 +39,7 @@ pub async fn serve<A, L, IS, DS, C>(
     issuance_sessions: Arc<IS>,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
-    status_list_service: L,
+    status_list_services: L,
     status_list_router: Option<Router>,
     status_list_client: C,
 ) -> Result<()>
@@ -47,7 +47,7 @@ where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
-    L: StatusListService + Sync + 'static,
+    L: StatusListServices + Sync + 'static,
     C: StatusListClient + Sync + 'static,
 {
     serve_with_listener(
@@ -57,7 +57,7 @@ where
         issuance_sessions,
         disclosure_sessions,
         attributes_fetcher,
-        status_list_service,
+        status_list_services,
         status_list_router,
         status_list_client,
     )
@@ -72,7 +72,7 @@ pub async fn serve_with_listener<A, L, IS, DS, C>(
     issuance_sessions: Arc<IS>,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
-    status_list_service: L,
+    status_list_services: L,
     status_list_router: Option<Router>,
     status_list_client: C,
 ) -> Result<()>
@@ -80,7 +80,7 @@ where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
-    L: StatusListService + Sync + 'static,
+    L: StatusListServices + Sync + 'static,
     C: StatusListClient + Sync + 'static,
 {
     let log_requests = settings.issuer_settings.server_settings.log_requests;
@@ -112,7 +112,7 @@ where
         &issuer_settings.server_settings.public_url,
         issuer_settings.wallet_client_ids.clone(),
         Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here,
-        status_list_service,
+        status_list_services,
     ));
 
     let issuance_router = create_issuance_router(Arc::clone(&issuer));

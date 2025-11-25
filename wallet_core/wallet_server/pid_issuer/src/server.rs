@@ -15,21 +15,21 @@ use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::server::listen;
-use token_status_list::status_list_service::StatusListService;
+use token_status_list::status_list_service::StatusListServices;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, C, IS>(
+pub async fn serve<A, L, IS>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
-    status_list_service: C,
+    status_list_services: L,
     status_list_router: Option<Router>,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    C: StatusListService + Send + Sync + 'static,
+    L: StatusListServices + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
 {
     let listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
@@ -40,26 +40,26 @@ where
         hsm,
         issuance_sessions,
         wua_issuer_pubkey,
-        status_list_service,
+        status_list_services,
         status_list_router,
     )
     .await
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listener<A, C, IS>(
+pub async fn serve_with_listener<A, L, IS>(
     listener: TcpListener,
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
-    status_list_service: C,
+    status_list_services: L,
     status_list_router: Option<Router>,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    C: StatusListService + Send + Sync + 'static,
+    L: StatusListServices + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;
@@ -75,7 +75,7 @@ where
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
         }),
-        status_list_service,
+        status_list_services,
     )));
 
     let mut router = Router::new().nest("/issuance", decorate_router(wallet_issuance_router, log_requests));
