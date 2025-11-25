@@ -16,6 +16,7 @@ source "${SCRIPTS_DIR}/colors.sh"
 SECTION=${LIGHT_BLUE}
 SUCCESS=${LIGHT_GREEN}
 ERROR=${RED}
+WARN=${ORANGE}
 INFO=${PURPLE}
 
 ########################################################################
@@ -31,6 +32,12 @@ function is_macos() {
 function error() {
   local msg=$1
   echo -e "${ERROR}$msg${NC}" 1>&2
+}
+
+# Print to stderr.
+function warn() {
+  local msg=$1
+  echo -e "${WARN}$msg${NC}" 1>&2
 }
 
 # Prints the installable belonging to an `executable` ($1).
@@ -78,22 +85,23 @@ function base64_url_encode() {
 
 function detect_softhsm() {
   # shellcheck disable=SC2206
-  local locations=("/usr/local/lib" ${NIX_PROFILES:-} ${nativeBuildInputs:-} "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}" "/usr/lib" "opt/softhsm2")
+  local locations=("/usr/local/lib" ${NIX_PROFILES:-} ${nativeBuildInputs:-} "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}" "/usr/lib" "/opt/softhsm")
 
   for location in "${locations[@]}"; do
       local library_path
-      if [ -d "$location" ]; then
-        library_path=$(find -L "$location" -maxdepth 3 -name "libsofthsm2.so" -or -name "libsofthsm2.dylib" | head -n 1)
-        if [ -n "$library_path" ]; then
-            echo "$library_path"
+      if [[ -d $location ]]; then
+        library_path=$(find -L "$location" -maxdepth 3 -name "libsofthsm2.so" -or -name "libsofthsm2.dylib" | head -n 1 || true)
+        if [[ -n $library_path ]]; then
+            echo $library_path
             return
         fi
       fi
   done
+  warn "Could not find SoftHSM shared library (libsofthsm2.so or libsofthsm2.dylib)"
 }
 
 function check_openssl() {
-  if ! openssl version | grep "OpenSSL" > /dev/null
+  if ! openssl version | grep -q "OpenSSL"
   then
     error "Please install an actual, real OpenSSL version"
     exit 1
