@@ -38,6 +38,7 @@ use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
+use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -339,13 +340,14 @@ fn is_request_for_recovery_code(
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
     S: Storage,
 {
     /// Helper method that fetches attestation from the database based on their attestation type, filters out any of

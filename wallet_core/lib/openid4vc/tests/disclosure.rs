@@ -185,9 +185,9 @@ fn disclosure_direct() {
         &MockTimeGenerator::default(),
         &[issuer_ca.to_trust_anchor()],
         &ExtendingVctRetrieverStub,
-        &RevocationVerifier::new(StatusListClientStub::new(
+        &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_status_list_mock().unwrap(),
-        )),
+        ))),
     )
     .now_or_never()
     .unwrap()
@@ -399,7 +399,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
             &MockTimeGenerator::default(),
             &self.trust_anchors,
             &ExtendingVctRetrieverStub,
-            &RevocationVerifier::new(StatusListClientStub::new(self.status_list_keypair.clone())),
+            &RevocationVerifier::new(Arc::new(StatusListClientStub::new(self.status_list_keypair.clone()))),
         )
         .await
         .unwrap();
@@ -1006,9 +1006,9 @@ fn setup_wallet_initiated_usecase_verifier() -> (
         Some(Box::new(MockDisclosureResultHandler::new(None))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::default(),
-        RevocationVerifier::new(StatusListClientStub::new(
+        RevocationVerifier::new(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_status_list_mock_with_dn(ISSUANCE_CERT_CN).unwrap(),
-        )),
+        ))),
     ));
 
     (
@@ -1084,9 +1084,9 @@ fn setup_verifier(
             String::from(EUDI_PID_ATTESTATION_TYPE),
             vec_nonempty![String::from(PID_ATTESTATION_TYPE)],
         )]),
-        RevocationVerifier::new(StatusListClientStub::new(
+        RevocationVerifier::new(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
-        )),
+        ))),
     ));
 
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_keypair)

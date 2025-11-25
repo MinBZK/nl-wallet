@@ -16,6 +16,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
 use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
+use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecAtLeastNError;
 use wallet_account::messages::registration::Registration;
@@ -96,11 +97,12 @@ impl WalletRegistrationError {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
 {
     pub fn has_registration(&self) -> bool {
         self.registration.is_registered()

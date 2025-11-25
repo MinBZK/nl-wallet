@@ -8,6 +8,7 @@ use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
+use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -56,11 +57,12 @@ pub enum WalletUnlockError {
     UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
 {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()

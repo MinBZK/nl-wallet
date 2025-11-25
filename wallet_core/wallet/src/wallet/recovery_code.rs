@@ -8,6 +8,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use platform_support::attested_key::AttestedKeyHolder;
+use token_status_list::verification::client::StatusListClient;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 
@@ -42,13 +43,14 @@ pub enum RecoveryCodeError {
     PidAttributesConfiguration(#[from] PidAttributesConfigurationError),
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     IS: IssuanceSession,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
 {
     pub(super) fn pid_preview<'a>(
         previews: &'a [NormalizedCredentialPreview],

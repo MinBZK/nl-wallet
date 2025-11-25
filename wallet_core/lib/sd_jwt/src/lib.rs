@@ -79,6 +79,7 @@
 //! # use sd_jwt::key_binding_jwt::KbVerificationOptions;
 //! # use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 //! # use sd_jwt::sd_jwt::{SdJwtVcClaims, VerifiedSdJwt};
+//! # use std::sync::Arc;
 //! # use std::time::Duration;
 //! # use token_status_list::verification::client::mock::StatusListClientStub;
 //! # use token_status_list::verification::verifier::RevocationVerifier;
@@ -146,7 +147,7 @@
 //!         iat_acceptance_window: Duration::from_secs(300),
 //!     },
 //!     &TimeGenerator::default(),
-//!     &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock()?)),
+//!     &RevocationVerifier::new(Arc::new(StatusListClientStub::new(ca.generate_status_list_mock()?))),
 //! ).await?;
 //! let disclosed = verified_presentation.sd_jwt().decoded_claims()?;
 //! assert_eq!(disclosed.claims.get(&ClaimName::try_from("name").unwrap()), Some(&ClaimValue::String("alice".to_owned())));

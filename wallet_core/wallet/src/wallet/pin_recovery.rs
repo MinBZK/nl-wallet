@@ -17,6 +17,7 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oidc::OidcError;
 use platform_support::attested_key::AttestedKeyHolder;
+use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -121,7 +122,7 @@ pub(super) enum PinRecoverySession<DS, IS> {
     },
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -131,6 +132,7 @@ where
     IS: IssuanceSession,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
+    SLC: StatusListClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]

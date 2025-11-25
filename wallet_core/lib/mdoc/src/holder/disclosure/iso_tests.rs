@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::FutureExt;
 use indexmap::IndexMap;
 
@@ -107,7 +109,9 @@ async fn do_and_verify_iso_example_disclosure() {
             &session_transcript,
             &IsoCertTimeGenerator,
             &[ca.to_trust_anchor()],
-            &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+            &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                ca.generate_status_list_mock().unwrap(),
+            ))),
         )
         .await
         .unwrap();
@@ -147,7 +151,9 @@ async fn iso_examples_custom_disclosure() {
             &session_transcript,
             &IsoCertTimeGenerator,
             &[ca.to_trust_anchor()],
-            &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+            &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                ca.generate_status_list_mock().unwrap(),
+            ))),
         )
         .await
         .unwrap();

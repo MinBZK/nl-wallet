@@ -74,6 +74,8 @@ impl DeviceSigned {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use p256::SecretKey;
 
     use crypto::examples::Examples;
@@ -122,7 +124,9 @@ mod tests {
                 &session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
-                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                    ca.generate_status_list_mock().unwrap(),
+                ))),
             )
             .await
             .unwrap();

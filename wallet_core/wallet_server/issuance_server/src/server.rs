@@ -123,7 +123,7 @@ where
         attributes_fetcher,
     };
 
-    let revocation_verifier = RevocationVerifier::new(status_list_client);
+    let revocation_verifier = RevocationVerifier::new(Arc::new(status_list_client));
 
     let disclosure_router = VerifierFactory::new(
         issuer_settings.server_settings.public_url.join_base_url("disclosure"),

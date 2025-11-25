@@ -12,7 +12,6 @@ mod pin_recovery;
 mod recovery_code;
 mod registration;
 mod reset;
-mod revocation;
 mod state;
 mod transfer;
 mod uri;
@@ -31,6 +30,7 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
+use token_status_list::verification::reqwest::HttpStatusListClient;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
@@ -130,6 +130,7 @@ pub struct Wallet<
     DC = HttpDigidClient,                       // DigidClient
     IS = HttpIssuanceSession,                   // IssuanceSession
     DCC = VpDisclosureClient,                   // DisclosureClient
+    SLC = HttpStatusListClient,                 // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
@@ -143,6 +144,7 @@ pub struct Wallet<
     account_provider_client: Arc<APC>,
     digid_client: DC,
     disclosure_client: DCC,
+    status_list_client: Arc<SLC>,
     session: Option<Session<DC::Session, IS, DCC::Session>>,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,

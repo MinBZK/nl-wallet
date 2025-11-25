@@ -54,6 +54,7 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -124,6 +125,7 @@ pub type TestWallet<S> = Wallet<
     MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
+    MockStatusListClient,
 >;
 
 /// An alias for the `Wallet<>` with all dependencies, including the storage, mocked.

@@ -21,7 +21,7 @@ pub struct RevocationInfo {
 }
 
 impl RevocationInfo {
-    async fn verify_revocation(
+    pub async fn verify_revocation(
         &self,
         issuer_trust_anchors: &[TrustAnchor<'_>],
         revocation_verifier: &RevocationVerifier<impl StatusListClient>,
@@ -63,6 +63,8 @@ impl From<revocation_info::RevocationInfo> for RevocationInfo {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use uuid::Uuid;
@@ -83,7 +85,7 @@ mod test {
         let issuer_cert_dn = issuer_cert.certificate().distinguished_name_canonical().unwrap();
         let issuer_trust_anchors = &[ca.to_trust_anchor()];
 
-        let revocation_verifier = RevocationVerifier::new(StatusListClientStub::new(issuer_cert));
+        let revocation_verifier = RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_cert)));
 
         let StatusClaim::StatusList(claim) = StatusClaim::new_mock();
 

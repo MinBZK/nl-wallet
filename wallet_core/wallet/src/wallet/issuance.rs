@@ -36,6 +36,7 @@ use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
+use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
 use utils::generator::Generator;
@@ -215,7 +216,7 @@ pub enum PidIssuancePurpose {
     Renewal,
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -225,6 +226,7 @@ where
     IS: IssuanceSession,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
+    SLC: StatusListClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]

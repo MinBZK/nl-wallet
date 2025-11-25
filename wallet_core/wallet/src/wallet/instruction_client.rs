@@ -5,6 +5,7 @@ use jwt::EcdsaDecodingKey;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -21,7 +22,7 @@ use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -30,6 +31,7 @@ where
     APC: AccountProviderClient,
     DC: DigidClient,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].
     /// This is the recommended way to obtain an [`InstructionClient`], because this function

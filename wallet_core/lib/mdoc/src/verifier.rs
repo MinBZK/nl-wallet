@@ -361,6 +361,7 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use std::ops::Add;
+    use std::sync::Arc;
 
     use chrono::Duration;
     use chrono::Utc;
@@ -450,7 +451,9 @@ mod tests {
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
-                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                    ca.generate_status_list_mock().unwrap(),
+                ))),
             )
             .await
             .unwrap();

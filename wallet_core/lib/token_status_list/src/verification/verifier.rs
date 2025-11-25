@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::DistinguishedName;
@@ -21,13 +23,13 @@ pub enum RevocationStatus {
 }
 
 #[derive(Debug)]
-pub struct RevocationVerifier<C>(C);
+pub struct RevocationVerifier<C>(Arc<C>);
 
 impl<C> RevocationVerifier<C>
 where
     C: StatusListClient,
 {
-    pub fn new(client: C) -> Self {
+    pub fn new(client: Arc<C>) -> Self {
         Self(client)
     }
 
@@ -66,6 +68,7 @@ where
 #[cfg(test)]
 mod test {
     use std::ops::Add;
+    use std::sync::Arc;
 
     use chrono::Days;
     use chrono::Utc;
@@ -88,7 +91,7 @@ mod test {
         let keypair = ca.generate_status_list_mock().unwrap();
         let iss_keypair = ca.generate_issuer_mock().unwrap();
 
-        let verifier = RevocationVerifier::new(StatusListClientStub::new(keypair));
+        let verifier = RevocationVerifier::new(Arc::new(StatusListClientStub::new(keypair)));
 
         // Index 1 is valid
         let status = verifier
@@ -173,7 +176,7 @@ mod test {
         client
             .expect_fetch()
             .returning(|_| Err(StatusListClientError::JwtParsing(JwtError::MissingX5c.into())));
-        let verifier = RevocationVerifier::new(client);
+        let verifier = RevocationVerifier::new(Arc::new(client));
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],

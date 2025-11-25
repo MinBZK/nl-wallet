@@ -18,6 +18,7 @@ use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use platform_support::attested_key::AttestedKeyHolder;
+use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -71,7 +72,7 @@ pub enum DisclosureBasedIssuanceError {
 // However, the `flutter_api` already knows which flow it is in anyway, because it displays
 // different things to the user in each flow. So keeping this a distinct method is more
 // pragmatic.
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -81,6 +82,7 @@ where
     DC: DigidClient,
     IS: Openid4vcIssuanceSession,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
