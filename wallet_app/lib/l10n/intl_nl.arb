@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-11-21T09:38:57+01:00",
+    "@@last_modified": "2025-11-25T14:55:32+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -188,7 +188,7 @@
     "cardValueTrue": "Ja",
     "changeLanguageScreenTitle": "Kies een taal",
     "changePinScreenConfirmNewPinTitle": "Gelukt! Herhaal je nieuwe pincode",
-    "changePinScreenEnterCurrentPinTitle": "Voor eerst je huidige pincode in",
+    "changePinScreenEnterCurrentPinTitle": "Voer eerst je huidige pincode in",
     "changePinScreenSelectNewPinTitle": "Kies een nieuwe pincode",
     "changePinScreenSuccessDescription": "Je app is beveiligd met je nieuwe pincode.",
     "changePinScreenSuccessTitle": "Gelukt!",
