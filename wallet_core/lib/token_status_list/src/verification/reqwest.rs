@@ -13,15 +13,15 @@ use crate::verification::client::StatusListClientError;
 const STATUS_LIST_JWT_ACCEPT: &str = "application/statuslist+jwt";
 
 #[derive(Debug, Clone, AsRef)]
-pub struct StatusListReqwestClient(reqwest::Client);
+pub struct HttpStatusListClient(reqwest::Client);
 
-impl StatusListReqwestClient {
+impl HttpStatusListClient {
     pub fn new() -> Result<Self, reqwest::Error> {
         Ok(Self(default_reqwest_client_builder().build()?))
     }
 }
 
-impl StatusListClient for StatusListReqwestClient {
+impl StatusListClient for HttpStatusListClient {
     async fn fetch(&self, url: Url) -> Result<StatusListToken, StatusListClientError> {
         let response = self
             .as_ref()
