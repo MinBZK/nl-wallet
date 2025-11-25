@@ -99,7 +99,6 @@ or automated tests.
 **Then** system issues card and displays it to user  
 **And** provides a link to the dashboard
 
-
 ---
 
 ### LTC8
