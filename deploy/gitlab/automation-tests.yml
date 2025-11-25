@@ -370,3 +370,14 @@ run-performance-test-ont:
       artifacts: false
   script: wallet_core/tests_integration/run_performance_test.sh --skip-build
   allow_failure: true
+
+extract-manual-test-set:
+  allow_failure: true
+  script:
+    - ./deploy/test-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
+  rules: !reference [.release-tag, rules]
+  artifacts:
+    name: manual-test-set
+    when: always
+    paths:
+      - manual-test-set.md
