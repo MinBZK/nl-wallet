@@ -147,12 +147,12 @@ pub enum DisclosureError {
         expected: RedirectUriPurpose,
         found: RedirectUriPurpose,
     },
-    #[error("non-selectively-disclosable claims: {0:?} not requested for requested vct values: {1:?}")]
+    #[error("non-selectively-disclosable claims: {1:?} not requested for requested vct values: {2:?}")]
     #[category(critical)]
-    NonSelectivelyDisclosableClaimsNotRequested(Vec<VecNonEmpty<ClaimPath>>, Vec<String>),
-    #[error("non-selectively-disclosable claim error: {0}")]
+    NonSelectivelyDisclosableClaimsNotRequested(Box<Organization>, Vec<VecNonEmpty<ClaimPath>>, Vec<String>),
+    #[error("non-selectively-disclosable claim error: {1}")]
     #[category(critical)]
-    NonSelectivelyDisclosableClaim(#[from] NonSelectivelyDisclosableClaimsError),
+    NonSelectivelyDisclosableClaim(Box<Organization>, #[source] NonSelectivelyDisclosableClaimsError),
 }
 
 impl DisclosureError {
@@ -459,7 +459,12 @@ where
         .zip(session.credential_requests().as_ref());
 
         // Verify whether all non selectively disclosable claims are requested
-        Self::verify_non_selectively_disclosable_claims(candidate_attestations.clone())?;
+        let verifier_certificate = session.verifier_certificate();
+        let reader_registration = verifier_certificate.registration().clone();
+        Self::verify_non_selectively_disclosable_claims(
+            candidate_attestations.clone(),
+            &reader_registration.organization,
+        )?;
 
         let candidate_attestations = candidate_attestations
             .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id().clone(), attestations)))
@@ -470,7 +475,6 @@ where
         let disclosure_type =
             DisclosureType::from_credential_requests(session.credential_requests().as_ref(), pid_attributes);
 
-        let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self
             .storage
             .read()
@@ -483,7 +487,6 @@ where
         if candidate_attestations.len() < session.credential_requests().as_ref().len() {
             info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
-            let reader_registration = verifier_certificate.registration().clone();
             // For now we simply represent the requested attribute paths by joining all elements with a slash.
             // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
             let requested_attributes = session
@@ -541,7 +544,7 @@ where
             .unwrap();
         let proposal = DisclosureProposalPresentation {
             attestation_options,
-            reader_registration: verifier_certificate.registration().clone(),
+            reader_registration,
             shared_data_with_relying_party_before,
             session_type: session.session_type(),
             disclosure_type,
@@ -567,11 +570,12 @@ where
                 &'a NormalizedCredentialRequest,
             ),
         >,
+        organization: &Organization,
     ) -> Result<(), DisclosureError> {
         for (attestations, request) in candidate_attestations {
             for attestation in attestations.map(VecAtLeastN::into_inner).unwrap_or(Vec::new()) {
                 if let PartialAttestation::SdJwt { sd_jwt, .. } = attestation.into_partial_attestation() {
-                    Self::verify_sd_jwt_non_selectively_disclosable_claims(&sd_jwt, request)?;
+                    Self::verify_sd_jwt_non_selectively_disclosable_claims(&sd_jwt, request, organization)?;
                 }
             }
         }
@@ -581,14 +585,19 @@ where
     fn verify_sd_jwt_non_selectively_disclosable_claims(
         sd_jwt: &UnsignedSdJwtPresentation,
         request: &NormalizedCredentialRequest,
+        organization: &Organization,
     ) -> Result<(), DisclosureError> {
-        let non_selectively_disclosable_claims = sd_jwt.as_ref().non_selectively_disclosable_claims()?;
+        let non_selectively_disclosable_claims = sd_jwt
+            .as_ref()
+            .non_selectively_disclosable_claims()
+            .map_err(|e| DisclosureError::NonSelectivelyDisclosableClaim(Box::new(organization.clone()), e))?;
         let requested_claims = request.claim_paths().cloned().collect::<IndexSet<_>>();
         let mut non_requested_claims = non_selectively_disclosable_claims
             .difference(&requested_claims)
             .peekable();
         if non_requested_claims.peek().is_some() {
             Err(DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(
+                Box::new(organization.clone()),
                 non_requested_claims.cloned().collect(),
                 request.credential_types().map(ToString::to_string).collect(),
             ))
@@ -2971,7 +2980,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(claims, attestation_type) if
+            DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, claims, attestation_type) if
                 claims == vec![vec_nonempty![my_first_non_sd_claim.parse().unwrap()]] &&
                 attestation_type == vec![my_attestation_type.to_string()]
         );
