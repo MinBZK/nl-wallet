@@ -195,13 +195,25 @@ pub trait Storage {
         attestation_types: &HashSet<&'a str>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to one of
-    /// types requested and for which at least one copy of the requested format exists. The returned copy will be of the
-    /// requested format.
+    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to
+    /// one of types requested and for which at least one copy of the requested format exists. The returned copy
+    /// will be of the requested format.
     ///
     /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
     /// that extend at least one of the requested attestation types.
     async fn fetch_unique_attestations_by_types_and_format<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+        format: CredentialFormat,
+    ) -> StorageResult<Vec<StoredAttestationCopy>>;
+
+    /// Returns a single valid attestation copy of each stored attestation for which the attestation type is equal to
+    /// one of types requested and for which at least one copy of the requested format exists. The returned copy
+    /// will be of the requested format. Valid in this context means describes the revocation status.
+    ///
+    /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
+    /// that extend at least one of the requested attestation types.
+    async fn fetch_valid_unique_attestations_by_types_and_format<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format: CredentialFormat,

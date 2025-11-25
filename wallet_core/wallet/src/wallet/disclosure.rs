@@ -361,7 +361,7 @@ where
         let credential_types = request.credential_types().collect();
 
         let stored_attestations = storage
-            .fetch_unique_attestations_by_types_and_format(&credential_types, request.format())
+            .fetch_valid_unique_attestations_by_types_and_format(&credential_types, request.format())
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -1334,7 +1334,7 @@ mod tests {
         ] {
             wallet
                 .mut_storage()
-                .expect_fetch_unique_attestations_by_types_and_format()
+                .expect_fetch_valid_unique_attestations_by_types_and_format()
                 .withf(move |attestation_types, format| {
                     *attestation_types == HashSet::from([attestation_type]) && *format == requested_format
                 })
@@ -1805,7 +1805,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_types_and_format()
             .times(1)
             .returning(move |_, _| Err(StorageError::AlreadyOpened));
 
@@ -1834,7 +1834,7 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format| {
                 *attestation_types == HashSet::from([PID_ATTESTATION_TYPE]) && *format == CredentialFormat::MsoMdoc
             })
@@ -1871,7 +1871,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_types_and_format()
             .times(1)
             .returning(move |_, _| Ok(vec![]));
 
@@ -1943,7 +1943,7 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_types_and_format()
             .times(1)
             .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 
@@ -2957,7 +2957,7 @@ mod tests {
         let (attestation_type, attestations) = (my_attestation_type, vec![attestation]);
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format| {
                 *attestation_types == HashSet::from([attestation_type]) && *format == CredentialFormat::SdJwt
             })

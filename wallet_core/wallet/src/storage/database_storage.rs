@@ -29,6 +29,7 @@ use sea_orm::sea_query::IntoColumnRef;
 use sea_orm::sea_query::Query;
 use sea_query::Asterisk;
 use sea_query::Func;
+use sea_query::IntoCondition;
 use sea_query::OnConflict;
 use sea_query::Order;
 use sea_query::SimpleExpr;
@@ -272,6 +273,7 @@ impl<K> DatabaseStorage<K> {
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format: Option<CredentialFormat>,
+        condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         // Collect all conditions for the requested attestation types using OR.
         let attestation_type_condition = Condition::any();
@@ -302,7 +304,7 @@ impl<K> DatabaseStorage<K> {
             attestation_type_condition.add(attestation::Column::AttestationType.is_in(attestation_types_iter));
 
         // The top-level conditions are joined with AND, starting with the attestation types.
-        let condition = Condition::all().add(attestation_type_condition);
+        let condition = condition.unwrap_or(Condition::all()).add(attestation_type_condition);
 
         // If a specific format was requested, add that to condition.
         let condition = if let Some(format) = format {
@@ -809,7 +811,7 @@ where
         &'a self,
         attestation_types: &HashSet<&'a str>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations_with_parameters(attestation_types, None)
+        self.query_unique_attestations_with_parameters(attestation_types, None, None)
             .await
     }
 
@@ -818,8 +820,32 @@ where
         attestation_types: &HashSet<&'a str>,
         format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations_with_parameters(attestation_types, Some(format))
+        self.query_unique_attestations_with_parameters(attestation_types, Some(format), None)
             .await
+    }
+
+    async fn fetch_valid_unique_attestations_by_types_and_format<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+        format: CredentialFormat,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        self.query_unique_attestations_with_parameters(
+            attestation_types,
+            Some(format),
+            Some(
+                Condition::all()
+                    .add(
+                        attestation_copy::Column::RevocationStatus
+                            .is_in([
+                                RevocationStatus::Valid.to_string(),
+                                RevocationStatus::Undetermined.to_string(),
+                            ])
+                            .or(attestation_copy::Column::RevocationStatus.is_null()),
+                    )
+                    .into_condition(),
+            ),
+        )
+        .await
     }
 
     async fn log_disclosure_event(
@@ -1569,17 +1595,17 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1655,7 +1681,7 @@ pub(crate) mod tests {
         assert!(!extended_vcts.is_empty());
 
         let fetched_unique = storage
-            .fetch_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1748,17 +1774,17 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1787,7 +1813,7 @@ pub(crate) mod tests {
         assert!(!extended_vcts.is_empty());
 
         let fetched_unique = storage
-            .fetch_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
