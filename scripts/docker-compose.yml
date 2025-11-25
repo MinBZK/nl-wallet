@@ -3,7 +3,7 @@ services:
     container_name: postgres
     image: docker.io/library/postgres
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     network_mode: bridge
     environment:
       # POSTGRES_HOST_AUTH_METHOD=trust is recommended only for development.
