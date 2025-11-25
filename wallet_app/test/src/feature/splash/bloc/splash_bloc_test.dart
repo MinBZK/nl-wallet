@@ -62,7 +62,7 @@ void main() {
   blocTest(
     'validate state when not registered',
     setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateRegistration());
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateRegistration());
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase),
