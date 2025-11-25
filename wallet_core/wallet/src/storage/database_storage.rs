@@ -184,7 +184,7 @@ impl<K> DatabaseStorage<K> {
         let database = self.database()?;
 
         // As this query only contains one `MIN()` aggregate function, the columns that
-        // do not appear in the `GROUP BY` clause are taken from whichever `mdoc_copy`
+        // do not appear in the `GROUP BY` clause are taken from whichever `attestation_copy`
         // row has the lowest disclosure count. This uses the "bare columns in aggregate
         // queries" feature that SQLite provides.
         //
@@ -196,9 +196,12 @@ impl<K> DatabaseStorage<K> {
             .column(attestation_copy::Column::AttestationId)
             .column(attestation_copy::Column::AttestationFormat)
             .column(attestation_copy::Column::KeyIdentifier)
-            .column(attestation_copy::Column::RevocationStatus)
             .column(attestation_copy::Column::Attestation)
             .column(attestation::Column::TypeMetadata)
+            .expr_as(
+                Func::cust("json_group_array").arg(Expr::col(attestation_copy::Column::RevocationStatus)),
+                "revocation_statuses",
+            )
             .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
             .group_by(attestation_copy::Column::AttestationId)
             .order_by(attestation_copy::Column::Id, Order::Asc);
@@ -219,10 +222,10 @@ impl<K> DatabaseStorage<K> {
                     attestation_id,
                     attestation_format,
                     key_identifier,
-                    revocation_status,
                     attestation_bytes,
                     metadata,
-                ): (_, _, _, _, Option<String>, CompressedBlob, TypeMetadataModel)| {
+                    revocation_statuses,
+                ): (_, _, _, _, CompressedBlob, TypeMetadataModel, String)| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -241,13 +244,20 @@ impl<K> DatabaseStorage<K> {
 
                     let normalized_metadata = metadata.documents.to_normalized()?;
 
+                    let revocation_status_raw: Vec<Option<String>> = serde_json::from_str(&revocation_statuses)?;
+                    let revocation_statuses: Vec<Option<RevocationStatus>> = revocation_status_raw
+                        .into_iter()
+                        .map(|status| {
+                            status.map(|status| status.parse().expect("stored revocation status should be parseable"))
+                        })
+                        .collect_vec();
+
                     let stored_copy = StoredAttestationCopy {
                         attestation_id,
                         attestation_copy_id,
                         attestation,
                         normalized_metadata,
-                        revocation_status: revocation_status
-                            .map(|status| status.parse().expect("stored revocation status should be parseable")),
+                        revocation_status: determine_revocation_status(&revocation_statuses),
                     };
 
                     Ok(stored_copy)
@@ -1088,6 +1098,62 @@ fn create_attestation_copy_models(
         .try_collect()
 }
 
+fn determine_revocation_status(revocation_statuses: &[Option<RevocationStatus>]) -> Option<RevocationStatus> {
+    let mut has_valid = false;
+    let mut has_invalid = false;
+    let mut has_undetermined = false;
+    let mut has_any_checked = false;
+
+    for status in revocation_statuses {
+        match status {
+            Some(RevocationStatus::Valid) => {
+                has_valid = true;
+                has_any_checked = true;
+            }
+            Some(RevocationStatus::Invalid) => {
+                has_invalid = true;
+                has_any_checked = true;
+            }
+            Some(RevocationStatus::Undetermined) => {
+                has_undetermined = true;
+                has_any_checked = true;
+            }
+            Some(RevocationStatus::Corrupted) => {
+                // Corrupted copy, but still counts as checked
+                has_any_checked = true;
+            }
+            None => {
+                // Status not yet checked, ignore it completely
+                continue;
+            }
+        }
+    }
+
+    // If no statuses have been checked at all, return None
+    if !has_any_checked {
+        return None;
+    }
+
+    // Apply rules in order of priority:
+    // 1. Valid if one copy is Valid
+    if has_valid {
+        return Some(RevocationStatus::Valid);
+    }
+
+    // 2. Invalid if one copy is Invalid and no copy is Valid
+    if has_invalid {
+        return Some(RevocationStatus::Invalid);
+    }
+
+    // 3. Undetermined if one copy is Undetermined and no copy is Valid | Invalid
+    if has_undetermined {
+        return Some(RevocationStatus::Undetermined);
+    }
+
+    // 4. Corrupted if all checked copies are Corrupted
+    Some(RevocationStatus::Corrupted)
+}
+
 #[cfg(any(test, feature = "test"))]
 pub mod test_storage {
     use std::borrow::Cow;
@@ -1149,6 +1215,7 @@ pub(crate) mod tests {
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use rstest::rstest;
     use serde::Deserialize;
     use serde::Serialize;
     use tokio::fs;
@@ -2349,5 +2416,42 @@ pub(crate) mod tests {
             )
             .await
         );
+    }
+
+    #[rstest]
+    // Rule 1: Valid if one copy is Valid
+    #[case(vec![Some(RevocationStatus::Valid)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Invalid)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Invalid), Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid), None], Some(RevocationStatus::Valid))]
+    // Rule 2: Invalid if one copy is Invalid and no copy is Valid
+    #[case(vec![Some(RevocationStatus::Invalid)], Some(RevocationStatus::Invalid))]
+    #[case(vec![Some(RevocationStatus::Invalid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Invalid))]
+    #[case(vec![Some(RevocationStatus::Invalid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Invalid))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Invalid), None], Some(RevocationStatus::Invalid))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Invalid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Invalid))]
+    // Rule 3: Undetermined if one copy is Undetermined and no copy is Valid | Invalid
+    #[case(vec![Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Undetermined))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Undetermined), None], Some(RevocationStatus::Undetermined))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined))]
+    // Rule 4: Corrupted if all copies are Corrupted
+    #[case(vec![Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
+    // None when status hasn't been checked yet
+    #[case(vec![None], None)]
+    #[case(vec![None, None], None)]
+    #[case(vec![None, Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
+    #[case(vec![Some(RevocationStatus::Undetermined), None, None], Some(RevocationStatus::Undetermined))]
+    // Empty vec edge case
+    #[case(vec![], None)]
+    fn test_determine_revocation_status(
+        #[case] input: Vec<Option<RevocationStatus>>,
+        #[case] expected: Option<RevocationStatus>,
+    ) {
+        let result = determine_revocation_status(&input);
+        assert_eq!(result, expected);
     }
 }
