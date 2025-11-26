@@ -71,10 +71,10 @@ Where:
 }
 
 ########################################################################
-# Check prerequisites
+# Check base prerequisites
 ########################################################################
 
-have cargo docker flutter
+have cargo
 
 ########################################################################
 # Commandline arguments
@@ -100,12 +100,12 @@ USAGE=1
 STOP=0
 START=0
 
-if [ "$#" == "0" ]
+if [[ $# -eq 0 ]]
 then
     USAGE=0
 fi
 
-if [ "$#" == "1" ] && [ "$1" == "--stop" ]; then
+if [[ $# -eq "1" && $1 == '--stop' ]]; then
     error "The --stop argument requires at least one service, --default, or --all to be specified."
     usage
     exit 1
@@ -224,29 +224,40 @@ do
     esac
 done
 
-if [ "${USAGE}" == "0" ]
+if [[ $USAGE == '0' ]]
 then
     usage
     exit 0
 fi
 
 ########################################################################
+# Check special prerequisites
+########################################################################
+
+if [[ $DIGID_CONNECTOR == '0' || $POSTGRES == '0' || $BRP_PROXY == '0' ]]; then
+    have docker
+fi
+if [[ $WALLET == '1' ]]; then
+    have flutter
+fi
+
+########################################################################
 # Manage digid-connector
 ########################################################################
 
-if [ "${DIGID_CONNECTOR}" == "0" ]
+if [[ $DIGID_CONNECTOR == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage digid-connector${NC}"
 
     cd "${DIGID_CONNECTOR_PATH}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Stopping ${ORANGE}digid-connector${NC}"
         docker compose down || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "Building and starting ${ORANGE}digid-connector${NC}"
         docker compose up --detach --build --force-recreate
@@ -257,17 +268,17 @@ fi
 # Manage postgres
 ########################################################################
 
-if [ "${POSTGRES}" == "0" ]
+if [[ $POSTGRES == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage postgres services${NC}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Stopping postgres services${NC}"
         docker compose --file "${DOCKER_COMPOSE_FILE}" down postgres || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "${INFO}Starting postgres services${NC}"
         docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach postgres
@@ -278,19 +289,19 @@ fi
 # Manage demo_index
 ########################################################################
 
-if [ "${DEMO_INDEX}" == "0" ]
+if [[ $DEMO_INDEX == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage demo_index${NC}"
 
     cd "${DEMO_INDEX_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}demo_index${NC}"
         killall demo_index || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}demo_index${NC}"
         RUST_LOG=debug cargo run --package demo_index --bin demo_index > "${TARGET_DIR}/demo_index.log" 2>&1 &
@@ -303,19 +314,19 @@ fi
 # Manage demo_relying_party
 ########################################################################
 
-if [ "${DEMO_RELYING_PARTY}" == "0" ]
+if [[ $DEMO_RELYING_PARTY == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage demo_relying_party${NC}"
 
     cd "${DEMO_RELYING_PARTY_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}demo_relying_party${NC}"
         killall demo_relying_party || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}demo_relying_party${NC}"
         RUST_LOG=debug cargo run --package demo_relying_party --features "allow_insecure_url" --bin demo_relying_party > "${TARGET_DIR}/demo_relying_party.log" 2>&1 &
@@ -328,19 +339,19 @@ fi
 # Manage demo_issuer
 ########################################################################
 
-if [ "${DEMO_ISSUER}" == "0" ]
+if [[ $DEMO_ISSUER == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage demo_issuer${NC}"
 
     cd "${DEMO_ISSUER_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}demo_issuer${NC}"
         killall demo_issuer || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}demo_issuer${NC}"
         RUST_LOG=debug cargo run --package demo_issuer --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
@@ -353,19 +364,19 @@ fi
 # Manage pid_issuer
 ########################################################################
 
-if [ "${PID_ISSUER}" == "0" ]
+if [[ $PID_ISSUER == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage pid_issuer${NC}"
 
     cd "${PID_ISSUER_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}pid_issuer${NC}"
         killall pid_issuer || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running pid_issuer database migrations${NC}"
@@ -387,7 +398,7 @@ fi
 # Manage verification_server
 ########################################################################
 
-if [ "${VERIFICATION_SERVER}" == "0" ]
+if [[ $VERIFICATION_SERVER == '0' ]]
 then
     # As part of the demo RP a verification_server is started
     echo
@@ -395,12 +406,12 @@ then
 
     cd "${VERIFICATION_SERVER_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}verification_server${NC}"
         killall verification_server || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running verification_server database migrations${NC}"
@@ -418,7 +429,7 @@ fi
 # Manage issuance_server
 ########################################################################
 
-if [ "${ISSUANCE_SERVER}" == "0" ]
+if [[ $ISSUANCE_SERVER == '0' ]]
 then
     # As part of the demo RP a issuance_server is started
     echo
@@ -426,12 +437,12 @@ then
 
     cd "${ISSUANCE_SERVER_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}issuance_server${NC}"
         killall issuance_server || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running issuance_server database migrations${NC}"
@@ -453,19 +464,19 @@ fi
 # Manage wallet_provider
 ########################################################################
 
-if [ "${WALLET_PROVIDER}" == "0" ]
+if [[ $WALLET_PROVIDER == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage wallet_provider${NC}"
 
     cd "${WP_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}wallet_provider${NC}"
         killall wallet_provider || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "${INFO}Running wallet_provider database migrations${NC}"
         pushd "${WALLET_CORE_DIR}"
@@ -487,19 +498,19 @@ fi
 # Manage configuration_server
 ########################################################################
 
-if [ "${CONFIG_SERVER}" == "0" ]
+if [[ $CONFIG_SERVER == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage configuration_server${NC}"
 
     cd "${CS_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}configuration_server${NC}"
         killall configuration_server || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}configuration_server${NC}"
         RUST_LOG=debug cargo run --package configuration_server --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
@@ -511,19 +522,19 @@ fi
 ########################################################################
 # Manage update_policy_server
 
-if [ "${UPDATE_POLICY_SERVER}" == "0" ]
+if [[ $UPDATE_POLICY_SERVER == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage update_policy_server${NC}"
 
     cd "${UPS_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}update_policy_server${NC}"
         killall update_policy_server || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}update_policy_server${NC}"
         RUST_LOG=debug cargo run --package update_policy_server --bin update_policy_server > "${TARGET_DIR}/update_policy_server.log" 2>&1 &
@@ -536,17 +547,17 @@ fi
 # Manage brpproxy
 ########################################################################
 
-if [ "${BRP_PROXY}" == "0" ]
+if [[ $BRP_PROXY == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage brpproxy${NC}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Stopping ${ORANGE}brpproxy${NC}"
         docker compose --file "${DOCKER_COMPOSE_FILE}" down brpproxy || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "Building and starting ${ORANGE}brpproxy${NC}"
         docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach brpproxy
@@ -557,19 +568,19 @@ fi
 # Manage gba_hc_converter
 ########################################################################
 
-if [ "${GBA_HC}" == "0" ]
+if [[ $GBA_HC == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage gba_hc_converter${NC}"
 
     cd "${GBA_HC_CONVERTER_DIR}"
 
-    if [ "${STOP}" == "0" ]
+    if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Stopping ${ORANGE}gba_hc_converter${NC}"
         killall gba_hc_converter || true
     fi
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         echo -e "Starting ${ORANGE}gba_hc_converter${NC}"
 
@@ -584,12 +595,12 @@ fi
 # Manage wallet
 ########################################################################
 
-if [ "${WALLET}" == "0" ]
+if [[ $WALLET == '0' ]]
 then
     echo
     echo -e "${SECTION}Manage wallet${NC}"
 
-    if [ "${START}" == "0" ]
+    if [[ $START == '0' ]]
     then
         cd "${BASE_DIR}"/wallet_app
         flutter run \
