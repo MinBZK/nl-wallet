@@ -9,11 +9,14 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use attestation_data::disclosure_type::DisclosureTypeConfig;
+use attestation_types::claim_path::ClaimPath;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
@@ -100,6 +103,13 @@ pub struct PidAttributesConfiguration {
     pub sd_jwt: HashMap<String, PidAttributePaths>,
 }
 
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum PidAttributesConfigurationError {
+    #[category(critical)]
+    #[error("attestation type {0} has no PID configuration")]
+    NoPidConfiguration(String),
+}
+
 impl PidAttributesConfiguration {
     pub fn pid_attestation_types(&self) -> Vec<String> {
         [&self.mso_mdoc, &self.sd_jwt]
@@ -108,6 +118,24 @@ impl PidAttributesConfiguration {
             .unique()
             .map(String::to_string)
             .collect()
+    }
+
+    pub fn recovery_code_path(
+        &self,
+        attestation_type: &str,
+    ) -> Result<VecNonEmpty<ClaimPath>, PidAttributesConfigurationError> {
+        let path = self
+            .sd_jwt
+            .get(attestation_type)
+            .ok_or(PidAttributesConfigurationError::NoPidConfiguration(
+                attestation_type.to_string(),
+            ))?
+            .recovery_code
+            .nonempty_iter()
+            .map(|path| ClaimPath::SelectByKey(path.to_string()))
+            .collect();
+
+        Ok(path)
     }
 }
 

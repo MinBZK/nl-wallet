@@ -20,6 +20,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
+use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -99,6 +100,9 @@ pub enum PinRecoveryError {
 
     #[error("recovery code error: {0}")]
     RecoveryCode(#[from] RecoveryCodeError),
+
+    #[error("PID configuration error: {0}")]
+    PidAttributesConfiguration(#[from] PidAttributesConfigurationError),
 }
 
 impl From<DigidError> for PinRecoveryError {
@@ -401,7 +405,7 @@ where
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(&Self::recovery_code_path(pid_config, &pid_attestation_type))
+            .disclose(&pid_config.recovery_code_path(&pid_attestation_type)?)
             .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
             .finish()
             .into();
