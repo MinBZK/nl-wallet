@@ -91,9 +91,6 @@ pub enum PinRecoveryError {
     #[category(expected)]
     DeniedDigiD,
 
-    #[error("could not query attestations in database: {0}")]
-    AttestationQuery(#[source] StorageError),
-
     #[error("cannot recover PIN without a PID")]
     #[category(critical)]
     NoPidPresent,
@@ -159,8 +156,7 @@ where
             .read()
             .await
             .has_any_attestations_with_types(pid_attestation_types.as_slice())
-            .await
-            .map_err(PinRecoveryError::AttestationQuery)?;
+            .await?;
         if !has_pid {
             return Err(PinRecoveryError::NoPidPresent);
         }
