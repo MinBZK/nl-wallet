@@ -5,6 +5,7 @@ use std::sync::Arc;
 use chrono::Utc;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Either;
 use itertools::Itertools;
 use tracing::error;
@@ -35,9 +36,12 @@ use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
+use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
+use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecAtLeastN;
 use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -143,6 +147,12 @@ pub enum DisclosureError {
         expected: RedirectUriPurpose,
         found: RedirectUriPurpose,
     },
+    #[error("non-selectively-disclosable claims: {1:?} not requested for requested vct values: {2:?}")]
+    #[category(critical)]
+    NonSelectivelyDisclosableClaimsNotRequested(Box<Organization>, Vec<VecNonEmpty<ClaimPath>>, Vec<String>),
+    #[error("non-selectively-disclosable claim error: {1}")]
+    #[category(critical)]
+    NonSelectivelyDisclosableClaim(Box<Organization>, #[source] NonSelectivelyDisclosableClaimsError),
 }
 
 impl DisclosureError {
@@ -446,16 +456,25 @@ where
         .await
         .map_err(DisclosureError::AttestationRetrieval)?
         .into_iter()
-        .zip(session.credential_requests().as_ref())
-        .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id().clone(), attestations)))
-        .collect::<IndexMap<_, _>>();
+        .zip(session.credential_requests().as_ref());
+
+        // Verify whether all non selectively disclosable claims are requested
+        let verifier_certificate = session.verifier_certificate();
+        let reader_registration = verifier_certificate.registration().clone();
+        Self::verify_non_selectively_disclosable_claims(
+            candidate_attestations.clone(),
+            &reader_registration.organization,
+        )?;
+
+        let candidate_attestations = candidate_attestations
+            .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id().clone(), attestations)))
+            .collect::<IndexMap<_, _>>();
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
         let disclosure_type =
             DisclosureType::from_credential_requests(session.credential_requests().as_ref(), pid_attributes);
 
-        let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self
             .storage
             .read()
@@ -468,7 +487,6 @@ where
         if candidate_attestations.len() < session.credential_requests().as_ref().len() {
             info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
-            let reader_registration = verifier_certificate.registration().clone();
             // For now we simply represent the requested attribute paths by joining all elements with a slash.
             // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
             let requested_attributes = session
@@ -526,7 +544,7 @@ where
             .unwrap();
         let proposal = DisclosureProposalPresentation {
             attestation_options,
-            reader_registration: verifier_certificate.registration().clone(),
+            reader_registration,
             shared_data_with_relying_party_before,
             session_type: session.session_type(),
             disclosure_type,
@@ -543,6 +561,49 @@ where
             )));
 
         Ok(proposal)
+    }
+
+    fn verify_non_selectively_disclosable_claims<'a>(
+        candidate_attestations: impl IntoIterator<
+            Item = (
+                Option<VecNonEmpty<DisclosableAttestation>>,
+                &'a NormalizedCredentialRequest,
+            ),
+        >,
+        organization: &Organization,
+    ) -> Result<(), DisclosureError> {
+        for (attestations, request) in candidate_attestations {
+            for attestation in attestations.map(VecAtLeastN::into_inner).unwrap_or(Vec::new()) {
+                if let PartialAttestation::SdJwt { sd_jwt, .. } = attestation.into_partial_attestation() {
+                    Self::verify_sd_jwt_non_selectively_disclosable_claims(&sd_jwt, request, organization)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn verify_sd_jwt_non_selectively_disclosable_claims(
+        sd_jwt: &UnsignedSdJwtPresentation,
+        request: &NormalizedCredentialRequest,
+        organization: &Organization,
+    ) -> Result<(), DisclosureError> {
+        let non_selectively_disclosable_claims = sd_jwt
+            .as_ref()
+            .non_selectively_disclosable_claims()
+            .map_err(|e| DisclosureError::NonSelectivelyDisclosableClaim(Box::new(organization.clone()), e))?;
+        let requested_claims = request.claim_paths().cloned().collect::<IndexSet<_>>();
+        let mut non_requested_claims = non_selectively_disclosable_claims
+            .difference(&requested_claims)
+            .peekable();
+        if non_requested_claims.peek().is_some() {
+            Err(DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(
+                Box::new(organization.clone()),
+                non_requested_claims.cloned().collect(),
+                request.credential_types().map(ToString::to_string).collect(),
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     async fn terminate_disclosure_session(
@@ -905,6 +966,8 @@ mod tests {
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use mockall::predicate::function;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
@@ -919,6 +982,7 @@ mod tests {
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -953,7 +1017,9 @@ mod tests {
     use openid4vc::errors::GetRequestErrorCode;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::SessionType;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -2816,5 +2882,109 @@ mod tests {
         };
 
         assert_eq!(event_count.load(Ordering::Relaxed), expected_event_count);
+    }
+
+    #[tokio::test]
+    async fn test_start_disclosure_error_non_sd_claim_not_requested() {
+        let my_attestation_type = "my.attestation.type";
+        let my_sd_claim = "sd_claim";
+        let my_first_non_sd_claim = "first_non_sd_claim";
+        let my_second_non_sd_claim = "second_non_sd_claim";
+
+        // Create a registered wallet
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Create a request that requests the sd claim and only 1 of the non-sd claims
+        let credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+            &[my_attestation_type],
+            &[&[my_sd_claim], &[my_second_non_sd_claim]], // NOTE: here we omit `my_first_non_sd_claim`
+        )]);
+
+        let _verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
+
+        // Create metadata with an sd claim and 2 non-sd claims
+        let mut type_metadata_with_non_selectively_disclosable_claim = UncheckedTypeMetadata::example_with_claim_names(
+            my_attestation_type,
+            &[
+                (my_sd_claim, JsonSchemaPropertyType::String, None),
+                (my_first_non_sd_claim, JsonSchemaPropertyType::String, None),
+                (my_second_non_sd_claim, JsonSchemaPropertyType::String, None),
+            ],
+        );
+        for claim in &mut type_metadata_with_non_selectively_disclosable_claim.claims {
+            if [
+                vec_nonempty![ClaimPath::SelectByKey(my_first_non_sd_claim.to_string())],
+                vec_nonempty![ClaimPath::SelectByKey(my_second_non_sd_claim.to_string())],
+            ]
+            .contains(&claim.path)
+            {
+                claim.sd = sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata::Never;
+            }
+        }
+        let type_metadata_with_non_selectively_disclocable_claim =
+            NormalizedTypeMetadata::from_single_example(type_metadata_with_non_selectively_disclosable_claim);
+
+        // Create a credential payload with an sd claim and 2 non-sd claims
+        let previewable_payload = CredentialPayload::example_with_attributes(
+            my_attestation_type,
+            Attributes::example([
+                ([my_sd_claim], AttributeValue::Text("Some Sd Claim".to_string())),
+                (
+                    [my_first_non_sd_claim],
+                    AttributeValue::Text("Some Non Sd Claim".to_string()),
+                ),
+                (
+                    [my_second_non_sd_claim],
+                    AttributeValue::Text("Some Non Sd Claim".to_string()),
+                ),
+            ]),
+            SigningKey::random(&mut OsRng).verifying_key(),
+            &MockTimeGenerator::epoch(),
+        );
+
+        // Create an attestation for the above metadata and credential payload
+        let attestation = example_stored_attestation_copy(
+            CredentialFormat::SdJwt,
+            previewable_payload,
+            type_metadata_with_non_selectively_disclocable_claim,
+        );
+
+        // Mock the wallet database to return the attestation for the requested attestation type
+        let (attestation_type, attestations) = (my_attestation_type, vec![attestation]);
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_types_and_format()
+            .withf(move |attestation_types, format| {
+                *attestation_types == HashSet::from([attestation_type]) && *format == CredentialFormat::SdJwt
+            })
+            .times(1)
+            .return_once(move |_, _| Ok(attestations));
+
+        // The wallet will not check in the database if data was shared with the RP before.
+        wallet.mut_storage().expect_did_share_data_with_relying_party().never();
+
+        // Starting disclosure should not cause attestation copy usage counts to be incremented.
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .never();
+
+        // Starting disclosure should not cause a disclosure event to be recorded.
+        wallet.mut_storage().expect_log_disclosure_event().never();
+
+        // Starting disclosure should fail with a non-selectively disclosable claim verification error
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect_err("starting disclosure should fail");
+
+        assert_matches!(
+            error,
+            DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, claims, attestation_type) if
+                claims == vec![vec_nonempty![my_first_non_sd_claim.parse().unwrap()]] &&
+                attestation_type == vec![my_attestation_type.to_string()]
+        );
+
+        wallet.mut_storage().checkpoint();
     }
 }

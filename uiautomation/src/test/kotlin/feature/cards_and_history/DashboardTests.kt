@@ -37,7 +37,7 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC32 Show all available cards")
+    @DisplayName("LTC24 Show all available cards")
     @Tags(Tag("smoke"), Tag("a11yBatch1"))
     fun verifyIssuedCardsVisible(testInfo: TestInfo) {
         setUp(testInfo)
@@ -54,7 +54,7 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC32 The card information (and images) is displayed in the active language.")
+    @DisplayName("LTC24 The card information (and images) is displayed in the active language.")
     @Tags(Tag("english"))
     fun verifyActiveLanguage(testInfo: TestInfo) {
         setUp(testInfo)

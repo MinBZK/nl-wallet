@@ -102,6 +102,8 @@ use openid4vc::verifier::VpToken;
 use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
+use token_status_list::verification::client::mock::StatusListClientStub;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
@@ -183,7 +185,12 @@ fn disclosure_direct() {
         &MockTimeGenerator::default(),
         &[issuer_ca.to_trust_anchor()],
         &ExtendingVctRetrieverStub,
+        &RevocationVerifier::new(StatusListClientStub::new(
+            issuer_ca.generate_status_list_mock().unwrap(),
+        )),
     )
+    .now_or_never()
+    .unwrap()
     .unwrap();
 
     assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
@@ -273,6 +280,7 @@ async fn disclosure_using_message_client(
         formats,
         rp_keypair,
         vec![issuer_ca.to_trust_anchor().to_owned()],
+        issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
     );
     let request_uri = message_client.start_session();
 
@@ -302,6 +310,7 @@ struct DirectMockVpMessageClient {
     request_uri: BaseUrl,
     response_uri: BaseUrl,
     trust_anchors: Vec<TrustAnchor<'static>>,
+    status_list_keypair: KeyPair,
 }
 
 impl DirectMockVpMessageClient {
@@ -310,6 +319,7 @@ impl DirectMockVpMessageClient {
         formats: Vec<CredentialFormat>,
         auth_keypair: KeyPair,
         trust_anchors: Vec<TrustAnchor<'static>>,
+        status_list_keypair: KeyPair,
     ) -> Self {
         let query = serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
@@ -345,6 +355,7 @@ impl DirectMockVpMessageClient {
             request_uri,
             response_uri,
             trust_anchors,
+            status_list_keypair,
         }
     }
 
@@ -388,7 +399,9 @@ impl VpMessageClient for DirectMockVpMessageClient {
             &MockTimeGenerator::default(),
             &self.trust_anchors,
             &ExtendingVctRetrieverStub,
+            &RevocationVerifier::new(StatusListClientStub::new(self.status_list_keypair.clone())),
         )
+        .await
         .unwrap();
 
         self.test_credentials
@@ -993,6 +1006,9 @@ fn setup_wallet_initiated_usecase_verifier() -> (
         Some(Box::new(MockDisclosureResultHandler::new(None))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::default(),
+        RevocationVerifier::new(StatusListClientStub::new(
+            issuer_ca.generate_status_list_mock_with_dn(ISSUANCE_CERT_CN).unwrap(),
+        )),
     ));
 
     (
@@ -1068,6 +1084,9 @@ fn setup_verifier(
             String::from(EUDI_PID_ATTESTATION_TYPE),
             vec_nonempty![String::from(PID_ATTESTATION_TYPE)],
         )]),
+        RevocationVerifier::new(StatusListClientStub::new(
+            issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
+        )),
     ));
 
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_keypair)
@@ -1124,7 +1143,7 @@ async fn request_status_endpoint(
 
 type MockRpInitiatedUseCaseVerifier = MockVerifier<RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData>>>;
 type MockWalletInitiatedUseCaseVerifier = MockVerifier<WalletInitiatedUseCases<SigningKey>>;
-type MockVerifier<T> = Verifier<MemorySessionStore<DisclosureData>, T>;
+type MockVerifier<T> = Verifier<MemorySessionStore<DisclosureData>, T, StatusListClientStub<SigningKey>>;
 
 #[derive(Debug)]
 struct VerifierMockVpMessageClient<T> {

@@ -35,24 +35,28 @@ class MenuScreen extends StatelessWidget {
         title: TitleText(context.l10n.menuScreenTitle),
         leading: const BackIconButton(),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            DoOnInit(
-              onInit: (_) {
-                final announcement = context.l10n.menuScreenWCAGPageAnnouncement(_buildMenuItems(context).length);
-                context.read<AnnouncementService>().announce(announcement);
-              },
+      body: _buildBody(context),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        children: [
+          DoOnInit(
+            onInit: (_) {
+              final announcement = context.l10n.menuScreenWCAGPageAnnouncement(_buildMenuItems(context).length);
+              context.read<AnnouncementService>().announce(announcement);
+            },
+          ),
+          Expanded(
+            child: WalletScrollbar(
+              key: const Key('menuScreen'),
+              child: _buildContentList(context),
             ),
-            Expanded(
-              child: WalletScrollbar(
-                key: const Key('menuScreen'),
-                child: _buildContentList(context),
-              ),
-            ),
-            const BottomBackButton(),
-          ],
-        ),
+          ),
+          const BottomBackButton(),
+        ],
       ),
     );
   }

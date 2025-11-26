@@ -35,13 +35,13 @@ class QrScreen extends StatelessWidget {
   }
 
   PreferredSize _buildTransparentAppBar(BuildContext context) {
-    final appBar = const WalletAppBar(
+    const appBar = WalletAppBar(
       actions: [HelpIconButton()],
       fadeInTitleOnScroll: false,
     );
     return PreferredSize(
       preferredSize: appBar.preferredSize,
-      child: Opacity(opacity: 0.9, child: appBar),
+      child: const Opacity(opacity: 0.9, child: appBar),
     );
   }
 

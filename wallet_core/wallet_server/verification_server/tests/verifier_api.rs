@@ -34,8 +34,10 @@ use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_regist
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
+use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
 use dcql::CredentialFormat;
 use dcql::CredentialQuery;
 use dcql::Query;
@@ -71,7 +73,8 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
-use token_status_list::status_claim::StatusClaim;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::client::mock::StatusListClientStub;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 use verification_server::server;
@@ -188,14 +191,16 @@ async fn wallet_server_settings_and_listener(
     (settings, listener, issuer_ca, rp_trust_anchor)
 }
 
-async fn start_wallet_server<S>(
+async fn start_wallet_server<S, C>(
     wallet_listener: TcpListener,
     requester_listener: Option<TcpListener>,
     settings: VerifierSettings,
     hsm: Option<Pkcs11Hsm>,
     disclosure_sessions: S,
+    status_list_client: C,
 ) where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    C: StatusListClient + Sync + 'static,
 {
     let public_url = settings.server_settings.public_url.clone();
 
@@ -206,6 +211,7 @@ async fn start_wallet_server<S>(
             settings,
             hsm,
             Arc::new(disclosure_sessions),
+            status_list_client,
         )
         .await
         {
@@ -272,7 +278,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         }
     };
 
-    let (settings, wallet_listener, _, _) =
+    let (settings, wallet_listener, issuer_ca, _) =
         wallet_server_settings_and_listener(auth, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
@@ -291,6 +297,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         settings.clone(),
         hsm,
         MemorySessionStore::default(),
+        StatusListClientStub::new(issuer_ca.generate_status_list_mock().unwrap()),
     )
     .await;
 
@@ -448,6 +455,12 @@ async fn test_new_session_parameters_error() {
         settings,
         hsm,
         MemorySessionStore::default(),
+        StatusListClientStub::new(
+            Ca::generate_issuer_mock_ca()
+                .unwrap()
+                .generate_status_list_mock()
+                .unwrap(),
+        ),
     )
     .await;
     let client = default_reqwest_client_builder().build().unwrap();
@@ -496,6 +509,12 @@ async fn test_disclosure_not_found() {
         settings.clone(),
         hsm,
         MemorySessionStore::default(),
+        StatusListClientStub::new(
+            Ca::generate_issuer_mock_ca()
+                .unwrap()
+                .generate_status_list_mock()
+                .unwrap(),
+        ),
     )
     .await;
 
@@ -591,6 +610,7 @@ where
         settings.clone(),
         hsm,
         disclosure_sessions,
+        StatusListClientStub::new(issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap()),
     )
     .await;
 

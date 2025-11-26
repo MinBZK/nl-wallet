@@ -16,6 +16,7 @@ import 'package:wallet/src/feature/wallet_transfer_source/wallet_transfer_source
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
 import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 class MockWalletTransferSourceBloc extends MockBloc<WalletTransferSourceEvent, WalletTransferSourceState>
     implements WalletTransferSourceBloc {}
@@ -111,6 +112,17 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_stopped.light');
     });
+
+    testGoldens('WalletTransferStopped - PinRecovery', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
+          MockWalletTransferSourceBloc(),
+          const WalletTransferStopped(reason: .pinRecovery),
+        ),
+      );
+      await screenMatchesGolden('wallet_transfer_stopped_for_pin_recovery.light');
+    });
+
     testGoldens('WalletTransferGenericError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
@@ -318,5 +330,21 @@ void main() {
     await tester.pumpAndSettle();
 
     await screenMatchesGolden('wallet_transfer_transferring.stop_sheet.light');
+  });
+
+  testGoldens('WalletTransferTransferring - Pin Recovery Stop Sheet', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
+        MockWalletTransferSourceBloc(),
+        const WalletTransferConfirmPin(),
+      ),
+      providers: [RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => MockConfirmWalletTransferUseCase())],
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    await tester.tap(find.text(l10n.pinScreenForgotPinCta));
+    await tester.pumpAndSettle();
+
+    await screenMatchesGolden('wallet_transfer_confirm_pin.forgot_pin_stop_sheet.light');
   });
 }

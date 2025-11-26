@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects a card in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md)</li></ul>   |
 | **Additional Documentation** | *None*                                                                                                      |
 | **Possible errors**          | *None*                                                                                                      |
-| **Logical test cases**       | <ul><li>[LTC33 Show Card Details](../logical-test-cases.md#ltc33)</li></ul>                                 |
+| **Logical test cases**       | <ul><li>[LTC25 View Card Details](../logical-test-cases.md#ltc25)</li></ul>                                 |
 
 ---
 

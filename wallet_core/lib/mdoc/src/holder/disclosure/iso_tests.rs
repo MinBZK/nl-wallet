@@ -5,6 +5,8 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::generate::Ca;
+use token_status_list::verification::client::mock::StatusListClientStub;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -105,7 +107,9 @@ async fn do_and_verify_iso_example_disclosure() {
             &session_transcript,
             &IsoCertTimeGenerator,
             &[ca.to_trust_anchor()],
+            &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
         )
+        .await
         .unwrap();
     println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 
@@ -143,7 +147,9 @@ async fn iso_examples_custom_disclosure() {
             &session_transcript,
             &IsoCertTimeGenerator,
             &[ca.to_trust_anchor()],
+            &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
         )
+        .await
         .unwrap();
     println!("My Disclosure: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 

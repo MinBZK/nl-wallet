@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use async_dropper::AsyncDropper;
-use futures::Future;
 use hsm::service::HsmError;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -29,10 +28,9 @@ use hsm::test::TestCase;
 #[case::wrap_key_and_sign(wrap_key_and_sign)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
-async fn hsm_tests<F, Fut>(#[context] ctx: Context, #[case] test: F)
+async fn hsm_tests<F>(#[context] ctx: Context, #[case] test: F)
 where
-    F: FnOnce(TestCase<Pkcs11Hsm>) -> Fut,
-    Fut: Future<Output = TestCase<Pkcs11Hsm>>,
+    F: AsyncFnOnce(TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm>,
 {
     let test_case = TestCase::new("hsm.toml", ctx.description.unwrap());
     let test_case = test(test_case).await;
@@ -47,10 +45,9 @@ where
 #[case::encrypt_decrypt_verifying_key(encrypt_decrypt_verifying_key)]
 // #[case::wrap_key_and_sign(wrap_key_and_sign)] // TODO: generate aes key is unsupported for Mock
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn hsm_mock_tests<F, Fut>(#[context] ctx: Context, #[case] test: F)
+async fn hsm_mock_tests<F>(#[context] ctx: Context, #[case] test: F)
 where
-    F: FnOnce(TestCase<MockPkcs11Client<HsmError>>) -> Fut,
-    Fut: Future<Output = TestCase<MockPkcs11Client<HsmError>>>,
+    F: AsyncFnOnce(TestCase<MockPkcs11Client<HsmError>>) -> TestCase<MockPkcs11Client<HsmError>>,
 {
     let test_case = TestCase::mock(ctx.description.unwrap());
     test(test_case).await;

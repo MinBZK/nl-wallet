@@ -1,19 +1,19 @@
-use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
 use base64::prelude::*;
-use crypto::server_keys::generate::Ca;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
+use attestation_types::status_claim::StatusClaim;
+use crypto::server_keys::generate::Ca;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
-use status_lists::postgres::PostgresStatusListServices;
+use status_lists::postgres::PostgresStatusListService;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -63,7 +63,7 @@ async fn do_registration(
     WalletCertificate,
     MockHardwareKey,
     WalletCertificateClaims,
-    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListServices>,
+    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService>,
 ) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
@@ -119,12 +119,10 @@ async fn do_registration(
         key_pair, // unused
     };
 
-    let status_list_service = PostgresStatusListServices::try_new(
-        db_connection,
-        HashMap::from([(WUA_ATTESTATION_TYPE_IDENTIFIER.to_owned(), wua_status_list_config)]).into(),
-    )
-    .await
-    .unwrap();
+    let status_list_service =
+        PostgresStatusListService::try_new(db_connection, WUA_ATTESTATION_TYPE_IDENTIFIER, wua_status_list_config)
+            .await
+            .unwrap();
 
     let user_state = mock::user_state(
         Repositories::from(db),
@@ -275,7 +273,7 @@ async fn test_wua_status() {
         )
         .await;
 
-    account_server
+    let result = account_server
         .handle_instruction(
             instruction,
             &certificate_signing_key,
@@ -294,5 +292,20 @@ async fn test_wua_status() {
     tx.commit().await.unwrap();
 
     // assert that one WUA has been stored in the database, linked to this wallet
-    assert!(wua_ids.len() == 1)
+    assert!(wua_ids.len() == 1);
+
+    assert!(matches!(
+        result
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .result
+            .wua_disclosure
+            .wua()
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .status,
+        StatusClaim::StatusList(_)
+    ));
 }

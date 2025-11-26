@@ -2,16 +2,16 @@
 
 ## Overview
 
-| Aspect                       | Description                                                                                                                                                     |
-| ---------------------------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Summary**                  | The user enables or disables biometric unlock in the app, confirming with their PIN when enabling biometric unlock.                                             |
-| **Goal**                     | Enabling or disabling biometric unlock, whatever the user prefers.                                                                                              |
-| **Preconditions**            | <ul><li>Device supports biometrics</li></ul>                                                                                                                    |
-| **Postconditions**           | <ul><li>Biometric unlock is enabled OR</li><li>Biometric unlock is disabled</li></ul>                                                                           |
-| **Triggered by**             | <ul><li>User selects 'Unlock with biometric' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li></ul>                                                          |
-| **Additional Documentation** | <ul><li>[PIN Validation](../../architecture/use-cases/pin-validation.md)</li></ul>                                                                              |
-| **Possible errors**          | *None*                                                                                                                                                          |
-| **Logical Test Cases**       | <ul><li>[LTC76 User disables biometrics](../logical-test-cases.md#ltc76)</li><li>[LTC77 Setup biometrics in settings](../logical-test-cases.md#ltc77)</li></ul> |
+| Aspect                       | Description                                                                                                                                               |
+|------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user enables or disables biometric unlock in the app, confirming with their PIN when enabling biometric unlock.                                       |
+| **Goal**                     | Enabling or disabling biometric unlock, whatever the user prefers.                                                                                        |
+| **Preconditions**            | <ul><li>Device supports biometrics</li></ul>                                                                                                              |
+| **Postconditions**           | <ul><li>Biometric unlock is enabled OR</li><li>Biometric unlock is disabled</li></ul>                                                                     |
+| **Triggered by**             | <ul><li>User selects 'Unlock with biometric' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li></ul>                                                    |
+| **Additional Documentation** | <ul><li>[PIN Validation](../../architecture/use-cases/pin-validation.md)</li></ul>                                                                        |
+| **Possible errors**          | *None*                                                                                                                                                    |
+| **Logical Test Cases**       | <ul><li>[LTC60 Disable biometrics](../logical-test-cases.md#ltc60)</li><li>[LTC61 Setup biometrics in settings](../logical-test-cases.md#ltc61)</li></ul> |
 
 ---
 

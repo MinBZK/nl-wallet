@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -10,6 +11,7 @@ use axum::Json;
 use axum::Router;
 use axum::routing::post;
 use ctor::ctor;
+use futures::future;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use reqwest::Certificate;
@@ -30,6 +32,7 @@ use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
 use configuration_server::settings::Settings as CsSettings;
+use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -45,6 +48,7 @@ use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
+use issuer_settings::settings::IssuerSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
@@ -59,11 +63,13 @@ use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
-use token_status_list::status_list_service::mock::MockStatusListService;
+use token_status_list::status_list_service::mock::MockStatusListServices;
+use token_status_list::verification::client::mock::MockStatusListServicesClient;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
@@ -282,14 +288,30 @@ pub async fn setup_env(
     )
     .unwrap();
 
-    let verifier_server_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
+    let attestation_settings = attestation_settings(
+        &issuer_settings.issuer_settings,
+        &issuance_server_settings.issuer_settings,
+        Some(hsm.clone()),
+    )
+    .await;
+
+    let verifier_server_urls =
+        start_verification_server(verifier_settings, attestation_settings.clone(), Some(hsm.clone())).await;
+
+    let issuance_server_url = start_issuance_server(
+        issuance_server_settings,
+        Some(hsm.clone()),
+        attributes_fetcher,
+        attestation_settings,
+    )
+    .await;
+
     let pid_issuer_port = start_pid_issuer_server(
         issuer_settings,
-        Some(hsm.clone()),
+        Some(hsm),
         MockAttributeService::new(pid_issuable_documents),
     )
     .await;
-    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), attributes_fetcher).await;
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -598,6 +620,35 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
     }
 }
 
+async fn attestation_settings(
+    pid_issuer_settings: &IssuerSettings,
+    disclosure_based_issuance_settings: &IssuerSettings,
+    hsm: Option<Pkcs11Hsm>,
+) -> HashMap<String, KeyPair<PrivateKeyVariant>> {
+    HashMap::from_iter(
+        future::join_all(
+            pid_issuer_settings
+                .attestation_settings
+                .as_ref()
+                .iter()
+                .chain(disclosure_based_issuance_settings.attestation_settings.as_ref().iter())
+                .map(|(vct, attestation_type_config_settings)| async {
+                    let status_list_attestation_settings = &attestation_type_config_settings.status_list;
+                    (
+                        vct.clone(),
+                        status_list_attestation_settings
+                            .keypair
+                            .clone()
+                            .parse(hsm.clone())
+                            .await
+                            .unwrap(),
+                    )
+                }),
+        )
+        .await,
+    )
+}
+
 async fn start_mock_attestation_server(
     issuable_documents: Vec<IssuableDocument>,
     tls_server_config: TlsServerConfig,
@@ -626,6 +677,7 @@ pub async fn start_issuance_server(
     mut settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     attributes_fetcher: impl AttributesFetcher + Sync + 'static,
+    attestation_settings: HashMap<String, KeyPair<PrivateKeyVariant>>,
 ) -> BaseUrl {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
@@ -655,8 +707,9 @@ pub async fn start_issuance_server(
             issuance_sessions,
             disclosure_settings,
             attributes_fetcher,
-            MockStatusListService::default(),
+            MockStatusListServices::default(),
             None,
+            MockStatusListServicesClient::new(attestation_settings),
         )
         .await
         {
@@ -699,7 +752,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             hsm,
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
-            MockStatusListService::default(),
+            MockStatusListServices::default(),
             None,
         )
         .await
@@ -714,7 +767,11 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     port
 }
 
-pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) -> DisclosureParameters {
+pub async fn start_verification_server(
+    mut settings: VerifierSettings,
+    attestation_settings: HashMap<String, KeyPair<PrivateKeyVariant>>,
+    hsm: Option<Pkcs11Hsm>,
+) -> DisclosureParameters {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
@@ -749,6 +806,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
             settings,
             hsm,
             disclosure_sessions,
+            MockStatusListServicesClient::new(attestation_settings),
         )
         .await
         {

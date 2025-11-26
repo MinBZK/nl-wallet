@@ -88,9 +88,9 @@ class NavigationService extends AppEventListener {
   /// Show the dialog specified by [type]. Useful when caller does not have a valid context.
   Future<void> showDialog(WalletDialogType type, {bool dismissOpenDialogs = false}) async {
     final context = _navigatorKey.currentState?.context;
-    if (context == null || !context.mounted) return;
-    if (dismissOpenDialogs) await DialogHelper.dismissOpenDialogs(context);
-    if (!context.mounted) return; // Fixes lint warning: context across async gaps
+    if (context == null) return;
+    if (dismissOpenDialogs) await _dismissOpenDialogs(); // Dismiss any open dialogs if requested
+    if (!context.mounted) return;
     return switch (type) {
       WalletDialogType.idleWarning => IdleWarningDialog.show(context),
       WalletDialogType.resetWallet => ResetWalletDialog.show(context),
@@ -123,6 +123,11 @@ class NavigationService extends AppEventListener {
   }
 
   Stream<bool> observeUpdateNotificationDialogVisible() => _updateNotificationDialogVisible.stream.distinct();
+
+  Future<void> _dismissOpenDialogs() async {
+    final context = _navigatorKey.currentState?.context;
+    if (context != null) await DialogHelper.dismissOpenDialogs(context);
+  }
 }
 
 enum WalletDialogType { idleWarning, lockedOut, moveStopped, resetWallet, scanWithWallet }

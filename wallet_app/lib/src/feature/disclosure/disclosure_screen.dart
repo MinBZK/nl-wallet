@@ -183,14 +183,14 @@ class DisclosureScreen extends StatelessWidget {
       sessionType: state.sessionType,
       purpose: ApprovalPurpose.login,
       description: description,
-      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
+      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context, state)),
       onShowDetailsPressed: () {
         LoginDetailScreen.show(
           context,
           state.relyingParty,
           state.policy,
           state.cardRequests,
-          onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
+          onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context, state)),
           sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
         );
       },
@@ -288,99 +288,9 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _stopDisclosure(BuildContext context) async {
-    final bloc = context.bloc;
-    if (bloc.state.showStopConfirmation) {
-      final availableReportOptions = _resolveReportingOptionsForState(context);
-      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName.l10nValue(context);
-
-      StopDescriptionType stopType = bloc.isLoginFlow ? StopDescriptionType.forLogin : StopDescriptionType.generic;
-      stopType = context.bloc.state is DisclosureCheckUrl ? StopDescriptionType.forUrlCheck : stopType;
-
-      final stopPressed = await DisclosureStopSheet.show(
-        context,
-        organizationName: organizationName,
-        descriptionType: stopType,
-        onReportIssuePressed: availableReportOptions.isEmpty
-            ? null
-            : () {
-                Navigator.pop(context); //Close the StopDisclosureSheet
-                _onReportIssuePressed(context, availableReportOptions);
-              },
-      );
-      if (stopPressed) bloc.add(const DisclosureStopRequested());
-    } else {
-      Navigator.pop(context);
-    }
-  }
-
-  Future<void> _onReportIssuePressed(BuildContext context, List<ReportingOption> optionsToShow) async {
-    final bloc = context.bloc;
-    final selectedOption = await ReportIssueScreen.show(context, optionsToShow);
-    if (selectedOption != null) {
-      bloc.add(DisclosureReportPressed(option: selectedOption));
-    }
-  }
-
-  List<ReportingOption> _resolveReportingOptionsForState(BuildContext context) {
-    final state = context.read<DisclosureBloc>().state;
-    switch (state) {
-      case DisclosureCheckUrl():
-        return ReportingGroup.disclosureCheckOrganization;
-      case DisclosureCheckOrganizationForLogin():
-        return ReportingGroup.disclosureConfirmSingleAttribute;
-      case DisclosureConfirmDataAttributes():
-        final attributeCount = state.cardRequests.fold(0, (value, it) => value + it.selection.attributes.length);
-        if (attributeCount == 1) {
-          return ReportingGroup.disclosureConfirmSingleAttribute;
-        } else {
-          return ReportingGroup.disclosureConfirmMultipleAttributes;
-        }
-      case DisclosureMissingAttributes():
-        return ReportingGroup.disclosureMissingAttributes;
-      default:
-        Fimber.d('No ReportingOptions provided for $state');
-        return <ReportingOption>[];
-    }
-  }
-
   Widget _buildTitle(BuildContext context) {
     final state = context.watch<DisclosureBloc>().state;
-    String? title;
-    switch (state) {
-      case DisclosureInitial():
-        title = context.l10n.disclosureLoadingTitle;
-      case DisclosureGenericError():
-        title = context.l10n.disclosureGenericErrorPageTitle;
-      case DisclosureRelyingPartyError():
-        title = context.l10n.disclosureRelyingPartyErrorTitle;
-      case DisclosureSessionExpired():
-        title = context.l10n.errorScreenSessionExpiredHeadline;
-      case DisclosureSessionCancelled():
-        title = context.l10n.errorScreenCancelledSessionHeadline;
-      case DisclosureNetworkError():
-        title = state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline;
-      case DisclosureCheckUrl():
-        title = context.l10n.fraudCheckPageTitle(state.originUrl);
-      case DisclosureCheckOrganizationForLogin():
-        title = OrganizationApprovePage.resolveTitle(context, ApprovalPurpose.login, state.relyingParty);
-      case DisclosureMissingAttributes():
-        title = context.l10n.missingAttributesPageTitle;
-      case DisclosureConfirmDataAttributes():
-        title = context.l10n.disclosureConfirmDataAttributesShareWithTitle(
-          state.relyingParty.displayName.l10nValue(context),
-        );
-      case DisclosureSuccess():
-        title = context.l10n.disclosureSuccessPageTitle;
-      case DisclosureStopped():
-        title = context.l10n.disclosureStoppedPageTitle;
-      case DisclosureLeftFeedback():
-        title = context.l10n.disclosureReportSubmittedPageTitle;
-      case DisclosureConfirmPin():
-      case DisclosureExternalScannerError():
-      case DisclosureLoadInProgress():
-        break;
-    }
+    final title = _resolveTitleForState(context, state);
     if (title == null) return const SizedBox.shrink();
 
     // Check for CheckOrganization state, as it has a taller header (with logo) and thus should fade in later.
@@ -436,6 +346,89 @@ class DisclosureScreen extends StatelessWidget {
       organizationName: state.organizationName?.l10nValue(context),
       onClosePressed: () => Navigator.pop(context),
     );
+  }
+
+  String? _resolveTitleForState(BuildContext context, DisclosureState state) {
+    return switch (state) {
+      DisclosureInitial() => context.l10n.disclosureLoadingTitle,
+      DisclosureGenericError() => context.l10n.disclosureGenericErrorPageTitle,
+      DisclosureRelyingPartyError() => context.l10n.disclosureRelyingPartyErrorTitle,
+      DisclosureSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
+      DisclosureSessionCancelled() => context.l10n.errorScreenCancelledSessionHeadline,
+      DisclosureNetworkError() =>
+        state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
+      DisclosureCheckUrl() => context.l10n.fraudCheckPageTitle(state.originUrl),
+      DisclosureCheckOrganizationForLogin() => OrganizationApprovePage.resolveTitle(
+        context,
+        ApprovalPurpose.login,
+        state.relyingParty,
+      ),
+      DisclosureMissingAttributes() => context.l10n.missingAttributesPageTitle,
+      DisclosureConfirmDataAttributes() => context.l10n.disclosureConfirmDataAttributesShareWithTitle(
+        state.relyingParty.displayName.l10nValue(context),
+      ),
+      DisclosureSuccess() => context.l10n.disclosureSuccessPageTitle,
+      DisclosureStopped() => context.l10n.disclosureStoppedPageTitle,
+      DisclosureLeftFeedback() => context.l10n.disclosureReportSubmittedPageTitle,
+      DisclosureLoadInProgress() => null,
+      DisclosureExternalScannerError() => null,
+      DisclosureConfirmPin() => null,
+    };
+  }
+
+  List<ReportingOption> _resolveReportingOptionsForState(BuildContext context, DisclosureState state) {
+    switch (state) {
+      case DisclosureCheckUrl():
+        return ReportingGroup.disclosureCheckOrganization;
+      case DisclosureCheckOrganizationForLogin():
+        return ReportingGroup.disclosureConfirmSingleAttribute;
+      case DisclosureConfirmDataAttributes():
+        final attributeCount = state.cardRequests.fold(0, (value, it) => value + it.selection.attributes.length);
+        if (attributeCount == 1) {
+          return ReportingGroup.disclosureConfirmSingleAttribute;
+        } else {
+          return ReportingGroup.disclosureConfirmMultipleAttributes;
+        }
+      case DisclosureMissingAttributes():
+        return ReportingGroup.disclosureMissingAttributes;
+      default:
+        Fimber.d('No ReportingOptions provided for $state');
+        return <ReportingOption>[];
+    }
+  }
+
+  Future<void> _stopDisclosure(BuildContext context) async {
+    final bloc = context.bloc;
+    if (bloc.state.showStopConfirmation) {
+      final availableReportOptions = _resolveReportingOptionsForState(context, bloc.state);
+      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName.l10nValue(context);
+
+      StopDescriptionType stopType = bloc.isLoginFlow ? StopDescriptionType.forLogin : StopDescriptionType.generic;
+      stopType = context.bloc.state is DisclosureCheckUrl ? StopDescriptionType.forUrlCheck : stopType;
+
+      final stopPressed = await DisclosureStopSheet.show(
+        context,
+        organizationName: organizationName,
+        descriptionType: stopType,
+        onReportIssuePressed: availableReportOptions.isEmpty
+            ? null
+            : () {
+                Navigator.pop(context); //Close the StopDisclosureSheet
+                _onReportIssuePressed(context, availableReportOptions);
+              },
+      );
+      if (stopPressed) bloc.add(const DisclosureStopRequested());
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _onReportIssuePressed(BuildContext context, List<ReportingOption> optionsToShow) async {
+    final bloc = context.bloc;
+    final selectedOption = await ReportIssueScreen.show(context, optionsToShow);
+    if (selectedOption != null) {
+      bloc.add(DisclosureReportPressed(option: selectedOption));
+    }
   }
 }
 

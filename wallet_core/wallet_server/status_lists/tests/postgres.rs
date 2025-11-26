@@ -21,12 +21,13 @@ use tempfile::TempDir;
 use url::Url;
 use uuid::Uuid;
 
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use crypto::EcdsaKey;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
-use jwt::UnverifiedJwt;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
@@ -39,11 +40,10 @@ use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::publish::PublishDir;
-use token_status_list::status_claim::StatusClaim;
-use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -71,11 +71,7 @@ async fn create_status_list_service(
     create_threshold: i32,
     ttl: Option<Duration>,
     publish_dir: &TempDir,
-) -> anyhow::Result<(
-    String,
-    StatusListConfig<PrivateKeyVariant>,
-    PostgresStatusListService<PrivateKeyVariant>,
-)> {
+) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService)> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
@@ -96,8 +92,8 @@ async fn create_status_list_service(
 async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     attestation_type: &str,
-    config: StatusListConfig<PrivateKeyVariant>,
-) -> anyhow::Result<PostgresStatusListService<PrivateKeyVariant>> {
+    config: StatusListConfig,
+) -> anyhow::Result<PostgresStatusListService> {
     let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
@@ -153,12 +149,12 @@ async fn assert_status_list_items(
     items
 }
 
-async fn assert_empty_published_list<K: EcdsaKey + Clone>(config: &StatusListConfig<K>, list: &status_list::Model) {
+async fn assert_empty_published_list(config: &StatusListConfig, list: &status_list::Model) {
     assert_published_list(config, list, vec![]).await
 }
 
-async fn assert_published_list<K: EcdsaKey + Clone>(
-    config: &StatusListConfig<K>,
+async fn assert_published_list(
+    config: &StatusListConfig,
     list: &status_list::Model,
     revoked: impl IntoIterator<Item = usize>,
 ) {
@@ -170,7 +166,8 @@ async fn assert_published_list<K: EcdsaKey + Clone>(
         .unwrap();
 
     let verifying_key = EcdsaDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
-    let (header, claims) = UnverifiedJwt::from(status_list_token)
+    let (header, claims) = status_list_token
+        .as_ref()
         .parse_and_verify(&verifying_key, &DEFAULT_VALIDATIONS)
         .unwrap();
     assert_eq!(header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);

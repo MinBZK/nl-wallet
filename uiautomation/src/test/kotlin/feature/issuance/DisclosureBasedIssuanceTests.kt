@@ -169,7 +169,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC79 No cards to be issued")
+    @DisplayName("LTC9 No cards to be issued")
     fun verifyNoInsuranceCardAvailable(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu, "900265462")

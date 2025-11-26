@@ -42,8 +42,16 @@ class WalletTransferPinConfirmationFailed extends WalletTransferSourceEvent {
 
 /// Event triggered when the user requests to stop or cancel the ongoing transfer process.
 class WalletTransferStopRequestedEvent extends WalletTransferSourceEvent {
-  const WalletTransferStopRequestedEvent();
+  final WalletStopRequestReason reason;
+
+  const WalletTransferStopRequestedEvent({this.reason = .generic});
+
+  @override
+  List<Object?> get props => [reason];
 }
+
+/// Enum to accompany [WalletTransferStopRequestedEvent], specifies the reason the user stopped the request
+enum WalletStopRequestReason { generic, pinRecovery }
 
 /// Event triggered when the user requests to go back.
 class WalletTransferBackPressedEvent extends WalletTransferSourceEvent {

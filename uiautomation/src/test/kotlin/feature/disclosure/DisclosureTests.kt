@@ -81,7 +81,7 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC17 LTC21 Share data flow, Opening a bank account. MDOC")
+    @DisplayName("LTC15 Share data flow, Opening a bank account. MDOC")
     @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountXyzBankMdoc(testInfo: TestInfo) {
         setUp(testInfo)
@@ -109,7 +109,7 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC17 LTC21 Share data flow, Opening a bank account. SD-JWT")
+    @DisplayName("LTC15 Share data flow, Opening a bank account. SD-JWT")
     fun verifyDisclosureCreateAccountXyzBankSdJwt(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -133,7 +133,7 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC23 LTC25 RP Login flow, MDOC")
+    @DisplayName("LTC18 LTC25 RP Login flow, MDOC")
     @Tags(Tag("smoke"), Tag("a11yBatch1"))
     fun verifyDisclosureLoginMdoc(testInfo: TestInfo) {
         setUp(testInfo)
@@ -174,7 +174,7 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC23 LTC25 RP Login flow, SD-JWT")
+    @DisplayName("LTC18 LTC25 RP Login flow, SD-JWT")
     @Tags(Tag("smoke"))
     fun verifyDisclosureLoginSdJwt(testInfo: TestInfo) {
         setUp(testInfo)
@@ -209,7 +209,7 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC17 LTC21 Share data flow")
+    @DisplayName("LTC15 Share data flow")
     fun verifyDisclosureCreateAccountMarketplace(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -249,7 +249,7 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC27 Wallet does not contain requested attributes")
+    @DisplayName("LTC10 Wallet does not contain requested attributes")
     @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountMonkeyBike(testInfo: TestInfo) {
         setUp(testInfo)
@@ -266,7 +266,7 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC79 User selects another card to be disclosed MDOC")
+    @DisplayName("LTC65 User selects another card to be disclosed MDOC")
     fun verifyUserSelectCardToDisclose(testInfo: TestInfo) {
         setUp(testInfo)
 
@@ -298,5 +298,22 @@ class DisclosureTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
         assertTrue(jobFinderWebPage.sharedAttributeVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last()), "Attribute of selected card not visible")
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC15 Share data flow, Opening a bank account. SD-JWT, extended VCT")
+    fun verifyDisclosureCreateAccountXyzBankSdJwtExtendingVct(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickXyzBankSdJwtEuPidButton()
+        xyzBankWebPage.openSameDeviceWalletFlow()
+        xyzBankWebPage.switchToNativeContext()
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+        disclosureScreen.share()
+        pinScreen.enterPin(DEFAULT_PIN)
+        disclosureScreen.goToWebsite()
+        assertTrue(xyzBankWebPage.sharedAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "User not identified correctly")
     }
 }

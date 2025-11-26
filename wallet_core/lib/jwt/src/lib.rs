@@ -34,7 +34,7 @@
 //!   - Define `const SUB: &'static str` and use helpers:
 //!     - `UnverifiedJwt::parse_and_verify_with_sub` enforces a matching `sub` claim.
 //!     - `SignedJwt::sign_with_sub` signs a payload wrapped with the correct `sub` claim.
-pub mod credential;
+pub mod confirmation;
 pub mod error;
 pub mod headers;
 pub mod jwk;

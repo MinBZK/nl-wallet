@@ -9,6 +9,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -24,6 +25,7 @@ use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
@@ -35,10 +37,13 @@ use jwt::EcdsaDecodingKey;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
+use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
-use token_status_list::status_claim::StatusClaim;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationStatus;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -47,6 +52,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
+use crate::claims::NonSelectivelyDisclosableClaimsError;
 use crate::claims::ObjectClaims;
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
@@ -56,7 +62,6 @@ use crate::error::SigningError;
 use crate::hasher::Hasher;
 use crate::key_binding_jwt::KbVerificationOptions;
 use crate::key_binding_jwt::KeyBindingJwtBuilder;
-use crate::key_binding_jwt::RequiredKeyBinding;
 use crate::key_binding_jwt::SignedKeyBindingJwt;
 use crate::key_binding_jwt::UnverifiedKeyBindingJwt;
 use crate::key_binding_jwt::VerifiedKeyBindingJwt;
@@ -67,7 +72,7 @@ use crate::sd_alg::SdAlg;
 pub trait SdJwtClaims: JwtTyp {
     fn _sd_alg(&self) -> Option<SdAlg>;
 
-    fn cnf(&self) -> &RequiredKeyBinding;
+    fn cnf(&self) -> &ConfirmationClaim;
 
     fn claims(&self) -> &ClaimValue;
 }
@@ -77,7 +82,7 @@ impl SdJwtClaims for SdJwtVcClaims {
         self._sd_alg
     }
 
-    fn cnf(&self) -> &RequiredKeyBinding {
+    fn cnf(&self) -> &ConfirmationClaim {
         &self.cnf
     }
 
@@ -258,7 +263,7 @@ impl From<VerifiedSdJwt> for UnverifiedSdJwt {
 pub struct SdJwtVcClaims {
     pub _sd_alg: Option<SdAlg>,
 
-    pub cnf: RequiredKeyBinding,
+    pub cnf: ConfirmationClaim,
 
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
@@ -377,6 +382,12 @@ impl VerifiedSdJwt {
         self.claims()
             .claims
             .verify_selective_disclosability(claim_path, 0, &self.disclosures, sd_metadata)
+    }
+
+    pub fn non_selectively_disclosable_claims(
+        &self,
+    ) -> Result<IndexSet<VecNonEmpty<ClaimPath>>, NonSelectivelyDisclosableClaimsError> {
+        self.issuer_signed.payload().claims.non_selectively_disclosable_claims()
     }
 }
 
@@ -497,12 +508,16 @@ impl UnverifiedSdJwtPresentation {
     /// 1) validating the issuer-signed JWT against `trust_anchors`,
     /// 2) validating the KB-JWT against the public key from the `cnf` claim in the verified issuer-signed JWT,
     /// 3) parsing/verifying disclosures.
-    pub fn into_verified_against_trust_anchors(
+    pub async fn into_verified_against_trust_anchors<C>(
         self,
-        trust_anchors: &[TrustAnchor],
-        kb_verification_options: &KbVerificationOptions,
+        trust_anchors: &[TrustAnchor<'_>],
+        kb_verification_options: &KbVerificationOptions<'_>,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedSdJwtPresentation, DecoderError> {
+        revocation_verifier: &RevocationVerifier<C>,
+    ) -> Result<VerifiedSdJwtPresentation, DecoderError>
+    where
+        C: StatusListClient,
+    {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
         // before parsing the disclosures
         let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
@@ -522,12 +537,31 @@ impl UnverifiedSdJwtPresentation {
             &self.sd_jwt.disclosures,
             issuer_signed.payload(),
         )?;
+
+        let revocation_status = match &issuer_signed.payload().status {
+            Some(StatusClaim::StatusList(status_list_claim)) => {
+                let issuer_certificate = issuer_signed.header().x5c.first();
+                let revocation_status = revocation_verifier
+                    .verify(
+                        trust_anchors,
+                        issuer_certificate,
+                        status_list_claim.uri.clone(),
+                        time,
+                        status_list_claim.idx.try_into().unwrap(),
+                    )
+                    .await;
+                Some(revocation_status)
+            }
+            _ => None,
+        };
+
         Ok(VerifiedSdJwtPresentation {
             sd_jwt: VerifiedSdJwt {
                 issuer_signed,
                 disclosures,
             },
             key_binding_jwt,
+            revocation_status,
         })
     }
 }
@@ -537,6 +571,7 @@ impl UnverifiedSdJwtPresentation {
 pub struct VerifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
     sd_jwt: VerifiedSdJwt<C, H>,
     key_binding_jwt: VerifiedKeyBindingJwt,
+    revocation_status: Option<RevocationStatus>,
 }
 
 impl<C, H> Display for VerifiedSdJwtPresentation<C, H> {
@@ -548,6 +583,10 @@ impl<C, H> Display for VerifiedSdJwtPresentation<C, H> {
 impl<C, H> VerifiedSdJwtPresentation<C, H> {
     pub fn sd_jwt(&self) -> &VerifiedSdJwt<C, H> {
         &self.sd_jwt
+    }
+
+    pub fn revocation_status(&self) -> Option<RevocationStatus> {
+        self.revocation_status
     }
 
     pub fn into_claims(self) -> C {
@@ -758,6 +797,7 @@ where
                 disclosures,
             },
             key_binding_jwt,
+            revocation_status: Some(RevocationStatus::Valid),
         })
     }
 }
@@ -773,11 +813,10 @@ mod examples {
     use serde_json::json;
 
     use attestation_types::qualification::AttestationQualification;
+    use attestation_types::status_claim::StatusClaim;
+    use jwt::confirmation::ConfirmationClaim;
     use jwt::jwk::jwk_from_p256;
-    use token_status_list::status_claim::StatusClaim;
     use utils::generator::Generator;
-
-    use crate::key_binding_jwt::RequiredKeyBinding;
 
     use super::SdJwtVcClaims;
 
@@ -785,7 +824,7 @@ mod examples {
         pub fn pid_example(holder_pubkey: &VerifyingKey, time: &impl Generator<DateTime<Utc>>) -> Self {
             SdJwtVcClaims {
                 _sd_alg: None,
-                cnf: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey).unwrap()),
+                cnf: ConfirmationClaim::from_verifying_key(holder_pubkey).unwrap(),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
                 vct: "urn:eudi:pid:nl:1".to_owned(),
                 iss: "https://cert.issuer.example.com".parse().unwrap(),
@@ -812,7 +851,7 @@ mod examples {
         ) -> Self {
             SdJwtVcClaims {
                 _sd_alg: None,
-                cnf: RequiredKeyBinding::Jwk(jwk_from_p256(holder_public_key).unwrap()),
+                cnf: ConfirmationClaim::Jwk(jwk_from_p256(holder_public_key).unwrap()),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
                 vct: "urn:eudi:pid:nl:1".to_owned(),
                 iss: "https://cert.issuer.example.com".parse().unwrap(),
@@ -851,6 +890,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;
     use jwt::Header;
+    use jwt::confirmation::ConfirmationClaim;
     use jwt::error::JwtError;
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
@@ -862,7 +902,6 @@ mod test {
     use crate::examples::KeyBindingExampleTimeGenerator;
     use crate::examples::*;
     use crate::key_binding_jwt::KeyBindingJwtBuilder;
-    use crate::key_binding_jwt::RequiredKeyBinding;
     use crate::sd_alg::SdAlg;
     use crate::sd_jwt::ClaimValue;
     use crate::sd_jwt::ObjectClaims;
@@ -1787,7 +1826,7 @@ mod test {
         });
         let parsed: SdJwtVcClaims = serde_json::from_value(value).unwrap();
         let expected = SdJwtVcClaims {
-            cnf: RequiredKeyBinding::Jwk(Jwk {
+            cnf: ConfirmationClaim::Jwk(Jwk {
                 common: Default::default(),
                 algorithm: AlgorithmParameters::EllipticCurve(EllipticCurveKeyParameters {
                     curve: EllipticCurve::P256,

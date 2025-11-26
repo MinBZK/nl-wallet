@@ -13,9 +13,9 @@ doctest = false
 [features]
 examples = ["attestation_types/pid_constants"]
 example_credential_payloads = ["dep:rand_core"]
-generate = ["dep:rcgen", "crypto/generate"]
-mock = ["example_credential_payloads", "attestation_types/pid_constants", "crypto/mock", "mdoc/test", "dep:rand_core"]
-test_credential = ["mock", "dep:futures"]
+generate = ["crypto/generate", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
+mock = ["attestation_types/pid_constants", "crypto/mock", "dep:rand_core", "example_credential_payloads", "mdoc/test"]
+test_credential = ["dep:futures", "mock"]
 
 [dependencies]
 chrono.workspace = true
@@ -37,7 +37,7 @@ x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 futures = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_rs"] }
+rcgen = { workspace = true, optional = true }
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"

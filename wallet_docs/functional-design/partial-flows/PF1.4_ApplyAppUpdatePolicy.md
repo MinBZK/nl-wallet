@@ -13,7 +13,7 @@
 | **Possible Results**         | <ul><li>App version is allowed</li></ul>                                                                                                                                                                                |
 | **Additional Documentation** | *None*                                                                                                                                                                                                                  |
 | **Possible errors**          | <ul><li>[No Internet](../errors.md#no-internet)</li><li>[Server Unreachable](../errors.md#server-unreachable)</li>                                                                                                      |
-| **Logical test cases**       | <ul><li>[LTC52 App update is available](../logical-test-cases.md#ltc52)</li><li>[LTC53 Current app version is blocked](../logical-test-cases.md#ltc53)</li></ul>                                                        |
+| **Logical test cases**       | <ul><li>[LTC42 App update is available](../logical-test-cases.md#ltc42)</li><li>[LTC43 Current app version is blocked](../logical-test-cases.md#ltc43)</li></ul>                                                        |
 
 ---
 

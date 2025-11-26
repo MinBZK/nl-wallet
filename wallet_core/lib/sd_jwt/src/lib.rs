@@ -19,7 +19,7 @@
 //!     only `Sha256` is implemented via `Sha256Hasher`.
 //! - JWT. The underlying JWT handling (sign/verify) is provided by the `jwt` crate. This crate uses:
 //!   - `HeaderWithX5c` when issuing SD-JWTs (issuer certificate chain embedded in `x5c`),
-//!   - the holder key binding lives in the `cnf` claim as a JWK (`RequiredKeyBinding`).
+//!   - the holder key binding lives in the `cnf` claim as a JWK (`ConfirmationClaim`).
 //! - SD-JWTs. Note: to be able to parse the examples from the spec, generics `<C, H>` are provided, but limited to
 //!   what's needed in the examples/tests:
 //!   - [`UnverifiedSdJwt`](sd_jwt::UnverifiedSdJwt): raw serialization received over an untrusted channel. Can be
@@ -66,6 +66,7 @@
 //! # use attestation_types::claim_path::ClaimPath;
 //! # use chrono::Utc;
 //! # use crypto::server_keys::generate::Ca;
+//! # use jwt::confirmation::ConfirmationClaim;
 //! # use jwt::headers::HeaderWithX5c;
 //! # use jwt::jwk::jwk_from_p256;
 //! # use p256::ecdsa::{SigningKey, VerifyingKey};
@@ -77,20 +78,25 @@
 //! # use sd_jwt::disclosure::Disclosure;
 //! # use sd_jwt::key_binding_jwt::KbVerificationOptions;
 //! # use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
-//! # use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 //! # use sd_jwt::sd_jwt::{SdJwtVcClaims, VerifiedSdJwt};
 //! # use std::time::Duration;
+//! # use token_status_list::verification::client::mock::StatusListClientStub;
+//! # use token_status_list::verification::verifier::RevocationVerifier;
 //! # use utils::date_time_seconds::DateTimeSeconds;
 //! # use utils::generator::TimeGenerator;
 //! # use utils::vec_at_least::VecNonEmpty;
 //! # use utils::vec_nonempty;
 //!
 //! # tokio_test::block_on(async {
+//! // Issuer setup
+//! let ca = Ca::generate_issuer_mock_ca()?;
+//! let issuer_keypair = ca.generate_issuer_mock()?;
+//!
 //! // 1) Issuer constructs SD-JWT VC claims, including the holder's public key.
 //! let holder_privkey = SigningKey::random(&mut OsRng);
 //! let claims = SdJwtVcClaims {
 //!     _sd_alg: None,
-//!     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_privkey.verifying_key())?),
+//!     cnf: ConfirmationClaim::Jwk(jwk_from_p256(&holder_privkey.verifying_key())?),
 //!     vct: "com:example:vct".into(),
 //!     vct_integrity: None,
 //!     iss: "https://issuer.example.com".parse()?,
@@ -103,10 +109,6 @@
 //!         "name": "alice"
 //!     }))?,
 //! };
-//!
-//! // Issuer setup
-//! let ca = Ca::generate_issuer_mock_ca()?;
-//! let issuer_keypair = ca.generate_issuer_mock()?;
 //!
 //! // 2) Issuer marks fields as concealable and signs with issuer key.
 //! let signed = SdJwtBuilder::new(claims)
@@ -126,7 +128,7 @@
 //!     &TimeGenerator::default()
 //! )?;
 //!
-//! // 4) Holder creates a presentation with (a subset of) disclosures and signs a KB-JWT.
+//! // 5) Holder creates a presentation with (a subset of) disclosures and signs a KB-JWT.
 //! let presentation = verified
 //!     .into_presentation_builder()
 //!     .disclose(&vec_nonempty![ClaimPath::SelectByKey("name".into())])?
@@ -134,7 +136,7 @@
 //! let kb = KeyBindingJwtBuilder::new("https://verifier.example.com".into(), "nonce-123".into());
 //! let signed_presentation = presentation.sign(kb, &holder_privkey, &TimeGenerator::default()).await?;
 //!
-//! // 5) Verifier verifies the presentation (SD-JWT via trust anchors + KB-JWT via cnf JWK) and decodes claims.
+//! // 6) Verifier verifies the presentation (SD-JWT via trust anchors + KB-JWT via cnf JWK) and decodes claims.
 //! let verified_presentation = signed_presentation.into_unverified().into_verified_against_trust_anchors(
 //!     &trust_anchors,
 //!     &KbVerificationOptions {
@@ -143,8 +145,9 @@
 //!         iat_leeway: Duration::ZERO,
 //!         iat_acceptance_window: Duration::from_secs(300),
 //!     },
-//!     &TimeGenerator::default()
-//! )?;
+//!     &TimeGenerator::default(),
+//!     &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock()?)),
+//! ).await?;
 //! let disclosed = verified_presentation.sd_jwt().decoded_claims()?;
 //! assert_eq!(disclosed.claims.get(&ClaimName::try_from("name").unwrap()), Some(&ClaimValue::String("alice".to_owned())));
 //! # Ok::<(), Box<dyn std::error::Error>>(())
@@ -170,6 +173,7 @@ pub mod test;
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::collections::HashSet;
 
     use assert_matches::assert_matches;
     use rstest::rstest;
@@ -332,6 +336,30 @@ mod tests {
             .unwrap_err();
 
         verify_expected_error(error);
+    }
+
+    #[rstest]
+    #[case(all_claims(), vec![])]
+    #[case(selected_claims(), vec![vec_nonempty![ClaimPath::SelectByKey("root_array".to_string())], vec_nonempty![ClaimPath::SelectByKey("root_value".to_string())]])]
+    fn test_non_selectively_disclosable_claims(
+        #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
+        #[case] expected: Vec<VecNonEmpty<ClaimPath>>,
+    ) {
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
+
+        let input = test_object();
+
+        // conceal claims, and encode as an SD-JWT
+        let sd_jwt = conceal_and_sign(&issuer_keypair, input, concealed_claims);
+        let verified_sd_jwt = sd_jwt.into_verified();
+
+        let result = verified_sd_jwt.non_selectively_disclosable_claims().unwrap();
+
+        assert_eq!(
+            result.into_iter().collect::<HashSet<_>>(),
+            expected.into_iter().collect::<HashSet<_>>()
+        );
     }
 
     fn all_claims() -> Vec<VecNonEmpty<ClaimPath>> {

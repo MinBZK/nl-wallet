@@ -25,11 +25,11 @@ serialize = []
 # Implement Default on AppIdentifier by reading Xcode environment variables.
 xcode_env = []
 # Include the MockAttestationCa type and mock constructors for for the main crate types for use in testing.
-mock = ["serialize", "dep:rand", "dep:rcgen", "derive_more/debug"]
+mock = ["dep:rand", "derive_more/debug", "rcgen/ring", "serialize"]
 # Include constants for the self-signed mock Apple CA (see the assets dir).
 mock_ca_root = []
 # Include support for the self-signed mock Apple CA on the MockAttestationCa type.
-mock_ca = ["mock_ca_root", "rcgen?/x509-parser"]
+mock_ca = ["mock_ca_root", "rcgen?/ring", "rcgen?/x509-parser"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
@@ -50,7 +50,7 @@ rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 
 rand = { workspace = true, optional = true }
-rcgen = { workspace = true, optional = true, features = ["ring"] }
+rcgen = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

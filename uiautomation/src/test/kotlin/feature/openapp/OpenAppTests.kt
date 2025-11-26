@@ -26,7 +26,7 @@ class OpenAppTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC42 If the device language is set to Dutch, then the app starts in Dutch.")
+    @DisplayName("LTC32 If the device language is set to Dutch, then the app starts in Dutch.")
     fun verifyDutchLanguage(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.nextButtonTextVisible("Volgende"))
@@ -34,7 +34,7 @@ class OpenAppTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("LTC42 If the device language is set to English, then the app starts in English.")
+    @DisplayName("LTC32 If the device language is set to English, then the app starts in English.")
     fun verifyEnglishLanguage(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.nextButtonTextVisible("Next"))

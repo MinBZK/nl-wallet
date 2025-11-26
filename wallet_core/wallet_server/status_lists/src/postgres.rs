@@ -30,19 +30,16 @@ use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
 use uuid::Uuid;
 
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
-use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
-use jwt::headers::HeaderWithTyp;
-use jwt::headers::HeaderWithX5c;
 use server_utils::keys::PrivateKeyVariant;
-use token_status_list::status_claim::StatusClaim;
-use token_status_list::status_claim::StatusListClaim;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListService;
-use token_status_list::status_list_token::StatusListClaims;
+use token_status_list::status_list_service::StatusListServices;
 use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
@@ -133,7 +130,7 @@ pub enum StatusListServiceError {
     UnknownAttestationType(String),
 }
 
-impl<K> StatusListService for PostgresStatusListServices<K>
+impl<K> StatusListServices for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
@@ -159,14 +156,17 @@ where
                 attestation_type.to_string(),
             ))?;
 
-        service.obtain_status_claims(batch_id, expires, copies).await
+        service
+            .obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
+            .await
+            .map(|(claims, _)| claims)
     }
 }
 
-impl PostgresStatusListServices<PrivateKeyVariant> {
+impl PostgresStatusListServices {
     pub async fn try_new(
         connection: DatabaseConnection,
-        configs: StatusListConfigs<PrivateKeyVariant>,
+        configs: StatusListConfigs,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
         let services = configs
@@ -197,11 +197,30 @@ where
     }
 }
 
-impl PostgresStatusListService<PrivateKeyVariant> {
+impl<K> StatusListService for PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
+    type Error = StatusListServiceError;
+
+    async fn obtain_status_claims(
+        &self,
+        batch_id: Uuid,
+        expires: Option<DateTimeSeconds>,
+        copies: NonZeroUsize,
+    ) -> Result<VecNonEmpty<StatusClaim>, Self::Error> {
+        tracing::debug!("Obtaining status claims with {} copies", copies);
+        self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
+            .await
+            .map(|(claims, _)| claims)
+    }
+}
+
+impl PostgresStatusListService {
     pub async fn try_new(
         connection: DatabaseConnection,
         attestation_type: &str,
-        config: StatusListConfig<PrivateKeyVariant>,
+        config: StatusListConfig,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_types = vec![attestation_type];
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types).await?;
@@ -222,17 +241,6 @@ impl<K> PostgresStatusListService<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
-    pub async fn obtain_status_claims(
-        &self,
-        batch_id: Uuid,
-        expires: Option<DateTimeSeconds>,
-        copies: NonZeroUsize,
-    ) -> Result<VecNonEmpty<StatusClaim>, StatusListServiceError> {
-        self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
-            .await
-            .map(|(claims, _)| claims)
-    }
-
     pub async fn obtain_status_claims_and_scheduled_tasks(
         &self,
         batch_id: Uuid,
@@ -614,12 +622,10 @@ where
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
         // Build empty status list
         let sub = self.config.base_url.join(external_id);
-        let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
-            StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
-                .ttl(self.config.ttl)
-                .sign(&self.config.key_pair)
-                .await?
-                .into();
+        let token = StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
+            .ttl(self.config.ttl)
+            .sign(&self.config.key_pair)
+            .await?;
 
         // Write to disk
         let publish_lock = self.config.publish_dir.lock_for(external_id);
@@ -627,7 +633,7 @@ where
         tokio::task::spawn_blocking(move || {
             // create because a new status list external id can be reused if the transaction fails
             publish_lock.create()?;
-            std::fs::write(&jwt_path, jwt.serialization().as_bytes())
+            std::fs::write(&jwt_path, token.as_ref().serialization().as_bytes())
                 .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
         })
         .await?
@@ -670,14 +676,13 @@ where
                 .await?;
 
                 // Sign
-                let jwt: UnverifiedJwt<StatusListClaims, HeaderWithX5c<HeaderWithTyp>> =
-                    builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?.into();
+                let token = builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?;
 
                 // Write to a tempfile and atomically move via rename
                 let jwt_path = self.config.publish_dir.jwt_path(external_id);
                 let tmp_path = self.config.publish_dir.tmp_path(external_id);
                 tokio::task::spawn_blocking(move || {
-                    std::fs::write(&tmp_path, jwt.serialization())
+                    std::fs::write(&tmp_path, token.as_ref().serialization())
                         .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
                     std::fs::rename(&tmp_path, &jwt_path)
                         .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))

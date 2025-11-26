@@ -14,6 +14,7 @@ use server_utils::store::postgres::new_connection;
 use status_lists::config::StatusListConfigs;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::router::create_status_list_routers;
+use token_status_list::verification::reqwest::StatusListReqwestClient;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -65,8 +66,8 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         &hsm,
     )
     .await?;
-    let status_list_service = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
-    status_list_service.initialize_lists().await?;
+    let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
+    status_list_services.initialize_lists().await?;
     let status_list_router = settings
         .status_lists
         .serve
@@ -85,6 +86,8 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         })
         .transpose()?;
 
+    let status_list_client = StatusListReqwestClient::new()?;
+
     // This will block until the server shuts down.
     server::serve(
         settings,
@@ -92,8 +95,9 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         issuance_sessions,
         disclosure_sessions,
         attributes_fetcher,
-        status_list_service,
+        status_list_services,
         status_list_router,
+        status_list_client,
     )
     .await
 }

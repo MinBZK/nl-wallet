@@ -2,16 +2,16 @@
 
 ## Overview
 
-| Aspect                       | Description                                                                                                                                                                                                                        |
-|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Summary**                  | When using the app for the first time, the user navigates through multiple introductory screens and a privacy statement.                                                                                                           |
-| **Goal**                     | Learning about the purpose, features, and privacy aspects of the app.                                                                                                                                                              |
-| **Preconditions**            | <ul><li>Introduction has not yet been completed.</li></ul>                                                                                                                                                                         |
-| **Postconditions**           | <ul><li>The introduction of the app has been completed.</li></ul>                                                                                                                                                                  |
-| **Triggered by**             | <ul><li>User completed [UC1.2 Open the app](UC1.2_OpenTheApp.md).</li><li>User completed [UC9.4 Wipe all app data](UC9.4_WipeAllAppData.md).</li></ul>                                                                             |
-| **Additional Documentation** | *None*                                                                                                                                                                                                                             |
-| **Possible errors**          | *None*                                                                                                                                                                                                                             |
-| **Logical test cases**       | <ul><li>[LTC13 Introduction Happy flow](../logical-test-cases.md#ltc13)</li><li>[LTC14 User skips introduction](../logical-test-cases.md#ltc14)</li><li>[LTC15 User navigates back to previous introduction screen](../logical-test-cases.md#ltc15)</li></ul> |
+| Aspect                       | Description                                                                                                                                           |
+|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | When using the app for the first time, the user navigates through multiple introductory screens and a privacy statement.                              |
+| **Goal**                     | Learning about the purpose, features, and privacy aspects of the app.                                                                                 |
+| **Preconditions**            | <ul><li>Introduction has not yet been completed.</li></ul>                                                                                            |
+| **Postconditions**           | <ul><li>The introduction of the app has been completed.</li></ul>                                                                                     |
+| **Triggered by**             | <ul><li>User completed [UC1.2 Open the app](UC1.2_OpenTheApp.md).</li><li>User completed [UC9.4 Wipe all app data](UC9.4_WipeAllAppData.md).</li></ul> |
+| **Additional Documentation** | *None*                                                                                                                                                |
+| **Possible errors**          | *None*                                                                                                                                                |
+| **Logical test cases**       | <ul><li>[LTC12 Introduction](../logical-test-cases.md#ltc12)</li><li>[LTC13 Skip introduction](../logical-test-cases.md#ltc13)</li></ul>              |
 
 ---
 

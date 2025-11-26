@@ -31,14 +31,12 @@ use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
-use jwt::jwk::jwk_to_p256;
 use jwt::wua::WuaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::error::DecoderError;
-use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -664,7 +662,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .iter()
             .single_unique()
             .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
-            .expect("there are always credential_previews in the token_response");
+            .expect("there are always credential_previews in the token_response")
+            .clone();
 
         let normalized_credential_previews: VecNonEmpty<_> = token_response
             .credential_previews
@@ -1010,8 +1009,7 @@ impl CredentialResponse {
     ) -> Result<(), IssuanceSessionError> {
         let NormalizedCredentialPreview { content, .. } = preview;
 
-        let RequiredKeyBinding::Jwk(jwk) = credential_payload.confirmation_key;
-        if jwk_to_p256(&jwk)? != *holder_pubkey {
+        if credential_payload.confirmation_key.verifying_key()? != *holder_pubkey {
             return Err(IssuanceSessionError::PublicKeyMismatch);
         }
 
@@ -1110,9 +1108,11 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
+    use attestation_types::status_claim::StatusClaim;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
+    use jwt::jwk::jwk_to_p256;
     use mdoc::utils::serialization::TaggedBytes;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::claims::ClaimName;
@@ -1121,7 +1121,6 @@ mod tests {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use token_status_list::status_claim::StatusClaim;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;

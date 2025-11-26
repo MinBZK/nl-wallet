@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Need help?' in UC9.1</li></ul>                                      |
 | **Additional documentation** | *None*                                                                                    |
 | **Possible errors**          | *None*                                                                                    |
-| **Logical test cases**       | <ul><li>[LTC42 Get help](../logical-test-cases.md#ltc42)</li></ul>                        |
+| **Logical test cases**       | <ul><li>[LTC31 Get help](../logical-test-cases.md#ltc31)</li></ul>                        |
 
 ---
 

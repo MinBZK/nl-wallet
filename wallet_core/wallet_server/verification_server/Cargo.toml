@@ -39,21 +39,14 @@ test = [
     "attestation_data/example_credential_payloads",
     "attestation_data/generate",
     "attestation_data/mock",
+    "chrono/clock",
+    "chrono/std",
     "dcql/mock",
-    "openid4vc/test",
-    "openid4vc/mock",
-    "server_utils/parsed_key_pair_conversion",
-    "tokio/macros",
-    "tokio/test-util",
-    "utils/mock_time",
     "dep:assert_matches",
     "dep:attestation_types",
-    "dep:chrono",
-    "dep:itertools",
     "dep:http",
-    "dep:mdoc",
+    "dep:itertools",
     "dep:parking_lot",
-    "dep:reqwest",
     "dep:rstest",
     "dep:sd_jwt",
     "dep:sd_jwt_vc_metadata",
@@ -61,13 +54,22 @@ test = [
     "dep:serde_urlencoded",
     "dep:ssri",
     "dep:url",
-    "dep:token_status_list",
-    "dep:wscd",
+    "mdoc/mock_example_constructors",
+    "openid4vc/mock",
+    "openid4vc/test",
+    "reqwest/rustls-tls-webpki-roots",
+    "server_utils/parsed_key_pair_conversion",
+    "token_status_list/mock",
+    "tokio/macros",
+    "tokio/test-util",
+    "utils/mock_time",
+    "wscd/examples",
+    "wscd/mock",
 ]
 # Enable integration tests
 integration_test = ["test"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["integration_test", "postgres", "futures/async-await", "tokio/sync", "dep:serial_test"]
+db_test = ["dep:serial_test", "futures/async-await", "integration_test", "postgres", "tokio/sync"]
 
 [dependencies]
 anyhow.workspace = true
@@ -85,11 +87,11 @@ tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trac
 tracing.workspace = true
 
 assert_matches = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true, features = ["clock", "std"] }
+chrono = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
+reqwest = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
@@ -108,8 +110,8 @@ server_utils.path = "../server_utils"
 utils = { path = "../../lib/utils" }
 
 attestation_types = { path = "../../lib/attestation_types", optional = true }
-mdoc = { path = "../../lib/mdoc", optional = true, features = ["mock_example_constructors"] }
+mdoc = { path = "../../lib/mdoc", optional = true }
 sd_jwt = { path = "../../lib/sd_jwt", optional = true }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", optional = true }
-token_status_list = { path = "../../lib/token_status_list", optional = true, features = ["mock"] }
-wscd = { path = "../../lib/wscd", optional = true, features = ["mock", "examples"] }
+token_status_list = { path = "../../lib/token_status_list", features = ["verification"] }
+wscd = { path = "../../lib/wscd", optional = true }

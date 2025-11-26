@@ -5,13 +5,14 @@ use chrono::Utc;
 use derive_more::Constructor;
 use p256::ecdsa::VerifyingKey;
 
+use attestation_types::status_claim::StatusClaim;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::verifying_key_sha256;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
-use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
 use jwt::wua::WuaClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
@@ -25,7 +26,8 @@ pub trait WuaIssuer {
     async fn issue_wua(
         &self,
         exp: DateTime<Utc>,
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
+        status_claim: StatusClaim,
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -56,15 +58,18 @@ where
 
     async fn issue_wua(
         &self,
-        exp: DateTime<Utc>, // TODO status_claim: ... (PVW-4574)
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+        exp: DateTime<Utc>,
+        status_claim: StatusClaim,
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
-        // TODO add `status_claim` to WuaClaims (PVW-4574)
-        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims { exp })
-            .await?
-            .into();
+        let jwt = SignedJwt::sign(
+            &WuaClaims::new(&pubkey, self.iss.clone(), exp, status_claim)?,
+            &self.private_key,
+        )
+        .await?
+        .into();
 
         Ok((wrapped_privkey, verifying_key_sha256(&pubkey), jwt))
     }
@@ -86,10 +91,11 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::status_claim::StatusClaim;
     use crypto::p256_der::verifying_key_sha256;
     use hsm::model::wrapped_key::WrappedKey;
+    use jwt::SignedJwt;
     use jwt::UnverifiedJwt;
-    use jwt::credential::JwtCredentialClaims;
     use jwt::wua::WuaClaims;
 
     use super::WuaIssuer;
@@ -102,15 +108,14 @@ pub mod mock {
         async fn issue_wua(
             &self,
             exp: DateTime<Utc>,
-        ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+            status_claim: StatusClaim,
+        ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
-            let jwt = JwtCredentialClaims::new_signed(
-                pubkey,
+            let jwt = SignedJwt::sign(
+                &WuaClaims::new(pubkey, "iss".to_string(), exp, status_claim).unwrap(),
                 &privkey, // Sign the WUA with its own private key in this test
-                "iss".to_string(),
-                WuaClaims { exp },
             )
             .await
             .unwrap()
@@ -134,13 +139,13 @@ mod tests {
     use std::time::Duration;
 
     use chrono::Utc;
-    use jwt::DEFAULT_VALIDATIONS;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_types::status_claim::StatusClaim;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::jwk::jwk_to_p256;
+    use jwt::DEFAULT_VALIDATIONS;
 
     use super::HsmWuaIssuer;
     use super::WuaIssuer;
@@ -161,7 +166,7 @@ mod tests {
         };
 
         let (wua_privkey, _key_id, wua) = wua_issuer
-            .issue_wua(Utc::now() + Duration::from_secs(600))
+            .issue_wua(Utc::now() + Duration::from_secs(600), StatusClaim::new_mock())
             .await
             .unwrap();
 
@@ -169,13 +174,10 @@ mod tests {
             .parse_and_verify(&wua_verifying_key.into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 
-        assert_eq!(
-            wua_privkey.public_key(),
-            &jwk_to_p256(&wua_claims.confirmation.jwk).unwrap()
-        );
+        assert_eq!(wua_privkey.public_key(), &wua_claims.cnf.verifying_key().unwrap());
 
         // Check that the fields have the expected contents
-        assert_eq!(wua_claims.contents.iss, iss.to_string());
-        assert!(wua_claims.contents.attributes.exp > Utc::now());
+        assert_eq!(wua_claims.iss, iss.to_string());
+        assert!(wua_claims.exp > Utc::now());
     }
 }

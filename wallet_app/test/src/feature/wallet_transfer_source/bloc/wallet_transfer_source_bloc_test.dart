@@ -271,4 +271,30 @@ void main() {
       verify(mockAutoLockService.setAutoLock(enabled: true)).called(1);
     },
   );
+
+  group('WalletStopRequestReason', () {
+    blocTest(
+      'is propagated when event contains a reason',
+      build: createBloc,
+      setUp: () => when(mockCancelWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null)),
+      act: (bloc) => bloc.add(const WalletTransferStopRequestedEvent(reason: WalletStopRequestReason.pinRecovery)),
+      expect: () => [
+        isA<WalletTransferCancelling>(),
+        isA<WalletTransferStopped>().having((state) => state.reason, 'reason', WalletStopRequestReason.pinRecovery),
+      ],
+      verify: (_) => verify(mockCancelWalletTransferUseCase.invoke()).called(1),
+    );
+
+    blocTest(
+      'defaults to .generic when event does not contain an explicit reason',
+      build: createBloc,
+      setUp: () => when(mockCancelWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null)),
+      act: (bloc) => bloc.add(const WalletTransferStopRequestedEvent()),
+      expect: () => [
+        isA<WalletTransferCancelling>(),
+        isA<WalletTransferStopped>().having((s) => s.reason, 'reason', WalletStopRequestReason.generic),
+      ],
+      verify: (_) => verify(mockCancelWalletTransferUseCase.invoke()).called(1),
+    );
+  });
 }

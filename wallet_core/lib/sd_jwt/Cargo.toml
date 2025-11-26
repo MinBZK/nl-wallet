@@ -43,11 +43,12 @@ crypto.path = "../crypto"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
-token_status_list.path = "../token_status_list"
+token_status_list = { path = "../token_status_list", features = ["verification"] }
 utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
+attestation_types = { path = "../attestation_types", features = ["mock"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from_str", "unwrap"] }
 futures.workspace = true
 rand_core.workspace = true

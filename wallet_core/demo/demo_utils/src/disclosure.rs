@@ -48,6 +48,7 @@ mod test {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttributes;
+    use token_status_list::verification::verifier::RevocationStatus;
 
     use super::*;
 
@@ -73,6 +74,7 @@ mod test {
                     valid_from: Some(DateTime::UNIX_EPOCH),
                     valid_until: Some(DateTime::UNIX_EPOCH),
                 },
+                revocation_status: Some(RevocationStatus::Valid),
             },
             DisclosedAttestation {
                 attestation_type: "urn:eudi:pid-address:nl:1".to_string(),
@@ -104,6 +106,7 @@ mod test {
                     valid_from: Some(DateTime::UNIX_EPOCH),
                     valid_until: Some(DateTime::UNIX_EPOCH),
                 },
+                revocation_status: Some(RevocationStatus::Valid),
             },
         ];
 

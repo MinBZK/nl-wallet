@@ -45,7 +45,6 @@
   },
   "requestOriginBaseUrl": "https://housingcompany.example.com",
   "authorizedAttributes": {
-    "urn:eudi:pid:nl:1": [["urn:eudi:pid:nl:1", "bsn"]],
-    "com.example.housing": [["rent"], ["service_charges"], ["eligible_service_charges"]]
+    "urn:eudi:pid:nl:1": [["urn:eudi:pid:nl:1", "bsn"]]
   }
 }

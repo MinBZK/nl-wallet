@@ -39,49 +39,7 @@ class BiometricSettingScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: BlocConsumer<BiometricSettingsBloc, BiometricSettingsState>(
-                buildWhen: (prev, current) {
-                  return switch (current) {
-                    BiometricSettingsConfirmPin() => false,
-                    BiometricSettingsSetupRequired() => false,
-                    BiometricSettingsLockedOut() => false,
-                    _ => true,
-                  };
-                },
-                listenWhen: (prev, current) {
-                  return switch (current) {
-                    BiometricSettingsConfirmPin() => true,
-                    BiometricSettingsSetupRequired() => true,
-                    BiometricSettingsLockedOut() => true,
-                    _ => false,
-                  };
-                },
-                builder: (context, state) {
-                  assert(state is! BiometricSettingsConfirmPin, 'BiometricSettingsConfirmPin should never be rendered');
-                  assert(
-                    state is! BiometricSettingsSetupRequired,
-                    'BiometricSettingsSetupRequired should never be rendered',
-                  );
-                  assert(state is! BiometricSettingsLockedOut, 'BiometricSettingsLockedOut should never be rendered');
-                  return switch (state) {
-                    BiometricSettingsLoaded() => _buildLoaded(context, state),
-                    BiometricSettingsError() => _buildError(context, state),
-                    _ => _buildLoading(context),
-                  };
-                },
-                listener: (BuildContext context, BiometricSettingsState state) async {
-                  final bloc = context.bloc;
-                  if (state is BiometricSettingsConfirmPin) {
-                    await _onRequestConfirmPin(context);
-                    // Refresh state, relevant when confirmation failed.
-                    bloc.add(const BiometricLoadTriggered());
-                  } else if (state is BiometricSettingsSetupRequired) {
-                    await _showSetupRequiredDialog(context);
-                  } else if (state is BiometricSettingsLockedOut) {
-                    await LockedOutDialog.show(context);
-                  }
-                },
-              ),
+              child: _buildContent(context),
             ),
             const BottomBackButton(),
           ],
@@ -90,77 +48,56 @@ class BiometricSettingScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _onRequestConfirmPin(BuildContext context) async {
-    final bloc = context.bloc;
-    final supportedBiometricsText = bloc.supportedBiometrics.prettyPrint(context);
-    final illustration = switch (bloc.supportedBiometrics) {
-      Biometrics.face => WalletAssets.svg_biometrics_face,
-      Biometrics.fingerprint => WalletAssets.svg_biometrics_finger,
-      _ => Platform.isIOS ? WalletAssets.svg_biometrics_face : WalletAssets.svg_biometrics_finger,
-    };
-    return ConfirmWithPinScreen.show(
-      context,
-      (_) {
-        // Pin validated! Confirm settings update.
-        bloc.add(const BiometricUnlockEnabledWithPin());
-        // Replace pin confirmation screen with a success screen
-        TerminalScreen.show(
-          context,
-          replaceCurrentRoute: true,
-          config: TerminalScreenConfig(
-            title: context.l10n.biometricSettingsScreenSuccessTitle,
-            description: context.l10n.biometricSettingsScreenSuccessDescription(supportedBiometricsText),
-            illustration: illustration,
-            secondaryButton: TertiaryButton(
-              text: Text.rich(context.l10n.biometricSettingsScreenSuccessToSettingsCta.toTextSpan(context)),
-              onPressed: () {
-                Navigator.popUntil(
-                  context,
-                  ModalRoute.withName(WalletRoutes.settingsRoute),
-                );
-              },
-            ),
-          ),
+  Widget _buildContent(BuildContext context) {
+    return BlocConsumer<BiometricSettingsBloc, BiometricSettingsState>(
+      listenWhen: _listenWhenForState,
+      listener: _listenerForState,
+      buildWhen: _buildWhenForState,
+      builder: (context, state) {
+        assert(state is! BiometricSettingsConfirmPin, 'BiometricSettingsConfirmPin should never be rendered');
+        assert(
+          state is! BiometricSettingsSetupRequired,
+          'BiometricSettingsSetupRequired should never be rendered',
         );
+        assert(state is! BiometricSettingsLockedOut, 'BiometricSettingsLockedOut should never be rendered');
+        return switch (state) {
+          BiometricSettingsLoaded() => _buildLoaded(context, state),
+          BiometricSettingsError() => _buildError(context, state),
+          _ => _buildLoading(context),
+        };
       },
     );
   }
 
-  Future<void> _showSetupRequiredDialog(BuildContext context) async {
-    final supportedBiometricsText = context.bloc.supportedBiometrics.prettyPrint(context);
-    final title = context.l10n.biometricSettingsScreenSetupDialogTitle(supportedBiometricsText);
+  bool _listenWhenForState(BiometricSettingsState prevState, BiometricSettingsState currentState) {
+    return switch (currentState) {
+      BiometricSettingsConfirmPin() => true,
+      BiometricSettingsSetupRequired() => true,
+      BiometricSettingsLockedOut() => true,
+      _ => false,
+    };
+  }
 
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: Text.rich(title.toTextSpan(context)),
-          content: Text.rich(
-            context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText).toTextSpan(context),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text.rich(context.l10n.generalDialogCloseCta.toTextSpan(context)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: Text.rich(context.l10n.biometricSettingsScreenSetupDialogOpenSettingsCta.toTextSpan(context)),
-              onPressed: () {
-                // NOTE: Plugins to open biometric settings seem flaky (i.e. don't work on my Pixel 6 Pro),
-                // NOTE: we could likely roll our own but falling back to generic settings for now.
-                // NOTE: Also note that this dialog is already a fallback, normally a system dialog should
-                // NOTE: redirect the user to the correct place. This dialog can however be triggered on e.g.
-                // NOTE: a Pixel 6 Pro by enrolling fingerprints but disabling 'allow apps to verify your identity'
-                // NOTE: in the device's biometric settings.
-                AppSettings.openAppSettings(type: AppSettingsType.device, asAnotherTask: true);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> _listenerForState(BuildContext context, BiometricSettingsState state) async {
+    final bloc = context.bloc;
+    if (state is BiometricSettingsConfirmPin) {
+      await _onRequestConfirmPin(context);
+      // Refresh state, relevant when confirmation failed.
+      bloc.add(const BiometricLoadTriggered());
+    } else if (state is BiometricSettingsSetupRequired) {
+      await _showSetupRequiredDialog(context);
+    } else if (state is BiometricSettingsLockedOut) {
+      await LockedOutDialog.show(context);
+    }
+  }
+
+  bool _buildWhenForState(BiometricSettingsState prevState, BiometricSettingsState currentState) {
+    return switch (currentState) {
+      BiometricSettingsConfirmPin() => false,
+      BiometricSettingsSetupRequired() => false,
+      BiometricSettingsLockedOut() => false,
+      _ => true,
+    };
   }
 
   Widget _buildLoading(BuildContext context) {
@@ -247,6 +184,79 @@ class BiometricSettingScreen extends StatelessWidget {
 
   String _resolveTitle(BuildContext context) =>
       context.l10n.biometricSettingsScreenTitle(context.bloc.supportedBiometrics.prettyPrint(context));
+
+  Future<void> _onRequestConfirmPin(BuildContext context) async {
+    final bloc = context.bloc;
+    final supportedBiometricsText = bloc.supportedBiometrics.prettyPrint(context);
+    final illustration = switch (bloc.supportedBiometrics) {
+      Biometrics.face => WalletAssets.svg_biometrics_face,
+      Biometrics.fingerprint => WalletAssets.svg_biometrics_finger,
+      _ => Platform.isIOS ? WalletAssets.svg_biometrics_face : WalletAssets.svg_biometrics_finger,
+    };
+    return ConfirmWithPinScreen.show(
+      context,
+      (_) {
+        // Pin validated! Confirm settings update.
+        bloc.add(const BiometricUnlockEnabledWithPin());
+        // Replace pin confirmation screen with a success screen
+        TerminalScreen.show(
+          context,
+          replaceCurrentRoute: true,
+          config: TerminalScreenConfig(
+            title: context.l10n.biometricSettingsScreenSuccessTitle,
+            description: context.l10n.biometricSettingsScreenSuccessDescription(supportedBiometricsText),
+            illustration: illustration,
+            secondaryButton: TertiaryButton(
+              text: Text.rich(context.l10n.biometricSettingsScreenSuccessToSettingsCta.toTextSpan(context)),
+              onPressed: () {
+                Navigator.popUntil(
+                  context,
+                  ModalRoute.withName(WalletRoutes.settingsRoute),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showSetupRequiredDialog(BuildContext context) async {
+    final supportedBiometricsText = context.bloc.supportedBiometrics.prettyPrint(context);
+    final title = context.l10n.biometricSettingsScreenSetupDialogTitle(supportedBiometricsText);
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          scrollable: true,
+          title: Text.rich(title.toTextSpan(context)),
+          content: Text.rich(
+            context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText).toTextSpan(context),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text.rich(context.l10n.generalDialogCloseCta.toTextSpan(context)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text.rich(context.l10n.biometricSettingsScreenSetupDialogOpenSettingsCta.toTextSpan(context)),
+              onPressed: () {
+                // NOTE: Plugins to open biometric settings seem flaky (i.e. don't work on my Pixel 6 Pro),
+                // NOTE: we could likely roll our own but falling back to generic settings for now.
+                // NOTE: Also note that this dialog is already a fallback, normally a system dialog should
+                // NOTE: redirect the user to the correct place. This dialog can however be triggered on e.g.
+                // NOTE: a Pixel 6 Pro by enrolling fingerprints but disabling 'allow apps to verify your identity'
+                // NOTE: in the device's biometric settings.
+                AppSettings.openAppSettings(type: AppSettingsType.device, asAnotherTask: true);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 extension _BiometricSettingsScreenExtensions on BuildContext {
