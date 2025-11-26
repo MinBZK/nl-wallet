@@ -28,9 +28,15 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
         throw StateError('Derived state should never be $derivedState');
       case WalletStateEmpty():
         emit(const SplashLoaded(.pidRetrieval));
-      case WalletStateTransferring():
       case WalletStateTransferPossible():
         emit(const SplashLoaded(.transfer));
+      case WalletStateTransferring():
+        if (derivedState.role == .target) {
+          emit(const SplashLoaded(.transfer));
+        } else {
+          /// Transfer will be cancelled by [WalletTransferEventListener]
+          emit(const SplashLoaded(.dashboard));
+        }
       case WalletStateRegistration():
         emit(const SplashLoaded(.onboarding));
       case WalletStateWalletBlocked():
