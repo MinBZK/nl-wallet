@@ -578,7 +578,7 @@ where
             info!("This is a PID issuance session, therefore disclosing recovery code");
             self.disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
                 .await?
-                // If we're doing PID renwal as opposed to enrolling, we don't want to transfer.
+                // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
                 .filter(|_| issuance_session.pid_purpose == Some(PidIssuancePurpose::Enrollment))
         } else {
             None
@@ -723,10 +723,10 @@ fn match_preview_and_stored_attestations<'a>(
                 .iter()
                 .find(|(stored_preview, _)| {
                     pid_config.map_or_else(
-                        // If this is not PID issuance, then the two cards match if their contents is identical.
+                        // If this is not PID issuance, then the two cards match if their contents are identical.
                         || compare_contents(preview, stored_preview, time_generator),
                         // If this is PID issuance, and the two cards are both PIDs, then they match.
-                        // If not, fall back two contents comparison.
+                        // If not, fall back to contents comparison.
                         |pid_config| {
                             let pid_types = pid_config.pid_attestation_types();
                             let both_pid = pid_types.contains(&preview.content.credential_payload.attestation_type)
