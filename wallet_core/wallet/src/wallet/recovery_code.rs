@@ -33,16 +33,8 @@ pub enum RecoveryCodeError {
         received: AttributeValue,
     },
 
-    #[error("storage error: {0}")]
-    #[category(unexpected)]
-    Storage(#[from] StorageError),
-
     #[error("could not query attestations in database: {0}")]
-    AttestationQuery(#[source] StorageError),
-
-    #[error("cannot recover PIN without a PID")]
-    #[category(critical)]
-    NoPidPresent,
+    AttestationQuery(#[from] StorageError),
 
     #[error("no PID received")]
     #[category(unexpected)]
