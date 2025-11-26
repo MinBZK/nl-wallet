@@ -100,6 +100,7 @@
   such attestations.
 - The Wallet Provider now keeps track of the issued WUAs and their revocation
   status.
+- The PID can now be renewed in the wallet from the PID card detail screen.
 - The revocation status of attestations is checked in the Verification Server.
 
 ## Code improvements
@@ -119,13 +120,6 @@
 
 - The wallet now includes a 'video tour' screen, where users can watch short
   short video tutorials to learn about the functionalities of the app.
-- The UI has been updated to support the 'pid renewal' flow. Currently only
-  available in mock builds.
-- Update to Flutter 3.38.1.
-- The UI has been updated to support the 'pin recovery' flow. Currently only
-  available in mock builds.
-- The UI has been updated to support the Wallet Transfer (source & target) flow.
-  Currently only available in mock builds.
 - New 'Need help' and 'Contact' pages have been added to the menu, these are
   placeholders which will provide help for the end-user in the future.
 - Add a new 'Demo' screen, shown on the initial start of the app to inform the
