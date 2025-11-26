@@ -153,7 +153,7 @@ where
                 token_request,
                 credential_offer.credential_issuer,
                 &config.issuer_trust_anchors(),
-                false,
+                None, // we're not doing PID issuance
             )
             .await?;
 
@@ -215,8 +215,8 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::test::WalletDeviceVendor;
+    use super::super::test::create_example_pid_preview_data;
     use super::super::test::create_example_pid_sd_jwt;
-    use super::super::test::create_example_preview_data;
 
     const PIN: &str = "051097";
 
@@ -300,7 +300,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let credential_preview = create_example_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
+        let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();

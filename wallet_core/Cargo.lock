@@ -7812,14 +7812,17 @@ name = "wallet_configuration"
 version = "0.4.0-dev"
 dependencies = [
  "attestation_data",
+ "attestation_types",
  "crypto",
  "derive_more",
+ "error_category",
  "http_utils",
  "itertools 0.14.0",
  "jwt",
  "rustls-pki-types",
  "serde",
  "serde_with",
+ "thiserror 2.0.11",
  "url",
  "utils",
 ]

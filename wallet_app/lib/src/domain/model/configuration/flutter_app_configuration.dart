@@ -8,6 +8,7 @@ class FlutterAppConfiguration extends Equatable {
   final Duration idleWarningTimeout;
   final Duration backgroundLockTimeout;
   final String staticAssetsBaseUrl;
+  final List<String> pidAttestationTypes;
   final int version;
 
   const FlutterAppConfiguration({
@@ -15,6 +16,7 @@ class FlutterAppConfiguration extends Equatable {
     required this.idleWarningTimeout,
     required this.backgroundLockTimeout,
     required this.staticAssetsBaseUrl,
+    required this.pidAttestationTypes,
     required this.version,
   });
 
@@ -24,6 +26,7 @@ class FlutterAppConfiguration extends Equatable {
       idleWarningTimeout: Duration(seconds: config.inactiveWarningTimeout),
       backgroundLockTimeout: Duration(seconds: config.backgroundLockTimeout),
       staticAssetsBaseUrl: config.staticAssetsBaseUrl,
+      pidAttestationTypes: config.pidAttestationTypes,
       version: config.version.toInt(),
     );
   }
@@ -34,6 +37,7 @@ class FlutterAppConfiguration extends Equatable {
     idleWarningTimeout,
     backgroundLockTimeout,
     staticAssetsBaseUrl,
+    pidAttestationTypes,
     version,
   ];
 }

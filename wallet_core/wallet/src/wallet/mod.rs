@@ -9,6 +9,7 @@ mod instruction_client;
 mod issuance;
 mod lock;
 mod pin_recovery;
+mod recovery_code;
 mod registration;
 mod reset;
 mod state;
@@ -56,10 +57,12 @@ pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::issuance::IssuanceError;
 pub use self::issuance::IssuanceResult;
+pub use self::issuance::PidIssuancePurpose;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
 pub use self::pin_recovery::PinRecoveryError;
+pub use self::recovery_code::RecoveryCodeError;
 pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
 pub use self::state::WalletState;
@@ -105,7 +108,10 @@ impl<A, G> WalletRegistration<A, G> {
 
 #[derive(Debug)]
 enum Session<DS, IS, DCS> {
-    Digid(DS),
+    Digid {
+        purpose: PidIssuancePurpose,
+        session: DS,
+    },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
     PinRecovery {

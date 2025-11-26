@@ -12,6 +12,7 @@ use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use wallet::AttestationAttributeValue;
+use wallet::PidIssuancePurpose;
 use wallet::attestation_data::Attribute;
 use wallet::attestation_data::AttributeValue;
 use wallet::errors::IssuanceError;
@@ -51,6 +52,19 @@ async fn test_pid_ok() {
         .find(|a| a.key.iter().eq([PID_RECOVERY_CODE]));
 
     assert_eq!(recovery_code_result, None);
+
+    // After the wallet is enrolled and has a PID, the PID can be renewed.
+    wallet = do_pid_renewal(wallet, pin.to_owned()).await;
+
+    let attestations = wallet_attestations(&mut wallet).await;
+    assert_eq!(
+        attestations
+            .iter()
+            .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
+            .iter()
+            .count(),
+        1
+    );
 }
 
 fn pid_without_optionals() -> IssuableDocument {
@@ -99,6 +113,10 @@ fn pid_missing_required() -> IssuableDocument {
             (
                 PID_BIRTH_DATE.to_string(),
                 Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
+            ),
+            (
+                PID_RECOVERY_CODE.to_string(),
+                Attribute::Single(AttributeValue::Text("123".to_string())),
             ),
             // bsn is missing, which is required
         ])
@@ -170,7 +188,7 @@ async fn test_pid_missing_required_attributes() {
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
     let redirect_url = wallet
-        .create_pid_issuance_auth_url()
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("should create PID issuance redirect URL");
     let _unsigned_mdocs = wallet

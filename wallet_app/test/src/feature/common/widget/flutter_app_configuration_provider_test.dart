@@ -9,6 +9,7 @@ void main() {
     idleLockTimeout: Duration(seconds: 10),
     backgroundLockTimeout: Duration(seconds: 20),
     staticAssetsBaseUrl: 'https://example.com/',
+    pidAttestationTypes: ['com.example.attestationType'],
     version: 0,
   );
 
@@ -19,6 +20,7 @@ void main() {
         idleLockTimeout: Duration(seconds: 10),
         backgroundLockTimeout: Duration(seconds: 20),
         staticAssetsBaseUrl: 'https://example.com/',
+        pidAttestationTypes: ['com.example.attestationType'],
         version: 0,
       );
 
@@ -31,6 +33,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
+        pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
       );
       final otherIdle = FlutterAppConfiguration(
@@ -38,6 +41,7 @@ void main() {
         idleLockTimeout: const Duration(hours: 1337),
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
+        pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
       );
       final otherBackground = FlutterAppConfiguration(
@@ -45,6 +49,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: const Duration(hours: 1337),
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
+        pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
       );
       final otherStaticAssetsBaseUrlPrefix = FlutterAppConfiguration(
@@ -52,6 +57,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: 'https://other.example.com/',
+        pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
       );
       final otherVersion = FlutterAppConfiguration(
@@ -59,6 +65,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
+        pidAttestationTypes: ['com.example.attestationType'],
         version: 1337,
       );
 
@@ -95,6 +102,7 @@ void main() {
       idleLockTimeout: Duration(seconds: 8),
       backgroundLockTimeout: Duration(seconds: 5),
       staticAssetsBaseUrl: 'https://example.com/',
+      pidAttestationTypes: ['com.example.attestationType'],
       version: 0,
     );
     late FlutterAppConfiguration receivedConfig;
