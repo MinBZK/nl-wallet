@@ -755,6 +755,7 @@ fn compare_contents(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::ops::Add;
 
     use assert_matches::assert_matches;
@@ -783,6 +784,7 @@ mod tests {
     use utils::vec_nonempty;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
+    use wallet_configuration::wallet_config::PidAttributePaths;
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
@@ -1853,8 +1855,28 @@ mod tests {
         let mut preview = create_example_pid_preview_data(&time_generator, Format::MsoMdoc);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         let previews = [preview];
-        let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator, None);
+        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![None], identities);
+
+        // If the attestation is the PID, then its identity should match the identity of a stored PID
+        // even when that wouldn't be the case for non-PID attestations.
+        let paths = PidAttributePaths {
+            login: vec_nonempty!["login".to_string()],
+            recovery_code: vec_nonempty!["recovery_code".to_string()],
+        };
+        let pid_config: PidAttributesConfiguration = PidAttributesConfiguration {
+            mso_mdoc: HashMap::new(),
+            sd_jwt: HashMap::from([
+                (PID_ATTESTATION_TYPE.to_string(), paths.clone()),
+                ("att_type_1".to_string(), paths),
+            ]),
+        };
+        let mut preview = create_example_pid_preview_data(&time_generator, Format::MsoMdoc);
+        preview.content.credential_payload.attestation_type = String::from("att_type_1");
+        let previews = [preview];
+        let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator, Some(&pid_config));
+        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
+        assert_eq!(vec![Some(attestation_id)], identities);
     }
 }
