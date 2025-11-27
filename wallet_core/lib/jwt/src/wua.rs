@@ -88,6 +88,7 @@ impl WuaDisclosure {
     ) -> Result<VerifyingKey, WuaError> {
         let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
         let wua_pubkey = verified_wua_claims.cnf.verifying_key()?;
+        tracing::debug!("WUA status claim: {:?}", verified_wua_claims.status);
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
