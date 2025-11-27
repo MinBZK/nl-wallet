@@ -20,6 +20,7 @@ import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../../wallet_core/error/core_error.dart';
 import '../common/dialog/stop_digid_login_dialog.dart';
+import '../common/mixin/lock_state_mixin.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -39,8 +40,19 @@ import '../pin_dialog/pin_validation_error_dialog.dart';
 import 'bloc/recover_pin_bloc.dart';
 import 'recover_pin_stop_sheet.dart';
 
-class RecoverPinScreen extends StatelessWidget {
+class RecoverPinScreen extends StatefulWidget {
   const RecoverPinScreen({super.key});
+
+  @override
+  State<RecoverPinScreen> createState() => _RecoverPinScreenState();
+}
+
+class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin<RecoverPinScreen> {
+  @override
+  FutureOr<void> onLock() => Navigator.of(context).resetToDashboard();
+
+  @override
+  FutureOr<void> onUnlock() {}
 
   @override
   Widget build(BuildContext context) {
