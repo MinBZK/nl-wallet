@@ -146,7 +146,7 @@ return walletBlocked(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  ready,TResult Function()?  registration,TResult Function()?  empty,TResult Function( WalletState subState)?  locked,TResult Function()?  transferPossible,TResult Function( WalletTransferRole role)?  transferring,TResult Function()?  disclosure,TResult Function( bool pid)?  issuance,TResult Function()?  pinChange,TResult Function()?  pinRecovery,TResult Function( WalletBlockedReason reason)?  walletBlocked,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  ready,TResult Function()?  registration,TResult Function()?  empty,TResult Function( WalletState subState)?  locked,TResult Function()?  transferPossible,TResult Function( WalletTransferRole role)?  transferring,TResult Function()?  disclosure,TResult Function()?  issuance,TResult Function()?  pinChange,TResult Function()?  pinRecovery,TResult Function( WalletBlockedReason reason)?  walletBlocked,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case WalletState_Ready() when ready != null:
 return ready();case WalletState_Registration() when registration != null:
@@ -156,7 +156,7 @@ return locked(_that.subState);case WalletState_TransferPossible() when transferP
 return transferPossible();case WalletState_Transferring() when transferring != null:
 return transferring(_that.role);case WalletState_Disclosure() when disclosure != null:
 return disclosure();case WalletState_Issuance() when issuance != null:
-return issuance(_that.pid);case WalletState_PinChange() when pinChange != null:
+return issuance();case WalletState_PinChange() when pinChange != null:
 return pinChange();case WalletState_PinRecovery() when pinRecovery != null:
 return pinRecovery();case WalletState_WalletBlocked() when walletBlocked != null:
 return walletBlocked(_that.reason);case _:
@@ -177,7 +177,7 @@ return walletBlocked(_that.reason);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  ready,required TResult Function()  registration,required TResult Function()  empty,required TResult Function( WalletState subState)  locked,required TResult Function()  transferPossible,required TResult Function( WalletTransferRole role)  transferring,required TResult Function()  disclosure,required TResult Function( bool pid)  issuance,required TResult Function()  pinChange,required TResult Function()  pinRecovery,required TResult Function( WalletBlockedReason reason)  walletBlocked,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  ready,required TResult Function()  registration,required TResult Function()  empty,required TResult Function( WalletState subState)  locked,required TResult Function()  transferPossible,required TResult Function( WalletTransferRole role)  transferring,required TResult Function()  disclosure,required TResult Function()  issuance,required TResult Function()  pinChange,required TResult Function()  pinRecovery,required TResult Function( WalletBlockedReason reason)  walletBlocked,}) {final _that = this;
 switch (_that) {
 case WalletState_Ready():
 return ready();case WalletState_Registration():
@@ -187,7 +187,7 @@ return locked(_that.subState);case WalletState_TransferPossible():
 return transferPossible();case WalletState_Transferring():
 return transferring(_that.role);case WalletState_Disclosure():
 return disclosure();case WalletState_Issuance():
-return issuance(_that.pid);case WalletState_PinChange():
+return issuance();case WalletState_PinChange():
 return pinChange();case WalletState_PinRecovery():
 return pinRecovery();case WalletState_WalletBlocked():
 return walletBlocked(_that.reason);}
@@ -204,7 +204,7 @@ return walletBlocked(_that.reason);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  ready,TResult? Function()?  registration,TResult? Function()?  empty,TResult? Function( WalletState subState)?  locked,TResult? Function()?  transferPossible,TResult? Function( WalletTransferRole role)?  transferring,TResult? Function()?  disclosure,TResult? Function( bool pid)?  issuance,TResult? Function()?  pinChange,TResult? Function()?  pinRecovery,TResult? Function( WalletBlockedReason reason)?  walletBlocked,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  ready,TResult? Function()?  registration,TResult? Function()?  empty,TResult? Function( WalletState subState)?  locked,TResult? Function()?  transferPossible,TResult? Function( WalletTransferRole role)?  transferring,TResult? Function()?  disclosure,TResult? Function()?  issuance,TResult? Function()?  pinChange,TResult? Function()?  pinRecovery,TResult? Function( WalletBlockedReason reason)?  walletBlocked,}) {final _that = this;
 switch (_that) {
 case WalletState_Ready() when ready != null:
 return ready();case WalletState_Registration() when registration != null:
@@ -214,7 +214,7 @@ return locked(_that.subState);case WalletState_TransferPossible() when transferP
 return transferPossible();case WalletState_Transferring() when transferring != null:
 return transferring(_that.role);case WalletState_Disclosure() when disclosure != null:
 return disclosure();case WalletState_Issuance() when issuance != null:
-return issuance(_that.pid);case WalletState_PinChange() when pinChange != null:
+return issuance();case WalletState_PinChange() when pinChange != null:
 return pinChange();case WalletState_PinRecovery() when pinRecovery != null:
 return pinRecovery();case WalletState_WalletBlocked() when walletBlocked != null:
 return walletBlocked(_that.reason);case _:
@@ -530,67 +530,33 @@ String toString() {
 
 
 class WalletState_Issuance extends WalletState {
-  const WalletState_Issuance({required this.pid}): super._();
+  const WalletState_Issuance(): super._();
   
 
- final  bool pid;
 
-/// Create a copy of WalletState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$WalletState_IssuanceCopyWith<WalletState_Issuance> get copyWith => _$WalletState_IssuanceCopyWithImpl<WalletState_Issuance>(this, _$identity);
+
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Issuance&&(identical(other.pid, pid) || other.pid == pid));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Issuance);
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,pid);
+int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.issuance(pid: $pid)';
+  return 'WalletState.issuance()';
 }
 
 
 }
 
-/// @nodoc
-abstract mixin class $WalletState_IssuanceCopyWith<$Res> implements $WalletStateCopyWith<$Res> {
-  factory $WalletState_IssuanceCopyWith(WalletState_Issuance value, $Res Function(WalletState_Issuance) _then) = _$WalletState_IssuanceCopyWithImpl;
-@useResult
-$Res call({
- bool pid
-});
 
 
-
-
-}
-/// @nodoc
-class _$WalletState_IssuanceCopyWithImpl<$Res>
-    implements $WalletState_IssuanceCopyWith<$Res> {
-  _$WalletState_IssuanceCopyWithImpl(this._self, this._then);
-
-  final WalletState_Issuance _self;
-  final $Res Function(WalletState_Issuance) _then;
-
-/// Create a copy of WalletState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? pid = null,}) {
-  return _then(WalletState_Issuance(
-pid: null == pid ? _self.pid : pid // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-
-
-}
 
 /// @nodoc
 

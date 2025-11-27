@@ -28,9 +28,7 @@ sealed class WalletState with _$WalletState {
     required WalletTransferRole role,
   }) = WalletState_Transferring;
   const factory WalletState.disclosure() = WalletState_Disclosure;
-  const factory WalletState.issuance({
-    required bool pid,
-  }) = WalletState_Issuance;
+  const factory WalletState.issuance() = WalletState_Issuance;
   const factory WalletState.pinChange() = WalletState_PinChange;
   const factory WalletState.pinRecovery() = WalletState_PinRecovery;
   const factory WalletState.walletBlocked({

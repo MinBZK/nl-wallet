@@ -336,7 +336,7 @@ class WalletCoreMock implements WalletCoreApi {
     if (_wallet.isEmpty) {
       state = const WalletState.empty();
     } else if (_issuanceManager.hasActiveIssuanceSession) {
-      state = WalletState.issuance(pid: _wallet.isEmpty);
+      state = const WalletState.issuance();
     } else if (_disclosureManager.hasActiveDisclosureSession) {
       state = const WalletState.disclosure();
     }

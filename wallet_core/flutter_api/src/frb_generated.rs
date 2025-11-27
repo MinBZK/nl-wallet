@@ -2328,8 +2328,7 @@ impl SseDecode for crate::models::wallet_state::WalletState {
                 return crate::models::wallet_state::WalletState::Disclosure;
             }
             7 => {
-                let mut var_pid = <bool>::sse_decode(deserializer);
-                return crate::models::wallet_state::WalletState::Issuance { pid: var_pid };
+                return crate::models::wallet_state::WalletState::Issuance;
             }
             8 => {
                 return crate::models::wallet_state::WalletState::PinChange;
@@ -3134,9 +3133,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::WalletState 
                 [5.into_dart(), role.into_into_dart().into_dart()].into_dart()
             }
             crate::models::wallet_state::WalletState::Disclosure => [6.into_dart()].into_dart(),
-            crate::models::wallet_state::WalletState::Issuance { pid } => {
-                [7.into_dart(), pid.into_into_dart().into_dart()].into_dart()
-            }
+            crate::models::wallet_state::WalletState::Issuance => [7.into_dart()].into_dart(),
             crate::models::wallet_state::WalletState::PinChange => [8.into_dart()].into_dart(),
             crate::models::wallet_state::WalletState::PinRecovery => [9.into_dart()].into_dart(),
             crate::models::wallet_state::WalletState::WalletBlocked { reason } => {
@@ -4064,9 +4061,8 @@ impl SseEncode for crate::models::wallet_state::WalletState {
             crate::models::wallet_state::WalletState::Disclosure => {
                 <i32>::sse_encode(6, serializer);
             }
-            crate::models::wallet_state::WalletState::Issuance { pid } => {
+            crate::models::wallet_state::WalletState::Issuance => {
                 <i32>::sse_encode(7, serializer);
-                <bool>::sse_encode(pid, serializer);
             }
             crate::models::wallet_state::WalletState::PinChange => {
                 <i32>::sse_encode(8, serializer);
@@ -4810,12 +4806,7 @@ mod io {
                     }
                 }
                 6 => crate::models::wallet_state::WalletState::Disclosure,
-                7 => {
-                    let ans = unsafe { self.kind.Issuance };
-                    crate::models::wallet_state::WalletState::Issuance {
-                        pid: ans.pid.cst_decode(),
-                    }
-                }
+                7 => crate::models::wallet_state::WalletState::Issuance,
                 8 => crate::models::wallet_state::WalletState::PinChange,
                 9 => crate::models::wallet_state::WalletState::PinRecovery,
                 10 => {
@@ -6186,7 +6177,6 @@ mod io {
     pub union WalletStateKind {
         Locked: wire_cst_WalletState_Locked,
         Transferring: wire_cst_WalletState_Transferring,
-        Issuance: wire_cst_WalletState_Issuance,
         WalletBlocked: wire_cst_WalletState_WalletBlocked,
         nil__: (),
     }
@@ -6199,11 +6189,6 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletState_Transferring {
         role: i32,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub struct wire_cst_WalletState_Issuance {
-        pid: bool,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

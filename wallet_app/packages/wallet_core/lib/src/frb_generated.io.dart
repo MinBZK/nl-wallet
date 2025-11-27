@@ -1311,9 +1311,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is WalletState_Issuance) {
-      var pre_pid = cst_encode_bool(apiObj.pid);
       wireObj.tag = 7;
-      wireObj.kind.Issuance.pid = pre_pid;
       return;
     }
     if (apiObj is WalletState_PinChange) {
@@ -3063,11 +3061,6 @@ final class wire_cst_WalletState_Transferring extends ffi.Struct {
   external int role;
 }
 
-final class wire_cst_WalletState_Issuance extends ffi.Struct {
-  @ffi.Bool()
-  external bool pid;
-}
-
 final class wire_cst_WalletState_WalletBlocked extends ffi.Struct {
   @ffi.Int32()
   external int reason;
@@ -3077,8 +3070,6 @@ final class WalletStateKind extends ffi.Union {
   external wire_cst_WalletState_Locked Locked;
 
   external wire_cst_WalletState_Transferring Transferring;
-
-  external wire_cst_WalletState_Issuance Issuance;
 
   external wire_cst_WalletState_WalletBlocked WalletBlocked;
 }

@@ -32,8 +32,7 @@ class SplashScreen extends StatelessWidget {
               case PostSplashDestination.pidRetrieval:
                 Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
               case PostSplashDestination.transfer:
-                // Navigation handled on from Dashboard (onUnlock) in [WalletTransferEventListener]
-                Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
+                Navigator.pushReplacementNamed(context, WalletRoutes.walletTransferTargetRoute);
               case PostSplashDestination.dashboard:
                 Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
               case PostSplashDestination.blocked:
