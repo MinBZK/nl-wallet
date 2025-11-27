@@ -20,70 +20,120 @@ void main() {
   );
 
   blocTest(
-    'if mockGetWalletStateUseCase app initialization should fail',
-    setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenThrow(StateError('error'));
-    },
+    'if mockGetWalletStateUseCase throws, app initialization should fail',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenThrow(StateError('error')),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase),
     errors: () => [isA<StateError>()],
   );
 
   blocTest(
-    'if mockGetWalletStateUseCase app initialization should fail',
-    setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenThrow(StateError('error'));
-    },
-    act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
-    errors: () => [isA<StateError>()],
-  );
-
-  blocTest(
-    'validate state when locked, registered and pid not available',
-    setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateLocked(WalletStateEmpty()));
-    },
-    act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
-    expect: () => [const SplashLoaded(.pidRetrieval)],
-  );
-
-  blocTest(
-    'validate state when registered and pid not available',
-    setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateEmpty());
-    },
-    act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
-    expect: () => [const SplashLoaded(.pidRetrieval)],
-  );
-
-  blocTest(
-    'validate state when not registered',
-    setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateRegistration());
-    },
+    'Verify user redirected to onboarding when wallet state is WalletStateRegistration',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateRegistration()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase),
     expect: () => [const SplashLoaded(.onboarding)],
   );
 
   blocTest(
-    'validate state when registered and pid available',
-    setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateReady());
-    },
+    'verify user is redirected to pidRetrieval when wallet state is WalletStateEmpty',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateEmpty()),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.pidRetrieval)],
+  );
+
+  blocTest(
+    'verify user is also redirected to pidRetrieval when wallet state is WalletStateLocked with substate of WalletStateEmpty',
+    setUp: () =>
+        when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateLocked(WalletStateEmpty())),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.pidRetrieval)],
+  );
+
+  blocTest(
+    'verify user is redirected to dashboard when wallet state is WalletStateReady',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateReady()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase),
     expect: () => [const SplashLoaded(.dashboard)],
   );
 
   blocTest(
-    'validate state when locked, registered and pid available',
-    setUp: () {
-      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateLocked(WalletStateReady()));
-    },
+    'verify user is also redirected to dashboard when wallet state is WalletStateLocked with substate of WalletStateReady',
+    setUp: () =>
+        when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateLocked(WalletStateReady())),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.dashboard)],
+  );
+
+  blocTest(
+    'verify user is redirected to transfer when wallet state is WalletStateTransferPossible',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateTransferPossible()),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.transfer)],
+  );
+
+  blocTest(
+    'verify user is redirected to transfer when wallet state is WalletStateTransferring with target role',
+    setUp: () => when(
+      mockGetWalletStateUseCase.invoke(),
+    ).thenAnswer((_) async => const WalletStateTransferring(TransferRole.target)),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.transfer)],
+  );
+
+  blocTest(
+    'verify user is redirected to dashboard when wallet state is WalletStateTransferring with source role',
+    setUp: () => when(
+      mockGetWalletStateUseCase.invoke(),
+    ).thenAnswer((_) async => const WalletStateTransferring(TransferRole.source)),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.dashboard)],
+  );
+
+  blocTest(
+    'verify user is redirected to blocked when wallet state is WalletStateWalletBlocked',
+    setUp: () => when(
+      mockGetWalletStateUseCase.invoke(),
+    ).thenAnswer((_) async => const WalletStateWalletBlocked(WalletBlockedReason.requiresAppUpdate)),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.blocked)],
+  );
+
+  blocTest(
+    'verify user is redirected to dashboard when wallet state is WalletStateDisclosure',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateDisclosure()),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.dashboard)],
+  );
+
+  blocTest(
+    'verify user is redirected to dashboard when wallet state is WalletStateIssuance',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateIssuance()),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.dashboard)],
+  );
+
+  blocTest(
+    'verify user is redirected to dashboard when wallet state is WalletStatePinChange',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStatePinChange()),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase),
+    expect: () => [const SplashLoaded(.dashboard)],
+  );
+
+  blocTest(
+    'verify user is redirected to dashboard when wallet state is WalletStatePinRecovery',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStatePinRecovery()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase),
     expect: () => [const SplashLoaded(.dashboard)],

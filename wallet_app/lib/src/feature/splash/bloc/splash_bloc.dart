@@ -22,16 +22,16 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
     await Future.delayed(skipDelay ? Duration.zero : kDefaultMockDelay);
 
     final state = await _getWalletStateUseCase.invoke();
-    final derivedState = tryCast<WalletStateLocked>(state)?.substate ?? state;
-    switch (derivedState) {
+    final unlockedState = tryCast<WalletStateLocked>(state)?.substate ?? state;
+    switch (unlockedState) {
       case WalletStateLocked():
-        throw StateError('Derived state should never be $derivedState');
+        throw StateError('UnlockedState state should never be $unlockedState');
       case WalletStateEmpty():
         emit(const SplashLoaded(.pidRetrieval));
       case WalletStateTransferPossible():
         emit(const SplashLoaded(.transfer));
       case WalletStateTransferring():
-        if (derivedState.role == .target) {
+        if (unlockedState.role == .target) {
           emit(const SplashLoaded(.transfer));
         } else {
           /// Transfer will be cancelled by [WalletTransferEventListener]
