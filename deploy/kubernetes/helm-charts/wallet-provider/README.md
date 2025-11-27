@@ -115,9 +115,10 @@
 
 ### WUA status list parameters
 
-| Name                        | Description                 | Value |
-| --------------------------- | --------------------------- | ----- |
-| `wuaStatusList.certificate` | WUA status list certificate | `nil` |
+| Name                        | Description                                                | Value |
+| --------------------------- | ---------------------------------------------------------- | ----- |
+| `wuaStatusList.baseUrl`     | WUA status list base url that will be encoded as iss claim | `nil` |
+| `wuaStatusList.certificate` | WUA status list certificate                                | `nil` |
 
 ### Migration parameters
 

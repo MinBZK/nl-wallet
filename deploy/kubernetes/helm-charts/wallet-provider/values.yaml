@@ -147,9 +147,11 @@ recoveryCodePaths:
 
 ## @section WUA status list parameters
 ## Parameters for the WUA status list configuration
+## @param wuaStatusList.baseUrl WUA status list base url that will be encoded as iss claim
 ## @param wuaStatusList.certificate WUA status list certificate
 ##
 wuaStatusList:
+  baseUrl: null
   certificate: null
 
 ## @section Migration parameters

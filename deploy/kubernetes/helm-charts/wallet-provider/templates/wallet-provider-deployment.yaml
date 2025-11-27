@@ -99,9 +99,8 @@ spec:
                   name: nl-wallet-server-trust-anchors
                   key: issuer_trust_anchors
 
-              # TODO add correct path in PVW-4558
             - name: WALLET_PROVIDER__WUA_STATUS_LIST__BASE_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
+              value: {{ .Values.wuaStatusList.baseUrl }}
             - name: WALLET_PROVIDER__WUA_STATUS_LIST__PUBLISH_DIR
               value: "/status-lists"
             - name: WALLET_PROVIDER__WUA_STATUS_LIST__KEY_CERTIFICATE
