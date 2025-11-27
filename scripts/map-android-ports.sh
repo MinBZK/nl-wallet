@@ -12,7 +12,7 @@ then
     echo -e "Mapping Android ports with ${GREEN}adb${NC}"
     if adb reverse tcp:${WALLET_PROVIDER_PORT} tcp:${WALLET_PROVIDER_PORT}
     then
-        adb reverse tcp:${CONFIG_SERVER_PORT} tcp:${CONFIG_SERVER_PORT}
+        adb reverse tcp:${STATIC_SERVER_PORT} tcp:${STATIC_SERVER_PORT}
         adb reverse tcp:${UPDATE_POLICY_SERVER_PORT} tcp:${UPDATE_POLICY_SERVER_PORT}
         adb reverse tcp:${PID_ISSUER_WS_PORT} tcp:${PID_ISSUER_WS_PORT}
         adb reverse tcp:${DEMO_INDEX_PORT} tcp:${DEMO_INDEX_PORT}

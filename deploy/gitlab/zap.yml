@@ -48,13 +48,13 @@ zap-scan-demo:
   variables:
     SUT: "DEMO_RP_AND_ISSUER"
 
-zap-scan-config-server:
+zap-scan-static-server:
   extends: .zap-scan-base
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    CONFIG_SERVER_HOST: "${STATIC_HOSTNAME}"
-    SUT: "CONFIG_SERVER"
+    STATIC_SERVER_HOST: "${STATIC_HOSTNAME}"
+    SUT: "STATIC_SERVER"
 
 zap-scan-wallet-provider:
   extends: .zap-scan-base
@@ -115,7 +115,7 @@ zap-scan-publish-results:
   rules: !reference [.zap-base, rules]
   needs:
     - { job: zap-scan-demo }
-    - { job: zap-scan-config-server }
+    - { job: zap-scan-static-server }
     - { job: zap-scan-wallet-provider }
     - { job: zap-scan-pid-issuer }
     - { job: zap-scan-internal-verification-server }

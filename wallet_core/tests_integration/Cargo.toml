@@ -15,8 +15,8 @@ name = "performance_test"
 required-features = ["performance_test"]
 
 [[test]]
-name = "config_server"
-path = "tests/config_server.rs"
+name = "static_server"
+path = "tests/static_server.rs"
 required-features = ["integration_test"]
 
 [[test]]
@@ -99,7 +99,6 @@ test_common = [
     "dcql/mock",
     "dep:android_attest",
     "dep:chrono",
-    "dep:configuration_server",
     "dep:ctor",
     "dep:futures",
     "dep:gba_hc_converter",
@@ -111,6 +110,7 @@ test_common = [
     "dep:serde_json",
     "dep:serde_urlencoded",
     "dep:server_utils",
+    "dep:static_server",
     "dep:tempfile",
     "dep:update_policy_server",
     "dep:url",
@@ -257,7 +257,6 @@ apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 attestation_data = { path = "../lib/attestation_data", optional = true }
 
 
-configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
 dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
@@ -272,6 +271,7 @@ wscd = { path = "../lib/wscd", optional = true }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true }
 platform_support = { path = "../wallet/platform_support", optional = true }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
+static_server = { path = "../static_server", optional = true }
 token_status_list = { path = "../lib/token_status_list", features = ["mock"] }
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }

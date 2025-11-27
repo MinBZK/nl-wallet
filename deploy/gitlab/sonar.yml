@@ -26,7 +26,7 @@ sonar-rust:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.sources=.
-      -Dsonar.exclusions=configuration_server/**,demo/**,wallet_ca/**,wallet_*/*/src/entity/**,uniffi-bindgen/**,target/**,**/examples.rs,**/examples/**,**/resources/**,**/assets/**,**/test-assets/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs
+      -Dsonar.exclusions=demo/**,static_server/**,wallet_ca/**,wallet_*/*/src/entity/**,uniffi-bindgen/**,target/**,**/examples.rs,**/examples/**,**/resources/**,**/assets/**,**/test-assets/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs
       -Dsonar.coverage.exclusions=**/migrations/**
       -Dsonar.tests=.
       -Dsonar.test.inclusions=**/tests/**,**/tests_integration/**
