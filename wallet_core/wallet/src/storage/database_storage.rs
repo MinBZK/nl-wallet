@@ -1029,7 +1029,12 @@ where
             .filter(
                 attestation_copy::Column::StatusListUrl
                     .is_not_null()
-                    .and(attestation_copy::Column::StatusListIndex.is_not_null()),
+                    .and(attestation_copy::Column::StatusListIndex.is_not_null())
+                    .and(
+                        attestation_copy::Column::RevocationStatus
+                            .is_null()
+                            .or(attestation_copy::Column::RevocationStatus.ne(RevocationStatus::Invalid.to_string())),
+                    ),
             )
             .into_partial_model::<revocation_info::RevocationInfo>();
 
@@ -2460,6 +2465,14 @@ pub(crate) mod tests {
             )
             .await
         );
+
+        // fetch_all_revocation_info should not return revocation info for attestations that have been revoked
+        storage
+            .update_revocation_statuses(vec![(revocation_info.attestation_copy_id, RevocationStatus::Invalid)])
+            .await
+            .unwrap();
+        let revocation_info = storage.fetch_all_revocation_info().await.unwrap();
+        assert_eq!(1, revocation_info.len());
     }
 
     #[rstest]
