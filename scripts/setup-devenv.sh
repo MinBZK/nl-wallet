@@ -105,7 +105,7 @@ fi
 ########################################################################
 
 mkdir -p "${TARGET_DIR}"
-mkdir -p "${TARGET_DIR}/configuration_server"
+mkdir -p "${TARGET_DIR}/static_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
 mkdir -p "${TARGET_DIR}/verification_server"
 mkdir -p "${TARGET_DIR}/issuance_server"
@@ -244,7 +244,7 @@ echo -e "${SECTION}Configure verification_server, issuance_server, pid_issuer, d
 
 cd "${BASE_DIR}"
 
-# Generate or re-use CA for configuration server
+# Generate or re-use CA for static server
 generate_or_reuse_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/demo_issuer" demo_issuer "${TARGET_DIR}/demo_issuer/ca.crt.pem" "${TARGET_DIR}/demo_issuer/ca.key.pem"
@@ -540,26 +540,26 @@ p11tool --login --write \
   "${HSM_TOKEN_URL}"
 
 ########################################################################
-# Configure configuration-server
+# Configure static-server
 ########################################################################
 
 echo
-echo -e "${SECTION}Configure configuration-server${NC}"
+echo -e "${SECTION}Configure static-server${NC}"
 
 cd "${BASE_DIR}"
 
-# Generate or re-use CA for configuration-server
-generate_or_reuse_root_ca "${TARGET_DIR}/configuration_server" "nl-wallet-configuration-server"
+# Generate or re-use CA for static-server
+generate_or_reuse_root_ca "${TARGET_DIR}/static_server" "nl-wallet-static-server"
 
-generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_server "${TARGET_DIR}/configuration_server/ca.crt.pem" "${TARGET_DIR}/configuration_server/ca.key.pem"
+generate_ssl_key_pair_with_san "${TARGET_DIR}/static_server" static_server "${TARGET_DIR}/static_server/ca.crt.pem" "${TARGET_DIR}/static_server/ca.key.pem"
 
-ln -sf "${TARGET_DIR}/configuration_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/cs.ca.crt.der"
-CONFIG_SERVER_CA_CRT=$(< "${TARGET_DIR}/configuration_server/ca.crt.der" ${BASE64})
-export CONFIG_SERVER_CA_CRT
-CONFIG_SERVER_CERT=$(< "${TARGET_DIR}/configuration_server/config_server.crt.der" ${BASE64})
-export CONFIG_SERVER_CERT
-CONFIG_SERVER_KEY=$(< "${TARGET_DIR}/configuration_server/config_server.key.der" ${BASE64})
-export CONFIG_SERVER_KEY
+ln -sf "${TARGET_DIR}/static_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/static.ca.crt.der"
+STATIC_SERVER_CA_CRT=$(< "${TARGET_DIR}/static_server/ca.crt.der" ${BASE64})
+export STATIC_SERVER_CA_CRT
+STATIC_SERVER_CERT=$(< "${TARGET_DIR}/static_server/static_server.crt.der" ${BASE64})
+export STATIC_SERVER_CERT
+STATIC_SERVER_KEY=$(< "${TARGET_DIR}/static_server/static_server.key.der" ${BASE64})
+export STATIC_SERVER_KEY
 
 generate_config_signing_key_pair
 CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
@@ -582,8 +582,8 @@ cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/t
 WALLET_CONFIG_JWT=$(< "${TARGET_DIR}/wallet-config-jws-compact.txt")
 export WALLET_CONFIG_JWT
 
-render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
-cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
+render_template "${DEVENV}/static_server.toml.template" "${STATIC_SERVER_DIR}/static_server.toml"
+cp "${STATIC_SERVER_DIR}/static_server.toml" "${BASE_DIR}/wallet_core/tests_integration/static_server.toml"
 
 ########################################################################
 # Configure gba-hc-converter

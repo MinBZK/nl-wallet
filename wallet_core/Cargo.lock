@@ -1326,26 +1326,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "configuration_server"
-version = "0.4.0-dev"
-dependencies = [
- "axum",
- "axum-server",
- "config",
- "etag",
- "http",
- "http_utils",
- "jwt",
- "rustls",
- "serde",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "utils",
- "wallet_configuration",
-]
-
-[[package]]
 name = "console_error_panic_hook"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6428,6 +6408,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "static_server"
+version = "0.4.0-dev"
+dependencies = [
+ "axum",
+ "axum-server",
+ "config",
+ "etag",
+ "http",
+ "http_utils",
+ "jwt",
+ "rustls",
+ "serde",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "utils",
+ "wallet_configuration",
+]
+
+[[package]]
 name = "status_lists"
 version = "0.4.0-dev"
 dependencies = [
@@ -6642,7 +6642,6 @@ dependencies = [
  "axum",
  "axum-server",
  "chrono",
- "configuration_server",
  "crypto",
  "ctor",
  "dcql",
@@ -6676,6 +6675,7 @@ dependencies = [
  "serde_urlencoded",
  "serial_test",
  "server_utils",
+ "static_server",
  "tempfile",
  "token_status_list",
  "tokio",

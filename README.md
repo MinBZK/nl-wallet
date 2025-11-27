@@ -201,7 +201,7 @@ user to log in using DigiD in order to create the Wallet. The services are the
 following:
 
 - digid-connector (rdo-max)
-- configuration_server
+- static_server
 - gba_hc_converter
 - brpproxy
 - postgresql
@@ -672,8 +672,8 @@ target the Android platform":
 
 ## App build configuration
 
-The app build includes the configuration for the connection to the configuration-server (`config-server-config.json`).
-Additionally it includes an initial configuration from the configuration-server (`wallet-server.json`).
+The app build includes the configuration for the connection to the server that hosts the configuration file (`config-server-config.json`).
+Additionally it includes an initial configuration from the this server (`wallet-server.json`).
 
 Next to these configuration files the build can be configured with:
 

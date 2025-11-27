@@ -1,4 +1,4 @@
-/config_server.toml
+/static_server.toml
 /gba_hc_converter.toml
 /pid_issuer.toml
 /issuance_server.toml

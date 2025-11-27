@@ -26,9 +26,9 @@ impl Settings {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 8001)?
-            .add_source(File::from(prefix_local_path("config_server.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path("static_server.toml".as_ref()).as_ref()).required(false))
             .add_source(
-                Environment::with_prefix("config_server")
+                Environment::with_prefix("static_server")
                     .separator("__")
                     .prefix_separator("__")
                     .list_separator(","),

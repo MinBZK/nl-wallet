@@ -31,7 +31,6 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
-use configuration_server::settings::Settings as CsSettings;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use dcql::CredentialFormat;
@@ -68,6 +67,7 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
+use static_server::settings::Settings as StaticSettings;
 use token_status_list::status_list_service::mock::MockStatusListServices;
 use token_status_list::verification::client::mock::MockStatusListServicesClient;
 use update_policy_server::settings::Settings as UpsSettings;
@@ -224,7 +224,7 @@ pub async fn setup_env_default() -> (
     DisclosureParameters,
 ) {
     setup_env(
-        config_server_settings(),
+        static_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
         verification_server_settings(),
@@ -235,7 +235,7 @@ pub async fn setup_env_default() -> (
 }
 
 pub async fn setup_env(
-    (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
+    (mut static_settings, static_root_ca): (StaticSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
@@ -320,13 +320,13 @@ pub async fn setup_env(
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
+    static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
 
-    let cs_port = start_config_server(cs_settings, cs_root_ca.clone()).await;
+    let static_port = start_static_server(static_settings, static_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_config_base_url(cs_port),
-            trust_anchors: vec![cs_root_ca],
+            base_url: local_config_base_url(static_port),
+            trust_anchors: vec![static_root_ca],
         },
         ..default_config_server_config()
     };
@@ -424,7 +424,7 @@ pub async fn setup_wallet_and_env(
 ) -> (WalletWithStorage, DisclosureParameters, BaseUrl) {
     let (config_server_config, mock_device_config, wallet_config, issuance_server_url, verifier_server_urls) =
         setup_env(
-            config_server_settings(),
+            static_server_settings(),
             ups_config,
             wp_config,
             verification_server_settings(),
@@ -450,12 +450,12 @@ pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
         .expect("Could not fetch user count from database")
 }
 
-pub fn config_server_settings() -> (CsSettings, ReqwestTrustAnchor) {
-    let mut settings = CsSettings::new().expect("Could not read settings");
+pub fn static_server_settings() -> (StaticSettings, ReqwestTrustAnchor) {
+    let mut settings = StaticSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.port = 0;
 
-    let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
+    let root_ca = read_file("static.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
@@ -492,12 +492,12 @@ pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
     (settings, root_ca)
 }
 
-pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
+pub async fn start_static_server(settings: StaticSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
-        if let Err(error) = configuration_server::server::serve_with_listener(listener, settings).await {
+        if let Err(error) = static_server::server::serve_with_listener(listener, settings).await {
             println!("Could not start config_server: {error:?}");
             process::exit(1);
         }

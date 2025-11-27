@@ -1,5 +1,5 @@
 [package]
-name = "configuration_server"
+name = "static_server"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,7 +8,7 @@ rust-version.workspace = true
 workspace = true
 
 [[bin]]
-name = "configuration_server"
+name = "static_server"
 
 [lib]
 doctest = false

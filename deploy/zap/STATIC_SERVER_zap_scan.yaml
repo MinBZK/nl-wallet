@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "https://${CONFIG_SERVER_HOST}/config/v1/wallet-config"
+    - "https://${STATIC_SERVER_HOST}/config/v1/wallet-config"
     includePaths:
-    - "https://${CONFIG_SERVER_HOST}/config/v1/wallet-config.*"
+    - "https://${STATIC_SERVER_HOST}/config/v1/wallet-config.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -96,7 +96,7 @@ jobs:
     theme: "console"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
     reportFile: ""
-    reportTitle: "CONFIG_SERVER ZAP Scanning Report"
+    reportTitle: "STATIC_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -122,8 +122,8 @@ jobs:
 - parameters:
     template: "traditional-xml"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "CONFIG_SERVER-zap.xml"
-    reportTitle: "CONFIG_SERVER ZAP Scanning Report"
+    reportFile: "STATIC_SERVER-zap.xml"
+    reportTitle: "STATIC_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -143,8 +143,8 @@ jobs:
 - parameters:
     template: "traditional-json"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "CONFIG_SERVER-zap.json"
-    reportTitle: "CONFIG_SERVER ZAP Scanning Report"
+    reportFile: "STATIC_SERVER-zap.json"
+    reportTitle: "STATIC_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:

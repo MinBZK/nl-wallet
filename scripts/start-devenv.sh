@@ -54,7 +54,7 @@ Where:
     di, demo_issuer:            Start the demo_issuer.
     dx, demo_index:             Start the demo_index.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
-    cs, configuration_server:   Start the configuration server
+    static, static_server:      Start the static server
     ups, update_policy_server:  Start the update policy server
     brp:                        Start the Haal-Centraal BRP proxy with GBA HC converter.
     brpproxy:                   Start the Haal-Centraal BRP proxy.
@@ -89,7 +89,7 @@ ISSUANCE_SERVER=1
 PID_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
-CONFIG_SERVER=1
+STATIC_SERVER=1
 UPDATE_POLICY_SERVER=1
 BRP_PROXY=1
 GBA_HC=1
@@ -150,8 +150,8 @@ do
             DIGID_CONNECTOR=0
             shift # past argument
             ;;
-        cs|configuration_server)
-            CONFIG_SERVER=0
+        static|static_server)
+            STATIC_SERVER=0
             shift
             ;;
         ups|update_policy_server)
@@ -184,7 +184,7 @@ do
             ISSUANCE_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
-            CONFIG_SERVER=0
+            STATIC_SERVER=0
             UPDATE_POLICY_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
@@ -201,7 +201,7 @@ do
             PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
-            CONFIG_SERVER=0
+            STATIC_SERVER=0
             UPDATE_POLICY_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
@@ -495,27 +495,27 @@ then
 fi
 
 ########################################################################
-# Manage configuration_server
+# Manage static_server
 ########################################################################
 
-if [[ $CONFIG_SERVER == '0' ]]
+if [[ $STATIC_SERVER == '0' ]]
 then
     echo
-    echo -e "${SECTION}Manage configuration_server${NC}"
+    echo -e "${SECTION}Manage static_server${NC}"
 
-    cd "${CS_DIR}"
+    cd "${STATIC_SERVER_DIR}"
 
     if [[ $STOP == '0' ]]
     then
-        echo -e "${INFO}Kill any running ${ORANGE}configuration_server${NC}"
-        killall configuration_server || true
+        echo -e "${INFO}Kill any running ${ORANGE}static_server${NC}"
+        killall static_server || true
     fi
     if [[ $START == '0' ]]
     then
-        echo -e "${INFO}Start ${ORANGE}configuration_server${NC}"
-        RUST_LOG=debug cargo run --package configuration_server --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
+        echo -e "${INFO}Start ${ORANGE}static_server${NC}"
+        RUST_LOG=debug cargo run --package static_server --bin static_server > "${TARGET_DIR}/static_server.log" 2>&1 &
 
-        echo -e "configuration_server logs can be found at ${CYAN}${TARGET_DIR}/configuration_server.log${NC}"
+        echo -e "static_server logs can be found at ${CYAN}${TARGET_DIR}/static_server.log${NC}"
     fi
 fi
 

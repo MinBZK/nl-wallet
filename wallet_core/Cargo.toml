@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "configuration_server",
     "demo/demo_index",
     "demo/demo_issuer",
     "demo/demo_relying_party",
@@ -27,6 +26,7 @@ members = [
     "lib/token_status_list",
     "lib/utils",
     "lib/wscd",
+    "static_server",
     "tests_integration",
     "update_policy/model",
     "update_policy/server",

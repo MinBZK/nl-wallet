@@ -105,8 +105,8 @@ and more specifically the `setup-devenv.sh` and `start-devenv.sh` files.
 
 ##### Configuration
 
-The configuration for how the app can connect to the configuration server (which serves the wallet
-configuration) is compiled directly into the app (`wallet_core/config-server-config.json`).
+The configuration for how the app can connect to the server that serves the wallet
+configuration is compiled directly into the app (`wallet_core/config-server-config.json`).
 In addition, the initial wallet configuration (`wallet_core/wallet-config.json`)
 (the most recent version at the time the app is built) is compiled into the app as well.
 These configurations are parsed and verified at compile time.
