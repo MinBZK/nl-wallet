@@ -23,6 +23,7 @@ mod test;
 use std::sync::Arc;
 
 use cfg_if::cfg_if;
+use parking_lot::Mutex;
 use tokio::sync::RwLock;
 use tokio::task::AbortHandle;
 
@@ -149,7 +150,7 @@ pub struct Wallet<
     status_list_client: Arc<SLC>,
     session: Option<Session<DC::Session, IS, DCC::Session>>,
     lock: WalletLock,
-    attestations_callback: Option<AttestationsCallback>,
+    attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,
     revocation_status_job_handle: Option<AbortHandle>,
 }

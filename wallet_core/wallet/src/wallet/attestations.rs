@@ -48,7 +48,7 @@ where
             .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
             .collect();
 
-        if let Some(ref mut callback) = self.attestations_callback {
+        if let Some(ref mut callback) = self.attestations_callback.lock().as_deref_mut() {
             callback(attestations);
         }
 
@@ -60,7 +60,7 @@ where
         &mut self,
         callback: AttestationsCallback,
     ) -> Result<Option<AttestationsCallback>, AttestationsError> {
-        let previous_callback = self.attestations_callback.replace(callback);
+        let previous_callback = self.attestations_callback.lock().replace(callback);
 
         if self.registration.is_registered() {
             self.emit_attestations().await?;
@@ -70,7 +70,7 @@ where
     }
 
     pub fn clear_attestations_callback(&mut self) -> Option<AttestationsCallback> {
-        self.attestations_callback.take()
+        self.attestations_callback.lock().take()
     }
 }
 

@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use cfg_if::cfg_if;
 use futures::try_join;
+use parking_lot::Mutex;
 use reqwest::ClientBuilder;
 use tokio::sync::RwLock;
 
@@ -221,7 +222,7 @@ where
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
             lock: WalletLock::new(true),
-            attestations_callback: None,
+            attestations_callback: Arc::new(Mutex::new(None)),
             recent_history_callback: None,
             revocation_status_job_handle: None,
         }

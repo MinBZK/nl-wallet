@@ -4,6 +4,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::StreamExt;
+use parking_lot::Mutex;
 use rustls_pki_types::TrustAnchor;
 use tokio::sync::RwLock;
 use tokio::time;
@@ -31,6 +32,7 @@ use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::RevocationInfo;
 use crate::storage::Storage;
+use crate::wallet::attestations::AttestationsCallback;
 use crate::wallet::attestations::AttestationsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -68,9 +70,10 @@ where
         SLC: Send + Sync + 'static,
     {
         // Clone only what is needed for the background task
-        let config = self.config_repository.get();
+        let config = Arc::clone(&self.config_repository.get());
         let status_list_client = Arc::clone(&self.status_list_client);
         let storage = Arc::clone(&self.storage);
+        let callback = Arc::clone(&self.attestations_callback);
 
         let task = tokio::spawn(async move {
             let mut interval = time::interval(check_interval);
@@ -79,12 +82,11 @@ where
             loop {
                 interval.tick().await;
 
-                let issuer_trust_anchors = config.issuer_trust_anchors();
-
                 if let Err(e) = Self::check_revocations(
-                    &issuer_trust_anchors,
+                    Arc::clone(&config),
                     Arc::clone(&status_list_client),
                     Arc::clone(&storage),
+                    Arc::clone(&callback),
                     &TimeGenerator,
                 )
                 .await
@@ -100,9 +102,10 @@ where
 
     /// Perform revocation checks where all revocation info is fetched from storage
     async fn check_revocations(
-        issuer_trust_anchors: &[TrustAnchor<'_>],
+        config: Arc<WalletConfiguration>,
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
+        callback: Arc<Mutex<Option<AttestationsCallback>>>,
         time_generator: &impl Generator<DateTime<Utc>>,
     ) -> Result<(), RevocationError>
     where
@@ -114,13 +117,15 @@ where
         // Fetch revocation info in one storage lock
         let revocation_info = storage.read().await.fetch_all_revocation_info().await?;
 
+        let issuer_trust_anchors = config.issuer_trust_anchors();
+
         // Verify all revocations without holding any locks
         let updates: Vec<(Uuid, RevocationStatus)> = futures::stream::iter(revocation_info)
             .map(|revocation_info| {
                 Self::check_revocation(
                     revocation_info,
                     &revocation_verifier,
-                    issuer_trust_anchors,
+                    &issuer_trust_anchors,
                     time_generator,
                 )
             })
@@ -130,6 +135,20 @@ where
 
         // Write all updates in one storage lock
         storage.write().await.update_revocation_statuses(updates).await?;
+
+        // Callback with the updated attestations
+        if callback.lock().is_some() {
+            let attestations = storage.read().await.fetch_unique_attestations().await?;
+
+            if let Some(ref mut callback) = callback.lock().as_deref_mut() {
+                callback(
+                    attestations
+                        .into_iter()
+                        .map(|copy| copy.into_attestation_presentation(&config.pid_attributes))
+                        .collect(),
+                )
+            }
+        }
 
         Ok(())
     }

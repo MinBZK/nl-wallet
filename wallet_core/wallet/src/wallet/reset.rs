@@ -71,7 +71,7 @@ where
             self.session.take();
 
             // Send empty collections to both the attestations and recent history callbacks, if present.
-            if let Some(ref mut attestations_callback) = self.attestations_callback {
+            if let Some(ref mut attestations_callback) = self.attestations_callback.lock().as_deref_mut() {
                 attestations_callback(vec![]);
             }
 
