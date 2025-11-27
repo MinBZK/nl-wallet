@@ -16,7 +16,7 @@ use utils::generator::Generator;
 #[cfg_attr(test, derive(derive_more::Constructor))]
 pub struct RevocationInfo {
     pub(super) attestation_copy_id: Uuid,
-    pub(super) status_list_claim: Option<StatusListClaim>,
+    pub(super) status_list_claim: StatusListClaim,
     pub(super) issuer_cert_distinguished_name: DistinguishedName,
 }
 
@@ -31,17 +31,13 @@ impl RevocationInfo {
         revocation_verifier: &RevocationVerifier<impl StatusListClient>,
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
-        let Some(status_list_claim) = &self.status_list_claim else {
-            todo!("is status_list_claim really optional at this point?")
-        };
-
         revocation_verifier
             .verify(
                 issuer_trust_anchors,
                 self.issuer_cert_distinguished_name.clone(),
-                status_list_claim.uri.clone(),
+                self.status_list_claim.uri.clone(),
                 time,
-                status_list_claim.idx.try_into().unwrap(),
+                self.status_list_claim.idx.try_into().unwrap(),
             )
             .await
     }
@@ -49,17 +45,12 @@ impl RevocationInfo {
 
 impl From<revocation_info::RevocationInfo> for RevocationInfo {
     fn from(value: revocation_info::RevocationInfo) -> Self {
-        let status_list_claim = match (value.status_list_url, value.status_list_index) {
-            (Some(url), Some(idx)) => Some(StatusListClaim {
-                uri: url.parse().expect("URL has been parsed before"),
-                idx,
-            }),
-            _ => None,
-        };
-
         RevocationInfo {
             attestation_copy_id: value.id,
-            status_list_claim,
+            status_list_claim: StatusListClaim {
+                uri: value.status_list_url.parse().expect("URL has been parsed before"),
+                idx: value.status_list_index,
+            },
             issuer_cert_distinguished_name: value.issuer_certificate_dn,
         }
     }
@@ -93,7 +84,7 @@ mod test {
 
         let StatusClaim::StatusList(claim) = StatusClaim::new_mock();
 
-        let revocation_info = RevocationInfo::new(Uuid::new_v4(), Some(claim), issuer_cert_dn);
+        let revocation_info = RevocationInfo::new(Uuid::new_v4(), claim, issuer_cert_dn);
 
         let status = revocation_info
             .verify_revocation(
@@ -101,8 +92,9 @@ mod test {
                 &revocation_verifier,
                 &MockTimeGenerator::default(),
             )
-            .now_or_never();
+            .now_or_never()
+            .unwrap();
 
-        assert_matches!(status, Some(RevocationStatus::Valid));
+        assert_matches!(status, RevocationStatus::Valid);
     }
 }

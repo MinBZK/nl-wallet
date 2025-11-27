@@ -11,7 +11,7 @@ use super::attestation_copy;
 pub struct RevocationInfo {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub status_list_url: Option<String>,
-    pub status_list_index: Option<u32>,
+    pub status_list_url: String,
+    pub status_list_index: u32,
     pub issuer_certificate_dn: DistinguishedName,
 }

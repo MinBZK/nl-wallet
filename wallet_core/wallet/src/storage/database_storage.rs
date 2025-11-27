@@ -1026,6 +1026,11 @@ where
             .column(attestation_copy::Column::StatusListUrl)
             .column(attestation_copy::Column::StatusListIndex)
             .column(attestation_copy::Column::IssuerCertificateDn)
+            .filter(
+                attestation_copy::Column::StatusListUrl
+                    .is_not_null()
+                    .and(attestation_copy::Column::StatusListIndex.is_not_null()),
+            )
             .into_partial_model::<revocation_info::RevocationInfo>();
 
         let result = query.all(connection).await?;
@@ -2428,7 +2433,7 @@ pub(crate) mod tests {
 
         let revocation_info = revocation_info.first().unwrap();
         let StatusClaim::StatusList(expected_status_claim) = StatusClaim::new_mock();
-        assert_eq!(Some(expected_status_claim), revocation_info.status_list_claim);
+        assert_eq!(expected_status_claim, revocation_info.status_list_claim);
         assert_eq!(
             ISSUER_KEY.certificate().distinguished_name_canonical().unwrap(),
             revocation_info.issuer_cert_distinguished_name
