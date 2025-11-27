@@ -378,6 +378,43 @@ mod tests {
         assert_eq!(wallet_state, WalletState::PinRecovery);
     }
 
+    // This test tests the precedence of checks in case there is an active session.
+    #[rstest]
+    #[case(None, None, WalletState::Issuance)]
+    #[case(None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case(Some(ChangePinData {state: State::Commit}), None, WalletState::Issuance)]
+    #[case(Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[tokio::test]
+    async fn test_issuance_digid_session_precedence(
+        #[case] change_pin_data: Option<ChangePinData>,
+        #[case] transfer_data: Option<TransferData>,
+        #[case] expected_state: WalletState,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Setup an active Digid session.
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .return_once(move || Ok(stored_attestation()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(move || Ok(change_pin_data.clone()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .return_once(move || Ok(transfer_data));
+
+        let wallet_state = wallet.get_state().await.unwrap();
+
+        assert_eq!(wallet_state, expected_state);
+    }
+
     fn stored_attestation() -> Vec<StoredAttestationCopy> {
         let (sd_jwt, sd_jwt_vc_metadata) = create_example_pid_sd_jwt();
 
