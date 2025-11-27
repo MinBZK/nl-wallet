@@ -259,6 +259,15 @@ where
             },
         });
 
+        // After this function is done, the user is asked to choose their new PIN.
+        // Therefore, regardless of the state of `self.lock` the app is effectively accessible to whoever holds the
+        // phone in their hands: all they have to is enter any PIN and then they can access the app.
+        // Whether or not the app is locked according to `self.lock` therefore does not matter at this point.
+        // Therefore we set it to unlocked, so that the inactivity timer in Flutter will fire if the user is
+        // inactive for too long. If they are, and the app is locked again, the PinRecovery session is cleared
+        // so that they have to start PIN recovery again.
+        self.lock.unlock();
+
         Ok(())
     }
 
@@ -427,10 +436,6 @@ where
         .map_err(PinRecoveryError::DiscloseRecoveryCode)?;
 
         self.storage.write().await.delete_data::<PinRecoveryData>().await?;
-
-        // Since the user just entered their new PIN, there is no point in asking for it again.
-        // Ensure the wallet is unlocked.
-        self.lock.unlock();
 
         Ok(())
     }
