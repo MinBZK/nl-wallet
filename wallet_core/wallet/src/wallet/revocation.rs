@@ -17,7 +17,6 @@ use uuid::Uuid;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceSession;
 use platform_support::attested_key::AttestedKeyHolder;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -28,7 +27,6 @@ use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
-use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::repository::Repository;
@@ -58,9 +56,7 @@ where
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
-    IS: IssuanceSession,
     DCC: DisclosureClient,
-    APC: AccountProviderClient,
     SLC: StatusListClient,
 {
     /// Start background revocation checks
@@ -70,8 +66,8 @@ where
     #[instrument(skip_all)]
     pub fn start_background_revocation_checks(&mut self)
     where
-        S: Send + Sync + 'static,
-        SLC: Send + Sync + 'static,
+        S: Sync + 'static,
+        SLC: Sync + 'static,
     {
         if self.revocation_status_job_handle.is_some() {
             info!("background revocation checks already running");
@@ -106,8 +102,8 @@ where
         check_interval: Duration,
     ) -> AbortHandle
     where
-        S: Send + Sync + 'static,
-        SLC: Send + Sync + 'static,
+        S: Sync + 'static,
+        SLC: Sync + 'static,
         T: Generator<DateTime<Utc>> + Send + Sync + 'static,
     {
         let task = tokio::spawn(async move {

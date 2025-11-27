@@ -359,7 +359,7 @@ impl TestStorageRegistration for MockStorage {
 
 impl<S> TestWallet<S>
 where
-    S: TestStorageRegistration + Storage,
+    S: TestStorageRegistration + Storage + Sync + 'static,
 {
     pub fn mut_storage(&mut self) -> &mut S {
         Arc::get_mut(&mut self.storage).unwrap().get_mut()

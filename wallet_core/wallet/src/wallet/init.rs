@@ -239,14 +239,15 @@ where
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: BackgroundUpdateableRepository<VersionState, TlsPinningConfig>,
-        S: Storage,
+        SLC: Sync + 'static,
+        S: Storage + Sync + 'static,
     {
         let http_config = config_repository.get().update_policy_server.http_config.clone();
         update_policy_repository.fetch_in_background(http_config);
 
         let registration_status = Self::fetch_registration_status(&mut storage).await?;
 
-        let wallet = Self::new(
+        let mut wallet = Self::new(
             config_repository,
             update_policy_repository,
             storage,
@@ -254,6 +255,8 @@ where
             wallet_clients,
             registration_status,
         );
+
+        wallet.start_background_revocation_checks();
 
         Ok(wallet)
     }
