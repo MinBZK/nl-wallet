@@ -223,6 +223,7 @@ where
             lock: WalletLock::new(true),
             attestations_callback: None,
             recent_history_callback: None,
+            revocation_status_job_handle: None,
         }
     }
 

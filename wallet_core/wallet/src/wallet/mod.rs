@@ -12,6 +12,7 @@ mod pin_recovery;
 mod recovery_code;
 mod registration;
 mod reset;
+mod revocation;
 mod state;
 mod transfer;
 mod uri;
@@ -23,6 +24,7 @@ use std::sync::Arc;
 
 use cfg_if::cfg_if;
 use tokio::sync::RwLock;
+use tokio::task::AbortHandle;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -149,4 +151,5 @@ pub struct Wallet<
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
+    revocation_status_job_handle: Option<AbortHandle>,
 }
