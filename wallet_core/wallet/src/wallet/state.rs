@@ -136,6 +136,14 @@ mod tests {
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_sd_jwt;
 
+    impl WalletState {
+        fn lock(self) -> Self {
+            Self::Locked {
+                sub_state: Box::new(self),
+            }
+        }
+    }
+
     #[tokio::test]
     async fn test_unregistered_wallet() {
         let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
@@ -153,35 +161,63 @@ mod tests {
     }
 
     #[rstest]
-    #[case(vec![], None, None, WalletState::Empty)]
-    #[case(vec![], None, Some(empty_transfer_data()), WalletState::Empty)]
-    #[case(vec![], None, Some(source_transfer_data()), WalletState::Empty)]
-    #[case(vec![], None, Some(destination_transfer_data()), WalletState::Empty)]
-    #[case(vec![], Some(ChangePinData {state: State::Begin}), None, WalletState::Empty)]
-    #[case(vec![], Some(ChangePinData {state: State::Commit}), None, WalletState::Empty)]
-    #[case(vec![], Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty)]
-    #[case(vec![], Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty)]
-    #[case(stored_attestation(), None, None, WalletState::Ready)]
+    #[case(false, vec![], None, None, WalletState::Empty)]
+    #[case(true, vec![], None, None, WalletState::Empty.lock())]
+    #[case(false, vec![], None, Some(empty_transfer_data()), WalletState::Empty)]
+    #[case(true, vec![], None, Some(empty_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, vec![], None, Some(source_transfer_data()), WalletState::Empty)]
+    #[case(true, vec![], None, Some(source_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, vec![], None, Some(destination_transfer_data()), WalletState::Empty)]
+    #[case(true, vec![], None, Some(destination_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, vec![], Some(ChangePinData {state: State::Begin}), None, WalletState::Empty)]
+    #[case(true, vec![], Some(ChangePinData {state: State::Begin}), None, WalletState::Empty.lock())]
+    #[case(false, vec![], Some(ChangePinData {state: State::Commit}), None, WalletState::Empty)]
+    #[case(true, vec![], Some(ChangePinData {state: State::Commit}), None, WalletState::Empty.lock())]
+    #[case(false, vec![], Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty)]
+    #[case(true, vec![], Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty.lock())]
+    #[case(false, vec![], Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty)]
+    #[case(true, vec![], Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, stored_attestation(), None, None, WalletState::Ready)]
+    #[case(true, stored_attestation(), None, None, WalletState::Ready.lock())]
     #[case(
+        false,
         stored_attestation(),
         None,
         Some(empty_transfer_data()),
         WalletState::TransferPossible
     )]
-    #[case(stored_attestation(), None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
-    #[case(stored_attestation(), None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination })]
-    #[case(stored_attestation(), Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange)]
-    #[case(stored_attestation(), Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange)]
-    #[case(stored_attestation(), Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange)]
-    #[case(stored_attestation(), Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case(
+        true,
+        stored_attestation(),
+        None,
+        Some(empty_transfer_data()),
+        WalletState::TransferPossible.lock()
+    )]
+    #[case(false, stored_attestation(), None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case(true, stored_attestation(), None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock())]
+    #[case(false, stored_attestation(), None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination })]
+    #[case(true, stored_attestation(), None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination }.lock())]
+    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange)]
+    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange.lock())]
+    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange)]
+    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange.lock())]
+    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange)]
+    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange.lock())]
+    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock())]
     #[tokio::test]
     async fn test_unregistered_and_unlocked_wallet(
+        #[case] is_locked: bool,
         #[case] stored_attestations: Vec<StoredAttestationCopy>,
         #[case] change_pin_data: Option<ChangePinData>,
         #[case] transfer_data: Option<TransferData>,
         #[case] expected_state: WalletState,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        if is_locked {
+            wallet.lock();
+        }
+
         let storage = wallet.mut_storage();
         storage
             .expect_fetch_unique_attestations()
