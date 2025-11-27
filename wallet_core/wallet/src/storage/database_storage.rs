@@ -2432,8 +2432,7 @@ pub(crate) mod tests {
         assert_eq!(2, revocation_info.len());
 
         let revocation_info = revocation_info.first().unwrap();
-        let StatusClaim::StatusList(expected_status_claim) = StatusClaim::new_mock();
-        assert_eq!(expected_status_claim, revocation_info.status_list_claim);
+        assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
         assert_eq!(
             ISSUER_KEY.certificate().distinguished_name_canonical().unwrap(),
             revocation_info.issuer_cert_distinguished_name

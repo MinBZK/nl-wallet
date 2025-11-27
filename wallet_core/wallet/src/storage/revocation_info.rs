@@ -3,6 +3,7 @@ use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
 use uuid::Uuid;
 
+use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use crypto::x509::DistinguishedName;
 use entity::revocation_info;
@@ -16,7 +17,7 @@ use utils::generator::Generator;
 #[cfg_attr(test, derive(derive_more::Constructor))]
 pub struct RevocationInfo {
     pub(super) attestation_copy_id: Uuid,
-    pub(super) status_list_claim: StatusListClaim,
+    pub(super) status_claim: StatusClaim,
     pub(super) issuer_cert_distinguished_name: DistinguishedName,
 }
 
@@ -35,9 +36,8 @@ impl RevocationInfo {
             .verify(
                 issuer_trust_anchors,
                 self.issuer_cert_distinguished_name.clone(),
-                self.status_list_claim.uri.clone(),
+                self.status_claim.clone(),
                 time,
-                self.status_list_claim.idx.try_into().unwrap(),
             )
             .await
     }
@@ -47,10 +47,10 @@ impl From<revocation_info::RevocationInfo> for RevocationInfo {
     fn from(value: revocation_info::RevocationInfo) -> Self {
         RevocationInfo {
             attestation_copy_id: value.id,
-            status_list_claim: StatusListClaim {
+            status_claim: StatusClaim::StatusList(StatusListClaim {
                 uri: value.status_list_url.parse().expect("URL has been parsed before"),
                 idx: value.status_list_index,
-            },
+            }),
             issuer_cert_distinguished_name: value.issuer_certificate_dn,
         }
     }
@@ -82,9 +82,7 @@ mod test {
 
         let revocation_verifier = RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_cert)));
 
-        let StatusClaim::StatusList(claim) = StatusClaim::new_mock();
-
-        let revocation_info = RevocationInfo::new(Uuid::new_v4(), claim, issuer_cert_dn);
+        let revocation_info = RevocationInfo::new(Uuid::new_v4(), StatusClaim::new_mock(), issuer_cert_dn);
 
         let status = revocation_info
             .verify_revocation(

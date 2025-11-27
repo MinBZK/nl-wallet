@@ -2,12 +2,15 @@ use std::sync::Arc;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::DistinguishedName;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::warn;
-use url::Url;
+
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusClaim::StatusList;
+use attestation_types::status_claim::StatusListClaim;
+use crypto::x509::DistinguishedName;
 use utils::generator::Generator;
 
 use crate::status_list::StatusType;
@@ -37,18 +40,19 @@ where
         &self,
         issuer_trust_anchors: &[TrustAnchor<'_>],
         attestation_signing_certificate_dn: DistinguishedName,
-        url: Url,
+        status_claim: StatusClaim,
         time: &impl Generator<DateTime<Utc>>,
-        index: usize,
     ) -> RevocationStatus {
-        match self.0.fetch(url.clone()).await {
+        let StatusList(StatusListClaim { uri, idx }) = status_claim;
+
+        match self.0.fetch(uri.clone()).await {
             Ok(status_list_token) => match status_list_token.parse_and_verify(
                 issuer_trust_anchors,
                 attestation_signing_certificate_dn,
-                &url,
+                &uri,
                 time,
             ) {
-                Ok(status_list) => match status_list.single_unpack(index) {
+                Ok(status_list) => match status_list.single_unpack(idx.try_into().unwrap()) {
                     StatusType::Valid => RevocationStatus::Valid,
                     _ => RevocationStatus::Invalid,
                 },
@@ -74,6 +78,8 @@ mod test {
     use chrono::Utc;
     use futures::FutureExt;
 
+    use attestation_types::status_claim::StatusClaim::StatusList;
+    use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::DistinguishedName;
     use jwt::error::JwtError;
@@ -98,9 +104,11 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -111,9 +119,11 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 3,
+                }),
                 &MockTimeGenerator::default(),
-                3,
             )
             .now_or_never()
             .unwrap();
@@ -124,9 +134,11 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
-                "https://different_uri".parse().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://different_uri".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -137,9 +149,11 @@ mod test {
             .verify(
                 &[],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -150,9 +164,11 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::new(Utc::now().add(Days::new(2))),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -163,9 +179,11 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 DistinguishedName::new(String::from("CN=Different CA")),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -181,9 +199,11 @@ mod test {
             .verify(
                 &[ca.to_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
