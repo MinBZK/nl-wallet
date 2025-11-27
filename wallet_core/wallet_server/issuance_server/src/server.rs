@@ -3,7 +3,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
+use axum::response::IntoResponse;
 use futures::future::try_join_all;
+use server_utils::server::secure_internal_router;
 use tokio::net::TcpListener;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -21,9 +23,12 @@ use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
+use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::server::listen;
+use status_lists::revoke::create_revocation_router;
+use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListServices;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -33,7 +38,7 @@ use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, L, IS, DS, C>(
+pub async fn serve<A, L, IS, DS, C, E>(
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -47,11 +52,13 @@ where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
-    L: StatusListServices + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService<Error = E> + Sync + 'static,
     C: StatusListClient + Sync + 'static,
+    E: IntoResponse,
 {
-    serve_with_listener(
+    serve_with_listeners(
         create_wallet_listener(&settings.issuer_settings.server_settings.wallet_server).await?,
+        create_internal_listener(&settings.issuer_settings.server_settings.internal_server).await?,
         settings,
         hsm,
         issuance_sessions,
@@ -65,8 +72,9 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listener<A, L, IS, DS, C>(
-    listener: TcpListener,
+pub async fn serve_with_listeners<A, L, IS, DS, C, E>(
+    wallet_listener: TcpListener,
+    internal_listener: Option<TcpListener>,
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -80,8 +88,9 @@ where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
-    L: StatusListServices + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService<Error = E> + Sync + 'static,
     C: StatusListClient + Sync + 'static,
+    E: IntoResponse,
 {
     let log_requests = settings.issuer_settings.server_settings.log_requests;
     let issuer_settings = settings.issuer_settings;
@@ -105,6 +114,7 @@ where
 
     let use_cases = WalletInitiatedUseCases::new(use_cases);
 
+    let status_list_services = Arc::new(status_list_services);
     let issuer = Arc::new(Issuer::new(
         issuance_sessions,
         TrivialAttributeService,
@@ -112,7 +122,7 @@ where
         &issuer_settings.server_settings.public_url,
         issuer_settings.wallet_client_ids.clone(),
         Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here,
-        status_list_services,
+        Arc::clone(&status_list_services),
     ));
 
     let issuance_router = create_issuance_router(Arc::clone(&issuer));
@@ -140,11 +150,16 @@ where
     )
     .create_wallet_router(disclosure_sessions, revocation_verifier, Some(Box::new(result_handler)));
 
-    let mut router = Router::new()
+    let mut wallet_router = Router::new()
         .nest("/issuance", decorate_router(issuance_router, log_requests))
         .nest("/disclosure", decorate_router(disclosure_router, log_requests));
+
     if let Some(status_list_router) = status_list_router {
-        router = router.merge(status_list_router);
+        wallet_router = wallet_router.merge(status_list_router);
     }
-    listen(listener, router).await
+
+    let mut internal_router = create_revocation_router(status_list_services);
+    internal_router = secure_internal_router(&issuer_settings.server_settings.internal_server, internal_router);
+    internal_router = decorate_router(internal_router, log_requests);
+    listen(wallet_listener, internal_listener, wallet_router, internal_router).await
 }

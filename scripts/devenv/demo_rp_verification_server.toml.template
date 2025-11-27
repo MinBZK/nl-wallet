@@ -16,7 +16,7 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/verificati
 ip = '0.0.0.0'
 port = ${VERIFICATION_SERVER_WS_PORT}
 
-[requester_server]
+[internal_server]
 ip = '0.0.0.0'
 port = ${VERIFICATION_SERVER_RS_PORT}
 

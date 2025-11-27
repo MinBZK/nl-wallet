@@ -63,9 +63,10 @@ use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use server_utils::keys::PrivateKeyVariant;
-use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
+use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
+use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
 use static_server::settings::Settings as StaticSettings;
 use token_status_list::status_list_service::mock::MockStatusListServices;
@@ -601,7 +602,7 @@ pub fn verification_server_settings() -> VerifierSettings {
     settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.server_settings.wallet_server.port = 0;
 
-    settings.requester_server = RequesterAuth::InternalEndpoint(Server {
+    settings.server_settings.internal_server = ServerAuth::InternalEndpoint(Server {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
         port: 0,
     });
@@ -609,14 +610,14 @@ pub fn verification_server_settings() -> VerifierSettings {
     settings
 }
 
-fn internal_url(settings: &VerifierSettings) -> BaseUrl {
-    match settings.requester_server {
-        RequesterAuth::ProtectedInternalEndpoint {
+fn internal_url(server_settings: &Settings) -> BaseUrl {
+    match server_settings.internal_server {
+        ServerAuth::ProtectedInternalEndpoint {
             server: Server { port, .. },
             ..
         }
-        | RequesterAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
-        RequesterAuth::Authentication(_) => settings.server_settings.public_url.clone(),
+        | ServerAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
+        ServerAuth::Authentication(_) => server_settings.public_url.clone(),
     }
 }
 
@@ -679,10 +680,19 @@ pub async fn start_issuance_server(
     attributes_fetcher: impl AttributesFetcher + Sync + 'static,
     attestation_settings: HashMap<String, KeyPair<PrivateKeyVariant>>,
 ) -> BaseUrl {
-    let listener = TcpListener::bind("localhost:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
+    let public_listener = TcpListener::bind("localhost:0").await.unwrap();
+    let port = public_listener.local_addr().unwrap().port();
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
     settings.issuer_settings.server_settings.public_url = public_url.clone();
+
+    let internal_listener = match &mut settings.issuer_settings.server_settings.internal_server {
+        ServerAuth::Authentication(_) => None,
+        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
+            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
+            server.port = listener.local_addr().unwrap().port();
+            Some(listener)
+        }
+    };
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
 
@@ -700,8 +710,9 @@ pub async fn start_issuance_server(
     ));
 
     tokio::spawn(async move {
-        if let Err(error) = issuance_server::server::serve_with_listener(
-            listener,
+        if let Err(error) = issuance_server::server::serve_with_listeners(
+            public_listener,
+            internal_listener,
             settings,
             hsm,
             issuance_sessions,
@@ -728,9 +739,18 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     hsm: Option<Pkcs11Hsm>,
     attr_service: A,
 ) -> u16 {
-    let listener = TcpListener::bind("localhost:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
+    let public_listener = TcpListener::bind("localhost:0").await.unwrap();
+    let port = public_listener.local_addr().unwrap().port();
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
+
+    let internal_listener = match &mut settings.issuer_settings.server_settings.internal_server {
+        ServerAuth::Authentication(_) => None,
+        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
+            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
+            server.port = listener.local_addr().unwrap().port();
+            Some(listener)
+        }
+    };
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
     settings.issuer_settings.server_settings.public_url = public_url.clone();
@@ -745,8 +765,9 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     ));
 
     tokio::spawn(async move {
-        if let Err(error) = pid_issuer::server::serve_with_listener(
-            listener,
+        if let Err(error) = pid_issuer::server::serve_with_listeners(
+            public_listener,
+            internal_listener,
             attr_service,
             settings.issuer_settings,
             hsm,
@@ -772,12 +793,12 @@ pub async fn start_verification_server(
     attestation_settings: HashMap<String, KeyPair<PrivateKeyVariant>>,
     hsm: Option<Pkcs11Hsm>,
 ) -> DisclosureParameters {
-    let listener = TcpListener::bind("localhost:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
+    let wallet_listener = TcpListener::bind("localhost:0").await.unwrap();
+    let port = wallet_listener.local_addr().unwrap().port();
 
-    let requester_listener = match &mut settings.requester_server {
-        RequesterAuth::Authentication(_) => None,
-        RequesterAuth::ProtectedInternalEndpoint { server, .. } | RequesterAuth::InternalEndpoint(server) => {
+    let requester_listener = match &mut settings.server_settings.internal_server {
+        ServerAuth::Authentication(_) => None,
+        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
             let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
@@ -785,7 +806,7 @@ pub async fn start_verification_server(
     };
 
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
-    let internal_url = internal_url(&settings);
+    let internal_url = internal_url(&settings.server_settings);
 
     let storage_settings = &settings.server_settings.storage;
     settings.server_settings.public_url = public_url.clone();
@@ -801,7 +822,7 @@ pub async fn start_verification_server(
 
     tokio::spawn(async move {
         if let Err(error) = verification_server::server::serve_with_listeners(
-            listener,
+            wallet_listener,
             requester_listener,
             settings,
             hsm,

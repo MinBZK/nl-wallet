@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
+use axum::response::IntoResponse;
 use p256::ecdsa::VerifyingKey;
+use server_utils::server::secure_internal_router;
 use tokio::net::TcpListener;
 
 use hsm::service::Pkcs11Hsm;
@@ -12,13 +14,16 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
+use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::server::listen;
+use status_lists::revoke::create_revocation_router;
+use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListServices;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, L, IS>(
+pub async fn serve<A, L, IS, E>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
@@ -29,12 +34,13 @@ pub async fn serve<A, L, IS>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    L: StatusListServices + Send + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService<Error = E> + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    E: IntoResponse,
 {
-    let listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
-    serve_with_listener(
-        listener,
+    serve_with_listeners(
+        create_wallet_listener(&settings.server_settings.wallet_server).await?,
+        create_internal_listener(&settings.server_settings.internal_server).await?,
         attr_service,
         settings,
         hsm,
@@ -47,8 +53,9 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listener<A, L, IS>(
-    listener: TcpListener,
+pub async fn serve_with_listeners<A, L, IS, E>(
+    wallet_listener: TcpListener,
+    internal_listener: Option<TcpListener>,
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
@@ -59,13 +66,15 @@ pub async fn serve_with_listener<A, L, IS>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    L: StatusListServices + Send + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService<Error = E> + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    E: IntoResponse,
 {
     let log_requests = settings.server_settings.log_requests;
 
     let attestation_config = settings.attestation_settings.parse(&hsm, &settings.metadata).await?;
 
+    let status_list_services = Arc::new(status_list_services);
     let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
         issuance_sessions,
         attr_service,
@@ -75,12 +84,16 @@ where
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
         }),
-        status_list_services,
+        Arc::clone(&status_list_services),
     )));
 
     let mut router = Router::new().nest("/issuance", decorate_router(wallet_issuance_router, log_requests));
     if let Some(status_list_router) = status_list_router {
         router = router.merge(status_list_router);
     }
-    listen(listener, router).await
+
+    let mut internal_router = create_revocation_router(status_list_services);
+    internal_router = secure_internal_router(&settings.server_settings.internal_server, internal_router);
+    internal_router = decorate_router(internal_router, log_requests);
+    listen(wallet_listener, internal_listener, router, internal_router).await
 }

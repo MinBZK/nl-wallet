@@ -35,7 +35,6 @@ use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
-use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
@@ -57,11 +56,6 @@ pub struct VerifierSettings {
     /// application startup.
     #[serde_as(as = "Vec<Base64>")]
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
-
-    // used by the application, SHOULD be reachable only by the application.
-    // if not configured the wallet_server will be used, but an api_key is required in that case
-    // if it conflicts with wallet_server, the application will crash on startup
-    pub requester_server: RequesterAuth,
 
     pub universal_link_base_url: BaseUrl,
 
@@ -164,8 +158,8 @@ impl ServerSettings for VerifierSettings {
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
-            .set_default("requester_server.ip", "127.0.0.1")?
-            .set_default("requester_server.port", 8002)?
+            .set_default("internal_server.ip", "127.0.0.1")?
+            .set_default("internal_server.port", 8002)?
             .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,

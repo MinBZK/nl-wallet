@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use chrono::DateTime;
 use futures::future::try_join_all;
 use itertools::Itertools;
@@ -136,11 +134,13 @@ pub enum StatusListServiceError {
     UnknownAttestationType(String),
 }
 
-impl IntoResponse for StatusListServiceError {
+#[cfg(feature = "axum")]
+impl axum::response::IntoResponse for StatusListServiceError {
     fn into_response(self) -> axum::response::Response {
+        tracing::warn!("error result: {:?}", self);
         match self {
-            StatusListServiceError::AttestationBatchesNotFound(_) => StatusCode::NOT_FOUND.into_response(),
-            _ => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            StatusListServiceError::AttestationBatchesNotFound(_) => axum::http::StatusCode::NOT_FOUND.into_response(),
+            _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
     }
 }

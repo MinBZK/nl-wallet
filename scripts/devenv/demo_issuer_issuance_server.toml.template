@@ -15,6 +15,10 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_s
 ip = '0.0.0.0'
 port = ${ISSUANCE_SERVER_WS_PORT}
 
+[internal_server]
+ip = '0.0.0.0'
+port = ${ISSUANCE_SERVER_IS_PORT}
+
 [hsm]
 library_path = "${HSM_LIBRARY_PATH}"
 user_pin = "${HSM_USER_PIN}"

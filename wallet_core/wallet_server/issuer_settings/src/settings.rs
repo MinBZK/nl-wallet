@@ -266,6 +266,7 @@ mod tests {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use server_utils::settings::CertificateVerificationError;
     use server_utils::settings::Server;
+    use server_utils::settings::ServerAuth;
     use server_utils::settings::Settings;
     use server_utils::settings::Storage;
     use status_lists::publish::PublishDir;
@@ -316,6 +317,10 @@ mod tests {
                     ip: "127.0.0.1".parse().unwrap(),
                     port: 42,
                 },
+                internal_server: ServerAuth::InternalEndpoint(Server {
+                    ip: "127.0.0.1".parse().unwrap(),
+                    port: 43,
+                }),
                 public_url: "https://example.com".parse().unwrap(),
                 log_requests: false,
                 structured_logging: false,

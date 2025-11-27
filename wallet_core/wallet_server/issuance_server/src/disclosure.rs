@@ -288,7 +288,7 @@ mod tests {
             &"https://example.com".parse().unwrap(),
             vec![],
             None::<WuaConfig>,
-            MockStatusListServices::default(),
+            Arc::new(MockStatusListServices::default()),
         )
     }
 

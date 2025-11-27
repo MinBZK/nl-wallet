@@ -392,7 +392,7 @@ pub struct Issuer<A, K, S, L> {
     attr_service: A,
     issuer_data: IssuerData<K>,
     sessions_cleanup_task: JoinHandle<()>,
-    status_list_services: L,
+    status_list_services: Arc<L>,
     pub metadata: IssuerMetadata,
 }
 
@@ -439,7 +439,7 @@ where
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
         wua_config: Option<WuaConfig>,
-        status_list_services: L,
+        status_list_services: Arc<L>,
     ) -> Self {
         let credential_configurations_supported = attestation_config
             .as_ref()
@@ -611,7 +611,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.status_list_services,
+                &*self.status_list_services,
             )
             .await;
 
@@ -638,7 +638,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.status_list_services,
+                &*self.status_list_services,
             )
             .await;
 
