@@ -21,6 +21,10 @@ pub struct RevocationInfo {
 }
 
 impl RevocationInfo {
+    pub fn attestation_copy_id(&self) -> Uuid {
+        self.attestation_copy_id
+    }
+
     pub async fn verify_revocation(
         &self,
         issuer_trust_anchors: &[TrustAnchor<'_>],

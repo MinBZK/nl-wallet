@@ -39,6 +39,7 @@ pub enum HardwareKeyStoreError {
 ///
 /// NB: Any type that implements `StoredByIdentifier` should probably not implement
 ///     `Clone`, as this would circumvent the uniqueness of the instance.
+#[trait_variant::make(Send)]
 pub trait StoredByIdentifier: WithIdentifier {
     type Error: Error + Send + Sync + 'static;
 

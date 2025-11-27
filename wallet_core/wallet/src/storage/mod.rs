@@ -36,7 +36,6 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 use token_status_list::verification::verifier::RevocationStatus;
 
 use crate::AttestationPresentation;
-use crate::storage::revocation_info::RevocationInfo;
 use crate::storage::sql_cipher_key::SqlCipherKey;
 
 pub use self::attestation_copy::DisclosableAttestation;
@@ -57,6 +56,7 @@ pub use self::database_storage::DatabaseStorage;
 pub use self::event_log::DisclosureStatus;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
+pub use self::revocation_info::RevocationInfo;
 
 #[cfg(test)]
 pub mod test {
@@ -148,7 +148,8 @@ pub struct DatabaseExport {
 
 /// This trait abstracts the persistent storage for the wallet.
 #[cfg_attr(test, mockall::automock)]
-pub trait Storage {
+#[async_trait::async_trait]
+pub trait Storage: Send {
     async fn state(&self) -> StorageResult<StorageState>;
 
     async fn open(&mut self) -> StorageResult<()>;
@@ -165,10 +166,10 @@ pub trait Storage {
         Ok(())
     }
 
-    async fn fetch_data<D: KeyedData + 'static>(&self) -> StorageResult<Option<D>>;
-    async fn insert_data<D: KeyedData + 'static>(&mut self, data: &D) -> StorageResult<()>;
-    async fn upsert_data<D: KeyedData + 'static>(&mut self, data: &D) -> StorageResult<()>;
-    async fn delete_data<D: KeyedData + 'static>(&mut self) -> StorageResult<()>;
+    async fn fetch_data<D: KeyedData + Sync + 'static>(&self) -> StorageResult<Option<D>>;
+    async fn insert_data<D: KeyedData + Sync + 'static>(&mut self, data: &D) -> StorageResult<()>;
+    async fn upsert_data<D: KeyedData + Sync + 'static>(&mut self, data: &D) -> StorageResult<()>;
+    async fn delete_data<D: KeyedData + Sync + 'static>(&mut self) -> StorageResult<()>;
 
     async fn insert_credentials(
         &mut self,
@@ -234,9 +235,5 @@ pub trait Storage {
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 
     async fn fetch_all_revocation_info(&self) -> StorageResult<Vec<RevocationInfo>>;
-    async fn update_revocation_status(
-        &self,
-        attestation_copy_id: Uuid,
-        revocation_status: RevocationStatus,
-    ) -> StorageResult<()>;
+    async fn update_revocation_statuses(&self, updates: Vec<(Uuid, RevocationStatus)>) -> StorageResult<()>;
 }

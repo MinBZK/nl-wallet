@@ -430,9 +430,10 @@ where
     }
 }
 
+#[async_trait::async_trait]
 impl<K> Storage for DatabaseStorage<K>
 where
-    K: PlatformEncryptionKey,
+    K: PlatformEncryptionKey + Send + Sync,
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
@@ -600,7 +601,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -615,7 +616,7 @@ where
 
     /// Update data entry in the key-value table using the provided key,
     /// inserting the data if it is not already present.
-    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn upsert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let model = keyed_data::ActiveModel {
@@ -634,7 +635,7 @@ where
         Ok(())
     }
 
-    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()> {
+    async fn delete_data<D: KeyedData + Sync>(&mut self) -> StorageResult<()> {
         let database = self.database()?;
 
         keyed_data::Entity::delete_by_id(D::KEY.to_string())
@@ -1032,19 +1033,32 @@ where
         Ok(result.into_iter().map(Into::into).collect_vec())
     }
 
-    async fn update_revocation_status(
-        &self,
-        attestation_copy_id: Uuid,
-        revocation_status: RevocationStatus,
-    ) -> StorageResult<()> {
-        attestation_copy::Entity::update_many()
-            .col_expr(
-                attestation_copy::Column::RevocationStatus,
-                Expr::value(revocation_status.to_string()),
-            )
-            .filter(attestation_copy::Column::Id.eq(attestation_copy_id))
-            .exec(self.database()?.connection())
-            .await?;
+    async fn update_revocation_statuses(&self, updates: Vec<(Uuid, RevocationStatus)>) -> StorageResult<()> {
+        if updates.is_empty() {
+            return Ok(());
+        }
+
+        // Use a transaction for atomicity
+        let tx = self.database()?.connection().begin().await?;
+
+        // Batch updates by status to enable prepared statement reuse
+        // Group: Valid -> [id1, id2, ...], Invalid -> [id3, id4, ...], etc.
+        let mut updates_by_status: HashMap<String, Vec<Uuid>> = HashMap::new();
+        for (id, status) in updates {
+            updates_by_status.entry(status.to_string()).or_default().push(id);
+        }
+
+        // Execute one UPDATE per status value, but with multiple IDs
+        // UPDATE attestation_copy SET revocation_status = ? WHERE id IN (?, ?, ...)
+        for (status, ids) in updates_by_status {
+            attestation_copy::Entity::update_many()
+                .col_expr(attestation_copy::Column::RevocationStatus, Expr::value(status))
+                .filter(attestation_copy::Column::Id.is_in(ids))
+                .exec(&tx)
+                .await?;
+        }
+
+        tx.commit().await?;
 
         Ok(())
     }
@@ -2430,7 +2444,7 @@ pub(crate) mod tests {
         );
 
         storage
-            .update_revocation_status(revocation_info.attestation_copy_id, RevocationStatus::Valid)
+            .update_revocation_statuses(vec![(revocation_info.attestation_copy_id, RevocationStatus::Valid)])
             .await
             .unwrap();
 

@@ -47,6 +47,7 @@ impl EcdsaKeySend for p256::ecdsa::SigningKey {
     }
 }
 
+#[trait_variant::make(Send)]
 pub trait EncryptionKey {
     type Error: Error + Send + Sync + 'static;
 
