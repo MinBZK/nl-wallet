@@ -639,7 +639,12 @@ where
         .await?
     }
 
-    async fn publish_status_list(&self, list_id: i64, external_id: &str) -> Result<bool, StatusListServiceError> {
+    async fn publish_status_list(
+        &self,
+        list_id: i64,
+        external_id: &str,
+        size: i32,
+    ) -> Result<bool, StatusListServiceError> {
         // Fetch all revoked attestation for this status list
         let result: Vec<Vec<i32>> = attestation_batch_list_indices::Entity::find()
             .join(
@@ -664,7 +669,7 @@ where
             .with_lock_if_newer(version, async || {
                 // Build packed status list
                 let sub = self.config.base_url.join(external_id);
-                let mut status_list = StatusList::new(self.config.list_size.as_usize());
+                let mut status_list = StatusList::new(size.try_into().expect("list size should be positive"));
                 let builder = tokio::task::spawn_blocking(move || {
                     for indices in result {
                         for index in indices {
@@ -709,7 +714,7 @@ where
         attestation_batch::Entity::update(update).exec(&self.connection).await?;
 
         // Find status list and external id for all related status lists
-        let list_and_external_ids: Vec<(i64, String)> = attestation_batch_list_indices::Entity::find()
+        let lists: Vec<(i64, String, i32)> = attestation_batch_list_indices::Entity::find()
             .join(
                 JoinType::InnerJoin,
                 attestation_batch_list_indices::Relation::StatusList.def(),
@@ -717,17 +722,17 @@ where
             .select_only()
             .select_column(status_list::Column::Id)
             .select_column(status_list::Column::ExternalId)
+            .select_column(status_list::Column::Size)
             .filter(attestation_batch_list_indices::Column::AttestationBatchId.eq(attestation_batch_id))
             .into_tuple()
             .all(&self.connection)
             .await?;
 
         // Publish new status list
-        try_join_all(list_and_external_ids.into_iter()
-            .map(|(list_id, external_id)| {
-                async move { self.publish_status_list(list_id, external_id.as_str()).await }
-            })
-        ).await?;
+        try_join_all(lists.into_iter().map(|(list_id, external_id, size)| async move {
+            self.publish_status_list(list_id, external_id.as_str(), size).await
+        }))
+        .await?;
 
         Ok(())
     }
