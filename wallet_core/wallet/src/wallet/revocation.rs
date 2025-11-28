@@ -32,6 +32,7 @@ use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::RevocationInfo;
 use crate::storage::Storage;
+use crate::storage::StorageState;
 use crate::wallet::attestations::AttestationsCallback;
 use crate::wallet::attestations::AttestationsError;
 
@@ -107,11 +108,20 @@ where
         T: Generator<DateTime<Utc>> + Send + Sync + 'static,
     {
         let task = tokio::spawn(async move {
+            info!("wallet revocation status background job started");
+
             let mut interval = time::interval(check_interval);
             interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
             loop {
                 interval.tick().await;
+
+                if !matches!(storage.read().await.state().await, Ok(StorageState::Opened)) {
+                    info!("database is not opened, skipping wallet revocation status check");
+                    continue;
+                }
+
+                info!("wallet revocation status update timer expired, performing revocation check...");
 
                 if let Err(e) = Self::check_revocations(
                     Arc::clone(&config),
@@ -234,6 +244,7 @@ mod tests {
         let status_list_client = Arc::new(MockStatusListClient::new());
 
         let mut storage = MockStorage::new();
+        storage.expect_state().returning(|| Ok(StorageState::Opened));
         storage.expect_fetch_all_revocation_info().returning(|| Ok(vec![]));
         storage.expect_update_revocation_statuses().returning(|_| Ok(()));
         storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
@@ -293,6 +304,7 @@ mod tests {
         let status_list_client = Arc::new(MockStatusListClient::new());
 
         let mut storage = MockStorage::new();
+        storage.expect_state().returning(|| Ok(StorageState::Opened));
         storage.expect_fetch_all_revocation_info().returning(|| Ok(vec![]));
         storage.expect_update_revocation_statuses().returning(|_| Ok(()));
         storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
@@ -368,6 +380,8 @@ mod tests {
         let update_counter = Arc::clone(&update_count);
 
         let mut storage = MockStorage::new();
+        storage.expect_state().returning(|| Ok(StorageState::Opened));
+
         let test_revocation_info = vec![
             RevocationInfo::new(
                 Uuid::new_v4(),
