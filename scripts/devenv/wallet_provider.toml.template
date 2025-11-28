@@ -17,8 +17,7 @@ pid_issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider"
 
 [wua_status_list]
-# TODO add correct path in PVW-4558
-base_url = "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/"
+base_url = "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wua"
 publish_dir = "resources/status-lists"
 key_identifier = "wua_tsl_key"
 key_certificate = "${WUA_TSL_CRT}"

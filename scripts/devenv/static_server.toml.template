@@ -1,6 +1,7 @@
 ip = "0.0.0.0"
 port = ${STATIC_SERVER_PORT}
 wallet_config_jwt = "${WALLET_CONFIG_JWT}"
+wua_publish_dir = "resources/status-lists"
 
 [tls_config]
 cert = "${STATIC_SERVER_CERT}"

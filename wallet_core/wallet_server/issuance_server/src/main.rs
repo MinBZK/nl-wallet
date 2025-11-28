@@ -77,7 +77,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
                     .into_iter()
                     .map(|(_, settings)| {
                         (
-                            settings.status_list.context_path.clone(),
+                            settings.status_list.context_path.as_str(),
                             settings.status_list.publish_dir.clone(),
                         )
                     }),

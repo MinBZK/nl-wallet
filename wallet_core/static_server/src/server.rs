@@ -16,6 +16,7 @@ use tracing::debug;
 use tracing::info;
 
 use jwt::VerifiedJwt;
+use status_lists::router::create_status_list_routers;
 use utils::built_info::version_string;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -32,12 +33,16 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     let listener = listener.into_std()?;
 
     let config_entity_tag = EntityTag::from_data(settings.wallet_config_jwt.jwt().serialization().as_bytes());
-    let app = Router::new().merge(health_router()).nest(
-        "/config/v1",
-        Router::new()
-            .route("/wallet-config", get(configuration))
-            .with_state((settings.wallet_config_jwt, config_entity_tag)),
-    );
+    let config_router = Router::new()
+        .route("/wallet-config", get(configuration))
+        .with_state((settings.wallet_config_jwt, config_entity_tag));
+
+    let status_list_router = create_status_list_routers(std::iter::once(("/wua", settings.wua_publish_dir)), None)?;
+
+    let app = Router::new()
+        .merge(health_router())
+        .merge(status_list_router)
+        .nest("/config/v1", config_router);
 
     axum_server::from_tcp_rustls(listener, settings.tls_config.into_rustls_config().await?)
         .serve(app.into_make_service())
