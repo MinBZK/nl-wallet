@@ -58,7 +58,7 @@ impl axum::response::IntoResponse for RevocationError {
 
 #[trait_variant::make(Send)]
 pub trait StatusListRevocationService {
-    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError>;
+    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -121,7 +121,7 @@ pub mod mock {
     }
 
     impl StatusListRevocationService for MockStatusListServices {
-        async fn revoke_attestation_batches(&self, _batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
+        async fn revoke_attestation_batches(&self, _batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
             Ok(())
         }
     }

@@ -169,7 +169,7 @@ impl<K> StatusListRevocationService for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
-    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
+    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         self.0
             .values()
             .next()
@@ -240,7 +240,7 @@ impl<K> StatusListRevocationService for PostgresStatusListService<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
-    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
+    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         // Find batches by batch_ids
         let batches = attestation_batch::Entity::find()
             .filter(attestation_batch::Column::BatchId.is_in(batch_ids.iter().copied()))
@@ -249,7 +249,7 @@ where
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         // Check if all batch_ids were found
-        if batches.len() != batch_ids.len().get() {
+        if batches.len() != batch_ids.len() {
             let mut found_ids = batches.iter().map(|batch| batch.batch_id);
             let missing_ids = batch_ids
                 .iter()
