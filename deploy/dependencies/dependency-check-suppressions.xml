@@ -3,9 +3,9 @@
   <!-- Start group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
   <suppress>
     <!--
-      # Suppressing Flutter 1.0.0 because 1.0.0 doesn't present any particular Flutter release
-      # https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
-      # https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
+      Suppressing Flutter 1.0.0 because 1.0.0 doesn't present any particular Flutter release
+      https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
+      https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
     -->
     <notes><![CDATA[file name: Flutter:1.0.0]]></notes>
     <packageUrl>pkg:cocoapods/Flutter@1.0.0</packageUrl>
@@ -22,6 +22,17 @@
     <cpe>cpe:/a:gitlab:gitlab</cpe>
   </suppress>
   <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
+
+
+  <!-- Start group: [HIGH] -->
+  <suppress>
+     <notes><![CDATA[
+     False positive, 10.5.0 is not affected
+     ]]></notes>
+     <packageUrl regex="true">^pkg:npm/glob@10[.]5[.]0$</packageUrl>
+     <vulnerabilityName>CVE-2025-64756</vulnerabilityName>
+  </suppress>
+  <!-- End group: [HIGH] -->
 
   <!-- Start group: [MEDIUM] -->
   <suppress>
