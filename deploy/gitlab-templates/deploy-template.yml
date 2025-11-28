@@ -299,3 +299,10 @@ run-wallet-provider-reset-${DEPLOY_ENV}:
     - kubectl create job --from=cronjob/wallet-provider-reset wallet-provider-db-reset-$(date +%s)
   allow_failure: true
   when: manual
+
+reset-${DEPLOY_ENV}:
+  extends: .deploy-base
+  script:
+    - deploy/bin/reset-env.sh
+  allow_failure: true
+  when: manual
