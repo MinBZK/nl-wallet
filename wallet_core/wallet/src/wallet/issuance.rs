@@ -471,6 +471,7 @@ where
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
+                    None,
                     &preview_data.content.credential_payload.attributes,
                     &config.pid_attributes,
                 )

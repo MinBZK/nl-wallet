@@ -549,6 +549,7 @@ pub fn mock_issuance_session(
             AttestationIdentity::Ephemeral,
             normalized_type_metadata.clone(),
             issuer_registration.organization.clone(),
+            None,
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
             &EmptyPresentationConfig,
         )
@@ -559,6 +560,7 @@ pub fn mock_issuance_session(
                 AttestationIdentity::Ephemeral,
                 normalized_type_metadata.clone(),
                 issuer_registration.organization.clone(),
+                None,
                 &attributes,
                 &EmptyPresentationConfig,
             )

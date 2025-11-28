@@ -15,6 +15,7 @@ import 'models/image.dart';
 import 'models/instruction.dart';
 import 'models/localize.dart';
 import 'models/pin.dart';
+import 'models/revocation.dart';
 import 'models/transfer.dart';
 import 'models/uri.dart';
 import 'models/version_state.dart';
@@ -86,6 +87,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RequestPolicy dco_decode_box_autoadd_request_policy(dynamic raw);
+
+  @protected
+  RevocationStatus dco_decode_box_autoadd_revocation_status(dynamic raw);
 
   @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
@@ -193,6 +197,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RenderingMetadata? dco_decode_opt_box_autoadd_rendering_metadata(dynamic raw);
 
   @protected
+  RevocationStatus? dco_decode_opt_box_autoadd_revocation_status(dynamic raw);
+
+  @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
@@ -215,6 +222,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RequestPolicy dco_decode_request_policy(dynamic raw);
+
+  @protected
+  RevocationStatus dco_decode_revocation_status(dynamic raw);
 
   @protected
   StartDisclosureResult dco_decode_start_disclosure_result(dynamic raw);
@@ -307,6 +317,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RequestPolicy sse_decode_box_autoadd_request_policy(SseDeserializer deserializer);
+
+  @protected
+  RevocationStatus sse_decode_box_autoadd_revocation_status(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
@@ -414,6 +427,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RenderingMetadata? sse_decode_opt_box_autoadd_rendering_metadata(SseDeserializer deserializer);
 
   @protected
+  RevocationStatus? sse_decode_opt_box_autoadd_revocation_status(SseDeserializer deserializer);
+
+  @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
@@ -436,6 +452,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RequestPolicy sse_decode_request_policy(SseDeserializer deserializer);
+
+  @protected
+  RevocationStatus sse_decode_revocation_status(SseDeserializer deserializer);
 
   @protected
   StartDisclosureResult sse_decode_start_disclosure_result(SseDeserializer deserializer);
@@ -603,6 +622,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     final ptr = wire.cst_new_box_autoadd_request_policy();
     cst_api_fill_to_wire_request_policy(raw, ptr.ref);
     return ptr;
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_box_autoadd_revocation_status(RevocationStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_revocation_status(cst_encode_revocation_status(raw));
   }
 
   @protected
@@ -782,6 +807,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<ffi.Int32> cst_encode_opt_box_autoadd_revocation_status(RevocationStatus? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_revocation_status(raw);
+  }
+
+  @protected
   ffi.Pointer<ffi.Uint64> cst_encode_opt_box_autoadd_u_64(BigInt? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_u_64(raw);
@@ -857,6 +888,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.attestation_type = cst_encode_String(apiObj.attestationType);
     wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
     cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
+    wireObj.revocation_status = cst_encode_opt_box_autoadd_revocation_status(apiObj.revocationStatus);
     wireObj.attributes = cst_encode_list_attestation_attribute(apiObj.attributes);
   }
 
@@ -1291,6 +1323,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_pin_validation_result(PinValidationResult raw);
 
   @protected
+  int cst_encode_revocation_status(RevocationStatus raw);
+
+  @protected
   int cst_encode_transfer_session_state(TransferSessionState raw);
 
   @protected
@@ -1370,6 +1405,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_box_autoadd_request_policy(RequestPolicy self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_revocation_status(RevocationStatus self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
@@ -1477,6 +1515,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_box_autoadd_rendering_metadata(RenderingMetadata? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_revocation_status(RevocationStatus? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
@@ -1499,6 +1540,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_request_policy(RequestPolicy self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_revocation_status(RevocationStatus self, SseSerializer serializer);
 
   @protected
   void sse_encode_start_disclosure_result(StartDisclosureResult self, SseSerializer serializer);
@@ -2497,6 +2541,21 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_request_policy = _cst_new_box_autoadd_request_policyPtr
       .asFunction<ffi.Pointer<wire_cst_request_policy> Function()>();
 
+  ffi.Pointer<ffi.Int32> cst_new_box_autoadd_revocation_status(
+    int value,
+  ) {
+    return _cst_new_box_autoadd_revocation_status(
+      value,
+    );
+  }
+
+  late final _cst_new_box_autoadd_revocation_statusPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Int32> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_box_autoadd_revocation_status',
+      );
+  late final _cst_new_box_autoadd_revocation_status = _cst_new_box_autoadd_revocation_statusPtr
+      .asFunction<ffi.Pointer<ffi.Int32> Function(int)>();
+
   ffi.Pointer<ffi.Uint64> cst_new_box_autoadd_u_64(
     int value,
   ) {
@@ -2964,6 +3023,8 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_display_metadata> display_metadata;
 
   external wire_cst_organization issuer;
+
+  external ffi.Pointer<ffi.Int32> revocation_status;
 
   external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
 }

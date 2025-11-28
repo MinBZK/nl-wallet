@@ -89,12 +89,14 @@ fn attestation_presentation_from_issuer_signed(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
+    revocation_status: Option<RevocationStatus>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_mdoc(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
+        revocation_status,
         issuer_signed.into_entries_by_namespace(),
         config,
     )
@@ -106,12 +108,14 @@ fn attestation_presentation_from_sd_jwt(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
+    revocation_status: Option<RevocationStatus>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_sd_jwt_claims(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
+        revocation_status,
         sd_jwt
             .decoded_claims()
             .expect("a stored SD-JWT attestation should have decoded claims"),
@@ -209,6 +213,7 @@ impl StoredAttestationCopy {
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
+                self.revocation_status,
                 config,
             ),
             StoredAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
@@ -216,6 +221,7 @@ impl StoredAttestationCopy {
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
+                self.revocation_status,
                 config,
             ),
         }
@@ -265,6 +271,7 @@ impl DisclosableAttestation {
             attestation_copy_id,
             attestation,
             normalized_metadata,
+            revocation_status,
             ..
         } = attestation_copy;
 
@@ -277,6 +284,7 @@ impl DisclosableAttestation {
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
+                revocation_status,
                 presentation_config,
             ),
             PartialAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
@@ -284,6 +292,7 @@ impl DisclosableAttestation {
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
+                revocation_status,
                 presentation_config,
             ),
         };

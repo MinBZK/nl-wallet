@@ -2183,6 +2183,7 @@ pub(crate) mod tests {
             AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
             issuer_registration.organization,
+            None,
             sd_jwt.decoded_claims().unwrap(),
             &EmptyPresentationConfig,
         )
@@ -2323,6 +2324,7 @@ pub(crate) mod tests {
                     AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,
                     issuer_registration.organization,
+                    None,
                     &payload.previewable_payload.attributes,
                     &EmptyPresentationConfig,
                 )

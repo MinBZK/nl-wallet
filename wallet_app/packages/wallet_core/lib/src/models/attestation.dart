@@ -9,6 +9,7 @@ import 'image.dart';
 import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+import 'revocation.dart';
 part 'attestation.freezed.dart';
 
 class AttestationAttribute {
@@ -53,6 +54,7 @@ class AttestationPresentation {
   final String attestationType;
   final List<DisplayMetadata> displayMetadata;
   final Organization issuer;
+  final RevocationStatus? revocationStatus;
   final List<AttestationAttribute> attributes;
 
   const AttestationPresentation({
@@ -60,12 +62,18 @@ class AttestationPresentation {
     required this.attestationType,
     required this.displayMetadata,
     required this.issuer,
+    this.revocationStatus,
     required this.attributes,
   });
 
   @override
   int get hashCode =>
-      identity.hashCode ^ attestationType.hashCode ^ displayMetadata.hashCode ^ issuer.hashCode ^ attributes.hashCode;
+      identity.hashCode ^
+      attestationType.hashCode ^
+      displayMetadata.hashCode ^
+      issuer.hashCode ^
+      revocationStatus.hashCode ^
+      attributes.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -76,6 +84,7 @@ class AttestationPresentation {
           attestationType == other.attestationType &&
           displayMetadata == other.displayMetadata &&
           issuer == other.issuer &&
+          revocationStatus == other.revocationStatus &&
           attributes == other.attributes;
 }
 
