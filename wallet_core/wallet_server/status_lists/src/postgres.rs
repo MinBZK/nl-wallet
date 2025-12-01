@@ -3,6 +3,7 @@ use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use chrono::DateTime;
+use chrono::Utc;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use rand::seq::SliceRandom;
@@ -57,6 +58,7 @@ use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
 use crate::publish::PublishLockError;
+use crate::publish::VersionInfo;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
 const STATUS_LIST_EXTERNAL_ID_SIZE: usize = 12;
@@ -749,8 +751,10 @@ where
 
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
         // Build empty status list
+        let expires = DateTime::<Utc>::MAX_UTC;
         let sub = self.config.base_url.join(external_id);
         let token = StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
+            .exp(Some(expires))
             .ttl(self.config.ttl)
             .sign(&self.config.key_pair)
             .await?;
@@ -760,7 +764,7 @@ where
         let jwt_path = self.config.publish_dir.jwt_path(external_id);
         tokio::task::spawn_blocking(move || {
             // create because a new status list external id can be reused if the transaction fails
-            publish_lock.create()?;
+            publish_lock.create(expires)?;
             std::fs::write(&jwt_path, token.as_ref().serialization().as_bytes())
                 .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
         })
@@ -787,10 +791,8 @@ where
             .all(&self.connection)
             .await?;
 
-        // We can use the number of revocations as version because revocations
-        // are irreversible and the database will always return committed rows,
-        // so no interleaving can happen.
-        let version = result.len();
+        let expires = DateTime::<Utc>::MAX_UTC;
+        let version = VersionInfo::from(result.len(), expires);
         self.config
             .publish_dir
             .lock_for(external_id)
@@ -809,7 +811,11 @@ where
                 .await?;
 
                 // Sign
-                let token = builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?;
+                let token = builder
+                    .exp(Some(expires))
+                    .ttl(self.config.ttl)
+                    .sign(&self.config.key_pair)
+                    .await?;
 
                 // Write to a tempfile and atomically move via rename
                 let jwt_path = self.config.publish_dir.jwt_path(external_id);

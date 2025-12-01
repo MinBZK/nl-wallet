@@ -7,6 +7,8 @@ use std::os::fd::AsFd;
 use std::path::Path;
 use std::path::PathBuf;
 
+use chrono::DateTime;
+use chrono::Utc;
 use nutype::nutype;
 use rustix::io::Errno;
 use tokio::task::JoinError;
@@ -77,22 +79,53 @@ pub enum PublishLockError {
 
 pub struct PublishLock(PathBuf);
 
-impl PublishLock {
-    const CREATE_VERSION: usize = 0;
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VersionInfo {
+    revoked: usize,
+    timestamp: i64,
+}
 
-    pub fn create(&self) -> Result<(), PublishLockError> {
+impl VersionInfo {
+    pub fn from(revoked: usize, date_time: DateTime<Utc>) -> Self {
+        Self {
+            revoked,
+            timestamp: date_time.timestamp(),
+        }
+    }
+
+    fn read_from_io(reader: &mut impl Read) -> Result<Self, std::io::Error> {
+        let mut buf = [0; { size_of::<usize>() + size_of::<i64>() }];
+        reader.read_exact(&mut buf)?;
+
+        // Unwrap is safe as the buf is the length of both combined
+        let revoked = usize::from_le_bytes(buf[..size_of::<usize>()].try_into().unwrap());
+        let timestamp = i64::from_le_bytes(buf[size_of::<usize>()..].try_into().unwrap());
+
+        Ok(Self { revoked, timestamp })
+    }
+
+    fn write_to_io(&self, writer: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut buf = [0; { size_of::<usize>() + size_of::<i64>() }];
+        buf[..size_of::<usize>()].copy_from_slice(&self.revoked.to_le_bytes());
+        buf[size_of::<usize>()..].copy_from_slice(&self.timestamp.to_le_bytes());
+        writer.write_all(&buf)
+    }
+}
+
+impl PublishLock {
+    pub fn create(&self, expires: DateTime<Utc>) -> Result<(), PublishLockError> {
+        let version = VersionInfo::from(0, expires);
         File::create(&self.0)
-            .and_then(|mut file| Self::write_version(&mut file, Self::CREATE_VERSION))
+            .and_then(|mut file| version.write_to_io(&mut file))
             .map_err(|err| PublishLockError::Create(self.0.clone(), err))
     }
 
     /// Get a lock and execute the passed `func` argument if the version is older
     ///
-    /// Only executes when the `version` argument is greater than the version
-    /// stored in the lock file. Note that a `version` of `0` is the same as an
-    /// empty publication, i.e. if the file lock cannot be read the `version`
-    /// is `0`.
-    pub async fn with_lock_if_newer<F, E>(&self, version: usize, func: F) -> Result<bool, E>
+    /// Only executes when the `version` argument is newer than the version
+    /// stored in the lock file. If the file lock cannot be read the `version`
+    /// is considered to be default and published again.
+    pub async fn with_lock_if_newer<F, E>(&self, version: VersionInfo, func: F) -> Result<bool, E>
     where
         E: From<PublishLockError>,
         F: AsyncFnOnce() -> Result<(), E>,
@@ -109,12 +142,12 @@ impl PublishLock {
             rustix::fs::flock(file.as_fd(), rustix::fs::FlockOperation::LockExclusive)
                 .map_err(|err| PublishLockError::Flock(path.clone(), err))?;
 
-            let lock_version = match Self::read_version(&mut file) {
+            let lock_version = match VersionInfo::read_from_io(&mut file) {
                 Ok(version) => version,
                 Err(err) => {
-                    // Default to CREATE_VERSION if reading fails
+                    // Default to `LockVersion::default` if reading fails
                     tracing::warn!("Could not read lock file `{}`: {}", path.display(), err);
-                    Self::CREATE_VERSION
+                    VersionInfo::default()
                 }
             };
             Ok::<_, PublishLockError>((file, lock_version))
@@ -133,22 +166,14 @@ impl PublishLock {
         tokio::task::spawn_blocking(move || {
             _ = file
                 .rewind()
-                .and_then(|_| Self::write_version(&mut file, version))
+                .and_then(|_| file.set_len(0))
+                .and_then(|_| version.write_to_io(&mut file))
                 .inspect_err(|err| tracing::warn!("Could not write lock file `{}`: {}", path.display(), err));
         })
         .await
         .map_err(Into::into)?;
 
         Ok(true)
-    }
-
-    fn read_version(file: &mut File) -> Result<usize, std::io::Error> {
-        let mut buf = [0; size_of::<usize>()];
-        file.read_exact(&mut buf).map(|_| usize::from_le_bytes(buf))
-    }
-
-    fn write_version(file: &mut File, version: usize) -> Result<(), std::io::Error> {
-        file.write_all(version.to_le_bytes().as_ref())
     }
 }
 
@@ -163,6 +188,28 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::*;
+
+    #[test]
+    fn default_version_info() {
+        let version = VersionInfo::default();
+        assert_eq!(version.revoked, 0);
+        assert_eq!(version.timestamp, 0);
+    }
+
+    #[test]
+    fn version_info_serialize_deserialize() {
+        let version = VersionInfo {
+            revoked: 1337,
+            timestamp: Utc::now().timestamp(),
+        };
+
+        let read = {
+            let mut buf = Vec::new();
+            version.write_to_io(&mut buf).unwrap();
+            VersionInfo::read_from_io(&mut buf.as_slice()).unwrap()
+        };
+        assert_eq!(version, read);
+    }
 
     #[test]
     fn publish_dir_should_succeed_on_dir() {
@@ -192,26 +239,17 @@ mod tests {
     fn create_lock_file_should_write_version() {
         let mut file = NamedTempFile::new().unwrap();
 
+        let dt = Utc::now();
         let lock = PublishLock(file.path().to_path_buf());
-        lock.create().unwrap();
+        lock.create(dt).unwrap();
         file.rewind().unwrap();
-        assert_eq!(0, PublishLock::read_version(file.as_file_mut()).unwrap());
+        assert_eq!(
+            VersionInfo::from(0, dt),
+            VersionInfo::read_from_io(file.as_file_mut()).unwrap()
+        );
     }
 
-    #[rstest]
-    #[case(2, 1, false)]
-    #[case(2, 2, false)]
-    #[case(2, 3, true)]
-    #[tokio::test]
-    async fn publish_with_lock_should_only_called_when_newer(
-        #[case] lock_version: usize,
-        #[case] version: usize,
-        #[case] publish: bool,
-    ) {
-        let mut file = NamedTempFile::new().unwrap();
-        PublishLock::write_version(file.as_file_mut(), lock_version).unwrap();
-        file.rewind().unwrap();
-
+    async fn publish_with_lock_if_newer(file: &NamedTempFile, version: VersionInfo) -> bool {
         let hit = AtomicBool::new(false);
         let lock = PublishLock(file.path().to_path_buf());
         let published = lock
@@ -221,7 +259,28 @@ mod tests {
             })
             .await
             .unwrap();
-        assert_eq!(hit.load(Ordering::Acquire), publish);
+        assert_eq!(hit.load(Ordering::Acquire), published);
+        published
+    }
+
+    #[rstest]
+    #[case(VersionInfo { revoked: 1, timestamp: 3 }, false)]
+    #[case(VersionInfo { revoked: 2, timestamp: 1 }, false)]
+    #[case(VersionInfo { revoked: 2, timestamp: 2 }, false)]
+    #[case(VersionInfo { revoked: 2, timestamp: 3 }, true)]
+    #[case(VersionInfo { revoked: 3, timestamp: 1 }, true)]
+    #[tokio::test]
+    async fn publish_with_lock_should_only_called_when_newer(#[case] version: VersionInfo, #[case] publish: bool) {
+        let mut file = NamedTempFile::new().unwrap();
+        VersionInfo {
+            revoked: 2,
+            timestamp: 2,
+        }
+        .write_to_io(file.as_file_mut())
+        .unwrap();
+        file.rewind().unwrap();
+
+        let published = publish_with_lock_if_newer(&file, version.clone()).await;
         assert_eq!(published, publish);
 
         file.rewind().unwrap();
@@ -229,9 +288,11 @@ mod tests {
         let mut lock_contents = Vec::new();
         file.read_to_end(&mut lock_contents).unwrap();
         if publish {
-            assert_eq!(lock_contents, version.to_le_bytes());
+            assert_eq!(lock_contents[0], version.revoked as u8);
+            assert_eq!(lock_contents[size_of::<usize>()], version.timestamp as u8);
         } else {
-            assert_eq!(lock_contents, lock_version.to_le_bytes());
+            assert_eq!(lock_contents[0], 2);
+            assert_eq!(lock_contents[size_of::<usize>()], 2);
         }
     }
 
@@ -239,21 +300,30 @@ mod tests {
     async fn publish_with_lock_should_work_with_empty_lock_file() {
         let mut file = NamedTempFile::new().unwrap();
 
-        let hit = AtomicBool::new(false);
-        let lock = PublishLock(file.path().to_path_buf());
-        let published = lock
-            .with_lock_if_newer(1, async || {
-                hit.store(true, Ordering::Relaxed);
-                Ok::<_, PublishLockError>(())
-            })
-            .await
-            .unwrap();
-
-        assert!(hit.load(Ordering::Acquire));
+        let version = VersionInfo::from(1, Utc::now());
+        let published = publish_with_lock_if_newer(&file, version.clone()).await;
         assert!(published);
 
         file.rewind().unwrap();
-        assert_eq!(PublishLock::read_version(file.as_file_mut()).unwrap(), 1);
+        assert_eq!(version, VersionInfo::read_from_io(file.as_file_mut()).unwrap());
+    }
+
+    #[tokio::test]
+    async fn publish_with_lock_should_rewrite_lock_file() {
+        let mut file = NamedTempFile::new().unwrap();
+        file.write_all(&[0; 20]).unwrap();
+        file.rewind().unwrap();
+
+        let version = VersionInfo::from(2, Utc::now());
+        let published = publish_with_lock_if_newer(&file, version.clone()).await;
+        assert!(published);
+
+        file.rewind().unwrap();
+        assert_eq!(version, VersionInfo::read_from_io(file.as_file_mut()).unwrap());
+
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).unwrap();
+        assert_eq!(buf.len(), 0);
     }
 
     #[tokio::test]
@@ -263,7 +333,9 @@ mod tests {
         drop(file);
 
         let lock = PublishLock(path.to_path_buf());
-        let result = lock.with_lock_if_newer(1, async || Ok(())).await;
+        let result = lock
+            .with_lock_if_newer(VersionInfo::from(1, Utc::now()), async || Ok(()))
+            .await;
 
         assert_matches!(result, Err(PublishLockError::Open(err_path, _)) if err_path == path);
     }
