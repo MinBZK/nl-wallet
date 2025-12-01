@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use nutype::nutype;
 
 #[nutype(
@@ -27,6 +29,11 @@ impl Ratio {
         }
         // source is a larger NonZeroU31
         NonZeroU31::try_new(result as i32).unwrap()
+    }
+
+    pub fn of_duration(self, duration: Duration) -> Duration {
+        // Calculating in f64 because of the limited precision of f32 compared to i32
+        duration.mul_f64(f32::from(self) as f64)
     }
 }
 

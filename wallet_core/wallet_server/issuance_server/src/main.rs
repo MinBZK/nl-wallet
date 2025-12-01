@@ -81,7 +81,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
                             settings.status_list.publish_dir.clone(),
                         )
                     }),
-                settings.status_lists.ttl,
+                settings.status_lists.ttl(),
             )
         })
         .transpose()?;

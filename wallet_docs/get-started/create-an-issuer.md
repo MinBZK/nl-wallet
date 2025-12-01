@@ -1183,6 +1183,8 @@ cat <<EOF > "$TARGET_DIR/parts/12-status-lists.toml"
 [status_lists]
 list_size = 100_000
 create_threshold = 0.1
+expiry = 24
+refresh_threshold = 0.25
 serve = true
 EOF
 ```

@@ -1,3 +1,4 @@
+use std::num::NonZeroU16;
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -18,11 +19,43 @@ pub struct StatusListsSettings {
     pub list_size: NonZeroU31,
     /// Threshold relatively to `list_size` to start creating a new list in the background
     pub create_threshold: Ratio,
-    /// TTL that indicates how long verifiers can cache the status list locally
-    pub ttl: Option<Duration>,
+    /// Expiry duration in hours after creation of the token (`exp` field)
+    pub expiry_in_hour: NonZeroU16,
+    /// Threshold relatively to `expiry` to refresh the token
+    pub refresh_threshold: Ratio,
+    /// TTL in minutes that indicates how long verifiers can cache the status list locally
+    pub ttl_in_min: Option<NonZeroU16>,
     /// Whether to serve the Status List Token it publishes
     #[serde(default = "default_serve")]
     pub serve: bool,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("configured expiry is less than the TTL: {expiry:?} < {ttl:?}")]
+pub struct ExpiryLessThanTTL {
+    expiry: Duration,
+    ttl: Duration,
+}
+
+impl StatusListsSettings {
+    pub fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTTL> {
+        let expiry = Duration::from_secs(self.expiry_in_hour.get() as u64 * 3600);
+        let ttl = self
+            .ttl_in_min
+            .map(|ttl| {
+                let ttl = Duration::from_secs(ttl.get() as u64 * 60);
+                if expiry < ttl {
+                    return Err(ExpiryLessThanTTL { expiry, ttl });
+                }
+                Ok(ttl)
+            })
+            .transpose()?;
+        Ok((expiry, ttl))
+    }
+
+    pub fn ttl(&self) -> Option<Duration> {
+        self.ttl_in_min.map(|ttl| Duration::from_secs(ttl.get() as u64 * 60))
+    }
 }
 
 fn default_serve() -> bool {

@@ -59,6 +59,8 @@ async fn create_status_list_service(
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
         create_threshold: NonZeroU31::try_new(create_threshold)?,
+        expiry: Duration::from_secs(3600),
+        refresh_threshold: Duration::from_secs(600),
         ttl,
         base_url: format!("https://example.com/tsl/{}", attestation_type)
             .as_str()
@@ -159,6 +161,16 @@ async fn assert_published_list(
     assert_eq!(bits, Bits::One);
     assert_eq!(claims.ttl, config.ttl);
 
+    // Expiry should be less than configured in since time has increased
+    let expiry_from_now = claims.exp.expect("expiry should be set") - Utc::now();
+    assert_eq!(
+        expiry_from_now
+            .to_std()
+            .expect("expiry should be in future")
+            .saturating_sub(config.expiry),
+        Duration::ZERO
+    );
+
     let published = claims.status_list.unpack();
     let mut expected = StatusList::new_aligned(list.size as usize, bits);
     for index in revoked {
@@ -246,6 +258,8 @@ async fn test_service_initializes_multiple_status_lists() {
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
                 create_threshold: NonZeroU31::try_new(1).unwrap(),
+                expiry: Duration::from_secs(3600),
+                refresh_threshold: Duration::from_secs(600),
                 ttl: None,
                 base_url: "https://example.com/tsl".parse().unwrap(),
                 publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),

@@ -14,6 +14,7 @@ use server_utils::keys::PrivateKeyVariant;
 use utils::num::NonZeroU31;
 
 use crate::publish::PublishDir;
+use crate::settings::ExpiryLessThanTTL;
 use crate::settings::StatusListAttestationSettings;
 use crate::settings::StatusListsSettings;
 
@@ -21,6 +22,8 @@ use crate::settings::StatusListsSettings;
 pub struct StatusListConfig<K: Clone = PrivateKeyVariant> {
     pub list_size: NonZeroU31,
     pub create_threshold: NonZeroU31,
+    pub expiry: Duration,
+    pub refresh_threshold: Duration,
     pub ttl: Option<Duration>,
 
     pub base_url: BaseUrl,
@@ -37,7 +40,7 @@ impl StatusListConfigs {
         settings: &StatusListsSettings,
         pairs: impl IntoIterator<Item = (String, StatusListAttestationSettings)>,
         hsm: &Option<Pkcs11Hsm>,
-    ) -> Result<Self, PrivateKeySettingsError> {
+    ) -> Result<Self, StatusListConfigError> {
         let (types, attestation_settings): (Vec<_>, Vec<_>) = pairs.into_iter().unzip();
         let configs = try_join_all(
             attestation_settings
@@ -55,17 +58,29 @@ impl StatusListConfigs {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum StatusListConfigError {
+    #[error(transparent)]
+    ExpiryLessThanTTL(#[from] ExpiryLessThanTTL),
+
+    #[error(transparent)]
+    PrivateKey(#[from] PrivateKeySettingsError),
+}
+
 impl StatusListConfig {
     pub async fn from_settings(
         public_url: &BaseUrl,
         settings: &StatusListsSettings,
         attestation: StatusListAttestationSettings,
         hsm: Option<Pkcs11Hsm>,
-    ) -> Result<Self, PrivateKeySettingsError> {
+    ) -> Result<Self, StatusListConfigError> {
+        let (expiry, ttl) = settings.expiry_ttl()?;
         Ok(StatusListConfig {
             list_size: settings.list_size,
             create_threshold: settings.create_threshold.of_nonzero_u31(settings.list_size),
-            ttl: settings.ttl,
+            expiry,
+            refresh_threshold: settings.refresh_threshold.of_duration(expiry),
+            ttl,
             base_url: attestation
                 .base_url
                 .unwrap_or_else(|| public_url.clone())

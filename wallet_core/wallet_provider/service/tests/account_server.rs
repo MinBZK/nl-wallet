@@ -1,4 +1,5 @@
 use std::num::NonZeroUsize;
+use std::time::Duration;
 
 use base64::prelude::*;
 use p256::ecdsa::SigningKey;
@@ -112,6 +113,8 @@ async fn do_registration(
     let wua_status_list_config = StatusListConfig {
         list_size: 100.try_into().unwrap(),
         create_threshold: 10.try_into().unwrap(),
+        expiry: Duration::from_secs(3600),
+        refresh_threshold: Duration::from_secs(600),
         ttl: None,
 
         base_url: "http://example.com".parse().unwrap(), // unused

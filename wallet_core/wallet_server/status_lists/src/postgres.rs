@@ -751,7 +751,7 @@ where
 
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
         // Build empty status list
-        let expires = DateTime::<Utc>::MAX_UTC;
+        let expires = Utc::now() + self.config.expiry;
         let sub = self.config.base_url.join(external_id);
         let token = StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
             .exp(Some(expires))
@@ -791,7 +791,7 @@ where
             .all(&self.connection)
             .await?;
 
-        let expires = DateTime::<Utc>::MAX_UTC;
+        let expires = Utc::now() + self.config.expiry;
         let version = VersionInfo::from(result.len(), expires);
         self.config
             .publish_dir
@@ -885,10 +885,12 @@ async fn fetch_attestation_type_ids(
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use assert_matches::assert_matches;
+    use p256::ecdsa::SigningKey;
 
     use crypto::server_keys::generate::Ca;
-    use p256::ecdsa::SigningKey;
 
     use crate::publish::PublishDir;
 
@@ -901,6 +903,8 @@ mod tests {
             config: StatusListConfig {
                 list_size: 1.try_into().unwrap(),
                 create_threshold: 1.try_into().unwrap(),
+                expiry: Duration::from_secs(3600),
+                refresh_threshold: Duration::from_secs(600),
                 ttl: None,
                 base_url: "https://example.com/tsl".parse().unwrap(),
                 publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
