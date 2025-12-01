@@ -635,31 +635,6 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub fn has_active_disclosure_session(&self) -> Result<bool, DisclosureError> {
-        info!("Checking for active disclosure session");
-
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(DisclosureError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
-
-        let has_active_session = matches!(self.session, Some(Session::Disclosure(..)));
-
-        Ok(has_active_session)
-    }
-
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
     pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError> {
         info!("Cancelling disclosure");
 
