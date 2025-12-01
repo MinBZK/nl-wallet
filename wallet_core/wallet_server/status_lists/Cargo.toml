@@ -54,7 +54,7 @@ thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 url.workspace = true
-utoipa.workspace = true
+utoipa = { workspace = true, features = ["uuid"] }
 utoipa-axum.workspace = true
 uuid.workspace = true
 
@@ -72,7 +72,7 @@ jwt.path = "../../lib/jwt"
 http_utils.path = "../../lib/http_utils"
 hsm.path = "../../lib/hsm"
 server_utils.path = "../server_utils"
-token_status_list.path = "../../lib/token_status_list"
+token_status_list = { path = "../../lib/token_status_list", features = ["axum"] }
 utils.path = "../../lib/utils"
 
 [dev-dependencies]

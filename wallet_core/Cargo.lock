@@ -6937,6 +6937,7 @@ dependencies = [
  "reqwest",
  "rstest",
  "rustls-pki-types",
+ "sea-orm",
  "serde",
  "serde_json",
  "serde_with",
@@ -6946,6 +6947,7 @@ dependencies = [
  "trait-variant",
  "url",
  "utils",
+ "utoipa",
  "uuid",
 ]
 
@@ -7675,6 +7677,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "uuid",
 ]
 
 [[package]]
