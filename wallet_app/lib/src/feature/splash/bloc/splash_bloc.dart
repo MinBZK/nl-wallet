@@ -26,6 +26,8 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
     switch (unlockedState) {
       case WalletStateLocked():
         throw StateError('UnlockedState state should never be $unlockedState');
+      case WalletStateRegistration():
+        emit(const SplashLoaded(.onboarding));
       case WalletStateEmpty():
         emit(const SplashLoaded(.pidRetrieval));
       case WalletStateTransferPossible():
@@ -37,8 +39,6 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
           /// Transfer will be cancelled by [WalletTransferEventListener]
           emit(const SplashLoaded(.dashboard));
         }
-      case WalletStateRegistration():
-        emit(const SplashLoaded(.onboarding));
       case WalletStateWalletBlocked():
         emit(const SplashLoaded(.blocked));
       case WalletStateReady():
