@@ -39,6 +39,7 @@ use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListService;
+use token_status_list::status_list_service::StatusListServices;
 use token_status_list::status_list_token::StatusListToken;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
@@ -129,7 +130,7 @@ pub enum StatusListServiceError {
     UnknownAttestationType(String),
 }
 
-impl<K> StatusListService for PostgresStatusListServices<K>
+impl<K> StatusListServices for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
@@ -155,7 +156,10 @@ where
                 attestation_type.to_string(),
             ))?;
 
-        service.obtain_status_claims(batch_id, expires, copies).await
+        service
+            .obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
+            .await
+            .map(|(claims, _)| claims)
     }
 }
 
@@ -193,6 +197,25 @@ where
     }
 }
 
+impl<K> StatusListService for PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
+    type Error = StatusListServiceError;
+
+    async fn obtain_status_claims(
+        &self,
+        batch_id: Uuid,
+        expires: Option<DateTimeSeconds>,
+        copies: NonZeroUsize,
+    ) -> Result<VecNonEmpty<StatusClaim>, Self::Error> {
+        tracing::debug!("Obtaining status claims with {} copies", copies);
+        self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
+            .await
+            .map(|(claims, _)| claims)
+    }
+}
+
 impl PostgresStatusListService {
     pub async fn try_new(
         connection: DatabaseConnection,
@@ -218,17 +241,6 @@ impl<K> PostgresStatusListService<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
-    pub async fn obtain_status_claims(
-        &self,
-        batch_id: Uuid,
-        expires: Option<DateTimeSeconds>,
-        copies: NonZeroUsize,
-    ) -> Result<VecNonEmpty<StatusClaim>, StatusListServiceError> {
-        self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
-            .await
-            .map(|(claims, _)| claims)
-    }
-
     pub async fn obtain_status_claims_and_scheduled_tasks(
         &self,
         batch_id: Uuid,

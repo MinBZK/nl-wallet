@@ -113,6 +113,13 @@
 | `appIdentifier`                       | Application identifier                         | `nil`               |
 | `recoveryCodePaths.urn:eudi:pid:nl:1` | Recovery code path for default PID attestation | `["recovery_code"]` |
 
+### WUA status list parameters
+
+| Name                        | Description                                                | Value |
+| --------------------------- | ---------------------------------------------------------- | ----- |
+| `wuaStatusList.baseUrl`     | WUA status list base url that will be encoded as iss claim | `nil` |
+| `wuaStatusList.certificate` | WUA status list certificate                                | `nil` |
+
 ### Migration parameters
 
 | Name               | Description                             | Value  |
@@ -137,10 +144,3 @@
 | `logSidecar.resources.requests.memory` | Memory request of log sidecar           | `64Mi`         |
 | `logSidecar.resources.limits.cpu`      | CPU limit of log sidecar                | `400m`         |
 | `logSidecar.resources.limits.memory`   | Memory limit of log sidecar             | `128Mi`        |
-
-### WUA status list parameters
-
-| Name                        | Description                                                   | Value |
-| --------------------------- | ------------------------------------------------------------- | ----- |
-| `wuaStatusList.secretName`  | Name of the secret containing the WUA status list private key | `nil` |
-| `wuaStatusList.certificate` | WUA status list certificate                                   | `nil` |

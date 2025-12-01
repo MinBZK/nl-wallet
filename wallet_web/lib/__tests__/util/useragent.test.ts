@@ -17,14 +17,14 @@ describe("isDesktop", () => {
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
   const happyDom = "Mozilla/5.0 (X11; Linux x64) AppleWebKit/537.36 (KHTML, like Gecko) HappyDOM/3.0.0"
 
-  test.each([iPad, kindleFire, firefoxDesktop, safariDesktop, chromeDesktop, happyDom])(
+  test.each([kindleFire, firefoxDesktop, safariDesktop, chromeDesktop, happyDom])(
     "should detect desktop for useragent: %s",
     (useragent) => {
       expect(isDesktop(useragent)).toBe(true)
     },
   )
 
-  test.each([iPhone, android])("should detect not desktop for useragent: %s", (useragent) => {
+  test.each([iPad, iPhone, android])("should detect not desktop for useragent: %s", (useragent) => {
     expect(isDesktop(useragent)).toBe(false)
   })
 })

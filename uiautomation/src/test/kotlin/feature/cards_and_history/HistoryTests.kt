@@ -73,7 +73,7 @@ class HistoryTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC30 View activity list")
+    @DisplayName("LTC22 View activity list")
     @Tags(Tag("a11yBatch1"))
     fun verifyHistoryEntries(testInfo: TestInfo) {
         setUp(testInfo)
@@ -138,7 +138,7 @@ class HistoryTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC31 View card-specific activity list")
+    @DisplayName("LTC23 View card-specific activity list")
     fun verifyCardHistory(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickCard(tasData.getPidDisplayName())

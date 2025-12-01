@@ -38,6 +38,7 @@ void main() {
       idleWarningTimeout: idleWarningTimeout,
       backgroundLockTimeout: backgroundLockTimeout,
       staticAssetsBaseUrl: 'https://example.org',
+      pidAttestationTypes: ['com.example.attestationType'],
       version: 1,
     );
     mockIsWalletRegisteredAndUnlockedUseCase = MockIsWalletRegisteredAndUnlockedUseCase();

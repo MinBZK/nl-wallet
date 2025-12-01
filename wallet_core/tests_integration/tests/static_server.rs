@@ -30,14 +30,14 @@ async fn test_wallet_config() {
     served_wallet_config.lock_timeouts.background_timeout = 1;
     served_wallet_config.version = 2;
 
-    let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
-    let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
+    let (mut static_settings, static_root_ca) = static_server_settings();
+    static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
+    let port = start_static_server(static_settings, static_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_config_base_url(port),
-            trust_anchors: vec![cs_root_ca],
+            trust_anchors: vec![static_root_ca],
         },
         ..default_config_server_config()
     };
@@ -80,14 +80,14 @@ async fn test_wallet_config_stale() {
     let mut served_wallet_config = default_wallet_config();
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(settings.webserver.port);
 
-    let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
-    let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
+    let (mut static_settings, static_root_ca) = static_server_settings();
+    static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
+    let port = start_static_server(static_settings, static_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_config_base_url(port),
-            trust_anchors: vec![cs_root_ca],
+            trust_anchors: vec![static_root_ca],
         },
         ..default_config_server_config()
     };
@@ -118,7 +118,7 @@ async fn test_wallet_config_signature_verification_failed() {
     // we already have in the default configuration
     served_wallet_config.version = 0;
 
-    let (mut cs_settings, cs_root_ca) = config_server_settings();
+    let (mut static_settings, static_root_ca) = static_server_settings();
     let signing_key = SigningKey::random(&mut OsRng);
     let pkcs8_der = signing_key.to_pkcs8_der().unwrap();
     let jwt = SignedJwt::sign(
@@ -128,13 +128,13 @@ async fn test_wallet_config_signature_verification_failed() {
     .await
     .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
-    cs_settings.wallet_config_jwt = jwt.into();
-    let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
+    static_settings.wallet_config_jwt = jwt.into();
+    let port = start_static_server(static_settings, static_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_config_base_url(port),
-            trust_anchors: vec![cs_root_ca],
+            trust_anchors: vec![static_root_ca],
         },
         ..default_config_server_config()
     };

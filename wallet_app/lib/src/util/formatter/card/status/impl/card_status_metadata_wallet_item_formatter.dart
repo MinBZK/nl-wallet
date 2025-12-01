@@ -38,7 +38,7 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
 
   @override
   Color textColor(BuildContext context, CardStatus status) {
-    final colorScheme = LightWalletTheme.colorScheme;
+    const colorScheme = LightWalletTheme.colorScheme;
     return switch (status) {
       CardStatus.validSoon => colorScheme.onSurface,
       CardStatus.valid => colorScheme.onSurface,
@@ -65,7 +65,7 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
 
   @override
   Color iconColor(BuildContext context, CardStatus status) {
-    final colorScheme = LightWalletTheme.colorScheme;
+    const colorScheme = LightWalletTheme.colorScheme;
     return switch (status) {
       CardStatus.validSoon => colorScheme.onSurfaceVariant,
       CardStatus.valid => colorScheme.onSurfaceVariant,
@@ -79,7 +79,7 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
 
   @override
   Color? backgroundColor(BuildContext context, CardStatus status) {
-    final colorScheme = LightWalletTheme.colorScheme;
+    const colorScheme = LightWalletTheme.colorScheme;
     return switch (status) {
       CardStatus.validSoon => colorScheme.surface,
       CardStatus.valid => colorScheme.surface,

@@ -20,11 +20,14 @@ use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::x509::BorrowingCertificate;
+use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::settings::KeyPair;
+use server_utils::settings::PrivateKey;
 use status_lists::config::StatusListConfig;
 use status_lists::publish::PublishDir;
 use status_lists::settings::StatusListsSettings;
@@ -84,6 +87,7 @@ pub struct PinPolicySettings {
     pub timeouts: Vec<Duration>,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct WuaStatusListsSettings {
     #[serde(flatten)]
@@ -93,10 +97,12 @@ pub struct WuaStatusListsSettings {
     pub base_url: BaseUrl,
     /// Path to directory for the published status list
     pub publish_dir: PublishDir,
-    /// Key pair to sign status list
-    // TODO: PVW-4573 Replace with hsm key
-    #[serde(flatten)]
-    pub keypair: KeyPair,
+
+    // HSM key identifier used to sign
+    pub key_identifier: String,
+    // X509 certificate containing the public key
+    #[serde_as(as = "Base64")]
+    pub key_certificate: BorrowingCertificate,
 }
 
 #[serde_as]
@@ -149,6 +155,7 @@ impl Settings {
             )?
             .set_default("wua_status_list.list_size", 100_000)?
             .set_default("wua_status_list.create_threshold", 0.01)?
+            .set_default("wua_status_list.key_identifier", "wua_tsl_key")?
             .set_default("wua_signing_key_identifier", "wua_signing_key")?
             .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
             .set_default("wua_valid_days", 365)?
@@ -211,7 +218,16 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
 }
 
 impl WuaStatusListsSettings {
-    pub async fn into_config(self) -> Result<StatusListConfig, PrivateKeySettingsError> {
+    pub async fn into_config(self, hsm: Pkcs11Hsm) -> Result<StatusListConfig, PrivateKeySettingsError> {
+        let key_pair = KeyPair {
+            certificate: self.key_certificate,
+            private_key: PrivateKey::Hsm {
+                private_key: self.key_identifier,
+            },
+        }
+        .parse(Some(hsm))
+        .await?;
+
         Ok(StatusListConfig {
             list_size: self.list_settings.list_size,
             create_threshold: self
@@ -221,7 +237,7 @@ impl WuaStatusListsSettings {
             ttl: self.list_settings.ttl,
             base_url: self.base_url,
             publish_dir: self.publish_dir,
-            key_pair: self.keypair.parse(None).await?,
+            key_pair,
         })
     }
 }

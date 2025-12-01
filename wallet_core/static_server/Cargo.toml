@@ -1,5 +1,5 @@
 [package]
-name = "configuration_server"
+name = "static_server"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,7 +8,7 @@ rust-version.workspace = true
 workspace = true
 
 [[bin]]
-name = "configuration_server"
+name = "static_server"
 
 [lib]
 doctest = false
@@ -27,5 +27,6 @@ tracing-subscriber = { workspace = true, features = ["std", "fmt", "tracing-log"
 
 http_utils = { path = "../lib/http_utils", features = ["server"] }
 jwt.path = "../lib/jwt"
+status_lists = { path = "../wallet_server/status_lists", features = ["axum"] }
 utils.path = "../lib/utils"
 wallet_configuration.path = "../wallet/configuration"

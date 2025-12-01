@@ -47,6 +47,15 @@ source "${SCRIPTS_DIR}/utils.sh"
 # Check prerequisites
 ########################################################################
 
+if [[ ${BASH_VERSINFO[0]} -lt 5 ]]; then
+    error "Install a modern bash version"
+    if is_macos; then
+        echo "You can install modern bash via Homebrew"
+        echo "> brew install bash"
+    fi
+    exit 1
+fi
+
 # Use gsed on macOS, sed on others
 is_macos && SED="gsed" || SED="sed"
 have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
@@ -70,7 +79,7 @@ fi
 
 source "${SCRIPTS_DIR}"/configuration.sh
 
-if [ ! -f "${SCRIPTS_DIR}/.env" ]
+if [[ ! -f "${SCRIPTS_DIR}/.env" ]]
 then
     echo -e "${INFO}Saving initial environment variables${NC}"
     echo -e \
@@ -83,7 +92,8 @@ then
 # export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
 # export HSM_SO_PIN=${HSM_SO_PIN}
 # export HSM_USER_PIN=${HSM_USER_PIN}
-# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}" \
+# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}
+# export HSM_TOKEN=${HSM_TOKEN}" \
     > "${SCRIPTS_DIR}/.env"
     echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}."
     echo -e "${INFO}Edit this file to reflect your environment, and un-comment the relevant variables.${NC}"
@@ -95,7 +105,7 @@ fi
 ########################################################################
 
 mkdir -p "${TARGET_DIR}"
-mkdir -p "${TARGET_DIR}/configuration_server"
+mkdir -p "${TARGET_DIR}/static_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
 mkdir -p "${TARGET_DIR}/verification_server"
 mkdir -p "${TARGET_DIR}/issuance_server"
@@ -208,14 +218,19 @@ if [[ ! -f "$HSM_LIBRARY_PATH" ]]; then
 fi
 
 mkdir -p "${HOME}/.config/softhsm2"
-if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
+if [[ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]]; then
   mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"
 fi
 
 render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
 
-softhsm2-util --delete-token --token test_token --force > /dev/null || true
-softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
+HSM_SLOT=$(softhsm2-util --show-slots | awk '/^Slot / { slot=$1 } /^ *Label: +'"${HSM_TOKEN}"' *$/ { print slot; exit }')
+if [[ -z $HSM_SLOT ]]; then
+    softhsm2-util --init-token --free --label "${HSM_TOKEN}" --so-pin "${HSM_SO_PIN}" --pin "${HSM_USER_PIN}"
+else
+    softhsm2-util --init-token --token "${HSM_TOKEN}" --label "${HSM_TOKEN}" --so-pin "${HSM_SO_PIN}" --pin "${HSM_USER_PIN}"
+fi
+HSM_TOKEN_URL="$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep -e "model=SoftHSM%20v2;.*;token=${HSM_TOKEN}")"
 
 render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/hsm.toml"
 
@@ -229,7 +244,7 @@ echo -e "${SECTION}Configure verification_server, issuance_server, pid_issuer, d
 
 cd "${BASE_DIR}"
 
-# Generate or re-use CA for configuration server
+# Generate or re-use CA for static server
 generate_or_reuse_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/demo_issuer" demo_issuer "${TARGET_DIR}/demo_issuer/ca.crt.pem" "${TARGET_DIR}/demo_issuer/ca.key.pem"
@@ -245,7 +260,7 @@ DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.ke
 export DEMO_ISSUER_ATTESTATION_SERVER_KEY
 
 # Generate root CA for issuer
-if [ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]; then
+if [[ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]]; then
     generate_issuer_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.issuer.key.pem' already exists, not (re-)generating issuer root CA"
@@ -255,15 +270,12 @@ export ISSUER_CA_CRT
 
 # Generate key for WUA signing
 generate_wp_signing_key wua_signing
-export WP_WUA_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wua_signing.pem"
 WP_WUA_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wua_signing.pub.der" ${BASE64})
 export WP_WUA_PUBLIC_KEY
 
 # Generate key for WUA tsl
 generate_wallet_provider_tsl_key_pair
-WUA_TSL_KEY=$(< "${TARGET_DIR}/wallet_provider/tsl.key.der" ${BASE64})
-export WUA_TSL_KEY
-WUA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/tsl.crt.der" ${BASE64})
+WUA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wua_tsl.crt.der" ${BASE64})
 export WUA_TSL_CRT
 
 # Generate pid issuer key and cert
@@ -280,7 +292,7 @@ PID_ISSUER_TSL_CRT=$(< "${TARGET_DIR}/pid_issuer/tsl.crt.der" ${BASE64})
 export PID_ISSUER_TSL_CRT
 
 # Generate root CA for reader
-if [ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]; then
+if [[ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]]; then
     generate_reader_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"
@@ -381,8 +393,7 @@ render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_i
 
 
 # Generate relying party ephemeral ID secret
-generate_ws_random_key ephemeral_id_secret
-DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/demo_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
+DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(openssl rand -hex 64 | tr -d '\n')
 export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_index.toml"
@@ -474,19 +485,17 @@ WALLET_PROVIDER_SERVER_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.ke
 export WALLET_PROVIDER_SERVER_KEY
 
 generate_wp_signing_key certificate_signing
-export WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
-export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
-generate_wp_random_key attestation_wrapping
+generate_wp_aes_key attestation_wrapping
 export WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
 
-generate_wp_random_key pin_pubkey_encryption
+generate_wp_aes_key pin_pubkey_encryption
 export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 
 APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/lib/apple_app_attest/assets/Apple_App_Attestation_Root_CA.pem" -outform DER | ${BASE64})
@@ -517,45 +526,42 @@ render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${W
 render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
 
 ########################################################################
-# Configure HSM
+# Import secret keys into HSM
 ########################################################################
 
-softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
-softhsm2-util --import "${WP_WUA_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wua_signing" | xxd -p)" --label "wua_signing_key" --token "test_token"
-softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
-softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "test_token"
-softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "test_token"
+softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "${HSM_TOKEN}"
 
 p11tool --login --write \
-  --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" \
+  --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
   --set-pin "${HSM_USER_PIN}" \
   --label="pin_public_disclosure_protection_key" \
   --provider="${HSM_LIBRARY_PATH}" \
-  "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
+  "${HSM_TOKEN_URL}"
 
 ########################################################################
-# Configure configuration-server
+# Configure static-server
 ########################################################################
 
 echo
-echo -e "${SECTION}Configure configuration-server${NC}"
+echo -e "${SECTION}Configure static-server${NC}"
 
 cd "${BASE_DIR}"
 
-# Generate or re-use CA for configuration-server
-generate_or_reuse_root_ca "${TARGET_DIR}/configuration_server" "nl-wallet-configuration-server"
+# Generate or re-use CA for static-server
+generate_or_reuse_root_ca "${TARGET_DIR}/static_server" "nl-wallet-static-server"
 
-generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_server "${TARGET_DIR}/configuration_server/ca.crt.pem" "${TARGET_DIR}/configuration_server/ca.key.pem"
+generate_ssl_key_pair_with_san "${TARGET_DIR}/static_server" static_server "${TARGET_DIR}/static_server/ca.crt.pem" "${TARGET_DIR}/static_server/ca.key.pem"
 
-ln -sf "${TARGET_DIR}/configuration_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/cs.ca.crt.der"
-CONFIG_SERVER_CA_CRT=$(< "${TARGET_DIR}/configuration_server/ca.crt.der" ${BASE64})
-export CONFIG_SERVER_CA_CRT
-CONFIG_SERVER_CERT=$(< "${TARGET_DIR}/configuration_server/config_server.crt.der" ${BASE64})
-export CONFIG_SERVER_CERT
-CONFIG_SERVER_KEY=$(< "${TARGET_DIR}/configuration_server/config_server.key.der" ${BASE64})
-export CONFIG_SERVER_KEY
+ln -sf "${TARGET_DIR}/static_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/static.ca.crt.der"
+STATIC_SERVER_CA_CRT=$(< "${TARGET_DIR}/static_server/ca.crt.der" ${BASE64})
+export STATIC_SERVER_CA_CRT
+STATIC_SERVER_CERT=$(< "${TARGET_DIR}/static_server/static_server.crt.der" ${BASE64})
+export STATIC_SERVER_CERT
+STATIC_SERVER_KEY=$(< "${TARGET_DIR}/static_server/static_server.key.der" ${BASE64})
+export STATIC_SERVER_KEY
 
-generate_wp_signing_key config_signing
+generate_config_signing_key_pair
 CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
 export CONFIG_SIGNING_PUBLIC_KEY
 
@@ -576,8 +582,8 @@ cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/t
 WALLET_CONFIG_JWT=$(< "${TARGET_DIR}/wallet-config-jws-compact.txt")
 export WALLET_CONFIG_JWT
 
-render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
-cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
+render_template "${DEVENV}/static_server.toml.template" "${STATIC_SERVER_DIR}/static_server.toml"
+cp "${STATIC_SERVER_DIR}/static_server.toml" "${BASE_DIR}/wallet_core/tests_integration/static_server.toml"
 
 ########################################################################
 # Configure gba-hc-converter

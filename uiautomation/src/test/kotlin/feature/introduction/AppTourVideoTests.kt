@@ -36,7 +36,7 @@ class AppTourVideoTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC16 User views app tour")
+    @DisplayName("LTC14 User views app tour")
     @Tags(Tag("a11yBatch1"))
     fun verifyVideoTour(testInfo: TestInfo) {
         setUp(testInfo)

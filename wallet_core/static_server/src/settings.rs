@@ -8,6 +8,7 @@ use serde::Deserialize;
 
 use http_utils::tls::server::TlsServerConfig;
 use jwt::VerifiedJwt;
+use status_lists::publish::PublishDir;
 use utils::path::prefix_local_path;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -15,10 +16,11 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
+    pub tls_config: TlsServerConfig,
 
     #[serde(deserialize_with = "VerifiedJwt::dangerous_deserialize")] // we trust our own config file
     pub wallet_config_jwt: VerifiedJwt<WalletConfiguration>,
-    pub tls_config: TlsServerConfig,
+    pub wua_publish_dir: PublishDir,
 }
 
 impl Settings {
@@ -26,9 +28,9 @@ impl Settings {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 8001)?
-            .add_source(File::from(prefix_local_path("config_server.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path("static_server.toml".as_ref()).as_ref()).required(false))
             .add_source(
-                Environment::with_prefix("config_server")
+                Environment::with_prefix("static_server")
                     .separator("__")
                     .prefix_separator("__")
                     .list_separator(","),

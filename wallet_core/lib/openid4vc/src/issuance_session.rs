@@ -662,7 +662,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .iter()
             .single_unique()
             .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
-            .expect("there are always credential_previews in the token_response");
+            .expect("there are always credential_previews in the token_response")
+            .clone();
 
         let normalized_credential_previews: VecNonEmpty<_> = token_response
             .credential_previews

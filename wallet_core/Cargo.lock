@@ -1326,26 +1326,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "configuration_server"
-version = "0.4.0-dev"
-dependencies = [
- "axum",
- "axum-server",
- "config",
- "etag",
- "http",
- "http_utils",
- "jwt",
- "rustls",
- "serde",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "utils",
- "wallet_configuration",
-]
-
-[[package]]
 name = "console_error_panic_hook"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1891,6 +1871,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "strum 0.26.3",
+ "token_status_list",
  "tower-http",
  "tracing",
  "utils",
@@ -3660,6 +3641,7 @@ dependencies = [
  "thiserror 2.0.11",
  "tokio",
  "tokio-test",
+ "tracing",
  "utils",
 ]
 
@@ -6427,6 +6409,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "static_server"
+version = "0.4.0-dev"
+dependencies = [
+ "axum",
+ "axum-server",
+ "config",
+ "etag",
+ "http",
+ "http_utils",
+ "jwt",
+ "rustls",
+ "serde",
+ "status_lists",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "utils",
+ "wallet_configuration",
+]
+
+[[package]]
 name = "status_lists"
 version = "0.4.0-dev"
 dependencies = [
@@ -6641,17 +6644,18 @@ dependencies = [
  "axum",
  "axum-server",
  "chrono",
- "configuration_server",
  "crypto",
  "ctor",
  "dcql",
  "dotenvy",
+ "futures",
  "gba_hc_converter",
  "hsm",
  "http",
  "http_utils",
  "indexmap 2.7.1",
  "issuance_server",
+ "issuer_settings",
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
@@ -6673,6 +6677,7 @@ dependencies = [
  "serde_urlencoded",
  "serial_test",
  "server_utils",
+ "static_server",
  "tempfile",
  "token_status_list",
  "tokio",
@@ -7809,14 +7814,17 @@ name = "wallet_configuration"
 version = "0.4.0-dev"
 dependencies = [
  "attestation_data",
+ "attestation_types",
  "crypto",
  "derive_more",
+ "error_category",
  "http_utils",
  "itertools 0.14.0",
  "jwt",
  "rustls-pki-types",
  "serde",
  "serde_with",
+ "thiserror 2.0.11",
  "url",
  "utils",
 ]

@@ -47,7 +47,7 @@ use jwt::wua::WuaError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use token_status_list::status_list_service::StatusListService;
+use token_status_list::status_list_service::StatusListServices;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -392,7 +392,7 @@ pub struct Issuer<A, K, S, L> {
     attr_service: A,
     issuer_data: IssuerData<K>,
     sessions_cleanup_task: JoinHandle<()>,
-    status_list_service: L,
+    status_list_services: L,
     pub metadata: IssuerMetadata,
 }
 
@@ -429,7 +429,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    L: StatusListService,
+    L: StatusListServices,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
@@ -439,7 +439,7 @@ where
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
         wua_config: Option<WuaConfig>,
-        status_list_service: L,
+        status_list_services: L,
     ) -> Self {
         let credential_configurations_supported = attestation_config
             .as_ref()
@@ -468,7 +468,7 @@ where
             sessions: Arc::clone(&sessions),
             attr_service,
             issuer_data,
-            status_list_service,
+            status_list_services,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
             metadata: IssuerMetadata {
                 issuer_config: metadata::IssuerData {
@@ -527,7 +527,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    L: StatusListService,
+    L: StatusListServices,
 {
     pub async fn process_token_request(
         &self,
@@ -611,7 +611,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.status_list_service,
+                &self.status_list_services,
             )
             .await;
 
@@ -638,7 +638,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.status_list_service,
+                &self.status_list_services,
             )
             .await;
 
@@ -894,10 +894,16 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_list_service: &impl StatusListService,
+        status_list_services: &impl StatusListServices,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
-            .process_credential_inner(credential_request, access_token, dpop, issuer_data, status_list_service)
+            .process_credential_inner(
+                credential_request,
+                access_token,
+                dpop,
+                issuer_data,
+                status_list_services,
+            )
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -991,7 +997,7 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_list_service: &impl StatusListService,
+        status_list_services: &impl StatusListServices,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1033,7 +1039,7 @@ impl Session<WaitingForResponse> {
             .get(attestation_type)
             .ok_or_else(|| CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_owned()))?;
 
-        let status_claim = status_list_service
+        let status_claim = status_list_services
             .obtain_status_claims(
                 &preview.credential_payload.attestation_type,
                 preview.batch_id,
@@ -1063,7 +1069,7 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_list_service: &impl StatusListService,
+        status_list_services: &impl StatusListServices,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(
@@ -1071,7 +1077,7 @@ impl Session<WaitingForResponse> {
                 access_token,
                 dpop,
                 issuer_data,
-                status_list_service,
+                status_list_services,
             )
             .await;
 
@@ -1094,7 +1100,7 @@ impl Session<WaitingForResponse> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
-        status_list_service: &impl StatusListService,
+        status_list_services: &impl StatusListServices,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1163,7 +1169,7 @@ impl Session<WaitingForResponse> {
         // Obtain a status claim for every attestation copy, linked to a single batch id per preview
         let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
             |(preview, _, format_pubkeys)| async move {
-                let claims = status_list_service
+                let claims = status_list_services
                     .obtain_status_claims(
                         &preview.credential_payload.attestation_type,
                         preview.batch_id,

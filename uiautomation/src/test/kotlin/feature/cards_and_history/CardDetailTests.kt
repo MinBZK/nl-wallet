@@ -45,7 +45,7 @@ class CardDetailTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC33 Show Card Details")
+    @DisplayName("LTC25 Show Card Details")
     @Tags(Tag("a11yBatch1"))
     fun verifyCardDetailScreen(testInfo: TestInfo) {
         setUp(testInfo)
@@ -82,7 +82,7 @@ class CardDetailTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("LTC33 The Card attribute labels are multi-lingual")
+    @DisplayName("LTC25 The Card attribute labels are multi-lingual")
     fun verifyDataLabelMultiLingual(testInfo: TestInfo) {
         setUp(testInfo)
         cardDetailScreen.clickCardDataButton()

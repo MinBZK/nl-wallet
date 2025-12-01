@@ -20,6 +20,7 @@ use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
 use sd_jwt::sd_jwt::VerifiedSdJwtPresentation;
+use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::AttributeValue;
@@ -125,6 +126,7 @@ pub struct DisclosedAttestation {
     /// The issuer CA's common name
     pub ca: String,
     pub validity_info: ValidityInfo,
+    pub revocation_status: Option<RevocationStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -152,6 +154,7 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
             attestation_qualification: doc.attestation_qualification,
             ca: doc.ca,
             validity_info: (&doc.validity_info).try_into()?,
+            revocation_status: doc.revocation_status,
         })
     }
 }
@@ -167,6 +170,8 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             .first()
             .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?
             .to_string();
+
+        let revocation_status = sd_jwt_presentation.revocation_status();
 
         let claims = sd_jwt_presentation.into_claims();
 
@@ -188,6 +193,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             attestation_qualification,
             ca,
             validity_info,
+            revocation_status,
         })
     }
 }
@@ -254,6 +260,7 @@ mod test {
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
+    use token_status_list::verification::verifier::RevocationStatus;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
@@ -284,6 +291,7 @@ mod test {
                     valid_from: None,
                     valid_until: None,
                 },
+                revocation_status: Some(RevocationStatus::Valid),
             }
         }
 
@@ -311,6 +319,7 @@ mod test {
                     valid_from: None,
                     valid_until: None,
                 },
+                revocation_status: Some(RevocationStatus::Valid),
             }
         }
     }

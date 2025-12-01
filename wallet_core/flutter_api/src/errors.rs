@@ -17,6 +17,7 @@ use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
 use wallet::errors::PinRecoveryError;
+use wallet::errors::RecoveryCodeError;
 use wallet::errors::ResetError;
 use wallet::errors::TransferError;
 use wallet::errors::UpdatePolicyError;
@@ -320,6 +321,8 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
+            DisclosureError::NonSelectivelyDisclosableClaim(_, _)
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => FlutterApiErrorType::Verifier,
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -340,6 +343,8 @@ impl FlutterApiErrorFields for DisclosureError {
                 VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
                 VpMessageClientErrorType::Cancelled | VpMessageClientErrorType::Other => None,
             },
+            DisclosureError::NonSelectivelyDisclosableClaim(_, _)
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => Some(false),
             _ => None,
         };
         let return_url = self.return_url();
@@ -347,6 +352,10 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::VpVerifierServer { organization, .. } => organization
                 .as_ref()
                 .map(|organization| organization.display_name.clone()),
+            DisclosureError::NonSelectivelyDisclosableClaim(organization, _)
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _) => {
+                Some(organization.display_name.clone())
+            }
             _ => None,
         };
 
@@ -505,8 +514,11 @@ impl FlutterApiErrorFields for PinRecoveryError {
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
             PinRecoveryError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
-            PinRecoveryError::IncorrectRecoveryCode { .. } => FlutterApiErrorType::WrongDigid,
-            PinRecoveryError::MissingPid | PinRecoveryError::MissingRecoveryCode => FlutterApiErrorType::Issuer,
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
+                FlutterApiErrorType::WrongDigid
+            }
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingPid)
+            | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode) => FlutterApiErrorType::Issuer,
             PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
         }

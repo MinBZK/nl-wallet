@@ -19,30 +19,52 @@ class PolicyBodyTextMapper extends ContextMapper<OrganizationPolicy, String> {
     final l10n = appLocalizations ?? context.l10n;
     final policy = input.policy;
     final storageDuration = policy.storageDuration ?? Duration.zero;
-    if (policy.dataIsShared && !policy.dataIsStored) {
-      // Data IS shared but NOT stored
-      return l10n.disclosureConfirmDataAttributesPageSharedNotStoredSubtitle(
-        input.organization.displayName.l10nValue(context),
-      );
-    } else if (policy.dataIsShared && policy.dataIsStored) {
-      // Data IS shared and IS stored
-      return l10n.disclosureConfirmDataAttributesPageSharedAndStoredSubtitle(
-        storageDuration.inMonths,
-        input.organization.displayName.l10nValue(context),
-      );
-    } else if (!policy.dataIsShared && !policy.dataIsStored) {
-      // Data is NOT shared and NOT stored
-      return l10n.disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle(
-        input.organization.displayName.l10nValue(context),
-      );
-    } else if (!policy.dataIsShared && policy.dataIsStored) {
-      // Data is NOT shared but IS stored
-      return l10n.disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle(
-        storageDuration.inMonths,
-        input.organization.displayName.l10nValue(context),
-      );
-    }
-    if (kDebugMode) throw UnsupportedError('No valid condition combination found');
-    return '';
+    final organization = input.organization.displayName.l10nValue(context);
+    final policyType = PolicyType.fromFlags(isShared: policy.dataIsShared, isStored: policy.dataIsStored);
+
+    return _getSubtitleForPolicyType(
+      policyType,
+      l10n,
+      organization,
+      storageDuration.inMonths,
+    );
+  }
+
+  String _getSubtitleForPolicyType(
+    PolicyType policyType,
+    AppLocalizations l10n,
+    String organization,
+    int storageDurationInMonths,
+  ) {
+    return switch (policyType) {
+      PolicyType.sharedNotStored => l10n.disclosureConfirmDataAttributesPageSharedNotStoredSubtitle(organization),
+      PolicyType.sharedAndStored => l10n.disclosureConfirmDataAttributesPageSharedAndStoredSubtitle(
+        storageDurationInMonths,
+        organization,
+      ),
+      PolicyType.notSharedNotStored => l10n.disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle(organization),
+      PolicyType.notSharedButStored => l10n.disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle(
+        storageDurationInMonths,
+        organization,
+      ),
+      PolicyType.unknown => kDebugMode ? throw UnsupportedError('No valid condition combination found') : '',
+    };
+  }
+}
+
+enum PolicyType {
+  sharedNotStored,
+  sharedAndStored,
+  notSharedNotStored,
+  notSharedButStored,
+  unknown
+  ;
+
+  factory PolicyType.fromFlags({required bool isShared, required bool isStored}) {
+    if (isShared && !isStored) return PolicyType.sharedNotStored;
+    if (isShared && isStored) return PolicyType.sharedAndStored;
+    if (!isShared && !isStored) return PolicyType.notSharedNotStored;
+    if (!isShared && isStored) return PolicyType.notSharedButStored;
+    return PolicyType.unknown;
   }
 }

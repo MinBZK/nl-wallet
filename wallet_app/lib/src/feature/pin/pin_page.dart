@@ -53,8 +53,11 @@ typedef OnPinValidatedCallback<T> = void Function(T);
 
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
-  /// Called when pin entry was successful
+  /// Called when pin entry was successful.
   final OnPinValidatedCallback onPinValidated;
+
+  /// When provided, replaces the default behaviour of the 'Forgot PIN?' button (in-page & dialog)
+  final VoidCallback? onForgotPinPressed;
 
   /// Called when the user presses the biometrics key, setting this callback will make
   /// the 'biometrics' key appear on the [PinKeyboard].
@@ -79,6 +82,7 @@ class PinPage extends StatelessWidget {
     required this.onPinValidated,
     this.onStateChanged,
     this.onPinError,
+    this.onForgotPinPressed,
     this.onBiometricUnlockRequested,
     this.headerBuilder,
     this.showTopDivider = false,
@@ -88,48 +92,41 @@ class PinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
-      listener: (context, state) async {
-        _runEnteredDigitsAnnouncement(context, state);
-
-        /// Check for state interceptions
-        if (onStateChanged?.call(context, state) ?? false) return;
-        if (onPinError != null && state is ErrorState) {
-          onPinError!(context, state as ErrorState);
-          return;
-        }
-
-        /// Process the state change
-        switch (state) {
-          case PinValidateSuccess():
-            onPinValidated.call(state.result);
-          case PinValidateTimeout():
-            PinTimeoutScreen.show(context, state.expiryTime);
-          case PinValidateBlocked():
-            PinBlockedScreen.show(context);
-          case PinValidateNetworkError():
-            ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
-          case PinValidateGenericError():
-            ErrorScreen.showGeneric(context, secured: false);
-          case PinValidateFailure():
-            await _showErrorDialog(context, state);
-
-          /// No need to handle these explicitly as events for now.
-          case PinEntryInProgress():
-          case PinValidateInProgress():
-            break;
-        }
-      },
-      child: OrientationBuilder(
-        builder: (context, orientation) {
-          switch (orientation) {
-            case Orientation.portrait:
-              return _buildPortrait(context);
-            case Orientation.landscape:
-              return _buildLandscape(context);
-          }
-        },
-      ),
+      listener: _listenerForState,
+      child: _buildBody(),
     );
+  }
+
+  Future<void> _listenerForState(BuildContext context, PinState state) async {
+    _runEnteredDigitsAnnouncement(context, state);
+
+    /// Check for state interceptions
+    if (onStateChanged?.call(context, state) ?? false) return;
+    if (onPinError != null && state is ErrorState) {
+      onPinError!(context, state as ErrorState);
+      return;
+    }
+
+    /// Process the state change
+    switch (state) {
+      case PinValidateSuccess():
+        onPinValidated.call(state.result);
+      case PinValidateTimeout():
+        PinTimeoutScreen.show(context, state.expiryTime);
+      case PinValidateBlocked():
+        PinBlockedScreen.show(context);
+      case PinValidateNetworkError():
+        ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
+      case PinValidateGenericError():
+        ErrorScreen.showGeneric(context, secured: false);
+      case PinValidateFailure():
+        await _showErrorDialog(context, state);
+
+      /// No need to handle these explicitly as events for now.
+      case PinEntryInProgress():
+      case PinValidateInProgress():
+        break;
+    }
   }
 
   void _runEnteredDigitsAnnouncement(BuildContext context, PinState state) {
@@ -153,6 +150,19 @@ class PinPage extends StatelessWidget {
       default:
         return;
     }
+  }
+
+  Widget _buildBody() {
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        switch (orientation) {
+          case Orientation.portrait:
+            return _buildPortrait(context);
+          case Orientation.landscape:
+            return _buildLandscape(context);
+        }
+      },
+    );
   }
 
   Widget _buildPortrait(BuildContext context) {
@@ -274,7 +284,7 @@ class PinPage extends StatelessWidget {
     return ListButton(
       mainAxisAlignment: context.isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
       icon: const Icon(Icons.help_outline_rounded),
-      onPressed: () => ForgotPinScreen.show(context),
+      onPressed: onForgotPinPressed ?? () => ForgotPinScreen.show(context),
       iconPosition: IconPosition.start,
       text: Text.rich(context.l10n.pinScreenForgotPinCta.toTextSpan(context)),
       dividerSide: DividerSide.top,
@@ -349,13 +359,13 @@ class PinPage extends StatelessWidget {
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
     final body = _pinErrorDialogBody(context, reason);
-    return showPinErrorDialog(context, body);
+    return showPinErrorDialog(context, body, onForgotPinPressed: onForgotPinPressed);
   }
 
   static Future<void> showPinErrorDialog(
     BuildContext context,
     String description, {
-    PinRecoveryMethod? recoveryMethod,
+    VoidCallback? onForgotPinPressed,
   }) async {
     final title = context.l10n.pinErrorDialogTitle;
     return showDialog<void>(
@@ -371,7 +381,11 @@ class PinPage extends StatelessWidget {
               child: Text.rich(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase().toTextSpan(context)),
               onPressed: () {
                 Navigator.of(context).pop();
-                ForgotPinScreen.show(context);
+                if (onForgotPinPressed != null) {
+                  onForgotPinPressed();
+                } else {
+                  ForgotPinScreen.show(context);
+                }
               },
             ),
             TextButton(

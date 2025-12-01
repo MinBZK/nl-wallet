@@ -146,14 +146,61 @@ class WalletRoutes {
   static const walletTransferTargetRoute = '/wallet_transfer/target';
   static const walletTransferFaqRoute = '/settings/wallet_transfer_faq';
 
+  static final Map<String, WidgetBuilder Function(RouteSettings)> _routeBuilders = {
+    WalletRoutes.splashRoute: (_) => _createSplashScreenBuilder,
+    WalletRoutes.qrRoute: (_) => _createQrScreenBuilder,
+    WalletRoutes.introductionRoute: (_) => _createIntroductionScreenBuilder,
+    WalletRoutes.introductionPrivacyRoute: (_) => _createIntroductionPrivacyScreenBuilder,
+    WalletRoutes.aboutRoute: (_) => _createAboutScreenBuilder,
+    WalletRoutes.pinRoute: (_) => _createPinScreenBuilder,
+    WalletRoutes.setupSecurityRoute: (_) => _createSetupSecurityScreenBuilder,
+    WalletRoutes.menuRoute: (_) => _createMenuScreenBuilder,
+    WalletRoutes.dashboardRoute: _createDashboardScreenBuilder,
+    WalletRoutes.cardDetailRoute: _createCardDetailScreenBuilder,
+    WalletRoutes.cardDataRoute: _createCardDataScreenBuilder,
+    WalletRoutes.cardHistoryRoute: _createCardHistoryScreenBuilder,
+    WalletRoutes.demoRoute: (_) => _createDemoScreenBuilder,
+    WalletRoutes.contactRoute: (_) => _createContactScreenBuilder,
+    WalletRoutes.themeRoute: (_) => _createThemeScreenBuilder,
+    WalletRoutes.disclosureRoute: _createDisclosureScreenBuilder,
+    WalletRoutes.forgotPinRoute: _createForgotPinScreenBuilder,
+    WalletRoutes.policyRoute: _createPolicyScreenBuilder,
+    WalletRoutes.issuanceRoute: _createIssuanceScreenBuilder,
+    WalletRoutes.signRoute: _createSignScreenBuilder,
+    WalletRoutes.walletPersonalizeRoute: _createWalletPersonalizeScreenBuilder,
+    WalletRoutes.walletHistoryRoute: (_) => _createHistoryOverviewScreenBuilder,
+    WalletRoutes.historyDetailRoute: _createHistoryDetailScreenBuilder,
+    WalletRoutes.organizationDetailRoute: _createOrganizationDetailScreenBuilder,
+    WalletRoutes.changeLanguageRoute: (_) => _createChangeLanguageScreenBuilder,
+    WalletRoutes.changePinRoute: (_) => _createChangePinScreenBuilder,
+    WalletRoutes.pinRecoveryRoute: _createPinRecoveryScreenBuilder,
+    WalletRoutes.pinTimeoutRoute: _createPinTimeoutScreenBuilder,
+    WalletRoutes.pinBlockedRoute: _createPinBlockedScreenBuilder,
+    WalletRoutes.loginDetailRoute: _createLoginDetailScreenBuilder,
+    WalletRoutes.settingsRoute: (_) => _createSettingsScreenBuilder,
+    WalletRoutes.needHelpRoute: (_) => _createNeedHelpScreenBuilder,
+    WalletRoutes.biometricsSettingsRoute: (_) => _createBiometricsSettingsScreenBuilder,
+    WalletRoutes.privacyPolicyRoute: (_) => _createPrivacyPolicyScreenBuilder,
+    WalletRoutes.updateInfoRoute: (_) => _createUpdateInfoScreenBuilder,
+    WalletRoutes.tourOverviewRoute: (_) => _createTourOverviewScreenBuilder,
+    WalletRoutes.tourVideoRoute: _createTourVideoScreenBuilder,
+    WalletRoutes.renewPidRoute: _createRenewPidScreenBuilder,
+    WalletRoutes.walletTransferSourceRoute: _createWalletTransferSourceRoute,
+    WalletRoutes.walletTransferTargetRoute: _createWalletTransferTargetRoute,
+    WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
+  };
+
   static Route<dynamic> routeFactory(RouteSettings settings) {
-    final WidgetBuilder builder = _widgetBuilderFactory(settings);
-    final pageTransition = _resolvePageTransition(settings);
+    final builderFactory = _routeBuilders[settings.name];
+    if (builderFactory == null) {
+      throw UnsupportedError('Unknown route: ${settings.name}');
+    }
+
+    final builder = builderFactory(settings);
     if (publicRoutes.contains(settings.name)) {
       return MaterialPageRoute(builder: builder, settings: settings);
-    } else {
-      return SecuredPageRoute(builder: builder, settings: settings, transition: pageTransition);
     }
+    return SecuredPageRoute(builder: builder, settings: settings, transition: _resolvePageTransition(settings));
   }
 
   static SecuredPageTransition _resolvePageTransition(RouteSettings settings) {
@@ -164,95 +211,6 @@ class WalletRoutes {
         return SecuredPageTransition.slideInFromBottom;
       default:
         return SecuredPageTransition.platform;
-    }
-  }
-
-  static WidgetBuilder _widgetBuilderFactory(RouteSettings settings) {
-    switch (settings.name) {
-      case WalletRoutes.splashRoute:
-        return _createSplashScreenBuilder;
-      case WalletRoutes.qrRoute:
-        return _createQrScreenBuilder;
-      case WalletRoutes.introductionRoute:
-        return _createIntroductionScreenBuilder;
-      case WalletRoutes.introductionPrivacyRoute:
-        return _createIntroductionPrivacyScreenBuilder;
-      case WalletRoutes.aboutRoute:
-        return _createAboutScreenBuilder;
-      case WalletRoutes.pinRoute:
-        return _createPinScreenBuilder;
-      case WalletRoutes.setupSecurityRoute:
-        return _createSetupSecurityScreenBuilder;
-      case WalletRoutes.menuRoute:
-        return _createMenuScreenBuilder;
-      case WalletRoutes.dashboardRoute:
-        return _createDashboardScreenBuilder(settings);
-      case WalletRoutes.cardDetailRoute:
-        return _createCardDetailScreenBuilder(settings);
-      case WalletRoutes.cardDataRoute:
-        return _createCardDataScreenBuilder(settings);
-      case WalletRoutes.cardHistoryRoute:
-        return _createCardHistoryScreenBuilder(settings);
-      case WalletRoutes.demoRoute:
-        return _createDemoScreenBuilder;
-      case WalletRoutes.contactRoute:
-        return _createContactScreenBuilder;
-      case WalletRoutes.themeRoute:
-        return _createThemeScreenBuilder;
-      case WalletRoutes.disclosureRoute:
-        return _createDisclosureScreenBuilder(settings);
-      case WalletRoutes.forgotPinRoute:
-        return _createForgotPinScreenBuilder(settings);
-      case WalletRoutes.policyRoute:
-        return _createPolicyScreenBuilder(settings);
-      case WalletRoutes.issuanceRoute:
-        return _createIssuanceScreenBuilder(settings);
-      case WalletRoutes.signRoute:
-        return _createSignScreenBuilder(settings);
-      case WalletRoutes.walletPersonalizeRoute:
-        return _createWalletPersonalizeScreenBuilder(settings);
-      case WalletRoutes.walletHistoryRoute:
-        return _createHistoryOverviewScreenBuilder;
-      case WalletRoutes.historyDetailRoute:
-        return _createHistoryDetailScreenBuilder(settings);
-      case WalletRoutes.organizationDetailRoute:
-        return _createOrganizationDetailScreenBuilder(settings);
-      case WalletRoutes.changeLanguageRoute:
-        return _createChangeLanguageScreenBuilder;
-      case WalletRoutes.changePinRoute:
-        return _createChangePinScreenBuilder;
-      case WalletRoutes.pinRecoveryRoute:
-        return _createPinRecoveryScreenBuilder(settings);
-      case WalletRoutes.pinTimeoutRoute:
-        return _createPinTimeoutScreenBuilder(settings);
-      case WalletRoutes.pinBlockedRoute:
-        return _createPinBlockedScreenBuilder(settings);
-      case WalletRoutes.loginDetailRoute:
-        return _createLoginDetailScreenBuilder(settings);
-      case WalletRoutes.settingsRoute:
-        return _createSettingsScreenBuilder;
-      case WalletRoutes.needHelpRoute:
-        return _createNeedHelpScreenBuilder;
-      case WalletRoutes.biometricsSettingsRoute:
-        return _createBiometricsSettingsScreenBuilder;
-      case WalletRoutes.privacyPolicyRoute:
-        return _createPrivacyPolicyScreenBuilder;
-      case WalletRoutes.updateInfoRoute:
-        return _createUpdateInfoScreenBuilder;
-      case WalletRoutes.tourOverviewRoute:
-        return _createTourOverviewScreenBuilder;
-      case WalletRoutes.tourVideoRoute:
-        return _createTourVideoScreenBuilder(settings);
-      case WalletRoutes.renewPidRoute:
-        return _createRenewPidScreenBuilder(settings);
-      case WalletRoutes.walletTransferSourceRoute:
-        return _createWalletTransferSourceRoute(settings);
-      case WalletRoutes.walletTransferTargetRoute:
-        return _createWalletTransferTargetRoute(settings);
-      case WalletRoutes.walletTransferFaqRoute:
-        return _createWalletTransferFaqScreenBuilder;
-      default:
-        throw UnsupportedError('Unknown route: ${settings.name}');
     }
   }
 
@@ -316,7 +274,8 @@ WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     final CardDetailScreenArgument argument = CardDetailScreen.getArgument(settings);
     return BlocProvider<CardDetailBloc>(
-      create: (context) => CardDetailBloc(context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
+      create: (context) =>
+          CardDetailBloc(context.read(), context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
       child: CardDetailScreen(cardTitle: argument.cardTitle.l10nValue(context)),
     );
   };

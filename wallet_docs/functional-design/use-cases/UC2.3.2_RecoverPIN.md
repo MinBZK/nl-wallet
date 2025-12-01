@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Forgot PIN' in [PF2.4 Confirm a protected action](../partial-flows/PF2.4_ConfirmProtectedAction.md), [PF2.8 Validate PIN](../partial-flows/PF2.8_ValidatePin.md) or [UC2.3 Unlock the app](UC2.3_UnlockTheApp.md)</li></ul> |
 | **Additional Documentation** | <ul><li>[PIN validation](../../architecture/use-cases/pin-validation)</li></ul>                                                                                                                                                                   |
 | **Possible errors**          | *None*                                                                                                                                                                                                                                            |
-| **Logical Test Cases**       | <ul><li>[LTC83 Recover PIN Happy flow](../logical-test-cases.md#ltc83)</li></ul>                                                                                                                                                                  |
+| **Logical Test Cases**       | <ul><li>[LTC41 Recover PIN](../logical-test-cases.md#ltc41)</li></ul>                                                                                                                                                                  |
 
 ---
 

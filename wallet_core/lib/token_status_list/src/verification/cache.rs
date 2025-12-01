@@ -53,7 +53,10 @@ impl Expiry<Url, CachedResult> for TokenExpiry {
     }
 }
 
-impl<C: StatusListClient> StatusListClient for CachedStatusListClient<C> {
+impl<C> StatusListClient for CachedStatusListClient<C>
+where
+    C: StatusListClient + Sync,
+{
     async fn fetch(&self, url: Url) -> Result<StatusListToken, StatusListClientError> {
         self.cache.get_with(url.clone(), self.client.fetch(url)).await
     }
@@ -84,7 +87,7 @@ mod test {
 
     use crate::status_list_token::StatusListClaims;
     use crate::status_list_token::mock::create_status_list_token;
-    use crate::verification::client::MockStatusListClient;
+    use crate::verification::client::mock::MockStatusListClient;
 
     use super::*;
 

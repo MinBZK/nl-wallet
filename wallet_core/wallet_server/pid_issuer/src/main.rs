@@ -62,8 +62,8 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         &hsm,
     )
     .await?;
-    let status_list_service = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
-    status_list_service.initialize_lists().await?;
+    let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
+    status_list_services.initialize_lists().await?;
     let status_list_router = settings
         .status_lists
         .serve
@@ -73,7 +73,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                     .into_iter()
                     .map(|(_, settings)| {
                         (
-                            settings.status_list.context_path.clone(),
+                            settings.status_list.context_path.as_str(),
                             settings.status_list.publish_dir.clone(),
                         )
                     }),
@@ -89,7 +89,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         hsm,
         sessions,
         settings.wua_issuer_pubkey.into_inner(),
-        status_list_service,
+        status_list_services,
         status_list_router,
     )
     .await

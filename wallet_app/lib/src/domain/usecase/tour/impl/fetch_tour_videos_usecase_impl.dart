@@ -77,7 +77,7 @@ class FetchTourVideosUseCaseImpl extends FetchTourVideosUseCase {
   /// with the appropriate [AppLocalizations] instance for each locale.
   @visibleForTesting
   LocalizedText createLocalizedText(LocalizationGetter getter) {
-    final supportedL10nLocales = AppLocalizations.supportedLocales;
+    const supportedL10nLocales = AppLocalizations.supportedLocales;
     return supportedL10nLocales.toMap((locale) => getter(lookupAppLocalizations(locale)));
   }
 

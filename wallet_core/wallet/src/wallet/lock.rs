@@ -232,13 +232,6 @@ where
         S: Storage,
     {
         info!("Unlocking wallet without pin");
-        let config = &self.config_repository.get();
-
-        info!("Fetching update policy");
-        self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
-            .await?;
-
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(WalletUnlockError::VersionBlocked);

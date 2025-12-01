@@ -102,7 +102,7 @@ where
 
         if let Some(session) = &self.session {
             return match session {
-                Session::Digid(_) => Ok(WalletState::Issuance),
+                Session::Digid { .. } => Ok(WalletState::Issuance),
                 Session::Issuance(_) => Ok(WalletState::Issuance),
                 Session::Disclosure(_) => Ok(WalletState::Disclosure),
                 Session::PinRecovery { .. } => Ok(WalletState::PinRecovery),
@@ -130,6 +130,7 @@ mod tests {
     use openid4vc::issuance_session::IssuedCredential;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
+    use crate::PidIssuancePurpose;
     use crate::WalletState;
     use crate::WalletTransferRole;
     use crate::pin::change::State;
@@ -265,7 +266,7 @@ mod tests {
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             attestations,
             pid_issuer,
         )));
@@ -295,7 +296,10 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup an active Digid session.
-        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+        wallet.session = Some(Session::Digid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session: MockDigidSession::new(),
+        });
 
         wallet
             .mut_storage()
@@ -393,7 +397,10 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup an active Digid session.
-        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+        wallet.session = Some(Session::Digid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session: MockDigidSession::new(),
+        });
 
         wallet
             .mut_storage()

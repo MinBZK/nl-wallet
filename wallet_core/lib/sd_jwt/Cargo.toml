@@ -43,7 +43,7 @@ crypto.path = "../crypto"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
-token_status_list.path = "../token_status_list"
+token_status_list = { path = "../token_status_list", features = ["verification"] }
 utils.path = "../utils"
 
 [dev-dependencies]

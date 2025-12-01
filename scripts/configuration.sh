@@ -12,7 +12,7 @@ WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 DEMO_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/demo/demo_relying_party"
 DEMO_ISSUER_DIR="${WALLET_CORE_DIR}/demo/demo_issuer"
 DEMO_INDEX_DIR="${WALLET_CORE_DIR}/demo/demo_index"
-CS_DIR="${WALLET_CORE_DIR}/configuration_server"
+STATIC_SERVER_DIR="${WALLET_CORE_DIR}/static_server"
 UPS_DIR="${WALLET_CORE_DIR}/update_policy/server"
 GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
@@ -20,7 +20,7 @@ DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 
 # source user variables
-[ -f "${SCRIPTS_DIR}/.env" ] && . "${SCRIPTS_DIR}/.env"
+[[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"
 
 # Path and repository of the nl-rdo-max repository
 export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}"/nl-rdo-max}
@@ -33,7 +33,7 @@ DIGID_CONNECTOR_BASE_COMMIT="e6daa09f94efe434c62e9617bd768fd909174a41"
 export SERVICES_HOST=localhost
 
 export WALLET_PROVIDER_PORT=3000
-export CONFIG_SERVER_PORT=3001
+export STATIC_SERVER_PORT=3001
 export UPDATE_POLICY_SERVER_PORT=3002
 
 export PID_ISSUER_WS_PORT=3003
@@ -82,6 +82,7 @@ export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
 export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
 export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
 export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
+export HSM_TOKEN=${HSM_TOKEN:-test_token}
 
 # WALLET_CLIENT_ID=$(uuidgen)
 # export WALLET_CLIENT_ID

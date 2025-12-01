@@ -6,28 +6,21 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-use attestation_data::attributes::AttributeValue;
-use attestation_types::claim_path::ClaimPath;
-use dcql::CredentialFormat;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
-use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oidc::OidcError;
-use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
-use utils::vec_at_least::NonEmptyIterator;
-use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
-use wallet_configuration::wallet_config::PidAttributesConfiguration;
+use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -50,6 +43,7 @@ use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
+use crate::wallet::recovery_code::RecoveryCodeError;
 
 use super::IssuanceError;
 use super::Session;
@@ -74,17 +68,6 @@ pub enum PinRecoveryError {
     #[error("error during PID issuance: {0}")]
     Issuance(#[from] IssuanceError),
 
-    #[error("no recovery code found in PID")]
-    #[category(unexpected)]
-    MissingRecoveryCode,
-
-    #[error("incorrect recovery code: expected {expected}, received {received}")]
-    #[category(pd)]
-    IncorrectRecoveryCode {
-        expected: AttributeValue,
-        received: AttributeValue,
-    },
-
     #[error("the new PIN does not adhere to requirements: {0}")]
     #[category(expected)]
     PinValidation(#[from] PinValidationError),
@@ -97,10 +80,6 @@ pub enum PinRecoveryError {
     #[category(unexpected)]
     Storage(#[from] StorageError),
 
-    #[error("no PID received")]
-    #[category(unexpected)]
-    MissingPid,
-
     #[error("failed to disclose recovery code to WP: {0}")]
     DiscloseRecoveryCode(#[source] InstructionError),
 
@@ -112,12 +91,15 @@ pub enum PinRecoveryError {
     #[category(expected)]
     DeniedDigiD,
 
-    #[error("could not query attestations in database: {0}")]
-    AttestationQuery(#[source] StorageError),
-
     #[error("cannot recover PIN without a PID")]
     #[category(critical)]
     NoPidPresent,
+
+    #[error("recovery code error: {0}")]
+    RecoveryCode(#[from] RecoveryCodeError),
+
+    #[error("PID configuration error: {0}")]
+    PidAttributesConfiguration(#[from] PidAttributesConfigurationError),
 }
 
 impl From<DigidError> for PinRecoveryError {
@@ -174,8 +156,7 @@ where
             .read()
             .await
             .has_any_attestations_with_types(pid_attestation_types.as_slice())
-            .await
-            .map_err(PinRecoveryError::AttestationQuery)?;
+            .await?;
         if !has_pid {
             return Err(PinRecoveryError::NoPidPresent);
         }
@@ -245,69 +226,14 @@ where
             unreachable!("session contained no PinRecoveryDigid"); // we just checked this above
         };
 
+        // Fetch issuance previews
         let config = self.config_repository.get();
         let token_request = session
             .into_token_request(&config.pid_issuance.digid_http_config, redirect_uri)
             .await?;
-
-        // Check the recovery code in the received PID against the one in the stored PID, as otherwise
-        // the WP will reject our PIN recovery instructions.
-        let (received_recovery_code, session) = self
-            .pin_recovery_start_issuance(token_request, &pid_config, &config)
-            .await?;
-
-        let pid_attestation_types = pid_config.sd_jwt.keys().map(String::as_str).collect();
-        let stored_pid_copy = self
-            .storage
-            .read()
-            .await
-            .fetch_unique_attestations_by_types_and_format(&pid_attestation_types, CredentialFormat::SdJwt)
-            .await
-            .map_err(IssuanceError::AttestationQuery)?
-            .pop()
-            .expect("no PID found in registered wallet");
-
-        let attestation_type = stored_pid_copy.attestation_type().to_string();
-        let attributes = stored_pid_copy.into_attributes();
-        let stored_recovery_code = attributes
-            .get(&Self::recovery_code_path(&pid_config, &attestation_type))
-            .expect("failed to retrieve recovery code from PID")
-            .ok_or(PinRecoveryError::MissingRecoveryCode)?;
-
-        if *stored_recovery_code != received_recovery_code {
-            return Err(PinRecoveryError::IncorrectRecoveryCode {
-                expected: stored_recovery_code.clone(),
-                received: received_recovery_code,
-            });
-        }
-
-        self.session.replace(Session::PinRecovery { pid_config, session });
-
-        Ok(())
-    }
-
-    fn recovery_code_path(pid_config: &PidAttributesConfiguration, attestation_type: &str) -> VecNonEmpty<ClaimPath> {
-        pid_config
-            .sd_jwt
-            .get(attestation_type)
-            .expect("stored PID had no corresponding PID configuration")
-            .recovery_code
-            .nonempty_iter()
-            .map(|path| ClaimPath::SelectByKey(path.to_string()))
-            .collect()
-    }
-
-    #[instrument(skip_all)]
-    async fn pin_recovery_start_issuance(
-        &mut self,
-        token_request: TokenRequest,
-        pid_config: &PidAttributesConfiguration,
-        config: &WalletConfiguration,
-    ) -> Result<(AttributeValue, PinRecoverySession<<DC as DigidClient>::Session, IS>), PinRecoveryError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
             .expect("Could not build reqwest HTTP client");
-
         let issuance_session = IS::start_issuance(
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
             config.pid_issuance.pid_issuer_url.clone(),
@@ -317,37 +243,23 @@ where
         .await
         .map_err(IssuanceError::from)?;
 
-        let normalized_credential_previews = issuance_session.normalized_credential_preview();
-        let pid_preview = normalized_credential_previews
-            .iter()
-            .find(|preview| {
-                preview.content.copies_per_format.get(&Format::SdJwt).is_some()
-                    && pid_config
-                        .sd_jwt
-                        .contains_key(&preview.content.credential_payload.attestation_type)
-            })
-            .ok_or(PinRecoveryError::MissingPid)?;
-
-        let recovery_code = pid_preview
-            .content
-            .credential_payload
-            .attributes
-            .get(&Self::recovery_code_path(
-                &config.pid_attributes,
-                &pid_preview.content.credential_payload.attestation_type,
-            ))
-            .expect("failed to retrieve recovery code from PID")
-            .ok_or(PinRecoveryError::MissingRecoveryCode)?
-            .clone();
-
         info!("successfully received token and previews from issuer");
 
-        let session = PinRecoverySession::Issuance {
-            pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
-            issuance_session,
-        };
+        // Check the recovery code in the received PID against the one in the stored PID, as otherwise
+        // the WP will reject our PIN recovery instructions.
+        let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), &pid_config)?;
+        self.compare_recovery_code_against_stored(pid_preview, &pid_config)
+            .await?;
 
-        Ok((recovery_code, session))
+        self.session.replace(Session::PinRecovery {
+            pid_config,
+            session: PinRecoverySession::Issuance {
+                pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
+                issuance_session,
+            },
+        });
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -489,7 +401,7 @@ where
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(&Self::recovery_code_path(pid_config, &pid_attestation_type))
+            .disclose(&pid_config.recovery_code_path(&pid_attestation_type)?)
             .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
             .finish()
             .into();
@@ -590,10 +502,11 @@ mod tests {
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
+    use crate::wallet::recovery_code::RecoveryCodeError;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
-    use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
 
@@ -674,7 +587,7 @@ mod tests {
             client
                 .expect_normalized_credential_previews()
                 .once()
-                .return_const(vec![create_example_preview_data(
+                .return_const(vec![create_example_pid_preview_data(
                     &MockTimeGenerator::default(),
                     Format::SdJwt,
                 )]);
@@ -909,7 +822,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
 
             // Remove the recovery code attribute from the preview
-            let mut preview = create_example_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+            let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             preview
                 .content
                 .credential_payload
@@ -931,7 +844,10 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_matches!(err, PinRecoveryError::MissingRecoveryCode);
+        assert_matches!(
+            err,
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode)
+        );
     }
 
     #[tokio::test]
@@ -966,7 +882,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
 
             // Change the recovery code attribute from the preview
-            let mut preview = create_example_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+            let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
             let attributes = &mut preview.content.credential_payload.attributes;
             attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
@@ -1006,7 +922,10 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_matches!(err, PinRecoveryError::IncorrectRecoveryCode { .. });
+        assert_matches!(
+            err,
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. })
+        );
     }
 
     // Failing unit tests for complete_pid_recovery()

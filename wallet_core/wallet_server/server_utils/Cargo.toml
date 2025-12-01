@@ -13,7 +13,15 @@ doctest = false
 [features]
 parsed_key_pair_conversion = []
 # Include session storage in PostgreSQL
-postgres = ["dep:serde_json", "dep:sea-orm", "dep:strum"]
+postgres = [
+    "dep:serde_json",
+    "dep:strum",
+    "sea-orm/macros",
+    "sea-orm/runtime-tokio-rustls",
+    "sea-orm/sqlx-postgres",
+    "sea-orm/with-chrono",
+    "sea-orm/with-json",
+]
 test = []
 
 [dependencies]
@@ -45,15 +53,9 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
-sea-orm = { workspace = true, optional = true, features = [
-    "macros",
-    "runtime-tokio-rustls",
-    "sqlx-postgres",
-    "with-chrono",
-    "with-json",
-] }
+sea-orm = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-strum = { workspace = true, optional = true, features = ["derive"] }
+strum = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"

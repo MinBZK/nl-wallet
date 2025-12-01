@@ -132,10 +132,10 @@ test-sea-orm-generate-entity:
     - set -euxo pipefail
     - cd wallet_core
 
-test-configuration-server-compilation:
+test-static-server-compilation:
   extends: .build-binary
   script:
-    - cargo check --locked --release --package configuration_server --bin configuration_server
+    - cargo check --locked --release --package static_server --bin static_server
 
 build-update-policy-server-binary:
   extends: .build-binary

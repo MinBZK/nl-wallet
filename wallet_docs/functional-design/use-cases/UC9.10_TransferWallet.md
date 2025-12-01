@@ -3,7 +3,7 @@
 ## Overview
 
 | Aspect                       | Description                                                                                                                                                                                                                                                                |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Summary**                  | When a user activates a second wallet, they can decide to move their original wallet to this new device. With the source device, they scan a QR displayed on the target device to initiate the transfer. Afterwards, the source device is empty.                           |
 | **Goal**                     | Allow the user to transfer attestation data, usage log and user settings from one device to another.                                                                                                                                                                       |
 | **Preconditions**            | <ul><li>Destination Wallet is a fresh installation of NL Wallet, that is just activated using DigiD, containing a valid PID.</li><li>Source Wallet is an existing, valid NL Wallet installation, containing attestations, transaction history and user settings.</li></ul> |
@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Yes move' in [UC3.1 Obtain PID](UC3.1_ObtainPidFromProvider.md)</li></ul>                                                                                                                                                                            |
 | **Additional documentation** | <ul><li>[Wallet device transfer](../../architecture/use-cases/recovery_usecases.md)</li></ul>                                                                                                                                                                              |
 | **Possible errors**          | <ul><li>[No Internet](../errors.md#no-internet)</li><li>[Server Unreachable](../errors.md#server-unreachable)</li></ul>                                                                                                                                                    |
-| **Logical test cases**       | <ul><li>[LTC79 Wallet transfer happy flow](../logical-test-cases.md#ltc79)</li><li>[LTC80 User stops transfer on source device](../logical-test-cases.md#ltc80)</li><li>[LTC81 User stops transfer on destination device](../logical-test-cases.md#ltc81)</li></ul>        |
+| **Logical test cases**       | <ul><li>[LTC62 Transfer Wallet](../logical-test-cases.md#ltc62)</li><li>[LTC63 Stop transfer on source device](../logical-test-cases.md#ltc63)</li><li>[LTC64 Stop transfer on destination device](../logical-test-cases.md#ltc64)</li></ul>                               |
 
 ---
 

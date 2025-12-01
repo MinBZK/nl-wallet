@@ -7,6 +7,7 @@ use url::Url;
 
 use flutter_api_macros::flutter_api_error;
 use wallet::DisclosureUriSource;
+use wallet::PidIssuancePurpose;
 use wallet::UnlockMethod;
 use wallet::Wallet;
 use wallet::errors::WalletInitError;
@@ -221,15 +222,20 @@ pub async fn identify_uri(uri: String) -> anyhow::Result<IdentifyUriResult> {
 pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
-    let auth_url = wallet.create_pid_issuance_auth_url().await?;
+    let auth_url = wallet
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
+        .await?;
 
     Ok(auth_url.into())
 }
 
 #[flutter_api_error]
 pub async fn create_pid_renewal_redirect_uri() -> anyhow::Result<String> {
-    // TODO: Implement as part of PVW-4586
-    Ok("pid_renewal_url".into())
+    let mut wallet = wallet().write().await;
+
+    let auth_url = wallet.create_pid_issuance_auth_url(PidIssuancePurpose::Renewal).await?;
+
+    Ok(auth_url.into())
 }
 
 #[flutter_api_error]
