@@ -89,6 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
@@ -1013,6 +1014,17 @@ instructs user to choose a new PIN</p>
 <strong>Then</strong> system offers user option to select another card<br />
 <strong>When</strong> user selects a card<br />
 <strong>Then</strong> the requested attributes are disclosed from the previously selected card</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ltc66">
+<h3>LTC66<a class="headerlink" href="#ltc66" title="Link to this heading"></a></h3>
+<section id="renew-pid">
+<h4>Renew PID<a class="headerlink" href="#renew-pid" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has issued PID
+<strong>When</strong> user renews PID<br />
+<strong>Then</strong> PID is renewed<br />
+<strong>And</strong> a card renewal event is added to the history</p>
 </section>
 </section>
 </section>

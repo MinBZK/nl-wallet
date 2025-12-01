@@ -89,6 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
@@ -228,7 +229,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.1</strong></p></td>
-<td><p><strong>System displays screen ‘Card’</strong><ul><li>[Card title]</li><li>Actions: Details in this card, Card activities, About the Issuer, Help, Back</li></ul></p></td>
+<td><p><strong>System displays screen ‘Card’</strong><ul><li>[Card title]</li><li>Actions: Details in this card, Card activities, About the Issuer, Help, Replace card via DigiD (When PID), Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1a</p></td>
@@ -248,70 +249,74 @@
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
 <tr class="row-even"><td><p>1.1e</p></td>
+<td><p>User selects Replace Card via DigiD</p></td>
+<td><p>Go to: <a class="reference internal" href="UC3.2_RenewPid.html"><span class="std std-doc">UC3.2 Renew PID</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.1f</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>2</strong></p></td>
+<tr class="row-even"><td><p><strong>2</strong></p></td>
 <td><p><strong>INSPECT CARD DETAILS</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>2.1</strong></p></td>
+<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
 <td><p><strong>System displays screen ‘Card details’</strong><ul><li>Message: Do not show this screen to anyone else</li><li>Lists all data from the selected card</li><li>Actions: Details Incorrect, Help, Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>2.1a</p></td>
+<tr class="row-even"><td><p>2.1a</p></td>
 <td><p>User selects Details Incorrect</p></td>
 <td><p>3</p></td>
 </tr>
-<tr class="row-even"><td><p>2.1b</p></td>
+<tr class="row-odd"><td><p>2.1b</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-odd"><td><p>2.1c</p></td>
+<tr class="row-even"><td><p>2.1c</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>3</strong></p></td>
+<tr class="row-odd"><td><p><strong>3</strong></p></td>
 <td><p><strong>WHEN CARD DETAILS ARE INCORRECT</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>3.1</strong></p></td>
+<tr class="row-even"><td><p><strong>3.1</strong></p></td>
 <td><p><strong>System displays screen ‘Details incorrect?’</strong><ul><li>Message: Details Incorrect</li><li>Actions: Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>3.1a</p></td>
+<tr class="row-odd"><td><p>3.1a</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>4</strong></p></td>
+<tr class="row-even"><td><p><strong>4</strong></p></td>
 <td><p><strong>INSPECT ISSUER DETAILS</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>4.1</strong></p></td>
+<tr class="row-odd"><td><p><strong>4.1</strong></p></td>
 <td><p><strong>System displays screen ‘About Organization’</strong><ul><li>About [Organization]</li><li>Logo and organization details</li><li>Actions: Report Problem, Help, Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>4.1a</p></td>
+<tr class="row-even"><td><p>4.1a</p></td>
 <td><p>User selects Report Problem</p></td>
 <td><p>5</p></td>
 </tr>
-<tr class="row-even"><td><p>4.1b</p></td>
+<tr class="row-odd"><td><p>4.1b</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-odd"><td><p>4.1c</p></td>
+<tr class="row-even"><td><p>4.1c</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>5</strong></p></td>
+<tr class="row-odd"><td><p><strong>5</strong></p></td>
 <td><p><strong>REPORT A PROBLEM</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>5.1</strong></p></td>
+<tr class="row-even"><td><p><strong>5.1</strong></p></td>
 <td><p><strong>System displays screen ‘Under construction’</strong><ul><li>Actions: Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>5.1a</p></td>
+<tr class="row-odd"><td><p>5.1a</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>

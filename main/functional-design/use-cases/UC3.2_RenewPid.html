@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Use Case 2.3.2 Recover PIN &mdash; NL Wallet 0.4.0-dev documentation</title>
+  <title>Use Case 3.3 Renew PID &mdash; NL Wallet 0.4.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=79eb5478" />
@@ -23,8 +23,8 @@
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Use Case 2.3 Unlock the app" href="UC2.3_UnlockTheApp.html" />
-    <link rel="prev" title="Use Case 2.2 Change biometric unlock" href="UC2.2_ChangeBiometricUnlock.html" /> 
+    <link rel="next" title="Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer" href="UC4.1_ObtainCardsFromEAAIssuer.html" />
+    <link rel="prev" title="Use Case 3.1 Obtain PID" href="UC3.1_ObtainPidFromProvider.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -85,11 +85,11 @@
 <li class="toctree-l2"><a class="reference internal" href="UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
-<li class="toctree-l2"><a class="reference internal" href="UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 3.3 Renew PID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
@@ -165,9 +165,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../use-cases.html">Use Cases</a></li>
-      <li class="breadcrumb-item active">Use Case 2.3.2 Recover PIN</li>
+      <li class="breadcrumb-item active">Use Case 3.3 Renew PID</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/functional-design/use-cases/UC2.3.2_RecoverPIN.md.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/functional-design/use-cases/UC3.2_RenewPid.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -175,8 +175,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="use-case-2-3-2-recover-pin">
-<h1>Use Case 2.3.2 Recover PIN<a class="headerlink" href="#use-case-2-3-2-recover-pin" title="Link to this heading"></a></h1>
+  <section id="use-case-3-3-renew-pid">
+<h1>Use Case 3.3 Renew PID<a class="headerlink" href="#use-case-3-3-renew-pid" title="Link to this heading"></a></h1>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
@@ -187,28 +187,28 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Summary</strong></p></td>
-<td><p>The user forgets PIN, then authenticates at DigiD and choosing and confirming a new PIN that meets policy requirements.</p></td>
+<td><p>The user renews Person Identification Data (PID) by first authenticating themselves using DigiD (with ID card or driver’s license),<br>checking the offered PID and entering their PIN to complete the process.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Goal</strong></p></td>
-<td><p>Recover from a forgotten remote PIN and regain access to the app.</p></td>
+<td><p>Renewing the Person Identification Data (PID).</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Preconditions</strong></p></td>
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Postconditions</strong></p></td>
-<td><p><ul><li>User has regained access and can use the new PIN in the Wallet.</li><li>Old PIN can not be used anymore.</li></ul></p></td>
+<td><p><ul><li>Renewed PID is issued to and stored in the App.</li><li>The PID renewal event is added in the history.</li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Triggered by</strong></p></td>
-<td><p><ul><li>User selects ‘Forgot PIN’ in <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a>, <a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html"><span class="std std-doc">PF2.8 Validate PIN</span></a> or <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a></li></ul></p></td>
+<td><p><ul><li>User selects ‘Replace card via DigiD’ in screen ‘PID Card detail’</li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/pin-validation.html"><span class="doc std std-doc">PIN validation</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/issuance-with-openid4vci.html"><span class="std std-doc">Issuance</span></a></li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><em>None</em></p></td>
+<td><p><ul><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></li><li><a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></li><li><a class="reference internal" href="../errors.html#generic-error"><span class="std std-ref">Generic Error</span></a></li></ul></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>Logical Test Cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc41"><span class="std std-ref">LTC41 Recover PIN</span></a></li></ul></p></td>
+<tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc66"><span class="std std-ref">LTC66 Renew PID</span></a></li></ul></p></td>
 </tr>
 </tbody>
 </table>
@@ -229,92 +229,116 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.1</strong></p></td>
-<td><p><strong>Displays screen ‘Forgot PIN’</strong><ul><li>Message: Create a new PIN to regain access</li><li>Actions: Forgot PIN, Back, Help </li></ul></p></td>
+<td><p><strong>System displays screen ‘Renew cards via DigiD’</strong><ul><li>Message: Use DigiD to prove who you are</li><li>Actions: Open the DigiD app, Go to DigiD website, Help, Close</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1a</p></td>
-<td><p>User selects Forgot PIN</p></td>
+<td><p>User selects Open the DigiD app</p></td>
 <td><p>1.2</p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1b</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
+<td><p>User selects Go to DigiD website <br>→ System opens DigiD website in browser and suspends app</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1c</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>1.2</strong></p></td>
-<td><p><strong>Displays screen ‘Login with DigiD’</strong><ul><li>Message: This way you can create a new PIN</li>li&gt;Actions: Open the DigiD app, To DigiD website, Back, Help</li></ul></p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p>1.1d</p></td>
+<td><p>User selects Close</p></td>
+<td><p>5</p></td>
 </tr>
-<tr class="row-even"><td><p>1.2a</p></td>
-<td><p>User selects Open the DigiD app</p></td>
-<td><p>1.3</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.2b</p></td>
-<td><p>User selects To DigiD website <br>→ System opens DigiD website in browser and suspends app</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>1.2c</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-odd"><td><p>1.2d</p></td>
-<td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>1.3</strong></p></td>
+<tr class="row-even"><td><p><strong>1.2</strong></p></td>
 <td><p><strong>System awaits DigiD response and displays screen ‘Continue with DigiD’</strong><ul><li>Message: Continue in DigiD app to get your data</li><li>Actions: Stop</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3a</p></td>
+<tr class="row-odd"><td><p>1.2a</p></td>
 <td><p>Event: DigiD returns control to System, authentication successful</p></td>
-<td><p>1.4</p></td>
+<td><p>1.3</p></td>
 </tr>
-<tr class="row-even"><td><p>1.3b</p></td>
+<tr class="row-even"><td><p>1.2b</p></td>
 <td><p>Event: DigiD returns control to System, authentication failed</p></td>
 <td><p>2</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3c</p></td>
+<tr class="row-odd"><td><p>1.2c</p></td>
 <td><p>Event: DigiD returns control to System, login stopped or session expired</p></td>
 <td><p>3</p></td>
 </tr>
-<tr class="row-even"><td><p>1.3d</p></td>
-<td><p>Event: DigiD returns control to System, wrong DigiD account</p></td>
+<tr class="row-even"><td><p>1.2d</p></td>
+<td><p>User selects Stop</p></td>
 <td><p>4</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3e</p></td>
-<td><p>User selects Stop</p></td>
-<td><p>5</p></td>
+<tr class="row-odd"><td><p><strong>1.3</strong></p></td>
+<td><p><strong>System executes PID renewal until preview</strong><ul><li>Data is being retrieved</li><li>Actions: Stop</li><li>Duration: 0.1 - 1.5 seconds</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.3a</p></td>
+<td><p>Event: PID issuance completes successfully</p></td>
+<td><p>1.4</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.3b</p></td>
+<td><p>Error: PID could not be issued successfully</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#generic-error"><span class="std std-ref">Generic</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.3c</p></td>
+<td><p>Error: No internet</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.3d</p></td>
+<td><p>Error: Server unreachable</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>1.4</strong></p></td>
-<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.9_SetupPin.html"><span class="std std-doc">PF2.9 Setup PIN</span></a></strong><ul><li>Cancelable</li></ul></p></td>
+<td><p><strong>System displays screen ‘Verify your data’</strong><ul><li>Message: Are your details correct?</li><li>Actions: Yes continue, No</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.4a</p></td>
-<td><p>Result: PIN setup succeeds</p></td>
+<td><p>User selects Yes, continue</p></td>
 <td><p>1.5</p></td>
 </tr>
 <tr class="row-even"><td><p>1.4b</p></td>
-<td><p>Result: Back</p></td>
-<td><p>Back</p></td>
+<td><p>User selects No</p></td>
+<td><p>6</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.4c</p></td>
-<td><p>Result: Stop</p></td>
-<td><p>1.2</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>1.5</strong></p></td>
-<td><p><strong>System displays screen ‘You have access again’</strong><ul><li>Message: Remember your PIN</li><li>Actions: To my overview, See activity</li></ul></p></td>
+<tr class="row-odd"><td><p><strong>1.5</strong></p></td>
+<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a></strong><ul><li>Not cancelable</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.5a</p></td>
-<td><p>User selects To my overview</p></td>
-<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="doc std std-doc">UC7.1 Show all avail able cards</span></a></p></td>
+<tr class="row-even"><td><p>1.5a</p></td>
+<td><p>Result: Confirm</p></td>
+<td><p>1.6</p></td>
 </tr>
-<tr class="row-even"><td><p>1.5b</p></td>
-<td><p>User selects See activity</p></td>
-<td><p>Go to: <a class="reference internal" href="UC6.3_ShowHistoryEvent.html"><span class="std std-doc">UC6.3 Show event</span></a></p></td>
+<tr class="row-odd"><td><p>1.5b</p></td>
+<td><p>Result: Back</p></td>
+<td><p>1.4</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.6</strong></p></td>
+<td><p><strong>System executes rest of PID renewal</strong><ul><li>Duration: 0.1 - 1.5 seconds</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.6a</p></td>
+<td><p>Event: PID issuance completes successfully</p></td>
+<td><p>1.7</p></td>
+</tr>
+<tr class="row-even"><td><p>1.6b</p></td>
+<td><p>Error: No internet</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.6c</p></td>
+<td><p>Error: Server unreachable</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.7</strong></p></td>
+<td><p><strong>System displays screen ‘Cards replaced’</strong><ul><li>Message: You have replaced your PID</li><li>Actions: To my overview, Help</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.7a</p></td>
+<td><p>User selects To my overview</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="doc std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.7a</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>2</strong></p></td>
 <td><p><strong>WHEN DIGID AUTHENTICATION FAILS</strong></p></td>
@@ -326,14 +350,14 @@
 </tr>
 <tr class="row-odd"><td><p>2.1a</p></td>
 <td><p>User selects Login again</p></td>
-<td><p>1.3</p></td>
+<td><p>1.2</p></td>
 </tr>
 <tr class="row-even"><td><p>2.2b</p></td>
 <td><p>User selects Go to DigiD website <br>→ System opens DigiD website in browser and suspends app</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>3</strong></p></td>
-<td><p><strong>WHEN USER ABORTS OR EXPIRES</strong></p></td>
+<td><p><strong>WHEN USER ABORTS DIGID OR EXPIRES</strong></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>3.1</strong></p></td>
@@ -349,48 +373,76 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>4</strong></p></td>
-<td><p><strong>WHEN USER LOGS IN WITH WRONG DIGID ACCOUNT</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>4.1</strong></p></td>
-<td><p><strong>System displays screen ‘Wrong DigiD’</strong><ul><li>Message: This NL Wallet does not belong to this DigiD account</li><li>Actions: Login again, Go to DigiD website</li></ul></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>4.1a</p></td>
-<td><p>User selects Login again</p></td>
-<td><p>1.3</p></td>
-</tr>
-<tr class="row-even"><td><p>4.2b</p></td>
-<td><p>User selects Go to DigiD website <br>→ System opens DigiD website in browser and suspends app</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>5</strong></p></td>
 <td><p><strong>WHEN USER ABORTS DIGID FROM APP</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>5.1</strong></p></td>
-<td><p><strong>System displays prompt ‘Stop DigiD login?’</strong><ul><li>Actions: Cancel, Stop Login</li></ul></p></td>
+<tr class="row-even"><td><p><strong>4.1</strong></p></td>
+<td><p><strong>System displays prompt ‘Are you sure?’</strong><ul><li>Actions: Back, Stop Login</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>5.1a</p></td>
-<td><p>User selects Cancel</p></td>
+<tr class="row-odd"><td><p>4.1a</p></td>
+<td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p>5.1b</p></td>
+<tr class="row-even"><td><p>4.1b</p></td>
 <td><p>User selects Stop Login</p></td>
 <td><p>4.2</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>5.2</strong></p></td>
+<tr class="row-odd"><td><p><strong>4.2</strong></p></td>
 <td><p><strong>System displays screen ‘Login stopped’</strong><ul><li>Actions: Login again, Go to DigiD website</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>5.2a</p></td>
+<tr class="row-even"><td><p>4.2a</p></td>
 <td><p>User selects Login again</p></td>
-<td><p>1.3</p></td>
+<td><p>1.2</p></td>
 </tr>
-<tr class="row-odd"><td><p>5.2b</p></td>
+<tr class="row-odd"><td><p>4.2b</p></td>
 <td><p>User selects Go to DigiD website <br>→ System opens browser and suspends app</p></td>
 <td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>5</strong></p></td>
+<td><p><strong>WHEN USER STOPS RENEWAL</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>5.1</strong></p></td>
+<td><p><strong>System displays bottom sheet ‘Are you sure you want to stop?’</strong><ul><li>Actions: Yes stop, No</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>5.1a</p></td>
+<td><p>User selects Yes stop</p></td>
+<td><p>2.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>5.1b</p></td>
+<td><p>User selects No</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>5.2</strong></p></td>
+<td><p><strong>System displays screen ‘Stopped’</strong><ul><li>Message: You have stopped</li><li>Actions: Close, Help</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>5.2a</p></td>
+<td><p>User selects Close</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>5.2b</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>6</strong></p></td>
+<td><p><strong>WHEN USER REJECTS RENEWED PID</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>6.1</strong></p></td>
+<td><p><strong>System displays screen ‘Are your details incorrect?’</strong><ul><li>Message: Incorrect details can cause problems</li><li>Actions: Do not add details, Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>6.1a</p></td>
+<td><p>User selects Do not add details</p></td>
+<td><p>6.2</p></td>
+</tr>
+<tr class="row-even"><td><p>6.1b</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
 </tr>
 </tbody>
 </table>
@@ -401,8 +453,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="UC2.2_ChangeBiometricUnlock.html" class="btn btn-neutral float-left" title="Use Case 2.2 Change biometric unlock" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="UC2.3_UnlockTheApp.html" class="btn btn-neutral float-right" title="Use Case 2.3 Unlock the app" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="UC3.1_ObtainPidFromProvider.html" class="btn btn-neutral float-left" title="Use Case 3.1 Obtain PID" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="UC4.1_ObtainCardsFromEAAIssuer.html" class="btn btn-neutral float-right" title="Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -428,7 +480,7 @@
     <div class="rst-other-versions">
         <dl>
             <dt>Branches</dt>
-            <dd><a href="UC2.3.2_RecoverPIN.html">main</a></dd>
+            <dd><a href="UC3.2_RenewPid.html">main</a></dd>
         </dl>
     </div>
 </div><script>
