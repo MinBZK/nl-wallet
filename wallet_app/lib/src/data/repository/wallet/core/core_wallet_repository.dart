@@ -7,6 +7,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/wallet_state.dart';
+import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
 
@@ -18,9 +19,10 @@ class CoreWalletRepository implements WalletRepository {
   @visibleForTesting
   ExitFn exit = io.exit;
 
+  final Mapper<core.WalletState, WalletState> _stateMapper;
   final TypedWalletCore _walletCore;
 
-  CoreWalletRepository(this._walletCore);
+  CoreWalletRepository(this._walletCore, this._stateMapper);
 
   @override
   Future<void> createWallet(String pin) async {
@@ -74,28 +76,6 @@ class CoreWalletRepository implements WalletRepository {
   @override
   Future<WalletState> getWalletState() async {
     final state = await _walletCore.getWalletState();
-    return _mapWalletState(state);
-  }
-
-  WalletState _mapWalletState(core.WalletState state) {
-    return switch (state) {
-      core.WalletState_Ready() => const WalletStateReady(),
-      core.WalletState_Locked() => WalletStateLocked(_mapWalletState(state.subState)),
-      core.WalletState_Transferring() => WalletStateTransferring(switch (state.role) {
-        core.WalletTransferRole.Source => .source,
-        core.WalletTransferRole.Destination => .target,
-      }),
-      core.WalletState_TransferPossible() => const WalletStateTransferPossible(),
-      core.WalletState_Registration() => const WalletStateRegistration(),
-      core.WalletState_Disclosure() => const WalletStateDisclosure(),
-      core.WalletState_Issuance() => const WalletStateIssuance(),
-      core.WalletState_PinChange() => const WalletStatePinChange(),
-      core.WalletState_PinRecovery() => const WalletStatePinRecovery(),
-      core.WalletState_WalletBlocked() => WalletStateWalletBlocked(switch (state.reason) {
-        core.WalletBlockedReason.RequiresAppUpdate => .requiresAppUpdate,
-        core.WalletBlockedReason.BlockedByWalletProvider => .blockedByWalletProvider,
-      }),
-      core.WalletState_Empty() => const WalletStateEmpty(),
-    };
+    return _stateMapper.map(state);
   }
 }
