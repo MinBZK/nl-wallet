@@ -6,7 +6,7 @@ part of 'wallet_card.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => WalletCard(
+_WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => _WalletCard(
   attestationId: json['attestationId'] as String?,
   attestationType: json['attestationType'] as String,
   issuer: Organization.fromJson(json['issuer'] as Map<String, dynamic>),
@@ -23,15 +23,15 @@ WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => WalletCard(
       const [],
 );
 
-Map<String, dynamic> _$WalletCardToJson(WalletCard instance) => <String, dynamic>{
+Map<String, dynamic> _$WalletCardToJson(_WalletCard instance) => <String, dynamic>{
   'attestationId': instance.attestationId,
   'attestationType': instance.attestationType,
   'issuer': instance.issuer.toJson(),
   'status': _$CardStatusEnumMap[instance.status]!,
   'validFrom': instance.validFrom.toIso8601String(),
   'validUntil': instance.validUntil.toIso8601String(),
-  'metadata': instance.metadata.map((e) => e.toJson()).toList(),
   'attributes': instance.attributes.map((e) => e.toJson()).toList(),
+  'metadata': instance.metadata.map((e) => e.toJson()).toList(),
 };
 
 const _$CardStatusEnumMap = {
