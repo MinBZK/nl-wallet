@@ -118,9 +118,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use futures::FutureExt;
+    use http_utils::tls::pinning::TlsPinningConfig;
     use josekit::jwk::Jwk;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use openid4vc::mock::MockIssuanceSession;
     use rstest::rstest;
     use uuid::Uuid;
 
@@ -174,45 +177,13 @@ mod tests {
     }
 
     #[rstest]
-    #[case(false, false, None, None, WalletState::Empty)]
-    #[case(true, false, None, None, WalletState::Empty.lock())]
-    #[case(false, false, None, Some(empty_transfer_data()), WalletState::Empty)]
-    #[case(true, false, None, Some(empty_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, false, None, Some(source_transfer_data()), WalletState::Empty)]
-    #[case(true, false, None, Some(source_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, false, None, Some(destination_transfer_data()), WalletState::Empty)]
-    #[case(true, false, None, Some(destination_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, false, Some(ChangePinData {state: State::Begin}), None, WalletState::Empty)]
-    #[case(true, false, Some(ChangePinData {state: State::Begin}), None, WalletState::Empty.lock())]
-    #[case(false, false, Some(ChangePinData {state: State::Commit}), None, WalletState::Empty)]
-    #[case(true, false, Some(ChangePinData {state: State::Commit}), None, WalletState::Empty.lock())]
-    #[case(false, false, Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty)]
-    #[case(true, false, Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty.lock())]
-    #[case(false, false, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty)]
-    #[case(true, false, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, true, None, None, WalletState::Ready)]
-    #[case(true, true, None, None, WalletState::Ready.lock())]
-    #[case(false, true, None, Some(empty_transfer_data()), WalletState::TransferPossible)]
-    #[case(true, true, None, Some(empty_transfer_data()), WalletState::TransferPossible.lock())]
-    #[case(false, true, None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
-    #[case(true, true, None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock())]
-    #[case(false, true, None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination })]
-    #[case(true, true, None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination }.lock())]
-    #[case(false, true, Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange)]
-    #[case(true, true, Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange.lock())]
-    #[case(false, true, Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange)]
-    #[case(true, true, Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange.lock())]
-    #[case(false, true, Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange)]
-    #[case(true, true, Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange.lock())]
-    #[case(false, true, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
-    #[case(true, true, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock()
-    )]
+    #[case::empty(false, false, WalletState::Empty)]
+    #[case::registered_and_unlocked(false, true, WalletState::Ready)]
+    #[case::registered_and_locked(true, true, WalletState::Ready.lock())]
     #[tokio::test]
-    async fn test_unregistered_and_unlocked_wallet(
+    async fn test_empty_and_registered_wallet(
         #[case] is_locked: bool,
         #[case] has_attestations: bool,
-        #[case] change_pin_data: Option<ChangePinData>,
-        #[case] transfer_data: Option<TransferData>,
         #[case] expected_state: WalletState,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -224,187 +195,151 @@ mod tests {
         storage
             .expect_has_any_attestations()
             .return_once(move || Ok(has_attestations));
-        storage
-            .expect_fetch_data::<ChangePinData>()
-            .return_once(move || Ok(change_pin_data.clone()));
-        storage
-            .expect_fetch_data::<TransferData>()
-            .return_once(move || Ok(transfer_data.clone()));
+        storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
     }
 
-    #[tokio::test]
-    async fn test_issuance_session() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // Create a mock OpenID4VCI session that accepts the PID with a single
-        // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt {
-                key_identifier: "key_id".to_string(),
-                sd_jwt: sd_jwt.clone(),
-            },
-            String::from(PID_ATTESTATION_TYPE),
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            Some(PidIssuancePurpose::Enrollment),
-            attestations,
-            pid_issuer,
-        )));
-
-        wallet
-            .mut_storage()
-            .expect_has_any_attestations()
-            .return_once(move || Ok(true));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<TransferData>()
-            .return_once(move || Ok(None));
-
-        let wallet_state = wallet.get_state().await.unwrap();
-
-        assert_eq!(wallet_state, WalletState::Issuance);
-    }
-
-    #[tokio::test]
-    async fn test_issuance_digid_session() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // Setup an active Digid session.
-        wallet.session = Some(Session::Digid {
-            purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
-        });
-
-        wallet
-            .mut_storage()
-            .expect_has_any_attestations()
-            .return_once(move || Ok(true));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<TransferData>()
-            .return_once(move || Ok(None));
-
-        let wallet_state = wallet.get_state().await.unwrap();
-
-        assert_eq!(wallet_state, WalletState::Issuance);
-    }
-
-    #[tokio::test]
-    async fn test_disclosure_session() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // Setup an active disclosure session.
-        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
-            RedirectUriPurpose::Browser,
-            DisclosureType::Regular,
-            MockDisclosureSession::new(),
-        )));
-
-        wallet
-            .mut_storage()
-            .expect_has_any_attestations()
-            .return_once(move || Ok(true));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<TransferData>()
-            .return_once(move || Ok(None));
-
-        let wallet_state = wallet.get_state().await.unwrap();
-
-        assert_eq!(wallet_state, WalletState::Disclosure);
-    }
-
-    #[tokio::test]
-    async fn test_pin_recovery_session() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // Setup a PIN recovery session
-        wallet.session = Some(Session::PinRecovery {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(MockDigidSession::new()),
-        });
-
-        wallet
-            .mut_storage()
-            .expect_has_any_attestations()
-            .return_once(move || Ok(true));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<TransferData>()
-            .return_once(move || Ok(None));
-
-        let wallet_state = wallet.get_state().await.unwrap();
-
-        assert_eq!(wallet_state, WalletState::PinRecovery);
-    }
-
-    // This test tests the precedence of checks in case there is an active session.
     #[rstest]
-    #[case(None, None, WalletState::Issuance)]
-    #[case(None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
-    #[case(Some(ChangePinData {state: State::Commit}), None, WalletState::Issuance)]
-    #[case(Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case::pin_state_begin(false, State::Begin, WalletState::PinChange)]
+    #[case::pin_state_commit(false, State::Commit, WalletState::PinChange)]
+    #[case::pin_state_rollback(false, State::Rollback, WalletState::PinChange)]
+    #[case::locked_pin_state(true, ChangePinData {state: State::Begin}, WalletState::PinChange.lock())]
     #[tokio::test]
-    async fn test_issuance_digid_session_precedence(
-        #[case] change_pin_data: Option<ChangePinData>,
-        #[case] transfer_data: Option<TransferData>,
+    async fn test_change_pin_data(
+        #[case] is_locked: bool,
+        #[case] change_pin_data: impl Into<ChangePinData>,
         #[case] expected_state: WalletState,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        if is_locked {
+            wallet.lock();
+        }
 
-        // Setup an active Digid session.
-        wallet.session = Some(Session::Digid {
-            purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
-        });
-
-        wallet
-            .mut_storage()
-            .expect_has_any_attestations()
-            .return_once(move || Ok(true));
-
-        wallet
-            .mut_storage()
+        let storage = wallet.mut_storage();
+        storage.expect_has_any_attestations().return_once(|| Ok(true));
+        let change_pin_data = change_pin_data.into();
+        storage
             .expect_fetch_data::<ChangePinData>()
-            .returning(move || Ok(change_pin_data.clone()));
+            .return_once(move || Ok(Some(change_pin_data)));
 
-        wallet
-            .mut_storage()
+        storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+
+        let wallet_state = wallet.get_state().await.unwrap();
+        assert_eq!(wallet_state, expected_state);
+    }
+
+    #[rstest]
+    #[case::transfer_possible(false, empty_transfer_data(), WalletState::TransferPossible)]
+    #[case::transferring_source(false, source_transfer_data(), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case::transferring_destination(false, destination_transfer_data(), WalletState::Transferring { role: WalletTransferRole::Destination })]
+    #[case::locked_transfer_possible(true, empty_transfer_data(), WalletState::TransferPossible.lock())]
+    #[tokio::test]
+    async fn test_wallet_transfer(
+        #[case] is_locked: bool,
+        #[case] transfer_data: TransferData,
+        #[case] expected_state: WalletState,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        if is_locked {
+            wallet.lock();
+        }
+
+        let storage = wallet.mut_storage();
+        storage.expect_has_any_attestations().return_once(|| Ok(true));
+        storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
+        storage
             .expect_fetch_data::<TransferData>()
-            .return_once(move || Ok(transfer_data));
+            .return_once(move || Ok(Some(transfer_data)));
+
+        let wallet_state = wallet.get_state().await.unwrap();
+        assert_eq!(wallet_state, expected_state);
+    }
+
+    #[rstest]
+    #[case::digid(false, digid_session(), WalletState::Issuance)]
+    #[case::issuance(false, issuance_session(), WalletState::Issuance)]
+    #[case::disclosure(false, disclosure_session(), WalletState::Disclosure)]
+    #[case::pin_recovery(false, pin_recovery_session(), WalletState::PinRecovery)]
+    #[case::locked_digid(true, digid_session(), WalletState::Issuance.lock())]
+    #[tokio::test]
+    async fn test_wallet_session(
+        #[case] is_locked: bool,
+        #[case] session: Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
+        #[case] expected_state: WalletState,
+    ) {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        if is_locked {
+            wallet.lock();
+        }
+
+        wallet.session = Some(session);
+
+        let storage = wallet.mut_storage();
+        storage.expect_has_any_attestations().return_once(|| Ok(true));
+        storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
 
+        assert_eq!(wallet_state, expected_state);
+    }
+
+    #[rstest]
+    #[case::check_locked(
+        true,
+        true,
+        Some(State::Begin),
+        Some(empty_transfer_data()),
+        Some(digid_session()),
+        WalletState::TransferPossible.lock(),
+    )]
+    #[case::check_transfer_first(
+        false,
+        true,
+        Some(State::Begin),
+        Some(empty_transfer_data()),
+        Some(digid_session()),
+        WalletState::TransferPossible
+    )]
+    #[case::check_session_second(false, true, Some(State::Begin), None, Some(digid_session()), WalletState::Issuance)]
+    #[case::check_pin_state_third(false, true, Some(State::Begin), None, None, WalletState::PinChange)]
+    #[case::check_attestations_fourth(false, true, None::<State>, None, None, WalletState::Ready)]
+    #[case(false, false, None::<State>, None, None, WalletState::Empty)]
+    #[tokio::test]
+    async fn test_precedence_of_checks(
+        #[case] is_locked: bool,
+        #[case] has_attestations: bool,
+        #[case] change_pin_data: Option<impl Into<ChangePinData>>,
+        #[case] transfer_data: Option<TransferData>,
+        #[case] session: Option<
+            Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
+        >,
+        #[case] expected_state: WalletState,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        if is_locked {
+            wallet.lock();
+        }
+
+        wallet.session = session;
+
+        let storage = wallet.mut_storage();
+        storage
+            .expect_has_any_attestations()
+            .return_once(move || Ok(has_attestations));
+        let change_pin_data = change_pin_data.map(Into::into);
+        storage
+            .expect_fetch_data::<ChangePinData>()
+            .return_once(move || Ok(change_pin_data));
+        storage
+            .expect_fetch_data::<TransferData>()
+            .return_once(move || Ok(transfer_data.clone()));
+
+        let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
     }
 
@@ -433,6 +368,52 @@ mod tests {
         TransferData {
             transfer_session_id: Uuid::new_v4().into(),
             key_data: None,
+        }
+    }
+
+    fn digid_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession> {
+        Session::Digid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session: MockDigidSession::new(),
+        }
+    }
+
+    fn issuance_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession> {
+        // Create a mock OpenID4VCI session that accepts the PID with a single
+        // instance of `MdocCopies`, which contains a single valid `Mdoc`.
+        let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
+        let (pid_issuer, attestations) = mock_issuance_session(
+            IssuedCredential::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt: sd_jwt.clone(),
+            },
+            String::from(PID_ATTESTATION_TYPE),
+            VerifiedTypeMetadataDocuments::nl_pid_example(),
+        );
+        Session::Issuance(WalletIssuanceSession::new(
+            Some(PidIssuancePurpose::Enrollment),
+            attestations,
+            pid_issuer,
+        ))
+    }
+
+    fn disclosure_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession> {
+        Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
+            RedirectUriPurpose::Browser,
+            DisclosureType::Regular,
+            MockDisclosureSession::new(),
+        ))
+    }
+
+    fn pin_recovery_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>
+    {
+        let wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple)
+            .now_or_never()
+            .unwrap();
+
+        Session::PinRecovery {
+            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            session: PinRecoverySession::Digid(MockDigidSession::new()),
         }
     }
 }
