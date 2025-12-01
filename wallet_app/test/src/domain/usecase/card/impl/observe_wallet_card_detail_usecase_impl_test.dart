@@ -33,7 +33,7 @@ void main() {
   group('invoke', () {
     test('card detail usecase should enrich card data through event repository', () async {
       // Create a test card with a known ID for deterministic results
-      final WalletCard mockCard = WalletMockData.card.copyWith(attestationId: () => 'mock');
+      final WalletCard mockCard = WalletMockData.card.copyWith(attestationId: 'mock');
       // Define the expected enriched card detail with mocked events
       final mockDetail = WalletCardDetail(
         card: mockCard,

@@ -1,21 +1,17 @@
-import 'package:json_annotation/json_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
+part 'flutter_api_error.freezed.dart';
 part 'flutter_api_error.g.dart';
 
-@JsonSerializable()
-class FlutterApiError {
-  FlutterApiErrorType type;
-  String? description;
-  Map<String, dynamic>? data;
-
-  FlutterApiError({required this.type, this.description, this.data});
+@Freezed(copyWith: false)
+abstract class FlutterApiError with _$FlutterApiError {
+  const factory FlutterApiError({
+    required FlutterApiErrorType type,
+    String? description,
+    Map<String, dynamic>? data,
+  }) = _FlutterApiError;
 
   factory FlutterApiError.fromJson(Map<String, dynamic> json) => _$FlutterApiErrorFromJson(json);
-
-  Map<String, dynamic> toJson() => _$FlutterApiErrorToJson(this);
-
-  @override
-  String toString() => 'FlutterApiError{type: ${type.name}, description: $description}';
 }
 
 enum FlutterApiErrorType {

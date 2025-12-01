@@ -258,7 +258,7 @@ void main() {
   ///Verify that methods convert potential [FfiException]s into the expected [CoreError]s
   group('handleCoreException', () {
     /// Create a [FfiException] that should be converted to a [CoreError]
-    final flutterApiError = FlutterApiError(type: FlutterApiErrorType.generic, description: null, data: null);
+    final flutterApiError = const FlutterApiError(type: FlutterApiErrorType.generic, description: null, data: null);
     final ffiException = AnyhowException(jsonEncode(flutterApiError));
 
     test('isValidPin', () async {

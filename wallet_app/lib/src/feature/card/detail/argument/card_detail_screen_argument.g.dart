@@ -6,9 +6,9 @@ part of 'card_detail_screen_argument.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-CardDetailScreenArgument _$CardDetailScreenArgumentFromJson(
+_CardDetailScreenArgument _$CardDetailScreenArgumentFromJson(
   Map<String, dynamic> json,
-) => CardDetailScreenArgument(
+) => _CardDetailScreenArgument(
   card: json['card'] == null ? null : WalletCard.fromJson(json['card'] as Map<String, dynamic>),
   cardId: json['cardId'] as String,
   cardTitle: const LocalizedTextConverter().fromJson(
@@ -17,7 +17,7 @@ CardDetailScreenArgument _$CardDetailScreenArgumentFromJson(
 );
 
 Map<String, dynamic> _$CardDetailScreenArgumentToJson(
-  CardDetailScreenArgument instance,
+  _CardDetailScreenArgument instance,
 ) => <String, dynamic>{
   'card': instance.card?.toJson(),
   'cardId': instance.cardId,
