@@ -1,13 +1,10 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::path::Path;
 use std::time::Duration;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
-use config::Config;
-use config::File;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use sea_orm::ColumnTrait;
@@ -17,9 +14,7 @@ use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
 use sea_orm::sea_query::Expr;
-use serde::Deserialize;
 use tempfile::TempDir;
-use url::Url;
 use uuid::Uuid;
 
 use attestation_types::status_claim::StatusClaim;
@@ -41,6 +36,7 @@ use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::publish::PublishDir;
+use status_lists::settings::test::connection_from_settings;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
@@ -50,23 +46,8 @@ use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::num::NonZeroU31;
-use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-
-#[derive(Debug, Clone, Deserialize)]
-struct TestSettings {
-    storage_url: Url,
-}
-
-async fn connection_from_settings() -> anyhow::Result<DatabaseConnection> {
-    let settings: TestSettings = Config::builder()
-        .add_source(File::from(prefix_local_path(Path::new("status_lists.toml")).as_ref()).required(true))
-        .build()?
-        .try_deserialize()?;
-    let connection = server_utils::store::postgres::new_connection(settings.storage_url).await?;
-    Ok(connection)
-}
 
 async fn create_status_list_service(
     ca: &Ca,

@@ -52,6 +52,7 @@ pub mod mock {
 
     use super::*;
 
+    // Note: since checking the status is not part of the trait, keeping track of that is not implemented here.
     pub struct MockStatusListServices {
         base_url: BaseUrl,
         index_map: DashMap<String, u32>,
