@@ -83,7 +83,7 @@ where
     async fn get_flow_state(&self) -> Result<WalletState, WalletStateError> {
         let read_storage = self.storage.read().await;
 
-        if read_storage.fetch_unique_attestations().await?.is_empty() {
+        if !read_storage.has_any_attestations().await? {
             return Ok(WalletState::Empty);
         }
 
@@ -136,8 +136,6 @@ mod tests {
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
-    use crate::storage::StoredAttestation;
-    use crate::storage::StoredAttestationCopy;
     use crate::storage::TransferData;
     use crate::storage::TransferKeyData;
     use crate::test::MockDigidSession;
@@ -176,55 +174,43 @@ mod tests {
     }
 
     #[rstest]
-    #[case(false, vec![], None, None, WalletState::Empty)]
-    #[case(true, vec![], None, None, WalletState::Empty.lock())]
-    #[case(false, vec![], None, Some(empty_transfer_data()), WalletState::Empty)]
-    #[case(true, vec![], None, Some(empty_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, vec![], None, Some(source_transfer_data()), WalletState::Empty)]
-    #[case(true, vec![], None, Some(source_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, vec![], None, Some(destination_transfer_data()), WalletState::Empty)]
-    #[case(true, vec![], None, Some(destination_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, vec![], Some(ChangePinData {state: State::Begin}), None, WalletState::Empty)]
-    #[case(true, vec![], Some(ChangePinData {state: State::Begin}), None, WalletState::Empty.lock())]
-    #[case(false, vec![], Some(ChangePinData {state: State::Commit}), None, WalletState::Empty)]
-    #[case(true, vec![], Some(ChangePinData {state: State::Commit}), None, WalletState::Empty.lock())]
-    #[case(false, vec![], Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty)]
-    #[case(true, vec![], Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty.lock())]
-    #[case(false, vec![], Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty)]
-    #[case(true, vec![], Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty.lock())]
-    #[case(false, stored_attestation(), None, None, WalletState::Ready)]
-    #[case(true, stored_attestation(), None, None, WalletState::Ready.lock())]
-    #[case(
-        false,
-        stored_attestation(),
-        None,
-        Some(empty_transfer_data()),
-        WalletState::TransferPossible
-    )]
-    #[case(
-        true,
-        stored_attestation(),
-        None,
-        Some(empty_transfer_data()),
-        WalletState::TransferPossible.lock()
-    )]
-    #[case(false, stored_attestation(), None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
-    #[case(true, stored_attestation(), None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock())]
-    #[case(false, stored_attestation(), None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination })]
-    #[case(true, stored_attestation(), None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination }.lock())]
-    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange)]
-    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange.lock())]
-    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange)]
-    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange.lock())]
-    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange)]
-    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange.lock())]
-    #[case(false, stored_attestation(), Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
-    #[case(true, stored_attestation(), Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock()
+    #[case(false, false, None, None, WalletState::Empty)]
+    #[case(true, false, None, None, WalletState::Empty.lock())]
+    #[case(false, false, None, Some(empty_transfer_data()), WalletState::Empty)]
+    #[case(true, false, None, Some(empty_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, false, None, Some(source_transfer_data()), WalletState::Empty)]
+    #[case(true, false, None, Some(source_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, false, None, Some(destination_transfer_data()), WalletState::Empty)]
+    #[case(true, false, None, Some(destination_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, false, Some(ChangePinData {state: State::Begin}), None, WalletState::Empty)]
+    #[case(true, false, Some(ChangePinData {state: State::Begin}), None, WalletState::Empty.lock())]
+    #[case(false, false, Some(ChangePinData {state: State::Commit}), None, WalletState::Empty)]
+    #[case(true, false, Some(ChangePinData {state: State::Commit}), None, WalletState::Empty.lock())]
+    #[case(false, false, Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty)]
+    #[case(true, false, Some(ChangePinData {state: State::Rollback}), None, WalletState::Empty.lock())]
+    #[case(false, false, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty)]
+    #[case(true, false, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Empty.lock())]
+    #[case(false, true, None, None, WalletState::Ready)]
+    #[case(true, true, None, None, WalletState::Ready.lock())]
+    #[case(false, true, None, Some(empty_transfer_data()), WalletState::TransferPossible)]
+    #[case(true, true, None, Some(empty_transfer_data()), WalletState::TransferPossible.lock())]
+    #[case(false, true, None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case(true, true, None, Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock())]
+    #[case(false, true, None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination })]
+    #[case(true, true, None, Some(destination_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Destination }.lock())]
+    #[case(false, true, Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange)]
+    #[case(true, true, Some(ChangePinData {state: State::Begin}), None, WalletState::PinChange.lock())]
+    #[case(false, true, Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange)]
+    #[case(true, true, Some(ChangePinData {state: State::Commit}), None, WalletState::PinChange.lock())]
+    #[case(false, true, Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange)]
+    #[case(true, true, Some(ChangePinData {state: State::Rollback}), None, WalletState::PinChange.lock())]
+    #[case(false, true, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source })]
+    #[case(true, true, Some(ChangePinData {state: State::Commit}), Some(source_transfer_data()), WalletState::Transferring { role: WalletTransferRole::Source }.lock()
     )]
     #[tokio::test]
     async fn test_unregistered_and_unlocked_wallet(
         #[case] is_locked: bool,
-        #[case] stored_attestations: Vec<StoredAttestationCopy>,
+        #[case] has_attestations: bool,
         #[case] change_pin_data: Option<ChangePinData>,
         #[case] transfer_data: Option<TransferData>,
         #[case] expected_state: WalletState,
@@ -236,8 +222,8 @@ mod tests {
 
         let storage = wallet.mut_storage();
         storage
-            .expect_fetch_unique_attestations()
-            .return_once(move || Ok(stored_attestations));
+            .expect_has_any_attestations()
+            .return_once(move || Ok(has_attestations));
         storage
             .expect_fetch_data::<ChangePinData>()
             .return_once(move || Ok(change_pin_data.clone()));
@@ -273,8 +259,8 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations()
-            .return_once(move || Ok(stored_attestation()));
+            .expect_has_any_attestations()
+            .return_once(move || Ok(true));
 
         wallet
             .mut_storage()
@@ -303,8 +289,8 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations()
-            .return_once(move || Ok(stored_attestation()));
+            .expect_has_any_attestations()
+            .return_once(move || Ok(true));
 
         wallet
             .mut_storage()
@@ -334,8 +320,8 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations()
-            .return_once(move || Ok(stored_attestation()));
+            .expect_has_any_attestations()
+            .return_once(move || Ok(true));
 
         wallet
             .mut_storage()
@@ -364,8 +350,8 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations()
-            .return_once(move || Ok(stored_attestation()));
+            .expect_has_any_attestations()
+            .return_once(move || Ok(true));
 
         wallet
             .mut_storage()
@@ -404,8 +390,8 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations()
-            .return_once(move || Ok(stored_attestation()));
+            .expect_has_any_attestations()
+            .return_once(move || Ok(true));
 
         wallet
             .mut_storage()
@@ -420,20 +406,6 @@ mod tests {
         let wallet_state = wallet.get_state().await.unwrap();
 
         assert_eq!(wallet_state, expected_state);
-    }
-
-    fn stored_attestation() -> Vec<StoredAttestationCopy> {
-        let (sd_jwt, sd_jwt_vc_metadata) = create_example_pid_sd_jwt();
-
-        vec![StoredAttestationCopy::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            StoredAttestation::SdJwt {
-                key_identifier: "sd_jwt_key_id".to_string(),
-                sd_jwt,
-            },
-            sd_jwt_vc_metadata,
-        )]
     }
 
     fn some_jwk() -> Jwk {
