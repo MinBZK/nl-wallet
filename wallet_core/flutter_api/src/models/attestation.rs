@@ -5,6 +5,7 @@ use crate::models::disclosure::Organization;
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
 use crate::models::revocation::RevocationStatus;
+use crate::models::validity::ValidityWindow;
 
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
@@ -12,6 +13,7 @@ pub struct AttestationPresentation {
     pub display_metadata: Vec<DisplayMetadata>,
     pub issuer: Organization,
     pub revocation_status: Option<RevocationStatus>,
+    pub validity_window: ValidityWindow,
     pub attributes: Vec<AttestationAttribute>,
 }
 
@@ -23,6 +25,7 @@ impl From<wallet::AttestationPresentation> for AttestationPresentation {
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
             issuer: value.issuer.into(),
             revocation_status: value.revocation_status.map(Into::into),
+            validity_window: value.validity_window.into(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
     }

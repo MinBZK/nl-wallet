@@ -122,6 +122,11 @@ typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *country_code;
 } wire_cst_organization;
 
+typedef struct wire_cst_validity_window {
+  struct wire_cst_list_prim_u_8_strict *valid_from;
+  struct wire_cst_list_prim_u_8_strict *valid_until;
+} wire_cst_validity_window;
+
 typedef struct wire_cst_claim_display_metadata {
   struct wire_cst_list_prim_u_8_strict *lang;
   struct wire_cst_list_prim_u_8_strict *label;
@@ -189,6 +194,7 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_display_metadata *display_metadata;
   struct wire_cst_organization issuer;
   int32_t *revocation_status;
+  struct wire_cst_validity_window validity_window;
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;
 

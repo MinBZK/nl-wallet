@@ -1471,6 +1471,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
         let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
         let mut var_revocationStatus = <Option<crate::models::revocation::RevocationStatus>>::sse_decode(deserializer);
+        let mut var_validityWindow = <crate::models::validity::ValidityWindow>::sse_decode(deserializer);
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationPresentation {
             identity: var_identity,
@@ -1478,6 +1479,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
             display_metadata: var_displayMetadata,
             issuer: var_issuer,
             revocation_status: var_revocationStatus,
+            validity_window: var_validityWindow,
             attributes: var_attributes,
         };
     }
@@ -2254,6 +2256,18 @@ impl SseDecode for () {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
 }
 
+impl SseDecode for crate::models::validity::ValidityWindow {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_validFrom = <Option<String>>::sse_decode(deserializer);
+        let mut var_validUntil = <Option<String>>::sse_decode(deserializer);
+        return crate::models::validity::ValidityWindow {
+            valid_from: var_validFrom,
+            valid_until: var_validUntil,
+        };
+    }
+}
+
 impl SseDecode for crate::models::wallet_event::WalletEvent {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2500,6 +2514,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPr
             self.display_metadata.into_into_dart().into_dart(),
             self.issuer.into_into_dart().into_dart(),
             self.revocation_status.into_into_dart().into_dart(),
+            self.validity_window.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -3086,6 +3101,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::transfer::TransferSessionS
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::validity::ValidityWindow {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.valid_from.into_into_dart().into_dart(),
+            self.valid_until.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::validity::ValidityWindow {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::validity::ValidityWindow>
+    for crate::models::validity::ValidityWindow
+{
+    fn into_into_dart(self) -> crate::models::validity::ValidityWindow {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3347,6 +3380,7 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
         <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
         <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
         <Option<crate::models::revocation::RevocationStatus>>::sse_encode(self.revocation_status, serializer);
+        <crate::models::validity::ValidityWindow>::sse_encode(self.validity_window, serializer);
         <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
     }
 }
@@ -4049,6 +4083,14 @@ impl SseEncode for () {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
 }
 
+impl SseEncode for crate::models::validity::ValidityWindow {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.valid_from, serializer);
+        <Option<String>>::sse_encode(self.valid_until, serializer);
+    }
+}
+
 impl SseEncode for crate::models::wallet_event::WalletEvent {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4339,6 +4381,7 @@ mod io {
                 display_metadata: self.display_metadata.cst_decode(),
                 issuer: self.issuer.cst_decode(),
                 revocation_status: self.revocation_status.cst_decode(),
+                validity_window: self.validity_window.cst_decode(),
                 attributes: self.attributes.cst_decode(),
             }
         }
@@ -4815,6 +4858,15 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::validity::ValidityWindow> for wire_cst_validity_window {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::validity::ValidityWindow {
+            crate::models::validity::ValidityWindow {
+                valid_from: self.valid_from.cst_decode(),
+                valid_until: self.valid_until.cst_decode(),
+            }
+        }
+    }
     impl CstDecode<crate::models::wallet_event::WalletEvent> for wire_cst_wallet_event {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::wallet_event::WalletEvent {
@@ -4965,6 +5017,7 @@ mod io {
                 display_metadata: core::ptr::null_mut(),
                 issuer: Default::default(),
                 revocation_status: core::ptr::null_mut(),
+                validity_window: Default::default(),
                 attributes: core::ptr::null_mut(),
             }
         }
@@ -5195,6 +5248,19 @@ mod io {
         }
     }
     impl Default for wire_cst_start_disclosure_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_validity_window {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                valid_from: core::ptr::null_mut(),
+                valid_until: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_validity_window {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -5852,6 +5918,7 @@ mod io {
         display_metadata: *mut wire_cst_list_display_metadata,
         issuer: wire_cst_organization,
         revocation_status: *mut i32,
+        validity_window: wire_cst_validity_window,
         attributes: *mut wire_cst_list_attestation_attribute,
     }
     #[repr(C)]
@@ -6195,6 +6262,12 @@ mod io {
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
         request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_validity_window {
+        valid_from: *mut wire_cst_list_prim_u_8_strict,
+        valid_until: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
