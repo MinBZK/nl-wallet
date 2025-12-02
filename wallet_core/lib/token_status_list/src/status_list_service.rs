@@ -43,12 +43,15 @@ pub enum RevocationError {
 #[cfg(feature = "axum")]
 impl axum::response::IntoResponse for RevocationError {
     fn into_response(self) -> axum::response::Response {
-        tracing::warn!("error result: {:?}", self);
         match self {
             RevocationError::BatchIdsNotFound(batch_ids) => {
+                tracing::info!("revocation batch IDs not found: {:?}", batch_ids);
                 (axum::http::StatusCode::NOT_FOUND, axum::Json(batch_ids)).into_response()
             }
-            _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            _ => {
+                tracing::error!("revocation error: {:?}", self);
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
         }
     }
 }
