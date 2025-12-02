@@ -1,0 +1,59 @@
+module:
+  name: sole_control_2fa_registration
+
+G_EnrollmentFreshness:
+  text: Enrollment proves message freshness
+  supportedBy: [Sn_WbProvidesNonce]
+
+G_WalletRegistersPossesionFactor:
+  text: Wallet registers possession factor at WB
+  supportedBy: [Sn_WalletRegistersHwBoundKey, Sn_WalletGeneratesHwBoundKey]
+
+G_WalletRegistersKnowledgeFactor:
+  text: Wallet registers knowledge factor at WB
+  supportedBy: [S_PinKey, Sn_WalletRegistersPinPubKey]
+
+S_PinKey:
+  text: Derive PIN private key from stored salt + PIN
+  supportedBy: [G_PinHasMinEntropy, Sn_WalletAsksForPin, Sn_WalletGeneratesSalt]
+
+Sn_WalletAsksForPin:
+  text: Wallet asks user for PIN
+
+Sn_WalletGeneratesSalt:
+  text: Wallet generates and stores a random salt
+
+Sn_WbValidatesAttestations:
+  text: WB validates app & key attestations
+
+Sn_WbProvidesNonce:
+  text: WB provides unique nonce for enrollment, and Wallet includes it in enrollment message
+
+Sn_WalletGeneratesHwBoundKey:
+  text: Wallet generates SE/TEE-bound HwPrivateKey plus Key Attestation
+
+Sn_WalletRegistersHwBoundKey:
+  text: Wallet includes HwBoundPublicKey including Key Attestation in enrollment message
+
+Sn_WalletRegistersPinPubKey:
+  text: Wallet includes PinPublicKey in enrollment message
+
+G_WbVerifiesApp:
+  text: WB verifies that NL Wallet app runs on a trustworthy device
+  supportedBy: [S_UseAppAttestations]
+
+S_UseAppAttestations:
+  text: Use platform app attestations to verify app and device integrity
+  supportedBy: [Sn_WbValidatesAttestations, Sn_WalletProvidesAppAttestation]
+
+Sn_WalletProvidesAppAttestation:
+  text: Wallet provides platform app attestation in enrollment message
+
+G_PinHasMinEntropy:
+  text: PIN has minimum entropy & complexity
+  supportedBy: [Sn_PinComplexity]
+  horizontalIndex:
+    relative: +1
+
+Sn_PinComplexity:
+  text: Wallet enforces PIN complexity rules

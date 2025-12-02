@@ -1,0 +1,6 @@
+svg { background-color: white;}
+
+/* CSS to invert SVG for dark mode */ 
+@media (prefers-color-scheme: dark) {
+    svg { filter: invert(100%); background-color: black; }
+}
