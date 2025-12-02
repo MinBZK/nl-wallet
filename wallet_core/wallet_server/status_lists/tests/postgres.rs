@@ -603,7 +603,14 @@ async fn test_service_revoke_attestation_batches() {
     .await
     .unwrap();
 
-    service.revoke_attestation_batches(batch_ids).await.unwrap();
+    // Revoke concurrently
+    try_join_all(
+        batch_ids
+            .into_iter()
+            .map(|batch_id| service.revoke_attestation_batches(vec_nonempty![batch_id])),
+    )
+    .await
+    .unwrap();
 
     // Check if published list matches database
     let db_lists = fetch_status_list(&connection, type_id).await;
