@@ -37,30 +37,30 @@ class WalletStateTransferring extends WalletState {
   List<Object?> get props => [...super.props, role];
 }
 
-class WalletStateRegistration extends WalletState {
-  const WalletStateRegistration();
+class WalletStateUnregistered extends WalletState {
+  const WalletStateUnregistered();
 }
 
-class WalletStateDisclosure extends WalletState {
-  const WalletStateDisclosure();
+class WalletStateInDisclosureFlow extends WalletState {
+  const WalletStateInDisclosureFlow();
 }
 
-class WalletStateIssuance extends WalletState {
-  const WalletStateIssuance();
+class WalletStateInIssuanceFlow extends WalletState {
+  const WalletStateInIssuanceFlow();
 }
 
-class WalletStatePinChange extends WalletState {
-  const WalletStatePinChange();
+class WalletStateInPinChangeFlow extends WalletState {
+  const WalletStateInPinChangeFlow();
 }
 
-class WalletStatePinRecovery extends WalletState {
-  const WalletStatePinRecovery();
+class WalletStateInPinRecoveryFlow extends WalletState {
+  const WalletStateInPinRecoveryFlow();
 }
 
-class WalletStateWalletBlocked extends WalletState {
-  final WalletBlockedReason reason;
+class WalletStateBlocked extends WalletState {
+  final BlockedReason reason;
 
-  const WalletStateWalletBlocked(this.reason);
+  const WalletStateBlocked(this.reason);
 
   @override
   List<Object?> get props => [...super.props, reason];
@@ -68,4 +68,4 @@ class WalletStateWalletBlocked extends WalletState {
 
 enum TransferRole { source, target }
 
-enum WalletBlockedReason { requiresAppUpdate, blockedByWalletProvider }
+enum BlockedReason { requiresAppUpdate, blockedByWalletProvider }

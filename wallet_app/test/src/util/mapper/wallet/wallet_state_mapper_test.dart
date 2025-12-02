@@ -18,79 +18,104 @@ void main() {
     });
 
     test('maps core.WalletState_Locked to WalletStateLocked', () {
-      final input = const core.WalletState_Locked(subState: core.WalletState_Ready());
+      final input = const core.WalletState_Locked(
+        subState: core.WalletState_Ready(),
+      );
       final output = mapper.map(input);
       expect(output, isA<WalletStateLocked>());
       expect((output as WalletStateLocked).substate, isA<WalletStateReady>());
     });
 
-    test('maps core.WalletState_Transferring with role Source to WalletStateTransferring with role source', () {
-      const input = core.WalletState_Transferring(role: core.TransferRole.Source);
-      final output = mapper.map(input);
-      expect(output, isA<WalletStateTransferring>());
-      expect((output as WalletStateTransferring).role, TransferRole.source);
-    });
+    test(
+      'maps core.WalletState_Transferring with role Source to WalletStateTransferring with role source',
+      () {
+        const input = core.WalletState_Transferring(
+          role: core.TransferRole.Source,
+        );
+        final output = mapper.map(input);
+        expect(output, isA<WalletStateTransferring>());
+        expect((output as WalletStateTransferring).role, TransferRole.source);
+      },
+    );
 
-    test('maps core.WalletState_Transferring with role Destination to WalletStateTransferring with role target', () {
-      const input = core.WalletState_Transferring(role: core.TransferRole.Destination);
-      final output = mapper.map(input);
-      expect(output, isA<WalletStateTransferring>());
-      expect((output as WalletStateTransferring).role, TransferRole.target);
-    });
+    test(
+      'maps core.WalletState_Transferring with role Destination to WalletStateTransferring with role target',
+      () {
+        const input = core.WalletState_Transferring(
+          role: core.TransferRole.Destination,
+        );
+        final output = mapper.map(input);
+        expect(output, isA<WalletStateTransferring>());
+        expect((output as WalletStateTransferring).role, TransferRole.target);
+      },
+    );
 
-    test('maps core.WalletState_TransferPossible to WalletStateTransferPossible', () {
-      const input = core.WalletState_TransferPossible();
-      final output = mapper.map(input);
-      expect(output, isA<WalletStateTransferPossible>());
-    });
+    test(
+      'maps core.WalletState_TransferPossible to WalletStateTransferPossible',
+      () {
+        const input = core.WalletState_TransferPossible();
+        final output = mapper.map(input);
+        expect(output, isA<WalletStateTransferPossible>());
+      },
+    );
 
     test('maps core.WalletState_Registration to WalletStateRegistration', () {
       const input = core.WalletState_Unregistered();
       final output = mapper.map(input);
-      expect(output, isA<WalletStateRegistration>());
+      expect(output, isA<WalletStateUnregistered>());
     });
 
     test('maps core.WalletState_Disclosure to WalletStateDisclosure', () {
       const input = core.WalletState_InDisclosureFlow();
       final output = mapper.map(input);
-      expect(output, isA<WalletStateDisclosure>());
+      expect(output, isA<WalletStateInDisclosureFlow>());
     });
 
     test('maps core.WalletState_Issuance to WalletStateIssuance', () {
       const input = core.WalletState_InIssuanceFlow();
       final output = mapper.map(input);
-      expect(output, isA<WalletStateIssuance>());
+      expect(output, isA<WalletStateInIssuanceFlow>());
     });
 
     test('maps core.WalletState_PinChange to WalletStatePinChange', () {
       const input = core.WalletState_InPinChangeFlow();
       final output = mapper.map(input);
-      expect(output, isA<WalletStatePinChange>());
+      expect(output, isA<WalletStateInPinChangeFlow>());
     });
 
     test('maps core.WalletState_PinRecovery to WalletStatePinRecovery', () {
       const input = core.WalletState_InPinRecoveryFlow();
       final output = mapper.map(input);
-      expect(output, isA<WalletStatePinRecovery>());
+      expect(output, isA<WalletStateInPinRecoveryFlow>());
     });
 
     test(
       'maps core.WalletState_WalletBlocked with reason RequiresAppUpdate to WalletStateWalletBlocked with reason requiresAppUpdate',
       () {
-        const input = core.WalletState_Blocked(reason: core.BlockedReason.RequiresAppUpdate);
+        const input = core.WalletState_Blocked(
+          reason: core.BlockedReason.RequiresAppUpdate,
+        );
         final output = mapper.map(input);
-        expect(output, isA<WalletStateWalletBlocked>());
-        expect((output as WalletStateWalletBlocked).reason, WalletBlockedReason.requiresAppUpdate);
+        expect(output, isA<WalletStateBlocked>());
+        expect(
+          (output as WalletStateBlocked).reason,
+          BlockedReason.requiresAppUpdate,
+        );
       },
     );
 
     test(
       'maps core.WalletState_WalletBlocked with reason BlockedByWalletProvider to WalletStateWalletBlocked with reason blockedByWalletProvider',
       () {
-        const input = core.WalletState_Blocked(reason: core.BlockedReason.BlockedByWalletProvider);
+        const input = core.WalletState_Blocked(
+          reason: core.BlockedReason.BlockedByWalletProvider,
+        );
         final output = mapper.map(input);
-        expect(output, isA<WalletStateWalletBlocked>());
-        expect((output as WalletStateWalletBlocked).reason, WalletBlockedReason.blockedByWalletProvider);
+        expect(output, isA<WalletStateBlocked>());
+        expect(
+          (output as WalletStateBlocked).reason,
+          BlockedReason.blockedByWalletProvider,
+        );
       },
     );
 

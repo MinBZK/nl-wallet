@@ -17,7 +17,10 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
     on<InitSplashEvent>(_initApp);
   }
 
-  Future<void> _initApp(InitSplashEvent event, Emitter<SplashState> emit) async {
+  Future<void> _initApp(
+    InitSplashEvent event,
+    Emitter<SplashState> emit,
+  ) async {
     final skipDelay = Environment.isTest || !Environment.mockRepositories;
     await Future.delayed(skipDelay ? Duration.zero : kDefaultMockDelay);
 
@@ -26,7 +29,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
     switch (unlockedState) {
       case WalletStateLocked():
         throw StateError('UnlockedState state should never be $unlockedState');
-      case WalletStateRegistration():
+      case WalletStateUnregistered():
         emit(const SplashLoaded(.onboarding));
       case WalletStateEmpty():
         emit(const SplashLoaded(.pidRetrieval));
@@ -39,13 +42,13 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
           /// Transfer will be cancelled by [WalletTransferEventListener]
           emit(const SplashLoaded(.dashboard));
         }
-      case WalletStateWalletBlocked():
+      case WalletStateBlocked():
         emit(const SplashLoaded(.blocked));
       case WalletStateReady():
-      case WalletStateDisclosure():
-      case WalletStateIssuance():
-      case WalletStatePinChange():
-      case WalletStatePinRecovery():
+      case WalletStateInDisclosureFlow():
+      case WalletStateInIssuanceFlow():
+      case WalletStateInPinChangeFlow():
+      case WalletStateInPinRecoveryFlow():
         emit(const SplashLoaded(.dashboard));
     }
   }
