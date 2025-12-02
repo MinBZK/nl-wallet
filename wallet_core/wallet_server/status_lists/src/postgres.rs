@@ -643,7 +643,7 @@ where
         &self,
         list_id: i64,
         external_id: &str,
-        size: i32,
+        size: usize,
     ) -> Result<bool, StatusListServiceError> {
         // Fetch all revoked attestation for this status list
         let result: Vec<Vec<i32>> = attestation_batch_list_indices::Entity::find()
@@ -669,7 +669,7 @@ where
             .with_lock_if_newer(version, async || {
                 // Build packed status list
                 let sub = self.config.base_url.join(external_id);
-                let mut status_list = StatusList::new(size.try_into().expect("list size should be positive"));
+                let mut status_list = StatusList::new(size);
                 let builder = tokio::task::spawn_blocking(move || {
                     for indices in result {
                         for index in indices {
@@ -730,6 +730,7 @@ where
 
         // Publish new status list
         try_join_all(lists.into_iter().map(|(list_id, external_id, size)| async move {
+            let size = size.try_into().expect("size should be non-zero");
             self.publish_status_list(list_id, external_id.as_str(), size).await
         }))
         .await?;
