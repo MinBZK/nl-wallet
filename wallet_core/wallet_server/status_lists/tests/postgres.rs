@@ -577,7 +577,7 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
 }
 
 #[tokio::test]
-async fn test_service_revoke_attestation_batches() {
+async fn test_service_revoke_attestation_batches_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
