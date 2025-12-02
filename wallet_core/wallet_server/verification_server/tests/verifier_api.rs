@@ -107,7 +107,7 @@ fn memory_storage_settings() -> Storage {
     }
 }
 
-async fn requester_server_settings_and_listener() -> (ServerAuth, Option<TcpListener>) {
+async fn internal_server_settings_and_listener() -> (ServerAuth, Option<TcpListener>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
     (
@@ -194,7 +194,7 @@ async fn wallet_server_settings_and_listener(
 
 async fn start_wallet_server<S, C>(
     wallet_listener: TcpListener,
-    requester_listener: Option<TcpListener>,
+    internal_listener: Option<TcpListener>,
     settings: VerifierSettings,
     hsm: Option<Pkcs11Hsm>,
     disclosure_sessions: S,
@@ -208,7 +208,7 @@ async fn start_wallet_server<S, C>(
     tokio::spawn(async move {
         if let Err(error) = server::serve_with_listeners(
             wallet_listener,
-            requester_listener,
+            internal_listener,
             settings,
             hsm,
             Arc::new(disclosure_sessions),
@@ -269,8 +269,8 @@ fn internal_url(server_settings: &Settings) -> BaseUrl {
     port: 0,
 }))]
 #[tokio::test]
-async fn test_requester_authentication(#[case] mut auth: ServerAuth) {
-    let requester_listener = match &mut auth {
+async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
+    let internal_listener = match &mut auth {
         ServerAuth::Authentication(_) => None,
         ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
             let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
@@ -294,7 +294,7 @@ async fn test_requester_authentication(#[case] mut auth: ServerAuth) {
 
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings.clone(),
         hsm,
         MemorySessionStore::default(),
@@ -438,9 +438,9 @@ async fn test_http_json_error_body(
 
 #[tokio::test]
 async fn test_new_session_parameters_error() {
-    let (requester_server, requester_listener) = requester_server_settings_and_listener().await;
+    let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
-        wallet_server_settings_and_listener(requester_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
+        wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -452,7 +452,7 @@ async fn test_new_session_parameters_error() {
     let internal_url = internal_url(&settings.server_settings);
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings,
         hsm,
         MemorySessionStore::default(),
@@ -492,9 +492,9 @@ async fn test_new_session_parameters_error() {
 
 #[tokio::test]
 async fn test_disclosure_not_found() {
-    let (requester_server, requester_listener) = requester_server_settings_and_listener().await;
+    let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
-        wallet_server_settings_and_listener(requester_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
+        wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -506,7 +506,7 @@ async fn test_disclosure_not_found() {
     let internal_url = internal_url(&settings.server_settings);
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings.clone(),
         hsm,
         MemorySessionStore::default(),
@@ -592,9 +592,9 @@ async fn start_disclosure<S>(
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let (requester_server, requester_listener) = requester_server_settings_and_listener().await;
+    let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, issuer_ca, rp_trust_anchor) =
-        wallet_server_settings_and_listener(requester_server, request).await;
+        wallet_server_settings_and_listener(internal_server, request).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -607,7 +607,7 @@ where
 
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings.clone(),
         hsm,
         disclosure_sessions,
