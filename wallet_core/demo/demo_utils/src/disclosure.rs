@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use attestation_data::attributes::Attributes;
-use attestation_data::disclosure::ValidityInfo;
+use attestation_data::validity::IssuanceValidity;
 use attestation_types::qualification::AttestationQualification;
 use dcql::CredentialQueryIdentifier;
 use dcql::unique_id_vec::MayHaveUniqueId;
@@ -22,7 +22,7 @@ pub struct DemoDisclosedAttestation {
 
     /// The issuer CA's common name
     pub ca: String,
-    pub validity_info: ValidityInfo,
+    pub issuance_validity: IssuanceValidity,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -69,11 +69,11 @@ mod test {
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
-                validity_info: ValidityInfo {
-                    signed: DateTime::UNIX_EPOCH,
-                    valid_from: Some(DateTime::UNIX_EPOCH),
-                    valid_until: Some(DateTime::UNIX_EPOCH),
-                },
+                issuance_validity: IssuanceValidity::new(
+                    DateTime::UNIX_EPOCH,
+                    Some(DateTime::UNIX_EPOCH),
+                    Some(DateTime::UNIX_EPOCH),
+                ),
                 revocation_status: Some(RevocationStatus::Valid),
             },
             DisclosedAttestation {
@@ -101,11 +101,11 @@ mod test {
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
-                validity_info: ValidityInfo {
-                    signed: DateTime::UNIX_EPOCH,
-                    valid_from: Some(DateTime::UNIX_EPOCH),
-                    valid_until: Some(DateTime::UNIX_EPOCH),
-                },
+                issuance_validity: IssuanceValidity::new(
+                    DateTime::UNIX_EPOCH,
+                    Some(DateTime::UNIX_EPOCH),
+                    Some(DateTime::UNIX_EPOCH),
+                ),
                 revocation_status: Some(RevocationStatus::Valid),
             },
         ];

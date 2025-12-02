@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
@@ -445,6 +446,10 @@ where
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     None,
+                    ValidityWindow {
+                        valid_until: preview_data.content.credential_payload.expires.map(Into::into),
+                        valid_from: preview_data.content.credential_payload.not_before.map(Into::into),
+                    },
                     &preview_data.content.credential_payload.attributes,
                     &config.pid_attributes,
                 )
@@ -746,6 +751,7 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::CertificateType;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
@@ -1070,6 +1076,7 @@ mod tests {
             StoredAttestationCopy::new(
                 Uuid::new_v4(),
                 Uuid::new_v4(),
+                ValidityWindow::new_valid_mock(),
                 StoredAttestation::SdJwt {
                     key_identifier: "key".to_string(),
                     sd_jwt,
@@ -1290,6 +1297,7 @@ mod tests {
         let stored = StoredAttestationCopy::new(
             attestation_id,
             Uuid::new_v4(),
+            ValidityWindow::new_valid_mock(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 sd_jwt: sd_jwt.into_verified(),
@@ -1419,6 +1427,7 @@ mod tests {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
                     StoredAttestation::SdJwt {
                         key_identifier: "sd_jwt_key_identifier".to_string(),
                         sd_jwt,
@@ -1633,8 +1642,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case(InstructionError::IncorrectPin { attempts_left_in_round: 1, is_final_round: false }, false)]
-    #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true)]
+    #[case(InstructionError::IncorrectPin{ attempts_left_in_round: 1, is_final_round: false }, false)]
+    #[case(InstructionError::Timeout{ timeout_millis: 10_000 }, true)]
     #[case(InstructionError::Blocked, true)]
     #[case(InstructionError::InstructionValidation, false)]
     #[tokio::test]
@@ -1808,6 +1817,7 @@ mod tests {
         let stored = StoredAttestationCopy::new(
             attestation_id,
             Uuid::new_v4(),
+            ValidityWindow::new_valid_mock(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 sd_jwt: sd_jwt.into_verified(),

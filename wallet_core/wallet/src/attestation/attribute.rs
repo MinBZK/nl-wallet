@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
+use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
@@ -32,6 +33,7 @@ impl AttestationPresentation {
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
         revocation_status: Option<RevocationStatus>,
+        validity_window: ValidityWindow,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -42,6 +44,7 @@ impl AttestationPresentation {
             metadata,
             issuer_organization,
             revocation_status,
+            validity_window,
             &nested_attributes,
             config,
         )
@@ -52,6 +55,7 @@ impl AttestationPresentation {
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
         revocation_status: Option<RevocationStatus>,
+        validity_window: ValidityWindow,
         sd_jwt_claims: ObjectClaims,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -62,6 +66,7 @@ impl AttestationPresentation {
             metadata,
             issuer_organization,
             revocation_status,
+            validity_window,
             &attributes,
             config,
         )
@@ -73,6 +78,7 @@ impl AttestationPresentation {
         metadata: NormalizedTypeMetadata,
         issuer: Box<Organization>,
         revocation_status: Option<RevocationStatus>,
+        validity_window: ValidityWindow,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -159,6 +165,7 @@ impl AttestationPresentation {
             attestation_type,
             issuer,
             attributes,
+            validity_window,
             revocation_status,
         })
     }
@@ -214,6 +221,7 @@ pub mod test {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
+    use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
@@ -289,6 +297,7 @@ pub mod test {
             example_metadata(),
             Organization::new_mock(),
             None,
+            ValidityWindow::new_valid_mock(),
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -330,6 +339,7 @@ pub mod test {
             example_metadata(),
             Organization::new_mock(),
             None,
+            ValidityWindow::new_valid_mock(),
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -368,6 +378,7 @@ pub mod test {
             metadata,
             Organization::new_mock(),
             None,
+            ValidityWindow::new_valid_mock(),
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -455,6 +466,7 @@ pub mod test {
             type_metadata,
             Organization::new_mock(),
             None,
+            ValidityWindow::new_valid_mock(),
             &attributes,
             &EmptyPresentationConfig,
         )
@@ -533,6 +545,7 @@ pub mod test {
             type_metadata,
             Organization::new_mock(),
             None,
+            ValidityWindow::new_valid_mock(),
             &attributes,
             &EmptyPresentationConfig,
         )
@@ -622,6 +635,7 @@ pub mod test {
             NormalizedTypeMetadata::nl_pid_example(),
             Organization::new_mock(),
             None,
+            ValidityWindow::new_valid_mock(),
             mdoc_attributes,
             &config.pid_attributes,
         )

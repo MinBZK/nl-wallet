@@ -192,8 +192,8 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
+    use attestation_data::validity::IssuanceValidity;
     use attestation_types::qualification::AttestationQualification;
     use dcql::unique_id_vec::UniqueIdVec;
     use openid4vc::PostAuthResponseErrorCode;
@@ -226,11 +226,7 @@ mod tests {
                 issuer_uri: "https://example.com".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Utc::now(),
-                    valid_from: Some(Utc::now()),
-                    valid_until: Some(Utc::now()),
-                },
+                issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
             }],
         }])

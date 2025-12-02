@@ -40,6 +40,7 @@ use uuid::Uuid;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::validity::ValidityWindow;
 use attestation_types::status_claim::StatusClaim;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
@@ -198,6 +199,8 @@ impl<K> DatabaseStorage<K> {
             .column(attestation_copy::Column::AttestationFormat)
             .column(attestation_copy::Column::KeyIdentifier)
             .column(attestation_copy::Column::Attestation)
+            .column(attestation::Column::Expiration)
+            .column(attestation::Column::NotBefore)
             .column(attestation::Column::TypeMetadata)
             .expr_as(
                 Func::cust("json_group_array").arg(Expr::col(attestation_copy::Column::RevocationStatus)),
@@ -224,9 +227,21 @@ impl<K> DatabaseStorage<K> {
                     attestation_format,
                     key_identifier,
                     attestation_bytes,
+                    expiration,
+                    not_before,
                     metadata,
                     revocation_statuses,
-                ): (_, _, _, _, CompressedBlob, TypeMetadataModel, String)| {
+                ): (
+                    _,
+                    _,
+                    _,
+                    _,
+                    CompressedBlob,
+                    Option<DateTime<Utc>>,
+                    Option<DateTime<Utc>>,
+                    TypeMetadataModel,
+                    String,
+                )| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -259,6 +274,10 @@ impl<K> DatabaseStorage<K> {
                         attestation,
                         normalized_metadata,
                         revocation_status: determine_revocation_status(&revocation_statuses),
+                        validity_info: ValidityWindow {
+                            valid_until: expiration,
+                            valid_from: not_before,
+                        },
                     };
 
                     Ok(stored_copy)
@@ -666,6 +685,8 @@ where
                     CredentialWithMetadata {
                         copies,
                         attestation_type,
+                        expiration,
+                        not_before,
                         extended_attestation_types,
                         metadata_documents,
                     },
@@ -676,6 +697,8 @@ where
                     let attestation_model = attestation::ActiveModel {
                         id: Set(attestation_id),
                         attestation_type: Set(attestation_type),
+                        expiration: Set(expiration.map(Into::into)),
+                        not_before: Set(not_before.map(Into::into)),
                         extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
                         type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
                     };
@@ -1284,6 +1307,7 @@ pub(crate) mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;
+    use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1595,6 +1619,16 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
                         mdoc.doc_type().to_string(),
+                        Some(
+                            (&mdoc.clone().into_components().0.validity_info.valid_until)
+                                .try_into()
+                                .unwrap(),
+                        ),
+                        Some(
+                            (&mdoc.clone().into_components().0.validity_info.valid_from)
+                                .try_into()
+                                .unwrap(),
+                        ),
                         normalized_metadata.extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
@@ -1774,6 +1808,8 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies,
                         attestation_type.clone(),
+                        sd_jwt.claims().exp,
+                        sd_jwt.claims().nbf,
                         normalized_metadata.extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
@@ -1913,6 +1949,8 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
                         attestation_type,
+                        sd_jwt.claims().exp,
+                        sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
@@ -2163,6 +2201,8 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies,
                         attestation_type,
+                        sd_jwt.claims().exp,
+                        sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
@@ -2199,6 +2239,7 @@ pub(crate) mod tests {
             normalized_metadata,
             issuer_registration.organization,
             None,
+            ValidityWindow::new_valid_mock(),
             sd_jwt.decoded_claims().unwrap(),
             &EmptyPresentationConfig,
         )
@@ -2293,6 +2334,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies.clone(),
                             attestation_type.clone(),
+                            sd_jwt.claims().exp,
+                            sd_jwt.claims().nbf,
                             normalized_metadata.extended_vcts(),
                             metadata_documents.clone(),
                         ),
@@ -2302,6 +2345,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies,
                             attestation_type,
+                            sd_jwt.claims().exp,
+                            sd_jwt.claims().nbf,
                             normalized_metadata.extended_vcts(),
                             metadata_documents,
                         ),
@@ -2340,6 +2385,7 @@ pub(crate) mod tests {
                     normalized_metadata,
                     issuer_registration.organization,
                     None,
+                    ValidityWindow::new_valid_mock(),
                     &payload.previewable_payload.attributes,
                     &EmptyPresentationConfig,
                 )
@@ -2441,6 +2487,8 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
                         attestation_type,
+                        sd_jwt.claims().exp,
+                        sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),

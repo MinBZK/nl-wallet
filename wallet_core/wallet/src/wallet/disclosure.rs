@@ -956,6 +956,7 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
@@ -1056,6 +1057,7 @@ mod tests {
             CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
                 Uuid::new_v4(),
                 Uuid::new_v4(),
+                ValidityWindow::new_valid_mock(),
                 StoredAttestation::MsoMdoc {
                     mdoc: mdoc_from_credential_payload(
                         credential_payload.previewable_payload,
@@ -1068,6 +1070,7 @@ mod tests {
             CredentialFormat::SdJwt => StoredAttestationCopy::new(
                 Uuid::new_v4(),
                 Uuid::new_v4(),
+                ValidityWindow::new_valid_mock(),
                 StoredAttestation::SdJwt {
                     key_identifier: crypto::utils::random_string(16),
                     sd_jwt: verified_sd_jwt_from_credential_payload(

@@ -79,6 +79,8 @@ mod tests {
     use assert_matches::assert_matches;
     use uuid::Uuid;
 
+    use attestation_data::validity::ValidityWindow;
+
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::create_example_pid_mdoc;
@@ -132,6 +134,7 @@ mod tests {
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
                     StoredAttestation::SdJwt {
                         key_identifier: "sd_jwt_key_id".to_string(),
                         sd_jwt,
@@ -142,6 +145,7 @@ mod tests {
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
                     StoredAttestation::MsoMdoc { mdoc },
                     mdoc_metadata,
                     None,

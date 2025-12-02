@@ -11,6 +11,7 @@ use uuid::Uuid;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::Organization;
+use attestation_data::validity::ValidityWindow;
 use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
@@ -65,6 +66,7 @@ pub struct AttestationPresentation {
     pub display_metadata: VecNonEmpty<DisplayMetadata>,
     pub issuer: Box<Organization>,
     pub revocation_status: Option<RevocationStatus>,
+    pub validity_window: ValidityWindow,
     pub attributes: Vec<AttestationAttribute>,
 }
 
@@ -92,6 +94,7 @@ pub enum AttestationAttributeValue {
 #[cfg(test)]
 pub mod mock {
     use attestation_data::auth::Organization;
+    use attestation_data::validity::ValidityWindow;
     use utils::vec_nonempty;
 
     use super::AttestationIdentity;
@@ -121,6 +124,7 @@ pub mod mock {
                     rendering: None,
                 }],
                 issuer: Organization::new_mock(),
+                validity_window: ValidityWindow::new_valid_mock(),
                 attributes: vec![],
                 revocation_status: None,
             }
