@@ -27,7 +27,7 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-pub fn add_cache_layer(router: Router) -> Router {
+pub fn add_cache_control_no_store_layer(router: Router) -> Router {
     router.layer(SetResponseHeaderLayer::overriding(
         header::CACHE_CONTROL,
         HeaderValue::from_static("no-store"),

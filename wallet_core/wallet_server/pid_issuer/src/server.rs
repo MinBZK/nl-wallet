@@ -12,7 +12,7 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
-use server_utils::server::add_cache_layer;
+use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
@@ -84,14 +84,14 @@ where
         Arc::clone(&status_list_services),
     )));
 
-    let mut router = Router::new().nest("/issuance", add_cache_layer(wallet_issuance_router));
+    let mut router = Router::new().nest("/issuance", add_cache_control_no_store_layer(wallet_issuance_router));
     if let Some(status_list_router) = status_list_router {
         router = router.merge(status_list_router);
     }
 
     let mut internal_router = create_revocation_router(status_list_services);
     internal_router = secure_internal_router(&settings.server_settings.internal_server, internal_router);
-    internal_router = add_cache_layer(internal_router);
+    internal_router = add_cache_control_no_store_layer(internal_router);
     listen(
         wallet_listener,
         internal_listener,

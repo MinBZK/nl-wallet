@@ -4,7 +4,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use axum::Router;
 use futures::future::try_join_all;
-use server_utils::server::add_cache_layer;
+use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::secure_internal_router;
 use tokio::net::TcpListener;
 
@@ -148,8 +148,8 @@ where
     .create_wallet_router(disclosure_sessions, revocation_verifier, Some(Box::new(result_handler)));
 
     let mut wallet_router = Router::new()
-        .nest("/issuance", add_cache_layer(issuance_router))
-        .nest("/disclosure", add_cache_layer(disclosure_router));
+        .nest("/issuance", add_cache_control_no_store_layer(issuance_router))
+        .nest("/disclosure", add_cache_control_no_store_layer(disclosure_router));
 
     if let Some(status_list_router) = status_list_router {
         wallet_router = wallet_router.merge(status_list_router);
@@ -157,7 +157,7 @@ where
 
     let mut internal_router = create_revocation_router(status_list_services);
     internal_router = secure_internal_router(&issuer_settings.server_settings.internal_server, internal_router);
-    internal_router = add_cache_layer(internal_router);
+    internal_router = add_cache_control_no_store_layer(internal_router);
     listen(
         wallet_listener,
         internal_listener,
