@@ -177,7 +177,7 @@ async fn assert_published_list(
     assert_eq!(claims.ttl, config.ttl);
 
     let published = claims.status_list.unpack();
-    let mut expected = StatusList::new_aligned(config.list_size.as_usize(), bits);
+    let mut expected = StatusList::new_aligned(list.size as usize, bits);
     for index in revoked {
         expected.insert(index, StatusType::Invalid);
     }
@@ -533,15 +533,22 @@ async fn test_service_revoke_attestation_batch_multiple_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, service) =
+    let (attestation_type, config, _) =
         create_status_list_service(&ca, &connection, 4, 1, Some(Duration::from_secs(300)), &publish_dir)
             .await
             .unwrap();
 
-    // Ensure we have two lists
     let type_id = attestation_type_id(&connection, &attestation_type).await;
+
+    // Ensure we have two lists and change list size for new list
     update_availability_of_status_list(&connection, type_id, 1).await;
-    try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
+    let config = StatusListConfig {
+        list_size: 10.try_into().unwrap(),
+        ..config
+    };
+    let service = recreate_status_list_service(&connection, attestation_type.as_ref(), config.clone())
+        .await
+        .unwrap();
 
     // Create status claims for attestation
     let batch_id = Uuid::new_v4();
