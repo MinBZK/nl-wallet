@@ -21,19 +21,19 @@ pub use crate::attestation::AttestationPresentation;
 pub use crate::pin::validation::validate_pin;
 pub use crate::storage::DisclosureStatus;
 pub use crate::storage::WalletEvent;
+pub use crate::wallet::BlockedReason;
 pub use crate::wallet::DisclosureAttestationOptions;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
 pub use crate::wallet::IssuanceResult;
 pub use crate::wallet::LockCallback;
 pub use crate::wallet::PidIssuancePurpose;
+pub use crate::wallet::TransferRole;
 pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
-pub use crate::wallet::WalletBlockedReason;
 pub use crate::wallet::WalletClients;
 pub use crate::wallet::WalletState;
-pub use crate::wallet::WalletTransferRole;
 
 pub use wallet_account::messages::transfer::TransferSessionState;
 

@@ -98,9 +98,9 @@ class CoreIssuanceRepository implements IssuanceRepository {
   Future<String?> cancelIssuance() async {
     final state = await _walletCore.getWalletState();
     switch (state) {
-      case core.WalletState_Disclosure():
+      case core.WalletState_InDisclosureFlow():
         return _walletCore.cancelDisclosure();
-      case core.WalletState_Issuance():
+      case core.WalletState_InIssuanceFlow():
         await _walletCore.cancelIssuance();
       default:
         break;

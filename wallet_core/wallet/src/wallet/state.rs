@@ -24,27 +24,28 @@ pub enum WalletStateError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum WalletState {
-    WalletBlocked { reason: WalletBlockedReason },
-    Registration,
-    Empty,
+    Blocked { reason: BlockedReason },
+    Unregistered,
     Locked { sub_state: Box<WalletState> },
+    // The following variants may appear in `Locked { sub_state }`
+    Empty,
     TransferPossible,
-    Transferring { role: WalletTransferRole },
-    Disclosure,
-    Issuance,
-    PinChange,
-    PinRecovery,
+    Transferring { role: TransferRole },
+    InDisclosureFlow,
+    InIssuanceFlow,
+    InPinChangeFlow,
+    InPinRecoveryFlow,
     Ready,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum WalletBlockedReason {
+pub enum BlockedReason {
     RequiresAppUpdate,
     BlockedByWalletProvider,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum WalletTransferRole {
+pub enum TransferRole {
     Source,
     Destination,
 }
@@ -60,13 +61,14 @@ where
     #[instrument(skip_all)]
     pub async fn get_state(&self) -> Result<WalletState, WalletStateError> {
         if self.is_blocked() {
-            return Ok(WalletState::WalletBlocked {
-                reason: WalletBlockedReason::RequiresAppUpdate,
+            // TODO
+            return Ok(WalletState::Blocked {
+                reason: BlockedReason::RequiresAppUpdate,
             });
         }
 
         if !self.has_registration() {
-            return Ok(WalletState::Registration);
+            return Ok(WalletState::Unregistered);
         }
 
         let flow_state = self.get_flow_state().await?;
@@ -92,8 +94,8 @@ where
                 .key_data
                 .map(|key_data| {
                     let role = match key_data {
-                        TransferKeyData::Source { .. } => WalletTransferRole::Source,
-                        TransferKeyData::Destination { .. } => WalletTransferRole::Destination,
+                        TransferKeyData::Source { .. } => TransferRole::Source,
+                        TransferKeyData::Destination { .. } => TransferRole::Destination,
                     };
                     WalletState::Transferring { role }
                 })
@@ -102,14 +104,14 @@ where
 
         if let Some(session) = &self.session {
             return match session {
-                Session::Digid { .. } => Ok(WalletState::Issuance),
-                Session::Issuance(_) => Ok(WalletState::Issuance),
-                Session::Disclosure(_) => Ok(WalletState::Disclosure),
-                Session::PinRecovery { .. } => Ok(WalletState::PinRecovery),
+                Session::Digid { .. } => Ok(WalletState::InIssuanceFlow),
+                Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
+                Session::Disclosure(_) => Ok(WalletState::InDisclosureFlow),
+                Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
             };
         }
         if self.storage.get_change_pin_state().await?.is_some() {
-            return Ok(WalletState::PinChange);
+            return Ok(WalletState::InPinChangeFlow);
         }
 
         Ok(WalletState::Ready)
@@ -134,8 +136,8 @@ mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use crate::PidIssuancePurpose;
+    use crate::TransferRole;
     use crate::WalletState;
-    use crate::WalletTransferRole;
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
@@ -164,7 +166,7 @@ mod tests {
     async fn test_unregistered_wallet() {
         let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
         let wallet_state = wallet.get_state().await.unwrap();
-        assert_eq!(wallet_state, WalletState::Registration);
+        assert_eq!(wallet_state, WalletState::Unregistered);
     }
 
     #[tokio::test]
@@ -173,7 +175,7 @@ mod tests {
             .await
             .unwrap();
         let wallet_state = wallet.get_state().await.unwrap();
-        assert_eq!(wallet_state, WalletState::Registration);
+        assert_eq!(wallet_state, WalletState::Unregistered);
     }
 
     #[rstest]
@@ -203,10 +205,10 @@ mod tests {
     }
 
     #[rstest]
-    #[case::pin_state_begin(false, State::Begin, WalletState::PinChange)]
-    #[case::pin_state_commit(false, State::Commit, WalletState::PinChange)]
-    #[case::pin_state_rollback(false, State::Rollback, WalletState::PinChange)]
-    #[case::locked_pin_state(true, ChangePinData {state: State::Begin}, WalletState::PinChange.lock())]
+    #[case::pin_state_begin(false, State::Begin, WalletState::InPinChangeFlow)]
+    #[case::pin_state_commit(false, State::Commit, WalletState::InPinChangeFlow)]
+    #[case::pin_state_rollback(false, State::Rollback, WalletState::InPinChangeFlow)]
+    #[case::locked_pin_state(true, ChangePinData {state: State::Begin}, WalletState::InPinChangeFlow.lock())]
     #[tokio::test]
     async fn test_change_pin_data(
         #[case] is_locked: bool,
@@ -233,8 +235,8 @@ mod tests {
 
     #[rstest]
     #[case::transfer_possible(false, empty_transfer_data(), WalletState::TransferPossible)]
-    #[case::transferring_source(false, source_transfer_data(), WalletState::Transferring { role: WalletTransferRole::Source })]
-    #[case::transferring_destination(false, destination_transfer_data(), WalletState::Transferring { role: WalletTransferRole::Destination })]
+    #[case::transferring_source(false, source_transfer_data(), WalletState::Transferring { role: TransferRole::Source })]
+    #[case::transferring_destination(false, destination_transfer_data(), WalletState::Transferring { role: TransferRole::Destination })]
     #[case::locked_transfer_possible(true, empty_transfer_data(), WalletState::TransferPossible.lock())]
     #[tokio::test]
     async fn test_wallet_transfer(
@@ -259,11 +261,11 @@ mod tests {
     }
 
     #[rstest]
-    #[case::digid(false, digid_session(), WalletState::Issuance)]
-    #[case::issuance(false, issuance_session(), WalletState::Issuance)]
-    #[case::disclosure(false, disclosure_session(), WalletState::Disclosure)]
-    #[case::pin_recovery(false, pin_recovery_session(), WalletState::PinRecovery)]
-    #[case::locked_digid(true, digid_session(), WalletState::Issuance.lock())]
+    #[case::digid(false, digid_session(), WalletState::InIssuanceFlow)]
+    #[case::issuance(false, issuance_session(), WalletState::InIssuanceFlow)]
+    #[case::disclosure(false, disclosure_session(), WalletState::InDisclosureFlow)]
+    #[case::pin_recovery(false, pin_recovery_session(), WalletState::InPinRecoveryFlow)]
+    #[case::locked_digid(true, digid_session(), WalletState::InIssuanceFlow.lock())]
     #[tokio::test]
     async fn test_wallet_session(
         #[case] is_locked: bool,
@@ -305,8 +307,15 @@ mod tests {
         Some(digid_session()),
         WalletState::TransferPossible
     )]
-    #[case::check_session_second(false, true, Some(State::Begin), None, Some(digid_session()), WalletState::Issuance)]
-    #[case::check_pin_state_third(false, true, Some(State::Begin), None, None, WalletState::PinChange)]
+    #[case::check_session_second(
+        false,
+        true,
+        Some(State::Begin),
+        None,
+        Some(digid_session()),
+        WalletState::InIssuanceFlow
+    )]
+    #[case::check_pin_state_third(false, true, Some(State::Begin), None, None, WalletState::InPinChangeFlow)]
     #[case::check_attestations_fourth(false, true, None::<State>, None, None, WalletState::Ready)]
     #[case(false, false, None::<State>, None, None, WalletState::Empty)]
     #[tokio::test]

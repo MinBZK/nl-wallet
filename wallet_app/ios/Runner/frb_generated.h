@@ -217,6 +217,10 @@ typedef struct wire_cst_wallet_instruction_error {
   union WalletInstructionErrorKind kind;
 } wire_cst_wallet_instruction_error;
 
+typedef struct wire_cst_WalletState_Blocked {
+  int32_t reason;
+} wire_cst_WalletState_Blocked;
+
 typedef struct wire_cst_WalletState_Locked {
   struct wire_cst_wallet_state *sub_state;
 } wire_cst_WalletState_Locked;
@@ -225,14 +229,10 @@ typedef struct wire_cst_WalletState_Transferring {
   int32_t role;
 } wire_cst_WalletState_Transferring;
 
-typedef struct wire_cst_WalletState_WalletBlocked {
-  int32_t reason;
-} wire_cst_WalletState_WalletBlocked;
-
 typedef union WalletStateKind {
+  struct wire_cst_WalletState_Blocked Blocked;
   struct wire_cst_WalletState_Locked Locked;
   struct wire_cst_WalletState_Transferring Transferring;
-  struct wire_cst_WalletState_WalletBlocked WalletBlocked;
 } WalletStateKind;
 
 typedef struct wire_cst_wallet_state {

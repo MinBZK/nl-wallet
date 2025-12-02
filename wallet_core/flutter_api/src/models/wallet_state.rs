@@ -1,23 +1,24 @@
 pub enum WalletState {
-    Ready,
-    Registration,
-    Empty,
+    Blocked { reason: BlockedReason },
+    Unregistered,
     Locked { sub_state: Box<WalletState> },
+    // The following variants may appear in `Locked { sub_state }`
+    Empty,
     TransferPossible,
-    Transferring { role: WalletTransferRole },
-    Disclosure,
-    Issuance,
-    PinChange,
-    PinRecovery,
-    WalletBlocked { reason: WalletBlockedReason },
+    Transferring { role: TransferRole },
+    InDisclosureFlow,
+    InIssuanceFlow,
+    InPinChangeFlow,
+    InPinRecoveryFlow,
+    Ready,
 }
 
-pub enum WalletBlockedReason {
+pub enum BlockedReason {
     RequiresAppUpdate,
     BlockedByWalletProvider,
 }
 
-pub enum WalletTransferRole {
+pub enum TransferRole {
     Source,
     Destination,
 }
@@ -31,30 +32,30 @@ impl From<wallet::WalletState> for WalletState {
             },
             wallet::WalletState::TransferPossible => WalletState::TransferPossible,
             wallet::WalletState::Transferring { role } => WalletState::Transferring { role: role.into() },
-            wallet::WalletState::Registration => WalletState::Registration,
-            wallet::WalletState::Disclosure => WalletState::Disclosure,
-            wallet::WalletState::Issuance => WalletState::Issuance,
-            wallet::WalletState::PinChange => WalletState::PinChange,
-            wallet::WalletState::PinRecovery => WalletState::PinRecovery,
-            wallet::WalletState::WalletBlocked { reason } => WalletState::WalletBlocked { reason: reason.into() },
+            wallet::WalletState::Unregistered => WalletState::Unregistered,
+            wallet::WalletState::InDisclosureFlow => WalletState::InDisclosureFlow,
+            wallet::WalletState::InIssuanceFlow => WalletState::InIssuanceFlow,
+            wallet::WalletState::InPinChangeFlow => WalletState::InPinChangeFlow,
+            wallet::WalletState::InPinRecoveryFlow => WalletState::InPinRecoveryFlow,
+            wallet::WalletState::Blocked { reason } => WalletState::Blocked { reason: reason.into() },
             wallet::WalletState::Empty => WalletState::Empty,
         }
     }
 }
 
-impl From<wallet::WalletTransferRole> for WalletTransferRole {
-    fn from(source: wallet::WalletTransferRole) -> Self {
+impl From<wallet::TransferRole> for TransferRole {
+    fn from(source: wallet::TransferRole) -> Self {
         match source {
-            wallet::WalletTransferRole::Source => WalletTransferRole::Source,
-            wallet::WalletTransferRole::Destination => WalletTransferRole::Destination,
+            wallet::TransferRole::Source => TransferRole::Source,
+            wallet::TransferRole::Destination => TransferRole::Destination,
         }
     }
 }
-impl From<wallet::WalletBlockedReason> for WalletBlockedReason {
-    fn from(source: wallet::WalletBlockedReason) -> Self {
+impl From<wallet::BlockedReason> for BlockedReason {
+    fn from(source: wallet::BlockedReason) -> Self {
         match source {
-            wallet::WalletBlockedReason::RequiresAppUpdate => WalletBlockedReason::RequiresAppUpdate,
-            wallet::WalletBlockedReason::BlockedByWalletProvider => WalletBlockedReason::BlockedByWalletProvider,
+            wallet::BlockedReason::RequiresAppUpdate => BlockedReason::RequiresAppUpdate,
+            wallet::BlockedReason::BlockedByWalletProvider => BlockedReason::BlockedByWalletProvider,
         }
     }
 }

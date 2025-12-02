@@ -1565,6 +1565,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  BlockedReason dco_decode_blocked_reason(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BlockedReason.values[raw as int];
+  }
+
+  @protected
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
@@ -2029,6 +2035,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  TransferRole dco_decode_transfer_role(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TransferRole.values[raw as int];
+  }
+
+  @protected
   TransferSessionState dco_decode_transfer_session_state(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return TransferSessionState.values[raw as int];
@@ -2056,12 +2068,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void dco_decode_unit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return;
-  }
-
-  @protected
-  WalletBlockedReason dco_decode_wallet_blocked_reason(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return WalletBlockedReason.values[raw as int];
   }
 
   @protected
@@ -2131,42 +2137,36 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return WalletState_Ready();
+        return WalletState_Blocked(
+          reason: dco_decode_blocked_reason(raw[1]),
+        );
       case 1:
-        return WalletState_Registration();
+        return WalletState_Unregistered();
       case 2:
-        return WalletState_Empty();
-      case 3:
         return WalletState_Locked(
           subState: dco_decode_box_wallet_state(raw[1]),
         );
+      case 3:
+        return WalletState_Empty();
       case 4:
         return WalletState_TransferPossible();
       case 5:
         return WalletState_Transferring(
-          role: dco_decode_wallet_transfer_role(raw[1]),
+          role: dco_decode_transfer_role(raw[1]),
         );
       case 6:
-        return WalletState_Disclosure();
+        return WalletState_InDisclosureFlow();
       case 7:
-        return WalletState_Issuance();
+        return WalletState_InIssuanceFlow();
       case 8:
-        return WalletState_PinChange();
+        return WalletState_InPinChangeFlow();
       case 9:
-        return WalletState_PinRecovery();
+        return WalletState_InPinRecoveryFlow();
       case 10:
-        return WalletState_WalletBlocked(
-          reason: dco_decode_wallet_blocked_reason(raw[1]),
-        );
+        return WalletState_Ready();
       default:
         throw Exception("unreachable");
     }
-  }
-
-  @protected
-  WalletTransferRole dco_decode_wallet_transfer_role(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return WalletTransferRole.values[raw as int];
   }
 
   @protected
@@ -2301,6 +2301,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       default:
         throw UnimplementedError('');
     }
+  }
+
+  @protected
+  BlockedReason sse_decode_blocked_reason(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BlockedReason.values[inner];
   }
 
   @protected
@@ -2890,6 +2897,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  TransferRole sse_decode_transfer_role(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return TransferRole.values[inner];
+  }
+
+  @protected
   TransferSessionState sse_decode_transfer_session_state(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -2917,13 +2931,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_decode_unit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  WalletBlockedReason sse_decode_wallet_blocked_reason(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_i_32(deserializer);
-    return WalletBlockedReason.values[inner];
   }
 
   @protected
@@ -3013,40 +3020,39 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        return WalletState_Ready();
+        var var_reason = sse_decode_blocked_reason(deserializer);
+        return WalletState_Blocked(reason: var_reason);
       case 1:
-        return WalletState_Registration();
+        return WalletState_Unregistered();
       case 2:
-        return WalletState_Empty();
-      case 3:
         var var_subState = sse_decode_box_wallet_state(deserializer);
         return WalletState_Locked(subState: var_subState);
+      case 3:
+        return WalletState_Empty();
       case 4:
         return WalletState_TransferPossible();
       case 5:
-        var var_role = sse_decode_wallet_transfer_role(deserializer);
+        var var_role = sse_decode_transfer_role(deserializer);
         return WalletState_Transferring(role: var_role);
       case 6:
-        return WalletState_Disclosure();
+        return WalletState_InDisclosureFlow();
       case 7:
-        return WalletState_Issuance();
+        return WalletState_InIssuanceFlow();
       case 8:
-        return WalletState_PinChange();
+        return WalletState_InPinChangeFlow();
       case 9:
-        return WalletState_PinRecovery();
+        return WalletState_InPinRecoveryFlow();
       case 10:
-        var var_reason = sse_decode_wallet_blocked_reason(deserializer);
-        return WalletState_WalletBlocked(reason: var_reason);
+        return WalletState_Ready();
       default:
         throw UnimplementedError('');
     }
   }
 
   @protected
-  WalletTransferRole sse_decode_wallet_transfer_role(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_i_32(deserializer);
-    return WalletTransferRole.values[inner];
+  int cst_encode_blocked_reason(BlockedReason raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
   }
 
   @protected
@@ -3092,6 +3098,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int cst_encode_transfer_role(TransferRole raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
   int cst_encode_transfer_session_state(TransferSessionState raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
@@ -3113,18 +3125,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void cst_encode_unit(void raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
-  }
-
-  @protected
-  int cst_encode_wallet_blocked_reason(WalletBlockedReason raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_i_32(raw.index);
-  }
-
-  @protected
-  int cst_encode_wallet_transfer_role(WalletTransferRole raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_i_32(raw.index);
   }
 
   @protected
@@ -3284,6 +3284,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case AttributeValue_Null():
         sse_encode_i_32(5, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_blocked_reason(BlockedReason self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -3772,6 +3778,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_transfer_role(TransferRole self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_transfer_session_state(TransferSessionState self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -3798,12 +3810,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  void sse_encode_wallet_blocked_reason(WalletBlockedReason self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -3878,37 +3884,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_wallet_state(WalletState self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case WalletState_Ready():
+      case WalletState_Blocked(reason: final reason):
         sse_encode_i_32(0, serializer);
-      case WalletState_Registration():
+        sse_encode_blocked_reason(reason, serializer);
+      case WalletState_Unregistered():
         sse_encode_i_32(1, serializer);
-      case WalletState_Empty():
-        sse_encode_i_32(2, serializer);
       case WalletState_Locked(subState: final subState):
-        sse_encode_i_32(3, serializer);
+        sse_encode_i_32(2, serializer);
         sse_encode_box_wallet_state(subState, serializer);
+      case WalletState_Empty():
+        sse_encode_i_32(3, serializer);
       case WalletState_TransferPossible():
         sse_encode_i_32(4, serializer);
       case WalletState_Transferring(role: final role):
         sse_encode_i_32(5, serializer);
-        sse_encode_wallet_transfer_role(role, serializer);
-      case WalletState_Disclosure():
+        sse_encode_transfer_role(role, serializer);
+      case WalletState_InDisclosureFlow():
         sse_encode_i_32(6, serializer);
-      case WalletState_Issuance():
+      case WalletState_InIssuanceFlow():
         sse_encode_i_32(7, serializer);
-      case WalletState_PinChange():
+      case WalletState_InPinChangeFlow():
         sse_encode_i_32(8, serializer);
-      case WalletState_PinRecovery():
+      case WalletState_InPinRecoveryFlow():
         sse_encode_i_32(9, serializer);
-      case WalletState_WalletBlocked(reason: final reason):
+      case WalletState_Ready():
         sse_encode_i_32(10, serializer);
-        sse_encode_wallet_blocked_reason(reason, serializer);
     }
-  }
-
-  @protected
-  void sse_encode_wallet_transfer_role(WalletTransferRole self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.index, serializer);
   }
 }
