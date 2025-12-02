@@ -1,7 +1,6 @@
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
-use axum::response::IntoResponse;
 use crypto::utils::random_string;
 use futures::future::join_all;
 use futures::future::try_join_all;
@@ -28,7 +27,6 @@ use uuid::Uuid;
 async fn setup_revocation_server<L>(service: Arc<L>) -> anyhow::Result<Url>
 where
     L: StatusListRevocationService + Send + Sync + 'static,
-    L::Error: IntoResponse,
 {
     let router = create_revocation_router(service);
     let listener = TcpListener::bind(("127.0.0.1", 0)).await?;

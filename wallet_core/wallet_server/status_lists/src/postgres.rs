@@ -28,6 +28,7 @@ use sea_orm::sea_query::LockType;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
+use token_status_list::status_list_service::RevocationError;
 use uuid::Uuid;
 
 use attestation_types::status_claim::StatusClaim;
@@ -94,9 +95,6 @@ pub struct PostgresStatusListService<K: Clone = PrivateKeyVariant> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListServiceError {
-    #[error("attestation batches not found: {0:?}")]
-    AttestationBatchesNotFound(VecNonEmpty<Uuid>),
-
     #[error("base url error: {0}")]
     BaseUrl(#[from] BaseUrlError),
 
@@ -132,17 +130,6 @@ pub enum StatusListServiceError {
 
     #[error("unknown attestation type: {0}")]
     UnknownAttestationType(String),
-}
-
-#[cfg(feature = "axum")]
-impl axum::response::IntoResponse for StatusListServiceError {
-    fn into_response(self) -> axum::response::Response {
-        tracing::warn!("error result: {:?}", self);
-        match self {
-            StatusListServiceError::AttestationBatchesNotFound(_) => axum::http::StatusCode::NOT_FOUND.into_response(),
-            _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-        }
-    }
 }
 
 impl<K> StatusListServices for PostgresStatusListServices<K>
@@ -182,9 +169,7 @@ impl<K> StatusListRevocationService for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
-    type Error = StatusListServiceError;
-
-    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), Self::Error> {
+    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
         self.0
             .values()
             .next()
@@ -255,14 +240,13 @@ impl<K> StatusListRevocationService for PostgresStatusListService<K>
 where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
-    type Error = StatusListServiceError;
-
-    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), StatusListServiceError> {
+    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
         // Find batches by batch_ids
         let batches = attestation_batch::Entity::find()
             .filter(attestation_batch::Column::BatchId.is_in(batch_ids.iter().copied()))
             .all(&self.connection)
-            .await?;
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         // Check if all batch_ids were found
         if batches.len() != batch_ids.len().get() {
@@ -274,7 +258,7 @@ where
                 .collect_vec()
                 .try_into()
                 .unwrap();
-            return Err(StatusListServiceError::AttestationBatchesNotFound(missing_ids));
+            return Err(RevocationError::BatchIdsNotFound(missing_ids));
         }
 
         // Update revocation for all batches
@@ -283,7 +267,8 @@ where
             .col_expr(attestation_batch::Column::IsRevoked, Expr::value(true))
             .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids.iter().copied()))
             .exec(&self.connection)
-            .await?;
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         // Find status list and external id for all related status lists
         let list_and_external_ids: Vec<(i64, String, i32)> = attestation_batch_list_indices::Entity::find()
@@ -299,7 +284,8 @@ where
             .filter(attestation_batch_list_indices::Column::AttestationBatchId.is_in(attestation_batch_ids))
             .into_tuple()
             .all(&self.connection)
-            .await?;
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         // Publish new status list
         try_join_all(
@@ -310,7 +296,8 @@ where
                     self.publish_status_list(list_id, external_id.as_str(), size).await
                 }),
         )
-        .await?;
+        .await
+        .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         Ok(())
     }

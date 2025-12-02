@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use axum::response::IntoResponse;
 use p256::ecdsa::VerifyingKey;
 use tokio::net::TcpListener;
 
@@ -23,7 +22,7 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListServices;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, L, IS, E>(
+pub async fn serve<A, L, IS>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
@@ -34,9 +33,8 @@ pub async fn serve<A, L, IS, E>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService<Error = E> + Send + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    E: IntoResponse,
 {
     serve_with_listeners(
         create_wallet_listener(&settings.server_settings.wallet_server).await?,
@@ -53,7 +51,7 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<A, L, IS, E>(
+pub async fn serve_with_listeners<A, L, IS>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
@@ -66,9 +64,8 @@ pub async fn serve_with_listeners<A, L, IS, E>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService<Error = E> + Send + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    E: IntoResponse,
 {
     let log_requests = settings.server_settings.log_requests;
 

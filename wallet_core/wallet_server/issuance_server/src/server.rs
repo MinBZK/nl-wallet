@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use axum::response::IntoResponse;
 use futures::future::try_join_all;
 use server_utils::server::add_cache_layer;
 use server_utils::server::secure_internal_router;
@@ -38,7 +37,7 @@ use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, L, IS, DS, C, E>(
+pub async fn serve<A, L, IS, DS, C>(
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -52,9 +51,8 @@ where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService<Error = E> + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Sync + 'static,
     C: StatusListClient + Sync + 'static,
-    E: IntoResponse,
 {
     serve_with_listeners(
         create_wallet_listener(&settings.issuer_settings.server_settings.wallet_server).await?,
@@ -72,7 +70,7 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<A, L, IS, DS, C, E>(
+pub async fn serve_with_listeners<A, L, IS, DS, C>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     settings: IssuanceServerSettings,
@@ -88,9 +86,8 @@ where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService<Error = E> + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Sync + 'static,
     C: StatusListClient + Sync + 'static,
-    E: IntoResponse,
 {
     let log_requests = settings.issuer_settings.server_settings.log_requests;
     let issuer_settings = settings.issuer_settings;

@@ -31,11 +31,31 @@ pub trait StatusListService {
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum RevocationError {
+    #[error("batch IDs not found: {0:?}")]
+    BatchIdsNotFound(VecNonEmpty<Uuid>),
+
+    #[error("internal error occurred: {0}")]
+    InternalError(Box<dyn std::error::Error + Send + Sync>),
+}
+
+#[cfg(feature = "axum")]
+impl axum::response::IntoResponse for RevocationError {
+    fn into_response(self) -> axum::response::Response {
+        tracing::warn!("error result: {:?}", self);
+        match self {
+            RevocationError::BatchIdsNotFound(batch_ids) => {
+                (axum::http::StatusCode::NOT_FOUND, axum::Json(batch_ids)).into_response()
+            }
+            _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        }
+    }
+}
+
 #[trait_variant::make(Send)]
 pub trait StatusListRevocationService {
-    type Error: std::error::Error + Send + Sync + 'static;
-
-    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), Self::Error>;
+    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError>;
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -98,9 +118,7 @@ pub mod mock {
     }
 
     impl StatusListRevocationService for MockStatusListServices {
-        type Error = Infallible;
-
-        async fn revoke_attestation_batches(&self, _batch_ids: VecNonEmpty<Uuid>) -> Result<(), Self::Error> {
+        async fn revoke_attestation_batches(&self, _batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
             Ok(())
         }
     }
