@@ -97,7 +97,7 @@ async fn test_revoke_batch(#[case] batch: &[Uuid]) {
     .await;
 
     let response = reqwest::Client::new()
-        .post(revocation_endpoint)
+        .post(revocation_endpoint.clone())
         .json(&batch)
         .send()
         .await
@@ -115,6 +115,16 @@ async fn test_revoke_batch(#[case] batch: &[Uuid]) {
         .into_iter()
         .all(|b| b)
     );
+
+    // test idempotency
+    let response = reqwest::Client::new()
+        .post(revocation_endpoint)
+        .json(&batch)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), 200);
 }
 
 #[tokio::test]
