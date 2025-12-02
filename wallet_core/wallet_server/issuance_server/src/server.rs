@@ -5,6 +5,7 @@ use anyhow::Result;
 use axum::Router;
 use axum::response::IntoResponse;
 use futures::future::try_join_all;
+use server_utils::server::add_cache_layer;
 use server_utils::server::secure_internal_router;
 use tokio::net::TcpListener;
 
@@ -25,7 +26,6 @@ use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
-use server_utils::server::decorate_router;
 use server_utils::server::listen;
 use status_lists::revoke::create_revocation_router;
 use token_status_list::status_list_service::StatusListRevocationService;
@@ -151,8 +151,8 @@ where
     .create_wallet_router(disclosure_sessions, revocation_verifier, Some(Box::new(result_handler)));
 
     let mut wallet_router = Router::new()
-        .nest("/issuance", decorate_router(issuance_router, log_requests))
-        .nest("/disclosure", decorate_router(disclosure_router, log_requests));
+        .nest("/issuance", add_cache_layer(issuance_router))
+        .nest("/disclosure", add_cache_layer(disclosure_router));
 
     if let Some(status_list_router) = status_list_router {
         wallet_router = wallet_router.merge(status_list_router);
@@ -160,6 +160,13 @@ where
 
     let mut internal_router = create_revocation_router(status_list_services);
     internal_router = secure_internal_router(&issuer_settings.server_settings.internal_server, internal_router);
-    internal_router = decorate_router(internal_router, log_requests);
-    listen(wallet_listener, internal_listener, wallet_router, internal_router).await
+    internal_router = add_cache_layer(internal_router);
+    listen(
+        wallet_listener,
+        internal_listener,
+        wallet_router,
+        internal_router,
+        log_requests,
+    )
+    .await
 }

@@ -27,12 +27,14 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
-    router = router.layer(SetResponseHeaderLayer::overriding(
+pub fn add_cache_layer(router: Router) -> Router {
+    router.layer(SetResponseHeaderLayer::overriding(
         header::CACHE_CONTROL,
         HeaderValue::from_static("no-store"),
-    ));
+    ))
+}
 
+pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
     if log_requests {
         router = router.layer(axum::middleware::from_fn(log_request_response));
     }
@@ -90,12 +92,16 @@ pub async fn listen(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     mut wallet_router: Router,
-    internal_router: Router,
+    mut internal_router: Router,
+    log_requests: bool,
 ) -> Result<()> {
     info!("{}", version_string());
 
     match internal_listener {
         Some(internal_listener) => {
+            wallet_router = decorate_router(wallet_router, log_requests);
+            internal_router = decorate_router(internal_router, log_requests);
+
             info!("listening for internal on {}", internal_listener.local_addr()?);
             let internal_server = tokio::spawn(async move {
                 axum::serve(internal_listener, internal_router)
@@ -113,7 +119,7 @@ pub async fn listen(
             tokio::try_join!(internal_server, wallet_server)?;
         }
         None => {
-            wallet_router = wallet_router.merge(internal_router);
+            wallet_router = decorate_router(wallet_router.merge(internal_router), log_requests);
             info!(
                 "listening for wallet and requester on {}",
                 wallet_listener.local_addr()?

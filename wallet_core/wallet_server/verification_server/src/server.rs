@@ -9,10 +9,10 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc_server::verifier::VerifierFactory;
+use server_utils::server::add_cache_layer;
 use server_utils::server::check_internal_listener_with_settings;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
-use server_utils::server::decorate_router;
 use server_utils::server::listen;
 use server_utils::server::secure_internal_router;
 use token_status_list::verification::client::StatusListClient;
@@ -87,11 +87,9 @@ where
     listen(
         wallet_listener,
         requester_listener,
-        Router::new().nest(
-            "/disclosure/sessions",
-            decorate_router(wallet_disclosure_router, log_requests),
-        ),
-        Router::new().nest("/disclosure/sessions", decorate_router(requester_router, log_requests)),
+        Router::new().nest("/disclosure/sessions", add_cache_layer(wallet_disclosure_router)),
+        Router::new().nest("/disclosure/sessions", add_cache_layer(requester_router)),
+        log_requests,
     )
     .await
 }
