@@ -621,7 +621,6 @@ where
             .filter(
                 status_list::Column::Id.in_subquery(
                     Query::select()
-                        .distinct()
                         .expr(Expr::column(status_list_item::Column::StatusListId))
                         .from(status_list_item::Entity)
                         .to_owned(),
