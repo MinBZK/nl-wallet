@@ -171,20 +171,15 @@ where
     K: EcdsaKeySend + Sync + Clone + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
-        self.0
-            .values()
-            .next()
-            .unwrap()
-            .revoke_attestation_batches(batch_ids)
-            .await
+        self.first_service().revoke_attestation_batches(batch_ids).await
     }
 
     async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
-        self.0.values().next().unwrap().get_attestation_batch(batch_id).await
+        self.first_service().get_attestation_batch(batch_id).await
     }
 
     async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
-        self.0.values().next().unwrap().list_attestation_batches().await
+        self.first_service().list_attestation_batches().await
     }
 }
 
@@ -223,6 +218,11 @@ where
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
+    }
+
+    fn first_service(&self) -> &PostgresStatusListService<K> {
+        // in the constructor we ensure that at least one service is present
+        self.0.values().next().expect("at least one service should be present")
     }
 }
 
