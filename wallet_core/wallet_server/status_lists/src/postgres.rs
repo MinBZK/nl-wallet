@@ -270,18 +270,23 @@ where
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
-        // Find status list and external id for all related status lists
-        let list_and_external_ids: Vec<(i64, String, i32)> = attestation_batch_list_indices::Entity::find()
-            .join(
-                JoinType::InnerJoin,
-                attestation_batch_list_indices::Relation::StatusList.def(),
-            )
+        // Find status list, external ID and size for all related status lists
+        let list_external_ids_and_size: Vec<(i64, String, i32)> = status_list::Entity::find()
             .select_only()
-            .distinct()
             .select_column(status_list::Column::Id)
             .select_column(status_list::Column::ExternalId)
             .select_column(status_list::Column::Size)
-            .filter(attestation_batch_list_indices::Column::AttestationBatchId.is_in(attestation_batch_ids))
+            .filter(
+                status_list::Column::Id.in_subquery(
+                    Query::select()
+                        .expr(Expr::column(attestation_batch_list_indices::Column::StatusListId))
+                        .from(attestation_batch_list_indices::Entity)
+                        .and_where(
+                            attestation_batch_list_indices::Column::AttestationBatchId.is_in(attestation_batch_ids),
+                        )
+                        .to_owned(),
+                ),
+            )
             .into_tuple()
             .all(&self.connection)
             .await
@@ -289,7 +294,7 @@ where
 
         // Publish new status list
         try_join_all(
-            list_and_external_ids
+            list_external_ids_and_size
                 .into_iter()
                 .map(|(list_id, external_id, size)| async move {
                     let size = size.try_into().expect("size should be non-zero");
