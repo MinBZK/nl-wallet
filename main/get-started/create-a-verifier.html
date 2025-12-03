@@ -993,7 +993,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/08-requester-api-key.toml&quot;</span>
 
-<span class="s">[requester_server.authentication]</span>
+<span class="s">[internal_server.authentication]</span>
 <span class="s">api_key = &quot;$(tr -dc A-Za-z0-9 &lt;/dev/urandom | head -c 32)&quot;</span>
 <span class="s">EOF</span>
 </pre></div>
@@ -1013,7 +1013,7 @@ public interfaces:</p>
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/09-listener-addresses-and-ports.toml&quot;</span>
 
-<span class="s">[requester_server]</span>
+<span class="s">[internal_server]</span>
 <span class="s">ip = &quot;10.11.12.13&quot;</span>
 <span class="s">port = 8002</span>
 
@@ -1040,8 +1040,8 @@ Your application talks to the private address and port and the “outside” wor
 talks to the public address and port.</p>
 <p>If you need to configure <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> to listen on a <em>single</em>
 address and port, you only configure the <code class="docutils literal notranslate"><span class="pre">[wallet_server]</span></code> section of the config
-file and leave out the <code class="docutils literal notranslate"><span class="pre">[requester_server]</span></code> section. In that case, you are
-<em>required</em> to configure an <code class="docutils literal notranslate"><span class="pre">api_key</span></code> under the <code class="docutils literal notranslate"><span class="pre">[requester_server.authentication]</span></code>
+file and leave out the <code class="docutils literal notranslate"><span class="pre">[internal_server]</span></code> section. In that case, you are
+<em>required</em> to configure an <code class="docutils literal notranslate"><span class="pre">api_key</span></code> under the <code class="docutils literal notranslate"><span class="pre">[internal_server.authentication]</span></code>
 section (note that API key configuration is optional when you have a separate
 private address and port configured). We cover configuration of an API key in
 the <a class="reference internal" href="#configuring-an-api-key">Configuring an API key</a> section.</p>
