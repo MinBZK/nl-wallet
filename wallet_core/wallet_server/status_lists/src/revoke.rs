@@ -4,7 +4,6 @@ use axum::Json;
 use axum::Router;
 use axum::extract::Path;
 use axum::extract::State;
-use token_status_list::status_list_service::RevocationError;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
@@ -13,6 +12,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
 use token_status_list::status_list_service::BatchIsRevoked;
+use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
 
 #[derive(OpenApi)]
@@ -27,7 +27,7 @@ struct ApiDoc;
         example = json!(["67e55044-10b1-426f-9247-bb680e5fe0c8"]),
     ),
     responses(
-        (status = OK, description = "Successfully revoked the provided batch IDs."), 
+        (status = OK, description = "Successfully revoked the provided batch IDs."),
         (status = NOT_FOUND, description = "One or more of the provided batch IDs were not found.")
     )
 )]

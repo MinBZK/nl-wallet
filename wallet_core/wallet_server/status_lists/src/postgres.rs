@@ -28,7 +28,6 @@ use sea_orm::sea_query::LockType;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
-use token_status_list::status_list_service::RevocationError;
 use uuid::Uuid;
 
 use attestation_types::status_claim::StatusClaim;
@@ -40,6 +39,7 @@ use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::BatchIsRevoked;
+use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_service::StatusListServices;
