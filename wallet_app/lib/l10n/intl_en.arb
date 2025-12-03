@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-11-25T14:55:32+01:00",
+    "@@last_modified": "2025-12-02T08:56:21+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -136,6 +136,53 @@
     },
     "cardDetailScreenLatestSuccessInteractionUnknown": "Never shared before",
     "cardDetailScreenRenewPidCta": "Replace card via DigiD",
+    "cardExpiredNotificationDescription": "{card} expired. Replace this card if you still need it.",
+    "@cardExpiredNotificationDescription": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardExpiredNotificationTitle": "NL Wallet",
+    "cardExpiresSoonNotificationDescription": "{days, plural, one {{card} expires in {days} day. Replace this card if you still need it.} other {{card} expires in {days} days. Replace this card if you still need it.}}",
+    "@cardExpiresSoonNotificationDescription": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            },
+            "days": {
+                "example": "200",
+                "type": "int"
+            }
+        }
+    },
+    "cardExpiresSoonNotificationTitle": "NL Wallet",
+    "cardExpiryBannerExpiredTitle": "{card} expired",
+    "@cardExpiryBannerExpiredTitle": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardExpiryBannerExpiresSoonTitle": "{days, plural, one {{card} expires in {days} day} other {{card} expires in {days} days}}",
+    "@cardExpiryBannerExpiresSoonTitle": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            },
+            "days": {
+                "example": "200",
+                "type": "int"
+            }
+        }
+    },
+    "cardExpiryBannerSubtitle": "Replace this card if you still need it.",
     "cardHistoryDisclosureCancelled": "Sharing stopped",
     "cardHistoryDisclosureError": "Sharing may have failed",
     "cardHistoryDisclosureErrorNoDataShared": "Sharing failed",
@@ -153,6 +200,8 @@
     "cardHistoryTimelineOperationExpired": "Card expired",
     "cardHistoryTimelineOperationRenewed": "Card renewed",
     "cardHistoryTimelineOperationRevoked": "Card revoked",
+    "cardNotificationsChannelDescription": "Notifications about the status of your cards",
+    "cardNotificationsChannelName": "Card status",
     "cardPreviewScreenIncorrectCta": "Are your details incorrect?",
     "cardPreviewScreenIssuedBy": "Card issued by {organization}.",
     "@cardPreviewScreenIssuedBy": {
@@ -1451,7 +1500,7 @@
     "walletPersonalizeCheckDataOfferingPageSubtitle": "If your details are correct, you will receive a Personal data card and an Address card.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Are your details correct?",
     "walletPersonalizeConfirmPinPageTitle": "Agree with your PIN",
-    "walletPersonalizeDataIncorrectScreenDescription": "If your details are incorrect, it can cause problems. Therefore, do not add these details.",
+    "walletPersonalizeDataIncorrectScreenDescription": "If your details are incorrect, this can cause problems. Therefore, do not add these details.",
     "walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints": "Contact your municipality to have your details changed.\nWait for a message from your municipality confirming the update.\nLog in again with DigiD to retrieve the correct details.",
     "walletPersonalizeDataIncorrectScreenHowToResolveTitle": "How can I correct incorrect details?",
     "walletPersonalizeDataIncorrectScreenNotYourDataDescription": "Do not add the details and log in with your own DigiD.",
