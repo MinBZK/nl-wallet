@@ -66,6 +66,8 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use token_status_list::verification::verifier::RevocationStatus;
+use utils::generator::Generator;
+
 #[cfg(not(debug_assertions))]
 use utils::built_info::version_identifier;
 
@@ -231,17 +233,7 @@ impl<K> DatabaseStorage<K> {
                     not_before,
                     metadata,
                     revocation_statuses,
-                ): (
-                    _,
-                    _,
-                    _,
-                    _,
-                    CompressedBlob,
-                    Option<DateTime<Utc>>,
-                    Option<DateTime<Utc>>,
-                    TypeMetadataModel,
-                    String,
-                )| {
+                ): (_, _, _, _, CompressedBlob, _, _, TypeMetadataModel, String)| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -851,7 +843,7 @@ where
     }
 
     async fn fetch_unique_attestations_by_types_and_format<'a>(
-        &'a self,
+        &self,
         attestation_types: &HashSet<&'a str>,
         format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
@@ -859,11 +851,17 @@ where
             .await
     }
 
-    async fn fetch_valid_unique_attestations_by_types_and_format<'a>(
-        &'a self,
-        attestation_types: &HashSet<&'a str>,
+    async fn fetch_valid_unique_attestations_by_types_and_format<T>(
+        &self,
+        attestation_types: &HashSet<&str>,
         format: CredentialFormat,
-    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        time_generator: T,
+    ) -> StorageResult<Vec<StoredAttestationCopy>>
+    where
+        T: Generator<DateTime<Utc>> + Send + Send + Sync + 'static,
+    {
+        let now = time_generator.generate();
+
         self.query_unique_attestations_with_parameters(
             attestation_types,
             Some(format),
@@ -876,6 +874,16 @@ where
                                 RevocationStatus::Undetermined.to_string(),
                             ])
                             .or(attestation_copy::Column::RevocationStatus.is_null()),
+                    )
+                    .add(
+                        attestation::Column::NotBefore
+                            .is_null()
+                            .or(attestation::Column::NotBefore.lte(now)),
+                    )
+                    .add(
+                        attestation::Column::Expiration
+                            .is_null()
+                            .or(attestation::Column::Expiration.gt(now)),
                     )
                     .into_condition(),
             ),
@@ -1293,6 +1301,7 @@ pub(crate) mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use chrono::Days;
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
@@ -1323,8 +1332,8 @@ pub(crate) mod tests {
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
-
     use test_storage::MockHardwareDatabaseStorage;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::storage::data::RegistrationData;
@@ -1666,17 +1675,29 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::MsoMdoc,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &HashSet::from(["other"]),
+                CredentialFormat::MsoMdoc,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1692,6 +1713,28 @@ pub(crate) mod tests {
         );
         assert!(fetched_unique_sd_jwt.is_empty());
         assert!(fetched_unique_other.is_empty());
+
+        // Should not return not yet valid attestations.
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::MsoMdoc,
+                MockTimeGenerator::new(Utc.timestamp_nanos(0)),
+            )
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+        assert!(fetched.is_empty());
+
+        // Should not return expired attestations.
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::MsoMdoc,
+                MockTimeGenerator::new(Utc::now() + Days::new(366)),
+            )
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+        assert!(fetched.is_empty());
 
         // Increment the usage count for this attestation copy.
         storage
@@ -1752,7 +1795,11 @@ pub(crate) mod tests {
         assert!(!extended_vcts.is_empty());
 
         let fetched_unique = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &extended_vcts,
+                CredentialFormat::MsoMdoc,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1849,17 +1896,29 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::MsoMdoc,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &HashSet::from(["other"]),
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1888,7 +1947,11 @@ pub(crate) mod tests {
         assert!(!extended_vcts.is_empty());
 
         let fetched_unique = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &extended_vcts,
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::default(),
+            )
             .await
             .expect("Could not fetch unique attestations by types and format");
 

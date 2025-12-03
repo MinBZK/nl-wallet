@@ -34,6 +34,7 @@ use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use token_status_list::verification::verifier::RevocationStatus;
+use utils::generator::Generator;
 
 use crate::AttestationPresentation;
 use crate::storage::sql_cipher_key::SqlCipherKey;
@@ -204,7 +205,7 @@ pub trait Storage: Send {
     /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
     /// that extend at least one of the requested attestation types.
     async fn fetch_unique_attestations_by_types_and_format<'a>(
-        &'a self,
+        &self,
         attestation_types: &HashSet<&'a str>,
         format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
@@ -215,11 +216,15 @@ pub trait Storage: Send {
     ///
     /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
     /// that extend at least one of the requested attestation types.
-    async fn fetch_valid_unique_attestations_by_types_and_format<'a>(
-        &'a self,
-        attestation_types: &HashSet<&'a str>,
+    #[cfg_attr(test, mockall::concretize)]
+    async fn fetch_valid_unique_attestations_by_types_and_format<T>(
+        &self,
+        attestation_types: &HashSet<&str>,
         format: CredentialFormat,
-    ) -> StorageResult<Vec<StoredAttestationCopy>>;
+        time_generator: T,
+    ) -> StorageResult<Vec<StoredAttestationCopy>>
+    where
+        T: Generator<DateTime<Utc>> + Send + Send + Sync + 'static;
 
     async fn log_disclosure_event(
         &mut self,

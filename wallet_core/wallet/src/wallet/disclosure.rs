@@ -359,7 +359,7 @@ where
         let credential_types = request.credential_types().collect();
 
         let stored_attestations = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&credential_types, request.format())
+            .fetch_valid_unique_attestations_by_types_and_format(&credential_types, request.format(), TimeGenerator)
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -1311,11 +1311,11 @@ mod tests {
             wallet
                 .mut_storage()
                 .expect_fetch_valid_unique_attestations_by_types_and_format()
-                .withf(move |attestation_types, format| {
+                .withf(move |attestation_types, format, _| {
                     *attestation_types == HashSet::from([attestation_type]) && *format == requested_format
                 })
                 .times(1)
-                .return_once(move |_, _| Ok(attestations));
+                .return_once(move |_, _, _| Ok(attestations));
         }
 
         // The wallet will check in the database if data was shared with the RP before.
@@ -1783,7 +1783,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .times(1)
-            .returning(move |_, _| Err(StorageError::AlreadyOpened));
+            .returning(move |_, _, _| Err(StorageError::AlreadyOpened));
 
         // Starting disclosure on a wallet that has a faulty database should result in an error.
         let error = wallet
@@ -1811,11 +1811,11 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format| {
+            .withf(move |attestation_types, format, _| {
                 *attestation_types == HashSet::from([PID_ATTESTATION_TYPE]) && *format == CredentialFormat::MsoMdoc
             })
             .times(1)
-            .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .return_once(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
 
         wallet
             .mut_storage()
@@ -1849,7 +1849,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .times(1)
-            .returning(move |_, _| Ok(vec![]));
+            .returning(move |_, _, _| Ok(vec![]));
 
         wallet
             .mut_storage()
@@ -1921,7 +1921,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .times(1)
-            .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .returning(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
 
         wallet
             .mut_storage()
@@ -2934,11 +2934,11 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format| {
+            .withf(move |attestation_types, format, _| {
                 *attestation_types == HashSet::from([attestation_type]) && *format == CredentialFormat::SdJwt
             })
             .times(1)
-            .return_once(move |_, _| Ok(attestations));
+            .return_once(move |_, _, _| Ok(attestations));
 
         // The wallet will not check in the database if data was shared with the RP before.
         wallet.mut_storage().expect_did_share_data_with_relying_party().never();
