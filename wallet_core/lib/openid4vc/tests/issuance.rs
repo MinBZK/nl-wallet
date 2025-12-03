@@ -126,7 +126,7 @@ fn setup(
         Some(WuaConfig {
             wua_issuer_pubkey: wua_issuer_privkey.verifying_key().into(),
         }),
-        MockStatusListServices::default(),
+        Arc::new(MockStatusListServices::default()),
     );
 
     (

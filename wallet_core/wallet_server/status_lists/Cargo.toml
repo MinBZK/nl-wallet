@@ -16,14 +16,19 @@ path = "tests/postgres.rs"
 required-features = ["integration_test", "test"]
 
 [[test]]
+name = "revoke"
+path = "tests/revoke.rs"
+required-features = ["integration_test", "test"]
+
+[[test]]
 name = "router"
 path = "tests/router.rs"
 required-features = ["integration_test", "test"]
 
 [features]
-axum = ["dep:axum", "dep:etag", "dep:mediatype", "tower-http/compression-gzip"]
+axum = ["dep:axum", "dep:etag", "dep:mediatype", "token_status_list/axum", "tower-http/compression-gzip"]
 integration_test = ["axum", "dep:reqwest"]
-test = []
+test = ["dep:config"]
 
 [dependencies]
 anyhow.workspace = true
@@ -50,6 +55,7 @@ uuid.workspace = true
 url.workspace = true
 
 axum = { workspace = true, optional = true }
+config = { workspace = true, optional = true }
 etag = { workspace = true, optional = true }
 mediatype = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }

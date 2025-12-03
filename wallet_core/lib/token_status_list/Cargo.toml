@@ -11,10 +11,12 @@ workspace = true
 doctest = false
 
 [features]
+axum = ["dep:axum"]
 verification = ["dep:http", "dep:rustls-pki-types", "http_utils/client", "reqwest/rustls-tls-webpki-roots"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
 [dependencies]
+axum = { workspace = true, optional = true }
 base64.workspace = true
 chrono.workspace = true
 dashmap = { workspace = true, optional = true }

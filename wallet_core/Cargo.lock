@@ -6847,6 +6847,7 @@ version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
+ "axum",
  "base64 0.22.1",
  "chrono",
  "crypto",

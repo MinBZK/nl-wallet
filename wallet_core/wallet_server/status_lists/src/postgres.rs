@@ -28,6 +28,7 @@ use sea_orm::sea_query::LockType;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
+use token_status_list::status_list_service::RevocationError;
 use uuid::Uuid;
 
 use attestation_types::status_claim::StatusClaim;
@@ -38,6 +39,7 @@ use jwt::error::JwtError;
 use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_service::StatusListServices;
 use token_status_list::status_list_token::StatusListToken;
@@ -93,9 +95,6 @@ pub struct PostgresStatusListService<K: Clone = PrivateKeyVariant> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListServiceError {
-    #[error("attestation batch not found: {0}")]
-    AttestationBatchNotFound(Uuid),
-
     #[error("base url error: {0}")]
     BaseUrl(#[from] BaseUrlError),
 
@@ -117,8 +116,11 @@ pub enum StatusListServiceError {
     #[error("could write JWT: {0}")]
     JWT(#[from] JwtError),
 
+    #[error("no status lists in config")]
+    NoStatusLists,
+
     #[error("no status list available and could not create one")]
-    NoStatusListAvailable(),
+    NoStatusListAvailable,
 
     #[error("could not lock for publish: {0}")]
     PublishLock(#[from] PublishLockError),
@@ -163,11 +165,29 @@ where
     }
 }
 
+impl<K> StatusListRevocationService for PostgresStatusListServices<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
+    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
+        self.0
+            .values()
+            .next()
+            .unwrap()
+            .revoke_attestation_batches(batch_ids)
+            .await
+    }
+}
+
 impl PostgresStatusListServices {
     pub async fn try_new(
         connection: DatabaseConnection,
         configs: StatusListConfigs,
     ) -> Result<Self, StatusListServiceError> {
+        if configs.as_ref().is_empty() {
+            return Err(StatusListServiceError::NoStatusLists);
+        }
+
         let attestation_type_ids = initialize_attestation_type_ids(&connection, configs.types()).await?;
         let services = configs
             .into_iter()
@@ -213,6 +233,78 @@ where
         self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
             .await
             .map(|(claims, _)| claims)
+    }
+}
+
+impl<K> StatusListRevocationService for PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + Clone + 'static,
+{
+    async fn revoke_attestation_batches(&self, batch_ids: VecNonEmpty<Uuid>) -> Result<(), RevocationError> {
+        // Find batches by batch_ids
+        let batches = attestation_batch::Entity::find()
+            .filter(attestation_batch::Column::BatchId.is_in(batch_ids.iter().copied()))
+            .all(&self.connection)
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+
+        // Check if all batch_ids were found
+        if batches.len() != batch_ids.len().get() {
+            let mut found_ids = batches.iter().map(|batch| batch.batch_id);
+            let missing_ids = batch_ids
+                .iter()
+                .filter(|id| !found_ids.contains(id))
+                .copied()
+                .collect_vec()
+                .try_into()
+                .unwrap();
+            return Err(RevocationError::BatchIdsNotFound(missing_ids));
+        }
+
+        // Update revocation for all batches
+        let attestation_batch_ids: Vec<_> = batches.iter().map(|b| b.id).collect();
+        attestation_batch::Entity::update_many()
+            .col_expr(attestation_batch::Column::IsRevoked, Expr::value(true))
+            .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids.iter().copied()))
+            .exec(&self.connection)
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+
+        // Find status list, external ID and size for all related status lists
+        let list_external_ids_and_size: Vec<(i64, String, i32)> = status_list::Entity::find()
+            .select_only()
+            .select_column(status_list::Column::Id)
+            .select_column(status_list::Column::ExternalId)
+            .select_column(status_list::Column::Size)
+            .filter(
+                status_list::Column::Id.in_subquery(
+                    Query::select()
+                        .expr(Expr::column(attestation_batch_list_indices::Column::StatusListId))
+                        .from(attestation_batch_list_indices::Entity)
+                        .and_where(
+                            attestation_batch_list_indices::Column::AttestationBatchId.is_in(attestation_batch_ids),
+                        )
+                        .to_owned(),
+                ),
+            )
+            .into_tuple()
+            .all(&self.connection)
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+
+        // Publish new status list
+        try_join_all(
+            list_external_ids_and_size
+                .into_iter()
+                .map(|(list_id, external_id, size)| async move {
+                    let size = size.try_into().expect("size should be non-zero");
+                    self.publish_status_list(list_id, external_id.as_str(), size).await
+                }),
+        )
+        .await
+        .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+
+        Ok(())
     }
 }
 
@@ -322,7 +414,7 @@ where
                     self.attestation_type_id,
                 )
             } else if tries == 0 {
-                return Err(StatusListServiceError::NoStatusListAvailable());
+                return Err(StatusListServiceError::NoStatusListAvailable);
             }
             tries -= 1;
 
@@ -529,7 +621,6 @@ where
             .filter(
                 status_list::Column::Id.in_subquery(
                     Query::select()
-                        .distinct()
                         .expr(Expr::column(status_list_item::Column::StatusListId))
                         .from(status_list_item::Entity)
                         .to_owned(),
@@ -697,45 +788,6 @@ where
                 Ok(())
             })
             .await
-    }
-
-    pub async fn revoke_attestation_batch(&self, batch_id: Uuid) -> Result<(), StatusListServiceError> {
-        // Find batch by batch_id
-        let batch = attestation_batch::Entity::find()
-            .filter(attestation_batch::Column::BatchId.eq(batch_id))
-            .one(&self.connection)
-            .await?
-            .ok_or_else(|| StatusListServiceError::AttestationBatchNotFound(batch_id))?;
-
-        // Update revocation
-        let attestation_batch_id = batch.id;
-        let mut update = batch.into_active_model();
-        update.is_revoked = Set(true);
-        attestation_batch::Entity::update(update).exec(&self.connection).await?;
-
-        // Find status list and external id for all related status lists
-        let lists: Vec<(i64, String, i32)> = attestation_batch_list_indices::Entity::find()
-            .join(
-                JoinType::InnerJoin,
-                attestation_batch_list_indices::Relation::StatusList.def(),
-            )
-            .select_only()
-            .select_column(status_list::Column::Id)
-            .select_column(status_list::Column::ExternalId)
-            .select_column(status_list::Column::Size)
-            .filter(attestation_batch_list_indices::Column::AttestationBatchId.eq(attestation_batch_id))
-            .into_tuple()
-            .all(&self.connection)
-            .await?;
-
-        // Publish new status list
-        try_join_all(lists.into_iter().map(|(list_id, external_id, size)| async move {
-            let size = size.try_into().expect("size should be non-zero");
-            self.publish_status_list(list_id, external_id.as_str(), size).await
-        }))
-        .await?;
-
-        Ok(())
     }
 }
 

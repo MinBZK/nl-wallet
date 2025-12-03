@@ -69,8 +69,8 @@ use openid4vc_server::verifier::StatusParams;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use server_utils::settings::Authentication;
-use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
+use server_utils::settings::ServerAuth;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
 use token_status_list::verification::client::StatusListClient;
@@ -107,11 +107,11 @@ fn memory_storage_settings() -> Storage {
     }
 }
 
-async fn request_server_settings_and_listener() -> (RequesterAuth, Option<TcpListener>) {
+async fn internal_server_settings_and_listener() -> (ServerAuth, Option<TcpListener>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
     (
-        RequesterAuth::InternalEndpoint(Server {
+        ServerAuth::InternalEndpoint(Server {
             ip: addr.ip(),
             port: addr.port(),
         }),
@@ -120,13 +120,13 @@ async fn request_server_settings_and_listener() -> (RequesterAuth, Option<TcpLis
 }
 
 async fn wallet_server_settings_and_listener(
-    requester_server: RequesterAuth,
+    internal_server: ServerAuth,
     request: &StartDisclosureRequest,
 ) -> (VerifierSettings, TcpListener, Ca, TrustAnchor<'static>) {
     // Set up the listener.
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
-    let server = Server {
+    let wallet_server = Server {
         ip: addr.ip(),
         port: addr.port(),
     };
@@ -157,9 +157,11 @@ async fn wallet_server_settings_and_listener(
 
     // Generate a complete configuration for the verifier, including
     // a section for the issuer if that feature is enabled.
-    let ws_port = server.port;
+    let ws_port = wallet_server.port;
     let settings = Settings {
-        wallet_server: server,
+        wallet_server,
+
+        internal_server,
 
         public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
 
@@ -177,7 +179,6 @@ async fn wallet_server_settings_and_listener(
 
         allow_origins: None,
         reader_trust_anchors,
-        requester_server,
 
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
@@ -193,7 +194,7 @@ async fn wallet_server_settings_and_listener(
 
 async fn start_wallet_server<S, C>(
     wallet_listener: TcpListener,
-    requester_listener: Option<TcpListener>,
+    internal_listener: Option<TcpListener>,
     settings: VerifierSettings,
     hsm: Option<Pkcs11Hsm>,
     disclosure_sessions: S,
@@ -207,7 +208,7 @@ async fn start_wallet_server<S, C>(
     tokio::spawn(async move {
         if let Err(error) = server::serve_with_listeners(
             wallet_listener,
-            requester_listener,
+            internal_listener,
             settings,
             hsm,
             Arc::new(disclosure_sessions),
@@ -243,35 +244,35 @@ async fn wait_for_server(base_url: BaseUrl) {
     .unwrap();
 }
 
-fn internal_url(settings: &VerifierSettings) -> BaseUrl {
-    match settings.requester_server {
-        RequesterAuth::ProtectedInternalEndpoint {
+fn internal_url(server_settings: &Settings) -> BaseUrl {
+    match server_settings.internal_server {
+        ServerAuth::ProtectedInternalEndpoint {
             server: Server { port, .. },
             ..
         }
-        | RequesterAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
-        RequesterAuth::Authentication(_) => settings.server_settings.public_url.clone(),
+        | ServerAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
+        ServerAuth::Authentication(_) => server_settings.public_url.clone(),
     }
 }
 
 #[rstest]
-#[case(RequesterAuth::Authentication(Authentication::ApiKey(String::from("secret_key"))))]
-#[case(RequesterAuth::ProtectedInternalEndpoint {
+#[case(ServerAuth::Authentication(Authentication::ApiKey(String::from("secret_key"))))]
+#[case(ServerAuth::ProtectedInternalEndpoint {
     authentication: Authentication::ApiKey(String::from("secret_key")),
     server: Server {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
         port: 0,
     }
 })]
-#[case(RequesterAuth::InternalEndpoint(Server {
+#[case(ServerAuth::InternalEndpoint(Server {
     ip: IpAddr::from_str("127.0.0.1").unwrap(),
     port: 0,
 }))]
 #[tokio::test]
-async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
-    let requester_listener = match &mut auth {
-        RequesterAuth::Authentication(_) => None,
-        RequesterAuth::ProtectedInternalEndpoint { server, .. } | RequesterAuth::InternalEndpoint(server) => {
+async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
+    let internal_listener = match &mut auth {
+        ServerAuth::Authentication(_) => None,
+        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
             let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
@@ -287,13 +288,13 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         .map(Pkcs11Hsm::from_settings)
         .transpose()
         .unwrap();
-    let auth = &settings.requester_server;
+    let auth = &settings.server_settings.internal_server;
 
-    let internal_url = internal_url(&settings);
+    let internal_url = internal_url(&settings.server_settings);
 
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings.clone(),
         hsm,
         MemorySessionStore::default(),
@@ -313,7 +314,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         .unwrap();
 
     match auth {
-        RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
+        ServerAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
         _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
     };
 
@@ -326,7 +327,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         .unwrap();
 
     match auth {
-        RequesterAuth::InternalEndpoint(_) => assert_eq!(response.status(), StatusCode::OK),
+        ServerAuth::InternalEndpoint(_) => assert_eq!(response.status(), StatusCode::OK),
         _ => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
     };
 
@@ -341,7 +342,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         .unwrap();
 
     match auth {
-        RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::OK),
+        ServerAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::OK),
         _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
     };
 
@@ -374,7 +375,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         .unwrap();
 
     match auth {
-        RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
+        ServerAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
         _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
     };
 
@@ -388,7 +389,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         .unwrap();
 
     match auth {
-        RequesterAuth::InternalEndpoint(_) => assert_eq!(response.status(), StatusCode::BAD_REQUEST),
+        ServerAuth::InternalEndpoint(_) => assert_eq!(response.status(), StatusCode::BAD_REQUEST),
         _ => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
     };
 
@@ -403,7 +404,7 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         .unwrap();
 
     match auth {
-        RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::BAD_REQUEST),
+        ServerAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::BAD_REQUEST),
         _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
     };
 
@@ -437,9 +438,9 @@ async fn test_http_json_error_body(
 
 #[tokio::test]
 async fn test_new_session_parameters_error() {
-    let (requester_server, requester_listener) = request_server_settings_and_listener().await;
+    let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
-        wallet_server_settings_and_listener(requester_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
+        wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -448,10 +449,10 @@ async fn test_new_session_parameters_error() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings);
+    let internal_url = internal_url(&settings.server_settings);
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings,
         hsm,
         MemorySessionStore::default(),
@@ -491,9 +492,9 @@ async fn test_new_session_parameters_error() {
 
 #[tokio::test]
 async fn test_disclosure_not_found() {
-    let (requester_server, requester_listener) = request_server_settings_and_listener().await;
+    let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
-        wallet_server_settings_and_listener(requester_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
+        wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -502,10 +503,10 @@ async fn test_disclosure_not_found() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings);
+    let internal_url = internal_url(&settings.server_settings);
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings.clone(),
         hsm,
         MemorySessionStore::default(),
@@ -591,9 +592,9 @@ async fn start_disclosure<S>(
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let (requester_server, requester_listener) = request_server_settings_and_listener().await;
+    let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, issuer_ca, rp_trust_anchor) =
-        wallet_server_settings_and_listener(requester_server, request).await;
+        wallet_server_settings_and_listener(internal_server, request).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -602,11 +603,11 @@ where
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings);
+    let internal_url = internal_url(&settings.server_settings);
 
     start_wallet_server(
         wallet_listener,
-        requester_listener,
+        internal_listener,
         settings.clone(),
         hsm,
         disclosure_sessions,

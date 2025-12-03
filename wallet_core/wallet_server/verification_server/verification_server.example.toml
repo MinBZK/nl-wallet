@@ -31,25 +31,21 @@ wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 
 # Optional, can be used to accept disclosed attestations having a vct that extends the one being requested.
 [extending_vct_values]
-"eudi:pid:1" = [
-    "eudi:pid:extended:1",
-    "eudi:pid:extended:2",
-    "eudi:pid:extended:3"
-]
+"eudi:pid:1" = ["eudi:pid:extended:1", "eudi:pid:extended:2", "eudi:pid:extended:3"]
 
 # CORS settings. To allow all origins: allow_origins = "*"
 allow_origins = ["http://localhost:8080"]
 
-# Optional, but required if the `requester_server` section is absent
-[requester_server.authentication]
+# Optional, but required if the `internal_server` section is absent
+[internal_server.authentication]
 api_key = "your_secret_key"
 
 # Optional private endpoint for the requester, wallet_server is used if absent
-[requester_server]
+[internal_server]
 ip = "127.0.0.1"
 port = 8002
 
-# Public endpoint for the wallet, also private if requester_server is absent
+# Public endpoint for the wallet, also private if internal_server is absent
 [wallet_server]
 ip = "127.0.0.1"
 port = 8001

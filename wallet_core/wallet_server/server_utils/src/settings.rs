@@ -41,6 +41,11 @@ pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
     pub wallet_server: Server,
 
+    // used by the application, SHOULD be reachable only by the application.
+    // if not configured the wallet_server will be used, but an api_key is required in that case
+    // if it conflicts with wallet_server, the application will crash on startup
+    pub internal_server: ServerAuth,
+
     /// Publicly reachable URL used by the wallet during sessions
     pub public_url: BaseUrl,
 
@@ -65,7 +70,7 @@ pub struct Server {
 }
 
 #[derive(Clone, Deserialize)]
-pub enum RequesterAuth {
+pub enum ServerAuth {
     #[serde(rename = "authentication")]
     Authentication(Authentication),
     #[serde(untagged)]

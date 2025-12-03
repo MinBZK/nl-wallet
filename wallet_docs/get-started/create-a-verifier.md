@@ -773,7 +773,7 @@ cd nl-wallet
 export TARGET_DIR=target/vs-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/08-requester-api-key.toml"
 
-[requester_server.authentication]
+[internal_server.authentication]
 api_key = "$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)"
 EOF
 ```
@@ -794,7 +794,7 @@ cd nl-wallet
 export TARGET_DIR=target/vs-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/09-listener-addresses-and-ports.toml"
 
-[requester_server]
+[internal_server]
 ip = "10.11.12.13"
 port = 8002
 
@@ -822,8 +822,8 @@ Your application talks to the private address and port and the "outside" world
 talks to the public address and port.</p>
 <p>If you need to configure `verification_server` to listen on a *single*
 address and port, you only configure the `[wallet_server]` section of the config
-file and leave out the `[requester_server]` section. In that case, you are
-*required* to configure an `api_key` under the `[requester_server.authentication]`
+file and leave out the `[internal_server]` section. In that case, you are
+*required* to configure an `api_key` under the `[internal_server.authentication]`
 section (note that API key configuration is optional when you have a separate
 private address and port configured). We cover configuration of an API key in
 the [Configuring an API key](#configuring-an-api-key) section.</p>
