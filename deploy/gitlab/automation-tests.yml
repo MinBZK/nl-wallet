@@ -141,20 +141,22 @@ run-automation-a11y-batch2-tests:
       -Dfile.encoding=UTF-8 || true
   rules:
     - !reference [.on-schedule-automation, rules]
+  after_script:
+    - echo "$CI_PIPELINE_ID" > a11y-build-name.txt
+    - deploy/bin/store-artifact.sh a11y-build-name.txt qt/quality-time/a11y-results/a11y-build-name.txt
   variables:
     ENABLE_BROWSERSTACK_A11Y_CHECKS: true
 
 browserstack-a11y-merge:
   extends: .run-automation-tests-base
-  needs:
-    - { job: run-automation-a11y-batch1-tests }
-    - { job: run-automation-a11y-batch2-tests }
   rules:
-    - !reference [.on-schedule-automation, rules]
+    - !reference [.on-schedule-scan, rules]
+    - !reference [.default-branch, rules]
   variables:
     BROWSERSTACK_API_BASE: "https://api-app-accessibility.browserstack.com/automate/api/v1"
   script:
     - set +x
+    - BUILD_NAME=$(mc cat qt/quality-time/a11y-results/a11y-build-name.txt)
     - BROWSERSTACK_PROJECT_ID=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.project_id}' | base64 --decode)
     # Get the last 2 builds for this project whose name == CI_PIPELINE_ID
     - |
@@ -164,15 +166,15 @@ browserstack-a11y-merge:
 
     - set -x
     - |
-      echo "Filtering builds with name == CI_PIPELINE_ID (${CI_PIPELINE_ID}) and selecting the last 2…"
-      jq --arg pipeline_id "$CI_PIPELINE_ID" '
+      echo "Filtering builds with name == BUILD_NAME (${BUILD_NAME}) and selecting the last 2…"
+      jq --arg build_name "$BUILD_NAME" '
         {
           success,
           info,
           filters,
           builds: (
             [ .builds[]
-              | select(.name == $pipeline_id)
+              | select(.name == $build_name)
             ]
             | sort_by(.created_at)  # oldest → newest
             | reverse               # newest → oldest
@@ -186,7 +188,7 @@ browserstack-a11y-merge:
         .success == true
         and (.builds | length >= 2)
       ' builds.json > /dev/null || {
-        echo "ERROR: Need at least 2 builds with name == \"${CI_PIPELINE_ID}\". Got:"
+        echo "ERROR: Need at least 2 builds with name == \"${BUILD_NAME}\". Got:"
         jq '{builds: [.builds[] | {id, th_build_id, name, created_at}]}' builds.json
         exit 1
       }
