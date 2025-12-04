@@ -785,8 +785,9 @@ where
 
     async fn has_any_attestations(&self) -> StorageResult<bool> {
         let exists = attestation::Entity::find()
+            .column(attestation::Column::Id)
             .limit(1)
-            .one(self.database()?.as_ref())
+            .one(self.database()?.connection())
             .await?
             .is_some();
 

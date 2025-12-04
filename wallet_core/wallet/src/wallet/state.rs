@@ -61,7 +61,7 @@ where
     #[instrument(skip_all)]
     pub async fn get_state(&self) -> Result<WalletState, WalletStateError> {
         if self.is_blocked() {
-            // TODO
+            // TODO: support `BlockedByWalletProvider` (PVW-5307)
             return Ok(WalletState::Blocked {
                 reason: BlockedReason::RequiresAppUpdate,
             });
