@@ -240,6 +240,8 @@ pub trait Storage: Send {
     async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>>;
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 
-    async fn fetch_all_revocation_info(&self) -> StorageResult<Vec<RevocationInfo>>;
+    async fn fetch_all_revocation_info<T>(&self, time_generator: &T) -> StorageResult<Vec<RevocationInfo>>
+    where
+        T: Generator<DateTime<Utc>> + Send + Send + Sync + 'static;
     async fn update_revocation_statuses(&self, updates: Vec<(Uuid, RevocationStatus)>) -> StorageResult<()>;
 }

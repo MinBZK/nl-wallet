@@ -1059,10 +1059,16 @@ where
         Ok(exists)
     }
 
-    async fn fetch_all_revocation_info(&self) -> StorageResult<Vec<RevocationInfo>> {
+    async fn fetch_all_revocation_info<T>(&self, time_generator: &T) -> StorageResult<Vec<RevocationInfo>>
+    where
+        T: Generator<DateTime<Utc>> + Send + Send + Sync + 'static,
+    {
         let connection = self.database()?.connection();
 
+        let now = time_generator.generate();
+
         let query = attestation_copy::Entity::find()
+            .inner_join(attestation::Entity)
             .select_only()
             .column(attestation_copy::Column::Id)
             .column(attestation_copy::Column::StatusListUrl)
@@ -1076,6 +1082,16 @@ where
                         attestation_copy::Column::RevocationStatus
                             .is_null()
                             .or(attestation_copy::Column::RevocationStatus.ne(RevocationStatus::Revoked.to_string())),
+                    )
+                    .and(
+                        attestation::Column::NotBefore
+                            .is_null()
+                            .or(attestation::Column::NotBefore.lte(now)),
+                    )
+                    .and(
+                        attestation::Column::Expiration
+                            .is_null()
+                            .or(attestation::Column::Expiration.gt(now)),
                     ),
             )
             .into_partial_model::<revocation_info::RevocationInfo>();
@@ -2536,11 +2552,6 @@ pub(crate) mod tests {
             key_identifier: "sd_jwt_key_id".to_string(),
             sd_jwt: sd_jwt.clone(),
         };
-        let issued_copies =
-            IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential].try_into().unwrap());
-
-        let attestation_type = sd_jwt.claims().vct.clone();
-        let attestation_presentation = AttestationPresentation::new_mock();
 
         // Insert sd_jwt
         storage
@@ -2548,21 +2559,23 @@ pub(crate) mod tests {
                 Utc::now(),
                 vec![(
                     CredentialWithMetadata::new(
-                        issued_copies.clone(),
-                        attestation_type,
+                        IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential].try_into().unwrap()),
+                        sd_jwt.claims().vct.clone(),
                         sd_jwt.claims().exp,
                         sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
-                    attestation_presentation.clone(),
+                    AttestationPresentation::new_mock(),
                 )],
             )
             .await
             .unwrap();
 
-        let revocation_info = storage.fetch_all_revocation_info().await.unwrap();
-
+        let revocation_info = storage
+            .fetch_all_revocation_info(&MockTimeGenerator::default())
+            .await
+            .unwrap();
         assert_eq!(2, revocation_info.len());
 
         let revocation_info = revocation_info.first().unwrap();
@@ -2600,8 +2613,25 @@ pub(crate) mod tests {
             .update_revocation_statuses(vec![(revocation_info.attestation_copy_id, RevocationStatus::Revoked)])
             .await
             .unwrap();
-        let revocation_info = storage.fetch_all_revocation_info().await.unwrap();
+        let revocation_info = storage
+            .fetch_all_revocation_info(&MockTimeGenerator::default())
+            .await
+            .unwrap();
         assert_eq!(1, revocation_info.len());
+
+        // fetch_all_revocation_info should not return revocation info for attestations that are not yet valid
+        let revocation_info = storage
+            .fetch_all_revocation_info(&MockTimeGenerator::epoch())
+            .await
+            .unwrap();
+        assert!(revocation_info.is_empty());
+
+        // fetch_all_revocation_info should not return revocation info for attestations that are expired
+        let revocation_info = storage
+            .fetch_all_revocation_info(&MockTimeGenerator::new(Utc::now() + Duration::days(366)))
+            .await
+            .unwrap();
+        assert!(revocation_info.is_empty());
     }
 
     #[rstest]
