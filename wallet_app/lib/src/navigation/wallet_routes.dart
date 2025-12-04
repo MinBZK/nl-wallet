@@ -218,7 +218,7 @@ class WalletRoutes {
 }
 
 Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(
-  create: (BuildContext context) => SplashBloc(context.read(), context.read())..add(const InitSplashEvent()),
+  create: (BuildContext context) => SplashBloc(context.read())..add(const InitSplashEvent()),
   child: const SplashScreen(),
 );
 

@@ -287,31 +287,6 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub fn has_active_issuance_session(&self) -> Result<bool, IssuanceError> {
-        info!("Checking for active issuance session");
-
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(IssuanceError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(IssuanceError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(IssuanceError::Locked);
-        }
-
-        let has_active_session = matches!(self.session, Some(Session::Digid { .. }) | Some(Session::Issuance(..)));
-
-        Ok(has_active_session)
-    }
-
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
     pub async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
 

@@ -83,15 +83,5 @@ void main() {
       expect(await pidRepository.getPidRenewalUrl(), kMockPidRenewalUrl);
       verify(core.createPidRenewalRedirectUri());
     });
-
-    test('hasActiveIssuanceSession should check through the wallet_core', () async {
-      when(core.hasActiveIssuanceSession()).thenAnswer((_) async => true);
-      expect(await pidRepository.hasActiveIssuanceSession(), true);
-      verify(core.hasActiveIssuanceSession());
-
-      when(core.hasActiveIssuanceSession()).thenAnswer((_) async => false);
-      expect(await pidRepository.hasActiveIssuanceSession(), false);
-      verify(core.hasActiveIssuanceSession());
-    });
   });
 }

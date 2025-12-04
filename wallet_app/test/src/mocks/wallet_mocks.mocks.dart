@@ -2703,15 +2703,6 @@ class MockTypedWalletCore extends _i1.Mock implements _i42.TypedWalletCore {
           as _i10.Future<_i26.PidIssuanceResult>);
 
   @override
-  _i10.Future<bool> hasActiveIssuanceSession() =>
-      (super.noSuchMethod(
-            Invocation.method(#hasActiveIssuanceSession, []),
-            returnValue: _i10.Future<bool>.value(false),
-            returnValueForMissingStub: _i10.Future<bool>.value(false),
-          )
-          as _i10.Future<bool>);
-
-  @override
   _i10.Future<_i26.StartDisclosureResult> startDisclosure(
     String? uri, {
     bool? isQrCode = false,
@@ -2774,15 +2765,6 @@ class MockTypedWalletCore extends _i1.Mock implements _i42.TypedWalletCore {
             ),
           )
           as _i10.Future<_i26.AcceptDisclosureResult>);
-
-  @override
-  _i10.Future<bool> hasActiveDisclosureSession() =>
-      (super.noSuchMethod(
-            Invocation.method(#hasActiveDisclosureSession, []),
-            returnValue: _i10.Future<bool>.value(false),
-            returnValueForMissingStub: _i10.Future<bool>.value(false),
-          )
-          as _i10.Future<bool>);
 
   @override
   _i10.Stream<List<_i26.AttestationPresentation>> observeCards() =>
@@ -6781,24 +6763,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
             ),
           )
           as _i10.Future<_i26.TransferSessionState>);
-
-  @override
-  _i10.Future<bool> crateApiFullHasActiveDisclosureSession() =>
-      (super.noSuchMethod(
-            Invocation.method(#crateApiFullHasActiveDisclosureSession, []),
-            returnValue: _i10.Future<bool>.value(false),
-            returnValueForMissingStub: _i10.Future<bool>.value(false),
-          )
-          as _i10.Future<bool>);
-
-  @override
-  _i10.Future<bool> crateApiFullHasActiveIssuanceSession() =>
-      (super.noSuchMethod(
-            Invocation.method(#crateApiFullHasActiveIssuanceSession, []),
-            returnValue: _i10.Future<bool>.value(false),
-            returnValueForMissingStub: _i10.Future<bool>.value(false),
-          )
-          as _i10.Future<bool>);
 
   @override
   _i10.Future<bool> crateApiFullHasRegistration() =>

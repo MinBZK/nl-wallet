@@ -453,16 +453,6 @@ void main() {
       expect(() => typedWalletCore.acceptPidIssuance(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
-    test('hasActiveDisclosureSession', () async {
-      when(core.crateApiFullHasActiveDisclosureSession()).thenThrow(ffiException);
-      expect(() => typedWalletCore.hasActiveDisclosureSession(), throwsA(isA<CoreError>()));
-    });
-
-    test('hasActiveIssuanceSession', () async {
-      when(core.crateApiFullHasActiveIssuanceSession()).thenThrow(ffiException);
-      expect(() => typedWalletCore.hasActiveIssuanceSession(), throwsA(isA<CoreError>()));
-    });
-
     test('cancelDisclosure', () async {
       when(core.crateApiFullCancelDisclosure()).thenThrow(ffiException);
       expect(() => typedWalletCore.cancelDisclosure(), throwsA(isA<CoreError>()));
