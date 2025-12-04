@@ -166,7 +166,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => GetWalletCardsUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetPidCardsUseCase>(
-          create: (context) => GetPidCardsUseCaseImpl(context.read()),
+          create: (context) => GetPidCardsUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<GetWalletCardUseCase>(
           create: (context) => GetWalletCardUseCaseImpl(context.read()),

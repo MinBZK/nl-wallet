@@ -23,13 +23,13 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   final GetPidRenewalUrlUseCase _getPidRenewalUrlUseCase;
   final ContinuePidIssuanceUseCase _continuePidIssuanceUseCase;
   final CancelPidIssuanceUseCase _cancelPidIssuanceUseCase;
-  final GetPidCardsUseCase _getWalletCardsUseCase;
+  final GetPidCardsUseCase _getPidCardsUseCase;
 
   RenewPidBloc(
     this._getPidRenewalUrlUseCase,
     this._continuePidIssuanceUseCase,
     this._cancelPidIssuanceUseCase,
-    this._getWalletCardsUseCase, {
+    this._getPidCardsUseCase, {
     required bool continueFromDigiD,
   }) : super(continueFromDigiD ? const RenewPidVerifyingDigidAuthentication() : const RenewPidInitial()) {
     on<RenewPidLoginWithDigidClicked>(_onDigidLoginClicked);
@@ -95,7 +95,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
 
   FutureOr<void> _onPinConfirmed(RenewPidPinConfirmed event, Emitter<RenewPidState> emit) async {
     emit(const RenewPidUpdatingCards());
-    final result = await _getWalletCardsUseCase.invoke();
+    final result = await _getPidCardsUseCase.invoke();
     await result.process(
       onSuccess: (cards) => emit(RenewPidSuccess(cards)),
       onError: (error) => _handleApplicationError(error, emit),
