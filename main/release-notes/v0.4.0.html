@@ -238,6 +238,9 @@ added to the SD-JWT VC Type metadata of issued attestations.</p></li>
 <li><p>The Wallet Provider now requires a keypair for signing Token Status Lists for
 the WUA.</p></li>
 <li><p>The configuration-server is renamed to static server.</p></li>
+<li><p>The issuance server and PID issuer now require an internal server to be
+configured. The requester server configuration in the verification server is
+also renamed to internal server.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -281,6 +284,11 @@ such attestations.</p></li>
 status.</p></li>
 <li><p>The PID can now be renewed in the wallet from the PID card detail screen.</p></li>
 <li><p>The revocation status of attestations is checked in the Verification Server.</p></li>
+<li><p>The issuance server now supports revoking attestations based on their batch
+ID. This is done via an internal endpoint.</p></li>
+<li><p>The issuance server and PID issuer optionally support openapi generation and
+Swagger UI for their internal endpoints. This can be enabled using the
+<code class="docutils literal notranslate"><span class="pre">openapi</span></code> feature (which is currently enabled by default).</p></li>
 </ul>
 </section>
 <section id="code-improvements">
