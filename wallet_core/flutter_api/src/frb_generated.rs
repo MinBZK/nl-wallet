@@ -1319,7 +1319,7 @@ impl CstDecode<crate::models::revocation::RevocationStatus> for i32 {
     fn cst_decode(self) -> crate::models::revocation::RevocationStatus {
         match self {
             0 => crate::models::revocation::RevocationStatus::Valid,
-            1 => crate::models::revocation::RevocationStatus::Invalid,
+            1 => crate::models::revocation::RevocationStatus::Revoked,
             2 => crate::models::revocation::RevocationStatus::Undetermined,
             3 => crate::models::revocation::RevocationStatus::Corrupted,
             _ => unreachable!("Invalid variant for RevocationStatus: {}", self),
@@ -2152,7 +2152,7 @@ impl SseDecode for crate::models::revocation::RevocationStatus {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
             0 => crate::models::revocation::RevocationStatus::Valid,
-            1 => crate::models::revocation::RevocationStatus::Invalid,
+            1 => crate::models::revocation::RevocationStatus::Revoked,
             2 => crate::models::revocation::RevocationStatus::Undetermined,
             3 => crate::models::revocation::RevocationStatus::Corrupted,
             _ => unreachable!("Invalid variant for RevocationStatus: {}", inner),
@@ -2938,7 +2938,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::revocation::RevocationStat
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             Self::Valid => 0.into_dart(),
-            Self::Invalid => 1.into_dart(),
+            Self::Revoked => 1.into_dart(),
             Self::Undetermined => 2.into_dart(),
             Self::Corrupted => 3.into_dart(),
             _ => unreachable!(),
@@ -3857,7 +3857,7 @@ impl SseEncode for crate::models::revocation::RevocationStatus {
         <i32>::sse_encode(
             match self {
                 crate::models::revocation::RevocationStatus::Valid => 0,
-                crate::models::revocation::RevocationStatus::Invalid => 1,
+                crate::models::revocation::RevocationStatus::Revoked => 1,
                 crate::models::revocation::RevocationStatus::Undetermined => 2,
                 crate::models::revocation::RevocationStatus::Corrupted => 3,
                 _ => {

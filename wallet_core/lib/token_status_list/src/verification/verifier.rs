@@ -20,7 +20,7 @@ use crate::verification::client::StatusListClient;
 #[strum(serialize_all = "snake_case")]
 pub enum RevocationStatus {
     Valid,
-    Invalid,
+    Revoked,
     Undetermined,
     Corrupted,
 }
@@ -56,7 +56,7 @@ where
         match status_list_token.parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, &uri, time) {
             Ok(status_list) => match status_list.single_unpack(idx.try_into().unwrap()) {
                 StatusType::Valid => RevocationStatus::Valid,
-                _ => RevocationStatus::Invalid,
+                _ => RevocationStatus::Revoked,
             },
             Err(err) => {
                 warn!("Status list token fails verification: {err}");
@@ -124,7 +124,7 @@ mod test {
             )
             .now_or_never()
             .unwrap();
-        assert_eq!(RevocationStatus::Invalid, status);
+        assert_eq!(RevocationStatus::Revoked, status);
 
         // Corrupted when the sub claim doesn't match
         let status = verifier

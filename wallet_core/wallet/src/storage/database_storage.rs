@@ -1033,7 +1033,7 @@ where
                     .and(
                         attestation_copy::Column::RevocationStatus
                             .is_null()
-                            .or(attestation_copy::Column::RevocationStatus.ne(RevocationStatus::Invalid.to_string())),
+                            .or(attestation_copy::Column::RevocationStatus.ne(RevocationStatus::Revoked.to_string())),
                     ),
             )
             .into_partial_model::<revocation_info::RevocationInfo>();
@@ -1160,7 +1160,7 @@ fn determine_revocation_status(revocation_statuses: &[Option<RevocationStatus>])
                 has_valid = true;
                 has_any_checked = true;
             }
-            Some(RevocationStatus::Invalid) => {
+            Some(RevocationStatus::Revoked) => {
                 has_invalid = true;
                 has_any_checked = true;
             }
@@ -1192,7 +1192,7 @@ fn determine_revocation_status(revocation_statuses: &[Option<RevocationStatus>])
 
     // 2. Invalid if one copy is Invalid and no copy is Valid
     if has_invalid {
-        return Some(RevocationStatus::Invalid);
+        return Some(RevocationStatus::Revoked);
     }
 
     // 3. Undetermined if one copy is Undetermined and no copy is Valid | Invalid
@@ -2471,7 +2471,7 @@ pub(crate) mod tests {
 
         // fetch_all_revocation_info should not return revocation info for attestations that have been revoked
         storage
-            .update_revocation_statuses(vec![(revocation_info.attestation_copy_id, RevocationStatus::Invalid)])
+            .update_revocation_statuses(vec![(revocation_info.attestation_copy_id, RevocationStatus::Revoked)])
             .await
             .unwrap();
         let revocation_info = storage.fetch_all_revocation_info().await.unwrap();
@@ -2481,17 +2481,17 @@ pub(crate) mod tests {
     #[rstest]
     // Rule 1: Valid if one copy is Valid
     #[case(vec![Some(RevocationStatus::Valid)], Some(RevocationStatus::Valid))]
-    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Invalid)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Revoked)], Some(RevocationStatus::Valid))]
     #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
     #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Valid))]
-    #[case(vec![Some(RevocationStatus::Invalid), Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
     #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid), None], Some(RevocationStatus::Valid))]
     // Rule 2: Invalid if one copy is Invalid and no copy is Valid
-    #[case(vec![Some(RevocationStatus::Invalid)], Some(RevocationStatus::Invalid))]
-    #[case(vec![Some(RevocationStatus::Invalid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Invalid))]
-    #[case(vec![Some(RevocationStatus::Invalid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Invalid))]
-    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Invalid), None], Some(RevocationStatus::Invalid))]
-    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Invalid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Invalid))]
+    #[case(vec![Some(RevocationStatus::Revoked)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Revoked), None], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Revoked), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Revoked))]
     // Rule 3: Undetermined if one copy is Undetermined and no copy is Valid | Invalid
     #[case(vec![Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined))]
     #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Undetermined))]
