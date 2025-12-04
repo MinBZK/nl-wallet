@@ -49,6 +49,7 @@ class PinScreen extends StatelessWidget {
   }
 
   Future<void> _performBiometricUnlock(BuildContext context) async {
+    if (ModalRoute.of(context)?.isCurrent != true) return; // Only perform biometrics if this is the top route
     final unlockWithBiometricsUseCase = context.read<UnlockWalletWithBiometricsUseCase>();
     final unlockResult = await unlockWithBiometricsUseCase.invoke();
     await unlockResult.process(

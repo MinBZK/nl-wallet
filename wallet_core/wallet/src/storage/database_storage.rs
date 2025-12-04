@@ -804,6 +804,17 @@ where
         Ok(exists)
     }
 
+    async fn has_any_attestations(&self) -> StorageResult<bool> {
+        let exists = attestation::Entity::find()
+            .column(attestation::Column::Id)
+            .limit(1)
+            .one(self.database()?.connection())
+            .await?
+            .is_some();
+
+        Ok(exists)
+    }
+
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations(None).await
     }
@@ -1574,6 +1585,7 @@ pub(crate) mod tests {
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
         assert!(!has_any_pid_attestation_types(&storage).await);
+        assert!(!storage.has_any_attestations().await.unwrap());
 
         // Insert mdocs
         storage
@@ -1593,6 +1605,7 @@ pub(crate) mod tests {
             .expect("Could not insert attestations");
 
         assert!(has_any_pid_attestation_types(&storage).await);
+        assert!(storage.has_any_attestations().await.unwrap());
 
         let fetched_unique = storage
             .fetch_unique_attestations()
@@ -1751,6 +1764,7 @@ pub(crate) mod tests {
         assert!(attestations.is_empty());
 
         assert!(!has_any_pid_attestation_types(&storage).await);
+        assert!(!storage.has_any_attestations().await.unwrap());
 
         // Insert sd_jwts
         storage
@@ -1770,6 +1784,7 @@ pub(crate) mod tests {
             .expect("Could not insert SD-JWT");
 
         assert!(has_any_pid_attestation_types(&storage).await);
+        assert!(storage.has_any_attestations().await.unwrap());
 
         let fetched_unique = storage
             .fetch_unique_attestations()

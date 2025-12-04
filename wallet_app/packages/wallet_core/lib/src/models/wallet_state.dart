@@ -8,18 +8,35 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'wallet_state.freezed.dart';
 
+enum BlockedReason {
+  RequiresAppUpdate,
+  BlockedByWalletProvider,
+}
+
+enum TransferRole {
+  Source,
+  Destination,
+}
+
 @freezed
 sealed class WalletState with _$WalletState {
   const WalletState._();
 
-  const factory WalletState.ready() = WalletState_Ready;
+  const factory WalletState.blocked({
+    required BlockedReason reason,
+  }) = WalletState_Blocked;
+  const factory WalletState.unregistered() = WalletState_Unregistered;
+  const factory WalletState.locked({
+    required WalletState subState,
+  }) = WalletState_Locked;
+  const factory WalletState.empty() = WalletState_Empty;
   const factory WalletState.transferPossible() = WalletState_TransferPossible;
   const factory WalletState.transferring({
-    required WalletTransferRole role,
+    required TransferRole role,
   }) = WalletState_Transferring;
-}
-
-enum WalletTransferRole {
-  Source,
-  Destination,
+  const factory WalletState.inDisclosureFlow() = WalletState_InDisclosureFlow;
+  const factory WalletState.inIssuanceFlow() = WalletState_InIssuanceFlow;
+  const factory WalletState.inPinChangeFlow() = WalletState_InPinChangeFlow;
+  const factory WalletState.inPinRecoveryFlow() = WalletState_InPinRecoveryFlow;
+  const factory WalletState.ready() = WalletState_Ready;
 }

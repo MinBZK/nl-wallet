@@ -1,6 +1,8 @@
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
+brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
+
 wua_issuer_pubkey = "${WP_WUA_PUBLIC_KEY}"
 metadata = [
     "${ISSUER_METADATA_PID_PATH}",
@@ -15,6 +17,10 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer
 [wallet_server]
 ip = '0.0.0.0'
 port = ${PID_ISSUER_WS_PORT}
+
+[internal_server]
+ip = '0.0.0.0'
+port = ${PID_ISSUER_IS_PORT}
 
 [recovery_code]
 secret_key = "fb34c5a3e40a818197ed866e4a38dafcf2158bd1fda2cbe1ff22e40e77b4f4f9"

@@ -104,3 +104,10 @@ impl KeyedData for TransferData {
 impl KeyedData for PinRecoveryData {
     const KEY: &'static str = "pin_recovery";
 }
+
+#[cfg(test)]
+impl From<State> for ChangePinData {
+    fn from(source: State) -> Self {
+        ChangePinData { state: source }
+    }
+}

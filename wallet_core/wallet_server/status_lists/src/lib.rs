@@ -5,4 +5,6 @@ pub mod publish;
 pub mod settings;
 
 #[cfg(feature = "axum")]
+pub mod revoke;
+#[cfg(feature = "axum")]
 pub mod router;

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-11-25T14:55:32+01:00",
+    "@@last_modified": "2025-12-03T12:04:43+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -18,8 +18,8 @@
     "activitySummarySharedWithMultiple": "gedeeld met {organizations} en {organization}",
     "activitySummarySharedWithOthers": "nog {nrOrganizations} organisaties",
     "activitySummaryToday": "Activiteiten vandaag",
-    "appBlockedScreenDescription": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de Play Store op de app bij te werken.",
-    "appBlockedScreenDescriptioniOSVariant": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de App Store op de app bij te werken.",
+    "appBlockedScreenDescription": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de Play Store om de app bij te werken.",
+    "appBlockedScreenDescriptioniOSVariant": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de App Store om de app bij te werken.",
     "appBlockedScreenTitle": "Een nieuwe app versie is vereist",
     "appTitle": "NL Wallet",
     "applicationErrorDetailsTitle": "Technische details",
@@ -32,7 +32,7 @@
             }
         }
     },
-    "biometricSettingsScreenSetupDialogDescription": "Om {supportedBiometrics} te gebruiken, dien je eerst \"{supportedBiometrics}\" aan te zetten op jouw toestel. Ga naar Instelingen > {supportedBiometrics}.",
+    "biometricSettingsScreenSetupDialogDescription": "Om {supportedBiometrics} te gebruiken, dien je eerst \"{supportedBiometrics}\" aan te zetten op jouw toestel. Ga naar Instellingen > {supportedBiometrics}.",
     "@biometricSettingsScreenSetupDialogDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -132,6 +132,53 @@
     },
     "cardDetailScreenLatestSuccessInteractionUnknown": "Nog nooit gedeeld",
     "cardDetailScreenRenewPidCta": "Vervang kaart via DigiD",
+    "cardExpiredNotificationDescription": "{card} verlopen. Vervang deze kaart als je hem nog nodig hebt.",
+    "@cardExpiredNotificationDescription": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardExpiredNotificationTitle": "NL Wallet",
+    "cardExpiresSoonNotificationDescription": "{days, plural, one {{card} verloopt in {days} dag. Vervang deze kaart als je hem nog nodig hebt.} other {{card} verloopt in {days} dagen. Vervang deze kaart als je hem nog nodig hebt.}}",
+    "@cardExpiresSoonNotificationDescription": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            },
+            "days": {
+                "example": "200",
+                "type": "int"
+            }
+        }
+    },
+    "cardExpiresSoonNotificationTitle": "NL Wallet",
+    "cardExpiryBannerExpiredTitle": "{card} verlopen",
+    "@cardExpiryBannerExpiredTitle": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardExpiryBannerExpiresSoonTitle": "{days, plural, one {{card} verloopt in {days} dag} other {{card} verloopt in {days} dagen}}",
+    "@cardExpiryBannerExpiresSoonTitle": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            },
+            "days": {
+                "example": "200",
+                "type": "int"
+            }
+        }
+    },
+    "cardExpiryBannerSubtitle": "Vervang deze kaart als je hem nog nodig hebt.",
     "cardHistoryDisclosureCancelled": "Delen gestopt",
     "cardHistoryDisclosureError": "Delen mogelijk mislukt",
     "cardHistoryDisclosureErrorNoDataShared": "Delen mislukt",
@@ -149,6 +196,8 @@
     "cardHistoryTimelineOperationExpired": "Kaart verlopen",
     "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
     "cardHistoryTimelineOperationRevoked": "Kaart teruggenomen",
+    "cardNotificationsChannelDescription": "Meldingen over de status van je kaarten",
+    "cardNotificationsChannelName": "Kaart status",
     "cardPreviewScreenIncorrectCta": "Kloppen de gegevens niet?",
     "cardPreviewScreenIssuedBy": "Kaart uitgegeven door {organization}.",
     "@cardPreviewScreenIssuedBy": {
@@ -1209,7 +1258,7 @@
     "renewPidStopSheetReportIssueCta": "Wil je een probleem melden?",
     "renewPidStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
     "renewPidStoppedCloseCta": "Sluiten",
-    "renewPidStoppedDescription": "Omdat je bent gestopt, blijft je wallet in alleen-lezen modus. Vervang de kaart met je DigiD-app.",
+    "renewPidStoppedDescription": "Omdat je bent gestopt, is je kaart niet vervangen. Vervang de kaart met je DigiD-app.",
     "renewPidStoppedTitle": "Gestopt",
     "renewPidSuccessPageDescription": "Je hebt jouw persoonsgegevens- en adreskaart bijgewerkt. Je kunt de app nu weer volledig gebruiken.",
     "renewPidSuccessPageTitle": "Kaarten bijgewerkt",
@@ -1444,10 +1493,10 @@
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Toevoegen",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
-    "walletPersonalizeCheckDataOfferingPageSubtitle": "Als je gegevens kloppen, dan krijg je Persoonsgegevens-kaart en Woonadres-kaart.",
+    "walletPersonalizeCheckDataOfferingPageSubtitle": "Als je gegevens kloppen, dan krijg je een Persoonsgegevens-kaart en een Woonadres-kaart.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen je gegevens?",
     "walletPersonalizeConfirmPinPageTitle": "Geef akkoord met pincode",
-    "walletPersonalizeDataIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Voeg daarom gegevens niet toe.",
+    "walletPersonalizeDataIncorrectScreenDescription": "Als je gegevens niet kloppen, kan dat voor problemen zorgen. Voeg daarom gegevens niet toe.",
     "walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints": "Neem contact op met jouw gemeente om je gegevens te laten aanpassen.\nWacht op een bericht van je gemeente dat de aanpassing is gelukt.\nLog opnieuw in met DigiD om de juiste gegevens op te halen.",
     "walletPersonalizeDataIncorrectScreenHowToResolveTitle": "Hoe kan ik foute gegevens aanpassen?",
     "walletPersonalizeDataIncorrectScreenNotYourDataDescription": "Voeg de gegevens niet toe en log in met je eigen DigiD.",
@@ -1504,7 +1553,7 @@
     "walletTransferLoadingQrTitle": "Even geduld",
     "walletTransferScreenCancellingDescription": "De actie wordt gestopt",
     "walletTransferScreenCancellingTitle": "Even geduld",
-    "walletTransferScreenFailedDescription": "Deze actie is niet gelukt. Dit kan verschillende oorzaken hebben. Probeer het alstublieft opnieuw.",
+    "walletTransferScreenFailedDescription": "Deze actie is niet gelukt. Dit kan verschillende oorzaken hebben. Probeer het alsjeblieft opnieuw.",
     "walletTransferScreenFailedTitle": "Verplaatsen mislukt",
     "walletTransferScreenLoadingDescription": "De aanvraag wordt opgehaald",
     "walletTransferScreenLoadingTitle": "Even geduld",

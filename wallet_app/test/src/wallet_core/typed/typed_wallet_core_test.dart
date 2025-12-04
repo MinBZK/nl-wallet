@@ -258,7 +258,7 @@ void main() {
   ///Verify that methods convert potential [FfiException]s into the expected [CoreError]s
   group('handleCoreException', () {
     /// Create a [FfiException] that should be converted to a [CoreError]
-    final flutterApiError = FlutterApiError(type: FlutterApiErrorType.generic, description: null, data: null);
+    final flutterApiError = const FlutterApiError(type: FlutterApiErrorType.generic, description: null, data: null);
     final ffiException = AnyhowException(jsonEncode(flutterApiError));
 
     test('isValidPin', () async {
@@ -451,16 +451,6 @@ void main() {
     test('acceptPidIssuance', () async {
       when(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).thenThrow(ffiException);
       expect(() => typedWalletCore.acceptPidIssuance(_kSamplePin), throwsA(isA<CoreError>()));
-    });
-
-    test('hasActiveDisclosureSession', () async {
-      when(core.crateApiFullHasActiveDisclosureSession()).thenThrow(ffiException);
-      expect(() => typedWalletCore.hasActiveDisclosureSession(), throwsA(isA<CoreError>()));
-    });
-
-    test('hasActiveIssuanceSession', () async {
-      when(core.crateApiFullHasActiveIssuanceSession()).thenThrow(ffiException);
-      expect(() => typedWalletCore.hasActiveIssuanceSession(), throwsA(isA<CoreError>()));
     });
 
     test('cancelDisclosure', () async {

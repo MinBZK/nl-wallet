@@ -319,15 +319,6 @@ pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<PidIssuanceResul
 }
 
 #[flutter_api_error]
-pub async fn has_active_issuance_session() -> anyhow::Result<bool> {
-    let wallet = wallet().read().await;
-
-    let has_active_session = wallet.has_active_issuance_session()?;
-
-    Ok(has_active_session)
-}
-
-#[flutter_api_error]
 pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<StartDisclosureResult> {
     let url = Url::parse(&uri)?;
 
@@ -359,15 +350,6 @@ pub async fn accept_disclosure(selected_indices: Vec<u16>, pin: String) -> anyho
     let result = wallet.accept_disclosure(&selected_indices, pin).await.try_into()?;
 
     Ok(result)
-}
-
-#[flutter_api_error]
-pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
-    let wallet = wallet().read().await;
-
-    let has_active_session = wallet.has_active_disclosure_session()?;
-
-    Ok(has_active_session)
 }
 
 #[flutter_api_error]

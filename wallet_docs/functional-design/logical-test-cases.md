@@ -78,7 +78,6 @@ or automated tests.
 
 **Given** user invokes an invalid universal link  
 **Then** system informs user link is not recognized  
-**And** provides a link to try again
 
 ---
 
@@ -835,4 +834,13 @@ instructs user to choose a new PIN
 **When** user selects a card  
 **Then** the requested attributes are disclosed from the previously selected card
 
+---
 
+### LTC66
+
+#### Renew PID 
+
+**Given** user has issued PID
+**When** user renews PID  
+**Then** PID is renewed   
+**And** a card renewal event is added to the history

@@ -6,7 +6,7 @@ part of 'card_display_metadata.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-CardDisplayMetadata _$CardDisplayMetadataFromJson(Map<String, dynamic> json) => CardDisplayMetadata(
+_CardDisplayMetadata _$CardDisplayMetadataFromJson(Map<String, dynamic> json) => _CardDisplayMetadata(
   language: const LocaleConverter().fromJson(json['language'] as String),
   name: json['name'] as String,
   description: json['description'] as String?,
@@ -18,7 +18,7 @@ CardDisplayMetadata _$CardDisplayMetadataFromJson(Map<String, dynamic> json) => 
 );
 
 Map<String, dynamic> _$CardDisplayMetadataToJson(
-  CardDisplayMetadata instance,
+  _CardDisplayMetadata instance,
 ) => <String, dynamic>{
   'language': const LocaleConverter().toJson(instance.language),
   'name': instance.name,

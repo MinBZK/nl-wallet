@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::path::Path;
 use std::time::Duration;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
-use config::Config;
-use config::File;
 use futures::future::try_join_all;
+use itertools::Itertools;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -16,9 +14,7 @@ use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
 use sea_orm::sea_query::Expr;
-use serde::Deserialize;
 use tempfile::TempDir;
-use url::Url;
 use uuid::Uuid;
 
 use attestation_types::status_claim::StatusClaim;
@@ -40,29 +36,16 @@ use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::publish::PublishDir;
+use status_lists::settings::test::connection_from_settings;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::num::NonZeroU31;
-use utils::path::prefix_local_path;
-
-#[derive(Debug, Clone, Deserialize)]
-struct TestSettings {
-    storage_url: Url,
-}
-
-async fn connection_from_settings() -> anyhow::Result<DatabaseConnection> {
-    let settings: TestSettings = Config::builder()
-        .add_source(File::from(prefix_local_path(Path::new("status_lists.toml")).as_ref()).required(true))
-        .build()?
-        .try_deserialize()?;
-    let connection = server_utils::store::postgres::new_connection(settings.storage_url).await?;
-    Ok(connection)
-}
 
 async fn create_status_list_service(
     ca: &Ca,
@@ -177,7 +160,7 @@ async fn assert_published_list(
     assert_eq!(claims.ttl, config.ttl);
 
     let published = claims.status_list.unpack();
-    let mut expected = StatusList::new_aligned(config.list_size.as_usize(), bits);
+    let mut expected = StatusList::new_aligned(list.size as usize, bits);
     for index in revoked {
         expected.insert(index, StatusType::Invalid);
     }
@@ -529,19 +512,26 @@ async fn test_service_create_status_claims_concurrently() {
 }
 
 #[tokio::test]
-async fn test_service_revoke_attestation_batch_multiple_lists() {
+async fn test_service_revoke_attestation_batches_multiple_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, service) =
+    let (attestation_type, config, _) =
         create_status_list_service(&ca, &connection, 4, 1, Some(Duration::from_secs(300)), &publish_dir)
             .await
             .unwrap();
 
-    // Ensure we have two lists
     let type_id = attestation_type_id(&connection, &attestation_type).await;
+
+    // Ensure we have two lists and change list size for new list
     update_availability_of_status_list(&connection, type_id, 1).await;
-    try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
+    let config = StatusListConfig {
+        list_size: 10.try_into().unwrap(),
+        ..config
+    };
+    let service = recreate_status_list_service(&connection, attestation_type.as_ref(), config.clone())
+        .await
+        .unwrap();
 
     // Create status claims for attestation
     let batch_id = Uuid::new_v4();
@@ -551,7 +541,7 @@ async fn test_service_revoke_attestation_batch_multiple_lists() {
         .unwrap();
 
     // Revoke all attestation
-    service.revoke_attestation_batch(batch_id).await.unwrap();
+    service.revoke_attestation_batches(vec![batch_id]).await.unwrap();
 
     // Check if published list matches database
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -582,7 +572,7 @@ async fn test_service_revoke_attestation_batch_multiple_lists() {
 }
 
 #[tokio::test]
-async fn test_service_revoke_attestation_batch_concurrently() {
+async fn test_service_revoke_attestation_batches_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
@@ -594,7 +584,7 @@ async fn test_service_revoke_attestation_batch_concurrently() {
 
     // Obtain claims for multiple attestation batches
     let concurrent = 7;
-    let batch_ids = (0..concurrent).map(|_| Uuid::new_v4()).collect::<Vec<_>>();
+    let batch_ids = (0..concurrent).map(|_| Uuid::new_v4()).collect_vec();
     let claims_per_batch = try_join_all(
         batch_ids
             .iter()
@@ -608,7 +598,7 @@ async fn test_service_revoke_attestation_batch_concurrently() {
     try_join_all(
         batch_ids
             .into_iter()
-            .map(|batch_id| service.revoke_attestation_batch(batch_id)),
+            .map(|batch_id| service.revoke_attestation_batches(vec![batch_id])),
     )
     .await
     .unwrap();

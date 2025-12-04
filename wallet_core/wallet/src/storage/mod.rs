@@ -185,6 +185,7 @@ pub trait Storage: Send {
 
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
+    async fn has_any_attestations(&self) -> StorageResult<bool>;
     async fn has_any_attestations_with_types(&self, attestation_types: &[String]) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;

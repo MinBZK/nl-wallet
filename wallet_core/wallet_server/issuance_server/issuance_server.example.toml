@@ -33,6 +33,10 @@ metadata = ["com_example_address_metadata.json"]
 ip = "127.0.0.1"
 port = 8001
 
+[internal_server]
+ip = "127.0.0.1"
+port = 8002
+
 # Where to store session state. can be `memory://` or a `postgres://..` url
 # Memory is ephemeral, default value: memory://
 [storage]
@@ -117,9 +121,7 @@ certificate = "MIJ..."
 id = "my_credential"
 format = "mso_mdoc"
 meta = { doctype_value = "com.example.pid" }
-claims = [
-  { path = ["com.example.pid", "bsn"], intent_to_retain = true }
-]
+claims = [{ path = ["com.example.pid", "bsn"], intent_to_retain = true }]
 
 # Example university_mdoc associated attestation_url_config
 [disclosure_settings.university_mdoc.attestation_url_config]

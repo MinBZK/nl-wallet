@@ -43,6 +43,8 @@ spec:
           ports:
             - name: http
               containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
           volumeMounts:
             - name: settings
               mountPath: /issuance_server.toml
@@ -59,6 +61,8 @@ spec:
             - name: status-lists
               mountPath: /status-lists
           env:
+            - name: ISSUANCE_SERVER__INTERNAL_SERVER__IP
+              value: "0.0.0.0"
             - name: ISSUANCE_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: ISSUANCE_SERVER__UNIVERSAL_LINK_BASE_URL

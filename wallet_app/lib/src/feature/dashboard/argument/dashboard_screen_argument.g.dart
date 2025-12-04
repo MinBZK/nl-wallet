@@ -6,12 +6,12 @@ part of 'dashboard_screen_argument.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-DashboardScreenArgument _$DashboardScreenArgumentFromJson(
+_DashboardScreenArgument _$DashboardScreenArgumentFromJson(
   Map<String, dynamic> json,
-) => DashboardScreenArgument(
+) => _DashboardScreenArgument(
   cards: (json['cards'] as List<dynamic>).map((e) => WalletCard.fromJson(e as Map<String, dynamic>)).toList(),
 );
 
 Map<String, dynamic> _$DashboardScreenArgumentToJson(
-  DashboardScreenArgument instance,
+  _DashboardScreenArgument instance,
 ) => <String, dynamic>{'cards': instance.cards.map((e) => e.toJson()).toList()};

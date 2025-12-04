@@ -174,7 +174,7 @@ void main() {
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
           IssuanceReviewCards.init(
-            cards: [WalletMockData.card.copyWith(attestationId: () => null)],
+            cards: [WalletMockData.card.copyWith(attestationId: null)],
           ),
         ),
       );
@@ -187,7 +187,7 @@ void main() {
           MockIssuanceBloc(),
           IssuanceReviewCards.init(
             cards: [
-              WalletMockData.altCard.copyWith(attestationId: () => null),
+              WalletMockData.altCard.copyWith(attestationId: null),
               WalletMockData.card,
             ],
           ),
@@ -202,8 +202,8 @@ void main() {
           MockIssuanceBloc(),
           IssuanceReviewCards.init(
             cards: [
-              WalletMockData.card.copyWith(attestationId: () => '1'),
-              WalletMockData.altCard.copyWith(attestationId: () => '2'),
+              WalletMockData.card.copyWith(attestationId: '1'),
+              WalletMockData.altCard.copyWith(attestationId: '2'),
             ],
           ),
         ),
@@ -217,8 +217,8 @@ void main() {
           MockIssuanceBloc(),
           IssuanceReviewCards.init(
             cards: [
-              WalletMockData.card.copyWith(attestationId: () => '1'),
-              WalletMockData.altCard.copyWith(attestationId: () => '2'),
+              WalletMockData.card.copyWith(attestationId: '1'),
+              WalletMockData.altCard.copyWith(attestationId: '2'),
             ],
           ),
         ),
@@ -234,8 +234,8 @@ void main() {
           MockIssuanceBloc(),
           IssuanceReviewCards.init(
             cards: [
-              WalletMockData.card.copyWith(attestationId: () => null),
-              WalletMockData.altCard.copyWith(attestationId: () => null),
+              WalletMockData.card.copyWith(attestationId: null),
+              WalletMockData.altCard.copyWith(attestationId: null),
             ],
           ),
         ),
@@ -330,7 +330,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceReviewCards.init(cards: [WalletMockData.card.copyWith(attestationId: () => null)]),
+          IssuanceReviewCards.init(cards: [WalletMockData.card.copyWith(attestationId: null)]),
         ),
       );
 

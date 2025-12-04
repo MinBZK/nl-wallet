@@ -51,6 +51,8 @@ impl ServerSettings for PidIssuerSettings {
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 8001)?
+            .set_default("internal_server.ip", "0.0.0.0")?
+            .set_default("internal_server.port", 8002)?
             .set_default("public_url", "http://localhost:8001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
@@ -69,8 +71,7 @@ impl ServerSettings for PidIssuerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
-            .set_default("brp_server", "http://localhost:3011/")?;
+            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.

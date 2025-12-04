@@ -71,11 +71,10 @@ sealed class NavigationRequest extends Equatable {
     navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
   );
 
-  factory NavigationRequest.walletTransferTarget({bool isRetry = false}) => GenericNavigationRequest(
+  factory NavigationRequest.walletTransferTarget() => const GenericNavigationRequest(
     WalletRoutes.walletTransferTargetRoute,
-    removeUntil: WalletRoutes.dashboardRoute,
-    argument: isRetry,
-    navigatePrerequisites: const [
+    removeUntil: WalletRoutes.splashRoute,
+    navigatePrerequisites: [
       NavigationPrerequisite.walletUnlocked,
       NavigationPrerequisite.walletInitialized,
       NavigationPrerequisite.pidInitialized,

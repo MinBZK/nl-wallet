@@ -93,8 +93,6 @@ Future<WalletInstructionResult> acceptIssuance({required String pin}) =>
 Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptPidIssuance(pin: pin);
 
-Future<bool> hasActiveIssuanceSession() => WalletCore.instance.api.crateApiFullHasActiveIssuanceSession();
-
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
@@ -102,8 +100,6 @@ Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancel
 
 Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptDisclosure(selectedIndices: selectedIndices, pin: pin);
-
-Future<bool> hasActiveDisclosureSession() => WalletCore.instance.api.crateApiFullHasActiveDisclosureSession();
 
 Future<DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance({
   required List<int> selectedIndices,

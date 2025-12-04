@@ -88,7 +88,7 @@ class HistoryTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.close()
 
-        amsterdamWebPage.switchToWalletApp()
+        amsterdamWebPage.openApp()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(dashboardScreen.visible())
 

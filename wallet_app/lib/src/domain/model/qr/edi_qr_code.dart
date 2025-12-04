@@ -1,19 +1,16 @@
-import 'package:json_annotation/json_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
+part 'edi_qr_code.freezed.dart';
 part 'edi_qr_code.g.dart';
 
-@JsonSerializable()
-class EdiQrCode {
-  final String id;
-  final EdiQrType type;
+@Freezed(copyWith: false)
+abstract class EdiQrCode with _$EdiQrCode {
+  const factory EdiQrCode({
+    required String id,
+    required EdiQrType type,
+  }) = _EdiQrCode;
 
-  const EdiQrCode({required this.id, required this.type});
-
-  factory EdiQrCode.fromJson(Map<String, dynamic> json) {
-    return _$EdiQrCodeFromJson(json);
-  }
-
-  Map<String, dynamic> toJson() => _$EdiQrCodeToJson(this);
+  factory EdiQrCode.fromJson(Map<String, dynamic> json) => _$EdiQrCodeFromJson(json);
 }
 
 enum EdiQrType {

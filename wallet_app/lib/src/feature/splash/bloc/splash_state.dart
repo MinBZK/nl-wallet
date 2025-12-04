@@ -10,12 +10,12 @@ class SplashInitial extends SplashState {
 }
 
 class SplashLoaded extends SplashState {
-  final bool isRegistered;
-  final bool hasPid;
+  final PostSplashDestination destination;
 
-  const SplashLoaded({required this.isRegistered, required this.hasPid})
-    : assert(!hasPid || isRegistered, 'The user should never have a pid but NOT be registered');
+  const SplashLoaded(this.destination);
 
   @override
-  List<Object> get props => [isRegistered, hasPid];
+  List<Object> get props => [destination];
 }
+
+enum PostSplashDestination { onboarding, pidRetrieval, transfer, dashboard, blocked }

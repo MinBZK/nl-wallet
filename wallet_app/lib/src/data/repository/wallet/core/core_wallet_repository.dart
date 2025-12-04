@@ -7,6 +7,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/wallet_state.dart';
+import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
 
@@ -18,9 +19,10 @@ class CoreWalletRepository implements WalletRepository {
   @visibleForTesting
   ExitFn exit = io.exit;
 
+  final Mapper<core.WalletState, WalletState> _stateMapper;
   final TypedWalletCore _walletCore;
 
-  CoreWalletRepository(this._walletCore);
+  CoreWalletRepository(this._walletCore, this._stateMapper);
 
   @override
   Future<void> createWallet(String pin) async {
@@ -74,13 +76,6 @@ class CoreWalletRepository implements WalletRepository {
   @override
   Future<WalletState> getWalletState() async {
     final state = await _walletCore.getWalletState();
-    return switch (state) {
-      core.WalletState_Ready() => WalletStateReady(),
-      core.WalletState_Transferring() => WalletStateTransferring(switch (state.role) {
-        core.WalletTransferRole.Source => TransferRole.source,
-        core.WalletTransferRole.Destination => TransferRole.target,
-      }),
-      core.WalletState_TransferPossible() => WalletStateTransferPossible(),
-    };
+    return _stateMapper.map(state);
   }
 }

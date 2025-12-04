@@ -22,8 +22,12 @@ class CheckAttributesBloc extends Bloc<CheckAttributesEvent, CheckAttributesStat
     on<CheckAttributesCardSelected>(_onCardSelected);
   }
 
-  factory CheckAttributesBloc.forCard(WalletCard card, {List<DataAttribute>? attributes}) =>
-      CheckAttributesBloc(cards: [card.copyWith(attributes: attributes)]);
+  factory CheckAttributesBloc.forCard(WalletCard card, {List<DataAttribute>? attributes}) {
+    final checkAttributesCard = attributes != null ? card.copyWith(attributes: attributes) : card;
+    return CheckAttributesBloc(
+      cards: [checkAttributesCard],
+    );
+  }
 
   Future<void> _onCardSelected(CheckAttributesCardSelected event, Emitter<CheckAttributesState> emit) async {
     emit(

@@ -26,6 +26,10 @@ class PinScreen : MobileActions() {
     private val pinErrorDialogNonFinalRoundInitialAttempt = l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt")
     private val pinErrorDialogNonFinalRoundFinalAttempt = l10n.getString("pinErrorDialogNonFinalRoundFinalAttempt")
 
+    private val changePinScreenEnterCurrentPinTitle = l10n.getString("changePinScreenEnterCurrentPinTitle")
+    private val changePinScreenSelectNewPinTitle = l10n.getString("changePinScreenSelectNewPinTitle")
+    private val changePinScreenConfirmNewPinTitle = l10n.getString("changePinScreenConfirmNewPinTitle")
+
     fun setupPinScreenVisible() = elementWithTextVisible(setupSecuritySelectPinPageTitle)
 
     fun pinScreenVisible() = elementWithTextVisible(pinScreenHeader)
@@ -91,4 +95,10 @@ class PinScreen : MobileActions() {
     }
 
     fun pinErrorDialogNonFinalRoundFinalAttemptVisible() = elementWithTextVisible(pinErrorDialogNonFinalRoundFinalAttempt)
+
+    fun enterCurrentPinTitleVisible() = elementWithTextVisible(changePinScreenEnterCurrentPinTitle)
+
+    fun selectNewPinTitleVisible() = elementWithTextVisible(changePinScreenSelectNewPinTitle)
+
+    fun confirmNewPinTitleVisible() = elementWithTextVisible(changePinScreenConfirmNewPinTitle)
 }

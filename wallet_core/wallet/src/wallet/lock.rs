@@ -25,6 +25,8 @@ use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::UnlockData;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::PinRecoverySession;
+use crate::wallet::Session;
 
 use super::Wallet;
 
@@ -131,6 +133,18 @@ where
     #[instrument(skip_all)]
     pub fn lock(&mut self) {
         self.lock.lock();
+
+        // If the user is in the PID issuance phase of PIN recovery, they are choosing a new PIN.
+        // Clear this state if the wallet is locked, to force them to start over with PIN recovery.
+        if matches!(
+            self.session,
+            Some(Session::PinRecovery {
+                session: PinRecoverySession::Issuance { .. },
+                ..
+            })
+        ) {
+            self.session.take();
+        };
     }
 
     async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>

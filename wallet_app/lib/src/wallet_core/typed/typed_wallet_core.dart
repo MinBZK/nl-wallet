@@ -109,9 +109,6 @@ class TypedWalletCore {
   /// Accept offered PID
   Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => call(() => core.acceptPidIssuance(pin: pin));
 
-  /// Check if there is an active issuance session
-  Future<bool> hasActiveIssuanceSession() => call(core.hasActiveIssuanceSession);
-
   Future<core.StartDisclosureResult> startDisclosure(
     String uri, {
     bool isQrCode = false,
@@ -121,8 +118,6 @@ class TypedWalletCore {
 
   Future<core.AcceptDisclosureResult> acceptDisclosure(String pin, List<int> selectedIndices) =>
       call(() => core.acceptDisclosure(selectedIndices: selectedIndices, pin: pin));
-
-  Future<bool> hasActiveDisclosureSession() => call(core.hasActiveDisclosureSession);
 
   Stream<List<core.AttestationPresentation>> observeCards() => _attestations.stream;
 
