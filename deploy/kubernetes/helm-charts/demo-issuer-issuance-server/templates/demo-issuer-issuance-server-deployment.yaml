@@ -43,6 +43,8 @@ spec:
           ports:
             - name: http
               containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
           volumeMounts:
             - name: settings
               mountPath: /issuance_server.toml
