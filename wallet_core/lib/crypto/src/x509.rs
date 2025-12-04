@@ -174,7 +174,7 @@ pub enum CertificateError {
     MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
     #[error("SAN DNS name is not a URI: {0}")]
     SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
-    #[error("could not serialize to DER")]
+    #[error("could not serialize to DER: {0}")]
     DerSerialization(#[from] SerializeError),
 }
 
