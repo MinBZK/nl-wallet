@@ -45,25 +45,22 @@ where
     ) -> RevocationStatus {
         let StatusList(StatusListClaim { uri, idx }) = status_claim;
 
-        match self.0.fetch(uri.clone()).await {
-            Ok(status_list_token) => match status_list_token.parse_and_verify(
-                issuer_trust_anchors,
-                attestation_signing_certificate_dn,
-                &uri,
-                time,
-            ) {
-                Ok(status_list) => match status_list.single_unpack(idx.try_into().unwrap()) {
-                    StatusType::Valid => RevocationStatus::Valid,
-                    _ => RevocationStatus::Invalid,
-                },
-                Err(err) => {
-                    warn!("Status list token fails verification: {err}");
-                    RevocationStatus::Corrupted
-                }
-            },
+        let status_list_token = match self.0.fetch(uri.clone()).await {
+            Ok(token) => token,
             Err(err) => {
                 warn!("Status list token fetching fails: {err}");
-                RevocationStatus::Undetermined
+                return RevocationStatus::Undetermined;
+            }
+        };
+
+        match status_list_token.parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, &uri, time) {
+            Ok(status_list) => match status_list.single_unpack(idx.try_into().unwrap()) {
+                StatusType::Valid => RevocationStatus::Valid,
+                _ => RevocationStatus::Invalid,
+            },
+            Err(err) => {
+                warn!("Status list token fails verification: {err}");
+                RevocationStatus::Corrupted
             }
         }
     }
