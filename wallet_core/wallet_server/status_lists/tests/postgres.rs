@@ -46,8 +46,6 @@ use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::num::NonZeroU31;
-use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 
 async fn create_status_list_service(
     ca: &Ca,
@@ -543,10 +541,7 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
         .unwrap();
 
     // Revoke all attestation
-    service
-        .revoke_attestation_batches(vec_nonempty![batch_id])
-        .await
-        .unwrap();
+    service.revoke_attestation_batches(vec![batch_id]).await.unwrap();
 
     // Check if published list matches database
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -589,11 +584,7 @@ async fn test_service_revoke_attestation_batches_concurrently() {
 
     // Obtain claims for multiple attestation batches
     let concurrent = 7;
-    let batch_ids: VecNonEmpty<Uuid> = (0..concurrent)
-        .map(|_| Uuid::new_v4())
-        .collect_vec()
-        .try_into()
-        .unwrap();
+    let batch_ids = (0..concurrent).map(|_| Uuid::new_v4()).collect_vec();
     let claims_per_batch = try_join_all(
         batch_ids
             .iter()
@@ -607,7 +598,7 @@ async fn test_service_revoke_attestation_batches_concurrently() {
     try_join_all(
         batch_ids
             .into_iter()
-            .map(|batch_id| service.revoke_attestation_batches(vec_nonempty![batch_id])),
+            .map(|batch_id| service.revoke_attestation_batches(vec![batch_id])),
     )
     .await
     .unwrap();

@@ -19,6 +19,10 @@ list_size = 100_000
 ip = '127.0.0.1'
 port = 8001
 
+[internal_server]
+ip = "127.0.0.1"
+port = 8002
+
 # Optional, for securing private keys
 [hsm]
 library_path = "/path/to/hsm.so"

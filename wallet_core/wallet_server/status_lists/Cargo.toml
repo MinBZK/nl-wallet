@@ -26,7 +26,9 @@ path = "tests/router.rs"
 required-features = ["integration_test", "test"]
 
 [features]
+default = ["openapi"]
 axum = ["dep:axum", "dep:etag", "dep:mediatype", "token_status_list/axum", "tower-http/compression-gzip"]
+openapi = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
 integration_test = ["axum", "dep:reqwest"]
 test = ["dep:config"]
 
@@ -51,8 +53,10 @@ serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-uuid.workspace = true
 url.workspace = true
+utoipa = { workspace = true, features = ["uuid"] }
+utoipa-axum.workspace = true
+uuid.workspace = true
 
 axum = { workspace = true, optional = true }
 config = { workspace = true, optional = true }
@@ -60,6 +64,7 @@ etag = { workspace = true, optional = true }
 mediatype = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
+utoipa-swagger-ui = { workspace = true, optional = true }
 
 attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
@@ -67,7 +72,7 @@ jwt.path = "../../lib/jwt"
 http_utils.path = "../../lib/http_utils"
 hsm.path = "../../lib/hsm"
 server_utils.path = "../server_utils"
-token_status_list.path = "../../lib/token_status_list"
+token_status_list = { path = "../../lib/token_status_list", features = ["axum"] }
 utils.path = "../../lib/utils"
 
 [dev-dependencies]

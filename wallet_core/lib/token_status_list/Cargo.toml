@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-axum = ["dep:axum"]
+axum = ["dep:axum", "dep:sea-orm", "utoipa/uuid"]
 verification = ["dep:http", "dep:rustls-pki-types", "http_utils/client", "reqwest/rustls-tls-webpki-roots"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
@@ -28,6 +28,7 @@ mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }
+sea-orm = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
@@ -35,6 +36,7 @@ thiserror.workspace = true
 tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
+utoipa = { workspace = true, optional = true }
 uuid.workspace = true
 
 attestation_types.path = "../attestation_types"
