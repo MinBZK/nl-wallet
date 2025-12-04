@@ -23,6 +23,7 @@ import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.disclosure.DisclosureApproveOrganizationScreen
+import screen.disclosure.SharingStoppedScreen
 import screen.issuance.CardIssuanceScreen
 import screen.issuance.DisclosureIssuanceScreen
 import screen.menu.MenuScreen
@@ -56,6 +57,7 @@ class DisclosureTests : TestBase() {
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var issuanceData : IssuanceDataHelper
     private lateinit var jobFinderWebPage : RelyingPartyJobFinderWebPage
+    private lateinit var sharingStoppedScreen: SharingStoppedScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -72,6 +74,7 @@ class DisclosureTests : TestBase() {
         dashboardScreen = DashboardScreen()
         jobFinderWebPage = RelyingPartyJobFinderWebPage()
         cardIssuanceScreen = CardIssuanceScreen()
+        sharingStoppedScreen = SharingStoppedScreen()
 
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
@@ -315,5 +318,22 @@ class DisclosureTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
         assertTrue(xyzBankWebPage.sharedAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "User not identified correctly")
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC17 Decline consent to share data")
+    fun verifyDeclineConsent(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickAmsterdamSdJwtButton()
+        amsterdamWebPage.openSameDeviceWalletFlow()
+        amsterdamWebPage.switchToNativeContext()
+        disclosureScreen.cancel()
+        disclosureScreen.stop()
+        disclosureScreen.bottomSheetConfirmStop()
+        sharingStoppedScreen.close()
+        assertTrue(dashboardScreen.visible(), "Dashboard not visible")
     }
 }

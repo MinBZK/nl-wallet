@@ -11,24 +11,33 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.demo.DemoScreen
 import screen.introduction.IntroductionScreen
+import screen.issuance.PersonalizeInformScreen
+import screen.security.PinScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC1.2 Open the App")
 class OpenAppTests : TestBase() {
 
     private lateinit var introductionScreen: IntroductionScreen
+    private lateinit var pinScreen: PinScreen
+    private lateinit var personalizeInformScreen: PersonalizeInformScreen
+    private lateinit var demoScreen: DemoScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
-        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Introduction)
         introductionScreen = IntroductionScreen()
+        pinScreen = PinScreen()
+        personalizeInformScreen = PersonalizeInformScreen()
+        demoScreen = DemoScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC32 If the device language is set to Dutch, then the app starts in Dutch.")
     fun verifyDutchLanguage(testInfo: TestInfo) {
         setUp(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Introduction)
         assertTrue(introductionScreen.nextButtonTextVisible("Volgende"))
     }
 
@@ -37,14 +46,27 @@ class OpenAppTests : TestBase() {
     @DisplayName("LTC32 If the device language is set to English, then the app starts in English.")
     fun verifyEnglishLanguage(testInfo: TestInfo) {
         setUp(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Introduction)
         assertTrue(introductionScreen.nextButtonTextVisible("Next"))
     }
 
-    /**
-     * 3. When a PIN has been set up before, the App starts UC 2.3 Unlock the App.
-     */
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC44 Wallet not created when app is opened, PIN has not been setup")
+    fun verifyOpenAppWithoutPinSetup(testInfo: TestInfo) {
+        setUp(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecurityChoosePin)
+        pinScreen.closeApp()
+        pinScreen.openApp()
+        assertTrue(demoScreen.visible(), "Demo screen not visible")
+    }
 
-    /**
-     * 4. When a PID has been issued, the App starts show dashbaord.
-     */
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC44 Wallet not created when app is opened, PID has not been issued")
+    fun verifyOpenAppWithoutPID(testInfo: TestInfo) {
+        setUp(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizeConfirmIssuance)
+        personalizeInformScreen.closeApp()
+        personalizeInformScreen.openApp()
+        assertTrue(pinScreen.pinScreenVisible(), "Pin screen not visible")
+    }
 }
