@@ -2412,7 +2412,7 @@ pub(crate) mod tests {
             sd_jwt: sd_jwt.clone(),
         };
         let issued_copies =
-            IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential.clone()].try_into().unwrap());
+            IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential].try_into().unwrap());
 
         let attestation_type = sd_jwt.claims().vct.clone();
         let attestation_presentation = AttestationPresentation::new_mock();
