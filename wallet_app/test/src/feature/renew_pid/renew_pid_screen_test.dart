@@ -14,6 +14,7 @@ import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
 import '../../mocks/wallet_mocks.dart';
 import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 class MockRenewPidBloc extends MockBloc<RenewPidEvent, RenewPidState> implements RenewPidBloc {}
 
@@ -218,9 +219,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap the close button in the app bar (should show StopDigidLoginDialog)
-      final closeIconFinder = find.byTooltip('Close');
-      expect(closeIconFinder, findsOneWidget);
-      await tester.tap(closeIconFinder);
+      final l10n = await TestUtils.englishLocalizations;
+      final buttonFinder = find.text(l10n.generalStop);
+      expect(buttonFinder, findsOneWidget);
+      await tester.tap(buttonFinder);
       await tester.pumpAndSettle();
 
       // Verify the StopDigidLoginDialog is present
