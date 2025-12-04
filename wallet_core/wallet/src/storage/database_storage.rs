@@ -2394,7 +2394,8 @@ pub(crate) mod tests {
             .one(db)
             .await
             .unwrap()
-            .and_then(|status| status.map(|s| s.parse().unwrap()))
+            .flatten()
+            .map(|s| s.parse().unwrap())
     }
 
     #[tokio::test]
