@@ -78,7 +78,6 @@ or automated tests.
 
 **Given** user invokes an invalid universal link  
 **Then** system informs user link is not recognized  
-**And** provides a link to try again
 
 ---
 

@@ -81,7 +81,7 @@ class PidIssuanceTests : TestBase() {
         digidLoginStartWebPage.switchToWebViewContext()
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
 
-        personalizeAuthenticatingWithDigidScreen.switchToWalletApp()
+        personalizeAuthenticatingWithDigidScreen.openApp()
         personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
         assertAll(
             { assertTrue(personalizeAuthenticatingWithDigidScreen.awaitingUserAuthTitleVisible(), "title is not visible") },

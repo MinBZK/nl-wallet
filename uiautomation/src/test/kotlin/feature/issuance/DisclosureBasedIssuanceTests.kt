@@ -19,6 +19,7 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
+import screen.disclosure.SharingStoppedScreen
 import screen.error.NoCardsErrorScreen
 import screen.issuance.CardIssuanceScreen
 import screen.issuance.DisclosureIssuanceScreen
@@ -42,6 +43,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
     private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var noCardsErrorScreen: NoCardsErrorScreen
+    private lateinit var sharingStoppedScreen: SharingStoppedScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -56,6 +58,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         dashboardScreen = DashboardScreen()
         issuanceData = IssuanceDataHelper()
         noCardsErrorScreen = NoCardsErrorScreen()
+        sharingStoppedScreen = SharingStoppedScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -185,5 +188,26 @@ class DisclosureBasedIssuanceTests : TestBase() {
 
         noCardsErrorScreen.close()
         assertTrue(dashboardScreen.cardVisible(tasData.getPidDisplayName()), "Pid not visible on dashboard")
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC8 Reject disclosure of attributes")
+    fun verifyRejectDisclosureOfAttributes(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickInsuranceButton()
+        issuerWebPage.openSameDeviceWalletFlow()
+        disclosureForIssuanceScreen.switchToNativeContext()
+        disclosureForIssuanceScreen.stop()
+        disclosureForIssuanceScreen.bottomSheetConfirmStop();
+        assertAll (
+            { assertTrue(sharingStoppedScreen.titleVisible(), "Title is not visible") },
+            { assertTrue(sharingStoppedScreen.descriptionVisible(), "Description is not visible") },
+        )
+
+        sharingStoppedScreen.close();
+        assertTrue(dashboardScreen.visible(), "Dashboard not visible")
     }
 }

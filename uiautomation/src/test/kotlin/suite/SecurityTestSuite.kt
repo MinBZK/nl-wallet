@@ -9,7 +9,8 @@ import org.junit.platform.suite.api.SuiteDisplayName
     feature.security.UserEntersPinTests::class,
     feature.security.UserLocksWalletTests::class,
     feature.security.RecoverPinTests::class,
-)
+    feature.security.ChangeRemotePinTests::class,
+    )
 @Suite
 @SuiteDisplayName("Security Test Suite")
 object SecurityTestSuite

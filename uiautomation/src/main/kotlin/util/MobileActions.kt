@@ -444,13 +444,14 @@ open class MobileActions {
         }
     }
 
-    fun switchToWalletApp() {
+    fun openApp() {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
             "IOS" -> driver as IOSDriver
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
         driver.activateApp(testConfig.appIdentifier)
+        Thread.sleep(1000)
     }
 
     fun switchToBrowser() {
@@ -483,6 +484,15 @@ open class MobileActions {
         val driver = driver as AppiumDriver
         driver.get(expiredUniversalLinkFromCameraApp)
         Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+    }
+
+    fun closeApp() {
+        val driver = when (val platform = platformName()) {
+            "ANDROID" -> driver as AndroidDriver
+            "IOS" -> driver as IOSDriver
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        driver.terminateApp(testConfig.appIdentifier)
     }
 
     companion object {
