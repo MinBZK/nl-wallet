@@ -1,5 +1,6 @@
 use std::num::NonZeroUsize;
 use std::sync::Arc;
+use std::time::Duration;
 
 use crypto::utils::random_string;
 use futures::future::join_all;
@@ -56,6 +57,8 @@ async fn setup_revocation_test(publish_dir: PublishDir) -> (Arc<PostgresStatusLi
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(100).unwrap(),
         create_threshold: NonZeroU31::try_new(1).unwrap(), // no new lists are needed during test
+        expiry: Duration::from_secs(3600),
+        refresh_threshold: Duration::from_secs(600),
         ttl: None,
         base_url: "https://example.com/".parse().unwrap(),
         publish_dir,

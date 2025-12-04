@@ -206,6 +206,7 @@ impl<'de> Deserialize<'de> for Bits {
 }
 
 impl Bits {
+    #[inline]
     fn size(self) -> u8 {
         1 << self as u8
     }

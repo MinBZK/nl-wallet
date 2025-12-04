@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use futures::future::join_all;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use rand::seq::SliceRandom;
@@ -45,6 +48,7 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_service::StatusListServices;
 use token_status_list::status_list_token::StatusListToken;
+use tokio::task::AbortHandle;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -59,12 +63,13 @@ use crate::entity::status_list;
 use crate::entity::status_list_item;
 use crate::publish::PublishLockError;
 use crate::publish::VersionInfo;
+use crate::refresh::RefreshControl;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
-const STATUS_LIST_EXTERNAL_ID_SIZE: usize = 12;
+const EXTERNAL_ID_SIZE: usize = 12;
 
 /// Number of tries to create status list while obtaining a status claim.
-const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
+const IN_FLIGHT_CREATE_TRIES: usize = 5;
 
 /// StatusListService implementation using Postgres for multiple attestation types.
 ///
@@ -225,6 +230,10 @@ where
     fn first_service(&self) -> &PostgresStatusListService<K> {
         // in the constructor we ensure that at least one service is present
         self.0.values().next().expect("at least one service should be present")
+    }
+
+    pub fn start_refresh_jobs(&self) -> Vec<AbortHandle> {
+        self.0.values().map(|service| service.start_refresh_job()).collect()
     }
 }
 
@@ -427,7 +436,7 @@ where
         &self,
         copies: usize,
     ) -> Result<(DatabaseTransaction, Vec<status_list::Model>), StatusListServiceError> {
-        let mut tries = STATUS_LIST_IN_FLIGHT_CREATE_TRIES;
+        let mut tries = IN_FLIGHT_CREATE_TRIES;
         loop {
             // Always restart transaction (e.g. level was set to repeatable read)
             let tx = self.connection.begin().await?;
@@ -447,7 +456,7 @@ where
                 return Ok((tx, lists));
             }
 
-            if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
+            if tries == IN_FLIGHT_CREATE_TRIES {
                 tracing::warn!(
                     "Creating status list in flight for attestation type ID {}, increase create_threshold or list_size",
                     self.attestation_type_id,
@@ -581,7 +590,7 @@ where
         }
 
         // Create new list
-        let external_id = crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE);
+        let external_id = crypto::utils::random_string(EXTERNAL_ID_SIZE);
         let list_size = self.config.list_size.into_inner();
         let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
         let list = status_list::ActiveModel {
@@ -652,7 +661,7 @@ where
     }
 
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
-        tracing::info!("Initializing status lists for ID: {}", self.attestation_type_id);
+        tracing::info!("Initializing status lists for ID {}", self.attestation_type_id);
 
         // Fetch all lists that still have list items in the database
         let lists = status_list::Entity::find()
@@ -749,6 +758,87 @@ where
         }
     }
 
+    pub fn start_refresh_job(&self) -> AbortHandle {
+        let service = self.clone();
+        let refresh_control = RefreshControl::new(self.config.refresh_threshold);
+        tokio::spawn(async move {
+            tracing::info!(
+                "Starting refresh job for attestation type ID {}",
+                service.attestation_type_id
+            );
+            loop {
+                // Wrap in separate spawn job to catch panics
+                let job_control = refresh_control.clone();
+                let job_service = service.clone();
+                match tokio::spawn(async move { job_service.refresh_status_lists(&job_control).await }).await {
+                    Ok(delay) => {
+                        tracing::debug!(
+                            "Next refresh of status lists scheduled in {}s for attestation type ID {}",
+                            delay.as_secs(),
+                            service.attestation_type_id
+                        );
+                        tokio::time::sleep(delay).await
+                    }
+                    Err(err) => {
+                        tracing::error!(
+                            "Join error on refresh job for attestation type ID {}: {:?}",
+                            service.attestation_type_id,
+                            err
+                        );
+                        tokio::time::sleep(refresh_control.next_refresh_delay([])).await;
+                    }
+                };
+            }
+        })
+        .abort_handle()
+    }
+
+    async fn refresh_status_lists(&self, refresh_control: &RefreshControl) -> Duration {
+        tracing::debug!(
+            "Refreshing status lists for attestation type ID {}",
+            self.attestation_type_id
+        );
+
+        // Get all lists
+        let lists = match status_list::Entity::find()
+            .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
+            .all(&self.connection)
+            .await
+        {
+            Ok(lists) => lists,
+            Err(err) => {
+                tracing::warn!(
+                    "Could not fetch status lists from DB for attestation ID {}: {}",
+                    self.attestation_type_id,
+                    err
+                );
+                return refresh_control.next_refresh_delay([]);
+            }
+        };
+
+        // Republish if necessary
+        let expiries = join_all(lists.into_iter().map(|list| async move {
+            let path = self.config.publish_dir.jwt_path(&list.external_id);
+            let mut expiry = read_token_expiry(&path).await;
+
+            if expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
+                tracing::info!("Republishing status list for ID {}", list.id);
+                let size = list.size.try_into().expect("size should be non-zero");
+
+                match self.publish_status_list(list.id, &list.external_id, size).await {
+                    // Always read token expiry as it can be changed by another instance
+                    Ok(_) => expiry = read_token_expiry(&path).await,
+                    Err(err) => tracing::warn!("Failed to refresh status list for ID {}: {}", list.id, err),
+                };
+            }
+            expiry
+        }))
+        .await;
+
+        // Calculate delay for next job, if one or more expiry is empty, default to empty list
+        refresh_control.next_refresh_delay(expiries.into_iter().collect::<Option<Vec<_>>>().unwrap_or_default())
+    }
+
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
         // Build empty status list
         let expires = Utc::now() + self.config.expiry;
@@ -765,7 +855,7 @@ where
         tokio::task::spawn_blocking(move || {
             // create because a new status list external id can be reused if the transaction fails
             publish_lock.create(expires)?;
-            std::fs::write(&jwt_path, token.as_ref().serialization().as_bytes())
+            std::fs::write(&jwt_path, token.as_ref().serialization())
                 .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
         })
         .await?
@@ -881,6 +971,29 @@ async fn fetch_attestation_type_ids(
                 .map(|model| (model.name, model.id))
                 .collect::<HashMap<_, _>>()
         })
+}
+
+async fn read_token_expiry(path: &Path) -> Option<DateTime<Utc>> {
+    tokio::fs::read_to_string(path)
+        .await
+        .inspect_err(|err| tracing::warn!("Could not read status list token at `{}`: {}", path.display(), err))
+        .ok()
+        .and_then(|text| {
+            text.parse::<StatusListToken>()
+                .inspect_err(|err| {
+                    tracing::warn!("Could not decode status list token at `{}`: {}", path.display(), err)
+                })
+                .ok()
+        })
+        .and_then(|token| {
+            token
+                .as_ref()
+                // Trusting the files we write ourselves
+                .dangerous_parse_unverified()
+                .inspect_err(|err| tracing::warn!("Could not parse status list token at `{}`: {}", path.display(), err))
+                .ok()
+        })
+        .and_then(|(_, claims)| claims.exp)
 }
 
 #[cfg(test)]

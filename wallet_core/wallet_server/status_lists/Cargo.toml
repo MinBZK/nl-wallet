@@ -87,3 +87,4 @@ uuid = { workspace = true, features = ["v4"] }
 
 crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
 server_utils = { path = "../server_utils", features = ["parsed_key_pair_conversion", "postgres", "test"] }
+utils = { path = "../../lib/utils", features = ["mock_time"] }

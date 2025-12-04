@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use rand::Rng;
 use rand::distributions::Alphanumeric;
 use rand::distributions::DistString;
@@ -10,6 +12,10 @@ pub fn random_bytes(len: usize) -> Vec<u8> {
     let mut output = vec![0u8; len];
     rand::thread_rng().fill(&mut output[..]);
     output
+}
+
+pub fn random_duration(max: Duration) -> Duration {
+    Duration::from_secs_f64(rand::thread_rng().gen_range(0.0..max.as_secs_f64()))
 }
 
 pub fn random_string(len: usize) -> String {

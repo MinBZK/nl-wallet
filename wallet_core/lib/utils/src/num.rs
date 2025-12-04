@@ -32,7 +32,7 @@ impl Ratio {
     }
 
     pub fn of_duration(self, duration: Duration) -> Duration {
-        // Calculating in f64 because of the limited precision of f32 compared to i32
+        // Calculating in f64 because of the limited precision of f32 compared to u64
         duration.mul_f64(f32::from(self) as f64)
     }
 }
