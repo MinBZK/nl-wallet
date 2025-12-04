@@ -44,6 +44,8 @@ spec:
           ports:
             - name: http
               containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
           volumeMounts:
             - name: private-keys
               mountPath: /pid_issuer.toml
