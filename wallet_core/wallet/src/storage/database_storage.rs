@@ -784,20 +784,11 @@ where
     }
 
     async fn has_any_attestations(&self) -> StorageResult<bool> {
-        let select_statement = Query::select()
-            .column((attestation::Entity, attestation::Column::Id))
-            .from(attestation::Entity)
-            .take();
-
-        let exists_query = Query::select()
-            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
-            .to_owned();
-
-        let exists_result = self.execute_query(exists_query).await?;
-        let exists = exists_result
-            .map(|result| result.try_get("", "attestation_type_exists"))
-            .transpose()?
-            .unwrap_or(false);
+        let exists = attestation::Entity::find()
+            .limit(1)
+            .one(self.database()?.as_ref())
+            .await?
+            .is_some();
 
         Ok(exists)
     }
