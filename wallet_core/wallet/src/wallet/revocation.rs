@@ -21,7 +21,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
-use update_policy_model::update_policy::VersionState;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -53,7 +52,6 @@ pub enum RevocationError {
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
-    UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
