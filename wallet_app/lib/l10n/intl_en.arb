@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-12-02T08:56:21+01:00",
+    "@@last_modified": "2025-12-03T12:04:43+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1262,7 +1262,7 @@
     "renewPidStopSheetReportIssueCta": "Would you like to report a problem?",
     "renewPidStopSheetTitle": "Are you sure you want to stop?",
     "renewPidStoppedCloseCta": "Close",
-    "renewPidStoppedDescription": "Because you have stopped, your wallet remains view-only mode. Replace the card using your DigiD app.",
+    "renewPidStoppedDescription": "Because you stopped the process, your card was not replaced. Replace the card using your DigiD app.",
     "renewPidStoppedTitle": "Stopped",
     "renewPidSuccessPageDescription": "Your have replaced your Personal Data and Residential Address cards. You can now use the app fully again.",
     "renewPidSuccessPageTitle": "Cards replaced",

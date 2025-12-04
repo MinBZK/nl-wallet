@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-12-02T08:56:21+01:00",
+    "@@last_modified": "2025-12-03T12:04:43+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1258,7 +1258,7 @@
     "renewPidStopSheetReportIssueCta": "Wil je een probleem melden?",
     "renewPidStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
     "renewPidStoppedCloseCta": "Sluiten",
-    "renewPidStoppedDescription": "Omdat je bent gestopt, blijft je wallet in alleen-lezen modus. Vervang de kaart met je DigiD-app.",
+    "renewPidStoppedDescription": "Omdat je bent gestopt, is je kaart niet vervangen. Vervang de kaart met je DigiD-app.",
     "renewPidStoppedTitle": "Gestopt",
     "renewPidSuccessPageDescription": "Je hebt jouw persoonsgegevens- en adreskaart bijgewerkt. Je kunt de app nu weer volledig gebruiken.",
     "renewPidSuccessPageTitle": "Kaarten bijgewerkt",
