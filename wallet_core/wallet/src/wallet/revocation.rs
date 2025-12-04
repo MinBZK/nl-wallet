@@ -69,33 +69,27 @@ where
     where
         S: Sync + 'static,
         SLC: Sync + 'static,
+        CR: Send + Sync + 'static,
     {
         if self.revocation_status_job_handle.is_some() {
             info!("background revocation checks already running");
             return;
         }
 
-        // Clone only what is needed for the background task
-        let config = Arc::clone(&self.config_repository.get());
-        let status_list_client = Arc::clone(&self.status_list_client);
-        let storage = Arc::clone(&self.storage);
-        let callback = Arc::clone(&self.attestations_callback);
-
         let abort_handle = Self::spawn_revocation_checks(
-            Arc::clone(&config),
-            Arc::clone(&status_list_client),
-            Arc::clone(&storage),
-            Arc::clone(&callback),
+            Arc::clone(&self.config_repository),
+            Arc::clone(&self.status_list_client),
+            Arc::clone(&self.storage),
+            Arc::clone(&self.attestations_callback),
             TimeGenerator,
             Duration::from_secs(CHECK_FREQUENCY_IN_SECONDS),
         );
 
-        // Store the abort handle
         self.revocation_status_job_handle = Some(abort_handle);
     }
 
     fn spawn_revocation_checks<T>(
-        config: Arc<WalletConfiguration>,
+        config_repo: Arc<CR>,
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
         callback: Arc<Mutex<Option<AttestationsCallback>>>,
@@ -105,6 +99,7 @@ where
     where
         S: Sync + 'static,
         SLC: Sync + 'static,
+        CR: Send + Sync + 'static,
         T: Generator<DateTime<Utc>> + Send + Sync + 'static,
     {
         let task = tokio::spawn(async move {
@@ -115,6 +110,8 @@ where
 
             loop {
                 interval.tick().await;
+
+                let config = config_repo.get();
 
                 if !matches!(storage.read().await.state().await, Ok(StorageState::Opened)) {
                     info!("database is not opened, skipping wallet revocation status check");
@@ -235,12 +232,20 @@ mod tests {
 
     use super::*;
 
+    struct TestConfigRepo(parking_lot::RwLock<WalletConfiguration>);
+
+    impl Repository<Arc<WalletConfiguration>> for TestConfigRepo {
+        fn get(&self) -> Arc<WalletConfiguration> {
+            Arc::new(self.0.read().clone())
+        }
+    }
+
     #[tokio::test]
     async fn should_check_revocation_periodically() {
         // Pause time so we can advance it manually
         time::pause();
 
-        let config = Arc::new(default_wallet_config());
+        let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(default_wallet_config())));
         let status_list_client = Arc::new(MockStatusListClient::new());
 
         let mut storage = MockStorage::new();
@@ -264,8 +269,8 @@ mod tests {
         // Register callback to track updates
         callback.lock().replace(callback_fn);
 
-        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
-            config,
+        let abort_handle = TestWalletMockStorage::<TestConfigRepo>::spawn_revocation_checks(
+            config_repo,
             status_list_client,
             storage,
             callback,
@@ -300,7 +305,7 @@ mod tests {
         // Pause time so we can advance it manually
         time::pause();
 
-        let config = Arc::new(default_wallet_config());
+        let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(default_wallet_config())));
         let status_list_client = Arc::new(MockStatusListClient::new());
 
         let mut storage = MockStorage::new();
@@ -325,7 +330,7 @@ mod tests {
         callback.lock().replace(callback_fn);
 
         let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
-            config,
+            config_repo,
             status_list_client,
             storage,
             callback,
@@ -367,7 +372,7 @@ mod tests {
 
         let mut wallet_config = default_wallet_config();
         wallet_config.issuer_trust_anchors = vec![ca.as_borrowing_trust_anchor().clone()];
-        let config = Arc::new(wallet_config);
+        let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
 
         let (_, _, status_list_token) = create_status_list_token(&keypair, None, None).await;
         let mut mock_status_list_client = MockStatusListClient::new();
@@ -414,7 +419,7 @@ mod tests {
         let callback = Arc::new(Mutex::new(None));
 
         let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
-            config,
+            config_repo,
             status_list_client,
             storage,
             callback,

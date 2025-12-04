@@ -139,7 +139,7 @@ pub struct Wallet<
     DC: DigidClient,
     DCC: DisclosureClient,
 {
-    config_repository: CR,
+    config_repository: Arc<CR>,
     update_policy_repository: UR,
     storage: Arc<RwLock<S>>,
     key_holder: AKH,

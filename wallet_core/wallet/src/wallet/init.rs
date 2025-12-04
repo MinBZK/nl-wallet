@@ -211,7 +211,7 @@ where
         };
 
         Wallet {
-            config_repository,
+            config_repository: Arc::new(config_repository),
             update_policy_repository,
             storage: Arc::new(RwLock::new(storage)),
             key_holder,
@@ -237,7 +237,7 @@ where
         wallet_clients: WalletClients<APC, DC, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
-        CR: Repository<Arc<WalletConfiguration>>,
+        CR: Repository<Arc<WalletConfiguration>> + Send + Sync + 'static,
         UR: BackgroundUpdateableRepository<VersionState, TlsPinningConfig>,
         SLC: Sync + 'static,
         S: Storage + Sync + 'static,

@@ -116,8 +116,8 @@ pub trait TestStorageRegistration {
 }
 
 /// An alias for the `Wallet<>` with mock dependencies and generic storage.
-pub type TestWallet<S> = Wallet<
-    UpdatingConfigurationRepository<LocalConfigurationRepository>,
+pub type TestWallet<S, CR = UpdatingConfigurationRepository<LocalConfigurationRepository>> = Wallet<
+    CR,
     MockUpdatePolicyRepository,
     S,
     MockHardwareAttestedKeyHolder,
@@ -129,10 +129,12 @@ pub type TestWallet<S> = Wallet<
 >;
 
 /// An alias for the `Wallet<>` with all dependencies, including the storage, mocked.
-pub type TestWalletMockStorage = TestWallet<MockStorage>;
+pub type TestWalletMockStorage<CR = UpdatingConfigurationRepository<LocalConfigurationRepository>> =
+    TestWallet<MockStorage, CR>;
 
 /// An alias for the `Wallet<>` with an in-memory SQLite database and mock dependencies.
-pub type TestWalletInMemoryStorage = TestWallet<MockHardwareDatabaseStorage>;
+pub type TestWalletInMemoryStorage<CR = UpdatingConfigurationRepository<LocalConfigurationRepository>> =
+    TestWallet<MockHardwareDatabaseStorage, CR>;
 
 /// The account server key material, generated once for testing.
 pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| AccountServerKeys {
