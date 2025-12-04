@@ -8,7 +8,6 @@ use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -62,7 +61,6 @@ where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
-    SLC: StatusListClient,
 {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()

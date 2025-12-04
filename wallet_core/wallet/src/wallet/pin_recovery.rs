@@ -17,7 +17,6 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oidc::OidcError;
 use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -132,7 +131,6 @@ where
     IS: IssuanceSession,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
-    SLC: StatusListClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]

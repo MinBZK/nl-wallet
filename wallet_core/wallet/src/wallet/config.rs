@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -19,7 +18,6 @@ where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
-    SLC: StatusListClient,
 {
     pub fn is_blocked(&self) -> bool {
         self.update_policy_repository.get() == VersionState::Block
@@ -33,7 +31,6 @@ where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
-    SLC: StatusListClient,
 {
     pub fn set_config_callback(
         &self,

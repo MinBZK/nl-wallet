@@ -18,7 +18,6 @@ use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -82,7 +81,6 @@ where
     DC: DigidClient,
     IS: Openid4vcIssuanceSession,
     DCC: DisclosureClient,
-    SLC: StatusListClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]

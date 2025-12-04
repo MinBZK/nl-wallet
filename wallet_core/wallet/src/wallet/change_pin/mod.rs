@@ -8,7 +8,6 @@ use tracing::info;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -38,7 +37,6 @@ where
     APC: AccountProviderClient,
     DC: DigidClient,
     DCC: DisclosureClient,
-    SLC: StatusListClient,
 {
     pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>
     where

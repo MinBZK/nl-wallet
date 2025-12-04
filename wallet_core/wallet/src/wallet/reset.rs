@@ -11,7 +11,6 @@ use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
-use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 
 use crate::digid::DigidClient;
@@ -40,7 +39,6 @@ where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
-    SLC: StatusListClient,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
         // Only reset if we actually have a registration. If we did generate a key but never

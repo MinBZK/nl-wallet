@@ -6,7 +6,6 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::attestation::AttestationPresentation;
@@ -33,7 +32,6 @@ where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
-    SLC: StatusListClient,
 {
     pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
         info!("Emit attestations from storage");

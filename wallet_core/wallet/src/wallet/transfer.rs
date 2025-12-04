@@ -15,7 +15,6 @@ use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
 use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
 use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
 use wallet_account::messages::instructions::CancelTransfer;
@@ -118,7 +117,6 @@ where
     IS: IssuanceSession,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
-    SLC: StatusListClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
