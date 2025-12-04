@@ -1,0 +1,105 @@
+module:
+  name: rp_session_attribute
+  brief: RP knows Session 1 is controlled by user with Attribute 1
+
+G_A1:
+  text: >
+    RP knows Session 1 is controlled by User 1 with Attribute 1
+  supportedBy: [G_B1, G_B2, Sn_B3]
+
+G_B1:
+  text: >
+    User 1 controls Session 1
+  supportedBy: [G_B10, Sn_B11]
+
+G_B2:
+  text: >
+    User 1 is subject of Credential 1
+  supportedBy: [Sn_B20, G_B21, G_B22]
+  inContextOf: [A_B23]
+
+Sn_B3:
+  text: >
+    Credential 1 has Attribute 1
+
+G_B10:
+  text: >
+    TODO: refine additional argument about User 1 controlling Session 1
+  undeveloped: true
+
+Sn_B11:
+  text: >
+    User 1 replies quickly
+
+Sn_B20:
+  text: >
+    Credential 1 subject is PubKey 1
+
+G_B21:
+  text: >
+    User 1 controls PubKey 1
+  supportedBy: [Sn_F1]
+  inContextOf: [A_F2]
+
+G_B22:
+  text: >
+    Credential 1 is authentic from trusted source
+  supportedBy: [Sn_C1, G_C2, G_C3]
+
+A_B23:
+  text: >
+    No one else controls PubKey 1
+
+Sn_C1:
+  text: >
+    Credential 1 is signed with PubKey 2
+
+G_C2:
+  text: >
+    PubKey 2 is controlled solely by Issuer 1
+  supportedBy: [Sn_E1, Sn_E2, G_E3]
+  inContextOf: [A_E4]
+
+G_C3:
+  text: >
+    Issuer 1 is trusted by RP
+  supportedBy: [Sn_D1]
+  inContextOf: [A_D2]
+
+Sn_F1:
+  text: >
+    User 1 signs Nonce 1 with PubKey 1
+
+A_F2:
+  text: >
+    RP trusts User 1 to properly manage keys
+
+Sn_D1:
+  text: >
+    Issuer 1 is on Trust List 1
+
+A_D2:
+  text: >
+    Trust List 1 is trusted by RP
+
+Sn_E1:
+  text: >
+    PubKey 2 is on PKI-cert 1
+
+Sn_E2:
+  text: >
+    Issuer 1 is on PKI-cert 1
+
+G_E3:
+  text: >
+    PKI-cert 1 is from source trusted by RP
+  supportedBy: [G_TODO]
+
+A_E4:
+  text: >
+    RP trusts Issuer 1 to manage public keys properly
+
+G_TODO:
+  text: >
+    TODO: refine evidence for PKI-cert 1 source
+  undeveloped: true
