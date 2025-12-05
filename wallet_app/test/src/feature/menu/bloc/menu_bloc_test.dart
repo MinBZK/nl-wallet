@@ -36,13 +36,13 @@ void main() {
     },
   );
 
-  test('MenuState equals works', () {
+  test('ltc26 MenuState equals works', () {
     final a = const MenuInitial();
     final b = const MenuInitial();
     expect(a, b, reason: 'MenuInitial instances should be equal');
   });
 
-  test('MenuEvent equals works', () {
+  test('ltc26 MenuEvent equals works', () {
     final a = MenuLockWalletPressed();
     final b = MenuLockWalletPressed();
     expect(a, b, reason: 'MenuLockWalletPressed instances should be equal');

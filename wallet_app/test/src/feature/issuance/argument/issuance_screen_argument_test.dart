@@ -3,7 +3,7 @@ import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.da
 
 void main() {
   test(
-    'serialize to and from Map<> yields identical object',
+    'ltc5 serialize to and from Map<> yields identical object',
     () {
       const expected = IssuanceScreenArgument(
         mockSessionId: '1aef7',

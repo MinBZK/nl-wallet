@@ -10,7 +10,7 @@ use wallet::errors::WalletRegistrationError;
 #[tokio::test]
 #[rstest]
 #[serial(hsm)]
-async fn test_wallet_registration(
+async fn ltc51_test_wallet_registration(
     #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
 ) {
     let (settings, _) = wallet_provider_settings();
@@ -29,7 +29,7 @@ async fn test_wallet_registration(
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_registration_blocked() {
+async fn ltc43_test_registration_blocked() {
     let (mut settings, root_ca) = update_policy_server_settings();
     settings.update_policy =
         serde_json::from_value::<UpdatePolicyConfig>(json!({ env!("CARGO_PKG_VERSION"): "Block" })).unwrap();

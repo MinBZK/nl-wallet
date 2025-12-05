@@ -25,7 +25,7 @@ class MockBiometricSettingsBloc extends MockBloc<BiometricSettingsEvent, Biometr
 
 void main() {
   group('goldens', () {
-    testGoldens('Biometrics face loaded light', (tester) async {
+    testGoldens('ltc60 ltc61 Biometrics face loaded light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const BiometricSettingScreen().withState<BiometricSettingsBloc, BiometricSettingsState>(
           MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.face,
@@ -38,7 +38,7 @@ void main() {
       await screenMatchesGolden('face_loaded.light');
     });
 
-    testGoldens('Biometrics finger loaded light', (tester) async {
+    testGoldens('ltc60 ltc61 Biometrics finger loaded light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const BiometricSettingScreen().withState<BiometricSettingsBloc, BiometricSettingsState>(
           MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.fingerprint,
@@ -52,7 +52,7 @@ void main() {
       await screenMatchesGolden('finger_loaded.dark');
     });
 
-    testGoldens('Biometrics initial light', (tester) async {
+    testGoldens('ltc60 ltc61 Biometrics initial light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const BiometricSettingScreen().withState<BiometricSettingsBloc, BiometricSettingsState>(
           MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.fingerprint,
@@ -65,7 +65,7 @@ void main() {
       await screenMatchesGolden('initial.light');
     });
 
-    testGoldens('Biometrics some loaded dark', (tester) async {
+    testGoldens('ltc60 ltc61 Biometrics some loaded dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const BiometricSettingScreen().withState<BiometricSettingsBloc, BiometricSettingsState>(
           MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.some,
@@ -79,7 +79,7 @@ void main() {
       await screenMatchesGolden('some_loaded.dark');
     });
 
-    testGoldens('Biometrics setup required light', (tester) async {
+    testGoldens('ltc60 ltc61 Biometrics setup required light', (tester) async {
       final bloc = MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.some;
 
       whenListen(
@@ -100,7 +100,7 @@ void main() {
     });
   });
 
-  testGoldens('Biometrics locked out light', (tester) async {
+  testGoldens('ltc60 ltc61 Biometrics locked out light', (tester) async {
     final bloc = MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.some;
 
     whenListen(
@@ -120,7 +120,7 @@ void main() {
     await screenMatchesGolden('locked_out.light');
   });
 
-  testGoldens('Biometrics confirm pin light', (tester) async {
+  testGoldens('ltc60 ltc61 Biometrics confirm pin light', (tester) async {
     final bloc = MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.face;
     final mockUnlockUseCase = MockUnlockWalletWithPinUseCase();
 
@@ -165,7 +165,7 @@ void main() {
     await screenMatchesGolden('confirm_pin.light');
   });
 
-  testGoldens('Biometrics pin confirmed light', (tester) async {
+  testGoldens('ltc60 ltc61 Biometrics pin confirmed light', (tester) async {
     final bloc = MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.fingerprint;
     final mockUnlockUseCase = MockUnlockWalletWithPinUseCase();
 

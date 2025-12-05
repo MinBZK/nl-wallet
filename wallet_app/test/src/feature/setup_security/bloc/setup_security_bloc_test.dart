@@ -31,7 +31,7 @@ void main() {
   );
 
   blocTest(
-    'verify initial state',
+    'ltc51 verify initial state',
     build: buildBloc,
     verify: (bloc) {
       expect(bloc.state, const SetupSecuritySelectPinInProgress(0));
@@ -39,7 +39,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transitions when choosing valid pin',
+    'ltc51 verify state transitions when choosing valid pin',
     build: buildBloc,
     act: (bloc) => bloc.enterPin('999899'),
     expect: () => [
@@ -53,7 +53,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transitions when choosing invalid pin',
+    'ltc51 verify state transitions when choosing invalid pin',
     build: buildBloc,
     setUp: () {
       when(checkIsValidPinUseCase.invoke(any)).thenAnswer(
@@ -72,7 +72,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transitions when confirming valid pin and device does not support biometrics',
+    'ltc51 verify state transitions when confirming valid pin and device does not support biometrics',
     build: buildBloc,
     setUp: () async {
       when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.none);
@@ -97,7 +97,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transitions when incorrectly confirming valid pin',
+    'ltc51 verify state transitions when incorrectly confirming valid pin',
     build: buildBloc,
     act: (bloc) {
       // Choose initial pin
@@ -118,7 +118,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transition when wallet creation fails with network error',
+    'ltc51 verify state transition when wallet creation fails with network error',
     build: buildBloc,
     setUp: () {
       when(
@@ -140,7 +140,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transition when wallet creation fails with generic error',
+    'ltc51 verify state transition when wallet creation fails with generic error',
     build: buildBloc,
     setUp: () {
       when(
@@ -162,7 +162,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transition when wallet creation fails due to missing key hardware',
+    'ltc51 verify state transition when wallet creation fails due to missing key hardware',
     build: buildBloc,
     setUp: () {
       when(
@@ -184,7 +184,7 @@ void main() {
   );
 
   blocTest(
-    'verify state transitions when confirming valid pin and device supports biometrics',
+    'ltc51 verify state transitions when confirming valid pin and device supports biometrics',
     build: buildBloc,
     setUp: () async {
       when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.some);
@@ -203,7 +203,7 @@ void main() {
   );
 
   blocTest(
-    'when enabling biometrics, the set biometrics usecase is invoked',
+    'ltc51 when enabling biometrics, the set biometrics usecase is invoked',
     build: buildBloc,
     setUp: () async {
       when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.some);
@@ -233,7 +233,7 @@ void main() {
   );
 
   blocTest(
-    'when skipping biometric setup, the set biometrics usecase is not invoked',
+    'ltc51 when skipping biometric setup, the set biometrics usecase is not invoked',
     build: buildBloc,
     setUp: () async {
       when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.some);

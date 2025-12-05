@@ -27,7 +27,7 @@ void main() {
   });
 
   blocTest(
-    'verify initial state',
+    'ltc1 verify initial state',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -55,7 +55,7 @@ void main() {
   });
 
   blocTest(
-    'verify initial state when wallet is initialized with pid',
+    'ltc1 verify initial state when wallet is initialized with pid',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -74,7 +74,7 @@ void main() {
   );
 
   blocTest(
-    'verify successful path to pid issuance - with wallet transfer option',
+    'ltc1 verify successful path to pid issuance - with wallet transfer option',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -106,7 +106,7 @@ void main() {
   );
 
   blocTest(
-    'verify getting issuance url error path',
+    'ltc1 verify getting issuance url error path',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -130,7 +130,7 @@ void main() {
   );
 
   blocTest(
-    'verify successful path from continuePidIssuance (i.e. deeplink back into app)',
+    'ltc1 verify successful path from continuePidIssuance (i.e. deeplink back into app)',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -160,7 +160,7 @@ void main() {
   );
 
   blocTest(
-    'verify that accessDenied error leads to WalletPersonalizeDigidCancelled',
+    'ltc1 verify that accessDenied error leads to WalletPersonalizeDigidCancelled',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -186,7 +186,7 @@ void main() {
   );
 
   blocTest(
-    'rejecting the offered pid puts the user back at the initial state',
+    'ltc1 rejecting the offered pid puts the user back at the initial state',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -211,7 +211,7 @@ void main() {
   );
 
   blocTest(
-    'when accepting the pid fails with a generic error, the bloc transitions to WalletPersonalizeGenericError',
+    'ltc1 when accepting the pid fails with a generic error, the bloc transitions to WalletPersonalizeGenericError',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -241,7 +241,7 @@ void main() {
   );
 
   blocTest(
-    'emits WalletPersonalizeDigidCancelled when a DeniedDigidError is received',
+    'ltc1 emits WalletPersonalizeDigidCancelled when a DeniedDigidError is received',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,

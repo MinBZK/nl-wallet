@@ -7,7 +7,7 @@ import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/test_utils.dart';
 
 void main() {
-  testWidgets('verify PinTimeoutDescription renders with 2 minutes left when timeleft >2 mins', (tester) async {
+  testWidgets('ltc48 verify PinTimeoutDescription renders with 2 minutes left when timeleft >2 mins', (tester) async {
     await tester.pumpWidget(
       WalletAppTestWidget(
         child: PinTimeoutDescription(
@@ -26,7 +26,7 @@ void main() {
     expect(timeoutCountDownTextFinder, findsOneWidget);
   });
 
-  testWidgets('verify PinTimeoutDescription renders with 30 seconds left', (tester) async {
+  testWidgets('ltc48 verify PinTimeoutDescription renders with 30 seconds left', (tester) async {
     await tester.pumpWidget(
       WalletAppTestWidget(
         child: PinTimeoutDescription(
@@ -50,7 +50,7 @@ void main() {
     expect(timeoutCountDownTextFinder, findsOneWidget);
   });
 
-  testWidgets('verify onExpire is called when timer expires', (tester) async {
+  testWidgets('ltc48 verify onExpire is called when timer expires', (tester) async {
     bool onExpireCalled = false;
     await tester.pumpWidget(
       WalletAppTestWidget(

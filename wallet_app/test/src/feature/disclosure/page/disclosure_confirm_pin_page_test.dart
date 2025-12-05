@@ -10,7 +10,7 @@ import '../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('DisclosureConfirmPinPage light', (tester) async {
+    testGoldens('ltc15 DisclosureConfirmPinPage light', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
         DisclosureConfirmPinPage(
@@ -23,7 +23,7 @@ void main() {
       await screenMatchesGolden('disclosure_confirm_pin/light');
     });
 
-    testGoldens('DisclosureConfirmPinPage light - landscape', (tester) async {
+    testGoldens('ltc15 DisclosureConfirmPinPage light - landscape', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
         DisclosureConfirmPinPage(
@@ -37,7 +37,7 @@ void main() {
       await screenMatchesGolden('disclosure_confirm_pin/light.landscape');
     });
 
-    testGoldens('DisclosureConfirmPinPage dark', (tester) async {
+    testGoldens('ltc15 DisclosureConfirmPinPage dark', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
         DisclosureConfirmPinPage(
@@ -53,7 +53,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('DisclosureConfirmPinPage renders the correct title', (tester) async {
+    testWidgets('ltc15 DisclosureConfirmPinPage renders the correct title', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
         DisclosureConfirmPinPage(

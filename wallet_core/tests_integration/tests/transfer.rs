@@ -91,7 +91,7 @@ async fn init_wallets() -> (WalletData, WalletData) {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_wallet_transfer() {
+async fn ltc62_test_wallet_transfer() {
     let (
         WalletData {
             wallet: mut source,
@@ -154,7 +154,7 @@ async fn test_wallet_transfer() {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_wallet_transfer_canceled_from_source() {
+async fn ltc63_test_wallet_transfer_canceled_from_source() {
     let (mut source_data, mut destination_data) = init_wallets().await;
 
     let url = destination_data.wallet.init_transfer().await.unwrap();
@@ -177,7 +177,7 @@ async fn test_wallet_transfer_canceled_from_source() {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_wallet_transfer_canceled_from_destination() {
+async fn ltc64_test_wallet_transfer_canceled_from_destination() {
     let (
         WalletData {
             wallet: mut source,
@@ -214,7 +214,7 @@ async fn test_wallet_transfer_canceled_from_destination() {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_retry_transfer_after_canceled() {
+async fn ltc63_test_retry_transfer_after_canceled() {
     let (mut source_data, mut destination_data) = init_wallets().await;
 
     let url = destination_data.wallet.init_transfer().await.unwrap();

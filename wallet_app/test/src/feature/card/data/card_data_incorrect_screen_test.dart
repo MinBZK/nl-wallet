@@ -5,7 +5,7 @@ import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/test_utils.dart';
 
 void main() {
-  testWidgets('screen renders with expected title and body', (WidgetTester tester) async {
+  testWidgets('ltc25 screen renders with expected title and body', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(const CardDataIncorrectScreen());
     final l10n = await TestUtils.englishLocalizations;
 

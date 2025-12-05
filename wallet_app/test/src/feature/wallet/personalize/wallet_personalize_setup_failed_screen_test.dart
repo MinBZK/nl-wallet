@@ -9,14 +9,14 @@ import '../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('WalletPersonalizeSetupFailedScreen Light', (tester) async {
+    testGoldens('ltc1 WalletPersonalizeSetupFailedScreen Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeSetupFailedScreen(),
       );
       await screenMatchesGolden('wallet_personalize_setup_failed/light');
     });
 
-    testGoldens('WalletPersonalizeSetupFailedScreen Dark', (tester) async {
+    testGoldens('ltc1 WalletPersonalizeSetupFailedScreen Dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeSetupFailedScreen(),
         brightness: Brightness.dark,
@@ -26,13 +26,13 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('description is shown', (tester) async {
+    testWidgets('ltc1 description is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const WalletPersonalizeSetupFailedScreen());
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.walletPersonalizeSetupFailedScreenDescription), findsOneWidget);
     });
 
-    testWidgets('cta is shown', (tester) async {
+    testWidgets('ltc1 cta is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const WalletPersonalizeSetupFailedScreen());
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.walletPersonalizeSetupFailedScreenCta), findsOneWidget);

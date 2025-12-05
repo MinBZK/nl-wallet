@@ -30,7 +30,7 @@ void main() {
   });
 
   group('goldens', () {
-    testGoldens('QrScanInitial', (tester) async {
+    testGoldens('ltc7 ltc16 ltc19 QrScanInitial', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -40,7 +40,7 @@ void main() {
       await screenMatchesGolden('qr_scan_initial');
     });
 
-    testGoldens('QrScanFailure', (tester) async {
+    testGoldens('ltc7 ltc16 ltc19 QrScanFailure', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -51,7 +51,7 @@ void main() {
       await screenMatchesGolden('qr_scan_failure');
     });
 
-    testGoldens('QrScanNoPermission', (tester) async {
+    testGoldens('ltc7 ltc16 ltc19 QrScanNoPermission', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -61,7 +61,7 @@ void main() {
       await screenMatchesGolden('qr_scan_no_permission');
     });
 
-    testGoldens('QrScanScanning', (tester) async {
+    testGoldens('ltc7 ltc16 ltc19 QrScanScanning', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -71,7 +71,7 @@ void main() {
       await screenMatchesGolden('qr_scan_scanning');
     });
 
-    testGoldens('QrScanSuccess', (tester) async {
+    testGoldens('ltc7 ltc16 ltc19 QrScanSuccess', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -82,7 +82,7 @@ void main() {
       await screenMatchesGolden('qr_scan_success');
     });
 
-    testGoldens('QrScanScanning Dark', (tester) async {
+    testGoldens('ltc7 ltc16 ltc19 QrScanScanning Dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -94,7 +94,7 @@ void main() {
       await screenMatchesGolden('qr_scan_success.dark');
     });
 
-    testGoldens('QrScanLoading', (tester) async {
+    testGoldens('ltc7 ltc16 ltc19 QrScanLoading', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -106,7 +106,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('back button is visible', (tester) async {
+    testWidgets('ltc7 ltc16 ltc19 back button is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
@@ -117,7 +117,7 @@ void main() {
       expect(find.text('Back'), findsOneWidget);
     });
 
-    testWidgets('navigation is delegated to navigation service', (tester) async {
+    testWidgets('ltc7 ltc16 ltc19 navigation is delegated to navigation service', (tester) async {
       final NavigationService mockNavigationService = MockNavigationService();
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen()

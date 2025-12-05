@@ -21,7 +21,7 @@ use tests_integration::common::*;
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_pid_ok() {
+async fn ltc1_test_pid_ok() {
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
@@ -127,7 +127,7 @@ fn pid_missing_required() -> IssuableDocument {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_pid_optional_attributes() {
+async fn ltc1_test_pid_optional_attributes() {
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
@@ -171,7 +171,7 @@ async fn test_pid_optional_attributes() {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_pid_missing_required_attributes() {
+async fn ltc2_test_pid_missing_required_attributes() {
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,

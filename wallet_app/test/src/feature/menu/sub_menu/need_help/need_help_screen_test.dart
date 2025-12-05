@@ -10,7 +10,7 @@ import '../../../../test_util/golden_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('NeedHelpScreen light', (tester) async {
+    testGoldens('ltc26 NeedHelpScreen light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const NeedHelpScreen(),
         providers: [
@@ -20,7 +20,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('NeedHelpScreen dark - landscape', (tester) async {
+    testGoldens('ltc26 NeedHelpScreen dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const NeedHelpScreen(),
         brightness: Brightness.dark,

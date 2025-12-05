@@ -74,7 +74,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('banner shows title', (tester) async {
+    testWidgets('ltc14 banner shows title', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourBanner(),
       );

@@ -11,7 +11,7 @@ const flashlightButtonSize = Size(250, 48);
 void main() {
   group('goldens', () {
     testGoldens(
-      'light - on',
+      'ltc7 ltc16 ltc19 light - on',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           FlashlightButton(
@@ -25,7 +25,7 @@ void main() {
     );
 
     testGoldens(
-      'light - off',
+      'ltc7 ltc16 ltc19 light - off',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           FlashlightButton(
@@ -39,7 +39,7 @@ void main() {
     );
 
     testGoldens(
-      'light focused',
+      'ltc7 ltc16 ltc19 light focused',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           FlashlightButton(
@@ -55,7 +55,7 @@ void main() {
     );
 
     testGoldens(
-      'light scaled',
+      'ltc7 ltc16 ltc19 light scaled',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           FlashlightButton(
@@ -70,7 +70,7 @@ void main() {
     );
 
     testGoldens(
-      'dark',
+      'ltc7 ltc16 ltc19 dark',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           FlashlightButton(
@@ -85,7 +85,7 @@ void main() {
     );
 
     testGoldens(
-      'dark focused',
+      'ltc7 ltc16 ltc19 dark focused',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           FlashlightButton(
@@ -103,7 +103,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('button onPressed works', (tester) async {
+    testWidgets('ltc7 ltc16 ltc19 button onPressed works', (tester) async {
       bool isPressed = false;
       await tester.pumpWidgetWithAppWrapper(
         FlashlightButton(

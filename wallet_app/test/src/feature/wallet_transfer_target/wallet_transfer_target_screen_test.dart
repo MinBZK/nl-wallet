@@ -22,7 +22,7 @@ const _testQrData =
 
 void main() {
   group('goldens', () {
-    testGoldens('WalletTransferIntroduction', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferIntroduction', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -33,7 +33,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_introduction.light');
     });
 
-    testGoldens('WalletTransferIntroduction - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferIntroduction - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -46,7 +46,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_introduction.dark.landscape');
     });
 
-    testGoldens('WalletTransferIntroduction - opt out dialog', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferIntroduction - opt out dialog', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -62,7 +62,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_introduction.opt_out_dialog.light');
     });
 
-    testGoldens('WalletTransferLoadingQrData', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferLoadingQrData', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -73,7 +73,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_loading_qr_data.light');
     });
 
-    testGoldens('WalletTransferLoadingQrData - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferLoadingQrData - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -86,7 +86,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_loading_qr_data.dark.landscape');
     });
 
-    testGoldens('WalletTransferAwaitingQrScan', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferAwaitingQrScan', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -98,7 +98,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.light');
     });
 
-    testGoldens('WalletTransferAwaitingQrScan - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferAwaitingQrScan - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -112,7 +112,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.dark.landscape');
     });
 
-    testGoldens('WalletTransferAwaitingQrScan - dialog', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferAwaitingQrScan - dialog', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -129,7 +129,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.dialog.light');
     });
 
-    testGoldens('WalletTransferAwaitingQrScan - dialog - tablet', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferAwaitingQrScan - dialog - tablet', (tester) async {
       // Extra test on tablet form factor to verify size/orientation based QR widget scaling.
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
@@ -148,7 +148,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.dialog.light.tablet');
     });
 
-    testGoldens('WalletTransferAwaitingQrScan - dialog - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferAwaitingQrScan - dialog - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -167,7 +167,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.dialog.dark.landscape');
     });
 
-    testGoldens('WalletTransferAwaitingConfirmation', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferAwaitingConfirmation', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -178,7 +178,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_awaiting_confirmation.light');
     });
 
-    testGoldens('WalletTransferAwaitingConfirmation - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferAwaitingConfirmation - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -191,7 +191,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_awaiting_confirmation.dark.landscape');
     });
 
-    testGoldens('WalletTransferTransferring', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferTransferring', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -202,7 +202,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_transferring.light');
     });
 
-    testGoldens('WalletTransferTransferring - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferTransferring - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -215,7 +215,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_transferring.dark.landscape');
     });
 
-    testGoldens('WalletTransferTransferring - stop sheet', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferTransferring - stop sheet', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -229,7 +229,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_transferring_stop_sheet.light');
     });
 
-    testGoldens('WalletTransferTransferring - stop sheet - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferTransferring - stop sheet - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -245,7 +245,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_transferring_stop_sheet.dark.landscape');
     });
 
-    testGoldens('WalletTransferSuccess', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferSuccess', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -256,7 +256,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_success.light');
     });
 
-    testGoldens('WalletTransferSuccess - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferSuccess - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -269,7 +269,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_success.dark.landscape');
     });
 
-    testGoldens('WalletTransferFailed', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferFailed', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -280,7 +280,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_failed.light');
     });
 
-    testGoldens('WalletTransferFailed - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferFailed - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -293,7 +293,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_failed.dark.landscape');
     });
 
-    testGoldens('WalletTransferStopped', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferStopped', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -304,7 +304,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_stopped.light');
     });
 
-    testGoldens('WalletTransferStopped - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferStopped - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -317,7 +317,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_stopped.dark.landscape');
     });
 
-    testGoldens('WalletTransferGenericError', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferGenericError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -328,7 +328,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_generic_error.light');
     });
 
-    testGoldens('WalletTransferGenericError - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferGenericError - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -341,7 +341,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_generic_error.dark.landscape');
     });
 
-    testGoldens('WalletTransferSessionExpired', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferSessionExpired', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
@@ -352,7 +352,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_session_expired.light');
     });
 
-    testGoldens('WalletTransferSessionExpired - dark - landscape', (tester) async {
+    testGoldens('ltc61 ltc64 WalletTransferSessionExpired - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),

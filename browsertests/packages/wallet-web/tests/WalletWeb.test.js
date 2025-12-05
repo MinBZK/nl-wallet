@@ -39,7 +39,7 @@ const test = base.extend({
   },
 })
 
-test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end to User", () => {
+test.describe("LTC5, LTC15, LTC18 Verifier/Issuer displays disclosure/issuance procedure on their front-end to User", () => {
   test("The library offers a standardized Start-button, the Verifier decides which button text to display.", async ({
     page,
     demoPage,
@@ -58,7 +58,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await page.goBack()
   })
 
-  test("When a user clicks one of these buttons, the library requests a new disclosure session from the Relying Party backend (to be implemented by the RP). The RP backend should request a new session from the OV and return the information to the library.", async ({
+  test("LTC15, LTC18 When a user clicks one of these buttons, the library requests a new disclosure session from the Relying Party backend (to be implemented by the RP). The RP backend should request a new session from the OV and return the information to the library.", async ({
     page,
     demoPage,
     accessibilityCheck,
@@ -85,7 +85,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     })
   })
 
-  test("When the frontend library tries to fetch the session status, but this takes too long or fails, the user is warned that they may not have a good internet connection and offers to try again.", async ({
+  test("LTC15, LTC18 When the frontend library tries to fetch the session status, but this takes too long or fails, the user is warned that they may not have a good internet connection and offers to try again.", async ({
     context,
     page,
     demoPage,
@@ -107,7 +107,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await expect(await demoPage.getCloseButton()).toBeVisible()
   })
 
-  test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
+  test("LTC15, LTC18 When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
     demoPage,
     isMobileDevice,
     accessibilityCheck,
@@ -137,7 +137,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     /* eslint-enable */
   })
 
-  test("The QR is automatically refreshed every 2 second to prevent a passive attacker from just relaying the QR code to (potential) victims.", async ({
+  test("LTC15, LTC18 The QR is automatically refreshed every 2 second to prevent a passive attacker from just relaying the QR code to (potential) victims.", async ({
     page,
     demoPage,
   }) => {
@@ -150,7 +150,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(newQrScreenshot).not.toEqual(initialQrScreenshot)
   })
 
-  test('The library polls the status of this session. Upon "failed", the library informs the user that something went wrong and offers the option to try again, which leads to a new session.', async ({
+  test('LTC15, LTC18 The library polls the status of this session. Upon "failed", the library informs the user that something went wrong and offers the option to try again, which leads to a new session.', async ({
     page,
     demoPage,
     accessibilityCheck,
@@ -174,7 +174,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await visualCheck("wallet-web-session-status-failed.png")
   })
 
-  test('The library polls the status of this session. Upon "waiting for response", the library hides the QR code (when in cross-device) and tells the User to follow the instructions on their mobile device.', async ({
+  test('LTC15, LTC18 The library polls the status of this session. Upon "waiting for response", the library hides the QR code (when in cross-device) and tells the User to follow the instructions on their mobile device.', async ({
     page,
     demoPage,
     accessibilityCheck,
@@ -197,7 +197,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await visualCheck("wallet-web-waiting-for-response.png")
   })
 
-  test('The library polls the status of this session. Upon "expired", the library informs the user that the session was expired and offers them the option to try again, which leads to a new session.', async ({
+  test('LTC15, LTC18 The library polls the status of this session. Upon "expired", the library informs the user that the session was expired and offers them the option to try again, which leads to a new session.', async ({
     page,
     demoPage,
     accessibilityCheck,
@@ -223,7 +223,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await visualCheck("wallet-web-expired.png")
   })
 
-  test('The library polls the status of this session. Upon "cancelled", the library confirms to the user that they have aborted the session and offers them the option to try again, which leads to a new session.', async ({
+  test('LTC15, LTC18 The library polls the status of this session. Upon "cancelled", the library confirms to the user that they have aborted the session and offers them the option to try again, which leads to a new session.', async ({
     page,
     demoPage,
     accessibilityCheck,
@@ -247,7 +247,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await visualCheck("wallet-web-canceled.png")
   })
 
-  test('The library polls the status of this session. Upon "Success", the library confirms to the user that action was successful', async ({
+  test('LTC15, LTC18 The library polls the status of this session. Upon "Success", the library confirms to the user that action was successful', async ({
     page,
     demoPage,
     accessibilityCheck,
@@ -268,7 +268,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await visualCheck("wallet-web-success.png")
   })
 
-  test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
+  test("LTC15, LTC18 The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
     demoPage,
     isMobileDevice,
   }) => {
