@@ -14,7 +14,6 @@ use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
-use crate::model::wallet_user::WalletUserPinRecoveryKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
 use crate::model::wallet_user::WalletUserState;
 
@@ -63,13 +62,7 @@ pub trait WalletUserRepository {
 
     async fn save_keys(&self, transaction: &Self::TransactionType, keys: WalletUserKeys) -> Result<()>;
 
-    async fn save_pin_recovery_keys(
-        &self,
-        transaction: &Self::TransactionType,
-        keys: WalletUserPinRecoveryKeys,
-    ) -> Result<()>;
-
-    async fn is_pin_recovery_key(
+    async fn is_blocked_key(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
@@ -270,15 +263,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn save_pin_recovery_keys(
-            &self,
-            _transaction: &Self::TransactionType,
-            _keys: WalletUserPinRecoveryKeys,
-        ) -> Result<()> {
-            Ok(())
-        }
-
-        async fn is_pin_recovery_key(
+        async fn is_blocked_key(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,

@@ -498,6 +498,7 @@ where
             wallet_user_key_id: uuid_generator.generate(),
             key_identifier,
             key,
+            is_blocked: false,
         })
         .collect();
 
@@ -847,11 +848,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
 
         let tx = user_state.repositories.begin_transaction().await?;
 
-        if !user_state
-            .repositories
-            .is_pin_recovery_key(&tx, wallet_user.id, key)
-            .await?
-        {
+        if !user_state.repositories.is_blocked_key(&tx, wallet_user.id, key).await? {
             return Err(InstructionError::PinRecoveryAccountMismatch);
         }
 
@@ -1753,7 +1750,7 @@ mod tests {
             .times(1)
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_pin_recovery_key()
+            .expect_is_blocked_key()
             .times(1)
             .returning(move |_, _, key| {
                 assert_eq!(key, *holder_key.verifying_key());
@@ -1870,7 +1867,7 @@ mod tests {
             .times(1)
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_pin_recovery_key()
+            .expect_is_blocked_key()
             .times(1)
             .returning(|_, _, _| Ok(false));
 

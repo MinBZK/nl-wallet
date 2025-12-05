@@ -120,19 +120,7 @@ pub struct WalletUserKey {
     pub wallet_user_key_id: Uuid,
     pub key_identifier: String,
     pub key: WrappedKey,
-}
-
-#[derive(Clone)]
-pub struct WalletUserPinRecoveryKeys {
-    pub wallet_user_id: Uuid,
-    pub keys: Vec<WalletUserPinRecoveryKey>,
-}
-
-#[derive(Clone)]
-pub struct WalletUserPinRecoveryKey {
-    pub wallet_user_key_id: Uuid,
-    pub key_identifier: String,
-    pub pubkey: VerifyingKey,
+    pub is_blocked: bool,
 }
 
 #[cfg(feature = "mock")]

@@ -18,8 +18,8 @@ impl MigrationTrait for Migration {
                     .col(uuid(WalletUserKey::WalletUserId))
                     .col(string(WalletUserKey::Identifier))
                     .col(binary(WalletUserKey::PublicKey))
-                    // Allow NULL for PIN recovery private keys, as those don't need to be stored
-                    .col(binary_null(WalletUserKey::EncryptedPrivateKey))
+                    .col(binary(WalletUserKey::EncryptedPrivateKey))
+                    // Allow blocking keys for PID renewal and PIN recovery flows
                     .col(boolean(WalletUserKey::IsBlocked))
                     .foreign_key(
                         ForeignKey::create()

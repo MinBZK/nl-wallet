@@ -28,6 +28,8 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 use uuid::Uuid;
+use wallet_provider_domain::model::wallet_user::WalletUserKey;
+use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
 use webpki::ring::ECDSA_P384_SHA256;
@@ -103,8 +105,6 @@ use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
-use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKey;
-use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -1157,16 +1157,17 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         user_state
             .repositories
-            .save_pin_recovery_keys(
+            .save_keys(
                 &tx,
-                WalletUserPinRecoveryKeys {
+                WalletUserKeys {
                     wallet_user_id: wallet_user.id,
                     keys: keys
                         .iter()
-                        .map(|key| WalletUserPinRecoveryKey {
+                        .map(|key| WalletUserKey {
                             wallet_user_key_id: generators.generate(),
                             key_identifier: verifying_key_sha256(key.public_key()),
-                            pubkey: *key.public_key(),
+                            key: key.clone(),
+                            is_blocked: true,
                         })
                         .collect(),
                 },
@@ -3368,10 +3369,7 @@ mod tests {
                 assert_eq!(state, WalletUserState::RecoveringPin);
                 Ok(())
             });
-        repositories
-            .expect_save_pin_recovery_keys()
-            .times(1)
-            .returning(move |_, _| Ok(()));
+        repositories.expect_save_keys().times(1).returning(move |_, _| Ok(()));
 
         let user_state = UserState {
             repositories,

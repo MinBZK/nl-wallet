@@ -15,7 +15,6 @@ use uuid::Uuid;
 
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
@@ -38,7 +37,7 @@ where
                 identifier: Set(key_create.key_identifier),
                 public_key: Set(key_create.key.public_key().to_public_key_der()?.into_vec()),
                 encrypted_private_key: Set(Some(key_create.key.wrapped_private_key().to_vec())),
-                is_blocked: Set(false),
+                is_blocked: Set(key_create.is_blocked),
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -50,34 +49,7 @@ where
         .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
-pub async fn create_pin_recovery_keys<S, T>(db: &T, create: WalletUserPinRecoveryKeys) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let models = create
-        .keys
-        .into_iter()
-        .map(|key_create| {
-            Ok(wallet_user_key::ActiveModel {
-                id: Set(key_create.wallet_user_key_id),
-                wallet_user_id: Set(create.wallet_user_id),
-                identifier: Set(key_create.key_identifier),
-                public_key: Set(key_create.pubkey.to_public_key_der()?.into_vec()),
-                encrypted_private_key: Set(None),
-                is_blocked: Set(true),
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    wallet_user_key::Entity::insert_many(models)
-        .exec(db.connection())
-        .await
-        .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
-}
-
-pub async fn is_pin_recovery_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<bool>
+pub async fn is_blocked_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<bool>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -87,7 +59,7 @@ where
             wallet_user_key::Column::WalletUserId
                 .eq(wallet_user_id)
                 .and(wallet_user_key::Column::PublicKey.eq(key.to_public_key_der()?.into_vec()))
-                .and(wallet_user_key::Column::EncryptedPrivateKey.is_null()),
+                .and(wallet_user_key::Column::IsBlocked.eq(true)),
         )
         .count(db.connection())
         .await

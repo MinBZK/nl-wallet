@@ -22,12 +22,14 @@ async fn test_create_keys() {
         wallet_user_key_id: Uuid::new_v4(),
         key_identifier: "key1".to_string(),
         key: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+        is_blocked: false,
     };
     let privkey = SigningKey::random(&mut OsRng);
     let key2 = WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
         key_identifier: "key2".to_string(),
         key: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+        is_blocked: false,
     };
 
     let wallet_id = Uuid::new_v4().to_string();
@@ -69,18 +71,21 @@ async fn test_move_keys() {
         wallet_user_key_id: Uuid::new_v4(),
         key_identifier: "source_key1".to_string(),
         key: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+        is_blocked: false,
     };
     let privkey = SigningKey::random(&mut OsRng);
     let source_key2 = WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
         key_identifier: "source_key2".to_string(),
         key: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+        is_blocked: false,
     };
     let privkey = SigningKey::random(&mut OsRng);
     let destination_key1 = WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
         key_identifier: "destination_key1".to_string(),
         key: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+        is_blocked: false,
     };
 
     let source_wallet_id = Uuid::new_v4();
