@@ -20,11 +20,11 @@ pub struct StatusListsSettings {
     /// Threshold relatively to `list_size` to start creating a new list in the background
     pub create_threshold: Ratio,
     /// Expiry duration in hours after creation of the token (`exp` field)
-    pub expiry_in_hour: NonZeroU16,
+    pub expiry_in_hours: NonZeroU16,
     /// Threshold relatively to `expiry` to refresh the token
     pub refresh_threshold: Ratio,
     /// TTL in minutes that indicates how long verifiers can cache the status list locally
-    pub ttl_in_min: Option<NonZeroU16>,
+    pub ttl_in_minutes: Option<NonZeroU16>,
     /// Whether to serve the Status List Token it publishes
     #[serde(default = "default_serve")]
     pub serve: bool,
@@ -32,20 +32,20 @@ pub struct StatusListsSettings {
 
 #[derive(Debug, thiserror::Error)]
 #[error("configured expiry is less than the TTL: {expiry:?} < {ttl:?}")]
-pub struct ExpiryLessThanTTL {
+pub struct ExpiryLessThanTtl {
     expiry: Duration,
     ttl: Duration,
 }
 
 impl StatusListsSettings {
-    pub fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTTL> {
-        let expiry = Duration::from_secs(self.expiry_in_hour.get() as u64 * 3600);
+    pub fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTtl> {
+        let expiry = Duration::from_secs(self.expiry_in_hours.get() as u64 * 3600);
         let ttl = self
-            .ttl_in_min
+            .ttl_in_minutes
             .map(|ttl| {
                 let ttl = Duration::from_secs(ttl.get() as u64 * 60);
                 if expiry < ttl {
-                    return Err(ExpiryLessThanTTL { expiry, ttl });
+                    return Err(ExpiryLessThanTtl { expiry, ttl });
                 }
                 Ok(ttl)
             })
@@ -54,7 +54,8 @@ impl StatusListsSettings {
     }
 
     pub fn ttl(&self) -> Option<Duration> {
-        self.ttl_in_min.map(|ttl| Duration::from_secs(ttl.get() as u64 * 60))
+        self.ttl_in_minutes
+            .map(|ttl| Duration::from_secs(ttl.get() as u64 * 60))
     }
 }
 

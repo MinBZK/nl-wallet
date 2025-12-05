@@ -14,7 +14,7 @@ use server_utils::keys::PrivateKeyVariant;
 use utils::num::NonZeroU31;
 
 use crate::publish::PublishDir;
-use crate::settings::ExpiryLessThanTTL;
+use crate::settings::ExpiryLessThanTtl;
 use crate::settings::StatusListAttestationSettings;
 use crate::settings::StatusListsSettings;
 
@@ -61,7 +61,7 @@ impl StatusListConfigs {
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListConfigError {
     #[error(transparent)]
-    ExpiryLessThanTTL(#[from] ExpiryLessThanTTL),
+    ExpiryLessThanTTL(#[from] ExpiryLessThanTtl),
 
     #[error(transparent)]
     PrivateKey(#[from] PrivateKeySettingsError),
