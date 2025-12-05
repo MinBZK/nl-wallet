@@ -18,7 +18,7 @@ spec:
       template:
         metadata:
           labels:
-            {{- include "common.labels.component" (list "migration" .) | nindent 12 }}
+            {{- include "common.labels.component" (list "reset" .) | nindent 12 }}
             {{- with .Values.migration.labels }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
