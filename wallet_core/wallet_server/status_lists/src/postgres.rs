@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::DateTime;
@@ -98,7 +99,7 @@ pub struct PostgresStatusListService<K: Clone = PrivateKeyVariant> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
-    config: StatusListConfig<K>,
+    config: Arc<StatusListConfig<K>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -209,7 +210,7 @@ impl PostgresStatusListServices {
                 let service = PostgresStatusListService {
                     connection: connection.clone(),
                     attestation_type_id,
-                    config,
+                    config: Arc::new(config),
                 };
                 (attestation_type, service)
             })
@@ -372,7 +373,7 @@ impl PostgresStatusListService {
         Ok(Self {
             connection,
             attestation_type_id,
-            config,
+            config: Arc::new(config),
         })
     }
 }
@@ -1025,7 +1026,8 @@ mod tests {
                     .unwrap()
                     .generate_status_list_mock()
                     .unwrap(),
-            },
+            }
+            .into(),
         }
     }
 
