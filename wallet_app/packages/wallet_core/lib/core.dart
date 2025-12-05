@@ -15,6 +15,7 @@ export 'src/models/pin.dart';
 export 'src/models/revocation.dart';
 export 'src/models/transfer.dart';
 export 'src/models/uri.dart';
+export 'src/models/validity.dart';
 export 'src/models/version_state.dart';
 export 'src/models/wallet_event.dart';
 export 'src/models/wallet_state.dart';

@@ -1562,7 +1562,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::disclosure::ValidityInfo;
+    use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
@@ -1869,11 +1869,7 @@ mod tests {
                 issuer_uri: "https://issuer.example.com".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Utc::now(),
-                    valid_from: Some(Utc::now()),
-                    valid_until: Some(Utc::now())
-                },
+                issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
             }],
         }])

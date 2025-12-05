@@ -49,6 +49,7 @@ pub mod attestation_data {
     pub use attestation_data::auth::reader_auth::RetentionPolicy;
     pub use attestation_data::auth::reader_auth::SharingPolicy;
     pub use attestation_data::disclosure_type::DisclosureType;
+    pub use attestation_data::validity::ValidityWindow;
 }
 
 pub mod configuration {

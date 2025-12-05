@@ -1,7 +1,9 @@
 use async_trait::async_trait;
-use entity::attestation_copy::AttestationFormat;
 use sea_orm_migration::prelude::*;
+use sea_orm_migration::schema::timestamp_with_time_zone_null;
 use sea_orm_migration::sea_orm::Iterable;
+
+use entity::attestation_copy::AttestationFormat;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -16,6 +18,8 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(Attestation::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(Attestation::Type).text().not_null())
+                    .col(timestamp_with_time_zone_null(Attestation::ExpirationDateTime))
+                    .col(timestamp_with_time_zone_null(Attestation::NotBeforeDateTime))
                     .col(ColumnDef::new(Attestation::ExtendedTypes).json().not_null())
                     .col(ColumnDef::new(Attestation::TypeMetadata).json().not_null())
                     .to_owned(),
@@ -83,6 +87,8 @@ pub enum Attestation {
     Id,
     #[sea_orm(iden = "attestation_type")]
     Type,
+    ExpirationDateTime,
+    NotBeforeDateTime,
     ExtendedTypes,
     TypeMetadata,
 }

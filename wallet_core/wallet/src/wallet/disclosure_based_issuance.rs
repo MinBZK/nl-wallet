@@ -175,6 +175,7 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -340,6 +341,7 @@ mod tests {
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
+            ValidityWindow::new_valid_mock(),
             StoredAttestation::MsoMdoc { mdoc },
             metadata,
             None,

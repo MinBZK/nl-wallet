@@ -10,6 +10,7 @@ import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 import 'revocation.dart';
+import 'validity.dart';
 part 'attestation.freezed.dart';
 
 class AttestationAttribute {
@@ -55,6 +56,7 @@ class AttestationPresentation {
   final List<DisplayMetadata> displayMetadata;
   final Organization issuer;
   final RevocationStatus? revocationStatus;
+  final ValidityWindow validityWindow;
   final List<AttestationAttribute> attributes;
 
   const AttestationPresentation({
@@ -63,6 +65,7 @@ class AttestationPresentation {
     required this.displayMetadata,
     required this.issuer,
     this.revocationStatus,
+    required this.validityWindow,
     required this.attributes,
   });
 
@@ -73,6 +76,7 @@ class AttestationPresentation {
       displayMetadata.hashCode ^
       issuer.hashCode ^
       revocationStatus.hashCode ^
+      validityWindow.hashCode ^
       attributes.hashCode;
 
   @override
@@ -85,6 +89,7 @@ class AttestationPresentation {
           displayMetadata == other.displayMetadata &&
           issuer == other.issuer &&
           revocationStatus == other.revocationStatus &&
+          validityWindow == other.validityWindow &&
           attributes == other.attributes;
 }
 

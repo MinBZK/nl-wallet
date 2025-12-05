@@ -1,7 +1,5 @@
 use std::collections::HashSet;
 
-use chrono::DateTime;
-use chrono::Utc;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -26,26 +24,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::attributes::AttributeValue;
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ValidityInfo {
-    pub signed: DateTime<Utc>,
-    pub valid_from: Option<DateTime<Utc>>,
-    pub valid_until: Option<DateTime<Utc>>,
-}
-
-impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
-    type Error = chrono::ParseError;
-
-    fn try_from(value: &mdoc::iso::ValidityInfo) -> Result<Self, Self::Error> {
-        Ok(Self {
-            signed: (&value.signed).try_into()?,
-            valid_from: Some((&value.valid_from).try_into()?),
-            valid_until: Some((&value.valid_until).try_into()?),
-        })
-    }
-}
+use crate::validity::IssuanceValidity;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "format", content = "attributes", rename_all = "snake_case")]
@@ -125,7 +104,7 @@ pub struct DisclosedAttestation {
 
     /// The issuer CA's common name
     pub ca: String,
-    pub validity_info: ValidityInfo,
+    pub issuance_validity: IssuanceValidity,
     pub revocation_status: Option<RevocationStatus>,
 }
 
@@ -153,7 +132,7 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
             issuer_uri: doc.issuer_uri,
             attestation_qualification: doc.attestation_qualification,
             ca: doc.ca,
-            validity_info: (&doc.validity_info).try_into()?,
+            issuance_validity: (&doc.validity_info).try_into()?,
             revocation_status: doc.revocation_status,
         })
     }
@@ -180,11 +159,11 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             .attestation_qualification
             .ok_or(DisclosedAttestationError::MissingAttestationQualification)?;
 
-        let validity_info = ValidityInfo {
-            signed: claims.iat.into(),
-            valid_from: claims.nbf.map(Into::into),
-            valid_until: claims.exp.map(Into::into),
-        };
+        let issuance_validity = IssuanceValidity::new(
+            claims.iat.into(),
+            claims.nbf.map(Into::into),
+            claims.exp.map(Into::into),
+        );
 
         Ok(DisclosedAttestation {
             attestation_type: claims.vct,
@@ -192,7 +171,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             issuer_uri: claims.iss,
             attestation_qualification,
             ca,
-            validity_info,
+            issuance_validity,
             revocation_status,
         })
     }
@@ -267,10 +246,10 @@ mod test {
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
+    use crate::validity::IssuanceValidity;
 
     use super::DisclosedAttestation;
     use super::DisclosedAttributes;
-    use super::ValidityInfo;
 
     impl DisclosedAttestation {
         fn mdoc_example() -> Self {
@@ -286,11 +265,7 @@ mod test {
                 issuer_uri: "https://example.com".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Utc::now(),
-                    valid_from: None,
-                    valid_until: None,
-                },
+                issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
             }
         }
@@ -314,11 +289,7 @@ mod test {
                 issuer_uri: "https://example.com".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Utc::now(),
-                    valid_from: None,
-                    valid_until: None,
-                },
+                issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
             }
         }
@@ -391,7 +362,7 @@ mod test {
             "issuer_uri": "https://pid.example.com",
             "attestation_qualification": "EAA",
             "ca": "ca.example.com",
-            "validity_info": {
+            "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -408,7 +379,7 @@ mod test {
             "issuer_uri": "https://pid.example.com",
             "attestation_qualification": "EAA",
             "ca": "ca.example.com",
-            "validity_info": {
+            "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -427,7 +398,7 @@ mod test {
             "issuer_uri": "https://pid.example.com",
             "attestation_qualification": "QEAA",
             "ca": "ca.example.com",
-            "validity_info": {
+            "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -444,7 +415,7 @@ mod test {
             "issuer_uri": "https://pid.example.com",
             "attestation_qualification": "PuB-EAA",
             "ca": "ca.example.com",
-            "validity_info": {
+            "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -467,7 +438,7 @@ mod test {
             "issuer_uri": "https://pid.example.com",
             "attestation_qualification": "EAA",
             "ca": "ca.example.com",
-            "validity_info": {
+            "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"

@@ -162,6 +162,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -169,6 +170,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
       when(core.crateApiFullSetAttestationsStream()).thenAnswer((realInvocation) => Stream.value(mockAttestations));
@@ -187,6 +189,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
       final List<AttestationPresentation> updatedCards = [
@@ -196,6 +199,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -203,6 +207,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
       when(
@@ -223,6 +228,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
       final List<AttestationPresentation> updatedCards = [
@@ -232,6 +238,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -239,6 +246,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
       when(

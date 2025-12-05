@@ -136,21 +136,22 @@ where
     }
 
     /// Perform revocation checks where all revocation info is fetched from storage
-    async fn check_revocations(
+    async fn check_revocations<T>(
         config: Arc<WalletConfiguration>,
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
         callback: Arc<Mutex<Option<AttestationsCallback>>>,
-        time_generator: &impl Generator<DateTime<Utc>>,
+        time_generator: &T,
     ) -> Result<(), RevocationError>
     where
         SLC: StatusListClient,
         S: Storage,
+        T: Generator<DateTime<Utc>> + Send + Sync + 'static,
     {
         let revocation_verifier = RevocationVerifier::new(Arc::clone(&status_list_client));
 
         // Fetch revocation info in one storage lock
-        let revocation_info = storage.read().await.fetch_all_revocation_info().await?;
+        let revocation_info = storage.read().await.fetch_all_revocation_info(time_generator).await?;
 
         let issuer_trust_anchors = config.issuer_trust_anchors();
 
@@ -248,7 +249,9 @@ mod tests {
 
         let mut storage = MockStorage::new();
         storage.expect_state().returning(|| Ok(StorageState::Opened));
-        storage.expect_fetch_all_revocation_info().returning(|| Ok(vec![]));
+        storage
+            .expect_fetch_all_revocation_info()
+            .returning(|_: &MockTimeGenerator| Ok(vec![]));
         storage.expect_update_revocation_statuses().returning(|_| Ok(()));
         storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
         let storage = Arc::new(RwLock::new(storage));
@@ -308,7 +311,9 @@ mod tests {
 
         let mut storage = MockStorage::new();
         storage.expect_state().returning(|| Ok(StorageState::Opened));
-        storage.expect_fetch_all_revocation_info().returning(|| Ok(vec![]));
+        storage
+            .expect_fetch_all_revocation_info()
+            .returning(|_: &MockTimeGenerator| Ok(vec![]));
         storage.expect_update_revocation_statuses().returning(|_| Ok(()));
         storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
         let storage = Arc::new(RwLock::new(storage));
@@ -400,7 +405,7 @@ mod tests {
 
         storage
             .expect_fetch_all_revocation_info()
-            .returning(move || Ok(test_revocation_info.clone()));
+            .returning(move |_: &MockTimeGenerator| Ok(test_revocation_info.clone()));
         storage.expect_update_revocation_statuses().returning(move |updates| {
             update_counter.fetch_add(1, Ordering::SeqCst);
             assert_eq!(

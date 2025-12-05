@@ -21,6 +21,7 @@ use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::validity::ValidityWindow;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
@@ -66,6 +67,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::AttestationIdentity;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::AttestationValidity;
 use crate::attestation::mock::EmptyPresentationConfig;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
@@ -546,12 +548,30 @@ pub fn mock_issuance_session(
         _ => IssuerRegistration::new_mock(),
     };
 
+    let (exp, nbf) = match credential.clone() {
+        IssuedCredential::MsoMdoc { mdoc } => {
+            let validity_info = mdoc.into_components().0.validity_info;
+            (
+                Some((&validity_info.valid_until).try_into().unwrap()),
+                Some((&validity_info.valid_from).try_into().unwrap()),
+            )
+        }
+        IssuedCredential::SdJwt { sd_jwt, .. } => (sd_jwt.claims().exp, sd_jwt.claims().nbf),
+    };
+    let validity_window = ValidityWindow {
+        valid_from: nbf.map(Into::into),
+        valid_until: exp.map(Into::into),
+    };
+
     let attestations = vec![match &credential {
         IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
             normalized_type_metadata.clone(),
             issuer_registration.organization.clone(),
-            None,
+            AttestationValidity {
+                revocation_status: None,
+                validity_window,
+            },
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
             &EmptyPresentationConfig,
         )
@@ -562,7 +582,10 @@ pub fn mock_issuance_session(
                 AttestationIdentity::Ephemeral,
                 normalized_type_metadata.clone(),
                 issuer_registration.organization.clone(),
-                None,
+                AttestationValidity {
+                    revocation_status: None,
+                    validity_window,
+                },
                 &attributes,
                 &EmptyPresentationConfig,
             )
@@ -578,6 +601,8 @@ pub fn mock_issuance_session(
         Ok(vec![CredentialWithMetadata::new(
             IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
             attestation_type,
+            exp,
+            nbf,
             normalized_type_metadata.extended_vcts(),
             type_metadata,
         )])

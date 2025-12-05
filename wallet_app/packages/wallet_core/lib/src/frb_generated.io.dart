@@ -18,6 +18,7 @@ import 'models/pin.dart';
 import 'models/revocation.dart';
 import 'models/transfer.dart';
 import 'models/uri.dart';
+import 'models/validity.dart';
 import 'models/version_state.dart';
 import 'models/wallet_event.dart';
 import 'models/wallet_state.dart';
@@ -254,6 +255,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  ValidityWindow dco_decode_validity_window(dynamic raw);
+
+  @protected
   WalletEvent dco_decode_wallet_event(dynamic raw);
 
   @protected
@@ -488,6 +492,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
+
+  @protected
+  ValidityWindow sse_decode_validity_window(SseDeserializer deserializer);
 
   @protected
   WalletEvent sse_decode_wallet_event(SseDeserializer deserializer);
@@ -909,6 +916,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
     cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
     wireObj.revocation_status = cst_encode_opt_box_autoadd_revocation_status(apiObj.revocationStatus);
+    cst_api_fill_to_wire_validity_window(apiObj.validityWindow, wireObj.validity_window);
     wireObj.attributes = cst_encode_list_attestation_attribute(apiObj.attributes);
   }
 
@@ -1228,6 +1236,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.RequestAttributesMissing.request_origin_base_url = pre_request_origin_base_url;
       return;
     }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_validity_window(ValidityWindow apiObj, wire_cst_validity_window wireObj) {
+    wireObj.valid_from = cst_encode_opt_String(apiObj.validFrom);
+    wireObj.valid_until = cst_encode_opt_String(apiObj.validUntil);
   }
 
   @protected
@@ -1634,6 +1648,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_validity_window(ValidityWindow self, SseSerializer serializer);
 
   @protected
   void sse_encode_wallet_event(WalletEvent self, SseSerializer serializer);
@@ -2985,6 +3002,12 @@ final class wire_cst_organization extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
 }
 
+final class wire_cst_validity_window extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> valid_from;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> valid_until;
+}
+
 final class wire_cst_claim_display_metadata extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang;
 
@@ -3075,6 +3098,8 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
   external wire_cst_organization issuer;
 
   external ffi.Pointer<ffi.Int32> revocation_status;
+
+  external wire_cst_validity_window validity_window;
 
   external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
 }

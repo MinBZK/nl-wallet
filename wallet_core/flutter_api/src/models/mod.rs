@@ -20,6 +20,7 @@ pub mod pin;
 pub mod revocation;
 pub mod transfer;
 pub mod uri;
+pub mod validity;
 pub mod version_state;
 pub mod wallet_event;
 pub mod wallet_state;

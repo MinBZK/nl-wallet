@@ -166,12 +166,12 @@ components:
             - EAA
         ca:
           type: string
-        validity_info:
-          $ref: '#/components/schemas/validity_info'
+        issuance_validity:
+          $ref: '#/components/schemas/issuance_validity'
       required:
         - attributes
         - issuer
-        - validity_info
+        - issuance_validity
 
     attributes:
       type: object
@@ -179,7 +179,7 @@ components:
       example:
         attributeName: attributeValue
 
-    validity_info:
+    issuance_validity:
       type: object
       properties:
         signed:
@@ -638,10 +638,10 @@ components:
         ca:
           type: string
           description: Certificate authority
-        validity_info:
-          $ref: '#/components/schemas/ValidityInfo'
+        issuance_validity:
+          $ref: '#/components/schemas/IssuanceValidity'
 
-    ValidityInfo:
+    IssuanceValidity:
       type: object
       properties:
         signed:
