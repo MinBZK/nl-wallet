@@ -36,7 +36,7 @@ use wscd::mock_remote::MockRemoteWscd;
 /// - `accept_issuance()` in the `openid4vc` integration tests, which also mocks the HTTP server and client.
 #[tokio::test]
 #[serial(hsm)]
-async fn test_pid_issuance_digid_bridge() {
+async fn ltc1_test_pid_issuance_digid_bridge() {
     let (settings, _) = pid_issuer_settings();
     let hsm = settings
         .issuer_settings

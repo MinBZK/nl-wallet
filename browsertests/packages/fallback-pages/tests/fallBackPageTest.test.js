@@ -8,7 +8,7 @@ export const test = base.extend({
 })
 
 test.describe("Universal link fallback page", () => {
-  test("When wallet app is not installed opening a universal link will open the fallback page", async ({
+  test("LTC35 When wallet app is not installed opening a universal link will open the fallback page", async ({
     page,
     baseURL,
     fallbackPage,

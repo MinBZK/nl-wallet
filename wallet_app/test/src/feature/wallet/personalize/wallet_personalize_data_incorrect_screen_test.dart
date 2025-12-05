@@ -10,14 +10,14 @@ import '../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('WalletPersonalizeDataIncorrectScreen Light', (tester) async {
+    testGoldens('ltc1 WalletPersonalizeDataIncorrectScreen Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         WalletPersonalizeDataIncorrectScreen(onDataRejected: () => Fimber.d('Data rejected')),
       );
       await screenMatchesGolden('wallet_personalize_data_incorrect/light');
     });
 
-    testGoldens('WalletPersonalizeDataIncorrectScreen Dark', (tester) async {
+    testGoldens('ltc1 WalletPersonalizeDataIncorrectScreen Dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         WalletPersonalizeDataIncorrectScreen(onDataRejected: () => Fimber.d('Data rejected')),
         brightness: Brightness.dark,
@@ -27,7 +27,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('description is shown', (tester) async {
+    testWidgets('ltc1 description is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         WalletPersonalizeDataIncorrectScreen(onDataRejected: () => Fimber.d('Data rejected')),
       );

@@ -26,7 +26,7 @@ void main() {
   const ValidatePinError mockValidatePinError = ValidatePinError(PinValidationError.other, sourceError: 'test error');
 
   group('goldens', () {
-    testGoldens('RecoverPinInitial', (tester) async {
+    testGoldens('ltc41 RecoverPinInitial', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -37,7 +37,7 @@ void main() {
       await screenMatchesGolden('initial.light');
     });
 
-    testGoldens('RecoverPinInitial - dark', (tester) async {
+    testGoldens('ltc41 RecoverPinInitial - dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -49,7 +49,7 @@ void main() {
       await screenMatchesGolden('initial.dark');
     });
 
-    testGoldens('RecoverPinLoadingDigidUrl', (tester) async {
+    testGoldens('ltc41 RecoverPinLoadingDigidUrl', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -60,7 +60,7 @@ void main() {
       await screenMatchesGolden('loading_digid_url.light');
     });
 
-    testGoldens('RecoverPinAwaitingDigidAuthentication', (tester) async {
+    testGoldens('ltc41 RecoverPinAwaitingDigidAuthentication', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -71,7 +71,7 @@ void main() {
       await screenMatchesGolden('awaiting_digid_authentication.light');
     });
 
-    testGoldens('RecoverPinVerifyingDigidAuthentication', (tester) async {
+    testGoldens('ltc41 RecoverPinVerifyingDigidAuthentication', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -82,7 +82,7 @@ void main() {
       await screenMatchesGolden('verifying_digid_authentication.light');
     });
 
-    testGoldens('RecoverPinDigidMismatch', (tester) async {
+    testGoldens('ltc41 RecoverPinDigidMismatch', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -93,7 +93,7 @@ void main() {
       await screenMatchesGolden('digid_mismatch.light');
     });
 
-    testGoldens('RecoverPinStopped', (tester) async {
+    testGoldens('ltc41 RecoverPinStopped', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -104,7 +104,7 @@ void main() {
       await screenMatchesGolden('stopped.light');
     });
 
-    testGoldens('RecoverPinChooseNewPin', (tester) async {
+    testGoldens('ltc41 RecoverPinChooseNewPin', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -115,7 +115,7 @@ void main() {
       await screenMatchesGolden('choose_new_pin.light');
     });
 
-    testGoldens('RecoverPinConfirmNewPin', (tester) async {
+    testGoldens('ltc41 RecoverPinConfirmNewPin', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -126,7 +126,7 @@ void main() {
       await screenMatchesGolden('confirm_new_pin.light');
     });
 
-    testGoldens('RecoverPinConfirmNewPin -> StopSheet', (tester) async {
+    testGoldens('ltc41 RecoverPinConfirmNewPin -> StopSheet', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -143,7 +143,7 @@ void main() {
       await screenMatchesGolden('confirm_new_pin.stop_sheet.dark');
     });
 
-    testGoldens('RecoverPinConfirmNewPin - Dark - Landscape', (tester) async {
+    testGoldens('ltc41 RecoverPinConfirmNewPin - Dark - Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -156,7 +156,7 @@ void main() {
       await screenMatchesGolden('confirm_new_pin.dark.landscape');
     });
 
-    testGoldens('RecoverPinUpdatingPin', (tester) async {
+    testGoldens('ltc41 RecoverPinUpdatingPin', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -167,7 +167,7 @@ void main() {
       await screenMatchesGolden('updating_pin.light');
     });
 
-    testGoldens('RecoverPinSuccess', (tester) async {
+    testGoldens('ltc41 RecoverPinSuccess', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -178,7 +178,7 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
-    testGoldens('RecoverPinSelectPinFailed', (tester) async {
+    testGoldens('ltc41 RecoverPinSelectPinFailed', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -189,7 +189,7 @@ void main() {
       await screenMatchesGolden('select_pin_failed.light');
     });
 
-    testGoldens('RecoverPinConfirmPinFailed', (tester) async {
+    testGoldens('ltc41 RecoverPinConfirmPinFailed', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -200,7 +200,7 @@ void main() {
       await screenMatchesGolden('confirm_pin_failed.light');
     });
 
-    testGoldens('RecoverPinConfirmPinFailed - Retry', (tester) async {
+    testGoldens('ltc41 RecoverPinConfirmPinFailed - Retry', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -212,7 +212,7 @@ void main() {
       await screenMatchesGolden('confirm_pin_failed.retry.dark');
     });
 
-    testGoldens('RecoverPinDigidFailure', (tester) async {
+    testGoldens('ltc41 RecoverPinDigidFailure', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -223,7 +223,7 @@ void main() {
       await screenMatchesGolden('digid_failure.light');
     });
 
-    testGoldens('RecoverPinDigidLoginCancelled', (tester) async {
+    testGoldens('ltc41 RecoverPinDigidLoginCancelled', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -234,7 +234,7 @@ void main() {
       await screenMatchesGolden('digid_login_cancelled.light');
     });
 
-    testGoldens('RecoverPinNetworkError (no internet)', (tester) async {
+    testGoldens('ltc41 RecoverPinNetworkError (no internet)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -245,7 +245,7 @@ void main() {
       await screenMatchesGolden('network_error.no_internet.light');
     });
 
-    testGoldens('RecoverPinNetworkError (with internet)', (tester) async {
+    testGoldens('ltc41 RecoverPinNetworkError (with internet)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -256,7 +256,7 @@ void main() {
       await screenMatchesGolden('network_error.with_internet.light');
     });
 
-    testGoldens('RecoverPinGenericError', (tester) async {
+    testGoldens('ltc41 RecoverPinGenericError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
@@ -267,7 +267,7 @@ void main() {
       await screenMatchesGolden('generic_error.light');
     });
 
-    testGoldens('RecoverPinSessionExpired', (tester) async {
+    testGoldens('ltc41 RecoverPinSessionExpired', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),

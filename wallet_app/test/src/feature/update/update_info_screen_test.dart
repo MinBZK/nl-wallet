@@ -8,7 +8,7 @@ import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('Light Test', (tester) async {
+    testGoldens('ltc42 Light Test', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const UpdateInfoScreen(),
       );
@@ -17,7 +17,7 @@ void main() {
       await screenMatchesGolden('update.light');
     });
 
-    testGoldens('Dark Test', (tester) async {
+    testGoldens('ltc42 Dark Test', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const UpdateInfoScreen(),
         brightness: Brightness.dark,
@@ -29,7 +29,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('Title is shown', (tester) async {
+    testWidgets('ltc42 Title is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const UpdateInfoScreen(),
       );

@@ -8,12 +8,12 @@ import '../../../test_util/golden_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('Organization unknown - light', (tester) async {
+    testGoldens('ltc15 Organization unknown - light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(DisclosureRelyingPartyErrorPage(onClosePressed: () {}));
       await screenMatchesGolden('disclosure_rp_error/organization_unknown');
     });
 
-    testGoldens('Organization Known - dark ', (tester) async {
+    testGoldens('ltc15 Organization Known - dark ', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         DisclosureRelyingPartyErrorPage(
           onClosePressed: () {},

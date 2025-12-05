@@ -8,12 +8,12 @@ import '../../test_util/golden_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('Faq Screen - Light', (tester) async {
+    testGoldens('ltc62 Faq Screen - Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const WalletTransferFaqScreen(), surfaceSize: iphoneXSize);
       await screenMatchesGolden('faq.light');
     });
 
-    testGoldens('Faq Screen - Dark - Landscape', (tester) async {
+    testGoldens('ltc62 Faq Screen - Dark - Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferFaqScreen(),
         brightness: Brightness.dark,

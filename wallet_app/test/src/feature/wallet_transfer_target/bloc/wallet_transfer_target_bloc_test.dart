@@ -36,7 +36,7 @@ void main() {
   );
 
   blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-    'verify initial state',
+    'ltc61 ltc64 verify initial state',
     build: createBloc,
     verify: (bloc) => expect(bloc.state, const WalletTransferIntroduction()),
   );
@@ -45,7 +45,7 @@ void main() {
     const qrData = 'test_qr_data';
 
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'happy path',
+      'ltc61 ltc64 happy path',
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
@@ -71,7 +71,7 @@ void main() {
     );
 
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'prepare transfer fails with GenericError',
+      'ltc61 ltc64 prepare transfer fails with GenericError',
       build: createBloc,
       setUp: () => when(
         mockInitWalletTransferUseCase.invoke(),
@@ -84,7 +84,7 @@ void main() {
     );
 
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'prepare transfer fails with NetworkError',
+      'ltc61 ltc64 prepare transfer fails with NetworkError',
       build: createBloc,
       setUp: () => when(mockInitWalletTransferUseCase.invoke()).thenAnswer(
         (_) async => const Result.error(NetworkError(hasInternet: false, sourceError: 'prepare_fail_network')),
@@ -97,7 +97,7 @@ void main() {
     );
 
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'status stream emits WalletTransferStatus.error after scan',
+      'ltc61 ltc64 status stream emits WalletTransferStatus.error after scan',
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
@@ -117,7 +117,7 @@ void main() {
     );
 
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'status stream itself throws an exception after scan',
+      'ltc61 ltc64 status stream itself throws an exception after scan',
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
@@ -134,7 +134,7 @@ void main() {
     );
 
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'when status stream throws NetworkError emit WalletTransferNetworkError',
+      'ltc61 ltc64 when status stream throws NetworkError emit WalletTransferNetworkError',
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
@@ -154,7 +154,7 @@ void main() {
   });
 
   blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-    'WalletTransferOptOutEvent calls skip use case and emits nothing',
+    'ltc61 ltc64 WalletTransferOptOutEvent calls skip use case and emits nothing',
     build: createBloc,
     act: (bloc) => bloc.add(const WalletTransferOptOutEvent()),
     expect: () => [],
@@ -166,7 +166,7 @@ void main() {
   group('WalletTransferStopRequestedEvent', () {
     const qrData = 'test_qr_data_for_stop';
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'from WalletTransferAwaitingQrScan state',
+      'ltc61 ltc64 from WalletTransferAwaitingQrScan state',
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
@@ -194,7 +194,7 @@ void main() {
   });
 
   blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-    'WalletTransferRestartEvent emits WalletTransferIntroduction with didGoBack true',
+    'ltc61 ltc64 WalletTransferRestartEvent emits WalletTransferIntroduction with didGoBack true',
     build: createBloc,
     act: (bloc) => bloc.add(const WalletTransferRestartEvent()),
     expect: () => [const WalletTransferIntroduction(didGoBack: true)],
@@ -203,7 +203,7 @@ void main() {
   group('WalletTransferBackPressedEvent', () {
     const qrData = 'test_qr_data_for_back';
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'should navigate from WalletTransferAwaitingQrScan state (canGoBack is true)',
+      'ltc61 ltc64 should navigate from WalletTransferAwaitingQrScan state (canGoBack is true)',
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
@@ -225,7 +225,7 @@ void main() {
     );
 
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
-      'should not navigate from WalletTransferTransferring state (canGoBack is false)',
+      'ltc61 ltc64 should not navigate from WalletTransferTransferring state (canGoBack is false)',
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
@@ -262,7 +262,7 @@ void main() {
   });
 
   blocTest(
-    'verify autolock is re-enabled when bloc is closed',
+    'ltc61 ltc64  verify autolock is re-enabled when bloc is closed',
     setUp: () => reset(mockAutoLockService),
     build: createBloc,
     verify: (bloc) {

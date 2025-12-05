@@ -14,7 +14,7 @@ import '../../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('SettingsScreen light', (tester) async {
+    testGoldens('ltc27 SettingsScreen light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SettingsScreen(),
         providers: [
@@ -25,7 +25,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('SettingsScreen dark - landscape', (tester) async {
+    testGoldens('ltc27 SettingsScreen dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SettingsScreen(),
         brightness: Brightness.dark,
@@ -40,7 +40,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('clicking change language navigates to the correct route', (tester) async {
+    testWidgets('ltc27 clicking change language navigates to the correct route', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SettingsScreen(),
         providers: [

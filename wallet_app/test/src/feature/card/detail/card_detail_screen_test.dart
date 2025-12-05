@@ -32,7 +32,7 @@ void main() {
   }
 
   group('goldens', () {
-    testGoldens('CardDetailLoadSuccess light', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -44,7 +44,7 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
-    testGoldens('CardDetailLoadSuccess dark', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -57,7 +57,7 @@ void main() {
       await screenMatchesGolden('success.dark');
     });
 
-    testGoldens('CardDetailLoadSuccess - renewable card - light', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess - renewable card - light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -76,7 +76,7 @@ void main() {
       await screenMatchesGolden('success.renewable.light');
     });
 
-    testGoldens('CardDetailLoadInProgress light', (tester) async {
+    testGoldens('ltc25 CardDetailLoadInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -88,7 +88,7 @@ void main() {
       await screenMatchesGolden('loading.light');
     });
 
-    testGoldens('CardDetailLoadFailure light', (tester) async {
+    testGoldens('ltc25 CardDetailLoadFailure light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -100,7 +100,7 @@ void main() {
       await screenMatchesGolden('error.light');
     });
 
-    testGoldens('CardDetailLoadSuccess status - validSoon', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - validSoon', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -112,7 +112,7 @@ void main() {
       await screenMatchesGolden('status.valid.soon');
     });
 
-    testGoldens('CardDetailLoadSuccess status - valid', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - valid', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -124,7 +124,7 @@ void main() {
       await screenMatchesGolden('status.valid');
     });
 
-    testGoldens('CardDetailLoadSuccess status - expiresSoon', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - expiresSoon', (tester) async {
       await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
         await tester.pumpWidgetWithAppWrapper(
           CardDetailScreen(
@@ -138,7 +138,7 @@ void main() {
       });
     });
 
-    testGoldens('CardDetailLoadSuccess status - expired', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - expired', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -150,7 +150,7 @@ void main() {
       await screenMatchesGolden('status.expired');
     });
 
-    testGoldens('CardDetailLoadSuccess status - revoked', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - revoked', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -162,7 +162,7 @@ void main() {
       await screenMatchesGolden('status.revoked');
     });
 
-    testGoldens('CardDetailLoadSuccess status - corrupted', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - corrupted', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -174,7 +174,7 @@ void main() {
       await screenMatchesGolden('status.corrupted');
     });
 
-    testGoldens('CardDetailLoadSuccess status - unknown', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - unknown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -188,7 +188,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('card is visible', (tester) async {
+    testWidgets('ltc25 card is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -203,7 +203,7 @@ void main() {
       expect(cardTitleFinder, findsNWidgets(2)); // Screen title + title on card
     });
 
-    testWidgets('loading renders as expected, with title and loading indicator', (tester) async {
+    testWidgets('ltc25 loading renders as expected, with title and loading indicator', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -221,7 +221,7 @@ void main() {
       expect(loadingIndicatorFinder, findsOneWidget);
     });
 
-    testWidgets('loading with card renders as expected, with title and card', (tester) async {
+    testWidgets('ltc25 loading with card renders as expected, with title and card', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -244,7 +244,7 @@ void main() {
       expect(loadingIndicatorFinder, findsOneWidget);
     });
 
-    testWidgets('error renders with expected, with retry cta', (tester) async {
+    testWidgets('ltc25 error renders with expected, with retry cta', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,

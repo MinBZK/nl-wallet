@@ -4,7 +4,7 @@ use tests_integration::common::*;
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_pin_change() {
+async fn ltc45_test_pin_change() {
     let old_pin_str = "123344";
     let new_pin_str = "123355";
 

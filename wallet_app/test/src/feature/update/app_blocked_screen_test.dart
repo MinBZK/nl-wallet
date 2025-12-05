@@ -8,7 +8,7 @@ import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('Light Test', (tester) async {
+    testGoldens('ltc43 Light Test', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const AppBlockedScreen(),
       );
@@ -17,7 +17,7 @@ void main() {
       await screenMatchesGolden('blocked.light');
     });
 
-    testGoldens('Dark Test', (tester) async {
+    testGoldens('ltc43 Dark Test', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const AppBlockedScreen(),
         brightness: Brightness.dark,
@@ -29,7 +29,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('Title is shown', (tester) async {
+    testWidgets('ltc43 Title is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const AppBlockedScreen(),
       );

@@ -8,14 +8,14 @@ import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('DataIncorrectScreen light', (tester) async {
+    testGoldens('ltc4 DataIncorrectScreen light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DataIncorrectScreen(),
       );
       await screenMatchesGolden('light');
     });
 
-    testGoldens('DataIncorrectScreen dark', (tester) async {
+    testGoldens('ltc4 DataIncorrectScreen dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DataIncorrectScreen(),
         brightness: Brightness.dark,
@@ -25,7 +25,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('data screen renders as expected', (tester) async {
+    testWidgets('ltc4 data screen renders as expected', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const DataIncorrectScreen());
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.dataIncorrectScreenHeaderTitle), findsAtLeast(1));

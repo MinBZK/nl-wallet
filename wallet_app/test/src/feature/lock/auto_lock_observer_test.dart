@@ -78,7 +78,7 @@ void main() {
     );
   }
 
-  testWidgets('interaction resets idle timeout', (WidgetTester tester) async {
+  testWidgets('ltc54 interaction resets idle timeout', (WidgetTester tester) async {
     await pumpAutoLockObserver(tester, initialState: AppLifecycleState.paused);
 
     await tester.tap(find.byType(InteractionDetector), warnIfMissed: false);
@@ -86,7 +86,9 @@ void main() {
     verify(mockAutoLockService.resetIdleTimeout()).called(1);
   });
 
-  testWidgets('app going to background and coming back locks wallet if timeout exceeded', (WidgetTester tester) async {
+  testWidgets('ltc54 app going to background and coming back locks wallet if timeout exceeded', (
+    WidgetTester tester,
+  ) async {
     DateTime time = DateTime.now();
     await withClock(Clock(() => time), () async {
       await pumpAutoLockObserver(tester);
@@ -105,7 +107,7 @@ void main() {
     });
   });
 
-  testWidgets('app going to background and coming back does NOT lock wallet if timeout not exceeded', (
+  testWidgets('ltc54 app going to background and coming back does NOT lock wallet if timeout not exceeded', (
     WidgetTester tester,
   ) async {
     DateTime time = DateTime.now();
@@ -126,7 +128,7 @@ void main() {
     });
   });
 
-  testWidgets('locks wallet after idle timeout', (WidgetTester tester) async {
+  testWidgets('ltc54 locks wallet after idle timeout', (WidgetTester tester) async {
     when(mockIsWalletRegisteredAndUnlockedUseCase.invoke()).thenAnswer((_) async => true);
     await pumpAutoLockObserver(tester);
 

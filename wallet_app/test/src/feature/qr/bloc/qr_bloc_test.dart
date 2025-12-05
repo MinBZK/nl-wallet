@@ -28,7 +28,7 @@ void main() {
   });
 
   blocTest(
-    'verify initial state',
+    'ltc7 ltc16 ltc19 verify initial state',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     verify: (bloc) {
       expect(bloc.state, QrScanInitial());
@@ -36,7 +36,7 @@ void main() {
   );
 
   blocTest(
-    'verify permission state when permission is not permanentlyDenied',
+    'ltc7 ltc16 ltc19 verify permission state when permission is not permanentlyDenied',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
@@ -48,7 +48,7 @@ void main() {
   );
 
   blocTest(
-    'verify permission state when permission is permanentlyDenied',
+    'ltc7 ltc16 ltc19 verify permission state when permission is permanentlyDenied',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
@@ -60,7 +60,7 @@ void main() {
   );
 
   blocTest(
-    'verify scanner moves to scanning when permission is granted',
+    'ltc7 ltc16 ltc19 verify scanner moves to scanning when permission is granted',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
@@ -72,7 +72,7 @@ void main() {
   );
 
   blocTest(
-    'verify scanner moves to scan failed when scanner throws',
+    'ltc7 ltc16 ltc19 verify scanner moves to scan failed when scanner throws',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
@@ -90,7 +90,7 @@ void main() {
   );
 
   blocTest(
-    'verify scanner moves to scan failed when scanner returns an error',
+    'ltc7 ltc16 ltc19 verify scanner moves to scan failed when scanner returns an error',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
@@ -108,7 +108,7 @@ void main() {
   );
 
   blocTest(
-    'verify scanner moves to scan success when scanner returns a valid result',
+    'ltc7 ltc16 ltc19 verify scanner moves to scan success when scanner returns a valid result',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
@@ -130,7 +130,7 @@ void main() {
   );
 
   blocTest(
-    'triggering multiple scans only should only result in one decode attempt (i.e. process one barcode at a time)',
+    'ltc7 ltc16 ltc19 triggering multiple scans only should only result in one decode attempt (i.e. process one barcode at a time)',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
@@ -155,7 +155,7 @@ void main() {
   );
 
   blocTest(
-    'resetting the scanner should allow the next uri to be decoded',
+    'ltc7 ltc16 ltc19 resetting the scanner should allow the next uri to be decoded',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) async {
       bloc
