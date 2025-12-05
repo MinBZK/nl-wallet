@@ -241,6 +241,8 @@ the WUA.</p></li>
 <li><p>The issuance server and PID issuer now require an internal server to be
 configured. The requester server configuration in the verification server is
 also renamed to internal server.</p></li>
+<li><p>Regarding the <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> endpoint of the verifier, the
+<code class="docutils literal notranslate"><span class="pre">validity_info</span></code> field has been renamed to <code class="docutils literal notranslate"><span class="pre">issuance_validity</span></code>.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -289,6 +291,8 @@ ID. This is done via an internal endpoint.</p></li>
 <li><p>The issuance server and PID issuer optionally support openapi generation and
 Swagger UI for their internal endpoints. This can be enabled using the
 <code class="docutils literal notranslate"><span class="pre">openapi</span></code> feature (which is currently enabled by default).</p></li>
+<li><p>The wallet shows when an attestation is revoked. In addition, it checks
+periodically the revocation status of issued attestations in the background.</p></li>
 </ul>
 </section>
 <section id="code-improvements">
