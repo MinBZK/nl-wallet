@@ -61,7 +61,7 @@ impl StatusListConfigs {
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListConfigError {
     #[error(transparent)]
-    ExpiryLessThanTTL(#[from] ExpiryLessThanTtl),
+    ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
     #[error(transparent)]
     PrivateKey(#[from] PrivateKeySettingsError),
