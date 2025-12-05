@@ -13,6 +13,7 @@ pub struct Model {
     pub public_key: Vec<u8>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
     pub encrypted_private_key: Option<Vec<u8>>,
+    pub is_blocked: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
