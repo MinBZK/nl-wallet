@@ -52,6 +52,7 @@ use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::AttestationValidity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::digid::DigidClient;
 use crate::digid::DigidError;
@@ -445,10 +446,12 @@ where
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
-                    None,
-                    ValidityWindow {
-                        valid_until: preview_data.content.credential_payload.expires.map(Into::into),
-                        valid_from: preview_data.content.credential_payload.not_before.map(Into::into),
+                    AttestationValidity {
+                        revocation_status: None,
+                        validity_window: ValidityWindow {
+                            valid_until: preview_data.content.credential_payload.expires.map(Into::into),
+                            valid_from: preview_data.content.credential_payload.not_before.map(Into::into),
+                        },
                     },
                     &preview_data.content.credential_payload.attributes,
                     &config.pid_attributes,

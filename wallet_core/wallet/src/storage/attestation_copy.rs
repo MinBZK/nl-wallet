@@ -20,6 +20,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::attestation::AttestationPresentationConfig;
+use crate::attestation::AttestationValidity;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PartialAttestationError {
@@ -55,7 +56,7 @@ pub enum StoredAttestation {
 pub struct StoredAttestationCopy {
     pub(super) attestation_id: Uuid,
     pub(super) attestation_copy_id: Uuid,
-    pub(super) validity_info: ValidityWindow,
+    pub(super) validity_window: ValidityWindow,
     pub(super) attestation: StoredAttestation,
     pub(super) normalized_metadata: NormalizedTypeMetadata,
     pub(super) revocation_status: Option<RevocationStatus>,
@@ -91,16 +92,14 @@ fn attestation_presentation_from_issuer_signed(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
-    revocation_status: Option<RevocationStatus>,
-    validity_info: ValidityWindow,
+    validity: AttestationValidity,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_mdoc(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
-        revocation_status,
-        validity_info,
+        validity,
         issuer_signed.into_entries_by_namespace(),
         config,
     )
@@ -112,16 +111,14 @@ fn attestation_presentation_from_sd_jwt(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
-    revocation_status: Option<RevocationStatus>,
-    validity_info: ValidityWindow,
+    validity: AttestationValidity,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_sd_jwt_claims(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
-        revocation_status,
-        validity_info,
+        validity,
         sd_jwt
             .decoded_claims()
             .expect("a stored SD-JWT attestation should have decoded claims"),
@@ -219,8 +216,10 @@ impl StoredAttestationCopy {
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
-                self.revocation_status,
-                self.validity_info,
+                AttestationValidity {
+                    revocation_status: self.revocation_status,
+                    validity_window: self.validity_window,
+                },
                 config,
             ),
             StoredAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
@@ -228,8 +227,10 @@ impl StoredAttestationCopy {
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
-                self.revocation_status,
-                self.validity_info,
+                AttestationValidity {
+                    revocation_status: self.revocation_status,
+                    validity_window: self.validity_window,
+                },
                 config,
             ),
         }
@@ -280,7 +281,7 @@ impl DisclosableAttestation {
             attestation,
             normalized_metadata,
             revocation_status,
-            validity_info,
+            validity_window,
             ..
         } = attestation_copy;
 
@@ -293,8 +294,10 @@ impl DisclosableAttestation {
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
-                revocation_status,
-                validity_info,
+                AttestationValidity {
+                    revocation_status,
+                    validity_window,
+                },
                 presentation_config,
             ),
             PartialAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
@@ -302,8 +305,10 @@ impl DisclosableAttestation {
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
-                revocation_status,
-                validity_info,
+                AttestationValidity {
+                    revocation_status,
+                    validity_window,
+                },
                 presentation_config,
             ),
         };
@@ -395,7 +400,7 @@ mod tests {
             attestation: StoredAttestation::MsoMdoc { mdoc },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
             revocation_status: None,
-            validity_info: ValidityWindow::new_valid_mock(),
+            validity_window: ValidityWindow::new_valid_mock(),
         };
 
         let bsn_path = vec![
@@ -425,7 +430,7 @@ mod tests {
             },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
             revocation_status: None,
-            validity_info: ValidityWindow::new_valid_mock(),
+            validity_window: ValidityWindow::new_valid_mock(),
         };
 
         let bsn_path = vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap();

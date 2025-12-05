@@ -67,6 +67,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::AttestationIdentity;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::AttestationValidity;
 use crate::attestation::mock::EmptyPresentationConfig;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
@@ -567,8 +568,10 @@ pub fn mock_issuance_session(
             AttestationIdentity::Ephemeral,
             normalized_type_metadata.clone(),
             issuer_registration.organization.clone(),
-            None,
-            validity_window,
+            AttestationValidity {
+                revocation_status: None,
+                validity_window,
+            },
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
             &EmptyPresentationConfig,
         )
@@ -579,8 +582,10 @@ pub fn mock_issuance_session(
                 AttestationIdentity::Ephemeral,
                 normalized_type_metadata.clone(),
                 issuer_registration.organization.clone(),
-                None,
-                validity_window,
+                AttestationValidity {
+                    revocation_status: None,
+                    validity_window,
+                },
                 &attributes,
                 &EmptyPresentationConfig,
             )

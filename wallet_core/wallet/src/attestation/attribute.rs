@@ -6,7 +6,6 @@ use indexmap::IndexMap;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
-use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
@@ -15,7 +14,6 @@ use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -25,6 +23,7 @@ use super::AttestationError;
 use super::AttestationIdentity;
 use super::AttestationPresentation;
 use super::AttestationPresentationConfig;
+use super::AttestationValidity;
 use super::AttributeError;
 
 impl AttestationPresentation {
@@ -32,8 +31,7 @@ impl AttestationPresentation {
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
-        revocation_status: Option<RevocationStatus>,
-        validity_window: ValidityWindow,
+        validity: AttestationValidity,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -43,8 +41,7 @@ impl AttestationPresentation {
             identity,
             metadata,
             issuer_organization,
-            revocation_status,
-            validity_window,
+            validity,
             &nested_attributes,
             config,
         )
@@ -54,22 +51,13 @@ impl AttestationPresentation {
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
-        revocation_status: Option<RevocationStatus>,
-        validity_window: ValidityWindow,
+        validity: AttestationValidity,
         sd_jwt_claims: ObjectClaims,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let attributes: Attributes = sd_jwt_claims.try_into()?;
 
-        Self::create_from_attributes(
-            identity,
-            metadata,
-            issuer_organization,
-            revocation_status,
-            validity_window,
-            &attributes,
-            config,
-        )
+        Self::create_from_attributes(identity, metadata, issuer_organization, validity, &attributes, config)
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
@@ -77,8 +65,7 @@ impl AttestationPresentation {
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer: Box<Organization>,
-        revocation_status: Option<RevocationStatus>,
-        validity_window: ValidityWindow,
+        validity: AttestationValidity,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -165,8 +152,7 @@ impl AttestationPresentation {
             attestation_type,
             issuer,
             attributes,
-            validity_window,
-            revocation_status,
+            validity,
         })
     }
 }
@@ -238,6 +224,7 @@ pub mod test {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use utils::vec_nonempty;
 
+    use crate::attestation::AttestationValidity;
     use crate::config::default_wallet_config;
 
     use super::super::AttestationAttribute;
@@ -296,8 +283,10 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             example_metadata(),
             Organization::new_mock(),
-            None,
-            ValidityWindow::new_valid_mock(),
+            AttestationValidity {
+                revocation_status: None,
+                validity_window: ValidityWindow::new_valid_mock(),
+            },
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -338,8 +327,10 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             example_metadata(),
             Organization::new_mock(),
-            None,
-            ValidityWindow::new_valid_mock(),
+            AttestationValidity {
+                revocation_status: None,
+                validity_window: ValidityWindow::new_valid_mock(),
+            },
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -377,8 +368,10 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
-            None,
-            ValidityWindow::new_valid_mock(),
+            AttestationValidity {
+                revocation_status: None,
+                validity_window: ValidityWindow::new_valid_mock(),
+            },
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -465,8 +458,10 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             type_metadata,
             Organization::new_mock(),
-            None,
-            ValidityWindow::new_valid_mock(),
+            AttestationValidity {
+                revocation_status: None,
+                validity_window: ValidityWindow::new_valid_mock(),
+            },
             &attributes,
             &EmptyPresentationConfig,
         )
@@ -544,8 +539,10 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             type_metadata,
             Organization::new_mock(),
-            None,
-            ValidityWindow::new_valid_mock(),
+            AttestationValidity {
+                revocation_status: None,
+                validity_window: ValidityWindow::new_valid_mock(),
+            },
             &attributes,
             &EmptyPresentationConfig,
         )
@@ -634,8 +631,10 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             NormalizedTypeMetadata::nl_pid_example(),
             Organization::new_mock(),
-            None,
-            ValidityWindow::new_valid_mock(),
+            AttestationValidity {
+                revocation_status: None,
+                validity_window: ValidityWindow::new_valid_mock(),
+            },
             mdoc_attributes,
             &config.pid_attributes,
         )

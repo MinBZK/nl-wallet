@@ -266,7 +266,7 @@ impl<K> DatabaseStorage<K> {
                         attestation,
                         normalized_metadata,
                         revocation_status: determine_revocation_status(&revocation_statuses),
-                        validity_info: ValidityWindow {
+                        validity_window: ValidityWindow {
                             valid_until: expiration,
                             valid_from: not_before,
                         },
@@ -1351,6 +1351,7 @@ pub(crate) mod tests {
     use test_storage::MockHardwareDatabaseStorage;
     use utils::generator::mock::MockTimeGenerator;
 
+    use crate::attestation::AttestationValidity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::storage::data::RegistrationData;
 
@@ -2317,8 +2318,10 @@ pub(crate) mod tests {
             AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
             issuer_registration.organization,
-            None,
-            ValidityWindow::new_valid_mock(),
+            AttestationValidity {
+                revocation_status: None,
+                validity_window: ValidityWindow::new_valid_mock(),
+            },
             sd_jwt.decoded_claims().unwrap(),
             &EmptyPresentationConfig,
         )
@@ -2463,8 +2466,10 @@ pub(crate) mod tests {
                     AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,
                     issuer_registration.organization,
-                    None,
-                    ValidityWindow::new_valid_mock(),
+                    AttestationValidity {
+                        revocation_status: None,
+                        validity_window: ValidityWindow::new_valid_mock(),
+                    },
                     &payload.previewable_payload.attributes,
                     &EmptyPresentationConfig,
                 )

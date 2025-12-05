@@ -24,8 +24,8 @@ impl From<wallet::AttestationPresentation> for AttestationPresentation {
             attestation_type: value.attestation_type,
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
             issuer: value.issuer.into(),
-            revocation_status: value.revocation_status.map(Into::into),
-            validity_window: value.validity_window.into(),
+            revocation_status: value.validity.revocation_status.map(Into::into),
+            validity_window: value.validity.validity_window.into(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
     }

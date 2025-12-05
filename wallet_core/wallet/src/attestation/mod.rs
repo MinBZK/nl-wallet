@@ -65,8 +65,7 @@ pub struct AttestationPresentation {
     pub attestation_type: String,
     pub display_metadata: VecNonEmpty<DisplayMetadata>,
     pub issuer: Box<Organization>,
-    pub revocation_status: Option<RevocationStatus>,
-    pub validity_window: ValidityWindow,
+    pub validity: AttestationValidity,
     pub attributes: Vec<AttestationAttribute>,
 }
 
@@ -91,6 +90,12 @@ pub enum AttestationAttributeValue {
     Date(NaiveDate),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AttestationValidity {
+    pub revocation_status: Option<RevocationStatus>,
+    pub validity_window: ValidityWindow,
+}
+
 #[cfg(test)]
 pub mod mock {
     use attestation_data::auth::Organization;
@@ -100,6 +105,7 @@ pub mod mock {
     use super::AttestationIdentity;
     use super::AttestationPresentation;
     use super::AttestationPresentationConfig;
+    use super::AttestationValidity;
     use super::DisplayMetadata;
 
     pub struct EmptyPresentationConfig;
@@ -124,9 +130,11 @@ pub mod mock {
                     rendering: None,
                 }],
                 issuer: Organization::new_mock(),
-                validity_window: ValidityWindow::new_valid_mock(),
+                validity: AttestationValidity {
+                    revocation_status: None,
+                    validity_window: ValidityWindow::new_valid_mock(),
+                },
                 attributes: vec![],
-                revocation_status: None,
             }
         }
     }
