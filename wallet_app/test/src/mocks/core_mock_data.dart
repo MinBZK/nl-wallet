@@ -8,6 +8,7 @@ abstract class CoreMockData {
     displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
     issuer: organization,
     attributes: [attestationAttributeName],
+    validityWindow: ValidityWindow(validFrom: null, validUntil: null),
   );
 
   static const enDisplayMetadata = DisplayMetadata(lang: 'en', name: 'PID attestation', rendering: null);

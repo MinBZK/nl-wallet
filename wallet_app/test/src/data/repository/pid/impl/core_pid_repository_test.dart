@@ -47,6 +47,7 @@ void main() {
         displayMetadata: [CoreMockData.enDisplayMetadata],
         issuer: CoreMockData.organization,
         attributes: CoreMockData.attestation.attributes,
+        validityWindow: const ValidityWindow(validFrom: null, validUntil: null),
       );
       final expectedAttributes = cardMapper.map(testAttestation).attributes;
 
