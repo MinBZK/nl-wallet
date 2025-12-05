@@ -154,9 +154,9 @@ impl Settings {
                 "pin_public_disclosure_protection_key",
             )?
             .set_default("wua_status_list.list_size", 100_000)?
-            .set_default("wua_status_list.create_threshold", 0.01)?
+            .set_default("wua_status_list.create_threshold_ratio", 0.01)?
             .set_default("wua_status_list.expiry_in_hours", 24)?
-            .set_default("wua_status_list.refresh_threshold", 0.25)?
+            .set_default("wua_status_list.refresh_threshold_ratio", 0.25)?
             .set_default("wua_status_list.key_identifier", "wua_tsl_key")?
             .set_default("wua_signing_key_identifier", "wua_signing_key")?
             .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
@@ -235,10 +235,10 @@ impl WuaStatusListsSettings {
             list_size: self.list_settings.list_size,
             create_threshold: self
                 .list_settings
-                .create_threshold
+                .create_threshold_ratio
                 .of_nonzero_u31(self.list_settings.list_size),
             expiry,
-            refresh_threshold: self.list_settings.refresh_threshold.of_duration(expiry),
+            refresh_threshold: self.list_settings.refresh_threshold_ratio.of_duration(expiry),
             ttl,
             base_url: self.base_url,
             publish_dir: self.publish_dir,

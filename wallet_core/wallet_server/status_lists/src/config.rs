@@ -77,9 +77,9 @@ impl StatusListConfig {
         let (expiry, ttl) = settings.expiry_ttl()?;
         Ok(StatusListConfig {
             list_size: settings.list_size,
-            create_threshold: settings.create_threshold.of_nonzero_u31(settings.list_size),
+            create_threshold: settings.create_threshold_ratio.of_nonzero_u31(settings.list_size),
             expiry,
-            refresh_threshold: settings.refresh_threshold.of_duration(expiry),
+            refresh_threshold: settings.refresh_threshold_ratio.of_duration(expiry),
             ttl,
             base_url: attestation
                 .base_url
