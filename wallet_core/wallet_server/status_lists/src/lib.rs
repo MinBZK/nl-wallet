@@ -9,4 +9,4 @@ mod refresh;
 #[cfg(feature = "axum")]
 pub mod revoke;
 #[cfg(feature = "axum")]
-pub mod router;
+pub mod serve;

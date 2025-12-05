@@ -21,8 +21,8 @@ path = "tests/revoke.rs"
 required-features = ["db_test"]
 
 [[test]]
-name = "router"
-path = "tests/router.rs"
+name = "serve"
+path = "tests/serve.rs"
 required-features = ["db_test"]
 
 [features]
