@@ -128,7 +128,7 @@ run-automation-a11y-batch1-tests:
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
   rules:
-    - !reference [.on-schedule-automation, rules]
+    - !reference [.on-schedule-trigger-scan, rules]
   variables:
     ENABLE_BROWSERSTACK_A11Y_CHECKS: true
 
@@ -140,7 +140,7 @@ run-automation-a11y-batch2-tests:
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
   rules:
-    - !reference [.on-schedule-automation, rules]
+    - !reference [.on-schedule-trigger-scan, rules]
   after_script:
     - echo "$CI_PIPELINE_ID" > a11y-build-name.txt
     - deploy/bin/store-artifact.sh a11y-build-name.txt qt/quality-time/a11y-results/a11y-build-name.txt
