@@ -91,11 +91,14 @@ async fn recreate_status_list_service(
     Ok(service)
 }
 
+/// Clean publish dir such that all files are deleted and the lock files are truncated
 async fn clean_publish_dir(path: PathBuf) {
     tokio::task::spawn_blocking(move || {
         for entry in std::fs::read_dir(path).unwrap() {
             let path = entry.unwrap().path();
             if path.extension() == Some(OsStr::new("lock")) {
+                // Lock files always need to be intact (otherwise the lock cannot be guaranteed).
+                // Truncating it, instead of deleting the file
                 std::fs::write(path, "").unwrap();
             } else {
                 std::fs::remove_file(path).unwrap();

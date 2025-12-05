@@ -79,17 +79,28 @@ pub enum PublishLockError {
 
 pub struct PublishLock(PathBuf);
 
+/// Version information inside the lock file that describes the version of the status list.
+///
+/// Multiple writers can try to publish a status list. Although a file lock is
+/// used to prevent concurrent writes, it is also necessary to order the writes.
+/// A writer that writes later, can have an older view of the status list from
+/// the database.
+///
+/// We can use the number of revocations as major version because revocations
+/// are irreversible and the database will always return committed rows, so no
+/// interleaving can happen. The expiration is used as minor version to update
+/// a list with the same revocations for a newer one.
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VersionInfo {
     revoked: usize,
-    timestamp: i64,
+    expiration: i64,
 }
 
 impl VersionInfo {
-    pub fn from(revoked: usize, date_time: DateTime<Utc>) -> Self {
+    pub fn from(revoked: usize, expiration: DateTime<Utc>) -> Self {
         Self {
             revoked,
-            timestamp: date_time.timestamp(),
+            expiration: expiration.timestamp(),
         }
     }
 
@@ -101,13 +112,16 @@ impl VersionInfo {
         let revoked = usize::from_le_bytes(buf[..size_of::<usize>()].try_into().unwrap());
         let timestamp = i64::from_le_bytes(buf[size_of::<usize>()..].try_into().unwrap());
 
-        Ok(Self { revoked, timestamp })
+        Ok(Self {
+            revoked,
+            expiration: timestamp,
+        })
     }
 
     fn write_to_io(&self, writer: &mut impl Write) -> Result<(), std::io::Error> {
         let mut buf = [0; { size_of::<usize>() + size_of::<i64>() }];
         buf[..size_of::<usize>()].copy_from_slice(&self.revoked.to_le_bytes());
-        buf[size_of::<usize>()..].copy_from_slice(&self.timestamp.to_le_bytes());
+        buf[size_of::<usize>()..].copy_from_slice(&self.expiration.to_le_bytes());
         writer.write_all(&buf)
     }
 }
@@ -145,7 +159,7 @@ impl PublishLock {
             let lock_version = match VersionInfo::read_from_io(&mut file) {
                 Ok(version) => version,
                 Err(err) => {
-                    // Default to `LockVersion::default` if reading fails
+                    // Default to zero version if reading fails, so will republish
                     tracing::warn!("Could not read lock file `{}`: {}", path.display(), err);
                     VersionInfo::default()
                 }
@@ -193,14 +207,14 @@ mod tests {
     fn default_version_info() {
         let version = VersionInfo::default();
         assert_eq!(version.revoked, 0);
-        assert_eq!(version.timestamp, 0);
+        assert_eq!(version.expiration, 0);
     }
 
     #[test]
     fn version_info_serialize_deserialize() {
         let version = VersionInfo {
             revoked: 1337,
-            timestamp: Utc::now().timestamp(),
+            expiration: Utc::now().timestamp(),
         };
 
         let read = {
@@ -264,17 +278,17 @@ mod tests {
     }
 
     #[rstest]
-    #[case(VersionInfo { revoked: 1, timestamp: 3 }, false)]
-    #[case(VersionInfo { revoked: 2, timestamp: 1 }, false)]
-    #[case(VersionInfo { revoked: 2, timestamp: 2 }, false)]
-    #[case(VersionInfo { revoked: 2, timestamp: 3 }, true)]
-    #[case(VersionInfo { revoked: 3, timestamp: 1 }, true)]
+    #[case(VersionInfo { revoked: 1, expiration: 3 }, false)]
+    #[case(VersionInfo { revoked: 2, expiration: 1 }, false)]
+    #[case(VersionInfo { revoked: 2, expiration: 2 }, false)]
+    #[case(VersionInfo { revoked: 2, expiration: 3 }, true)]
+    #[case(VersionInfo { revoked: 3, expiration: 1 }, true)]
     #[tokio::test]
     async fn publish_with_lock_should_only_called_when_newer(#[case] version: VersionInfo, #[case] publish: bool) {
         let mut file = NamedTempFile::new().unwrap();
         VersionInfo {
             revoked: 2,
-            timestamp: 2,
+            expiration: 2,
         }
         .write_to_io(file.as_file_mut())
         .unwrap();
@@ -289,7 +303,7 @@ mod tests {
         file.read_to_end(&mut lock_contents).unwrap();
         if publish {
             assert_eq!(lock_contents[0], version.revoked as u8);
-            assert_eq!(lock_contents[size_of::<usize>()], version.timestamp as u8);
+            assert_eq!(lock_contents[size_of::<usize>()], version.expiration as u8);
         } else {
             assert_eq!(lock_contents[0], 2);
             assert_eq!(lock_contents[size_of::<usize>()], 2);

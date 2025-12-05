@@ -67,18 +67,19 @@ where
                 let delta = exp - self.time_generator.generate();
                 let delay = delta.to_std().unwrap_or_default();
 
+                // Special check to see if we are not too late
                 if delay < self.minimum_delay {
                     // This can only happen if the refresh cannot update, or it updates
-                    // to a point in time that is not large enough. See `check_refresh`.
+                    // to a point in time that is not large enough.
                     tracing::warn!("Adjusting next refresh of {} to minimum", delta);
                     return self.minimum_delay;
                 }
 
-                // Ceil to be robust against clock drift and time changes
+                // Maximize delay to be robust against clock drift and time changes
                 let delay = std::cmp::min(self.maximum_delay, delay.saturating_sub(self.threshold));
-                // Randomize to break step when running for multiple instances
+                // Randomize delay to break step when running for multiple instances
                 let delay = delay.saturating_sub(random_duration(self.delay_variance));
-                // Floor to prevent hammering refresh
+                // Minimize delay to prevent hammering refresh
                 std::cmp::max(self.minimum_delay, delay)
             })
             .unwrap_or(self.minimum_delay)
