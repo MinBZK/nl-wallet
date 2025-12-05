@@ -1671,12 +1671,12 @@ mod tests {
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
-            RevocationVerifier::new(StatusListClientStub::new(
+            RevocationVerifier::new(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
                     .generate_status_list_mock()
                     .unwrap(),
-            )),
+            ))),
         )
     }
 
@@ -2054,12 +2054,12 @@ mod tests {
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
-            RevocationVerifier::new(StatusListClientStub::new(
+            RevocationVerifier::new(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
                     .generate_status_list_mock()
                     .unwrap(),
-            )),
+            ))),
         );
 
         let query_params = serde_urlencoded::to_string(VerifierUrlParameters {

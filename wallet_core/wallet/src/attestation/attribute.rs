@@ -14,6 +14,7 @@ use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -30,24 +31,40 @@ impl AttestationPresentation {
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
+        revocation_status: Option<RevocationStatus>,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, &nested_attributes, config)
+        Self::create_from_attributes(
+            identity,
+            metadata,
+            issuer_organization,
+            revocation_status,
+            &nested_attributes,
+            config,
+        )
     }
 
     pub(crate) fn create_from_sd_jwt_claims(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
+        revocation_status: Option<RevocationStatus>,
         sd_jwt_claims: ObjectClaims,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let attributes: Attributes = sd_jwt_claims.try_into()?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, &attributes, config)
+        Self::create_from_attributes(
+            identity,
+            metadata,
+            issuer_organization,
+            revocation_status,
+            &attributes,
+            config,
+        )
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
@@ -55,6 +72,7 @@ impl AttestationPresentation {
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer: Box<Organization>,
+        revocation_status: Option<RevocationStatus>,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
@@ -141,6 +159,7 @@ impl AttestationPresentation {
             attestation_type,
             issuer,
             attributes,
+            revocation_status,
         })
     }
 }
@@ -269,6 +288,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             example_metadata(),
             Organization::new_mock(),
+            None,
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -309,6 +329,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             example_metadata(),
             Organization::new_mock(),
+            None,
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -346,6 +367,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
+            None,
             mdoc_attributes,
             &EmptyPresentationConfig,
         )
@@ -432,6 +454,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             type_metadata,
             Organization::new_mock(),
+            None,
             &attributes,
             &EmptyPresentationConfig,
         )
@@ -509,6 +532,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             type_metadata,
             Organization::new_mock(),
+            None,
             &attributes,
             &EmptyPresentationConfig,
         )
@@ -597,6 +621,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             NormalizedTypeMetadata::nl_pid_example(),
             Organization::new_mock(),
+            None,
             mdoc_attributes,
             &config.pid_attributes,
         )

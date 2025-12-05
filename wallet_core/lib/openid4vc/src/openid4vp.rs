@@ -997,6 +997,7 @@ pub struct VpResponse {
 mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use futures::FutureExt;
@@ -1462,7 +1463,9 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                    ca.generate_status_list_mock().unwrap(),
+                ))),
             )
             .now_or_never()
             .unwrap()
@@ -1570,7 +1573,9 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                    ca.generate_status_list_mock().unwrap(),
+                ))),
             )
             .now_or_never()
             .unwrap()
@@ -1734,7 +1739,9 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                    ca.generate_status_list_mock().unwrap(),
+                ))),
             )
             .now_or_never()
             .unwrap()
@@ -1782,9 +1789,9 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(StatusListClientStub::new(
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
-                )),
+                ))),
             )
             .now_or_never()
             .unwrap()
@@ -1807,7 +1814,9 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                    ca.generate_status_list_mock().unwrap(),
+                ))),
             )
             .now_or_never()
             .unwrap()
@@ -1832,9 +1841,9 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(StatusListClientStub::new(
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
-                )),
+                ))),
             )
             .now_or_never()
             .unwrap()
@@ -1862,9 +1871,9 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(StatusListClientStub::new(
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
-                )),
+                ))),
             )
             .now_or_never()
             .unwrap()
@@ -1876,10 +1885,10 @@ mod tests {
     #[rstest]
     #[case(&[Some(RevocationStatus::Valid)], Ok(()))]
     #[case(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Valid)], Ok(()))]
-    #[case(&[Some(RevocationStatus::Invalid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case(&[Some(RevocationStatus::Revoked)], Err(AuthResponseError::RevocationStatusNotAllValid))]
     #[case(&[Some(RevocationStatus::Corrupted)], Err(AuthResponseError::RevocationStatusNotAllValid))]
     #[case(&[Some(RevocationStatus::Undetermined)], Err(AuthResponseError::RevocationStatusNotAllValid))]
-    #[case(&[Some(RevocationStatus::Invalid), Some(RevocationStatus::Valid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case(&[Some(RevocationStatus::Revoked), Some(RevocationStatus::Valid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
     #[case(&[Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
     #[case(&[Some(RevocationStatus::Undetermined), Some(RevocationStatus::Valid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
     #[case(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Valid), None], Err(AuthResponseError::RevocationStatusNotAllValid))]

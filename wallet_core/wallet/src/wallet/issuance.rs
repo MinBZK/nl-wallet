@@ -215,7 +215,7 @@ pub enum PidIssuancePurpose {
     Renewal,
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -444,6 +444,7 @@ where
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
+                    None,
                     &preview_data.content.credential_payload.attributes,
                     &config.pid_attributes,
                 )
@@ -1074,6 +1075,7 @@ mod tests {
                     sd_jwt,
                 },
                 metadata,
+                None,
             )
         };
         let stored_clone = stored.clone();
@@ -1293,6 +1295,7 @@ mod tests {
                 sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
+            None,
         );
 
         let stored_clone = stored.clone();
@@ -1421,6 +1424,7 @@ mod tests {
                         sd_jwt,
                     },
                     metadata,
+                    None,
                 )])
             });
 
@@ -1809,6 +1813,7 @@ mod tests {
                 sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
+            None,
         );
 
         // When the attestation already exists in the database, we expect the identity to be known

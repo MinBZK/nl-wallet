@@ -54,6 +54,7 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -115,8 +116,8 @@ pub trait TestStorageRegistration {
 }
 
 /// An alias for the `Wallet<>` with mock dependencies and generic storage.
-pub type TestWallet<S> = Wallet<
-    UpdatingConfigurationRepository<LocalConfigurationRepository>,
+pub type TestWallet<S, CR = UpdatingConfigurationRepository<LocalConfigurationRepository>> = Wallet<
+    CR,
     MockUpdatePolicyRepository,
     S,
     MockHardwareAttestedKeyHolder,
@@ -124,13 +125,16 @@ pub type TestWallet<S> = Wallet<
     MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
+    MockStatusListClient,
 >;
 
 /// An alias for the `Wallet<>` with all dependencies, including the storage, mocked.
-pub type TestWalletMockStorage = TestWallet<MockStorage>;
+pub type TestWalletMockStorage<CR = UpdatingConfigurationRepository<LocalConfigurationRepository>> =
+    TestWallet<MockStorage, CR>;
 
 /// An alias for the `Wallet<>` with an in-memory SQLite database and mock dependencies.
-pub type TestWalletInMemoryStorage = TestWallet<MockHardwareDatabaseStorage>;
+pub type TestWalletInMemoryStorage<CR = UpdatingConfigurationRepository<LocalConfigurationRepository>> =
+    TestWallet<MockHardwareDatabaseStorage, CR>;
 
 /// The account server key material, generated once for testing.
 pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| AccountServerKeys {
@@ -357,7 +361,7 @@ impl TestStorageRegistration for MockStorage {
 
 impl<S> TestWallet<S>
 where
-    S: TestStorageRegistration + Storage,
+    S: TestStorageRegistration + Storage + Sync + 'static,
 {
     pub fn mut_storage(&mut self) -> &mut S {
         Arc::get_mut(&mut self.storage).unwrap().get_mut()
@@ -547,6 +551,7 @@ pub fn mock_issuance_session(
             AttestationIdentity::Ephemeral,
             normalized_type_metadata.clone(),
             issuer_registration.organization.clone(),
+            None,
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
             &EmptyPresentationConfig,
         )
@@ -557,6 +562,7 @@ pub fn mock_issuance_session(
                 AttestationIdentity::Ephemeral,
                 normalized_type_metadata.clone(),
                 issuer_registration.organization.clone(),
+                None,
                 &attributes,
                 &EmptyPresentationConfig,
             )

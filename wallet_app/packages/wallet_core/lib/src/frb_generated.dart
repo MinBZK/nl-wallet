@@ -15,6 +15,7 @@ import 'models/image.dart';
 import 'models/instruction.dart';
 import 'models/localize.dart';
 import 'models/pin.dart';
+import 'models/revocation.dart';
 import 'models/transfer.dart';
 import 'models/uri.dart';
 import 'models/version_state.dart';
@@ -1523,13 +1524,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   AttestationPresentation dco_decode_attestation_presentation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return AttestationPresentation(
       identity: dco_decode_attestation_identity(arr[0]),
       attestationType: dco_decode_String(arr[1]),
       displayMetadata: dco_decode_list_display_metadata(arr[2]),
       issuer: dco_decode_organization(arr[3]),
-      attributes: dco_decode_list_attestation_attribute(arr[4]),
+      revocationStatus: dco_decode_opt_box_autoadd_revocation_status(arr[4]),
+      attributes: dco_decode_list_attestation_attribute(arr[5]),
     );
   }
 
@@ -1610,6 +1612,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RequestPolicy dco_decode_box_autoadd_request_policy(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_request_policy(raw);
+  }
+
+  @protected
+  RevocationStatus dco_decode_box_autoadd_revocation_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_revocation_status(raw);
   }
 
   @protected
@@ -1915,6 +1923,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  RevocationStatus? dco_decode_opt_box_autoadd_revocation_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_revocation_status(raw);
+  }
+
+  @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
@@ -2003,6 +2017,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       dataDeletionPossible: dco_decode_bool(arr[2]),
       policyUrl: dco_decode_String(arr[3]),
     );
+  }
+
+  @protected
+  RevocationStatus dco_decode_revocation_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return RevocationStatus.values[raw as int];
   }
 
   @protected
@@ -2265,12 +2285,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_attestationType = sse_decode_String(deserializer);
     var var_displayMetadata = sse_decode_list_display_metadata(deserializer);
     var var_issuer = sse_decode_organization(deserializer);
+    var var_revocationStatus = sse_decode_opt_box_autoadd_revocation_status(deserializer);
     var var_attributes = sse_decode_list_attestation_attribute(deserializer);
     return AttestationPresentation(
       identity: var_identity,
       attestationType: var_attestationType,
       displayMetadata: var_displayMetadata,
       issuer: var_issuer,
+      revocationStatus: var_revocationStatus,
       attributes: var_attributes,
     );
   }
@@ -2350,6 +2372,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RequestPolicy sse_decode_box_autoadd_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_request_policy(deserializer));
+  }
+
+  @protected
+  RevocationStatus sse_decode_box_autoadd_revocation_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_revocation_status(deserializer));
   }
 
   @protected
@@ -2733,6 +2761,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  RevocationStatus? sse_decode_opt_box_autoadd_revocation_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_revocation_status(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2849,6 +2888,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       dataDeletionPossible: var_dataDeletionPossible,
       policyUrl: var_policyUrl,
     );
+  }
+
+  @protected
+  RevocationStatus sse_decode_revocation_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return RevocationStatus.values[inner];
   }
 
   @protected
@@ -3098,6 +3144,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int cst_encode_revocation_status(RevocationStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
   int cst_encode_transfer_role(TransferRole raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
@@ -3259,6 +3311,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_String(self.attestationType, serializer);
     sse_encode_list_display_metadata(self.displayMetadata, serializer);
     sse_encode_organization(self.issuer, serializer);
+    sse_encode_opt_box_autoadd_revocation_status(self.revocationStatus, serializer);
     sse_encode_list_attestation_attribute(self.attributes, serializer);
   }
 
@@ -3332,6 +3385,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_box_autoadd_request_policy(RequestPolicy self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_request_policy(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_revocation_status(RevocationStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_revocation_status(self, serializer);
   }
 
   @protected
@@ -3645,6 +3704,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_revocation_status(RevocationStatus? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_revocation_status(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3734,6 +3803,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_bool(self.dataSharedWithThirdParties, serializer);
     sse_encode_bool(self.dataDeletionPossible, serializer);
     sse_encode_String(self.policyUrl, serializer);
+  }
+
+  @protected
+  void sse_encode_revocation_status(RevocationStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

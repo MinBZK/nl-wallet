@@ -702,6 +702,7 @@ mod mock {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
     use std::time::Duration;
 
     use assert_matches::assert_matches;
@@ -1142,7 +1143,7 @@ mod test {
                 &[ca.to_trust_anchor()],
                 &kb_verification_options,
                 &time_generator,
-                &RevocationVerifier::new(StatusListClientStub::new(issuer_key_pair)),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_key_pair))),
             )
             .now_or_never()
             .unwrap()

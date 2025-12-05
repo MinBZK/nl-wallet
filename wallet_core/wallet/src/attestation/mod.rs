@@ -15,6 +15,7 @@ use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
@@ -63,6 +64,7 @@ pub struct AttestationPresentation {
     pub attestation_type: String,
     pub display_metadata: VecNonEmpty<DisplayMetadata>,
     pub issuer: Box<Organization>,
+    pub revocation_status: Option<RevocationStatus>,
     pub attributes: Vec<AttestationAttribute>,
 }
 
@@ -120,6 +122,7 @@ pub mod mock {
                 }],
                 issuer: Organization::new_mock(),
                 attributes: vec![],
+                revocation_status: None,
             }
         }
     }

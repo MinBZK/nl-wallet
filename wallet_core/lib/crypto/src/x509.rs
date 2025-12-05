@@ -1,11 +1,15 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Constructor;
 use derive_more::Debug;
 use derive_more::Display;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
 use p256::pkcs8::der::Decode;
@@ -20,6 +24,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use webpki::EndEntityCert;
 use webpki::ring::ECDSA_P256_SHA256;
+use x509_parser::asn1_rs::SerializeError;
+use x509_parser::asn1_rs::ToDer;
 use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom;
@@ -106,7 +112,7 @@ impl CertificateUsage {
 
 // This requires both "generate" and "mock", because this is not to be used in the Wallet.
 // The wallet must use CertificateType.
-#[cfg(all(feature = "generate", feature = "mock"))]
+#[cfg(any(test, all(feature = "generate", feature = "mock")))]
 impl TryFrom<CertificateUsage> for Vec<rcgen::CustomExtension> {
     type Error = CertificateError;
 
@@ -168,6 +174,8 @@ pub enum CertificateError {
     MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
     #[error("SAN DNS name is not a URI: {0}")]
     SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
+    #[error("could not serialize to DER: {0}")]
+    DerSerialization(#[from] SerializeError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -301,6 +309,24 @@ impl BorrowingCertificate {
         Ok(dn)
     }
 
+    // Returns a human-readable string representation of the distinguished name attributes with the raw OID values and
+    // base64-encoded DER values. Can be used for persistence and comparison, since this representation is independent
+    // of an OID registry.
+    pub fn distinguished_name_canonical(&self) -> Result<DistinguishedName, CertificateError> {
+        let encoded_attrs: Vec<_> = self
+            .x509_certificate()
+            .subject()
+            .iter_attributes()
+            .map(|attr| {
+                let r#type = attr.attr_type().to_id_string();
+                let value = BASE64_STANDARD_NO_PAD.encode(&attr.attr_value().to_der_vec()?);
+                Ok::<_, CertificateError>(format!("{}={}", r#type, value))
+            })
+            .try_collect()?;
+
+        Ok(DistinguishedName::new(encoded_attrs.join(",")))
+    }
+
     /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
     pub fn san_dns_name_or_uris(&self) -> Result<VecNonEmpty<HttpsUri>, CertificateError> {
         let san_ext = self
@@ -417,6 +443,29 @@ where
     }
 }
 
+/// A distinguished name encoded in a canonical, OID-registry-independent format.
+/// This type is specifically designed for database persistence and comparison.
+/// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Constructor)]
+#[cfg_attr(feature = "persistence", derive(sea_orm::DeriveValueType))]
+pub struct DistinguishedName(String);
+
+impl DistinguishedName {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
+
+impl std::fmt::Display for DistinguishedName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[cfg(any(test, feature = "generate"))]
 #[derive(Debug, Clone, Default)]
 pub struct CertificateConfiguration {
@@ -426,7 +475,6 @@ pub struct CertificateConfiguration {
 
 #[cfg(test)]
 mod test {
-
     use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Duration;
@@ -489,6 +537,12 @@ mod test {
         let ca = Ca::generate("myca", config).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
+
+        assert_eq!("CN=myca", certificate.distinguished_name().unwrap());
+        assert_eq!(
+            "2.5.4.3=DARteWNh",
+            certificate.distinguished_name_canonical().unwrap().as_str()
+        );
 
         let x509_cert = certificate.x509_certificate();
         assert_certificate_common_name(x509_cert, &["myca"]);

@@ -78,6 +78,7 @@ derive_more = { workspace = true, features = ["debug"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 parking_lot.workspace = true
 thiserror.workspace = true
+trait-variant.workspace = true
 uniffi.workspace = true
 
 aes-gcm = { workspace = true, optional = true }

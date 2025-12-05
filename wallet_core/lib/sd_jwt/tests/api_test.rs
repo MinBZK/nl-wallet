@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::time::Duration;
 
 use futures::FutureExt;
@@ -189,7 +190,7 @@ async fn sd_jwt_without_disclosures_works() {
             &trust_anchors,
             &kb_verification_options,
             &MockTimeGenerator::default(),
-            &RevocationVerifier::new(StatusListClientStub::new(issuer_keypair)),
+            &RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_keypair))),
         )
         .await
         .unwrap();
@@ -381,7 +382,7 @@ async fn test_presentation() {
             &[ca.to_trust_anchor()],
             &kb_verification_options,
             &MockTimeGenerator::default(),
-            &RevocationVerifier::new(StatusListClientStub::new(issuer_keypair)),
+            &RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_keypair))),
         )
         .await
         .unwrap();
@@ -466,7 +467,7 @@ fn test_wscd_presentation() {
             &[ca.to_trust_anchor()],
             &kb_verification_options,
             &MockTimeGenerator::default(),
-            &RevocationVerifier::new(StatusListClientStub::new(issuer_key_pair)),
+            &RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_key_pair))),
         )
         .now_or_never()
         .unwrap()

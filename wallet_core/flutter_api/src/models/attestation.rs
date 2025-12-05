@@ -4,12 +4,14 @@ use wallet::sd_jwt_vc_metadata::LogoMetadata;
 use crate::models::disclosure::Organization;
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
+use crate::models::revocation::RevocationStatus;
 
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
     pub display_metadata: Vec<DisplayMetadata>,
     pub issuer: Organization,
+    pub revocation_status: Option<RevocationStatus>,
     pub attributes: Vec<AttestationAttribute>,
 }
 
@@ -20,6 +22,7 @@ impl From<wallet::AttestationPresentation> for AttestationPresentation {
             attestation_type: value.attestation_type,
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
             issuer: value.issuer.into(),
+            revocation_status: value.revocation_status.map(Into::into),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
     }

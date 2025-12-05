@@ -13,6 +13,7 @@ use mdoc::holder::disclosure::PartialMdoc;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::AttestationIdentity;
@@ -55,6 +56,7 @@ pub struct StoredAttestationCopy {
     pub(super) attestation_copy_id: Uuid,
     pub(super) attestation: StoredAttestation,
     pub(super) normalized_metadata: NormalizedTypeMetadata,
+    pub(super) revocation_status: Option<RevocationStatus>,
 }
 
 /// A subset of the attributes of an attestation that is present in the wallet database. In this sense it represents a
@@ -87,12 +89,14 @@ fn attestation_presentation_from_issuer_signed(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
+    revocation_status: Option<RevocationStatus>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_mdoc(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
+        revocation_status,
         issuer_signed.into_entries_by_namespace(),
         config,
     )
@@ -104,12 +108,14 @@ fn attestation_presentation_from_sd_jwt(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
+    revocation_status: Option<RevocationStatus>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_sd_jwt_claims(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
+        revocation_status,
         sd_jwt
             .decoded_claims()
             .expect("a stored SD-JWT attestation should have decoded claims"),
@@ -207,6 +213,7 @@ impl StoredAttestationCopy {
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
+                self.revocation_status,
                 config,
             ),
             StoredAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
@@ -214,6 +221,7 @@ impl StoredAttestationCopy {
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
+                self.revocation_status,
                 config,
             ),
         }
@@ -263,6 +271,8 @@ impl DisclosableAttestation {
             attestation_copy_id,
             attestation,
             normalized_metadata,
+            revocation_status,
+            ..
         } = attestation_copy;
 
         let issuer_registration = attestation.issuer_registration();
@@ -274,6 +284,7 @@ impl DisclosableAttestation {
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
+                revocation_status,
                 presentation_config,
             ),
             PartialAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
@@ -281,6 +292,7 @@ impl DisclosableAttestation {
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
+                revocation_status,
                 presentation_config,
             ),
         };
@@ -370,6 +382,7 @@ mod tests {
             attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestation::MsoMdoc { mdoc },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
+            revocation_status: None,
         };
 
         let bsn_path = vec![
@@ -398,6 +411,7 @@ mod tests {
                 sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
+            revocation_status: None,
         };
 
         let bsn_path = vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap();

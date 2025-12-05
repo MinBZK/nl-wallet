@@ -6,7 +6,7 @@ use hsm::service::Pkcs11Hsm;
 use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
-use token_status_list::verification::reqwest::StatusListReqwestClient;
+use token_status_list::verification::reqwest::HttpStatusListClient;
 use verification_server::server;
 use verification_server::settings::VerifierSettings;
 
@@ -29,7 +29,7 @@ async fn main_impl(settings: VerifierSettings) -> Result<()> {
         storage_settings.into(),
     ));
 
-    let status_list_client = StatusListReqwestClient::new()?;
+    let status_list_client = HttpStatusListClient::new()?;
 
     // This will block until the server shuts down.
     server::serve(settings, hsm, sessions, status_list_client).await

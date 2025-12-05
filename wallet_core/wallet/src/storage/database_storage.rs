@@ -29,6 +29,7 @@ use sea_orm::sea_query::IntoColumnRef;
 use sea_orm::sea_query::Query;
 use sea_query::Asterisk;
 use sea_query::Func;
+use sea_query::IntoCondition;
 use sea_query::OnConflict;
 use sea_query::Order;
 use sea_query::SimpleExpr;
@@ -39,6 +40,7 @@ use uuid::Uuid;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_types::status_claim::StatusClaim;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use dcql::CredentialFormat;
@@ -54,6 +56,7 @@ use entity::disclosure_event_attestation;
 use entity::issuance_event;
 use entity::issuance_event_attestation;
 use entity::keyed_data;
+use entity::revocation_info;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::issuance_session::CredentialWithMetadata;
@@ -61,12 +64,14 @@ use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+use token_status_list::verification::verifier::RevocationStatus;
 #[cfg(not(debug_assertions))]
 use utils::built_info::version_identifier;
 
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
+use crate::storage::revocation_info::RevocationInfo;
 
 use super::DatabaseExport;
 use super::Storage;
@@ -180,7 +185,7 @@ impl<K> DatabaseStorage<K> {
         let database = self.database()?;
 
         // As this query only contains one `MIN()` aggregate function, the columns that
-        // do not appear in the `GROUP BY` clause are taken from whichever `mdoc_copy`
+        // do not appear in the `GROUP BY` clause are taken from whichever `attestation_copy`
         // row has the lowest disclosure count. This uses the "bare columns in aggregate
         // queries" feature that SQLite provides.
         //
@@ -194,6 +199,10 @@ impl<K> DatabaseStorage<K> {
             .column(attestation_copy::Column::KeyIdentifier)
             .column(attestation_copy::Column::Attestation)
             .column(attestation::Column::TypeMetadata)
+            .expr_as(
+                Func::cust("json_group_array").arg(Expr::col(attestation_copy::Column::RevocationStatus)),
+                "revocation_statuses",
+            )
             .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
             .group_by(attestation_copy::Column::AttestationId)
             .order_by(attestation_copy::Column::Id, Order::Asc);
@@ -203,10 +212,10 @@ impl<K> DatabaseStorage<K> {
             None => select,
         };
 
-        let copies: Vec<(Uuid, Uuid, AttestationFormat, String, CompressedBlob, TypeMetadataModel)> =
-            select.into_tuple().all(database.connection()).await?;
-
-        let attestations = copies
+        let attestations = select
+            .into_tuple()
+            .all(database.connection())
+            .await?
             .into_iter()
             .map(
                 |(
@@ -216,7 +225,8 @@ impl<K> DatabaseStorage<K> {
                     key_identifier,
                     attestation_bytes,
                     metadata,
-                )| {
+                    revocation_statuses,
+                ): (_, _, _, _, CompressedBlob, TypeMetadataModel, String)| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -235,11 +245,20 @@ impl<K> DatabaseStorage<K> {
 
                     let normalized_metadata = metadata.documents.to_normalized()?;
 
+                    let revocation_status_raw: Vec<Option<String>> = serde_json::from_str(&revocation_statuses)?;
+                    let revocation_statuses: Vec<Option<RevocationStatus>> = revocation_status_raw
+                        .into_iter()
+                        .map(|status| {
+                            status.map(|status| status.parse().expect("stored revocation status should be parseable"))
+                        })
+                        .collect_vec();
+
                     let stored_copy = StoredAttestationCopy {
                         attestation_id,
                         attestation_copy_id,
                         attestation,
                         normalized_metadata,
+                        revocation_status: determine_revocation_status(&revocation_statuses),
                     };
 
                     Ok(stored_copy)
@@ -254,6 +273,7 @@ impl<K> DatabaseStorage<K> {
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format: Option<CredentialFormat>,
+        condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         // Collect all conditions for the requested attestation types using OR.
         let attestation_type_condition = Condition::any();
@@ -284,7 +304,7 @@ impl<K> DatabaseStorage<K> {
             attestation_type_condition.add(attestation::Column::AttestationType.is_in(attestation_types_iter));
 
         // The top-level conditions are joined with AND, starting with the attestation types.
-        let condition = Condition::all().add(attestation_type_condition);
+        let condition = condition.unwrap_or(Condition::all()).add(attestation_type_condition);
 
         // If a specific format was requested, add that to condition.
         let condition = if let Some(format) = format {
@@ -410,9 +430,10 @@ where
     }
 }
 
+#[async_trait::async_trait]
 impl<K> Storage for DatabaseStorage<K>
 where
-    K: PlatformEncryptionKey,
+    K: PlatformEncryptionKey + Send + Sync,
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
@@ -580,7 +601,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -595,7 +616,7 @@ where
 
     /// Update data entry in the key-value table using the provided key,
     /// inserting the data if it is not already present.
-    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn upsert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let model = keyed_data::ActiveModel {
@@ -614,7 +635,7 @@ where
         Ok(())
     }
 
-    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()> {
+    async fn delete_data<D: KeyedData + Sync>(&mut self) -> StorageResult<()> {
         let database = self.database()?;
 
         keyed_data::Entity::delete_by_id(D::KEY.to_string())
@@ -802,7 +823,7 @@ where
         &'a self,
         attestation_types: &HashSet<&'a str>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations_with_parameters(attestation_types, None)
+        self.query_unique_attestations_with_parameters(attestation_types, None, None)
             .await
     }
 
@@ -811,8 +832,32 @@ where
         attestation_types: &HashSet<&'a str>,
         format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations_with_parameters(attestation_types, Some(format))
+        self.query_unique_attestations_with_parameters(attestation_types, Some(format), None)
             .await
+    }
+
+    async fn fetch_valid_unique_attestations_by_types_and_format<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+        format: CredentialFormat,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        self.query_unique_attestations_with_parameters(
+            attestation_types,
+            Some(format),
+            Some(
+                Condition::all()
+                    .add(
+                        attestation_copy::Column::RevocationStatus
+                            .is_in([
+                                RevocationStatus::Valid.to_string(),
+                                RevocationStatus::Undetermined.to_string(),
+                            ])
+                            .or(attestation_copy::Column::RevocationStatus.is_null()),
+                    )
+                    .into_condition(),
+            ),
+        )
+        .await
     }
 
     async fn log_disclosure_event(
@@ -982,6 +1027,62 @@ where
 
         Ok(exists)
     }
+
+    async fn fetch_all_revocation_info(&self) -> StorageResult<Vec<RevocationInfo>> {
+        let connection = self.database()?.connection();
+
+        let query = attestation_copy::Entity::find()
+            .select_only()
+            .column(attestation_copy::Column::Id)
+            .column(attestation_copy::Column::StatusListUrl)
+            .column(attestation_copy::Column::StatusListIndex)
+            .column(attestation_copy::Column::IssuerCertificateDn)
+            .filter(
+                attestation_copy::Column::StatusListUrl
+                    .is_not_null()
+                    .and(attestation_copy::Column::StatusListIndex.is_not_null())
+                    .and(
+                        attestation_copy::Column::RevocationStatus
+                            .is_null()
+                            .or(attestation_copy::Column::RevocationStatus.ne(RevocationStatus::Revoked.to_string())),
+                    ),
+            )
+            .into_partial_model::<revocation_info::RevocationInfo>();
+
+        let result = query.all(connection).await?;
+
+        Ok(result.into_iter().map(Into::into).collect_vec())
+    }
+
+    async fn update_revocation_statuses(&self, updates: Vec<(Uuid, RevocationStatus)>) -> StorageResult<()> {
+        if updates.is_empty() {
+            return Ok(());
+        }
+
+        // Use a transaction for atomicity
+        let tx = self.database()?.connection().begin().await?;
+
+        // Batch updates by status to enable prepared statement reuse
+        // Group: Valid -> [id1, id2, ...], Invalid -> [id3, id4, ...], etc.
+        let mut updates_by_status: HashMap<String, Vec<Uuid>> = HashMap::new();
+        for (id, status) in updates {
+            updates_by_status.entry(status.to_string()).or_default().push(id);
+        }
+
+        // Execute one UPDATE per status value, but with multiple IDs
+        // UPDATE attestation_copy SET revocation_status = ? WHERE id IN (?, ?, ...)
+        for (status, ids) in updates_by_status {
+            attestation_copy::Entity::update_many()
+                .col_expr(attestation_copy::Column::RevocationStatus, Expr::value(status))
+                .filter(attestation_copy::Column::Id.is_in(ids))
+                .exec(&tx)
+                .await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
+    }
 }
 
 fn create_attestation_copy_models(
@@ -993,32 +1094,125 @@ fn create_attestation_copy_models(
         .into_iter()
         .map(|credential| match credential {
             IssuedCredential::MsoMdoc { mdoc } => {
-                let attestation_bytes = cbor_serialize(mdoc.issuer_signed())?;
+                let issuer_certificate_dn = mdoc
+                    .issuer_certificate()
+                    .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
+                    .distinguished_name_canonical()
+                    .expect("the issuer certificate should contain a valid DN at this point");
+
+                let (mso, private_key_id, issuer_signed) = mdoc.into_components();
+
+                let attestation_bytes = cbor_serialize(&issuer_signed)?;
+                let (status_uri, status_index) = mso
+                    .status
+                    .map(|status| match status {
+                        StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    })
+                    .unwrap_or((None, None));
+
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
                     attestation_format: Set(AttestationFormat::Mdoc),
-                    key_identifier: Set(mdoc.into_private_key_id()),
+                    key_identifier: Set(private_key_id),
+                    status_list_url: Set(status_uri),
+                    status_list_index: Set(status_index),
+                    issuer_certificate_dn: Set(issuer_certificate_dn),
+                    revocation_status: Set(None),
                     attestation: Set(CompressedBlob::new(&attestation_bytes)?),
                 };
 
                 Ok::<_, StorageError>(model)
             }
             IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
+                let issuer_certificate_dn = sd_jwt
+                    .issuer_certificate()
+                    .distinguished_name_canonical()
+                    .expect("the issuer certificate should contain a valid DN at this point");
+                let attestation_bytes = sd_jwt.to_string().into_bytes();
+
+                let (status_uri, status_index) = sd_jwt
+                    .into_claims()
+                    .status
+                    .map(|status| match status {
+                        StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    })
+                    .unwrap_or((None, None));
+
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
                     attestation_format: Set(AttestationFormat::SdJwt),
                     key_identifier: Set(key_identifier),
-                    attestation: Set(CompressedBlob::new(&sd_jwt.to_string().into_bytes())?),
+                    status_list_url: Set(status_uri),
+                    status_list_index: Set(status_index),
+                    issuer_certificate_dn: Set(issuer_certificate_dn),
+                    revocation_status: Set(None),
+                    attestation: Set(CompressedBlob::new(&attestation_bytes)?),
                 };
 
                 Ok(model)
             }
         })
         .try_collect()
+}
+
+fn determine_revocation_status(revocation_statuses: &[Option<RevocationStatus>]) -> Option<RevocationStatus> {
+    let mut has_valid = false;
+    let mut has_invalid = false;
+    let mut has_undetermined = false;
+    let mut has_any_checked = false;
+
+    for status in revocation_statuses {
+        match status {
+            Some(RevocationStatus::Valid) => {
+                has_valid = true;
+                has_any_checked = true;
+            }
+            Some(RevocationStatus::Revoked) => {
+                has_invalid = true;
+                has_any_checked = true;
+            }
+            Some(RevocationStatus::Undetermined) => {
+                has_undetermined = true;
+                has_any_checked = true;
+            }
+            Some(RevocationStatus::Corrupted) => {
+                // Corrupted copy, but still counts as checked
+                has_any_checked = true;
+            }
+            None => {
+                // Status not yet checked, ignore it completely
+                continue;
+            }
+        }
+    }
+
+    // If no statuses have been checked at all, return None
+    if !has_any_checked {
+        return None;
+    }
+
+    // Apply rules in order of priority:
+    // 1. Valid if one copy is Valid
+    if has_valid {
+        return Some(RevocationStatus::Valid);
+    }
+
+    // 2. Invalid if one copy is Invalid and no copy is Valid
+    if has_invalid {
+        return Some(RevocationStatus::Revoked);
+    }
+
+    // 3. Undetermined if one copy is Undetermined and no copy is Valid | Invalid
+    if has_undetermined {
+        return Some(RevocationStatus::Undetermined);
+    }
+
+    // 4. Corrupted if all checked copies are Corrupted
+    Some(RevocationStatus::Corrupted)
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -1082,6 +1276,7 @@ pub(crate) mod tests {
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use rstest::rstest;
     use serde::Deserialize;
     use serde::Serialize;
     use tokio::fs;
@@ -1437,17 +1632,17 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1523,7 +1718,7 @@ pub(crate) mod tests {
         assert!(!extended_vcts.is_empty());
 
         let fetched_unique = storage
-            .fetch_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1618,17 +1813,17 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::MsoMdoc)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_sd_jwt = storage
-            .fetch_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&attestation_types, CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
         let fetched_unique_other = storage
-            .fetch_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&HashSet::from(["other"]), CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -1657,7 +1852,7 @@ pub(crate) mod tests {
         assert!(!extended_vcts.is_empty());
 
         let fetched_unique = storage
-            .fetch_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::SdJwt)
+            .fetch_valid_unique_attestations_by_types_and_format(&extended_vcts, CredentialFormat::SdJwt)
             .await
             .expect("Could not fetch unique attestations by types and format");
 
@@ -2003,6 +2198,7 @@ pub(crate) mod tests {
             AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
             issuer_registration.organization,
+            None,
             sd_jwt.decoded_claims().unwrap(),
             &EmptyPresentationConfig,
         )
@@ -2143,6 +2339,7 @@ pub(crate) mod tests {
                     AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,
                     issuer_registration.organization,
+                    None,
                     &payload.previewable_payload.attributes,
                     &EmptyPresentationConfig,
                 )
@@ -2202,5 +2399,134 @@ pub(crate) mod tests {
                 .collect_vec(),
             vec![&timestamp, &timestamp, &timestamp_older, &timestamp_even_older]
         );
+    }
+
+    async fn find_revocation_status(db: &impl ConnectionTrait, attestation_copy_id: Uuid) -> Option<RevocationStatus> {
+        attestation_copy::Entity::find_by_id(attestation_copy_id)
+            .select_only()
+            .column(attestation_copy::Column::RevocationStatus)
+            .into_tuple::<Option<String>>()
+            .one(db)
+            .await
+            .unwrap()
+            .flatten()
+            .map(|s| s.parse().unwrap())
+    }
+
+    #[tokio::test]
+    async fn test_fetch_all_revocation_info_and_update_status() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        // Create issued_copies that will be inserted into the database
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
+        let issued_copies =
+            IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential].try_into().unwrap());
+
+        let attestation_type = sd_jwt.claims().vct.clone();
+        let attestation_presentation = AttestationPresentation::new_mock();
+
+        // Insert sd_jwt
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies.clone(),
+                        attestation_type,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    attestation_presentation.clone(),
+                )],
+            )
+            .await
+            .unwrap();
+
+        let revocation_info = storage.fetch_all_revocation_info().await.unwrap();
+
+        assert_eq!(2, revocation_info.len());
+
+        let revocation_info = revocation_info.first().unwrap();
+        assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
+        assert_eq!(
+            ISSUER_KEY.certificate().distinguished_name_canonical().unwrap(),
+            revocation_info.issuer_cert_distinguished_name
+        );
+
+        assert_eq!(
+            None,
+            find_revocation_status(
+                storage.database().unwrap().connection(),
+                revocation_info.attestation_copy_id,
+            )
+            .await
+        );
+
+        storage
+            .update_revocation_statuses(vec![(revocation_info.attestation_copy_id, RevocationStatus::Valid)])
+            .await
+            .unwrap();
+
+        assert_eq!(
+            Some(RevocationStatus::Valid),
+            find_revocation_status(
+                storage.database().unwrap().connection(),
+                revocation_info.attestation_copy_id,
+            )
+            .await
+        );
+
+        // fetch_all_revocation_info should not return revocation info for attestations that have been revoked
+        storage
+            .update_revocation_statuses(vec![(revocation_info.attestation_copy_id, RevocationStatus::Revoked)])
+            .await
+            .unwrap();
+        let revocation_info = storage.fetch_all_revocation_info().await.unwrap();
+        assert_eq!(1, revocation_info.len());
+    }
+
+    #[rstest]
+    // Rule 1: Valid if one copy is Valid
+    #[case(vec![Some(RevocationStatus::Valid)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Revoked)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid), None], Some(RevocationStatus::Valid))]
+    // Rule 2: Invalid if one copy is Invalid and no copy is Valid
+    #[case(vec![Some(RevocationStatus::Revoked)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Revoked), None], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Revoked), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Revoked))]
+    // Rule 3: Undetermined if one copy is Undetermined and no copy is Valid | Invalid
+    #[case(vec![Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Undetermined))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Undetermined), None], Some(RevocationStatus::Undetermined))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined))]
+    // Rule 4: Corrupted if all copies are Corrupted
+    #[case(vec![Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
+    // None when status hasn't been checked yet
+    #[case(vec![None], None)]
+    #[case(vec![None, None], None)]
+    #[case(vec![None, Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
+    #[case(vec![Some(RevocationStatus::Undetermined), None, None], Some(RevocationStatus::Undetermined))]
+    // Empty vec edge case
+    #[case(vec![], None)]
+    fn test_determine_revocation_status(
+        #[case] input: Vec<Option<RevocationStatus>>,
+        #[case] expected: Option<RevocationStatus>,
+    ) {
+        let result = determine_revocation_status(&input);
+        assert_eq!(result, expected);
     }
 }

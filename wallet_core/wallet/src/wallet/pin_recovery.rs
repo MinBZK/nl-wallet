@@ -121,7 +121,7 @@ pub(super) enum PinRecoverySession<DS, IS> {
     },
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -615,6 +615,7 @@ mod tests {
                         sd_jwt: create_example_pid_sd_jwt().0,
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
+                    None,
                 )])
             });
 
@@ -919,6 +920,7 @@ mod tests {
                         sd_jwt: create_example_pid_sd_jwt().0,
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
+                    None,
                 )])
             });
 

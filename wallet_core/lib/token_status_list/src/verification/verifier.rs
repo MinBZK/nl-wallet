@@ -1,63 +1,66 @@
+use std::sync::Arc;
+
 use chrono::DateTime;
 use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::warn;
-use url::Url;
 
-use crypto::x509::BorrowingCertificate;
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusClaim::StatusList;
+use attestation_types::status_claim::StatusListClaim;
+use crypto::x509::DistinguishedName;
 use utils::generator::Generator;
 
 use crate::status_list::StatusType;
 use crate::verification::client::StatusListClient;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum RevocationStatus {
     Valid,
-    Invalid,
+    Revoked,
     Undetermined,
     Corrupted,
 }
 
 #[derive(Debug)]
-pub struct RevocationVerifier<C>(C);
+pub struct RevocationVerifier<C>(Arc<C>);
 
 impl<C> RevocationVerifier<C>
 where
     C: StatusListClient,
 {
-    pub fn new(client: C) -> Self {
+    pub fn new(client: Arc<C>) -> Self {
         Self(client)
     }
 
     pub async fn verify(
         &self,
         issuer_trust_anchors: &[TrustAnchor<'_>],
-        attestation_signing_certificate: &BorrowingCertificate,
-        url: Url,
+        attestation_signing_certificate_dn: DistinguishedName,
+        status_claim: StatusClaim,
         time: &impl Generator<DateTime<Utc>>,
-        index: usize,
     ) -> RevocationStatus {
-        match self.0.fetch(url.clone()).await {
-            Ok(status_list_token) => match status_list_token.parse_and_verify(
-                issuer_trust_anchors,
-                attestation_signing_certificate,
-                &url,
-                time,
-            ) {
-                Ok(status_list) => match status_list.single_unpack(index) {
-                    StatusType::Valid => RevocationStatus::Valid,
-                    _ => RevocationStatus::Invalid,
-                },
-                Err(err) => {
-                    warn!("Status list token fails verification: {err}");
-                    RevocationStatus::Corrupted
-                }
-            },
+        let StatusList(StatusListClaim { uri, idx }) = status_claim;
+
+        let status_list_token = match self.0.fetch(uri.clone()).await {
+            Ok(token) => token,
             Err(err) => {
                 warn!("Status list token fetching fails: {err}");
-                RevocationStatus::Undetermined
+                return RevocationStatus::Undetermined;
+            }
+        };
+
+        match status_list_token.parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, &uri, time) {
+            Ok(status_list) => match status_list.single_unpack(idx.try_into().unwrap()) {
+                StatusType::Valid => RevocationStatus::Valid,
+                _ => RevocationStatus::Revoked,
+            },
+            Err(err) => {
+                warn!("Status list token fails verification: {err}");
+                RevocationStatus::Corrupted
             }
         }
     }
@@ -66,12 +69,16 @@ where
 #[cfg(test)]
 mod test {
     use std::ops::Add;
+    use std::sync::Arc;
 
     use chrono::Days;
     use chrono::Utc;
     use futures::FutureExt;
 
+    use attestation_types::status_claim::StatusClaim::StatusList;
+    use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::DistinguishedName;
     use jwt::error::JwtError;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -87,16 +94,18 @@ mod test {
         let keypair = ca.generate_status_list_mock().unwrap();
         let iss_keypair = ca.generate_issuer_mock().unwrap();
 
-        let verifier = RevocationVerifier::new(StatusListClientStub::new(keypair));
+        let verifier = RevocationVerifier::new(Arc::new(StatusListClientStub::new(keypair)));
 
         // Index 1 is valid
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -106,23 +115,27 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 3,
+                }),
                 &MockTimeGenerator::default(),
-                3,
             )
             .now_or_never()
             .unwrap();
-        assert_eq!(RevocationStatus::Invalid, status);
+        assert_eq!(RevocationStatus::Revoked, status);
 
         // Corrupted when the sub claim doesn't match
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
-                "https://different_uri".parse().unwrap(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://different_uri".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -132,10 +145,12 @@ mod test {
         let status = verifier
             .verify(
                 &[],
-                iss_keypair.certificate(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -145,10 +160,12 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::new(Utc::now().add(Days::new(2))),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -158,10 +175,12 @@ mod test {
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                ca.generate_pid_issuer_mock().unwrap().certificate(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                DistinguishedName::new(String::from("CN=Different CA")),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();
@@ -172,14 +191,16 @@ mod test {
         client
             .expect_fetch()
             .returning(|_| Err(StatusListClientError::JwtParsing(JwtError::MissingX5c.into())));
-        let verifier = RevocationVerifier::new(client);
+        let verifier = RevocationVerifier::new(Arc::new(client));
         let status = verifier
             .verify(
                 &[ca.to_trust_anchor()],
-                iss_keypair.certificate(),
-                "https://example.com/statuslists/1".parse().unwrap(),
+                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: 1,
+                }),
                 &MockTimeGenerator::default(),
-                1,
             )
             .now_or_never()
             .unwrap();

@@ -12,7 +12,6 @@ use tracing::debug;
 use tracing::warn;
 
 use attestation_types::qualification::AttestationQualification;
-use attestation_types::status_claim::StatusClaim;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use token_status_list::verification::client::StatusListClient;
@@ -326,15 +325,14 @@ impl Document {
         debug!("signature valid");
 
         let revocation_status = match &mso.status {
-            Some(StatusClaim::StatusList(status_list_claim)) => {
+            Some(status_claim) => {
                 let issuer_certificate = &self.issuer_signed.issuer_auth.signing_cert()?;
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
-                        issuer_certificate,
-                        status_list_claim.uri.clone(),
+                        issuer_certificate.distinguished_name_canonical()?,
+                        status_claim.clone(),
                         time,
-                        status_list_claim.idx.try_into().unwrap(),
                     )
                     .await;
                 Some(revocation_status)
@@ -361,6 +359,7 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use std::ops::Add;
+    use std::sync::Arc;
 
     use chrono::Duration;
     use chrono::Utc;
@@ -450,7 +449,9 @@ mod tests {
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
-                &RevocationVerifier::new(StatusListClientStub::new(ca.generate_status_list_mock().unwrap())),
+                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                    ca.generate_status_list_mock().unwrap(),
+                ))),
             )
             .await
             .unwrap();

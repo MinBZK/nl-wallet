@@ -5,6 +5,7 @@ use chrono::Utc;
 use itertools::Itertools;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::x509::CertificateError;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
@@ -118,6 +119,9 @@ pub enum DecoderError {
 
     #[error("failed to verify SD-JWT: {0}")]
     JwtVerification(#[from] JwtX5cError),
+
+    #[error("unable to extract DN from issuer certificate: {0}")]
+    IssuerDnExtraction(#[from] CertificateError),
 
     #[error("invalid KB-JWT: {0}")]
     KeyBinding(#[from] KeyBindingError),

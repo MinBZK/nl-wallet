@@ -25,7 +25,7 @@ pub enum AttestationsError {
 
 pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
@@ -46,7 +46,7 @@ where
             .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
             .collect();
 
-        if let Some(ref mut callback) = self.attestations_callback {
+        if let Some(ref mut callback) = self.attestations_callback.lock().as_deref_mut() {
             callback(attestations);
         }
 
@@ -58,7 +58,7 @@ where
         &mut self,
         callback: AttestationsCallback,
     ) -> Result<Option<AttestationsCallback>, AttestationsError> {
-        let previous_callback = self.attestations_callback.replace(callback);
+        let previous_callback = self.attestations_callback.lock().replace(callback);
 
         if self.registration.is_registered() {
             self.emit_attestations().await?;
@@ -68,7 +68,7 @@ where
     }
 
     pub fn clear_attestations_callback(&mut self) -> Option<AttestationsCallback> {
-        self.attestations_callback.take()
+        self.attestations_callback.lock().take()
     }
 }
 
@@ -137,12 +137,14 @@ mod tests {
                         sd_jwt,
                     },
                     sd_jwt_metadata,
+                    None,
                 ),
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::MsoMdoc { mdoc },
                     mdoc_metadata,
+                    None,
                 ),
             ])
         });

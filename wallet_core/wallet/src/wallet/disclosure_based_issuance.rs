@@ -71,7 +71,7 @@ pub enum DisclosureBasedIssuanceError {
 // However, the `flutter_api` already knows which flow it is in anyway, because it displays
 // different things to the user in each flow. So keeping this a distinct method is more
 // pragmatic.
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -342,6 +342,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::MsoMdoc { mdoc },
             metadata,
+            None,
         );
 
         let expectation_attestation_copy = stored_attestation_copy.clone();

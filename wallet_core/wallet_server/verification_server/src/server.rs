@@ -66,7 +66,7 @@ where
         )
         .await?;
 
-    let revocation_verifier = RevocationVerifier::new(status_list_client);
+    let revocation_verifier = RevocationVerifier::new(Arc::new(status_list_client));
 
     let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
         settings.server_settings.public_url.join_base_url("disclosure/sessions"),

@@ -25,7 +25,7 @@ snapshot_test = []
 test = ["openid4vc/mock", "platform_support/mock_hw_keystore", "dep:mockall"]
 
 [dependencies]
-thiserror.workspace = true
+async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cfg-if.workspace = true
@@ -56,6 +56,7 @@ serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64", "json"] }
 strum = { workspace = true, features = ["derive"] }
 tempfile.workspace = true
+thiserror.workspace = true
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
@@ -78,6 +79,7 @@ openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
 sd_jwt.path = "../lib/sd_jwt"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
+token_status_list.path = "../lib/token_status_list"
 update_policy_model.path = "../update_policy/model"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 utils.path = "../lib/utils"

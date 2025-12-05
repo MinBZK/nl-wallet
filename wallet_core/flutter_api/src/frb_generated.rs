@@ -1284,6 +1284,18 @@ impl CstDecode<crate::models::pin::PinValidationResult> for i32 {
         }
     }
 }
+impl CstDecode<crate::models::revocation::RevocationStatus> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::revocation::RevocationStatus {
+        match self {
+            0 => crate::models::revocation::RevocationStatus::Valid,
+            1 => crate::models::revocation::RevocationStatus::Revoked,
+            2 => crate::models::revocation::RevocationStatus::Undetermined,
+            3 => crate::models::revocation::RevocationStatus::Corrupted,
+            _ => unreachable!("Invalid variant for RevocationStatus: {}", self),
+        }
+    }
+}
 impl CstDecode<crate::models::wallet_state::TransferRole> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::wallet_state::TransferRole {
@@ -1458,12 +1470,14 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_attestationType = <String>::sse_decode(deserializer);
         let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
         let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
+        let mut var_revocationStatus = <Option<crate::models::revocation::RevocationStatus>>::sse_decode(deserializer);
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationPresentation {
             identity: var_identity,
             attestation_type: var_attestationType,
             display_metadata: var_displayMetadata,
             issuer: var_issuer,
+            revocation_status: var_revocationStatus,
             attributes: var_attributes,
         };
     }
@@ -1966,6 +1980,17 @@ impl SseDecode for Option<crate::models::attestation::RenderingMetadata> {
     }
 }
 
+impl SseDecode for Option<crate::models::revocation::RevocationStatus> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::models::revocation::RevocationStatus>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<u64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2106,6 +2131,20 @@ impl SseDecode for crate::models::disclosure::RequestPolicy {
             data_shared_with_third_parties: var_dataSharedWithThirdParties,
             data_deletion_possible: var_dataDeletionPossible,
             policy_url: var_policyUrl,
+        };
+    }
+}
+
+impl SseDecode for crate::models::revocation::RevocationStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::models::revocation::RevocationStatus::Valid,
+            1 => crate::models::revocation::RevocationStatus::Revoked,
+            2 => crate::models::revocation::RevocationStatus::Undetermined,
+            3 => crate::models::revocation::RevocationStatus::Corrupted,
+            _ => unreachable!("Invalid variant for RevocationStatus: {}", inner),
         };
     }
 }
@@ -2460,6 +2499,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPr
             self.attestation_type.into_into_dart().into_dart(),
             self.display_metadata.into_into_dart().into_dart(),
             self.issuer.into_into_dart().into_dart(),
+            self.revocation_status.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -2929,6 +2969,26 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::RequestPolicy>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::revocation::RevocationStatus {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Valid => 0.into_dart(),
+            Self::Revoked => 1.into_dart(),
+            Self::Undetermined => 2.into_dart(),
+            Self::Corrupted => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::revocation::RevocationStatus {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::revocation::RevocationStatus>
+    for crate::models::revocation::RevocationStatus
+{
+    fn into_into_dart(self) -> crate::models::revocation::RevocationStatus {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosureResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3286,6 +3346,7 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
         <String>::sse_encode(self.attestation_type, serializer);
         <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
         <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
+        <Option<crate::models::revocation::RevocationStatus>>::sse_encode(self.revocation_status, serializer);
         <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
     }
 }
@@ -3732,6 +3793,16 @@ impl SseEncode for Option<crate::models::attestation::RenderingMetadata> {
     }
 }
 
+impl SseEncode for Option<crate::models::revocation::RevocationStatus> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::models::revocation::RevocationStatus>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<u64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3847,6 +3918,24 @@ impl SseEncode for crate::models::disclosure::RequestPolicy {
         <bool>::sse_encode(self.data_shared_with_third_parties, serializer);
         <bool>::sse_encode(self.data_deletion_possible, serializer);
         <String>::sse_encode(self.policy_url, serializer);
+    }
+}
+
+impl SseEncode for crate::models::revocation::RevocationStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::models::revocation::RevocationStatus::Valid => 0,
+                crate::models::revocation::RevocationStatus::Revoked => 1,
+                crate::models::revocation::RevocationStatus::Undetermined => 2,
+                crate::models::revocation::RevocationStatus::Corrupted => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -4249,6 +4338,7 @@ mod io {
                 attestation_type: self.attestation_type.cst_decode(),
                 display_metadata: self.display_metadata.cst_decode(),
                 issuer: self.issuer.cst_decode(),
+                revocation_status: self.revocation_status.cst_decode(),
                 attributes: self.attributes.cst_decode(),
             }
         }
@@ -4332,6 +4422,13 @@ mod io {
         fn cst_decode(self) -> crate::models::disclosure::RequestPolicy {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
             CstDecode::<crate::models::disclosure::RequestPolicy>::cst_decode(*wrap).into()
+        }
+    }
+    impl CstDecode<crate::models::revocation::RevocationStatus> for *mut i32 {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::revocation::RevocationStatus {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::revocation::RevocationStatus>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<u64> for *mut u64 {
@@ -4867,6 +4964,7 @@ mod io {
                 attestation_type: core::ptr::null_mut(),
                 display_metadata: core::ptr::null_mut(),
                 issuer: Default::default(),
+                revocation_status: core::ptr::null_mut(),
                 attributes: core::ptr::null_mut(),
             }
         }
@@ -5515,6 +5613,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_revocation_status(value: i32) -> *mut i32 {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_u_64(value: u64) -> *mut u64 {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
     }
@@ -5748,6 +5851,7 @@ mod io {
         attestation_type: *mut wire_cst_list_prim_u_8_strict,
         display_metadata: *mut wire_cst_list_display_metadata,
         issuer: wire_cst_organization,
+        revocation_status: *mut i32,
         attributes: *mut wire_cst_list_attestation_attribute,
     }
     #[repr(C)]

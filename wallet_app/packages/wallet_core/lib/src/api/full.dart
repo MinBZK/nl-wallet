@@ -11,6 +11,7 @@ import '../models/image.dart';
 import '../models/instruction.dart';
 import '../models/localize.dart';
 import '../models/pin.dart';
+import '../models/revocation.dart';
 import '../models/transfer.dart';
 import '../models/uri.dart';
 import '../models/version_state.dart';

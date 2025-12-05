@@ -539,15 +539,14 @@ impl UnverifiedSdJwtPresentation {
         )?;
 
         let revocation_status = match &issuer_signed.payload().status {
-            Some(StatusClaim::StatusList(status_list_claim)) => {
+            Some(status_claim) => {
                 let issuer_certificate = issuer_signed.header().x5c.first();
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
-                        issuer_certificate,
-                        status_list_claim.uri.clone(),
+                        issuer_certificate.distinguished_name_canonical()?,
+                        status_claim.clone(),
                         time,
-                        status_list_claim.idx.try_into().unwrap(),
                     )
                     .await;
                 Some(revocation_status)
