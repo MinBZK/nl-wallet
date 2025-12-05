@@ -88,6 +88,7 @@ class WalletMapperProvider extends StatelessWidget {
             context.read(),
             context.read(),
             context.read(),
+            context.read(),
           ),
         ),
 

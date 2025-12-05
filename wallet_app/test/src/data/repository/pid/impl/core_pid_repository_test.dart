@@ -8,6 +8,7 @@ import 'package:wallet/src/util/mapper/card/attribute/claim_display_metadata_map
 import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/card/metadata_mapper.dart';
+import 'package:wallet/src/util/mapper/card/status/card_status_mapper.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
@@ -29,6 +30,7 @@ void main() {
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
       DisplayMetadataMapper(ImageMapper()),
+      CardStatusMapper(),
     );
     pidRepository = CorePidRepository(core, cardMapper);
   });

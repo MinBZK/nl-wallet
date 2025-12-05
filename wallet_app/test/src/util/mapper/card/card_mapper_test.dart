@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
+import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
@@ -29,6 +30,7 @@ void main() {
   late Mapper<CardAttributeWithCardId, DataAttribute> mockCardAttributeMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
   late Mapper<core.DisplayMetadata, CardDisplayMetadata> mockDisplayMetadataMapper;
+  late Mapper<core.RevocationStatus?, CardStatus> mockCardStatusMapper;
 
   late Mapper<core.AttestationPresentation, WalletCard> mapper;
 
@@ -36,11 +38,13 @@ void main() {
     mockCardAttributeMapper = MockMapper();
     mockOrganizationMapper = MockMapper();
     mockDisplayMetadataMapper = MockMapper();
+    mockCardStatusMapper = MockMapper();
 
     mapper = CardMapper(
       mockCardAttributeMapper,
       mockOrganizationMapper,
       mockDisplayMetadataMapper,
+      mockCardStatusMapper,
     );
   });
 
