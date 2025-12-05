@@ -8,7 +8,7 @@ const test = base.extend({
     await use(new DemoPage(page))
   },
 
-  // eslint-disable-next-line no-empty-pattern -- fixtures require destructuring
+  /* eslint-disable-next-line no-empty-pattern -- fixtures require destructuring */
   isMobileDevice: async ({}, use, testInfo) => {
     await use(testInfo.project.name.split("-")[1] === "mobile" || testInfo.project.name.split("-")[1] === "tablet")
   },
@@ -27,7 +27,7 @@ const test = base.extend({
 
   visualCheck: async ({ page, demoPage }, use) => {
     await page.waitForLoadState("load")
-    // eslint-disable-next-line playwright/no-wait-for-timeout -- hard wait needed for screenshot test
+    /* eslint-disable-next-line playwright/no-wait-for-timeout -- hard wait needed for screenshot test */
     await page.waitForTimeout(1000)
     const visualCheck = async (screenshotName) => {
       const walletModal = await demoPage.getWalletModal()
@@ -116,7 +116,7 @@ test.describe("LTC5, LTC15, LTC18 Verifier/Issuer displays disclosure/issuance p
     await demoPage.goToAmsterdamMunicipality()
     await demoPage.openWalletLogin()
     /* eslint-disable playwright/no-conditional-expect */
-    // eslint-disable-next-line playwright/no-conditional-in-test,
+    /* eslint-disable-next-line playwright/no-conditional-in-test, */
     if (isMobileDevice) {
       await expect(await demoPage.getSameDeviceButton()).toBeVisible()
       await expect(await demoPage.getCrossDeviceButton()).toBeVisible()
@@ -278,5 +278,31 @@ test.describe("LTC5, LTC15, LTC18 Verifier/Issuer displays disclosure/issuance p
     expect(await demoPage.getModalMessageHeaderText()).toBe(
       isMobileDevice ? "Op welk apparaat staat je NL Wallet app?" : "Scan de QR-code met je NL Wallet app",
     )
+  })
+
+  test("ltc5 ltc7 Wallet web issuer", async ({ demoPage, isMobileDevice, accessibilityCheck, visualCheck }) => {
+    await demoPage.goToUniversity()
+    await demoPage.openWalletLogin()
+    /* eslint-disable playwright/no-conditional-expect */
+    /* eslint-disable-next-line playwright/no-conditional-in-test, */
+    if (isMobileDevice) {
+      await expect(await demoPage.getSameDeviceButton()).toBeVisible()
+      await expect(await demoPage.getCrossDeviceButton()).toBeVisible()
+      await expect(await demoPage.getQrCode()).toBeHidden()
+      await expect(await demoPage.getCloseButton()).toBeVisible()
+      expect(await demoPage.getWebsiteLink()).toBeDefined()
+      await accessibilityCheck()
+      await visualCheck("wallet-web-issuer-mobile-device.png")
+    } else {
+      await expect(await demoPage.getSameDeviceButton()).toBeHidden()
+      await expect(await demoPage.getCrossDeviceButton()).toBeHidden()
+      await expect(await demoPage.getQrCode()).toBeVisible()
+      await expect(await demoPage.getCloseButton()).toBeVisible()
+      expect(await demoPage.getWebsiteLink()).toBeDefined()
+      expect(await demoPage.getModalMessageHeaderText()).toBe("Scan the QR code with your NL Wallet app")
+      await accessibilityCheck()
+      await visualCheck("wallet-web-issuer-qr.png")
+    }
+    /* eslint-enable */
   })
 })
