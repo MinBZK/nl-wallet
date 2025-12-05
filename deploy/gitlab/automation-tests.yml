@@ -151,7 +151,6 @@ browserstack-a11y-merge:
   extends: .run-automation-tests-base
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-branch, rules]
   variables:
     BROWSERSTACK_API_BASE: "https://api-app-accessibility.browserstack.com/automate/api/v1"
   script:
