@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg class="gsndiagram" viewBox="0 0 1724 1500" xmlns="http://www.w3.org/2000/svg">
+<svg class="gsndiagram" viewBox="0 0 1690 1536" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <marker id="supportedby_arrow" markerHeight="9" markerUnits="userSpaceOnUse" markerWidth="10" orient="auto-start-reverse" refX="0" refY="4.5">
 <polyline fill="black" points="0 0, 10 4.5, 0 9"/>
@@ -24,277 +24,288 @@ svg { background-color: white;}
 <a href="sole-control.gsn.svg#node_g_wbenforcessolecontrol">
 <g class="gsn_module_sole_control_main gsnelem gsnawaygoal" id="node_g_wbenforcessolecontrol">
 <title>G_WbEnforcesSoleControl</title>
-<path class="border" d="M1029,97 V20 H1207 V97" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1036" y="40">G_WbEnforcesSoleControl</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1036" y="58">WB enforces that the User has</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1036" y="71">sole control over all</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1036" y="84">attestations managed in Wallet</text>
+<path class="border" d="M1017,111 V20 H1183 V111" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1024" y="40">G_WbEnforcesSoleControl</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1024" y="58">WB enforces that the User</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1024" y="71">has sole control over all</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1024" y="84">attestations managed in</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1024" y="97">Wallet</text>
 <a href="sole-control.gsn.svg#node_g_wbenforcessolecontrol">
-<path class="border" d="M1029,97 H1207 v27 H1029 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1063" y="117">sole_control_main</text>
+<path class="border" d="M1017,111 H1183 v27 H1017 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1051" y="131">sole_control_main</text>
 </a>
-<use href="#module_icon" x="1036" y="104"/>
+<use href="#module_icon" x="1024" y="118"/>
 </g>
 </a>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_privkeyrequires2fa">
 <title>G_PrivKeyRequires2fa</title>
-<path class="border" d="M1024,164 L1212,164 L1212,234 L1024,234 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1031" y="184">G_PrivKeyRequires2fa</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1031" y="202">WB allows usage of PrivKey only</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1031" y="215">after 2FA authentication of</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1031" y="228">User</text>
+<path class="border" d="M1018,178 L1182,178 L1182,248 L1018,248 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1025" y="198">G_PrivKeyRequires2fa</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1025" y="216">WB allows usage of PrivKey</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1025" y="229">only after 2FA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1025" y="242">authentication of User</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnstgy" id="node_s_possessionandknowledge">
 <title>S_PossessionAndKnowledge</title>
-<path class="border" d="M1027,274 L1223,274 L1209,332 L1013,332 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1034" y="294">S_PossessionAndKnowledge</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1031" y="312">Use possession &amp; knowledge</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1028" y="325">factor</text>
+<path class="border" d="M1009,288 L1205,288 L1191,346 L995,346 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1016" y="308">S_PossessionAndKnowledge</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1013" y="326">Use possession &amp; knowledge</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1010" y="339">factor</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_maintain2faintegrity">
 <title>G_Maintain2faIntegrity</title>
-<path class="border" d="M669,384 L839,384 L839,442 L669,442 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="676" y="404">G_Maintain2faIntegrity</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="676" y="422">Maintain integrity of both 2FA</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="676" y="435">factors</text>
+<path class="border" d="M675,407 L819,407 L819,465 L675,465 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="682" y="427">G_Maintain2faIntegrity</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="682" y="445">Maintain integrity of both</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="682" y="458">2FA factors</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnasmp" id="node_a_userdoesnotsharepin">
 <title>A_UserDoesNotSharePin</title>
-<path class="border" d="M879,413 a128,41,0,1,0,256,0 a128,41,0,1,0,-256,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="923" y="398">A_UserDoesNotSharePin</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="923" y="416">User does not share knowledge</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="923" y="429">factor with anyone</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1130" y="449">A</text>
+<path class="border" d="M859,436 a110,50,0,1,0,221,0 a110,50,0,1,0,-221,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="898" y="415">A_UserDoesNotSharePin</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="898" y="433">User does not share</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="898" y="446">knowledge factor with</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="898" y="459">anyone</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1074" y="481">A</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_use2fa">
 <title>G_Use2fa</title>
-<path class="border" d="M1410,384 L1554,384 L1554,442 L1410,442 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1417" y="404">G_Use2fa</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1417" y="422">Require 2FA auth before</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1417" y="435">allowing PrivKey usage</text>
+<path class="border" d="M1382,407 L1526,407 L1526,465 L1382,465 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1389" y="427">G_Use2fa</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1389" y="445">Require 2FA auth before</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1389" y="458">allowing PrivKey usage</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_usercanblockwallet">
 <title>G_UserCanBlockWallet</title>
-<path class="border" d="M303,494 L477,494 L477,552 L303,552 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="310" y="514">G_UserCanBlockWallet</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="310" y="532">User can block wallet if device</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="310" y="545">is lost</text>
+<path class="border" d="M317,526 L463,526 L463,584 L317,584 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="324" y="546">G_UserCanBlockWallet</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="324" y="564">User can block wallet if</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="324" y="577">device is lost</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_usercanchangepin">
 <title>G_UserCanChangePin</title>
-<path class="border" d="M531,501 L707,501 L707,545 L531,545 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="538" y="521">G_UserCanChangePin</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="538" y="539">User can securely change PIN</text>
+<path class="border" d="M535,526 L687,526 L687,584 L535,584 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="542" y="546">G_UserCanChangePin</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="542" y="564">User can securely change</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="542" y="577">PIN</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_walletdoesnotstorepin">
 <title>G_WalletDoesNotStorePin</title>
-<path class="border" d="M780,501 L942,501 L942,545 L780,545 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="787" y="521">G_WalletDoesNotStorePin</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="787" y="539">Wallet does not store PIN</text>
+<path class="border" d="M772,533 L934,533 L934,577 L772,577 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="779" y="553">G_WalletDoesNotStorePin</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="779" y="571">Wallet does not store PIN</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_wbblocksoncompromise">
 <title>G_WbBlocksOnCompromise</title>
-<path class="border" d="M1031,494 L1207,494 L1207,552 L1031,552 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1038" y="514">G_WbBlocksOnCompromise</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1038" y="532">WB blocks wallet on detected</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1038" y="545">device compromise</text>
+<path class="border" d="M1017,526 L1193,526 L1193,584 L1017,584 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1024" y="546">G_WbBlocksOnCompromise</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1024" y="564">WB blocks wallet on</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1024" y="577">detected device compromise</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_userproveshwkeycontrol">
 <title>G_UserProvesHwKeyControl</title>
-<path class="border" d="M1275,494 L1453,494 L1453,552 L1275,552 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1282" y="514">G_UserProvesHwKeyControl</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1282" y="532">User proves control of</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1282" y="545">device-bound hardware key</text>
+<path class="border" d="M1252,526 L1430,526 L1430,584 L1252,584 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1259" y="546">G_UserProvesHwKeyControl</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1259" y="564">User proves control of</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1259" y="577">device-bound hardware key</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_userprovespin">
 <title>G_UserProvesPin</title>
-<path class="border" d="M1513,501 L1689,501 L1689,545 L1513,545 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1520" y="521">G_UserProvesPin</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1520" y="539">User proves knowledge of PIN</text>
+<path class="border" d="M1492,526 L1644,526 L1644,584 L1492,584 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1499" y="546">G_UserProvesPin</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1499" y="564">User proves knowledge of</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1499" y="577">PIN</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnstgy" id="node_s_outofbandrevocation">
 <title>S_OutOfBandRevocation</title>
-<path class="border" d="M303,674 L491,674 L477,732 L289,732 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="310" y="694">S_OutOfBandRevocation</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="307" y="712">Enable out-of-band revocation</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="304" y="725">using server-generated code</text>
+<path class="border" d="M311,696 L483,696 L469,766 L297,766 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="319" y="716">S_OutOfBandRevocation</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="317" y="734">Enable out-of-band</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="315" y="747">revocation using</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="313" y="760">server-generated code</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_pinchangeuses2fa">
 <title>Sn_PinChangeUses2fa</title>
-<path class="border" d="M524,703 a95,95,0,1,0,190,0 a95,95,0,1,0,-190,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="541" y="688">Sn_PinChangeUses2fa</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="541" y="706">PIN change uses normal 2FA</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="541" y="719">process</text>
+<path class="border" d="M516,731 a95,95,0,1,0,190,0 a95,95,0,1,0,-190,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="533" y="716">Sn_PinChangeUses2fa</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="533" y="734">PIN change uses normal 2FA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="533" y="747">process</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_walletderivespinprivatekey">
 <title>Sn_WalletDerivesPinPrivateKey</title>
-<path class="border" d="M754,703 a107,107,0,1,0,214,0 a107,107,0,1,0,-214,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="771" y="688">Sn_WalletDerivesPinPrivateKey</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="771" y="706">Wallet stores salt &amp; derives</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="771" y="719">PinPrivateKey each time</text>
+<path class="border" d="M746,731 a107,107,0,1,0,214,0 a107,107,0,1,0,-214,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="763" y="716">Sn_WalletDerivesPinPrivateKey</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="763" y="734">Wallet stores salt &amp; derives</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="763" y="747">PinPrivateKey each time</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_wbrevokesonvulnerability">
 <title>Sn_WbRevokesOnVulnerability</title>
-<path class="border" d="M1008,703 a111,111,0,1,0,222,0 a111,111,0,1,0,-222,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1025" y="688">Sn_WbRevokesOnVulnerability</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1025" y="706">WB revokes keys &amp; blocks WUA on</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1025" y="719">detected vulnerability</text>
+<path class="border" d="M1000,731 a105,105,0,1,0,210,0 a105,105,0,1,0,-210,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1016" y="716">Sn_WbRevokesOnVulnerability</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1016" y="734">WB revokes keys &amp; blocks WUA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1016" y="747">on detected vulnerability</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnstgy" id="node_s_provehwkeypossession">
 <title>S_ProveHwKeyPossession</title>
-<path class="border" d="M1277,674 L1465,674 L1451,732 L1263,732 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1284" y="694">S_ProveHwKeyPossession</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1281" y="712">Prove possession via signed</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1278" y="725">nonces with device-bound key</text>
+<path class="border" d="M1257,696 L1439,696 L1425,766 L1243,766 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1264" y="716">S_ProveHwKeyPossession</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1262" y="734">Prove possession via</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1260" y="747">signed nonce with</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1258" y="760">device-bound key</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnstgy" id="node_s_verifypinknowledge">
 <title>S_VerifyPinKnowledge</title>
-<path class="border" d="M1505,674 L1711,674 L1697,732 L1491,732 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1513" y="694">S_VerifyPinKnowledge</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1510" y="712">Verify knowledge via</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1507" y="725">PIN-derived key &amp; signed nonces</text>
+<path class="border" d="M1493,696 L1657,696 L1643,766 L1479,766 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1501" y="716">S_VerifyPinKnowledge</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1499" y="734">Verify knowledge via</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1497" y="747">PIN-derived key &amp; signed</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1495" y="760">nonce</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_walletshowsrevocationcode">
 <title>Sn_WalletShowsRevocationCode</title>
-<path class="border" d="M20,968 a111,111,0,1,0,222,0 a111,111,0,1,0,-222,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="36" y="953">Sn_WalletShowsRevocationCode</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="36" y="971">Wallet shows revocation code</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="36" y="984">securely</text>
+<path class="border" d="M20,992 a111,111,0,1,0,222,0 a111,111,0,1,0,-222,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="36" y="977">Sn_WalletShowsRevocationCode</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="36" y="995">Wallet shows revocation code</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="36" y="1008">securely</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_wbgeneratesrevocationcode">
 <title>Sn_WbGeneratesRevocationCode</title>
-<path class="border" d="M282,968 a114,114,0,1,0,228,0 a114,114,0,1,0,-228,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="300" y="947">Sn_WbGeneratesRevocationCode</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="300" y="965">WB generates revocation code</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="300" y="978">and sends it to wallet during</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="300" y="991">enrollment</text>
+<path class="border" d="M282,992 a114,114,0,1,0,228,0 a114,114,0,1,0,-228,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="300" y="971">Sn_WbGeneratesRevocationCode</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="300" y="989">WB generates revocation code</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="300" y="1002">and sends it to wallet during</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="300" y="1015">enrollment</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_usersubmitsrevocationcode">
 <title>G_UserSubmitsRevocationCode</title>
-<path class="border" d="M550,939 L748,939 L748,997 L550,997 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="557" y="959">G_UserSubmitsRevocationCode</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="557" y="977">User can later submit</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="557" y="990">revocation code to block wallet</text>
+<path class="border" d="M550,957 L748,957 L748,1027 L550,1027 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="557" y="977">G_UserSubmitsRevocationCode</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="557" y="995">User can later submit</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="557" y="1008">revocation code to block</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="557" y="1021">wallet</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_walletsignsnonce">
 <title>Sn_WalletSignsNonce</title>
-<path class="border" d="M1273,968 a91,91,0,1,0,182,0 a91,91,0,1,0,-182,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1290" y="953">Sn_WalletSignsNonce</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1290" y="971">Wallet signs WB nonce with</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1290" y="984">HwPrivateKey</text>
+<path class="border" d="M1256,992 a85,85,0,1,0,170,0 a85,85,0,1,0,-170,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1273" y="977">Sn_WalletSignsNonce</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1273" y="995">Wallet signs WB-provided</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1273" y="1008">nonce with HwPrivateKey</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_walletsignsnoncewithpin">
 <title>Sn_WalletSignsNonceWithPin</title>
-<path class="border" d="M1499,968 a102,102,0,1,0,204,0 a102,102,0,1,0,-204,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1516" y="953">Sn_WalletSignsNonceWithPin</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1516" y="971">Wallet signs WB nonce with</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1516" y="984">PinPrivateKey</text>
+<path class="border" d="M1466,992 a102,102,0,1,0,204,0 a102,102,0,1,0,-204,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1483" y="977">Sn_WalletSignsNonceWithPin</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1483" y="995">Wallet signs WB-provided</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1483" y="1008">nonce with PinPrivateKey</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_wbblocksonrevocationcode">
 <title>Sn_WbBlocksOnRevocationCode</title>
-<path class="border" d="M537,1234 a112,112,0,1,0,224,0 a112,112,0,1,0,-224,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="554" y="1219">Sn_WbBlocksOnRevocationCode</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="554" y="1237">WB blocks wallet upon valid</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="554" y="1250">revocation code</text>
+<path class="border" d="M537,1258 a112,112,0,1,0,224,0 a112,112,0,1,0,-224,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="554" y="1243">Sn_WbBlocksOnRevocationCode</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="554" y="1261">WB blocks wallet upon valid</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="554" y="1274">revocation code</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_registerenrollment">
 <title>G_RegisterEnrollment</title>
-<path class="border" d="M801,1205 L995,1205 L995,1263 L801,1263 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="808" y="1225">G_RegisterEnrollment</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="808" y="1243">Register possession &amp; knowledge</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="808" y="1256">factors via enrollment message</text>
+<path class="border" d="M801,1223 L941,1223 L941,1293 L801,1293 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="808" y="1243">G_RegisterEnrollment</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="808" y="1261">Register possession &amp;</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="808" y="1274">knowledge factors via</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="808" y="1287">enrollment message</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnasmp" id="node_a_wbtrustsapplegoogle">
 <title>A_WbTrustsAppleGoogle</title>
-<path class="border" d="M1035,1234 a133,41,0,1,0,266,0 a133,41,0,1,0,-266,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1081" y="1219">A_WbTrustsAppleGoogle</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1081" y="1237">WB trusts Apple/Google Key and</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1081" y="1250">App Attestation services</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1296" y="1270">A</text>
+<path class="border" d="M981,1258 a116,50,0,1,0,233,0 a116,50,0,1,0,-233,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1021" y="1237">A_WbTrustsAppleGoogle</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1021" y="1255">WB trusts Apple/Google Key</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1021" y="1268">and App Attestation</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1021" y="1281">services</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1208" y="1303">A</text>
 </g>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_enrollmentfreshness">
 <g class="gsn_module_sole_control_2fa_registration gsnelem gsnawaygoal" id="node_g_enrollmentfreshness">
 <title>G_EnrollmentFreshness</title>
-<path class="border" d="M412,1451 V1386 H620 V1451" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="419" y="1406">G_EnrollmentFreshness</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="419" y="1424">Enrollment proves message</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="419" y="1437">freshness</text>
+<path class="border" d="M385,1481 V1416 H593 V1481" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="392" y="1436">G_EnrollmentFreshness</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="392" y="1454">Enrollment proves message</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="392" y="1467">freshness</text>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_enrollmentfreshness">
-<path class="border" d="M412,1451 H620 v27 H412 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="446" y="1471">sole_control_2fa_registration</text>
+<path class="border" d="M385,1481 H593 v27 H385 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="419" y="1501">sole_control_2fa_registration</text>
 </a>
-<use href="#module_icon" x="419" y="1458"/>
+<use href="#module_icon" x="392" y="1488"/>
 </g>
 </a>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_walletregistersknowledgefactor">
 <g class="gsn_module_sole_control_2fa_registration gsnelem gsnawaygoal" id="node_g_walletregistersknowledgefactor">
 <title>G_WalletRegistersKnowledgeFactor</title>
-<path class="border" d="M660,1451 V1386 H880 V1451" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="667" y="1406">G_WalletRegistersKnowledgeFactor</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="667" y="1424">Wallet registers knowledge factor</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="667" y="1437">at WB</text>
+<path class="border" d="M633,1481 V1416 H853 V1481" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="640" y="1436">G_WalletRegistersKnowledgeFactor</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="640" y="1454">Wallet registers knowledge factor</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="640" y="1467">at WB</text>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_walletregistersknowledgefactor">
-<path class="border" d="M660,1451 H880 v27 H660 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="694" y="1471">sole_control_2fa_registration</text>
+<path class="border" d="M633,1481 H853 v27 H633 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="667" y="1501">sole_control_2fa_registration</text>
 </a>
-<use href="#module_icon" x="667" y="1458"/>
+<use href="#module_icon" x="640" y="1488"/>
 </g>
 </a>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_walletregisterspossesionfactor">
 <g class="gsn_module_sole_control_2fa_registration gsnelem gsnawaygoal" id="node_g_walletregisterspossesionfactor">
 <title>G_WalletRegistersPossesionFactor</title>
-<path class="border" d="M920,1451 V1386 H1136 V1451" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="927" y="1406">G_WalletRegistersPossesionFactor</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="927" y="1424">Wallet registers possession</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="927" y="1437">factor at WB</text>
+<path class="border" d="M893,1481 V1416 H1109 V1481" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="900" y="1436">G_WalletRegistersPossesionFactor</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="900" y="1454">Wallet registers possession</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="900" y="1467">factor at WB</text>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_walletregisterspossesionfactor">
-<path class="border" d="M920,1451 H1136 v27 H920 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="954" y="1471">sole_control_2fa_registration</text>
+<path class="border" d="M893,1481 H1109 v27 H893 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="927" y="1501">sole_control_2fa_registration</text>
 </a>
-<use href="#module_icon" x="927" y="1458"/>
+<use href="#module_icon" x="900" y="1488"/>
 </g>
 </a>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_wbverifiesapp">
 <g class="gsn_module_sole_control_2fa_registration gsnelem gsnawaygoal" id="node_g_wbverifiesapp">
 <title>G_WbVerifiesApp</title>
-<path class="border" d="M1176,1451 V1386 H1384 V1451" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1183" y="1406">G_WbVerifiesApp</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1183" y="1424">WB verifies that NL Wallet app</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1183" y="1437">runs on a trustworthy device</text>
+<path class="border" d="M1149,1487 V1410 H1357 V1487" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1156" y="1430">G_WbVerifiesApp</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1156" y="1448">WB verifies that NL Wallet</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1156" y="1461">app runs on a trustworthy</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1156" y="1474">device</text>
 <a href="sole-control-2fa-registration.gsn.svg#node_g_wbverifiesapp">
-<path class="border" d="M1176,1451 H1384 v27 H1176 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1210" y="1471">sole_control_2fa_registration</text>
+<path class="border" d="M1149,1487 H1357 v27 H1149 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1183" y="1507">sole_control_2fa_registration</text>
 </a>
-<use href="#module_icon" x="1183" y="1458"/>
+<use href="#module_icon" x="1156" y="1494"/>
 </g>
 </a>
-<path class="gsnedge gsninctxt" d="M839,413 C869,413,849,413,869,413" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M754,442 C754,472,390,464,390,484" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M754,442 C754,472,619,471,619,491" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M754,442 C754,472,861,471,861,491" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M754,442 C754,472,1119,464,1119,484" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1118,234 C1118,264,1118,244,1118,264" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninctxt" d="M995,1234 C1025,1234,1005,1234,1025,1234" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M898,1263 C898,1293,516,1356,516,1376" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M898,1263 C898,1293,770,1356,770,1376" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M898,1263 C898,1293,1028,1356,1028,1376" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M898,1263 C898,1293,1280,1356,1280,1376" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1482,442 C1482,472,1364,464,1364,484" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1482,442 C1482,472,1601,471,1601,491" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M390,552 C390,582,390,644,390,664" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M619,545 C619,575,619,578,619,598" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1364,552 C1364,582,1364,644,1364,664" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1601,545 C1601,575,1601,644,1601,664" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M649,997 C649,1027,649,1092,649,1112" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M861,545 C861,575,861,566,861,586" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1119,552 C1119,582,1119,562,1119,582" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1118,124 C1118,154,1118,134,1118,154" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M390,732 C390,762,649,909,649,929" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M390,732 C390,762,131,827,131,847" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M390,732 C390,762,396,824,396,844" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1118,332 C1118,362,754,354,754,374" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1118,332 C1118,362,859,312,859,413 S962,434,962,523 S988,532,988,703 S898,1175,898,1195" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1118,332 C1118,362,1482,354,1482,374" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1364,732 C1364,762,1364,847,1364,867" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1601,732 C1601,762,1601,836,1601,856" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M819,436 C849,436,829,436,849,436" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M747,465 C747,495,390,496,390,516" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M747,465 C747,495,611,496,611,516" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M747,465 C747,495,853,503,853,523" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M747,465 C747,495,1105,496,1105,516" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1100,248 C1100,278,1100,258,1100,278" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M941,1258 C971,1258,951,1258,971,1258" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M871,1293 C871,1323,489,1386,489,1406" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M871,1293 C871,1323,743,1386,743,1406" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M871,1293 C871,1323,1001,1386,1001,1406" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M871,1293 C871,1323,1253,1380,1253,1400" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1454,465 C1454,495,1341,496,1341,516" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1454,465 C1454,495,1568,496,1568,516" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M390,584 C390,614,390,666,390,686" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M611,584 C611,614,611,606,611,626" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1341,584 C1341,614,1341,666,1341,686" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1568,584 C1568,614,1568,666,1568,686" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M649,1027 C649,1057,649,1116,649,1136" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M853,577 C853,607,853,594,853,614" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1105,584 C1105,614,1105,596,1105,616" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1100,138 C1100,168,1100,148,1100,168" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M390,766 C390,796,649,927,649,947" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M390,766 C390,796,131,851,131,871" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M390,766 C390,796,396,848,396,868" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1100,346 C1100,376,747,377,747,397" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1100,346 C1100,376,839,326,839,436 S954,466,954,555 S980,564,980,731 S871,1193,871,1213" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1100,346 C1100,376,1454,377,1454,397" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1341,766 C1341,796,1341,877,1341,897" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1568,766 C1568,796,1568,860,1568,880" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 </svg>

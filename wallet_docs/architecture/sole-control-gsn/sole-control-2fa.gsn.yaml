@@ -77,18 +77,18 @@ G_UserProvesPin:
   supportedBy: [S_VerifyPinKnowledge]
 
 S_ProveHwKeyPossession:
-  text: Prove possession via signed nonces with device-bound key
+  text: Prove possession via signed nonce with device-bound key
   supportedBy: Sn_WalletSignsNonce
 
 Sn_WalletSignsNonce:
-  text: Wallet signs WB nonce with HwPrivateKey
+  text: Wallet signs WB-provided nonce with HwPrivateKey
 
 S_VerifyPinKnowledge:
-  text: Verify knowledge via PIN-derived key & signed nonces
+  text: Verify knowledge via PIN-derived key & signed nonce
   supportedBy: [Sn_WalletSignsNonceWithPin]
 
 Sn_WalletSignsNonceWithPin:
-  text: Wallet signs WB nonce with PinPrivateKey
+  text: Wallet signs WB-provided nonce with PinPrivateKey
 
 A_UserDoesNotSharePin:
   text: User does not share knowledge factor with anyone
