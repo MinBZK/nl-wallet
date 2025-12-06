@@ -73,7 +73,7 @@ svg { background-color: white;}
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="518" y="343">obtain Attestation Data</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="681" y="365">A</text>
 </g>
-<g class="gsn_module_sole_control_main gsnelem gsngoal" id="node_g_privkeyrequires2fa">
+<g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_privkeyrequires2fa">
 <title>G_PrivKeyRequires2fa</title>
 <path class="border" d="M1215,285 L1403,285 L1403,355 L1215,355 z" fill-opacity="0" stroke="black" stroke-width="1"/>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1222" y="305">G_PrivKeyRequires2fa</text>
@@ -125,27 +125,27 @@ svg { background-color: white;}
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="275" y="718">PrivKey is generated inside a</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="275" y="731">certified HSM controlled by WB</text>
 </g>
-<g class="gsn_module_sole_control_2fa gsnelem gsnstgy" id="node_s_maintain2faintegrity">
-<title>S_Maintain2faIntegrity</title>
-<path class="border" d="M860,680 L1044,680 L1030,738 L846,738 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="867" y="700">S_Maintain2faIntegrity</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="864" y="718">Maintain integrity of both 2FA</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="861" y="731">factors</text>
+<g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_maintain2faintegrity">
+<title>G_Maintain2faIntegrity</title>
+<path class="border" d="M860,680 L1030,680 L1030,738 L860,738 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="867" y="700">G_Maintain2faIntegrity</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="867" y="718">Maintain integrity of both 2FA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="867" y="731">factors</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnasmp" id="node_a_userdoesnotsharepin">
 <title>A_UserDoesNotSharePin</title>
-<path class="border" d="M1077,709 a128,41,0,1,0,256,0 a128,41,0,1,0,-256,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1121" y="694">A_UserDoesNotSharePin</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1121" y="712">User does not share knowledge</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1121" y="725">factor with anyone</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1328" y="745">A</text>
+<path class="border" d="M1070,709 a128,41,0,1,0,256,0 a128,41,0,1,0,-256,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1114" y="694">A_UserDoesNotSharePin</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1114" y="712">User does not share knowledge</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1114" y="725">factor with anyone</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1321" y="745">A</text>
 </g>
-<g class="gsn_module_sole_control_2fa gsnelem gsnstgy" id="node_s_use2fa">
-<title>S_Use2fa</title>
-<path class="border" d="M1576,680 L1784,680 L1770,738 L1562,738 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1584" y="700">S_Use2fa</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1581" y="718">Use 2FA combining possession &amp;</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1578" y="731">knowledge factors</text>
+<g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_use2fa">
+<title>G_Use2fa</title>
+<path class="border" d="M1601,680 L1745,680 L1745,738 L1601,738 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1608" y="700">G_Use2fa</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1608" y="718">Require 2FA auth before</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1608" y="731">allowing PrivKey usage</text>
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsnsltn" id="node_sn_hsmenforcesnonexport">
 <title>Sn_HsmEnforcesNonExport</title>
@@ -285,20 +285,20 @@ svg { background-color: white;}
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="745" y="1677">WB blocks wallet upon valid</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="745" y="1690">revocation code</text>
 </g>
-<g class="gsn_module_sole_control_2fa gsnelem gsnstgy" id="node_s_registerenrollment">
-<title>S_RegisterEnrollment</title>
-<path class="border" d="M999,1645 L1207,1645 L1193,1703 L985,1703 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1006" y="1665">S_RegisterEnrollment</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1003" y="1683">Register possession &amp; knowledge</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1000" y="1696">factors via enrollment message</text>
+<g class="gsn_module_sole_control_2fa gsnelem gsngoal" id="node_g_registerenrollment">
+<title>G_RegisterEnrollment</title>
+<path class="border" d="M992,1645 L1186,1645 L1186,1703 L992,1703 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="999" y="1665">G_RegisterEnrollment</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="999" y="1683">Register possession &amp; knowledge</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="999" y="1696">factors via enrollment message</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnasmp" id="node_a_wbtrustsapplegoogle">
 <title>A_WbTrustsAppleGoogle</title>
-<path class="border" d="M1240,1674 a133,41,0,1,0,266,0 a133,41,0,1,0,-266,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1286" y="1659">A_WbTrustsAppleGoogle</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1286" y="1677">WB trusts Apple/Google Key and</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1286" y="1690">App Attestation services</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1501" y="1710">A</text>
+<path class="border" d="M1226,1674 a133,41,0,1,0,266,0 a133,41,0,1,0,-266,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1272" y="1659">A_WbTrustsAppleGoogle</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1272" y="1677">WB trusts Apple/Google Key and</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1272" y="1690">App Attestation services</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1487" y="1710">A</text>
 </g>
 <g class="gsn_module_sole_control_2fa_registration gsnelem gsngoal" id="node_g_enrollmentfreshness">
 <title>G_EnrollmentFreshness</title>
@@ -418,6 +418,11 @@ svg { background-color: white;}
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="258" y="2575">rules</text>
 </g>
 <path class="gsnedge gsninspby" d="M121,1884 C121,1914,121,1907,121,1927" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M1030,709 C1060,709,1040,709,1060,709" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M945,738 C945,768,581,832,581,852" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M945,738 C945,768,810,839,810,859" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M945,738 C945,768,1052,839,1052,859" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M945,738 C945,768,1310,832,1310,852" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M341,2335 C341,2365,341,2430,341,2450" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M121,738 C121,768,121,760,121,780" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninctxt" d="M442,320 C472,320,452,320,472,320" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
@@ -425,9 +430,16 @@ svg { background-color: white;}
 <path class="gsnedge gsninspby" d="M348,355 C348,385,348,460,348,480" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M358,738 C358,768,358,765,358,785" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1309,355 C1309,385,1309,460,1309,480" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M1186,1674 C1216,1674,1196,1674,1216,1674" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1089,1703 C1089,1733,121,1796,121,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1089,1703 C1089,1733,464,1796,464,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1089,1703 C1089,1733,972,1796,972,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1089,1703 C1089,1733,1352,1796,1352,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninctxt" d="M1017,70 C1047,70,1027,70,1047,70" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M930,105 C930,135,828,130,828,150" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M930,105 C930,135,1033,140,1033,160" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1673,738 C1673,768,1555,832,1555,852" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1673,738 C1673,768,1792,839,1792,859" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M581,920 C581,950,581,1084,581,1104" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M810,913 C810,943,810,1018,810,1038" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1555,920 C1555,950,1555,1084,1555,1104" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
@@ -446,11 +458,6 @@ svg { background-color: white;}
 <path class="gsnedge gsninctxt" d="M442,519 C472,519,452,519,472,519" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M348,548 C348,578,121,650,121,670" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M348,548 C348,578,358,650,358,670" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninctxt" d="M1037,709 C1067,709,1047,709,1067,709" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M945,738 C945,768,581,832,581,852" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M945,738 C945,768,810,839,810,859" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M945,738 C945,768,1052,839,1052,859" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M945,738 C945,768,1310,832,1310,852" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M581,1172 C581,1202,840,1349,840,1369" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M581,1172 C581,1202,322,1267,322,1287" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M581,1172 C581,1202,587,1264,587,1284" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
@@ -458,16 +465,9 @@ svg { background-color: white;}
 <path class="gsnedge gsninspby" d="M349,2067 C349,2097,141,2197,141,2217" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M349,2067 C349,2097,558,2180,558,2200" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1309,548 C1309,578,945,650,945,670" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1309,548 C1309,578,1057,608,1057,709 S1153,802,1153,891 S1179,972,1179,1143 S1096,1615,1096,1635" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1309,548 C1309,578,1050,608,1050,709 S1153,802,1153,891 S1179,972,1179,1143 S1089,1615,1089,1635" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1309,548 C1309,578,1673,650,1673,670" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1555,1172 C1555,1202,1555,1287,1555,1307" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninctxt" d="M1200,1674 C1230,1674,1210,1674,1230,1674" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1096,1703 C1096,1733,121,1796,121,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1096,1703 C1096,1733,464,1796,464,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1096,1703 C1096,1733,972,1796,972,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1096,1703 C1096,1733,1352,1796,1352,1816" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1673,738 C1673,768,1555,832,1555,852" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1673,738 C1673,768,1792,839,1792,859" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1352,2073 C1352,2103,1227,2162,1227,2182" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1352,2073 C1352,2103,1478,2179,1478,2199" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M1792,1172 C1792,1202,1792,1276,1792,1296" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>

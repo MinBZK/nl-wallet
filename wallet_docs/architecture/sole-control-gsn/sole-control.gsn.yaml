@@ -39,10 +39,6 @@ S_EnsurePrivKeySecure:
   supportedBy: [G_PrivKeyInHsm, G_PrivKeyCannotBeExtracted]
   inContextOf: A_WbTrustsHsmVendor
 
-G_PrivKeyRequires2fa:
-  text: WB allows usage of PrivKey only after 2FA authentication of User
-  supportedBy: [S_PossessionAndKnowledge]
-
 G_PrivKeyInHsm:
   text: PrivKey is generated inside a certified HSM controlled by WB
   supportedBy: [Sn_WbUsesHsmForPrivKey]

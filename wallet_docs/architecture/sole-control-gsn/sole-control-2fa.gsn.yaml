@@ -1,21 +1,25 @@
 module:
   name: sole_control_2fa
 
+G_PrivKeyRequires2fa:
+  text: WB allows usage of PrivKey only after 2FA authentication of User
+  supportedBy: [S_PossessionAndKnowledge]
+
 S_PossessionAndKnowledge:
   text: Use possession & knowledge factor
-  supportedBy: [S_RegisterEnrollment, S_Use2fa, S_Maintain2faIntegrity]
+  supportedBy: [G_RegisterEnrollment, G_Use2fa, G_Maintain2faIntegrity]
 
-S_RegisterEnrollment:
+G_RegisterEnrollment:
   text: Register possession & knowledge factors via enrollment message
   supportedBy: [G_WbVerifiesApp, G_EnrollmentFreshness, G_WalletRegistersPossesionFactor, G_WalletRegistersKnowledgeFactor]
   inContextOf: A_WbTrustsAppleGoogle
   rankIncrement: 4
 
-S_Use2fa:
-  text: Use 2FA combining possession & knowledge factors
+G_Use2fa:
+  text: Require 2FA auth before allowing PrivKey usage
   supportedBy: [G_UserProvesHwKeyControl, G_UserProvesPin]
 
-S_Maintain2faIntegrity:
+G_Maintain2faIntegrity:
   text: Maintain integrity of both 2FA factors
   supportedBy: [G_UserCanChangePin, G_UserCanBlockWallet, G_WbBlocksOnCompromise, G_WalletDoesNotStorePin]
   inContextOf: A_UserDoesNotSharePin
