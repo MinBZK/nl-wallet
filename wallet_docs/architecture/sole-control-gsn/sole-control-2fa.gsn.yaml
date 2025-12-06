@@ -7,13 +7,29 @@ G_PrivKeyRequires2fa:
 
 S_PossessionAndKnowledge:
   text: Use possession & knowledge factor
-  supportedBy: [G_RegisterEnrollment, G_Use2fa, G_Maintain2faIntegrity]
+  supportedBy: [G_RegisterEnrollment, G_Use2fa, G_Maintain2faIntegrity, G_CommunicationIntegrity]
+
+G_CommunicationIntegrity:
+  text: Protect integrity of Wallet-WB communication
+  supportedBy: [Sn_PinTls, Sn_WalletSignsInstructions, Sn_WbSignsResponses]
+  rankIncrement: 4
+
+Sn_PinTls:
+  text: Wallet pins TLS certificate of WB CA
+
+Sn_WalletSignsInstructions:
+  text: Wallet signs all its messages with its HwPrivateKey
+
+Sn_WbSignsResponses:
+  text: WB signs all its responses with a special purpose private key
 
 G_RegisterEnrollment:
   text: Register possession & knowledge factors via enrollment message
   supportedBy: [G_WbVerifiesApp, G_EnrollmentFreshness, G_WalletRegistersPossesionFactor, G_WalletRegistersKnowledgeFactor]
   inContextOf: A_WbTrustsAppleGoogle
   rankIncrement: 4
+  horizontalIndex:
+    absolute: last
 
 G_Use2fa:
   text: Require 2FA auth before allowing PrivKey usage
