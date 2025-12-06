@@ -12,7 +12,6 @@ S_PossessionAndKnowledge:
 G_CommunicationIntegrity:
   text: Protect integrity of Wallet-WB communication
   supportedBy: [Sn_PinTls, Sn_WalletSignsInstructions, Sn_WbSignsResponses]
-  rankIncrement: 4
 
 Sn_PinTls:
   text: Wallet pins TLS certificate of WB CA
@@ -27,9 +26,7 @@ G_RegisterEnrollment:
   text: Register possession & knowledge factors via enrollment message
   supportedBy: [G_WbVerifiesApp, G_EnrollmentFreshness, G_WalletRegistersPossesionFactor, G_WalletRegistersKnowledgeFactor]
   inContextOf: A_WbTrustsAppleGoogle
-  rankIncrement: 4
-  horizontalIndex:
-    absolute: last
+  rankIncrement: 1
 
 G_Use2fa:
   text: Require 2FA auth before allowing PrivKey usage
@@ -39,6 +36,9 @@ G_Maintain2faIntegrity:
   text: Maintain integrity of both 2FA factors
   supportedBy: [G_UserCanChangePin, G_UserCanBlockWallet, G_WbBlocksOnCompromise, G_WalletDoesNotStorePin]
   inContextOf: A_UserDoesNotSharePin
+  rankIncrement: 1
+  horizontalIndex:
+    absolute: last
 
 G_WalletDoesNotStorePin:
   text: Wallet does not store PIN
