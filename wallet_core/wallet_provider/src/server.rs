@@ -49,10 +49,14 @@ where
 
     if let Some(tls_config) = tls_config {
         axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config().await?)
+            .expect("TCP listener should not be in blocking mode")
             .serve(app.into_make_service())
             .await?;
     } else {
-        axum_server::from_tcp(listener).serve(app.into_make_service()).await?;
+        axum_server::from_tcp(listener)
+            .expect("TCP listener should not be in blocking mode")
+            .serve(app.into_make_service())
+            .await?;
     }
 
     Ok(())

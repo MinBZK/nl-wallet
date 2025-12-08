@@ -97,7 +97,7 @@ async-dropper = "0.3.1"
 async-trait = "0.1.86"
 axum = { version = "0.8.1", default-features = false }
 axum-extra = "0.10.0"
-axum-server = "0.7.1"
+axum-server = "0.8.0"
 axum_csrf = "0.11.0"
 backtrace = "0.3.74"
 base64 = "0.22.1"

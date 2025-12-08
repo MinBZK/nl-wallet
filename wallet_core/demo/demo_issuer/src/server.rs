@@ -41,11 +41,13 @@ pub async fn serve(settings: Settings) -> Result<()> {
                     .await
                     .expect("TLS config should be valid"),
             )
+            .expect("TCP listener should not be in blocking mode")
             .serve(issuance_router.into_make_service())
             .await
             .expect("issuance server should be started");
         } else {
             axum_server::from_tcp(issuance_listener)
+                .expect("TCP listener should not be in blocking mode")
                 .serve(issuance_router.into_make_service())
                 .await
                 .expect("issuance server should be started");
