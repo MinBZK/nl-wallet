@@ -73,7 +73,7 @@ where
     Ok(is_recovery_key)
 }
 
-pub async fn delete_pin_recovery_keys<S, T>(db: &T, wallet_id: Uuid) -> Result<()>
+pub async fn delete_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -81,8 +81,8 @@ where
     wallet_user_key::Entity::delete_many()
         .filter(
             wallet_user_key::Column::WalletUserId
-                .eq(wallet_id)
-                .and(wallet_user_key::Column::EncryptedPrivateKey.is_null()),
+                .eq(wallet_user_id)
+                .and(wallet_user_key::Column::IsBlocked.eq(true)),
         )
         .exec(db.connection())
         .await
@@ -95,7 +95,7 @@ where
 // TODO: Is this the right approach, or do we want to make that decision on the caller side?
 pub async fn find_keys_by_identifiers<S, T>(
     db: &T,
-    wallet_user_id: uuid::Uuid,
+    wallet_user_id: Uuid,
     identifiers: &[String],
 ) -> Result<HashMap<String, WrappedKey>>
 where

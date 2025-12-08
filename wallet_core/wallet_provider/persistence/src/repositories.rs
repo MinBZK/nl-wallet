@@ -172,16 +172,20 @@ impl WalletUserRepository for Repositories {
         wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
     }
 
-    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_id: Uuid) -> Result<(), PersistenceError> {
+    async fn recover_pin(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+    ) -> Result<(), PersistenceError> {
         wallet_user::transition_wallet_user_state(
             transaction,
-            wallet_id,
+            wallet_user_id,
             WalletUserState::RecoveringPin,
             WalletUserState::Active,
         )
         .await?;
 
-        wallet_user_key::delete_pin_recovery_keys(transaction, wallet_id).await
+        wallet_user_key::delete_blocked_keys(transaction, wallet_user_id).await
     }
 
     async fn has_multiple_active_accounts_by_recovery_code(
