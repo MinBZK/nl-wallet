@@ -19,7 +19,7 @@ use crate::settings::StatusListAttestationSettings;
 use crate::settings::StatusListsSettings;
 
 #[derive(Debug, Clone)]
-pub struct StatusListConfig<K: Clone = PrivateKeyVariant> {
+pub struct StatusListConfig<K = PrivateKeyVariant> {
     pub list_size: NonZeroU31,
     pub create_threshold: NonZeroU31,
     pub expiry: Duration,
@@ -32,7 +32,7 @@ pub struct StatusListConfig<K: Clone = PrivateKeyVariant> {
 }
 
 #[derive(Debug, Clone, From, IntoIterator, AsRef)]
-pub struct StatusListConfigs<K: Clone = PrivateKeyVariant>(HashMap<String, StatusListConfig<K>>);
+pub struct StatusListConfigs<K = PrivateKeyVariant>(HashMap<String, StatusListConfig<K>>);
 
 impl StatusListConfigs {
     pub async fn from_settings(

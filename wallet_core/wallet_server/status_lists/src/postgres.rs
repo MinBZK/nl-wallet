@@ -75,8 +75,8 @@ const IN_FLIGHT_CREATE_TRIES: usize = 5;
 /// StatusListService implementation using Postgres for multiple attestation types.
 ///
 /// See [PostgresStatusListService] for more.
-#[derive(Debug, Clone)]
-pub struct PostgresStatusListServices<K: Clone = PrivateKeyVariant>(HashMap<String, PostgresStatusListService<K>>);
+#[derive(Debug)]
+pub struct PostgresStatusListServices<K = PrivateKeyVariant>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -94,12 +94,27 @@ pub struct PostgresStatusListServices<K: Clone = PrivateKeyVariant>(HashMap<Stri
 /// is the exclusive end of the sequence numbers used for that status list and the start of a new
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
-#[derive(Debug, Clone)]
-pub struct PostgresStatusListService<K: Clone = PrivateKeyVariant> {
+#[derive(Debug)]
+pub struct PostgresStatusListService<K = PrivateKeyVariant> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
     config: Arc<StatusListConfig<K>>,
+}
+
+// Manually implement Clone as derived Clone uses incorrect bounds:
+// https://github.com/rust-lang/rust/issues/26925#issue-94161444
+impl<K> Clone for PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + 'static,
+{
+    fn clone(&self) -> Self {
+        Self {
+            connection: self.connection.clone(),
+            attestation_type_id: self.attestation_type_id,
+            config: self.config.clone(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -143,7 +158,7 @@ pub enum StatusListServiceError {
 
 impl<K> StatusListServices for PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     type Error = StatusListServiceError;
 
@@ -176,7 +191,7 @@ where
 
 impl<K> StatusListRevocationService for PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         self.first_service().revoke_attestation_batches(batch_ids).await
@@ -221,7 +236,7 @@ impl PostgresStatusListServices {
 
 impl<K> PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
@@ -240,7 +255,7 @@ where
 
 impl<K> StatusListService for PostgresStatusListService<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     type Error = StatusListServiceError;
 
@@ -259,7 +274,7 @@ where
 
 impl<K> StatusListRevocationService for PostgresStatusListService<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         // Find batches by batch_ids
@@ -380,7 +395,7 @@ impl PostgresStatusListService {
 
 impl<K> PostgresStatusListService<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     pub async fn obtain_status_claims_and_scheduled_tasks(
         &self,
