@@ -9,6 +9,7 @@ ENV PATH=${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/emulat
 COPY android.sh android-ndk* /tmp/
 RUN /tmp/android.sh
 RUN /tmp/android-ndk.sh
+RUN /tmp/android-ndk-28.sh
 RUN /tmp/android-ndk-27.sh
 COPY rust-android.sh /tmp
 RUN sudo -E -H -u wallet -- sh -c 'cd $HOME && /tmp/rust-android.sh'
