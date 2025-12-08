@@ -43,6 +43,7 @@ class NavigationService extends AppEventListener {
   /// Process the provided [NavigationRequest], or queue it if the app is in a state where it can't be handled.
   /// Overrides any previously set [NavigationRequest] if this request has to be queued as well.
   Future<void> handleNavigationRequest(NavigationRequest request, {bool queueIfNotReady = false}) async {
+    _queuedRequest = null; // It'll get re-queued if it's (still) not ready. Any older request is now considered stale.
     final readyToNavigate = await _checkNavigationPrerequisitesUseCase.invoke(request.navigatePrerequisites);
     if (readyToNavigate) {
       await _navigate(request);

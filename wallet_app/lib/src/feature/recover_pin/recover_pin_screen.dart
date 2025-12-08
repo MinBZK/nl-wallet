@@ -62,8 +62,8 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
         automaticallyImplyLeading: false,
         title: _buildTitle(context),
         leading: BackIconButton(
-          onPressed: () => state.canGoBack ? context.addBackPressedEvent() : Navigator.pop(context),
-        ).takeIf((_) => state.canGoBack || _canPop(state)),
+          onPressed: () => _handleBackPress(state, context),
+        ).takeIf((_) => _canPop(state)),
         actions: [
           const HelpIconButton(),
           CloseIconButton(onPressed: () => _stopRecoverPin(context)).takeIf(
@@ -75,13 +75,23 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
       body: PopScope(
         canPop: _canPop(state),
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop) context.addBackPressedEvent();
+          if (!didPop) _handleBackPress(state, context);
         },
         child: SafeArea(
           child: _buildPage(),
         ),
       ),
     );
+  }
+
+  void _handleBackPress(RecoverPinState state, BuildContext context) {
+    if (state.canGoBack) {
+      context.addBackPressedEvent();
+    } else if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.of(context).resetToDashboard();
+    }
   }
 
   Widget _buildTitle(BuildContext context) {
@@ -120,13 +130,14 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
   /// Returns:
   ///   True if the "Back" button should be visible, false otherwise.
   bool _canPop(RecoverPinState state) {
+    if (state.canGoBack) return true;
     return switch (state) {
       RecoverPinInitial() => true,
       RecoverPinLoadingDigidUrl() => false,
       RecoverPinAwaitingDigidAuthentication() => false,
       RecoverPinVerifyingDigidAuthentication() => false,
       RecoverPinDigidMismatch() => true,
-      RecoverPinStopped() => true,
+      RecoverPinStopped() => false,
       RecoverPinChooseNewPin() => false,
       RecoverPinConfirmNewPin() => false,
       RecoverPinUpdatingPin() => false,
@@ -236,7 +247,7 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
               description: c.l10n.recoverPinStoppedPageDescription,
               primaryButtonCta: c.l10n.generalClose,
               illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-              onPrimaryPressed: () => Navigator.pop(c),
+              onPrimaryPressed: () => Navigator.of(context).resetToDashboard(),
               primaryButtonIcon: const Icon(Icons.close_outlined),
             );
           case RecoverPinChooseNewPin():

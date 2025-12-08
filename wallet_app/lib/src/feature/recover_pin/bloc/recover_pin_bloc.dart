@@ -53,6 +53,7 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
 
   FutureOr<void> _onDigidLoginClicked(RecoverPinLoginWithDigidClicked event, Emitter<RecoverPinState> emit) async {
     emit(const RecoverPinLoadingDigidUrl());
+    await _cancelPinRecoveryUsecase.invoke(); // Make sure there is no stale session
     final result = await _createPinRecoveryRedirectUriUsecase.invoke();
     await result.process(
       onSuccess: (url) => emit(RecoverPinAwaitingDigidAuthentication(url)),
@@ -87,6 +88,7 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
 
   FutureOr<void> _onDigidLoginFailed(RecoverPinLoginWithDigidFailed event, Emitter<RecoverPinState> emit) async {
     if (event.cancelledByUser) {
+      await _cancelPinRecoveryUsecase.invoke(); // Cancel session in case it's ongoing
       emit(const RecoverPinDigidLoginCancelled());
     } else {
       await _handleApplicationError(event.error, emit);
