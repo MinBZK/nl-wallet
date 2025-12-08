@@ -7,7 +7,7 @@ use crypto::utils::random_duration;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 /// Structure to help in determining if something needs to be refreshed and how long to wait
 ///
 /// This structures provides sane defaults. Ensure that the refresh duration is larger than the minimum delay.

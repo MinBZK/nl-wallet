@@ -769,9 +769,8 @@ where
             );
             loop {
                 // Wrap in separate spawn job to catch panics
-                let job_control = refresh_control.clone();
                 let job_service = service.clone();
-                match tokio::spawn(async move { job_service.refresh_status_lists(&job_control).await }).await {
+                match tokio::spawn(async move { job_service.refresh_status_lists(&refresh_control).await }).await {
                     Ok(delay) => {
                         tracing::debug!(
                             "Next refresh of status lists scheduled in {}s for attestation type ID {}",
