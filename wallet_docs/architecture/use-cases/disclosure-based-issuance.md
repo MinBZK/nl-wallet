@@ -186,4 +186,4 @@ need to read the text in a regular text editor or pager to see them.
 [1]: issuance-with-openid4vci.md#generic-issuance
 [2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
 [3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer
-[4]: https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/latest/architecture-and-reference-framework-main/#43-reference-architecture
+[4]: https://eudi.dev/latest/architecture-and-reference-framework-main/#43-reference-architecture

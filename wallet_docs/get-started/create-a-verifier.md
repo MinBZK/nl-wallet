@@ -1199,6 +1199,6 @@ need to read the text in a regular text editor or pager to see them.
 [26]: https://developer.android.com/training/app-links
 [27]: ../community/create-a-ca
 [28]: https://github.com/softhsm/SoftHSMv2
-[29]: https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/
+[29]: https://datatracker.ietf.org/doc/rfc9901/
 [30]: ../development/openapi-specifications
 [31]: create-an-issuer

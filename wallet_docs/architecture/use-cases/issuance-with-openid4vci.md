@@ -182,7 +182,7 @@ Below you'll find a collection of links which we reference to through the
 entire text. Note that they don't display when rendered within a website, you
 need to read the text in a regular text editor or pager to see them.
 
-[1]: https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/latest/annexes/annex-3/annex-3.01-pid-rulebook
+[1]: https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook
 [2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html
 [3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
 [4]: https://openid.net/developers/how-connect-works
