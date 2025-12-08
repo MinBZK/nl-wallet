@@ -384,7 +384,7 @@ where
 {
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
-        tempfile::tempdir().unwrap().into_path(),
+        tempfile::tempdir().unwrap().keep(),
         wallet_config,
     )
     .await
