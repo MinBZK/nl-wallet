@@ -50,7 +50,7 @@ scheduled-automation-tests-trigger:
 .run-automation-tests-default:
   extends: .run-automation-tests-common-setup
   script:
-    - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
+    - mv browserstack-config/browserstack-pixel9-15-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
@@ -111,7 +111,7 @@ run-automation-security-tests:
 run-automation-english-tests:
   extends: .run-automation-tests-common-setup
   script:
-    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - mv browserstack-config/browserstack-pixel9-15-EN.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace testEnglish
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
@@ -122,8 +122,9 @@ run-automation-english-tests:
 
 run-automation-a11y-batch1-tests:
   extends: .run-automation-tests-common-setup
+  resource_group: null
   script:
-    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - mv browserstack-config/browserstack-pixel9-15-EN.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace testA11yBatch1
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
@@ -134,8 +135,12 @@ run-automation-a11y-batch1-tests:
 
 run-automation-a11y-batch2-tests:
   extends: .run-automation-tests-common-setup
+  resource_group: null
+  needs:
+    - job: run-automation-a11y-batch1-tests
+      artifacts: false
   script:
-    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - mv browserstack-config/browserstack-pixel9-15-EN.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace testA11yBatch2
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
@@ -276,7 +281,7 @@ run-automation-smoke-test-ont:
     - job: deploy-apps-ont
       artifacts: false
   script:
-    - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
+    - mv browserstack-config/browserstack-pixel9-15-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace smokeTest
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
