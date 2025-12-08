@@ -148,12 +148,12 @@ void main() {
   );
 
   blocTest(
-    'verify user is redirected to dashboard when wallet state is WalletStatePinRecovery',
+    'verify user is redirected to pinRecovery when wallet state is WalletStatePinRecovery',
     setUp: () => when(
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInPinRecoveryFlow()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase),
-    expect: () => [const SplashLoaded(.dashboard)],
+    expect: () => [const SplashLoaded(.pinRecovery)],
   );
 }
