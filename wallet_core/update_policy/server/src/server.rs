@@ -51,10 +51,14 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
 
     if let Some(tls_config) = settings.tls_config.clone() {
         axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config().await?)
+            .expect("TCP listener should not be in blocking mode")
             .serve(app.into_make_service())
             .await?;
     } else {
-        axum_server::from_tcp(listener).serve(app.into_make_service()).await?;
+        axum_server::from_tcp(listener)
+            .expect("TCP listener should not be in blocking mode")
+            .serve(app.into_make_service())
+            .await?;
     }
 
     Ok(())
