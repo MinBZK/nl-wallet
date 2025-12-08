@@ -5,8 +5,8 @@ framework: junit
 
 platforms:
   - platformName: "android"
-    platformVersion: "15.0"
-    deviceName: "Google Pixel 9"
+    platformVersion: "14.0"
+    deviceName: "OnePlus 12R"
     language: "nl"
     locale: "NL"
 
