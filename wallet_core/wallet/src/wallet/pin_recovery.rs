@@ -61,7 +61,7 @@ pub enum PinRecoveryError {
     #[category(expected)]
     NotRegistered,
 
-    #[error("issuance session is not in the correct state")]
+    #[error("pin recovery session is not in the correct state")]
     #[category(expected)]
     SessionState,
 

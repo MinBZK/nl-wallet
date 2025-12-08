@@ -291,8 +291,8 @@ void main() {
       isA<IssuanceNetworkError>(),
     ],
     verify: (_) {
-      // once once for during initialization and once on network error
-      verify(cancelIssuanceUseCase.invoke()).called(2);
+      // once during init, network error and the close callback.
+      verify(cancelIssuanceUseCase.invoke()).called(3);
     },
   );
 

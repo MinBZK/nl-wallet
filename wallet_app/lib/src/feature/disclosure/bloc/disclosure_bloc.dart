@@ -351,8 +351,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   @override
   Future<void> close() async {
-    await super.close();
     _startDisclosureResult = null;
     _cardRequestsSelectionCache = null;
+    await _cancelDisclosureUseCase.invoke();
+    await super.close();
   }
 }

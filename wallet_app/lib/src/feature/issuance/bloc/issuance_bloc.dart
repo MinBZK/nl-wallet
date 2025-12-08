@@ -260,4 +260,12 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         );
     }
   }
+
+  @override
+  Future<void> close() async {
+    _startIssuanceResult = null;
+    _cardRequestsSelectionCache = null;
+    await _cancelIssuanceUseCase.invoke();
+    await super.close();
+  }
 }

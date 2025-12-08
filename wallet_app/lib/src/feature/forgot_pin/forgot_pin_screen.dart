@@ -103,7 +103,13 @@ class ForgotPinScreen extends StatelessWidget {
 
   Widget _buildPinRecoveryButton(BuildContext context) {
     return PrimaryButton(
-      onPressed: () => Navigator.pushNamed(context, WalletRoutes.pinRecoveryRoute),
+      onPressed: () {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          WalletRoutes.pinRecoveryRoute,
+          ModalRoute.withName(WalletRoutes.dashboardRoute),
+        );
+      },
       text: Text.rich(context.l10n.forgotPinScreenCta.toTextSpan(context)),
     );
   }
