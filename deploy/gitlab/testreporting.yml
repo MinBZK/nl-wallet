@@ -3,7 +3,7 @@ check-test-reporting:
   rules: !reference [.default-or-merge-request, rules]
   script:
     - cd testreporting
-    - npm ci
+    - npm ci --ignore-scripts
     - npm run format-check
     - npm run lint
     - npm run type-check
@@ -44,7 +44,7 @@ build-test-report:
       optional: true
   script:
     - cd testreporting
-    - npm ci
+    - npm ci --ignore-scripts
     - npm run fetch-history || true
     - npm run fetch-results
     - >
