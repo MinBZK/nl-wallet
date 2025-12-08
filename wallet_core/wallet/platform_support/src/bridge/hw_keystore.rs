@@ -21,12 +21,14 @@ impl From<UnexpectedUniFFICallbackError> for KeyStoreError {
 }
 
 // the callback traits defined in the UDL, which we have write out here ourselves
+#[uniffi::trait_interface]
 pub trait SigningKeyBridge: Send + Sync + Debug {
     fn public_key(&self, identifier: String) -> Result<Vec<u8>, KeyStoreError>;
     fn sign(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
     fn delete(&self, identifier: String) -> Result<(), KeyStoreError>;
 }
 
+#[uniffi::trait_interface]
 pub trait EncryptionKeyBridge: Send + Sync + Debug {
     fn encrypt(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
     fn decrypt(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
