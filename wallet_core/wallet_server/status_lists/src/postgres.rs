@@ -820,7 +820,10 @@ where
         // Republish if necessary
         let expiries = join_all(lists.into_iter().map(|list| async move {
             let path = self.config.publish_dir.jwt_path(&list.external_id);
-            let mut expiry = read_token_expiry(&path).await;
+            let mut expiry = read_token_expiry(&path)
+                .await
+                .inspect_err(|err| tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err))
+                .ok();
 
             if expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
                 tracing::info!("Republishing status list for ID {}", list.id);
@@ -828,15 +831,23 @@ where
 
                 match self.publish_status_list(list.id, &list.external_id, size).await {
                     // Always read token expiry as it can be changed by another instance
-                    Ok(_) => expiry = read_token_expiry(&path).await,
+                    Ok(_) => {
+                        expiry = read_token_expiry(&path)
+                            .await
+                            .inspect_err(|err| {
+                                tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err)
+                            })
+                            .ok()
+                    }
                     Err(err) => tracing::warn!("Failed to refresh status list for ID {}: {}", list.id, err),
-                };
+                }
             }
             expiry
         }))
         .await;
 
-        // Calculate delay for next job, if one or more expiry is empty, default to empty list
+        // Calculate delay for next job: if one or more expiry cannot be read,
+        // even after republishing, default to empty list.
         refresh_control.next_refresh_delay(expiries.into_iter().collect::<Option<Vec<_>>>().unwrap_or_default())
     }
 
@@ -974,27 +985,21 @@ async fn fetch_attestation_type_ids(
         })
 }
 
-async fn read_token_expiry(path: &Path) -> Option<DateTime<Utc>> {
-    tokio::fs::read_to_string(path)
-        .await
-        .inspect_err(|err| tracing::warn!("Could not read status list token at `{}`: {}", path.display(), err))
-        .ok()
-        .and_then(|text| {
-            text.parse::<StatusListToken>()
-                .inspect_err(|err| {
-                    tracing::warn!("Could not decode status list token at `{}`: {}", path.display(), err)
-                })
-                .ok()
-        })
-        .and_then(|token| {
-            token
-                .as_ref()
-                // Trusting the files we write ourselves
-                .dangerous_parse_unverified()
-                .inspect_err(|err| tracing::warn!("Could not parse status list token at `{}`: {}", path.display(), err))
-                .ok()
-        })
-        .and_then(|(_, claims)| claims.exp)
+#[derive(Debug, thiserror::Error)]
+enum TokenReadError {
+    #[error(transparent)]
+    IO(#[from] std::io::Error),
+    #[error(transparent)]
+    Jwt(#[from] JwtError),
+    #[error("no expiry set")]
+    NoExpiry,
+}
+
+async fn read_token_expiry(path: &Path) -> Result<DateTime<Utc>, TokenReadError> {
+    let token = tokio::fs::read_to_string(path).await?.parse::<StatusListToken>()?;
+    // Trusting the files this service writes
+    let (_, claims) = token.as_ref().dangerous_parse_unverified()?;
+    claims.exp.ok_or(TokenReadError::NoExpiry)
 }
 
 #[cfg(test)]
