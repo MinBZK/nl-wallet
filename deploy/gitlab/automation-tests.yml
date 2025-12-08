@@ -300,7 +300,7 @@ browsertests-format-lint:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - cd browsertests
-    - npm ci
+    - npm ci --ignore-scripts
     - npm run format-check
     - npm run lint
 
@@ -321,7 +321,7 @@ run-wallet-web-browsertest-test-ont:
       artifacts: false
   script: |
     cd browsertests
-    npm ci
+    npm ci --ignore-scripts
     cd packages/wallet-web
     npx playwright install chromium webkit
     npm run test:ci
@@ -347,7 +347,7 @@ run-fallback-pages-browsertest-test-ont:
       artifacts: false
   script: |
     cd browsertests
-    npm ci
+    npm ci --ignore-scripts
     cd packages/fallback-pages
     npx playwright install chromium webkit
     npm run test:ci
