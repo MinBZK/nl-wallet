@@ -128,6 +128,14 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::is_blocked_key(transaction, wallet_user_id, key).await
     }
 
+    async fn delete_blocked_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::delete_blocked_keys(transaction, wallet_user_id).await
+    }
+
     async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
@@ -185,7 +193,7 @@ impl WalletUserRepository for Repositories {
         )
         .await?;
 
-        wallet_user_key::delete_blocked_keys(transaction, wallet_user_id).await
+        self.delete_blocked_keys(transaction, wallet_user_id).await
     }
 
     async fn has_multiple_active_accounts_by_recovery_code(
@@ -460,6 +468,12 @@ pub mod mock {
                 _key: VerifyingKey,
             ) -> Result<bool, PersistenceError>;
 
+            async fn delete_blocked_keys(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: Uuid,
+            ) -> Result<(), PersistenceError>;
+
             async fn find_keys_by_identifiers(
                 &self,
                 _transaction: &MockTransaction,
@@ -504,7 +518,7 @@ pub mod mock {
             async fn recover_pin(
                 &self,
                 transaction: &MockTransaction,
-                wallet_id: Uuid,
+                wallet_user_id: Uuid,
             ) -> Result<(), PersistenceError>;
 
             async fn has_multiple_active_accounts_by_recovery_code(
@@ -706,6 +720,14 @@ pub mod mock {
             Ok(true)
         }
 
+        async fn delete_blocked_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
         async fn find_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
@@ -763,7 +785,7 @@ pub mod mock {
         async fn recover_pin(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: Uuid,
+            _wallet_user_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

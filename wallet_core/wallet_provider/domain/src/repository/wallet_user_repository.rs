@@ -69,6 +69,8 @@ pub trait WalletUserRepository {
         key: VerifyingKey,
     ) -> Result<bool>;
 
+    async fn delete_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
+
     async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
@@ -95,7 +97,7 @@ pub trait WalletUserRepository {
         recovery_code: String,
     ) -> Result<()>;
 
-    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_id: Uuid) -> Result<()>;
+    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
 
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
@@ -272,6 +274,10 @@ pub mod mock {
             Ok(true)
         }
 
+        async fn delete_blocked_keys(&self, _transaction: &Self::TransactionType, _wallet_user_id: Uuid) -> Result<()> {
+            Ok(())
+        }
+
         async fn find_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
@@ -308,7 +314,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn recover_pin(&self, _transaction: &Self::TransactionType, _wallet_id: Uuid) -> Result<()> {
+        async fn recover_pin(&self, _transaction: &Self::TransactionType, _wallet_user_id: Uuid) -> Result<()> {
             Ok(())
         }
 
