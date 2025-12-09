@@ -6,12 +6,13 @@ import '../../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart'
 import '../../../../domain/usecase/wallet/get_wallet_state_usecase.dart';
 import '../../navigation_service.dart';
 
-class WalletTransferEventListener extends AppEventListener {
+/// [AppEventListener] that observes events that require transfer related actions
+class WalletTransferAppEventListener extends AppEventListener {
   final NavigationService _navigationService;
   final GetWalletStateUseCase _getWalletStateUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUseCase;
 
-  WalletTransferEventListener(
+  WalletTransferAppEventListener(
     this._navigationService,
     this._getWalletStateUseCase,
     this._cancelWalletTransferUseCase,

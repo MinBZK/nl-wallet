@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../environment.dart';
 import '../../../domain/model/wallet_state.dart';
 import '../../../domain/usecase/wallet/get_wallet_state_usecase.dart';
-import '../../../util/cast_util.dart';
+import '../../../util/extension/wallet_state_extension.dart';
 import '../../../wallet_constants.dart';
 
 part 'splash_event.dart';
@@ -25,7 +25,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
     await Future.delayed(skipDelay ? Duration.zero : kDefaultMockDelay);
 
     final state = await _getWalletStateUseCase.invoke();
-    final unlockedState = tryCast<WalletStateLocked>(state)?.substate ?? state;
+    final unlockedState = state.unlockedState;
     switch (unlockedState) {
       case WalletStateLocked():
         throw StateError('UnlockedState state should never be $unlockedState');

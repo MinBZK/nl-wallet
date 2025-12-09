@@ -12,6 +12,7 @@ import '../domain/model/card/wallet_card.dart';
 import '../domain/model/disclosure/disclosure_session_type.dart';
 import '../domain/model/document.dart';
 import '../domain/model/event/wallet_event.dart';
+import '../domain/model/notification/app_notification.dart';
 import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/policy/organization_policy.dart';
@@ -33,6 +34,9 @@ import '../util/mapper/document/document_mapper.dart';
 import '../util/mapper/event/wallet_event_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';
 import '../util/mapper/mapper.dart';
+import '../util/mapper/notification/app_notification_mapper.dart';
+import '../util/mapper/notification/notification_display_target_mapper.dart';
+import '../util/mapper/notification/notification_type_mapper.dart';
 import '../util/mapper/organization/organization_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
 import '../util/mapper/policy/policy_body_text_mapper.dart';
@@ -142,6 +146,17 @@ class WalletMapperProvider extends StatelessWidget {
         /// Version state mapper
         RepositoryProvider<Mapper<core.FlutterVersionState, VersionState>>(
           create: (context) => FlutterVersionStateMapper(),
+        ),
+
+        /// Notification mappers
+        RepositoryProvider<Mapper<core.NotificationType, NotificationType>>(
+          create: (context) => NotificationTypeMapper(context.read()),
+        ),
+        RepositoryProvider<Mapper<core.DisplayTarget, NotificationDisplayTarget>>(
+          create: (context) => NotificationDisplayTargetMapper(),
+        ),
+        RepositoryProvider<Mapper<core.AppNotification, AppNotification>>(
+          create: (context) => AppNotificationMapper(context.read(), context.read()),
         ),
       ],
       child: child,

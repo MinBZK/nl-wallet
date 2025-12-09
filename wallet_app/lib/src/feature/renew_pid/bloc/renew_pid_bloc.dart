@@ -46,7 +46,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
 
   FutureOr<void> _onDigidLoginClicked(RenewPidLoginWithDigidClicked event, Emitter<RenewPidState> emit) async {
     emit(const RenewPidLoadingDigidUrl());
-    unawaited(_cancelPidIssuanceUseCase.invoke()); // Cancel any potential stale session
+    await _cancelPidIssuanceUseCase.invoke(); // Cancel any potential stale session
     final result = await _getPidRenewalUrlUseCase.invoke();
     await result.process(
       onSuccess: (url) => emit(RenewPidAwaitingDigidAuthentication(url)),
@@ -126,5 +126,11 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   FutureOr<void> _onStopPressed(RenewPidStopPressed event, Emitter<RenewPidState> emit) async {
     unawaited(_cancelPidIssuanceUseCase.invoke());
     emit(const RenewPidStopped());
+  }
+
+  @override
+  Future<void> close() async {
+    await _cancelPidIssuanceUseCase.invoke();
+    return super.close();
   }
 }

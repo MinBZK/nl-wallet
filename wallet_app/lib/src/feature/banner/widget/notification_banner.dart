@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../theme/base_wallet_theme.dart';
-import '../../../../theme/wallet_theme.dart';
-import '../../../../util/extension/build_context_extension.dart';
-import '../../../../util/extension/string_extension.dart';
-import '../text/body_text.dart';
+import '../../../theme/base_wallet_theme.dart';
+import '../../../theme/wallet_theme.dart';
+import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
+import '../../common/widget/text/body_text.dart';
 
 /// A reusable notification banner widget with configurable content and styling.
 ///

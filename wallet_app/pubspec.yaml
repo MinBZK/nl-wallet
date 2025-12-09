@@ -25,6 +25,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
+  flutter_local_notifications: ^19.5.0
   flutter_localizations:
     sdk: flutter
   flutter_markdown: ^0.7.7+1

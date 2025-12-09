@@ -122,6 +122,8 @@ class RenewPidScreen extends StatelessWidget {
               key: _kOpeningDigidStateKey,
               title: context.l10n.renewPidLoadingDigidUrlTitle,
               description: context.l10n.renewPidLoadingDigidUrlDescription,
+              onCancel: () => _stopRenewPid(context),
+              cancelCta: context.l10n.generalStop,
             );
           case RenewPidAwaitingDigidAuthentication():
             result = GenericLoadingPage(

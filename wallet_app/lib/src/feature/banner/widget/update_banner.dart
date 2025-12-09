@@ -7,8 +7,8 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
-import '../../common/widget/banner/notification_banner.dart';
 import '../../common/widget/svg_or_image.dart';
+import 'notification_banner.dart';
 
 const _kStoreLogoSize = 32.0;
 const _kWarnDotSize = 21.0;

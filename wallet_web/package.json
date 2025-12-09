@@ -55,5 +55,8 @@
   "bundleDependencies": [
     "axios",
     "vue"
-  ]
+  ],
+  "dependencies": {
+    "@lavamoat/preinstall-always-fail": "^2.1.1"
+  }
 }

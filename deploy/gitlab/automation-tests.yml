@@ -122,6 +122,7 @@ run-automation-english-tests:
 
 run-automation-a11y-batch1-tests:
   extends: .run-automation-tests-common-setup
+  resource_group: null
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace testA11yBatch1
@@ -134,6 +135,10 @@ run-automation-a11y-batch1-tests:
 
 run-automation-a11y-batch2-tests:
   extends: .run-automation-tests-common-setup
+  resource_group: null
+  needs:
+    - job: run-automation-a11y-batch1-tests
+      artifacts: false
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace testA11yBatch2
@@ -300,7 +305,7 @@ browsertests-format-lint:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - cd browsertests
-    - npm ci
+    - npm ci --ignore-scripts
     - npm run format-check
     - npm run lint
 
@@ -321,7 +326,7 @@ run-wallet-web-browsertest-test-ont:
       artifacts: false
   script: |
     cd browsertests
-    npm ci
+    npm ci --ignore-scripts
     cd packages/wallet-web
     npx playwright install chromium webkit
     npm run test:ci
@@ -347,7 +352,7 @@ run-fallback-pages-browsertest-test-ont:
       artifacts: false
   script: |
     cd browsertests
-    npm ci
+    npm ci --ignore-scripts
     cd packages/fallback-pages
     npx playwright install chromium webkit
     npm run test:ci
