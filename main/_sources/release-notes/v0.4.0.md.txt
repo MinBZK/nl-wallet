@@ -115,6 +115,8 @@
   `openapi` feature (which is currently enabled by default).
 - The wallet shows when an attestation is revoked. In addition, it checks
   periodically the revocation status of issued attestations in the background.
+- A verifier can now configure whether disclosed attestations having an
+  undetermined revocation status should be accepted or rejected.
 
 ## Code improvements
 
