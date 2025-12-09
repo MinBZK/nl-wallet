@@ -35,7 +35,8 @@ class CorePidRepository extends PidRepository {
   Future<void> cancelIssuance() => _walletCore.cancelIssuance();
 
   @override
-  Future<bool> hasActiveIssuanceSession() async => await _walletCore.getWalletState() is core.WalletEvent_Issuance;
+  Future<bool> hasActiveIssuanceSession() async =>
+      await _walletCore.getWalletState() is core.WalletState_InIssuanceFlow;
 
   @override
   Future<TransferState> acceptIssuance(String pin) async {
