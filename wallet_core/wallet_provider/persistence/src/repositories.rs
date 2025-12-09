@@ -136,13 +136,13 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::delete_blocked_keys(transaction, wallet_user_id).await
     }
 
-    async fn find_keys_by_identifiers(
+    async fn find_active_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key_identifiers: &[String],
     ) -> Result<HashMap<String, WrappedKey>, PersistenceError> {
-        wallet_user_key::find_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
+        wallet_user_key::find_active_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
     }
 
     async fn change_pin(
@@ -474,7 +474,7 @@ pub mod mock {
                 _wallet_user_id: Uuid,
             ) -> Result<(), PersistenceError>;
 
-            async fn find_keys_by_identifiers(
+            async fn find_active_keys_by_identifiers(
                 &self,
                 _transaction: &MockTransaction,
                 wallet_user_id: Uuid,
@@ -728,7 +728,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn find_keys_by_identifiers(
+        async fn find_active_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,

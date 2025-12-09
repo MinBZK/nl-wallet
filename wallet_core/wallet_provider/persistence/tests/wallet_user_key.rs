@@ -8,7 +8,7 @@ use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_persistence::wallet_user_key::create_keys;
-use wallet_provider_persistence::wallet_user_key::find_keys_by_identifiers;
+use wallet_provider_persistence::wallet_user_key::find_active_keys_by_identifiers;
 use wallet_provider_persistence::wallet_user_key::move_keys;
 
 pub mod common;
@@ -46,11 +46,12 @@ async fn test_create_keys() {
     .await
     .unwrap();
 
-    let mut persisted_keys = find_keys_by_identifiers(&db, wallet_user_id, &["key1".to_string(), "key2".to_string()])
-        .await
-        .unwrap()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let mut persisted_keys =
+        find_active_keys_by_identifiers(&db, wallet_user_id, &["key1".to_string(), "key2".to_string()])
+            .await
+            .unwrap()
+            .into_iter()
+            .collect::<Vec<_>>();
     persisted_keys.sort_by_key(|(key, _)| key.clone());
     let keys = persisted_keys
         .iter()
@@ -119,7 +120,7 @@ async fn test_move_keys() {
 
     // Verify the keys are persisted correctly
 
-    let persisted_source_keys = find_keys_by_identifiers(
+    let persisted_source_keys = find_active_keys_by_identifiers(
         &db,
         source_wallet_user_id,
         &["source_key1".to_string(), "source_key2".to_string()],
@@ -135,7 +136,7 @@ async fn test_move_keys() {
     );
 
     let persisted_destination_keys =
-        find_keys_by_identifiers(&db, destination_wallet_user_id, &["destination_key1".to_string()])
+        find_active_keys_by_identifiers(&db, destination_wallet_user_id, &["destination_key1".to_string()])
             .await
             .unwrap()
             .into_keys()
@@ -154,7 +155,7 @@ async fn test_move_keys() {
 
     // Verify that the keys are moved correctly
 
-    let persisted_source_keys = find_keys_by_identifiers(
+    let persisted_source_keys = find_active_keys_by_identifiers(
         &db,
         source_wallet_user_id,
         &["source_key1".to_string(), "source_key2".to_string()],
@@ -165,7 +166,7 @@ async fn test_move_keys() {
     .collect::<HashSet<_>>();
     assert!(persisted_source_keys.is_empty());
 
-    let persisted_destination_keys = find_keys_by_identifiers(
+    let persisted_destination_keys = find_active_keys_by_identifiers(
         &db,
         destination_wallet_user_id,
         &["source_key1".to_string(), "source_key2".to_string()],

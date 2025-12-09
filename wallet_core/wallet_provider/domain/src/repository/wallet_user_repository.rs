@@ -71,7 +71,7 @@ pub trait WalletUserRepository {
 
     async fn delete_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
 
-    async fn find_keys_by_identifiers(
+    async fn find_active_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
@@ -278,7 +278,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn find_keys_by_identifiers(
+        async fn find_active_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,

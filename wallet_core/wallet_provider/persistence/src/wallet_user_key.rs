@@ -92,8 +92,7 @@ where
 }
 
 /// Retrieves all active (i.e. unblocked) keys for user `[wallet_user_id]` by `[identifiers]`.
-// TODO: Is this the right approach, or do we want to make that decision on the caller side?
-pub async fn find_keys_by_identifiers<S, T>(
+pub async fn find_active_keys_by_identifiers<S, T>(
     db: &T,
     wallet_user_id: Uuid,
     identifiers: &[String],

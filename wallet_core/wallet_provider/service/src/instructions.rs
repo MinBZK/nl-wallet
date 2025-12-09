@@ -693,7 +693,7 @@ impl HandleInstruction for Sign {
         let tx = user_state.repositories.begin_transaction().await?;
         let found_keys = user_state
             .repositories
-            .find_keys_by_identifiers(
+            .find_active_keys_by_identifiers(
                 &tx,
                 wallet_user.id,
                 &identifiers.clone().into_iter().flatten().collect::<Vec<_>>(),
@@ -1466,7 +1466,7 @@ mod tests {
             .returning(|| Ok(MockTransaction));
 
         wallet_user_repo
-            .expect_find_keys_by_identifiers()
+            .expect_find_active_keys_by_identifiers()
             .withf(|_, _, key_identifiers| key_identifiers.contains(&"key1".to_string()))
             .return_once(move |_, _, _| {
                 Ok(HashMap::from([
