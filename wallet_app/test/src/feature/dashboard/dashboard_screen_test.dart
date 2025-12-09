@@ -6,6 +6,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
@@ -58,6 +59,7 @@ void main() {
           const DashboardLoadInProgress(),
         ),
         providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
           RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
         ],
@@ -72,6 +74,7 @@ void main() {
           const DashboardLoadFailure(),
         ),
         providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
           RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
         ],
@@ -186,11 +189,13 @@ void main() {
         providers: [
           RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
           RepositoryProvider<ObserveVersionStateUsecase>(create: (c) => MockObserveVersionStateUsecase()),
           RepositoryProvider<BannerCubit>(
             create: (c) => BannerCubit(
               MockObserveShowTourBannerUseCase(),
               MockObserveVersionStateUsecase(),
+              MockObserveDashboardNotificationsUseCase(),
             ),
           ),
         ],
@@ -223,6 +228,7 @@ Future<void> _pumpSuccessWithVersionState(
     surfaceSize: surfaceSize,
     providers: [
       RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
+      RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
       RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
       RepositoryProvider<ObserveVersionStateUsecase>(
         create: (c) {
@@ -237,7 +243,13 @@ Future<void> _pumpSuccessWithVersionState(
           when(versionStateUseCase.invoke()).thenAnswer((_) => Stream.value(state));
           final mockShowBannerUseCase = MockObserveShowTourBannerUseCase();
           when(mockShowBannerUseCase.invoke()).thenAnswer((_) => Stream.value(false));
-          return BannerCubit(mockShowBannerUseCase, versionStateUseCase);
+          final mockObserveDashboardNotificationsUseCase = MockObserveDashboardNotificationsUseCase();
+          when(mockObserveDashboardNotificationsUseCase.invoke()).thenAnswer((_) => Stream.value([]));
+          return BannerCubit(
+            mockShowBannerUseCase,
+            versionStateUseCase,
+            mockObserveDashboardNotificationsUseCase,
+          );
         },
       ),
     ],

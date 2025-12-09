@@ -23,6 +23,8 @@ import '../data/repository/language/impl/language_repository_impl.dart';
 import '../data/repository/language/language_repository.dart';
 import '../data/repository/network/impl/network_repository_impl.dart';
 import '../data/repository/network/network_repository.dart';
+import '../data/repository/notification/impl/notification_repository_impl.dart';
+import '../data/repository/notification/notification_repository.dart';
 import '../data/repository/pid/core/core_pid_repository.dart';
 import '../data/repository/pid/pid_repository.dart';
 import '../data/repository/pin/core/core_pin_repository.dart';
@@ -128,6 +130,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<VersionStringRepository>(
           create: (context) => CoreVersionStringRepository(context.read()),
+        ),
+        RepositoryProvider<NotificationRepository>(
+          create: (context) => NotificationRepositoryImpl(context.read(), context.read()),
         ),
         RepositoryProvider<NetworkRepository>(
           lazy: false /* false to make sure [CoreErrorExtension.networkRepository] is available */,

@@ -1,5 +1,8 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
@@ -9,9 +12,11 @@ import '../../../domain/model/card/status/card_status.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
+import '../../../domain/model/notification/notification_channel.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../theme/dark_wallet_theme.dart';
 import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -19,6 +24,7 @@ import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/card/status/card_status_metadata_mapper.dart';
 import '../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../../wallet_assets.dart';
+import '../../banner/widget/tour_banner.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/error_details_sheet.dart';
@@ -58,7 +64,6 @@ import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
-import '../../tour/widget/tour_banner.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../theme_screen.dart';
 
@@ -172,6 +177,7 @@ class OtherStylesTab extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       children: [
         _buildAppBarSection(context),
+        _buildNotificationsSection(context),
         _buildSheetSection(context),
         _buildErrorScreensSection(context),
         _buildAttributeSection(context),
@@ -198,6 +204,66 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () => _showWalletAppBarPageWithFadeInTitle(context),
           child: const Text('WalletAppBar + FadeInAtOffset'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotificationsSection(BuildContext context) {
+    return Column(
+      children: [
+        const ThemeSectionHeader(title: 'Notifications'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'Request permission'),
+        TextButton(
+          onPressed: () => context.read<RequestPermissionUseCase>().invoke(.notification),
+          child: const Text('Request'),
+        ),
+        const ThemeSectionSubHeader(title: 'Show sample notification'),
+        TextButton(
+          onPressed: () async {
+            await FlutterLocalNotificationsPlugin().show(
+              DateTime.now().millisecondsSinceEpoch % 10000,
+              'Sample',
+              'Notification Body',
+              NotificationDetails(
+                android: AndroidNotificationDetails(
+                  NotificationChannel.cardUpdates.name,
+                  context.l10n.cardNotificationsChannelName,
+                  channelDescription: context.l10n.cardNotificationsChannelDescription,
+                  autoCancel: true,
+                  importance: .high,
+                ),
+                iOS: const DarwinNotificationDetails(presentAlert: true),
+              ),
+              payload: 'instant',
+            );
+          },
+          child: const Text('Show'),
+        ),
+        const ThemeSectionSubHeader(title: 'Schedule sample notification'),
+        TextButton(
+          onPressed: () async {
+            await FlutterLocalNotificationsPlugin().zonedSchedule(
+              DateTime.now().millisecondsSinceEpoch % 10000,
+              'Sample Scheduled',
+              'Notification Body',
+              tz.TZDateTime.from(
+                DateTime.now().add(const Duration(minutes: 1)),
+                tz.getLocation('Europe/Amsterdam'),
+              ),
+              NotificationDetails(
+                android: AndroidNotificationDetails(
+                  NotificationChannel.cardUpdates.name,
+                  context.l10n.cardNotificationsChannelName,
+                ),
+                iOS: const DarwinNotificationDetails(presentAlert: true),
+              ),
+              androidScheduleMode: .inexact,
+              payload: 'scheduled',
+            );
+          },
+          child: const Text('Schedule'),
         ),
       ],
     );

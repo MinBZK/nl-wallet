@@ -341,6 +341,7 @@ void main() {
             create: (c) => BannerCubit(
               MockObserveShowTourBannerUseCase(),
               MockObserveVersionStateUsecase(),
+              MockObserveDashboardNotificationsUseCase(),
             ),
           ),
         ],

@@ -10,6 +10,8 @@ PODS:
   - device_info_plus (0.0.1):
     - Flutter
   - Flutter (1.0.0)
+  - flutter_local_notifications (0.0.1):
+    - Flutter
   - flutter_native_splash (2.4.3):
     - Flutter
   - IOSSecuritySuite (1.9.10)
@@ -57,6 +59,7 @@ DEPENDENCIES:
   - country_codes (from `.symlinks/plugins/country_codes/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - Flutter (from `Flutter`)
+  - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
   - IOSSecuritySuite (= 1.9.10)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
@@ -92,6 +95,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/device_info_plus/ios"
   Flutter:
     :path: Flutter
+  flutter_local_notifications:
+    :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_native_splash:
     :path: ".symlinks/plugins/flutter_native_splash/ios"
   local_auth_darwin:
@@ -130,6 +135,7 @@ SPEC CHECKSUMS:
   country_codes: b534fe92b5dd4d4cfd31a720f2bfa223373d162c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   IOSSecuritySuite: e764318117aabd1f894cbdfc5ac013a59352953d
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
@@ -148,6 +154,6 @@ SPEC CHECKSUMS:
   vibration: 69774ad57825b11c951ee4c46155f455d7a592ce
   video_player_avfoundation: dd410b52df6d2466a42d28550e33e4146928280a
 
-PODFILE CHECKSUM: abc6571f8790b1ebbe57123607535df6824fd6be
+PODFILE CHECKSUM: 6b018472e71825ba57e02b568e55c239661c879d
 
 COCOAPODS: 1.16.2
