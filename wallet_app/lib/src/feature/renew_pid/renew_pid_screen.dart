@@ -278,6 +278,8 @@ class RenewPidScreen extends StatelessWidget {
     if (state is RenewPidAwaitingDigidAuthentication) {
       // This is a special case, for which we show the stop dialog
       unawaited(_showStopDigidLoginDialog(context));
+    } else if (state is RenewPidStopped) {
+      Navigator.pop(context);
     } else {
       if (await RenewPidStopSheet.show(context) && context.mounted) {
         context.bloc.add(const RenewPidStopPressed());

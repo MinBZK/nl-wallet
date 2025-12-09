@@ -132,6 +132,7 @@ import 'package:wallet/src/domain/usecase/wallet/get_wallet_state_usecase.dart' 
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i62;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart' as _i131;
 import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart' as _i97;
+import 'package:wallet/src/domain/usecase/wallet/move_to_ready_state_usecase.dart' as _i138;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i63;
 import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart' as _i81;
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i65;
@@ -6386,6 +6387,52 @@ class MockCheckIsPidUseCase extends _i1.Mock implements _i137.CheckIsPidUseCase 
               _i14.dummyValue<_i60.Result<bool>>(
                 this,
                 Invocation.method(#invoke, [card]),
+              ),
+            ),
+          )
+          as _i10.Future<_i60.Result<bool>>);
+
+  @override
+  _i10.Future<_i60.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#tryCatch, [future, errorDescription]),
+            returnValue: _i10.Future<_i60.Result<T>>.value(
+              _i14.dummyValue<_i60.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i60.Result<T>>.value(
+              _i14.dummyValue<_i60.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+          )
+          as _i10.Future<_i60.Result<T>>);
+}
+
+/// A class which mocks [MoveToReadyStateUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockMoveToReadyStateUseCase extends _i1.Mock implements _i138.MoveToReadyStateUseCase {
+  @override
+  _i10.Future<_i60.Result<bool>> invoke() =>
+      (super.noSuchMethod(
+            Invocation.method(#invoke, []),
+            returnValue: _i10.Future<_i60.Result<bool>>.value(
+              _i14.dummyValue<_i60.Result<bool>>(
+                this,
+                Invocation.method(#invoke, []),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i60.Result<bool>>.value(
+              _i14.dummyValue<_i60.Result<bool>>(
+                this,
+                Invocation.method(#invoke, []),
               ),
             ),
           )

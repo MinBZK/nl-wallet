@@ -126,12 +126,14 @@ import '../domain/usecase/wallet/impl/get_wallet_state_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_registered_and_unlocked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/lock_wallet_usecase_impl.dart';
+import '../domain/usecase/wallet/impl/move_to_ready_state_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/observe_wallet_locked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/reset_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart';
 import '../domain/usecase/wallet/lock_wallet_usecase.dart';
+import '../domain/usecase/wallet/move_to_ready_state_usecase.dart';
 import '../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
@@ -379,6 +381,14 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<CheckIsPidUseCase>(
           create: (context) => CheckIsPidUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<MoveToReadyStateUseCase>(
+          create: (context) => MoveToReadyStateUseCaseImpl(
+            context.read(),
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
         ),
       ],
       child: child,
