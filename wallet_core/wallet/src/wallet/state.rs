@@ -128,6 +128,7 @@ where
 }
 
 #[cfg(test)]
+#[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
     use futures::FutureExt;
     use http_utils::tls::pinning::TlsPinningConfig;
