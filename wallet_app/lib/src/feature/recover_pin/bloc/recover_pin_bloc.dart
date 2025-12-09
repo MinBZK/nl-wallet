@@ -15,6 +15,7 @@ import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../domain/usecase/pin/complete_pin_recovery_usecase.dart';
 import '../../../domain/usecase/pin/continue_pin_recovery_usecase.dart';
 import '../../../domain/usecase/pin/create_pin_recovery_url_usecase.dart';
+import '../../../domain/usecase/wallet/move_to_ready_state_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_core/error/core_error.dart';
@@ -27,6 +28,7 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
   final CheckIsValidPinUseCase _checkIsValidPinUseCase;
   final ContinuePinRecoveryUseCase _continuePinRecoveryUsecase;
   final CancelPinRecoveryUseCase _cancelPinRecoveryUsecase;
+  final MoveToReadyStateUseCase _moveToReadyStateUsecase;
   final CompletePinRecoveryUseCase _completePinRecoveryUsecase;
 
   RecoverPinBloc(
@@ -34,6 +36,7 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
     this._checkIsValidPinUseCase,
     this._continuePinRecoveryUsecase,
     this._cancelPinRecoveryUsecase,
+    this._moveToReadyStateUsecase,
     this._completePinRecoveryUsecase, {
     required bool continueFromDigiD,
   }) : super(continueFromDigiD ? const RecoverPinVerifyingDigidAuthentication() : const RecoverPinInitial()) {
@@ -53,7 +56,19 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
 
   FutureOr<void> _onDigidLoginClicked(RecoverPinLoginWithDigidClicked event, Emitter<RecoverPinState> emit) async {
     emit(const RecoverPinLoadingDigidUrl());
-    await _cancelPinRecoveryUsecase.invoke(); // Make sure there is no stale session
+
+    // Attempt to move to ready state
+    final readyResult = await _moveToReadyStateUsecase.invoke();
+    if (readyResult.value == false || readyResult.hasError) {
+      final fallbackError = GenericError(
+        'Wallet not in ready state',
+        sourceError: Exception('failed to move to ready state'),
+      );
+      await _handleApplicationError(readyResult.error ?? fallbackError, emit);
+      return;
+    }
+
+    // Create and emit digid redirect uri
     final result = await _createPinRecoveryRedirectUriUsecase.invoke();
     await result.process(
       onSuccess: (url) => emit(RecoverPinAwaitingDigidAuthentication(url)),
@@ -207,7 +222,7 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
 
   @override
   Future<void> close() {
-    // TODO(Rob): this line cancels the PIN recovery flow even when it is succesful.
+    // TODO(Rob): this line cancels the PIN recovery flow even when it is successful.
     //            PIN recovery should only be cancelled here if it's still ongoing. See PVW-5067.
     // _cancelPinRecoveryUsecase.invoke();
     return super.close();
