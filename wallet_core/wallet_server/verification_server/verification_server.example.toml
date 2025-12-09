@@ -72,6 +72,8 @@ max_session_lifetime_in_sec = 900
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
 # * session_type_return_url: Can be both, same_device (default), or neither
+# * accept_undetermined_revocation_status: boolean to indicate whether attestations having an undetermined revocation
+#   status are accepted. Defaults to false
 #
 
 # Example driving_license usecase
@@ -80,6 +82,7 @@ private_key_type = "software"
 private_key = "MII..."
 certificate = "MII..."
 session_type_return_url = "both"
+accept_undetermined_revocation_status = false
 
 # Example parking_permit usecase
 [usecases.parking_permit]
@@ -87,3 +90,4 @@ private_key_type = "hsm"
 private_key = "some_private_key"
 certificate = "MII..."
 session_type_return_url = "same_device"
+accept_undetermined_revocation_status = true
