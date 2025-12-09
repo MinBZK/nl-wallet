@@ -1149,7 +1149,7 @@ fn missing_input_files_reader_pubkey() -> Result<()> {
     Ok(())
 }
 
-fn setup_tsl_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath)> {
+fn setup_tsl_files(temp: &TempDir) -> (ChildPath, ChildPath, ChildPath) {
     let (ca_prefix, ca_crt, ca_key) = keypair_paths(temp, "test-ca");
     let (tsl_prefix, _tsl_crt, _tsl_key) = keypair_paths(temp, "test-tls-kp");
 
@@ -1160,16 +1160,16 @@ fn setup_tsl_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath)> 
         .assert()
         .success();
 
-    Ok((ca_crt, ca_key, tsl_prefix))
+    (ca_crt, ca_key, tsl_prefix)
 }
 
-fn setup_tsl_pubkey_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath)> {
-    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(temp)?;
+fn setup_tsl_pubkey_files(temp: &TempDir) -> (ChildPath, ChildPath, ChildPath, ChildPath) {
+    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(temp);
 
     let public_key_path = public_key_path(temp, "test-tslh-crt");
     generate_public_key(&public_key_path);
 
-    Ok((public_key_path, ca_crt, ca_key, tsl_prefix))
+    (public_key_path, ca_crt, ca_key, tsl_prefix)
 }
 
 #[test]
@@ -1177,7 +1177,7 @@ fn missing_input_files_tsl() -> Result<()> {
     let temp = TempDir::new()?;
 
     // Setup files without CA key
-    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(&temp)?;
+    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(&temp);
     std::fs::remove_file(&ca_key)?;
 
     // Generate reader should fail on missing CA key
@@ -1188,7 +1188,7 @@ fn missing_input_files_tsl() -> Result<()> {
         .stderr(predicate_missing_key_file(&ca_key));
 
     // Setup files without CA crt
-    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(&temp)?;
+    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(&temp);
     std::fs::remove_file(&ca_crt)?;
 
     Command::new(assert_cmd::cargo::cargo_bin!())
@@ -1208,7 +1208,7 @@ fn missing_input_files_tsl_pubkey() -> Result<()> {
     let temp = TempDir::new()?;
 
     // Setup files without CA key
-    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp)?;
+    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp);
     std::fs::remove_file(&ca_key)?;
 
     // Generate reader should fail on missing CA key
@@ -1219,7 +1219,7 @@ fn missing_input_files_tsl_pubkey() -> Result<()> {
         .stderr(predicate_missing_key_file(&ca_key));
 
     // Setup files without CA crt
-    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp)?;
+    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp);
     std::fs::remove_file(&ca_crt)?;
 
     Command::new(assert_cmd::cargo::cargo_bin!())
@@ -1229,7 +1229,7 @@ fn missing_input_files_tsl_pubkey() -> Result<()> {
         .stderr(predicate_missing_crt_file(&ca_crt));
 
     // Setup files without public key file
-    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp)?;
+    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp);
     std::fs::remove_file(&public_key_file)?;
 
     // Generate reader_auth should fail when missing JSON file
