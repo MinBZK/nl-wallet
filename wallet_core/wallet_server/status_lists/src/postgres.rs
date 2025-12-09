@@ -837,6 +837,7 @@ where
             let mut expiry = read_token_expiry(&path)
                 .await
                 .inspect_err(|err| tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err))
+                // Ignore error is ok because it is just logged with WARN
                 .ok();
 
             if expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
@@ -849,8 +850,13 @@ where
                         expiry = read_token_expiry(&path)
                             .await
                             .inspect_err(|err| {
-                                tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err)
+                                tracing::error!(
+                                    "Could not read expiry from just published token `{}`: {}",
+                                    path.display(),
+                                    err
+                                )
                             })
+                            // Ignore error is ok because it is just logged with ERROR
                             .ok()
                     }
                     Err(err) => tracing::warn!("Failed to refresh status list for ID {}: {}", list.id, err),
