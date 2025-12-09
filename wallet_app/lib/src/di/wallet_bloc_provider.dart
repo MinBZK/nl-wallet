@@ -19,7 +19,11 @@ class WalletBlocProvider extends StatelessWidget {
           create: (context) => PreferredLocaleCubit(context.read()),
         ),
         BlocProvider<BannerCubit>(
-          create: (context) => BannerCubit(context.read(), context.read()),
+          create: (context) => BannerCubit(
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
         ),
       ],
       child: child,

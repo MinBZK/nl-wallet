@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../common/widget/banner/notification_banner.dart';
 import '../../common/widget/svg_or_image.dart';
+import 'notification_banner.dart';
 
 const _kTourIconSize = 32.0;
 

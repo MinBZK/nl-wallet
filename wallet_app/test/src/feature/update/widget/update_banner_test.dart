@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
-import 'package:wallet/src/feature/update/widget/update_banner.dart';
+import 'package:wallet/src/feature/banner/widget/update_banner.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';

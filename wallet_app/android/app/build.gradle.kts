@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.android
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Base64
 import java.util.Properties
@@ -84,6 +85,8 @@ android {
     // When the above-linked issue is merged and released, the above warnings
     // should disappear.
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -104,6 +107,8 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        multiDexEnabled = true
 
         manifestPlaceholders["appName"] = System.getenv("APP_NAME") ?: "NL Wallet"
 
@@ -144,7 +149,8 @@ android {
         }
         release {
             // Only allow release signing for release or unsigned
-            signingConfig = signingConfigName.takeIf { it == "release" }?.let { signingConfigs.getByName(it) }
+            signingConfig =
+                signingConfigName.takeIf { it == "release" }?.let { signingConfigs.getByName(it) }
             isMinifyEnabled = true
             proguardFiles += listOf(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -170,7 +176,7 @@ flutter {
 
 dependencies {
     implementation("net.java.dev.jna:jna:5.17.0@aar") // Java Native Access
-
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation(project(path = ":platform_support"))
 }
 
@@ -213,4 +219,10 @@ tasks.register<Delete>("cleanJni") {
 
 tasks.named("clean") {
     dependsOn("cleanJni")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
+    }
 }

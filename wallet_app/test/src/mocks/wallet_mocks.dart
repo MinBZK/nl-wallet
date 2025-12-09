@@ -51,7 +51,10 @@ import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart'
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
-import 'package:wallet/src/domain/usecase/permission/check_has_permission_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart';
+import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart';
+import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart';
@@ -184,7 +187,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<LockWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<DiscloseForIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<DecodeQrUseCase>()])
-@GenerateNiceMocks([MockSpec<CheckHasPermissionUseCase>()])
+@GenerateNiceMocks([MockSpec<RequestPermissionUseCase>()])
 @GenerateNiceMocks([MockSpec<ChangePinUseCase>()])
 @GenerateNiceMocks([MockSpec<GetAvailableBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<SetBiometricsUseCase>()])
@@ -211,6 +214,9 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<GetWalletStateUseCase>()])
 @GenerateNiceMocks([MockSpec<ReceiveWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletRegisteredAndUnlockedUseCase>()])
+@GenerateNiceMocks([MockSpec<CheckPermissionUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveDashboardNotificationsUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveOsNotificationsUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckIsPidUseCase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
@@ -286,7 +292,7 @@ class Mocks {
     sl.registerFactory<LockWalletUseCase>(MockLockWalletUseCase.new);
     sl.registerFactory<DiscloseForIssuanceUseCase>(MockDiscloseForIssuanceUseCase.new);
     sl.registerFactory<DecodeQrUseCase>(MockDecodeQrUseCase.new);
-    sl.registerFactory<CheckHasPermissionUseCase>(MockCheckHasPermissionUseCase.new);
+    sl.registerFactory<RequestPermissionUseCase>(MockRequestPermissionUseCase.new);
     sl.registerFactory<ChangePinUseCase>(MockChangePinUseCase.new);
     sl.registerFactory<GetAvailableBiometricsUseCase>(MockGetAvailableBiometricsUseCase.new);
     sl.registerFactory<SetBiometricsUseCase>(MockSetBiometricsUseCase.new);

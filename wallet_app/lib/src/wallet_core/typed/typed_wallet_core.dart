@@ -20,6 +20,7 @@ class TypedWalletCore {
   final BehaviorSubject<core.FlutterVersionState> _flutterVersionState = BehaviorSubject();
   final BehaviorSubject<List<core.WalletEvent>> _recentHistory = BehaviorSubject();
   final BehaviorSubject<List<core.AttestationPresentation>> _attestations = BehaviorSubject();
+  final BehaviorSubject<List<core.AppNotification>> _notifications = BehaviorSubject();
 
   TypedWalletCore(this._errorMapper) {
     _setupLockedStream();
@@ -27,41 +28,36 @@ class TypedWalletCore {
     _setupVersionStateStream();
     _setupAttestationsStream();
     _setupRecentHistoryStream();
+    _setupNotificationStream();
   }
 
   void _setupLockedStream() {
-    _isLocked.onListen = () async {
-      core.setLockStream().listen(_isLocked.add);
-    };
+    _isLocked.onListen = () => core.setLockStream().listen(_isLocked.add);
     _isLocked.onCancel = core.clearLockStream;
   }
 
   void _setupConfigurationStream() {
-    _flutterConfig.onListen = () async {
-      core.setConfigurationStream().listen(_flutterConfig.add);
-    };
+    _flutterConfig.onListen = () => core.setConfigurationStream().listen(_flutterConfig.add);
     _flutterConfig.onCancel = core.clearConfigurationStream;
   }
 
   void _setupVersionStateStream() {
-    _flutterVersionState.onListen = () async {
-      core.setVersionStateStream().listen(_flutterVersionState.add);
-    };
+    _flutterVersionState.onListen = () => core.setVersionStateStream().listen(_flutterVersionState.add);
     _flutterVersionState.onCancel = core.clearVersionStateStream;
   }
 
-  Future<void> _setupAttestationsStream() async {
-    // Ideally we don't set the card stream until we start observing it (i.e. in onListen())
-    // but since the cards are not persisted yet that means we might miss events, so observing
-    // the wallet_core cards stream through the complete lifecycle of the app for now.
-    // NOTE: To reproduce issue: 1. Start clean, 2. Setup Wallet, 3. Kill app, 4. Continue Setup, 5. Cards don't show up on success page
-    core.setAttestationsStream().listen(_attestations.add);
+  void _setupNotificationStream() {
+    _notifications.onListen = () => core.setNotificationsStream().listen(_notifications.add);
+    _notifications.onCancel = core.clearNotificationsStream;
+  }
+
+  void _setupAttestationsStream() {
+    _attestations.onListen = () => core.setAttestationsStream().listen(_attestations.add);
+    _attestations.onCancel = core.clearAttestationsStream;
   }
 
   void _setupRecentHistoryStream() {
-    _recentHistory.onListen = () async {
-      core.setRecentHistoryStream().listen(_recentHistory.add);
-    };
+    _recentHistory.onListen = () => core.setRecentHistoryStream().listen(_recentHistory.add);
     _recentHistory.onCancel = core.clearRecentHistoryStream;
   }
 
@@ -87,6 +83,8 @@ class TypedWalletCore {
   Stream<core.FlutterConfiguration> observeConfig() => _flutterConfig.stream;
 
   Stream<core.FlutterVersionState> observeVersionState() => _flutterVersionState.stream;
+
+  Stream<List<core.AppNotification>> observeNotifications() => _notifications.stream;
 
   Future<String> createPidIssuanceRedirectUri() => call(core.createPidIssuanceRedirectUri);
 

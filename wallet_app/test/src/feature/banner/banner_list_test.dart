@@ -8,6 +8,7 @@ import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
 import 'package:wallet/src/feature/banner/wallet_banner.dart';
 
 import '../../../wallet_app_test_widget.dart';
+import '../../mocks/wallet_mock_data.dart';
 import '../../test_util/golden_utils.dart';
 
 class MockBannerCubit extends MockCubit<List<WalletBanner>> implements BannerCubit {}
@@ -18,6 +19,11 @@ const kMultiItemSize = Size(390, 180);
 const tourBanner = TourSuggestionBanner();
 final updateNotifyBanner = UpdateAvailableBanner(state: VersionStateNotify());
 final updateRecommendBanner = UpdateAvailableBanner(state: VersionStateRecommend());
+final cardExpiryWarningBanner = CardExpiresSoonBanner(
+  card: WalletMockData.altCard,
+  expiresAt: DateTime.now().add(const Duration(days: 4, minutes: 1)),
+);
+final cardExpiredBanner = CardExpiredBanner(card: WalletMockData.card);
 
 void main() {
   // Common setup for widget pumping
@@ -78,6 +84,31 @@ void main() {
     testGoldens('ltc14 ltc42 multiple banners (update and tour) - light theme', (tester) async {
       await pumpBannerList(tester, initialBanners: [updateRecommendBanner, tourBanner]);
       await screenMatchesGolden('banner_list.multiple_banners_alt_order.light');
+    });
+
+    testGoldens('multiple banners (expiry and expired) - light theme', (tester) async {
+      await pumpBannerList(
+        tester,
+        initialBanners: [
+          cardExpiredBanner,
+          CardExpiresSoonBanner(
+            card: WalletMockData.altCard,
+            expiresAt: DateTime.now().add(const Duration(days: 1, seconds: 1)),
+          ),
+        ],
+        surfaceSize: const Size(390, 200),
+      );
+      await screenMatchesGolden('banner_list.multiple_expiry_banners.light');
+    });
+
+    testGoldens('multiple banners (expiry and expired) - dark theme', (tester) async {
+      await pumpBannerList(
+        tester,
+        initialBanners: [cardExpiryWarningBanner, cardExpiredBanner],
+        brightness: Brightness.dark,
+        surfaceSize: const Size(390, 200),
+      );
+      await screenMatchesGolden('banner_list.multiple_expiry_banners.dark');
     });
 
     testGoldens('ltc14 ltc42 single tour banner - dark theme', (tester) async {
