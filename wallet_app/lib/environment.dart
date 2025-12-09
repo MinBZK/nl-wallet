@@ -29,7 +29,7 @@ class Environment {
   /// The URL for the demo relying party.
   ///
   /// Set using: `flutter build --dart-define=DEMO_INDEX_URL=https://example.org/demo`
-  static String get demoRelyingPartyUrl => const String.fromEnvironment('DEMO_INDEX_URL');
+  static String get demoIndexUrl => const String.fromEnvironment('DEMO_INDEX_URL');
 
   /// The DSN for Sentry error reporting.
   ///
