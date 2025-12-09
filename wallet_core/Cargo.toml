@@ -85,6 +85,7 @@ unused_self = "warn"
 [workspace.dependencies]
 accept-language = "3.1.0"
 aes-gcm = "0.10.3"
+# android_logger version 0.15.x and above is held back because PlatformLogWriter was made private.
 android_logger = { version = "0.14.1", default-features = false }
 anyhow = "1.0.100"
 askama = "0.14.0"
