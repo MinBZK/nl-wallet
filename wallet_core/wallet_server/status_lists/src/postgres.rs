@@ -62,8 +62,8 @@ use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
+use crate::publish::LockVersion;
 use crate::publish::PublishLockError;
-use crate::publish::VersionInfo;
 use crate::refresh::RefreshControl;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
@@ -914,7 +914,7 @@ where
             .await?;
 
         let expires = Utc::now() + self.config.expiry;
-        let version = VersionInfo::from(result.len(), expires);
+        let version = LockVersion::from(result.len(), expires);
         self.config
             .publish_dir
             .lock_for(external_id)
