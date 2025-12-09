@@ -127,10 +127,4 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
     unawaited(_cancelPidIssuanceUseCase.invoke());
     emit(const RenewPidStopped());
   }
-
-  @override
-  Future<void> close() async {
-    await _cancelPidIssuanceUseCase.invoke();
-    return super.close();
-  }
 }

@@ -15,6 +15,7 @@ void main() {
   late MockContinuePinRecoveryUseCase continuePinRecoveryUseCase;
   late MockCancelPinRecoveryUseCase cancelPinRecoveryUseCase;
   late MockCompletePinRecoveryUseCase completePinRecoveryUseCase;
+  late MockMoveToReadyStateUseCase moveToReadyStateUseCase;
 
   setUp(() {
     createPinRecoveryRedirectUriUseCase = MockCreatePinRecoveryRedirectUriUseCase();
@@ -22,6 +23,7 @@ void main() {
     continuePinRecoveryUseCase = MockContinuePinRecoveryUseCase();
     cancelPinRecoveryUseCase = MockCancelPinRecoveryUseCase();
     completePinRecoveryUseCase = MockCompletePinRecoveryUseCase();
+    moveToReadyStateUseCase = MockMoveToReadyStateUseCase();
   });
 
   group('RecoverPinBloc', () {
@@ -31,6 +33,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       );
@@ -44,6 +47,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: true,
       );
@@ -66,6 +70,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );
@@ -113,6 +118,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -132,6 +138,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -152,6 +159,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );
@@ -175,6 +183,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );
@@ -193,6 +202,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -211,6 +221,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -232,6 +243,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );
@@ -252,6 +264,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );
@@ -276,6 +289,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );
@@ -304,6 +318,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -331,6 +346,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -358,6 +374,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -373,6 +390,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -390,6 +408,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -405,6 +424,7 @@ void main() {
         checkIsValidPinUseCase,
         continuePinRecoveryUseCase,
         cancelPinRecoveryUseCase,
+        moveToReadyStateUseCase,
         completePinRecoveryUseCase,
         continueFromDigiD: false,
       ),
@@ -427,6 +447,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );
@@ -450,6 +471,7 @@ void main() {
           checkIsValidPinUseCase,
           continuePinRecoveryUseCase,
           cancelPinRecoveryUseCase,
+          moveToReadyStateUseCase,
           completePinRecoveryUseCase,
           continueFromDigiD: false,
         );

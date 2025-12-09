@@ -505,6 +505,7 @@ mod tests {
             &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
                 ca.generate_status_list_mock().unwrap(),
             ))),
+            false,
         )
         .now_or_never()
         .unwrap()

@@ -5,8 +5,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Used by flutter_local_notifications to reschedule alarms -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Used by flutter_local_notifications to schedule alarms -->
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
         android:name="${applicationName}"

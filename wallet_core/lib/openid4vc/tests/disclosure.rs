@@ -188,6 +188,7 @@ fn disclosure_direct() {
         &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_status_list_mock().unwrap(),
         ))),
+        false,
     )
     .now_or_never()
     .unwrap()
@@ -400,6 +401,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
             &self.trust_anchors,
             &ExtendingVctRetrieverStub,
             &RevocationVerifier::new(Arc::new(StatusListClientStub::new(self.status_list_keypair.clone()))),
+            false,
         )
         .await
         .unwrap();
@@ -1041,6 +1043,7 @@ fn setup_verifier(
                 SessionTypeReturnUrl::Neither,
                 None,
                 None,
+                false,
             )
             .unwrap(),
         ),
@@ -1051,6 +1054,7 @@ fn setup_verifier(
                 SessionTypeReturnUrl::SameDevice,
                 None,
                 None,
+                false,
             )
             .unwrap(),
         ),
@@ -1061,6 +1065,7 @@ fn setup_verifier(
                 SessionTypeReturnUrl::Both,
                 None,
                 None,
+                false,
             )
             .unwrap(),
         ),

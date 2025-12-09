@@ -88,6 +88,9 @@ pub struct UseCaseSettings {
 
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
+
+    #[serde(default)]
+    pub accept_undetermined_revocation_status: bool,
 }
 
 impl UseCasesSettings {
@@ -120,6 +123,7 @@ impl UseCaseSettings {
             self.session_type_return_url,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
+            self.accept_undetermined_revocation_status,
         )?;
 
         Ok(use_case)
