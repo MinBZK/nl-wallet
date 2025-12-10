@@ -116,7 +116,25 @@
             "attributes": {
               "rent": "€ 720,00",
               "service_charges": "€ 48,00",
-              "eligible_service_charges": "€ 40,00"
+              "eligible_service_charges": "€ 40,00",
+              "rental_object": {
+                "bag_id": "518010001648894",
+                "street_name": "Glitterstraat",
+                "house_number": "301",
+                "house_number_suffix": null,
+                "room_number": null,
+                "zip_code": "1103SK",
+                "city": "Den Amsterdam"
+              },
+              "rental_contract": {
+                "start_date": "2025-12-01",
+                "end_date": null,
+                "duration_in_months": 12
+              },
+              "rental_organization": {
+                "name": "DroomWoon N.V.",
+                "kvk_number": "41215563"
+              }
             }
           }
         ]

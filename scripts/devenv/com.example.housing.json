@@ -77,6 +77,198 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": ["rental_object", "bag_id"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "BAG-identificatienummer",
+          "description": "BAG-identificatienummer van het huurobject"
+        },
+        {
+          "lang": "en-US",
+          "label": "BAG identification number",
+          "description": "BAG identification number of the rental object"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_object", "street_name"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Straatnaam",
+          "description": "Straatnaam van het huurobject"
+        },
+        {
+          "lang": "en-US",
+          "label": "Street name",
+          "description": "Street name of the rental object"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_object", "house_number"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Huisnummer",
+          "description": "Huisnummer van het huurobject"
+        },
+        {
+          "lang": "en-US",
+          "label": "House number",
+          "description": "House number of the rental object"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_object", "house_number_suffix"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Huisnummer toevoeging",
+          "description": "Huisnummertoevoeging van het huurobject"
+        },
+        {
+          "lang": "en-US",
+          "label": "House number suffix",
+          "description": "House number suffix of the rental object"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_object", "room_number"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Kamernummer",
+          "description": "Kamernummer van het huurobject"
+        },
+        {
+          "lang": "en-US",
+          "label": "Room number",
+          "description": "Room number of the rental object"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_object", "zip_code"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Postcode",
+          "description": "Postcode van het huurobject"
+        },
+        {
+          "lang": "en-US",
+          "label": "Zip code",
+          "description": "Zip code of the rental object"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_object", "city"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Plaats",
+          "description": "Plaats van het huurobject"
+        },
+        {
+          "lang": "en-US",
+          "label": "City",
+          "description": "City of the rental object"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_contract", "start_date"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Startdatum huurcontract",
+          "description": "Startdatum van het huurcontract"
+        },
+        {
+          "lang": "en-US",
+          "label": "Start date rental contract",
+          "description": "Start date of the rental contract"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_contract", "end_date"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Einddatum huurcontract",
+          "description": "Einddatum van het huurcontract"
+        },
+        {
+          "lang": "en-US",
+          "label": "End date rental contract",
+          "description": "End date of the rental contract"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_contract", "duration_in_months"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Looptijd huurcontract",
+          "description": "Looptijd van het huurcontract in maanden"
+        },
+        {
+          "lang": "en-US",
+          "label": "Rental contract duration",
+          "description": "Duration of the rental contract in months"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_organization", "name"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Verhuurder",
+          "description": "Naam van de verhuurder"
+        },
+        {
+          "lang": "en-US",
+          "label": "Rental organization name",
+          "description": "Name of the rental organization"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["rental_organization", "kvk_number"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "KVK-nummer verhuurder",
+          "description": "KVK nummer van de verhuurder"
+        },
+        {
+          "lang": "en-US",
+          "label": "Rental organization KVK number",
+          "description": "Chamber of Commerce (KVK) subscription number of the rental organization"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {
@@ -123,8 +315,74 @@
       },
       "eligible_service_charges": {
         "type": "string"
+      },
+      "rental_object": {
+        "type": "object",
+        "properties": {
+          "bag_id": {
+            "type": "string"
+          },
+          "street_name": {
+            "type": "string"
+          },
+          "house_number": {
+            "type": "string"
+          },
+          "house_number_suffix": {
+            "type": "string"
+          },
+          "room_number": {
+            "type": "string"
+          },
+          "zip_code": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": ["bag_id", "street_name", "house_number", "zip_code", "city"]
+      },
+      "rental_contract": {
+        "type": "object",
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "duration_in_months": {
+            "type": "integer"
+          }
+        },
+        "required": ["start_date"]
+      },
+      "rental_organization": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kvk_number": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "kvk_number"]
       }
     },
-    "required": ["vct", "iss", "attestation_qualification", "rent", "service_charges", "eligible_service_charges"]
+    "required": [
+      "vct",
+      "iss",
+      "attestation_qualification",
+      "rent",
+      "service_charges",
+      "eligible_service_charges",
+      "rental_object",
+      "rental_contract",
+      "rental_organization"
+    ]
   }
 }
