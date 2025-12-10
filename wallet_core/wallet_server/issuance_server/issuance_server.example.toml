@@ -55,6 +55,12 @@ list_size = 100_000
 create_threshold = 0.1
 serve = true
 
+# Settings for caching status list tokens (values are the defaults if unset)
+[status_list_token_cache_settings]
+capacity = 100
+default_ttl_in_sec = 0
+error_ttl_in_sec = 0
+
 # Disclosure settings are defined as [disclosure_settings.some_name], where
 # "some_name" is an identifier indicating the purpose of the issuance, which
 # is freely choosable and has to be present in the QR/UL that starts the

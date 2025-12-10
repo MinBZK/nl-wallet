@@ -36,6 +36,9 @@ use crate::wallet::attestations::AttestationsCallback;
 use crate::wallet::attestations::AttestationsError;
 
 const CHECK_FREQUENCY_IN_SECONDS: u64 = 60 * 60 * 24;
+const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
+const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(180);
+const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(10);
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -98,7 +101,7 @@ where
         S: Sync + 'static,
         SLC: Sync + 'static,
         CR: Send + Sync + 'static,
-        T: Generator<DateTime<Utc>> + Send + Sync + 'static,
+        T: Generator<DateTime<Utc>> + Clone + Send + Sync + 'static,
     {
         let task = tokio::spawn(async move {
             info!("wallet revocation status background job started");
@@ -123,7 +126,7 @@ where
                     Arc::clone(&status_list_client),
                     Arc::clone(&storage),
                     Arc::clone(&callback),
-                    &time_generator,
+                    time_generator.clone(),
                 )
                 .await
                 {
@@ -141,17 +144,23 @@ where
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
         callback: Arc<Mutex<Option<AttestationsCallback>>>,
-        time_generator: &T,
+        time_generator: T,
     ) -> Result<(), RevocationError>
     where
         SLC: StatusListClient,
         S: Storage,
-        T: Generator<DateTime<Utc>> + Send + Sync + 'static,
+        T: Generator<DateTime<Utc>> + Clone + Send + Sync + 'static,
     {
-        let revocation_verifier = RevocationVerifier::new(Arc::clone(&status_list_client));
+        let revocation_verifier = RevocationVerifier::new(
+            Arc::clone(&status_list_client),
+            STATUS_LIST_TOKEN_CACHE_CAPACITY,
+            STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
+            STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
+            time_generator.clone(),
+        );
 
         // Fetch revocation info in one storage lock
-        let revocation_info = storage.read().await.fetch_all_revocation_info(time_generator).await?;
+        let revocation_info = storage.read().await.fetch_all_revocation_info(&time_generator).await?;
 
         let issuer_trust_anchors = config.issuer_trust_anchors();
 
@@ -162,7 +171,7 @@ where
                     revocation_info,
                     &revocation_verifier,
                     &issuer_trust_anchors,
-                    time_generator,
+                    &time_generator,
                 )
             })
             .buffer_unordered(10)

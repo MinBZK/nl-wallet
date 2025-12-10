@@ -124,7 +124,7 @@ mod tests {
                 &session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
             )
