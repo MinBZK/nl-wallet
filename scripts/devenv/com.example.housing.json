@@ -329,10 +329,10 @@
             "type": "string"
           },
           "house_number_suffix": {
-            "type": "string"
+            "type": ["null", "string"]
           },
           "room_number": {
-            "type": "string"
+            "type": ["null", "string"]
           },
           "zip_code": {
             "type": "string"
@@ -351,7 +351,7 @@
             "format": "date"
           },
           "end_date": {
-            "type": "string",
+            "type": ["null", "string"],
             "format": "date"
           },
           "duration_in_months": {
