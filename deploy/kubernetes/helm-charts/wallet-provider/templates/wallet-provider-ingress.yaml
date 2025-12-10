@@ -34,7 +34,7 @@ spec:
                 port:
                   name: http
 {{ if .Values.ingress.contextPath }}
-            path: /{{ .Values.ingress.contextPath }}/api/v1/(.*)
+            path: /{{ .Values.ingress.contextPath }}/(api/v1/(.*))
             pathType: ImplementationSpecific
 {{ else }}
             path: /api/v1
