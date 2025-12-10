@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::time::Duration;
 
 use anyhow::Result;
 use axum::Router;
@@ -21,10 +20,6 @@ use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::TimeGenerator;
 
 use crate::settings::VerifierSettings;
-
-const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
-const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(0);
-const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(0);
 
 pub async fn serve<S, C>(
     settings: VerifierSettings,
@@ -74,9 +69,9 @@ where
 
     let revocation_verifier = RevocationVerifier::new(
         Arc::new(status_list_client),
-        STATUS_LIST_TOKEN_CACHE_CAPACITY,
-        STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
-        STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
+        settings.status_list_token_cache_settings.capacity,
+        settings.status_list_token_cache_settings.default_ttl,
+        settings.status_list_token_cache_settings.error_ttl,
         TimeGenerator,
     );
 

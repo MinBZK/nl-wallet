@@ -33,6 +33,12 @@ wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 [extending_vct_values]
 "eudi:pid:1" = ["eudi:pid:extended:1", "eudi:pid:extended:2", "eudi:pid:extended:3"]
 
+# Settings for caching status list tokens (values are the defaults if unset)
+[status_list_token_cache_settings]
+capacity = 100
+default_ttl_in_sec = 0
+error_ttl_in_sec = 0
+
 # CORS settings. To allow all origins: allow_origins = "*"
 allow_origins = ["http://localhost:8080"]
 

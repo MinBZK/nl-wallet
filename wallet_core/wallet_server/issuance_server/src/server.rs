@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
 
 use anyhow::Result;
 use axum::Router;
@@ -37,10 +36,6 @@ use utils::generator::TimeGenerator;
 use crate::disclosure::AttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
-
-const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
-const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(0);
-const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(0);
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, L, IS, DS, C>(
@@ -138,9 +133,9 @@ where
 
     let revocation_verifier = RevocationVerifier::new(
         Arc::new(status_list_client),
-        STATUS_LIST_TOKEN_CACHE_CAPACITY,
-        STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
-        STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
+        settings.status_list_token_cache_settings.capacity,
+        settings.status_list_token_cache_settings.default_ttl,
+        settings.status_list_token_cache_settings.error_ttl,
         TimeGenerator,
     );
 
