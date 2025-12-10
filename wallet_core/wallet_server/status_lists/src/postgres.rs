@@ -1008,9 +1008,9 @@ async fn fetch_attestation_type_ids(
 
 #[derive(Debug, thiserror::Error)]
 enum TokenReadError {
-    #[error(transparent)]
+    #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
-    #[error(transparent)]
+    #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
     #[error("no expiry set")]
     NoExpiry,
