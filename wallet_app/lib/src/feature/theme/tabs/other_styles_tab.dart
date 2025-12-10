@@ -71,9 +71,7 @@ const _kMockPurpose = 'Kaart uitgifte';
 const _kMockUrl = 'https://www.example.org';
 const _kMockOtherKey = 'mock_other';
 
-const _kSampleCardStatus = CardStatus.valid;
-final _kSampleCardValidFrom = clock.now().add(const Duration(days: 5));
-final _kSampleCardValidUntil = clock.now().add(const Duration(days: 35));
+final _kSampleCardStatus = CardStatusValid(validUntil: clock.now().add(const Duration(days: 35)));
 
 final _kSampleCardMetaData = [
   const CardDisplayMetadata(
@@ -119,8 +117,6 @@ final _kSampleCard = WalletCard(
   attestationType: 'attestationType',
   issuer: _kSampleOrganization,
   status: _kSampleCardStatus,
-  validFrom: _kSampleCardValidFrom,
-  validUntil: _kSampleCardValidUntil,
   metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
 );
@@ -130,8 +126,6 @@ final _kAltSampleCard = WalletCard(
   attestationType: 'alt_attestationType',
   issuer: _kSampleOrganization,
   status: _kSampleCardStatus,
-  validFrom: _kSampleCardValidFrom,
-  validUntil: _kSampleCardValidUntil,
   metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
 );
@@ -438,13 +432,23 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildCardSection(BuildContext context) {
+    final cardStatusList = [
+      CardStatusValidSoon(validFrom: clock.now().add(const Duration(days: 3))),
+      CardStatusValid(validUntil: clock.now().add(const Duration(days: 30))),
+      CardStatusExpiresSoon(validUntil: clock.now().add(const Duration(days: 5))),
+      CardStatusExpired(validUntil: clock.now().subtract(const Duration(days: 1))),
+      const CardStatusRevoked(),
+      const CardStatusCorrupted(),
+      const CardStatusUndetermined(),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const ThemeSectionHeader(title: 'Cards'),
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'CardStatusInfoLabel - WalletCardItem'),
-        ...CardStatus.values.map((status) {
+        ...cardStatusList.map((status) {
           final statusMetadata = CardStatusMetadataMapper.map(
             context,
             _kSampleCard.copyWith(status: status),
@@ -462,7 +466,7 @@ class OtherStylesTab extends StatelessWidget {
 
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDataScreen'),
-        ...CardStatus.values.map((status) {
+        ...cardStatusList.map((status) {
           final statusMetadata = CardStatusMetadataMapper.map(
             context,
             _kSampleCard.copyWith(status: status),
@@ -480,7 +484,7 @@ class OtherStylesTab extends StatelessWidget {
 
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDetailScreen'),
-        ...CardStatus.values.map((status) {
+        ...cardStatusList.map((status) {
           final statusMetadata = CardStatusMetadataMapper.map(
             context,
             _kSampleCard.copyWith(status: status),
@@ -517,7 +521,11 @@ class OtherStylesTab extends StatelessWidget {
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'SharedAttributesCard'),
         SharedAttributesCard(
-          card: _kSampleCard.copyWith(status: CardStatus.expired),
+          card: _kSampleCard.copyWith(
+            status: CardStatusExpired(
+              validUntil: clock.now().subtract(const Duration(days: 5)),
+            ),
+          ),
           attributes: [_kSampleCard.attributes.first],
           onPressed: () {},
           onChangeCardPressed: () {},
@@ -552,8 +560,6 @@ class OtherStylesTab extends StatelessWidget {
                 attestationType: 'attestationType',
                 issuer: _kSampleOrganization,
                 status: _kSampleCardStatus,
-                validFrom: _kSampleCardValidFrom,
-                validUntil: _kSampleCardValidUntil,
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
               ),
@@ -582,8 +588,6 @@ class OtherStylesTab extends StatelessWidget {
                 attestationType: 'attestationType',
                 issuer: _kSampleOrganization,
                 status: _kSampleCardStatus,
-                validFrom: _kSampleCardValidFrom,
-                validUntil: _kSampleCardValidUntil,
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
               ),
@@ -644,8 +648,6 @@ class OtherStylesTab extends StatelessWidget {
             attestationType: 'attestationType',
             issuer: _kSampleOrganization,
             status: _kSampleCardStatus,
-            validFrom: _kSampleCardValidFrom,
-            validUntil: _kSampleCardValidUntil,
             metadata: _kSampleCardMetaData,
             attributes: const [],
           ),
