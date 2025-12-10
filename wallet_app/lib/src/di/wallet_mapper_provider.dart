@@ -86,7 +86,7 @@ class WalletMapperProvider extends StatelessWidget {
         ),
 
         /// Card mappers
-        RepositoryProvider<Mapper<core.RevocationStatus?, CardStatus>>(
+        RepositoryProvider<Mapper<core.AttestationPresentation, CardStatus>>(
           create: (context) => CardStatusMapper(),
         ),
         RepositoryProvider<Mapper<core.DisplayMetadata, CardDisplayMetadata>>(

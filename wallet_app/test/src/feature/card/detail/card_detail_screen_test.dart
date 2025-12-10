@@ -21,10 +21,10 @@ import '../../../test_util/test_utils.dart';
 class MockCardSummaryBloc extends MockBloc<CardDetailEvent, CardDetailState> implements CardDetailBloc {}
 
 void main() {
-  CardDetailLoadSuccess cardDetailLoadSuccessMock({CardStatus status = CardStatus.valid}) {
+  CardDetailLoadSuccess cardDetailLoadSuccessMock({CardStatus? status}) {
     return CardDetailLoadSuccess(
       WalletCardDetail(
-        card: WalletMockData.cardWithStatus(status),
+        card: WalletMockData.cardWithStatus(status ?? WalletMockData.status),
         mostRecentIssuance: WalletMockData.issuanceEvent,
         mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
       ),
@@ -106,7 +106,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock(status: CardStatus.validSoon),
+          cardDetailLoadSuccessMock(status: CardStatusValidSoon(validFrom: WalletMockData.validFrom)),
         ),
       );
       await screenMatchesGolden('status.valid.soon');
@@ -118,10 +118,22 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock(status: CardStatus.valid),
+          cardDetailLoadSuccessMock(status: const CardStatusValid(validUntil: null)),
         ),
       );
       await screenMatchesGolden('status.valid');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - valid', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatusValid(validUntil: WalletMockData.validUntil)),
+        ),
+      );
+      await screenMatchesGolden('status.valid.until');
     });
 
     testGoldens('ltc25 CardDetailLoadSuccess status - expiresSoon', (tester) async {
@@ -131,7 +143,7 @@ void main() {
             cardTitle: WalletMockData.card.title.testValue,
           ).withState<CardDetailBloc, CardDetailState>(
             MockCardSummaryBloc(),
-            cardDetailLoadSuccessMock(status: CardStatus.expiresSoon),
+            cardDetailLoadSuccessMock(status: CardStatusExpiresSoon(validUntil: WalletMockData.validUntil)),
           ),
         );
         await screenMatchesGolden('status.expires.soon');
@@ -144,7 +156,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock(status: CardStatus.expired),
+          cardDetailLoadSuccessMock(status: CardStatusExpired(validUntil: WalletMockData.validUntil)),
         ),
       );
       await screenMatchesGolden('status.expired');
@@ -156,7 +168,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock(status: CardStatus.revoked),
+          cardDetailLoadSuccessMock(status: const CardStatusRevoked()),
         ),
       );
       await screenMatchesGolden('status.revoked');
@@ -168,19 +180,19 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock(status: CardStatus.corrupted),
+          cardDetailLoadSuccessMock(status: const CardStatusCorrupted()),
         ),
       );
       await screenMatchesGolden('status.corrupted');
     });
 
-    testGoldens('ltc25 CardDetailLoadSuccess status - unknown', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - undetermined', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock(status: CardStatus.unknown),
+          cardDetailLoadSuccessMock(status: const CardStatusUndetermined()),
         ),
       );
       await screenMatchesGolden('status.unknown');
@@ -267,8 +279,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         attributes: const [],
       );
       final CardDetailScreenArgument inputArgument = CardDetailScreenArgument(

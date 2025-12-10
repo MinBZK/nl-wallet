@@ -10,67 +10,68 @@ class CardStatusMetadataCardDataScreenFormatter implements CardStatusMetadataFor
   @override
   bool show(CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => true,
-      CardStatus.valid => false,
-      CardStatus.expiresSoon => false,
-      CardStatus.expired => true,
-      CardStatus.revoked => true,
-      CardStatus.corrupted => true,
-      CardStatus.unknown => true,
+      CardStatusValidSoon() => true,
+      CardStatusValid() => false,
+      CardStatusExpiresSoon() => false,
+      CardStatusExpired() => true,
+      CardStatusRevoked() => true,
+      CardStatusCorrupted() => true,
+      CardStatusUndetermined() => true,
     };
   }
 
   @override
   String text(BuildContext context, WalletCard card) {
-    return switch (card.status) {
-      CardStatus.validSoon => context.l10n.cardStatusMetadataCardDataScreenValidSoon(
-        DateFormatter.formatDate(context, card.validFrom),
+    final status = card.status;
+    return switch (status) {
+      CardStatusValidSoon() => context.l10n.cardStatusMetadataCardDataScreenValidSoon(
+        DateFormatter.formatDate(context, status.validFrom),
       ),
-      CardStatus.valid => '',
-      CardStatus.expiresSoon => '',
-      CardStatus.expired => context.l10n.cardStatusMetadataCardDataScreenExpired,
-      CardStatus.revoked => context.l10n.cardStatusMetadataCardDataScreenRevoked,
-      CardStatus.corrupted => context.l10n.cardStatusMetadataCardDataScreenCorrupted,
-      CardStatus.unknown => context.l10n.cardStatusMetadataCardDataScreenUnknown,
+      CardStatusValid() => '',
+      CardStatusExpiresSoon() => '',
+      CardStatusExpired() => context.l10n.cardStatusMetadataCardDataScreenExpired,
+      CardStatusRevoked() => context.l10n.cardStatusMetadataCardDataScreenRevoked,
+      CardStatusCorrupted() => context.l10n.cardStatusMetadataCardDataScreenCorrupted,
+      CardStatusUndetermined() => context.l10n.cardStatusMetadataCardDataScreenUndetermined,
     };
   }
 
   @override
   Color textColor(BuildContext context, CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => context.colorScheme.onSurface,
-      CardStatus.valid => context.colorScheme.onSurface,
-      CardStatus.expiresSoon => context.colorScheme.onSurface,
-      CardStatus.expired => context.colorScheme.error,
-      CardStatus.revoked => context.colorScheme.error,
-      CardStatus.corrupted => context.colorScheme.error,
-      CardStatus.unknown => context.colorScheme.onSurface,
+      CardStatusValidSoon() => context.colorScheme.onSurface,
+      CardStatusValid() => context.colorScheme.onSurface,
+      CardStatusExpiresSoon() => context.colorScheme.onSurface,
+      CardStatusExpired() => context.colorScheme.error,
+      CardStatusRevoked() => context.colorScheme.error,
+      CardStatusCorrupted() => context.colorScheme.error,
+      CardStatusUndetermined() => context.colorScheme.onSurface,
     };
   }
 
   @override
   IconData? icon(CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => Icons.feedback_outlined,
-      CardStatus.valid => null,
-      CardStatus.expiresSoon => null,
-      CardStatus.expired => Icons.event_busy,
-      CardStatus.revoked => Icons.close,
-      CardStatus.corrupted => Icons.block_flipped,
-      CardStatus.unknown => Icons.warning_amber,
+      CardStatusValidSoon() => Icons.feedback_outlined,
+      CardStatusValid() => null,
+      CardStatusExpiresSoon() => null,
+      CardStatusExpired() => Icons.event_busy,
+      CardStatusRevoked() => Icons.close,
+      CardStatusCorrupted() => Icons.block_flipped,
+      CardStatusUndetermined() => Icons.warning_amber,
     };
   }
 
   @override
   Color? iconColor(BuildContext context, CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => context.colorScheme.onSurfaceVariant,
-      CardStatus.valid => null,
-      CardStatus.expiresSoon => null,
-      CardStatus.expired => context.colorScheme.error,
-      CardStatus.revoked => context.colorScheme.error,
-      CardStatus.corrupted => context.colorScheme.error,
-      CardStatus.unknown => context.colorScheme.onSurfaceVariant,
+      CardStatusValidSoon() => context.colorScheme.onSurfaceVariant,
+      CardStatusValid() => null,
+      CardStatusExpiresSoon() => null,
+      CardStatusExpired() => context.colorScheme.error,
+      CardStatusRevoked() => context.colorScheme.error,
+      CardStatusCorrupted() => context.colorScheme.error,
+      CardStatusUndetermined() => context.colorScheme.onSurfaceVariant,
     };
   }
 
