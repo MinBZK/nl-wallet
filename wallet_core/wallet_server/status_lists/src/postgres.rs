@@ -776,6 +776,7 @@ where
 
     pub fn start_refresh_job(&self) -> AbortHandle {
         let service = self.clone();
+        // Create control before spawning as the constructor can panic on incompatible settings
         let refresh_control = RefreshControl::new(self.config.refresh_threshold);
         tokio::spawn(async move {
             tracing::info!(
