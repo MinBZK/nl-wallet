@@ -10,6 +10,10 @@ use utils::generator::TimeGenerator;
 #[derive(Debug, Clone, Copy)]
 /// Structure to help in determining if something needs to be refreshed and how long to wait
 ///
+/// Given a specific expiry timestamp it determines if a token needs to be refreshed. Given multiple timestamps it
+/// calculates the delay to be in time for refreshing it, clamped between a minimum and a maximum. It also adds some
+/// randomization to the delay to prevent multiple instances from refreshing a token at exactly the same time.
+///
 /// This structures provides sane defaults, only the threshold is configurable.
 pub struct RefreshControl<G = TimeGenerator>
 where
@@ -48,7 +52,8 @@ impl RefreshControl {
     pub fn new(threshold: Duration) -> Self {
         let control = RefreshControl::default();
         // This can never happen with the settings that are configured, since threshold is set in hours.
-        // Note that also the minimum delay is checked to be less than threshold via this assertion.
+        // Note that due to the fact that it is unchangeable, the minimum delay is checked to be less than the threshold
+        // via this assertion.
         assert!(
             threshold >= control.delay_variance * 2,
             "Threshold {:?} must be greater than or equal to double the variance: {:?}",
@@ -63,10 +68,17 @@ impl<G> RefreshControl<G>
 where
     G: Generator<DateTime<Utc>>,
 {
+    /// Whether the token linked to the expiry needs to be refreshed.
+    ///
+    /// A token should be refreshed if the current time plus the threshold is greater than the expiry.
     pub fn should_refresh(&self, expiry: DateTime<Utc>) -> bool {
         expiry - self.threshold < self.time_generator.generate()
     }
 
+    /// Calculate the interval to be in time for refreshing the tokens given the expiry timestamps.
+    ///
+    /// The next refresh delay is calculated as the minimum of all expiries minus the threshold,
+    /// with some randomization and clamping to minimum and maximum delays.
     pub fn next_refresh_delay(&self, expiries: impl IntoIterator<Item = DateTime<Utc>>) -> Duration {
         expiries
             .into_iter()
