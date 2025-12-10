@@ -4,7 +4,6 @@ use std::string::ToString;
 use std::time::Duration;
 
 use axum::Router;
-use axum::body::Body;
 use axum::extract::Path;
 use axum::extract::Request;
 use axum::extract::State;
@@ -14,6 +13,7 @@ use axum::http::StatusCode;
 use axum::http::header;
 use axum::middleware;
 use axum::middleware::Next;
+use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use etag::EntityTag;
@@ -120,15 +120,16 @@ async fn serve_status_list(
         return Err(StatusCode::NOT_MODIFIED);
     };
 
-    Response::builder()
-        .header(header::CONTENT_TYPE, STATUSLIST_JWT_MEDIA_TYPE.to_string())
-        .header(header::CACHE_CONTROL, state.cache_control.as_str())
-        .header(header::ETAG, etag.to_string())
-        .body(Body::from(bytes))
-        .map_err(|err| {
-            tracing::warn!("could not read `{}`: {}", path.display(), err);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+    let response = (
+        [
+            (header::CONTENT_TYPE, STATUSLIST_JWT_MEDIA_TYPE.to_string()),
+            (header::CACHE_CONTROL, state.cache_control),
+            (header::ETAG, etag.to_string()),
+        ],
+        bytes,
+    )
+        .into_response();
+    Ok(response)
 }
 
 fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, StatusCode> {
