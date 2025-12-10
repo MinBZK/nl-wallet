@@ -1456,7 +1456,7 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
                 false,
@@ -1567,7 +1567,7 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
                 false,
@@ -1734,7 +1734,7 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
                 false,
@@ -1785,7 +1785,7 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
                 ))),
                 false,
@@ -1811,7 +1811,7 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
                 false,
@@ -1839,7 +1839,7 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
                 ))),
                 false,
@@ -1870,7 +1870,7 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
                 ))),
                 false,

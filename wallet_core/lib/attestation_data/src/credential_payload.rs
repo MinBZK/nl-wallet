@@ -1143,7 +1143,7 @@ mod test {
                 &[ca.to_trust_anchor()],
                 &kb_verification_options,
                 &time_generator,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_key_pair))),
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_key_pair))),
             )
             .now_or_never()
             .unwrap()

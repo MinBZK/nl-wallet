@@ -80,7 +80,8 @@ mod test {
         let issuer_cert_dn = issuer_cert.certificate().distinguished_name_canonical().unwrap();
         let issuer_trust_anchors = &[ca.to_trust_anchor()];
 
-        let revocation_verifier = RevocationVerifier::new(Arc::new(StatusListClientStub::new(issuer_cert)));
+        let revocation_verifier =
+            RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_cert)));
 
         let revocation_info = RevocationInfo::new(Uuid::new_v4(), StatusClaim::new_mock(), issuer_cert_dn);
 

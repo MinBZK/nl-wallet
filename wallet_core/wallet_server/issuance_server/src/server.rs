@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use axum::Router;
 use futures::future::try_join_all;
-use server_utils::server::add_cache_control_no_store_layer;
-use server_utils::server::secure_internal_router;
 use tokio::net::TcpListener;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -23,18 +22,25 @@ use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
+use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
+use server_utils::server::secure_internal_router;
 use status_lists::revoke::create_revocation_router;
 use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListServices;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use utils::generator::TimeGenerator;
 
 use crate::disclosure::AttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
+
+const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
+const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(0);
+const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(0);
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, L, IS, DS, C>(
@@ -130,7 +136,13 @@ where
         attributes_fetcher,
     };
 
-    let revocation_verifier = RevocationVerifier::new(Arc::new(status_list_client));
+    let revocation_verifier = RevocationVerifier::new(
+        Arc::new(status_list_client),
+        STATUS_LIST_TOKEN_CACHE_CAPACITY,
+        STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
+        STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
+        TimeGenerator,
+    );
 
     let disclosure_router = VerifierFactory::new(
         issuer_settings.server_settings.public_url.join_base_url("disclosure"),
