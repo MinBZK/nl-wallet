@@ -165,23 +165,13 @@ provide both Dutch and English values.
 
 ### Decide on attributes you want to verify
 
-You can verify any attribute provided by any issuer on the plaform, but since
-we don't have an issuer registry yet, you would need to know or otherwise get
-your hands on the JSON documents that define the claim paths that belong to a
-given `vct` (a Verifiable Credential Type).
+You can verify any attribute (also known as a claim path) provided by any issuer
+on the plaform, but since we don't have an issuer registry yet, you would need
+to know or otherwise get your hands on the JSON documents that define the claim
+paths that belong to a given `vct` (a Verifiable Credential Type).
 
-For our own issuer(s), you can use the `jq` utility to query our supported
-attribute names:
-
-```shell
-git clone https://github.com/MinBZK/nl-wallet
-cd nl-wallet/wallet_core/lib/sd_jwt_vc_metadata/examples
-jq -r '(select(.vct | startswith("urn:")) | .vct) + ": " + (.claims[].path | join("."))' *.json | sort -u
-```
-
-The above `jq` command will output a sorted unique list of namespaces and the
-attribute name that namespace supports. You will need one or more of those to
-configure the `authorizedAttributes` object in `reader_auth.json`.
+For our own issuer(s), you can have a look at our [supported attributes][32]
+document for an overview of claim paths you can use.
 
 For example, suppose you want to verify `age_over_18` and `address.country`,
 then your `authorizedAttributes` object would look as follows:
@@ -1202,3 +1192,4 @@ need to read the text in a regular text editor or pager to see them.
 [29]: https://datatracker.ietf.org/doc/rfc9901/
 [30]: ../development/openapi-specifications
 [31]: create-an-issuer
+[32]: ../development/supported-attributes
