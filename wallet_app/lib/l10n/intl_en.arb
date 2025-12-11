@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-12-09T15:14:39+01:00",
+    "@@last_modified": "2025-12-10T15:25:30+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -228,6 +228,7 @@
     "cardStatusMetadataSharedAttributesCardCorrupted": "These details are outdated.",
     "cardStatusMetadataSharedAttributesCardExpired": "These details are outdated.",
     "cardStatusMetadataSharedAttributesCardRevoked": "These details are outdated.",
+    "cardStatusMetadataSharedAttributesCardUndetermined": "Some organisations may not accept a card without validity.",
     "cardStatusMetadataWalletItemCorrupted": "Invalid",
     "cardStatusMetadataWalletItemExpired": "Expired",
     "cardStatusMetadataWalletItemExpiresSoon": "Expires in {timeUntilExpiryTime}",
@@ -1312,6 +1313,10 @@
         }
     },
     "requestDetailsScreenAttributesTitle": "Requested attributes",
+    "requestNotificationPermissionSheetDescription": "You will get messages about your card changes, app updates, and other important messages. Even when you do not open the app.\n\nYou can turn this on or off later in Settings.",
+    "requestNotificationPermissionSheetNegativeCta": "Not now",
+    "requestNotificationPermissionSheetPositiveCta": "Yes, turn it on",
+    "requestNotificationPermissionSheetTitle": "Do you want to get important updates?",
     "resetWalletDialogBody": "This will delete all your data. You can then recreate the NL Wallet.",
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-12-09T15:14:39+01:00",
+    "@@last_modified": "2025-12-10T15:25:30+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -224,6 +224,7 @@
     "cardStatusMetadataSharedAttributesCardCorrupted": "Deze gegevens kloppen niet meer.",
     "cardStatusMetadataSharedAttributesCardExpired": "Deze gegevens kloppen niet meer.",
     "cardStatusMetadataSharedAttributesCardRevoked": "Deze gegevens kloppen niet meer.",
+    "cardStatusMetadataSharedAttributesCardUndetermined": "Sommige organisaties accepteren geen kaart zonder geldigheid.",
     "cardStatusMetadataWalletItemCorrupted": "Werkt niet",
     "cardStatusMetadataWalletItemExpired": "Niet meer geldig",
     "cardStatusMetadataWalletItemExpiresSoon": "Nog {timeUntilExpiryTime} geldig",
@@ -1308,6 +1309,10 @@
         }
     },
     "requestDetailsScreenAttributesTitle": "Gevraagde gegevens",
+    "requestNotificationPermissionSheetDescription": "Je ontvangt berichten over wijzigingen aan je kaarten, app-updates en andere belangrijke meldingen. Ook als je de app niet opent.\n\nJe kunt dit later aan- of uitzetten in Instellingen.",
+    "requestNotificationPermissionSheetNegativeCta": "Niet nu",
+    "requestNotificationPermissionSheetPositiveCta": "Ja, zet aan",
+    "requestNotificationPermissionSheetTitle": "Wil je belangrijke updates ontvangen?",
     "resetWalletDialogBody": "Hiermee worden al je gegevens verwijderd. Je kunt de NL Wallet daarna opnieuw aanmaken.",
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
