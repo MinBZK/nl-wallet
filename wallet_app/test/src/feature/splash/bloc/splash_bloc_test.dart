@@ -148,7 +148,7 @@ void main() {
   );
 
   blocTest(
-    'verify user is redirected to pinRecovery when wallet state is WalletStatePinRecovery',
+    'verify user is redirected to pinRecovery when wallet state is WalletStateInPinRecoveryFlow',
     setUp: () => when(
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInPinRecoveryFlow()),
