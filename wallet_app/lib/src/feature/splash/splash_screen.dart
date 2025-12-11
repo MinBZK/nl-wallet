@@ -31,6 +31,8 @@ class SplashScreen extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, WalletRoutes.demoRoute);
               case PostSplashDestination.pidRetrieval:
                 Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
+              case PostSplashDestination.pinRecovery:
+                Navigator.pushReplacementNamed(context, WalletRoutes.pinRecoveryRoute);
               case PostSplashDestination.transfer:
                 Navigator.pushReplacementNamed(context, WalletRoutes.walletTransferTargetRoute);
               case PostSplashDestination.dashboard:
