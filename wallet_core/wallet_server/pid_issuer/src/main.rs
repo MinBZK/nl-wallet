@@ -15,7 +15,7 @@ use server_utils::store::StoreConnection;
 use server_utils::store::postgres::new_connection;
 use status_lists::config::StatusListConfigs;
 use status_lists::postgres::PostgresStatusListServices;
-use status_lists::router::create_status_list_routers;
+use status_lists::serve::create_serve_router;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -64,11 +64,12 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     .await?;
     let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
     status_list_services.initialize_lists().await?;
+    status_list_services.start_refresh_jobs();
     let status_list_router = settings
         .status_lists
         .serve
         .then(|| {
-            create_status_list_routers(
+            create_serve_router(
                 (&issuer_settings.attestation_settings)
                     .into_iter()
                     .map(|(_, settings)| {
@@ -77,7 +78,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                             settings.status_list.publish_dir.clone(),
                         )
                     }),
-                settings.status_lists.ttl,
+                settings.status_lists.ttl(),
             )
         })
         .transpose()?;

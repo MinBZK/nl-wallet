@@ -1,8 +1,13 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
 use chrono::DateTime;
+use chrono::Utc;
+use futures::future::join_all;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use rand::seq::SliceRandom;
@@ -44,6 +49,7 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_service::StatusListServices;
 use token_status_list::status_list_token::StatusListToken;
+use tokio::task::AbortHandle;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -56,19 +62,21 @@ use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
+use crate::publish::LockVersion;
 use crate::publish::PublishLockError;
+use crate::refresh::RefreshControl;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
-const STATUS_LIST_EXTERNAL_ID_SIZE: usize = 12;
+const EXTERNAL_ID_SIZE: usize = 12;
 
 /// Number of tries to create status list while obtaining a status claim.
-const STATUS_LIST_IN_FLIGHT_CREATE_TRIES: usize = 5;
+const IN_FLIGHT_CREATE_TRIES: usize = 5;
 
 /// StatusListService implementation using Postgres for multiple attestation types.
 ///
 /// See [PostgresStatusListService] for more.
-#[derive(Debug, Clone)]
-pub struct PostgresStatusListServices<K: Clone = PrivateKeyVariant>(HashMap<String, PostgresStatusListService<K>>);
+#[derive(Debug)]
+pub struct PostgresStatusListServices<K = PrivateKeyVariant>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -86,12 +94,27 @@ pub struct PostgresStatusListServices<K: Clone = PrivateKeyVariant>(HashMap<Stri
 /// is the exclusive end of the sequence numbers used for that status list and the start of a new
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
-#[derive(Debug, Clone)]
-pub struct PostgresStatusListService<K: Clone = PrivateKeyVariant> {
+#[derive(Debug)]
+pub struct PostgresStatusListService<K = PrivateKeyVariant> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
-    config: StatusListConfig<K>,
+    config: Arc<StatusListConfig<K>>,
+}
+
+// Manually implement Clone as derived Clone uses incorrect bounds:
+// https://github.com/rust-lang/rust/issues/26925#issue-94161444
+impl<K> Clone for PostgresStatusListService<K>
+where
+    K: EcdsaKeySend + Sync + 'static,
+{
+    fn clone(&self) -> Self {
+        Self {
+            connection: self.connection.clone(),
+            attestation_type_id: self.attestation_type_id,
+            config: self.config.clone(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -135,7 +158,7 @@ pub enum StatusListServiceError {
 
 impl<K> StatusListServices for PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     type Error = StatusListServiceError;
 
@@ -168,7 +191,7 @@ where
 
 impl<K> StatusListRevocationService for PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         self.first_service().revoke_attestation_batches(batch_ids).await
@@ -202,7 +225,7 @@ impl PostgresStatusListServices {
                 let service = PostgresStatusListService {
                     connection: connection.clone(),
                     attestation_type_id,
-                    config,
+                    config: Arc::new(config),
                 };
                 (attestation_type, service)
             })
@@ -213,7 +236,7 @@ impl PostgresStatusListServices {
 
 impl<K> PostgresStatusListServices<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
@@ -224,11 +247,15 @@ where
         // in the constructor we ensure that at least one service is present
         self.0.values().next().expect("at least one service should be present")
     }
+
+    pub fn start_refresh_jobs(&self) -> Vec<AbortHandle> {
+        self.0.values().map(|service| service.start_refresh_job()).collect()
+    }
 }
 
 impl<K> StatusListService for PostgresStatusListService<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     type Error = StatusListServiceError;
 
@@ -247,7 +274,7 @@ where
 
 impl<K> StatusListRevocationService for PostgresStatusListService<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         // Find batches by batch_ids
@@ -361,14 +388,14 @@ impl PostgresStatusListService {
         Ok(Self {
             connection,
             attestation_type_id,
-            config,
+            config: Arc::new(config),
         })
     }
 }
 
 impl<K> PostgresStatusListService<K>
 where
-    K: EcdsaKeySend + Sync + Clone + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     pub async fn obtain_status_claims_and_scheduled_tasks(
         &self,
@@ -425,7 +452,7 @@ where
         &self,
         copies: usize,
     ) -> Result<(DatabaseTransaction, Vec<status_list::Model>), StatusListServiceError> {
-        let mut tries = STATUS_LIST_IN_FLIGHT_CREATE_TRIES;
+        let mut tries = IN_FLIGHT_CREATE_TRIES;
         loop {
             // Always restart transaction (e.g. level was set to repeatable read)
             let tx = self.connection.begin().await?;
@@ -445,7 +472,7 @@ where
                 return Ok((tx, lists));
             }
 
-            if tries == STATUS_LIST_IN_FLIGHT_CREATE_TRIES {
+            if tries == IN_FLIGHT_CREATE_TRIES {
                 tracing::warn!(
                     "Creating status list in flight for attestation type ID {}, increase create_threshold or list_size",
                     self.attestation_type_id,
@@ -579,7 +606,7 @@ where
         }
 
         // Create new list
-        let external_id = crypto::utils::random_string(STATUS_LIST_EXTERNAL_ID_SIZE);
+        let external_id = crypto::utils::random_string(EXTERNAL_ID_SIZE);
         let list_size = self.config.list_size.into_inner();
         let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
         let list = status_list::ActiveModel {
@@ -650,7 +677,7 @@ where
     }
 
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
-        tracing::info!("Initializing status lists for ID: {}", self.attestation_type_id);
+        tracing::info!("Initializing status lists for ID {}", self.attestation_type_id);
 
         // Fetch all lists that still have list items in the database
         let lists = status_list::Entity::find()
@@ -747,10 +774,110 @@ where
         }
     }
 
+    pub fn start_refresh_job(&self) -> AbortHandle {
+        let service = self.clone();
+        // Create control before spawning as the constructor can panic on incompatible settings
+        let refresh_control = RefreshControl::new(self.config.refresh_threshold);
+        tokio::spawn(async move {
+            tracing::info!(
+                "Starting refresh job for attestation type ID {}",
+                service.attestation_type_id
+            );
+            loop {
+                // Wrap in separate spawn job to catch panics
+                let job_service = service.clone();
+                match tokio::spawn(async move { job_service.refresh_status_lists(&refresh_control).await }).await {
+                    Ok(delay) => {
+                        tracing::debug!(
+                            "Next refresh of status lists scheduled in {}s for attestation type ID {}",
+                            delay.as_secs(),
+                            service.attestation_type_id
+                        );
+                        tokio::time::sleep(delay).await
+                    }
+                    Err(err) => {
+                        tracing::error!(
+                            "Join error on refresh job for attestation type ID {}: {:?}",
+                            service.attestation_type_id,
+                            err
+                        );
+                        tokio::time::sleep(refresh_control.next_refresh_delay([])).await;
+                    }
+                };
+            }
+        })
+        .abort_handle()
+    }
+
+    async fn refresh_status_lists(&self, refresh_control: &RefreshControl) -> Duration {
+        tracing::debug!(
+            "Refreshing status lists for attestation type ID {}",
+            self.attestation_type_id
+        );
+
+        // Get all lists
+        let lists = match status_list::Entity::find()
+            .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
+            .all(&self.connection)
+            .await
+        {
+            Ok(lists) => lists,
+            Err(err) => {
+                tracing::warn!(
+                    "Could not fetch status lists from DB for attestation ID {}: {}",
+                    self.attestation_type_id,
+                    err
+                );
+                return refresh_control.next_refresh_delay([]);
+            }
+        };
+
+        // Republish if necessary
+        let expiries = join_all(lists.into_iter().map(|list| async move {
+            let path = self.config.publish_dir.jwt_path(&list.external_id);
+            let mut expiry = read_token_expiry(&path)
+                .await
+                .inspect_err(|err| tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err))
+                // Ignore error is ok because it is just logged with WARN
+                .ok();
+
+            if expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
+                tracing::info!("Republishing status list for ID {}", list.id);
+                let size = list.size.try_into().expect("size should be non-zero");
+
+                match self.publish_status_list(list.id, &list.external_id, size).await {
+                    // Always read token expiry as it can be changed by another instance
+                    Ok(_) => {
+                        expiry = read_token_expiry(&path)
+                            .await
+                            .inspect_err(|err| {
+                                tracing::error!(
+                                    "Could not read expiry from just published token `{}`: {}",
+                                    path.display(),
+                                    err
+                                )
+                            })
+                            // Ignore error is ok because it is just logged with ERROR
+                            .ok()
+                    }
+                    Err(err) => tracing::warn!("Failed to refresh status list for ID {}: {}", list.id, err),
+                }
+            }
+            expiry
+        }))
+        .await;
+
+        // Calculate delay for next job: if one or more expiry cannot be read,
+        // even after republishing, default to empty list.
+        refresh_control.next_refresh_delay(expiries.into_iter().collect::<Option<Vec<_>>>().unwrap_or_default())
+    }
+
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
         // Build empty status list
+        let expires = Utc::now() + self.config.expiry;
         let sub = self.config.base_url.join(external_id);
         let token = StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
+            .exp(Some(expires))
             .ttl(self.config.ttl)
             .sign(&self.config.key_pair)
             .await?;
@@ -760,8 +887,8 @@ where
         let jwt_path = self.config.publish_dir.jwt_path(external_id);
         tokio::task::spawn_blocking(move || {
             // create because a new status list external id can be reused if the transaction fails
-            publish_lock.create()?;
-            std::fs::write(&jwt_path, token.as_ref().serialization().as_bytes())
+            publish_lock.create(expires)?;
+            std::fs::write(&jwt_path, token.as_ref().serialization())
                 .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
         })
         .await?
@@ -787,10 +914,8 @@ where
             .all(&self.connection)
             .await?;
 
-        // We can use the number of revocations as version because revocations
-        // are irreversible and the database will always return committed rows,
-        // so no interleaving can happen.
-        let version = result.len();
+        let expires = Utc::now() + self.config.expiry;
+        let version = LockVersion::from(result.len(), expires);
         self.config
             .publish_dir
             .lock_for(external_id)
@@ -809,7 +934,11 @@ where
                 .await?;
 
                 // Sign
-                let token = builder.ttl(self.config.ttl).sign(&self.config.key_pair).await?;
+                let token = builder
+                    .exp(Some(expires))
+                    .ttl(self.config.ttl)
+                    .sign(&self.config.key_pair)
+                    .await?;
 
                 // Write to a tempfile and atomically move via rename
                 let jwt_path = self.config.publish_dir.jwt_path(external_id);
@@ -877,12 +1006,31 @@ async fn fetch_attestation_type_ids(
         })
 }
 
+#[derive(Debug, thiserror::Error)]
+enum TokenReadError {
+    #[error("IO error: {0}")]
+    IO(#[from] std::io::Error),
+    #[error("JWT error: {0}")]
+    Jwt(#[from] JwtError),
+    #[error("no expiry set")]
+    NoExpiry,
+}
+
+async fn read_token_expiry(path: &Path) -> Result<DateTime<Utc>, TokenReadError> {
+    let token = tokio::fs::read_to_string(path).await?.parse::<StatusListToken>()?;
+    // Trusting the files this service writes
+    let (_, claims) = token.as_ref().dangerous_parse_unverified()?;
+    claims.exp.ok_or(TokenReadError::NoExpiry)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use assert_matches::assert_matches;
+    use p256::ecdsa::SigningKey;
 
     use crypto::server_keys::generate::Ca;
-    use p256::ecdsa::SigningKey;
 
     use crate::publish::PublishDir;
 
@@ -895,6 +1043,8 @@ mod tests {
             config: StatusListConfig {
                 list_size: 1.try_into().unwrap(),
                 create_threshold: 1.try_into().unwrap(),
+                expiry: Duration::from_secs(3600),
+                refresh_threshold: Duration::from_secs(600),
                 ttl: None,
                 base_url: "https://example.com/tsl".parse().unwrap(),
                 publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
@@ -902,7 +1052,8 @@ mod tests {
                     .unwrap()
                     .generate_status_list_mock()
                     .unwrap(),
-            },
+            }
+            .into(),
         }
     }
 

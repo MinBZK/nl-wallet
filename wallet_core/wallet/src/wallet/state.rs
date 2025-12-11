@@ -10,6 +10,7 @@ use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
+use crate::storage::PinRecoveryData;
 use crate::storage::Storage;
 use crate::storage::TransferData;
 use crate::storage::TransferKeyData;
@@ -110,6 +111,11 @@ where
                 Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
             };
         }
+
+        if read_storage.fetch_data::<PinRecoveryData>().await?.is_some() {
+            return Ok(WalletState::InPinRecoveryFlow);
+        }
+
         if self.storage.get_change_pin_state().await?.is_some() {
             return Ok(WalletState::InPinChangeFlow);
         }
@@ -119,6 +125,7 @@ where
 }
 
 #[cfg(test)]
+#[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
     use futures::FutureExt;
     use http_utils::tls::pinning::TlsPinningConfig;
@@ -141,6 +148,7 @@ mod tests {
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
+    use crate::storage::PinRecoveryData;
     use crate::storage::TransferData;
     use crate::storage::TransferKeyData;
     use crate::test::MockDigidSession;
@@ -199,6 +207,7 @@ mod tests {
             .return_once(move || Ok(has_attestations));
         storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -226,6 +235,7 @@ mod tests {
         storage
             .expect_fetch_data::<ChangePinData>()
             .return_once(move || Ok(Some(change_pin_data)));
+        storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
 
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
 
@@ -255,6 +265,29 @@ mod tests {
         storage
             .expect_fetch_data::<TransferData>()
             .return_once(move || Ok(Some(transfer_data)));
+        storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+
+        let wallet_state = wallet.get_state().await.unwrap();
+        assert_eq!(wallet_state, expected_state);
+    }
+
+    #[rstest]
+    #[case::unlocked(false, WalletState::InPinRecoveryFlow)]
+    #[case::locked(true, WalletState::InPinRecoveryFlow.lock())]
+    #[tokio::test]
+    async fn test_pin_recovery_data(#[case] is_locked: bool, #[case] expected_state: WalletState) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        if is_locked {
+            wallet.lock();
+        }
+
+        let storage = wallet.mut_storage();
+        storage.expect_has_any_attestations().return_once(|| Ok(true));
+        storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<PinRecoveryData>()
+            .return_once(|| Ok(Some(PinRecoveryData)));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -284,6 +317,7 @@ mod tests {
         storage.expect_has_any_attestations().return_once(|| Ok(true));
         storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
 
@@ -296,6 +330,7 @@ mod tests {
         true,
         Some(State::Begin),
         Some(empty_transfer_data()),
+        Some(PinRecoveryData),
         Some(digid_session()),
         WalletState::TransferPossible.lock(),
     )]
@@ -304,6 +339,7 @@ mod tests {
         true,
         Some(State::Begin),
         Some(empty_transfer_data()),
+        Some(PinRecoveryData),
         Some(digid_session()),
         WalletState::TransferPossible
     )]
@@ -312,18 +348,38 @@ mod tests {
         true,
         Some(State::Begin),
         None,
+        Some(PinRecoveryData),
         Some(digid_session()),
         WalletState::InIssuanceFlow
     )]
-    #[case::check_pin_state_third(false, true, Some(State::Begin), None, None, WalletState::InPinChangeFlow)]
-    #[case::check_attestations_fourth(false, true, None::<State>, None, None, WalletState::Ready)]
-    #[case(false, false, None::<State>, None, None, WalletState::Empty)]
+    #[case::check_session_second(
+        false,
+        true,
+        Some(State::Begin),
+        None,
+        Some(PinRecoveryData),
+        Some(digid_session()),
+        WalletState::InIssuanceFlow
+    )]
+    #[case::check_pin_recovery_third(
+        false,
+        true,
+        Some(State::Begin),
+        None,
+        Some(PinRecoveryData),
+        None,
+        WalletState::InPinRecoveryFlow
+    )]
+    #[case::check_pin_state_fourth(false, true, Some(State::Begin), None, None, None, WalletState::InPinChangeFlow)]
+    #[case::check_attestations_five(false, true, None::<State>, None, None, None, WalletState::Ready)]
+    #[case::otherwise_empty(false, false, None::<State>, None, None, None, WalletState::Empty)]
     #[tokio::test]
     async fn test_precedence_of_checks(
         #[case] is_locked: bool,
         #[case] has_attestations: bool,
         #[case] change_pin_data: Option<impl Into<ChangePinData>>,
         #[case] transfer_data: Option<TransferData>,
+        #[case] pin_recovery_data: Option<PinRecoveryData>,
         #[case] session: Option<
             Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         >,
@@ -346,7 +402,10 @@ mod tests {
             .return_once(move || Ok(change_pin_data));
         storage
             .expect_fetch_data::<TransferData>()
-            .return_once(move || Ok(transfer_data.clone()));
+            .return_once(move || Ok(transfer_data));
+        storage
+            .expect_fetch_data::<PinRecoveryData>()
+            .return_once(|| Ok(pin_recovery_data));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);

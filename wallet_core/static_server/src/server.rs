@@ -16,7 +16,7 @@ use tracing::debug;
 use tracing::info;
 
 use jwt::VerifiedJwt;
-use status_lists::router::create_status_list_routers;
+use status_lists::serve::create_serve_router;
 use utils::built_info::version_string;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -37,7 +37,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         .route("/wallet-config", get(configuration))
         .with_state((settings.wallet_config_jwt, config_entity_tag));
 
-    let status_list_router = create_status_list_routers(std::iter::once(("/wua", settings.wua_publish_dir)), None)?;
+    let status_list_router = create_serve_router(std::iter::once(("/wua", settings.wua_publish_dir)), None)?;
 
     let app = Router::new()
         .merge(health_router())

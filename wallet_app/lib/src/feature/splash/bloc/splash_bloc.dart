@@ -44,11 +44,12 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
         }
       case WalletStateBlocked():
         emit(const SplashLoaded(.blocked));
+      case WalletStateInPinRecoveryFlow():
+        emit(const SplashLoaded(.pinRecovery));
       case WalletStateReady():
       case WalletStateInDisclosureFlow():
       case WalletStateInIssuanceFlow():
       case WalletStateInPinChangeFlow():
-      case WalletStateInPinRecoveryFlow():
         emit(const SplashLoaded(.dashboard));
     }
   }
