@@ -112,10 +112,7 @@ where
             };
         }
 
-        if matches!(
-            read_storage.fetch_data::<PinRecoveryData>().await?,
-            Some(PinRecoveryData)
-        ) {
+        if read_storage.fetch_data::<PinRecoveryData>().await?.is_some() {
             return Ok(WalletState::InPinRecoveryFlow);
         }
 
