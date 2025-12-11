@@ -280,7 +280,7 @@ mod tests {
         let error = verify_certificate_chain(&certificates, &mock_ca_chain, intermediate_count, &supported_sig_algs)
             .expect_err("certificate chain should not verify");
 
-        assert_matches!(error, webpki::Error::UnsupportedSignatureAlgorithm);
+        assert_matches!(error, webpki::Error::UnsupportedSignatureAlgorithmContext(_));
 
         let supported_sig_algs = [
             RSA_PKCS1_2048_8192_SHA256,

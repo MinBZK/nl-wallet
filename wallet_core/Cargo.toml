@@ -189,7 +189,7 @@ rusqlite = "0.32.1"
 rustix = "1.1.2"
 rustls = { version = "0.23.35", default-features = false }
 rustls-pki-types = "1.13.1"
-rustls-webpki = "0.102.8"
+rustls-webpki = "0.103.8"
 sanitize-filename = "0.6.0"
 sea-orm = { version = "1.1.19", default-features = false }
 sea-orm-migration = { version = "1.1.19", default-features = false }

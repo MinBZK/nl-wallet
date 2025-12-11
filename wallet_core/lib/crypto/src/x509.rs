@@ -572,7 +572,10 @@ mod test {
         let end = Some(now + Duration::days(2));
 
         let error = generate_and_verify_issuer_for_validity(start, end);
-        assert_matches!(error, CertificateError::Verification(webpki::Error::CertNotValidYet));
+        assert_matches!(
+            error,
+            CertificateError::Verification(webpki::Error::CertNotValidYet { .. })
+        );
     }
 
     #[test]
@@ -582,7 +585,7 @@ mod test {
         let end = Some(now - Duration::days(1));
 
         let error = generate_and_verify_issuer_for_validity(start, end);
-        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired));
+        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired { .. }));
     }
 
     fn assert_certificate_default_validity(certificate: &X509Certificate) {
