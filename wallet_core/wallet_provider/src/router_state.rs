@@ -122,6 +122,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         )
         .await?;
         status_list_service.initialize_lists().await?;
+        status_list_service.start_refresh_job();
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,

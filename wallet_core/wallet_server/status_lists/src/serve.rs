@@ -66,7 +66,7 @@ fn check_serve_directories<'a>(
     Ok(result)
 }
 
-pub fn create_status_list_routers<'a>(
+pub fn create_serve_router<'a>(
     serve_dirs: impl IntoIterator<Item = (&'a str, PublishDir)>,
     ttl: Option<Duration>,
 ) -> Result<Router, RouterError> {
@@ -181,7 +181,7 @@ fn map_io_error(path: &std::path::Path, err: &std::io::Error) -> StatusCode {
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::router::check_accept;
+    use crate::serve::check_accept;
 
     use super::*;
 
