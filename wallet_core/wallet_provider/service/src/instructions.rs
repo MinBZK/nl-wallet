@@ -809,7 +809,8 @@ impl HandleInstruction for DiscloseRecoveryCode {
         };
 
         // Unblock the previously blocked private keys
-        if user_state.repositories.is_blocked_key(&tx, wallet_user.id, key).await? {
+        if user_state.repositories.is_blocked_key(&tx, wallet_user.id, key).await? == Some(true) {
+            // key exists and is blocked
             user_state
                 .repositories
                 .unblock_blocked_keys(&tx, wallet_user.id)
@@ -858,7 +859,8 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
 
         let tx = user_state.repositories.begin_transaction().await?;
 
-        if !user_state.repositories.is_blocked_key(&tx, wallet_user.id, key).await? {
+        // Key should exist and be blocked
+        if user_state.repositories.is_blocked_key(&tx, wallet_user.id, key).await? != Some(true) {
             return Err(InstructionError::PinRecoveryAccountMismatch);
         }
 
@@ -1561,7 +1563,7 @@ mod tests {
         wallet_user_repo
             .expect_is_blocked_key()
             .times(1)
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _, _| Ok(Some(false)));
         wallet_user_repo.expect_unblock_blocked_keys().never();
 
         let result = instruction
@@ -1612,7 +1614,7 @@ mod tests {
         wallet_user_repo
             .expect_is_blocked_key()
             .times(1)
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _, _| Ok(Some(true)));
         wallet_user_repo
             .expect_unblock_blocked_keys()
             .times(1)
@@ -1673,7 +1675,9 @@ mod tests {
                 true
             })
             .returning(|_, _, _, _, _| Ok(()));
-        wallet_user_repo.expect_is_blocked_key().returning(|_, _, _| Ok(false));
+        wallet_user_repo
+            .expect_is_blocked_key()
+            .returning(|_, _, _| Ok(Some(false)));
 
         let result = instruction
             .handle(
@@ -1733,7 +1737,9 @@ mod tests {
                 true
             })
             .returning(|_, _, _, _, _| Ok(()));
-        wallet_user_repo.expect_is_blocked_key().returning(|_, _, _| Ok(false));
+        wallet_user_repo
+            .expect_is_blocked_key()
+            .returning(|_, _, _| Ok(Some(false)));
 
         let result = instruction
             .handle(
@@ -1776,7 +1782,9 @@ mod tests {
             .expect_find_transfer_session_id_by_destination_wallet_user_id()
             .returning(move |_, _| Ok(Some(transfer_session_id_clone.lock().unwrap().unwrap())));
         wallet_user_repo.expect_create_transfer_session().never();
-        wallet_user_repo.expect_is_blocked_key().returning(|_, _, _| Ok(false));
+        wallet_user_repo
+            .expect_is_blocked_key()
+            .returning(|_, _, _| Ok(Some(false)));
 
         let result = instruction
             .handle(
@@ -1826,7 +1834,7 @@ mod tests {
             .times(1)
             .returning(move |_, _, key| {
                 assert_eq!(key, *holder_key.verifying_key());
-                Ok(true)
+                Ok(Some(true))
             });
         wallet_user_repo.expect_recover_pin().times(1).returning(|_, _| Ok(()));
 
@@ -1941,7 +1949,7 @@ mod tests {
         wallet_user_repo
             .expect_is_blocked_key()
             .times(1)
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _, _| Ok(Some(false)));
 
         let err = instruction
             .handle(

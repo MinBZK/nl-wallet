@@ -6,7 +6,6 @@ use p256::pkcs8::EncodePublicKey;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
-use sea_orm::PaginatorTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::Set;
@@ -19,6 +18,7 @@ use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 use crate::entity::wallet_user_key;
+use crate::entity::wallet_user_key::IsBlockedModel;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
@@ -49,28 +49,31 @@ where
         .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
-pub async fn is_blocked_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<bool>
+pub async fn is_blocked_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<Option<bool>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let is_recovery_key = match wallet_user_key::Entity::find()
+    let blocked_query_result: Vec<IsBlockedModel> = wallet_user_key::Entity::find()
+        .column(wallet_user_key::Column::IsBlocked)
         .filter(
             wallet_user_key::Column::WalletUserId
                 .eq(wallet_user_id)
-                .and(wallet_user_key::Column::PublicKey.eq(key.to_public_key_der()?.into_vec()))
-                .and(wallet_user_key::Column::IsBlocked.eq(true)),
+                .and(wallet_user_key::Column::PublicKey.eq(key.to_public_key_der()?.into_vec())),
         )
-        .count(db.connection())
+        .into_partial_model()
+        .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
-    {
-        0 => false,
-        1 => true,
-        _ => panic!("multiple identical public keys found"),
-    };
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    Ok(is_recovery_key)
+    let is_blocked = blocked_query_result
+        .into_iter()
+        .fold(None, |acc, is_blocked| match acc {
+            None => Some(is_blocked.is_blocked),
+            _ => panic!("multiple identical public keys found"),
+        });
+
+    Ok(is_blocked)
 }
 
 pub async fn unblock_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> std::result::Result<(), PersistenceError>
@@ -78,18 +81,16 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user_key::Entity::update(wallet_user_key::ActiveModel {
-        is_blocked: Set(false),
-        ..Default::default()
-    })
-    .filter(
-        wallet_user_key::Column::WalletUserId
-            .eq(wallet_user_id)
-            .and(wallet_user_key::Column::IsBlocked.eq(true)),
-    )
-    .exec(db.connection())
-    .await
-    .map_err(|e| PersistenceError::Execution(e.into()))?;
+    wallet_user_key::Entity::update_many()
+        .col_expr(wallet_user_key::Column::IsBlocked, Expr::value(false))
+        .filter(
+            wallet_user_key::Column::WalletUserId
+                .eq(wallet_user_id)
+                .and(wallet_user_key::Column::IsBlocked.eq(true)),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
 
     Ok(())
 }

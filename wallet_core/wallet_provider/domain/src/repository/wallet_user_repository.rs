@@ -67,7 +67,7 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key: VerifyingKey,
-    ) -> Result<bool>;
+    ) -> Result<Option<bool>>;
 
     async fn delete_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
 
@@ -272,8 +272,8 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             _key: VerifyingKey,
-        ) -> Result<bool> {
-            Ok(true)
+        ) -> Result<Option<bool>> {
+            Ok(Some(true))
         }
 
         async fn unblock_blocked_keys(
