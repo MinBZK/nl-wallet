@@ -21,5 +21,5 @@ async fn test_wallet_provider_metrics() {
     assert!(response.status().is_success());
 
     let body: String = response.text().await.unwrap();
-    assert!(body.contains("metrics_endpoint_called"));
+    assert!(body.contains("nlwallet_metrics_endpoint_count"));
 }

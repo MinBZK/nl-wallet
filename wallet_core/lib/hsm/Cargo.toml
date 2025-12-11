@@ -26,6 +26,7 @@ cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["constructor", "debug"] }
 futures.workspace = true
+metrics.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 r2d2-cryptoki.workspace = true
 sec1.workspace = true
@@ -43,6 +44,7 @@ serde_with = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
+measure.path = "../measure"
 utils.path = "../utils"
 
 [dev-dependencies]
