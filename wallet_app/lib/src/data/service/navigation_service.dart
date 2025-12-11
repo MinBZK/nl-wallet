@@ -14,6 +14,7 @@ import '../../feature/common/dialog/move_stopped_dialog.dart';
 import '../../feature/common/dialog/reset_wallet_dialog.dart';
 import '../../feature/common/dialog/scan_with_wallet_dialog.dart';
 import '../../feature/common/dialog/update_notification_dialog.dart';
+import '../../feature/notification/sheet/request_notification_permission_sheet.dart';
 import '../../util/helper/dialog_helper.dart';
 
 class NavigationService extends AppEventListener {
@@ -98,6 +99,7 @@ class NavigationService extends AppEventListener {
       WalletDialogType.scanWithWallet => ScanWithWalletDialog.show(context),
       WalletDialogType.lockedOut => LockedOutDialog.show(context),
       WalletDialogType.moveStopped => MoveStoppedDialog.show(context),
+      WalletDialogType.requestNotificationPermission => RequestNotificationPermissionSheet.show(context),
     };
   }
 
@@ -131,4 +133,11 @@ class NavigationService extends AppEventListener {
   }
 }
 
-enum WalletDialogType { idleWarning, lockedOut, moveStopped, resetWallet, scanWithWallet }
+enum WalletDialogType {
+  idleWarning,
+  lockedOut,
+  moveStopped,
+  resetWallet,
+  scanWithWallet,
+  requestNotificationPermission,
+}
