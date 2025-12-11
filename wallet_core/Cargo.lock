@@ -8445,6 +8445,8 @@ dependencies = [
  "ctor",
  "derive_more",
  "hsm",
+ "measure",
+ "metrics",
  "mockall",
  "p256",
  "rand_core 0.6.4",
