@@ -141,7 +141,7 @@ dependencies = [
  "serde_repr",
  "serde_with",
  "spki",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "time",
  "tokio",
@@ -662,7 +662,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "url",
 ]
 
@@ -1707,7 +1707,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "utils",
 ]
@@ -1765,7 +1765,7 @@ dependencies = [
  "itertools 0.14.0",
  "serde",
  "server_utils",
- "strum 0.26.3",
+ "strum 0.27.2",
  "tokio",
  "tower",
  "tower-http",
@@ -1797,7 +1797,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_valid",
  "server_utils",
- "strum 0.26.3",
+ "strum 0.27.2",
  "tokio",
  "tower",
  "tower-http",
@@ -1834,7 +1834,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "server_utils",
- "strum 0.26.3",
+ "strum 0.27.2",
  "tokio",
  "tower",
  "tower-http",
@@ -1868,7 +1868,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "token_status_list",
  "tower-http",
  "tracing",
@@ -2167,7 +2167,7 @@ dependencies = [
  "error_category_derive",
  "rstest",
  "sentry",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -2634,7 +2634,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "sha2",
- "strum 0.26.3",
+ "strum 0.27.2",
  "tempfile",
  "tests_integration",
  "thiserror 2.0.17",
@@ -3121,7 +3121,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "tokio",
  "toml 0.8.23",
@@ -4474,7 +4474,7 @@ dependencies = [
  "serial_test",
  "ssri",
  "strfmt",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
@@ -5804,7 +5804,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "ssri",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
@@ -6402,7 +6402,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "tokio",
  "tower-http",
@@ -6918,8 +6918,14 @@ name = "strum"
 version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
+
+[[package]]
+name = "strum"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af23d6f6c1a224baef9d3f61e287d2761385a5b88fdab4eb4c6f11aeb54c4bcf"
 dependencies = [
- "strum_macros 0.26.4",
+ "strum_macros 0.27.2",
 ]
 
 [[package]]
@@ -6937,14 +6943,13 @@ dependencies = [
 
 [[package]]
 name = "strum_macros"
-version = "0.26.4"
+version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
+checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
  "quote",
- "rustversion",
  "syn",
 ]
 
@@ -7275,7 +7280,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -7915,7 +7920,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
 ]
 
@@ -7938,7 +7943,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -8265,7 +8270,7 @@ dependencies = [
  "serde_with",
  "serial_test",
  "ssri",
- "strum 0.26.3",
+ "strum 0.27.2",
  "tempfile",
  "thiserror 2.0.17",
  "token_status_list",
@@ -8307,7 +8312,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "utils",
  "uuid",
@@ -8439,7 +8444,7 @@ dependencies = [
  "rand 0.8.5",
  "semver",
  "serde",
- "strum 0.26.3",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "utils",
  "uuid",
