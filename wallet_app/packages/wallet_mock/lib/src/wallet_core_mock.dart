@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
 import '../mock.dart';
@@ -348,4 +349,10 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<void> crateApiFullReceiveWalletTransfer() => Future.delayed(const Duration(seconds: 2));
+
+  @override
+  Future<void> crateApiFullClearNotificationsStream() async {}
+
+  @override
+  Stream<List<AppNotification>> crateApiFullSetNotificationsStream() => PublishSubject();
 }

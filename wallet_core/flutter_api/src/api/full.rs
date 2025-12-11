@@ -22,6 +22,7 @@ use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::WalletInstructionResult;
+use crate::models::notification::AppNotification;
 use crate::models::pin::PinValidationResult;
 use crate::models::transfer::TransferSessionState;
 use crate::models::uri::IdentifyUriResult;
@@ -133,6 +134,19 @@ pub async fn set_attestations_stream(sink: StreamSink<Vec<AttestationPresentatio
 
 pub async fn clear_attestations_stream() {
     wallet().write().await.clear_attestations_callback();
+}
+
+#[expect(clippy::unused_async)]
+pub async fn set_notifications_stream(sink: StreamSink<Vec<AppNotification>>) -> anyhow::Result<()> {
+    // TODO: Store the sink for later use
+    sink.add(vec![]).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    Ok(())
+}
+
+#[expect(clippy::unused_async)]
+pub async fn clear_notifications_stream() {
+    // TODO: clear the notifications stream
+    println!("Notifications stream cleared");
 }
 
 #[flutter_api_error]

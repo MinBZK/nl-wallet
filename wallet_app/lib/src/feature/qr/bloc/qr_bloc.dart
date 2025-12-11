@@ -8,7 +8,7 @@ import 'package:vibration/vibration.dart';
 
 import '../../../../environment.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
-import '../../../domain/usecase/permission/check_has_permission_usecase.dart';
+import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../domain/usecase/qr/decode_qr_usecase.dart';
 
 part 'qr_event.dart';
@@ -19,7 +19,7 @@ final kProcessingDelay = Duration(milliseconds: Environment.isTest ? 25 : 500);
 
 class QrBloc extends Bloc<QrEvent, QrState> {
   final DecodeQrUseCase _decodeQrUseCase;
-  final CheckHasPermissionUseCase _checkHasPermissionUseCase;
+  final RequestPermissionUseCase _checkHasPermissionUseCase;
 
   QrBloc(this._decodeQrUseCase, this._checkHasPermissionUseCase) : super(QrScanInitial()) {
     on<QrScanCheckPermission>(_onCheckPermission);

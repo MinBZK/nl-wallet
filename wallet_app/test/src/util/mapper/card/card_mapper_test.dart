@@ -31,7 +31,7 @@ void main() {
   late Mapper<CardAttributeWithCardId, DataAttribute> mockCardAttributeMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
   late Mapper<core.DisplayMetadata, CardDisplayMetadata> mockDisplayMetadataMapper;
-  late Mapper<core.RevocationStatus?, CardStatus> mockCardStatusMapper;
+  late Mapper<core.AttestationPresentation, CardStatus> mockCardStatusMapper;
 
   late Mapper<core.AttestationPresentation, WalletCard> mapper;
 

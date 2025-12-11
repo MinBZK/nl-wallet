@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/feature/tour/widget/tour_banner.dart';
+import 'package:wallet/src/feature/banner/widget/tour_banner.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';

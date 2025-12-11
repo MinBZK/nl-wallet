@@ -220,6 +220,7 @@ pub struct Created {
     usecase_id: String,
     client_id: String,
     redirect_uri_template: Option<RedirectUriTemplate>,
+    accept_undetermined_revocation_status: bool,
 }
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
@@ -229,6 +230,7 @@ pub struct WaitingForResponse {
     usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
+    accept_undetermined_revocation_status: bool,
 }
 
 /// State for a session that has ended (for any reason).
@@ -553,6 +555,7 @@ pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
     credential_requests: Option<NormalizedCredentialRequests>,
     return_url_template: Option<ReturnUrlTemplate>,
+    accept_undetermined_revocation_status: bool,
 }
 
 #[derive(Debug, Constructor)]
@@ -577,6 +580,7 @@ impl<K> RpInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
+        accept_undetermined_revocation_status: bool,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
 
@@ -588,6 +592,7 @@ impl<K> RpInitiatedUseCase<K> {
             },
             credential_requests,
             return_url_template,
+            accept_undetermined_revocation_status,
         };
 
         Ok(use_case)
@@ -637,6 +642,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             id,
             self.data.client_id.clone(),
             redirect_uri_template,
+            self.accept_undetermined_revocation_status,
         );
         Ok(session)
     }
@@ -789,6 +795,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
                 template: self.return_url_template.clone(),
                 share_on_error: false,
             }),
+            false,
         );
 
         Ok(session)
@@ -1222,6 +1229,7 @@ impl Session<Created> {
         usecase_id: String,
         client_id: String,
         redirect_uri_template: Option<RedirectUriTemplate>,
+        accept_undetermined_revocation_status: bool,
     ) -> Session<Created> {
         Session::<Created> {
             state: SessionState::new(
@@ -1231,6 +1239,7 @@ impl Session<Created> {
                     usecase_id,
                     client_id,
                     redirect_uri_template,
+                    accept_undetermined_revocation_status,
                 },
             ),
         }
@@ -1267,6 +1276,7 @@ impl Session<Created> {
                     redirect_uri,
                     encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     usecase_id: self.state.data.usecase_id.clone(),
+                    accept_undetermined_revocation_status: self.state().accept_undetermined_revocation_status,
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -1456,6 +1466,7 @@ impl Session<WaitingForResponse> {
             trust_anchors,
             extending_vct_values,
             revocation_verifier,
+            self.state().accept_undetermined_revocation_status,
         )
         .await
         {
@@ -1633,6 +1644,7 @@ mod tests {
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
+                    false,
                 )
                 .unwrap(),
             ),
@@ -1643,6 +1655,7 @@ mod tests {
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
+                    false,
                 )
                 .unwrap(),
             ),
@@ -1653,6 +1666,7 @@ mod tests {
                     SessionTypeReturnUrl::Both,
                     None,
                     None,
+                    false,
                 )
                 .unwrap(),
             ),
@@ -1671,7 +1685,7 @@ mod tests {
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
-            RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+            RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
                     .generate_status_list_mock()
@@ -2050,7 +2064,7 @@ mod tests {
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
-            RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+            RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
                     .generate_status_list_mock()

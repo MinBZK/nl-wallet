@@ -146,6 +146,8 @@ libc = "0.2.174"
 libsqlite3-sys = { version = "0.30.1", default-features = false }
 log = "0.4.25"
 mediatype = "0.21.0"
+metrics = "0.24.3"
+metrics-exporter-prometheus = { version = "0.18.1", default-features = false }
 mime = "0.3.17"
 mockall = "0.13.1"
 moka = "0.12.11"

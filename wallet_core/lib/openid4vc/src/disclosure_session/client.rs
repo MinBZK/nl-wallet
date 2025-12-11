@@ -502,9 +502,10 @@ mod tests {
             &MockTimeGenerator::default(),
             &[ca.to_trust_anchor()],
             &ExtendingVctRetrieverStub,
-            &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+            &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_status_list_mock().unwrap(),
             ))),
+            false,
         )
         .now_or_never()
         .unwrap()

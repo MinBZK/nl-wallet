@@ -73,6 +73,7 @@ use server_utils::settings::Server;
 use server_utils::settings::ServerAuth;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
+use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::client::mock::StatusListClientStub;
 use utils::generator::mock::MockTimeGenerator;
@@ -151,6 +152,7 @@ async fn wallet_server_settings_and_listener(
             key_pair: usecase_keypair.into(),
             dcql_query: None,
             return_url_template: None,
+            accept_undetermined_revocation_status: false,
         },
     )])
     .into();
@@ -187,6 +189,8 @@ async fn wallet_server_settings_and_listener(
         wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
 
         extending_vct_values: None,
+
+        status_list_token_cache_settings: StatusListTokenCacheSettings::default(),
     };
 
     (settings, listener, issuer_ca, rp_trust_anchor)

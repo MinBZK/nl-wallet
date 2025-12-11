@@ -14,6 +14,7 @@ import 'models/disclosure.dart';
 import 'models/image.dart';
 import 'models/instruction.dart';
 import 'models/localize.dart';
+import 'models/notification.dart';
 import 'models/pin.dart';
 import 'models/revocation.dart';
 import 'models/transfer.dart';
@@ -45,6 +46,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RustStreamSink<FlutterVersionState> dco_decode_StreamSink_flutter_version_state_Dco(dynamic raw);
 
   @protected
+  RustStreamSink<List<AppNotification>> dco_decode_StreamSink_list_app_notification_Dco(dynamic raw);
+
+  @protected
   RustStreamSink<List<AttestationPresentation>> dco_decode_StreamSink_list_attestation_presentation_Dco(dynamic raw);
 
   @protected
@@ -55,6 +59,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   AcceptDisclosureResult dco_decode_accept_disclosure_result(dynamic raw);
+
+  @protected
+  AppNotification dco_decode_app_notification(dynamic raw);
 
   @protected
   AttestationAttribute dco_decode_attestation_attribute(dynamic raw);
@@ -126,6 +133,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   DisplayMetadata dco_decode_display_metadata(dynamic raw);
 
   @protected
+  DisplayTarget dco_decode_display_target(dynamic raw);
+
+  @protected
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw);
 
   @protected
@@ -150,6 +160,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<AppNotification> dco_decode_list_app_notification(dynamic raw);
+
+  @protected
   List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw);
 
   @protected
@@ -166,6 +179,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<DisplayMetadata> dco_decode_list_display_metadata(dynamic raw);
+
+  @protected
+  List<DisplayTarget> dco_decode_list_display_target(dynamic raw);
 
   @protected
   List<LocalizedString> dco_decode_list_localized_string(dynamic raw);
@@ -190,6 +206,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   MissingAttribute dco_decode_missing_attribute(dynamic raw);
+
+  @protected
+  NotificationType dco_decode_notification_type(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -246,6 +265,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int dco_decode_u_16(dynamic raw);
 
   @protected
+  int dco_decode_u_32(dynamic raw);
+
+  @protected
   BigInt dco_decode_u_64(dynamic raw);
 
   @protected
@@ -282,6 +304,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RustStreamSink<FlutterVersionState> sse_decode_StreamSink_flutter_version_state_Dco(SseDeserializer deserializer);
 
   @protected
+  RustStreamSink<List<AppNotification>> sse_decode_StreamSink_list_app_notification_Dco(SseDeserializer deserializer);
+
+  @protected
   RustStreamSink<List<AttestationPresentation>> sse_decode_StreamSink_list_attestation_presentation_Dco(
     SseDeserializer deserializer,
   );
@@ -294,6 +319,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   AcceptDisclosureResult sse_decode_accept_disclosure_result(SseDeserializer deserializer);
+
+  @protected
+  AppNotification sse_decode_app_notification(SseDeserializer deserializer);
 
   @protected
   AttestationAttribute sse_decode_attestation_attribute(SseDeserializer deserializer);
@@ -365,6 +393,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   DisplayMetadata sse_decode_display_metadata(SseDeserializer deserializer);
 
   @protected
+  DisplayTarget sse_decode_display_target(SseDeserializer deserializer);
+
+  @protected
   FlutterConfiguration sse_decode_flutter_configuration(SseDeserializer deserializer);
 
   @protected
@@ -389,6 +420,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<AppNotification> sse_decode_list_app_notification(SseDeserializer deserializer);
+
+  @protected
   List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer);
 
   @protected
@@ -405,6 +439,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<DisplayMetadata> sse_decode_list_display_metadata(SseDeserializer deserializer);
+
+  @protected
+  List<DisplayTarget> sse_decode_list_display_target(SseDeserializer deserializer);
 
   @protected
   List<LocalizedString> sse_decode_list_localized_string(SseDeserializer deserializer);
@@ -429,6 +466,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   MissingAttribute sse_decode_missing_attribute(SseDeserializer deserializer);
+
+  @protected
+  NotificationType sse_decode_notification_type(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -483,6 +523,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer);
@@ -551,6 +594,21 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       raw.setupAndSerialize(
         codec: DcoCodec(
           decodeSuccessData: dco_decode_flutter_version_state,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+      ),
+    );
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_list_app_notification_Dco(
+    RustStreamSink<List<AppNotification>> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_String(
+      raw.setupAndSerialize(
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_app_notification,
           decodeErrorData: dco_decode_AnyhowException,
         ),
       ),
@@ -690,6 +748,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_list_app_notification> cst_encode_list_app_notification(List<AppNotification> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_app_notification(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_app_notification(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_attestation_attribute> cst_encode_list_attestation_attribute(
     List<AttestationAttribute> raw,
   ) {
@@ -751,6 +819,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     final ans = wire.cst_new_list_display_metadata(raw.length);
     for (var i = 0; i < raw.length; ++i) {
       cst_api_fill_to_wire_display_metadata(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_display_target> cst_encode_list_display_target(List<DisplayTarget> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_display_target(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_display_target(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -882,6 +960,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.InstructionError.error = pre_error;
       return;
     }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_app_notification(AppNotification apiObj, wire_cst_app_notification wireObj) {
+    wireObj.id = cst_encode_u_32(apiObj.id);
+    cst_api_fill_to_wire_notification_type(apiObj.typ, wireObj.typ);
+    wireObj.targets = cst_encode_list_display_target(apiObj.targets);
   }
 
   @protected
@@ -1057,6 +1142,20 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_display_target(DisplayTarget apiObj, wire_cst_display_target wireObj) {
+    if (apiObj is DisplayTarget_Os) {
+      var pre_notify_at = cst_encode_String(apiObj.notifyAt);
+      wireObj.tag = 0;
+      wireObj.kind.Os.notify_at = pre_notify_at;
+      return;
+    }
+    if (apiObj is DisplayTarget_Dashboard) {
+      wireObj.tag = 1;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_flutter_configuration(FlutterConfiguration apiObj, wire_cst_flutter_configuration wireObj) {
     wireObj.inactive_warning_timeout = cst_encode_u_16(apiObj.inactiveWarningTimeout);
     wireObj.inactive_lock_timeout = cst_encode_u_16(apiObj.inactiveLockTimeout);
@@ -1135,6 +1234,24 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_missing_attribute(MissingAttribute apiObj, wire_cst_missing_attribute wireObj) {
     wireObj.labels = cst_encode_list_localized_string(apiObj.labels);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_notification_type(NotificationType apiObj, wire_cst_notification_type wireObj) {
+    if (apiObj is NotificationType_CardExpired) {
+      var pre_card = cst_encode_box_autoadd_attestation_presentation(apiObj.card);
+      wireObj.tag = 0;
+      wireObj.kind.CardExpired.card = pre_card;
+      return;
+    }
+    if (apiObj is NotificationType_CardExpiresSoon) {
+      var pre_card = cst_encode_box_autoadd_attestation_presentation(apiObj.card);
+      var pre_expires_at = cst_encode_String(apiObj.expiresAt);
+      wireObj.tag = 1;
+      wireObj.kind.CardExpiresSoon.card = pre_card;
+      wireObj.kind.CardExpiresSoon.expires_at = pre_expires_at;
+      return;
+    }
   }
 
   @protected
@@ -1413,6 +1530,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_u_16(int raw);
 
   @protected
+  int cst_encode_u_32(int raw);
+
+  @protected
   int cst_encode_u_8(int raw);
 
   @protected
@@ -1437,6 +1557,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_list_app_notification_Dco(
+    RustStreamSink<List<AppNotification>> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_StreamSink_list_attestation_presentation_Dco(
     RustStreamSink<List<AttestationPresentation>> self,
     SseSerializer serializer,
@@ -1450,6 +1576,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_accept_disclosure_result(AcceptDisclosureResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_app_notification(AppNotification self, SseSerializer serializer);
 
   @protected
   void sse_encode_attestation_attribute(AttestationAttribute self, SseSerializer serializer);
@@ -1521,6 +1650,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_display_metadata(DisplayMetadata self, SseSerializer serializer);
 
   @protected
+  void sse_encode_display_target(DisplayTarget self, SseSerializer serializer);
+
+  @protected
   void sse_encode_flutter_configuration(FlutterConfiguration self, SseSerializer serializer);
 
   @protected
@@ -1545,6 +1677,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_app_notification(List<AppNotification> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer);
 
   @protected
@@ -1561,6 +1696,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_list_display_metadata(List<DisplayMetadata> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_display_target(List<DisplayTarget> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_localized_string(List<LocalizedString> self, SseSerializer serializer);
@@ -1585,6 +1723,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_missing_attribute(MissingAttribute self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_notification_type(NotificationType self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
@@ -1639,6 +1780,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer);
@@ -1906,6 +2050,21 @@ class WalletCoreWire implements BaseWire {
   );
   late final _wire__crate__api__full__clear_lock_stream = _wire__crate__api__full__clear_lock_streamPtr
       .asFunction<void Function(int)>();
+
+  void wire__crate__api__full__clear_notifications_stream(
+    int port_,
+  ) {
+    return _wire__crate__api__full__clear_notifications_stream(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__clear_notifications_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__clear_notifications_stream',
+      );
+  late final _wire__crate__api__full__clear_notifications_stream =
+      _wire__crate__api__full__clear_notifications_streamPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__clear_recent_history_stream(
     int port_,
@@ -2419,6 +2578,23 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__set_lock_stream = _wire__crate__api__full__set_lock_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
+  void wire__crate__api__full__set_notifications_stream(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
+  ) {
+    return _wire__crate__api__full__set_notifications_stream(
+      port_,
+      sink,
+    );
+  }
+
+  late final _wire__crate__api__full__set_notifications_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__set_notifications_stream',
+      );
+  late final _wire__crate__api__full__set_notifications_stream = _wire__crate__api__full__set_notifications_streamPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
   void wire__crate__api__full__set_recent_history_stream(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
@@ -2663,6 +2839,21 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_list_String = _cst_new_list_StringPtr
       .asFunction<ffi.Pointer<wire_cst_list_String> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_app_notification> cst_new_list_app_notification(
+    int len,
+  ) {
+    return _cst_new_list_app_notification(
+      len,
+    );
+  }
+
+  late final _cst_new_list_app_notificationPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_app_notification> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_app_notification',
+      );
+  late final _cst_new_list_app_notification = _cst_new_list_app_notificationPtr
+      .asFunction<ffi.Pointer<wire_cst_list_app_notification> Function(int)>();
+
   ffi.Pointer<wire_cst_list_attestation_attribute> cst_new_list_attestation_attribute(
     int len,
   ) {
@@ -2752,6 +2943,21 @@ class WalletCoreWire implements BaseWire {
       );
   late final _cst_new_list_display_metadata = _cst_new_list_display_metadataPtr
       .asFunction<ffi.Pointer<wire_cst_list_display_metadata> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_display_target> cst_new_list_display_target(
+    int len,
+  ) {
+    return _cst_new_list_display_target(
+      len,
+    );
+  }
+
+  late final _cst_new_list_display_targetPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_display_target> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_display_target',
+      );
+  late final _cst_new_list_display_target = _cst_new_list_display_targetPtr
+      .asFunction<ffi.Pointer<wire_cst_list_display_target> Function(int)>();
 
   ffi.Pointer<wire_cst_list_localized_string> cst_new_list_localized_string(
     int len,
@@ -3173,6 +3379,67 @@ final class wire_cst_WalletState_Locked extends ffi.Struct {
 
 final class wire_cst_list_String extends ffi.Struct {
   external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_NotificationType_CardExpired extends ffi.Struct {
+  external ffi.Pointer<wire_cst_attestation_presentation> card;
+}
+
+final class wire_cst_NotificationType_CardExpiresSoon extends ffi.Struct {
+  external ffi.Pointer<wire_cst_attestation_presentation> card;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> expires_at;
+}
+
+final class NotificationTypeKind extends ffi.Union {
+  external wire_cst_NotificationType_CardExpired CardExpired;
+
+  external wire_cst_NotificationType_CardExpiresSoon CardExpiresSoon;
+}
+
+final class wire_cst_notification_type extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external NotificationTypeKind kind;
+}
+
+final class wire_cst_DisplayTarget_Os extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> notify_at;
+}
+
+final class DisplayTargetKind extends ffi.Union {
+  external wire_cst_DisplayTarget_Os Os;
+}
+
+final class wire_cst_display_target extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external DisplayTargetKind kind;
+}
+
+final class wire_cst_list_display_target extends ffi.Struct {
+  external ffi.Pointer<wire_cst_display_target> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_app_notification extends ffi.Struct {
+  @ffi.Uint32()
+  external int id;
+
+  external wire_cst_notification_type typ;
+
+  external ffi.Pointer<wire_cst_list_display_target> targets;
+}
+
+final class wire_cst_list_app_notification extends ffi.Struct {
+  external ffi.Pointer<wire_cst_app_notification> ptr;
 
   @ffi.Int32()
   external int len;

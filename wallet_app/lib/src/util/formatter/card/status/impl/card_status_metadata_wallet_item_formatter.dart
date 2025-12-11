@@ -11,28 +11,29 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
   @override
   bool show(CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => true,
-      CardStatus.valid => false,
-      CardStatus.expiresSoon => true,
-      CardStatus.expired => true,
-      CardStatus.revoked => true,
-      CardStatus.corrupted => true,
-      CardStatus.unknown => true,
+      CardStatusValidSoon() => true,
+      CardStatusValid() => false,
+      CardStatusExpiresSoon() => true,
+      CardStatusExpired() => true,
+      CardStatusRevoked() => true,
+      CardStatusCorrupted() => true,
+      CardStatusUndetermined() => true,
     };
   }
 
   @override
   String text(BuildContext context, WalletCard card) {
-    return switch (card.status) {
-      CardStatus.validSoon => context.l10n.cardStatusMetadataWalletItemValidSoon,
-      CardStatus.valid => '',
-      CardStatus.expiresSoon => context.l10n.cardStatusMetadataWalletItemExpiresSoon(
-        DurationFormatter.prettyPrintTimeDifference(context.l10n, card.validUntil),
+    final status = card.status;
+    return switch (status) {
+      CardStatusValidSoon() => context.l10n.cardStatusMetadataWalletItemValidSoon,
+      CardStatusValid() => '',
+      CardStatusExpiresSoon() => context.l10n.cardStatusMetadataWalletItemExpiresSoon(
+        DurationFormatter.prettyPrintTimeDifference(context.l10n, status.validUntil),
       ),
-      CardStatus.expired => context.l10n.cardStatusMetadataWalletItemExpired,
-      CardStatus.revoked => context.l10n.cardStatusMetadataWalletItemRevoked,
-      CardStatus.corrupted => context.l10n.cardStatusMetadataWalletItemCorrupted,
-      CardStatus.unknown => context.l10n.cardStatusMetadataWalletItemUnknown,
+      CardStatusExpired() => context.l10n.cardStatusMetadataWalletItemExpired,
+      CardStatusRevoked() => context.l10n.cardStatusMetadataWalletItemRevoked,
+      CardStatusCorrupted() => context.l10n.cardStatusMetadataWalletItemCorrupted,
+      CardStatusUndetermined() => context.l10n.cardStatusMetadataWalletItemUndetermined,
     };
   }
 
@@ -40,26 +41,26 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
   Color textColor(BuildContext context, CardStatus status) {
     const colorScheme = LightWalletTheme.colorScheme;
     return switch (status) {
-      CardStatus.validSoon => colorScheme.onSurface,
-      CardStatus.valid => colorScheme.onSurface,
-      CardStatus.expiresSoon => colorScheme.onSurface,
-      CardStatus.expired => colorScheme.onError,
-      CardStatus.revoked => colorScheme.onError,
-      CardStatus.corrupted => colorScheme.onError,
-      CardStatus.unknown => colorScheme.onError,
+      CardStatusValidSoon() => colorScheme.onSurface,
+      CardStatusValid() => colorScheme.onSurface,
+      CardStatusExpiresSoon() => colorScheme.onSurface,
+      CardStatusExpired() => colorScheme.onError,
+      CardStatusRevoked() => colorScheme.onError,
+      CardStatusCorrupted() => colorScheme.onError,
+      CardStatusUndetermined() => colorScheme.onError,
     };
   }
 
   @override
   IconData? icon(CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => Icons.block_flipped,
-      CardStatus.valid => null,
-      CardStatus.expiresSoon => Icons.schedule,
-      CardStatus.expired => Icons.event_busy,
-      CardStatus.revoked => Icons.close,
-      CardStatus.corrupted => Icons.block_flipped,
-      CardStatus.unknown => Icons.warning_amber,
+      CardStatusValidSoon() => Icons.block_flipped,
+      CardStatusValid() => null,
+      CardStatusExpiresSoon() => Icons.schedule,
+      CardStatusExpired() => Icons.event_busy,
+      CardStatusRevoked() => Icons.close,
+      CardStatusCorrupted() => Icons.block_flipped,
+      CardStatusUndetermined() => Icons.warning_amber,
     };
   }
 
@@ -67,13 +68,13 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
   Color iconColor(BuildContext context, CardStatus status) {
     const colorScheme = LightWalletTheme.colorScheme;
     return switch (status) {
-      CardStatus.validSoon => colorScheme.onSurfaceVariant,
-      CardStatus.valid => colorScheme.onSurfaceVariant,
-      CardStatus.expiresSoon => colorScheme.onSurfaceVariant,
-      CardStatus.expired => colorScheme.surface,
-      CardStatus.revoked => colorScheme.surface,
-      CardStatus.corrupted => colorScheme.surface,
-      CardStatus.unknown => colorScheme.surface,
+      CardStatusValidSoon() => colorScheme.onSurfaceVariant,
+      CardStatusValid() => colorScheme.onSurfaceVariant,
+      CardStatusExpiresSoon() => colorScheme.onSurfaceVariant,
+      CardStatusExpired() => colorScheme.surface,
+      CardStatusRevoked() => colorScheme.surface,
+      CardStatusCorrupted() => colorScheme.surface,
+      CardStatusUndetermined() => colorScheme.surface,
     };
   }
 
@@ -81,13 +82,13 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
   Color? backgroundColor(BuildContext context, CardStatus status) {
     const colorScheme = LightWalletTheme.colorScheme;
     return switch (status) {
-      CardStatus.validSoon => colorScheme.surface,
-      CardStatus.valid => colorScheme.surface,
-      CardStatus.expiresSoon => colorScheme.surface,
-      CardStatus.expired => colorScheme.error,
-      CardStatus.revoked => colorScheme.error,
-      CardStatus.corrupted => colorScheme.error,
-      CardStatus.unknown => kStatusWarningColor,
+      CardStatusValidSoon() => colorScheme.surface,
+      CardStatusValid() => colorScheme.surface,
+      CardStatusExpiresSoon() => colorScheme.surface,
+      CardStatusExpired() => colorScheme.error,
+      CardStatusRevoked() => colorScheme.error,
+      CardStatusCorrupted() => colorScheme.error,
+      CardStatusUndetermined() => kStatusWarningColor,
     };
   }
 }

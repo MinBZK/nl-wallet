@@ -578,8 +578,8 @@ mod example_constructors {
     use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
     use crate::examples::SD_JWT_VC_SPEC_METADATA_BYTES;
-    use crate::examples::SIMPLE_EMBEDDED_BYTES;
-    use crate::examples::SIMPLE_REMOTE_BYTES;
+    use crate::examples::SIMPLE_EMBEDDED_METADATA_BYTES;
+    use crate::examples::SIMPLE_REMOTE_METADATA_BYTES;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
@@ -688,12 +688,12 @@ mod example_constructors {
         }
 
         pub fn simple_embedded_example() -> Self {
-            serde_json::from_slice(SIMPLE_EMBEDDED_BYTES).unwrap()
+            serde_json::from_slice(SIMPLE_EMBEDDED_METADATA_BYTES).unwrap()
         }
 
         pub fn simple_remote_example() -> serde_json::Error {
             // Explicitly unsupported at the moment, hence the error return
-            serde_json::from_slice::<Self>(SIMPLE_REMOTE_BYTES).unwrap_err()
+            serde_json::from_slice::<Self>(SIMPLE_REMOTE_METADATA_BYTES).unwrap_err()
         }
     }
 

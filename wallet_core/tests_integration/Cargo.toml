@@ -20,6 +20,11 @@ path = "tests/static_server.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "metrics"
+path = "tests/metrics.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "digid_issuance"
 path = "tests/digid_issuance.rs"
 required-features = ["digid_test"]

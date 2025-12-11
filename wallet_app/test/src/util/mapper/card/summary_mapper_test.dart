@@ -25,8 +25,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         metadata: [const CardDisplayMetadata(language: Locale('en'), name: 'name')],
         attributes: [],
       );
@@ -40,8 +38,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         metadata: const [
           CardDisplayMetadata(language: Locale('en'), name: 'name', rawSummary: summary),
         ],
@@ -57,8 +53,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         metadata: const [
           CardDisplayMetadata(language: Locale('en'), name: 'name', rawSummary: summary),
         ],
@@ -86,8 +80,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),
@@ -120,8 +112,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),
@@ -142,8 +132,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),
@@ -170,8 +158,6 @@ void main() {
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
-        validFrom: WalletMockData.validFrom,
-        validUntil: WalletMockData.validUntil,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),

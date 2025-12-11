@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/data/service/event/listener/wallet_transfer_event_listener.dart';
+import 'package:wallet/src/data/service/event/listener/wallet_transfer_app_event_listener.dart';
 import 'package:wallet/src/domain/model/wallet_state.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
@@ -9,13 +9,13 @@ void main() {
   late MockNavigationService navigationService;
   late MockGetWalletStateUseCase getWalletStateUseCase;
   late MockCancelWalletTransferUseCase cancelWalletTransferUseCase;
-  late WalletTransferEventListener listener;
+  late WalletTransferAppEventListener listener;
 
   setUp(() {
     navigationService = MockNavigationService();
     getWalletStateUseCase = MockGetWalletStateUseCase();
     cancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
-    listener = WalletTransferEventListener(
+    listener = WalletTransferAppEventListener(
       navigationService,
       getWalletStateUseCase,
       cancelWalletTransferUseCase,

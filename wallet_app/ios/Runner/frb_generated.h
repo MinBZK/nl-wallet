@@ -252,6 +252,54 @@ typedef struct wire_cst_list_String {
   int32_t len;
 } wire_cst_list_String;
 
+typedef struct wire_cst_NotificationType_CardExpired {
+  struct wire_cst_attestation_presentation *card;
+} wire_cst_NotificationType_CardExpired;
+
+typedef struct wire_cst_NotificationType_CardExpiresSoon {
+  struct wire_cst_attestation_presentation *card;
+  struct wire_cst_list_prim_u_8_strict *expires_at;
+} wire_cst_NotificationType_CardExpiresSoon;
+
+typedef union NotificationTypeKind {
+  struct wire_cst_NotificationType_CardExpired CardExpired;
+  struct wire_cst_NotificationType_CardExpiresSoon CardExpiresSoon;
+} NotificationTypeKind;
+
+typedef struct wire_cst_notification_type {
+  int32_t tag;
+  union NotificationTypeKind kind;
+} wire_cst_notification_type;
+
+typedef struct wire_cst_DisplayTarget_Os {
+  struct wire_cst_list_prim_u_8_strict *notify_at;
+} wire_cst_DisplayTarget_Os;
+
+typedef union DisplayTargetKind {
+  struct wire_cst_DisplayTarget_Os Os;
+} DisplayTargetKind;
+
+typedef struct wire_cst_display_target {
+  int32_t tag;
+  union DisplayTargetKind kind;
+} wire_cst_display_target;
+
+typedef struct wire_cst_list_display_target {
+  struct wire_cst_display_target *ptr;
+  int32_t len;
+} wire_cst_list_display_target;
+
+typedef struct wire_cst_app_notification {
+  uint32_t id;
+  struct wire_cst_notification_type typ;
+  struct wire_cst_list_display_target *targets;
+} wire_cst_app_notification;
+
+typedef struct wire_cst_list_app_notification {
+  struct wire_cst_app_notification *ptr;
+  int32_t len;
+} wire_cst_list_app_notification;
+
 typedef struct wire_cst_list_attestation_presentation {
   struct wire_cst_attestation_presentation *ptr;
   int32_t len;
@@ -463,6 +511,8 @@ void frbgen_wallet_core_wire__crate__api__full__clear_configuration_stream(int64
 
 void frbgen_wallet_core_wire__crate__api__full__clear_lock_stream(int64_t port_);
 
+void frbgen_wallet_core_wire__crate__api__full__clear_notifications_stream(int64_t port_);
+
 void frbgen_wallet_core_wire__crate__api__full__clear_recent_history_stream(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__clear_version_state_stream(int64_t port_);
@@ -542,6 +592,9 @@ void frbgen_wallet_core_wire__crate__api__full__set_configuration_stream(int64_t
 void frbgen_wallet_core_wire__crate__api__full__set_lock_stream(int64_t port_,
                                                                 struct wire_cst_list_prim_u_8_strict *sink);
 
+void frbgen_wallet_core_wire__crate__api__full__set_notifications_stream(int64_t port_,
+                                                                         struct wire_cst_list_prim_u_8_strict *sink);
+
 void frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream(int64_t port_,
                                                                           struct wire_cst_list_prim_u_8_strict *sink);
 
@@ -583,6 +636,8 @@ struct wire_cst_wallet_state *frbgen_wallet_core_cst_new_box_wallet_state(void);
 
 struct wire_cst_list_String *frbgen_wallet_core_cst_new_list_String(int32_t len);
 
+struct wire_cst_list_app_notification *frbgen_wallet_core_cst_new_list_app_notification(int32_t len);
+
 struct wire_cst_list_attestation_attribute *frbgen_wallet_core_cst_new_list_attestation_attribute(int32_t len);
 
 struct wire_cst_list_attestation_presentation *frbgen_wallet_core_cst_new_list_attestation_presentation(int32_t len);
@@ -594,6 +649,8 @@ struct wire_cst_list_claim_display_metadata *frbgen_wallet_core_cst_new_list_cla
 struct wire_cst_list_disclosure_options *frbgen_wallet_core_cst_new_list_disclosure_options(int32_t len);
 
 struct wire_cst_list_display_metadata *frbgen_wallet_core_cst_new_list_display_metadata(int32_t len);
+
+struct wire_cst_list_display_target *frbgen_wallet_core_cst_new_list_display_target(int32_t len);
 
 struct wire_cst_list_localized_string *frbgen_wallet_core_cst_new_list_localized_string(int32_t len);
 
@@ -619,12 +676,14 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_wallet_state);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_String);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_app_notification);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_attribute);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_presentation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attribute_value);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_claim_display_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_disclosure_options);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_display_metadata);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_display_target);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_localized_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_missing_attribute);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_16_loose);
@@ -643,6 +702,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__clear_attestations_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__clear_configuration_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__clear_lock_stream);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__clear_notifications_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__clear_recent_history_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__clear_version_state_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__complete_pin_recovery);
@@ -675,6 +735,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_biometric_unlock);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_configuration_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_lock_stream);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_notifications_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_version_state_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__skip_wallet_transfer);

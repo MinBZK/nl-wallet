@@ -537,6 +537,7 @@ WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
           context.read(),
           context.read(),
           context.read(),
+          context.read(),
           continueFromDigiD: argument.peek() != null,
         );
         if (argument.peek() != null) bloc.add(RecoverPinContinuePinRecovery(argument.value!));

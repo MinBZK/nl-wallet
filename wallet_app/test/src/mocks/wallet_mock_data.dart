@@ -19,17 +19,15 @@ import 'package:wallet/src/wallet_assets.dart';
 abstract class WalletMockData {
   static Locale testLocale = const Locale('en');
 
-  static final CardStatus status = CardStatus.valid;
   static final DateTime validFrom = DateTime(2050, 5, 1, 17, 25);
   static final DateTime validUntil = DateTime(2025, 5, 1, 17, 25);
+  static final CardStatus status = CardStatusValid(validUntil: validUntil);
 
   static WalletCard card = WalletCard(
     attestationId: 'id',
     attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
     status: WalletMockData.status,
-    validFrom: WalletMockData.validFrom,
-    validUntil: WalletMockData.validUntil,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -47,13 +45,21 @@ abstract class WalletMockData {
 
   static WalletCard cardWithStatus(CardStatus status) => card.copyWith(status: status);
 
+  static List<CardStatus> cardStatusList = [
+    CardStatusValidSoon(validFrom: validFrom),
+    CardStatusValid(validUntil: validUntil),
+    CardStatusExpiresSoon(validUntil: validUntil),
+    CardStatusExpired(validUntil: validUntil),
+    const CardStatusRevoked(),
+    const CardStatusCorrupted(),
+    const CardStatusUndetermined(),
+  ];
+
   static WalletCard simpleRenderingCard = WalletCard(
     attestationId: 'id',
     attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
     status: WalletMockData.status,
-    validFrom: WalletMockData.validFrom,
-    validUntil: WalletMockData.validUntil,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -71,8 +77,6 @@ abstract class WalletMockData {
     attestationType: 'com.example.alt.attestationType',
     issuer: WalletMockData.organization,
     status: WalletMockData.status,
-    validFrom: WalletMockData.validFrom,
-    validUntil: WalletMockData.validUntil,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -253,7 +257,7 @@ abstract class WalletMockData {
       WalletEvent.issuance(
             dateTime: DateTime(2025, 2, 1),
             status: EventStatus.success,
-            card: cardWithStatus(CardStatus.expired),
+            card: cardWithStatus(CardStatusExpired(validUntil: validUntil)),
             eventType: IssuanceEventType.cardStatusExpired,
           )
           as IssuanceEvent;
@@ -262,7 +266,7 @@ abstract class WalletMockData {
       WalletEvent.issuance(
             dateTime: DateTime(2025, 2, 1),
             status: EventStatus.success,
-            card: cardWithStatus(CardStatus.revoked),
+            card: cardWithStatus(const CardStatusRevoked()),
             eventType: IssuanceEventType.cardStatusRevoked,
           )
           as IssuanceEvent;
@@ -271,7 +275,7 @@ abstract class WalletMockData {
       WalletEvent.issuance(
             dateTime: DateTime(2025, 2, 1),
             status: EventStatus.success,
-            card: cardWithStatus(CardStatus.corrupted),
+            card: cardWithStatus(const CardStatusCorrupted()),
             eventType: IssuanceEventType.cardStatusCorrupted,
           )
           as IssuanceEvent;
