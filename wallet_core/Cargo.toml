@@ -174,7 +174,8 @@ r2d2-cryptoki = "0.4.0-rc.0"
 rand = "0.8.5"
 # rand_core 0.7.x or higher is held back by p256
 rand_core = "0.6.4"
-rasn = "0.24.0"
+# rasn 0.27.x or higher is held back, as OctetString in those versions does not implement Serialize.
+rasn = "0.26.6"
 rcgen = { version = "0.13.2", default-features = false }
 regex = "1.12.2"
 reqwest = { version = "0.12.25", default-features = false }

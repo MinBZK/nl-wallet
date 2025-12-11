@@ -2883,7 +2883,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
  "ahash",
- "allocator-api2",
 ]
 
 [[package]]
@@ -5280,16 +5279,15 @@ dependencies = [
 
 [[package]]
 name = "rasn"
-version = "0.24.0"
+version = "0.26.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dc2d7ef9630c50239937d1eeb07e4fd3129c016441c5276b087f7975eb4e2c2"
+checksum = "7863f4e3d3cbbe0d3a427aa48447c42b5a74a579cbfa7afa63735b0c10879c44"
 dependencies = [
  "bitvec",
  "bitvec-nom2",
  "bytes",
  "chrono",
  "either",
- "hashbrown 0.14.5",
  "nom 7.1.3",
  "num-bigint",
  "num-integer",
@@ -5298,13 +5296,14 @@ dependencies = [
  "rasn-derive",
  "serde_json",
  "snafu",
+ "xml-no-std",
 ]
 
 [[package]]
 name = "rasn-derive"
-version = "0.24.0"
+version = "0.26.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d5c332ddd8ace677cf246699782a34b79cbfa484c73523578f3c7d883dc8813"
+checksum = "7a16f695759320ec969864fe5e7aa8e2a9c5665469565b100b8c8c1a36cd5484"
 dependencies = [
  "proc-macro2",
  "rasn-derive-impl",
@@ -5313,9 +5312,9 @@ dependencies = [
 
 [[package]]
 name = "rasn-derive-impl"
-version = "0.24.0"
+version = "0.26.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cb5b4227db5fc7d1743a6089f4f43617b76b636d2d4293aade6144bc64a4c90"
+checksum = "f14454245fd76215b830d083b6b6c6842047e50cb7ee73ce1e769d4b099c89fd"
 dependencies = [
  "either",
  "itertools 0.13.0",
@@ -9253,6 +9252,12 @@ dependencies = [
  "thiserror 2.0.17",
  "time",
 ]
+
+[[package]]
+name = "xml-no-std"
+version = "0.8.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd223bc94c615fc02bf2f4bbc22a4a9bfe489c2add3ec10b1038df3aca44cac7"
 
 [[package]]
 name = "xxhash-rust"
