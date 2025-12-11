@@ -11,7 +11,7 @@ workspace = true
 # Include examples from the ISO specification
 examples = []
 # Include miscellaneous test utilities
-test = ["crypto/generate", "crypto/mock", "dep:regex", "token_status_list/mock"]
+test = ["attestation_types/mock", "crypto/generate", "crypto/mock", "dep:regex", "token_status_list/mock"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include example based constructors to several types for testing
@@ -70,7 +70,7 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../attestation_types", features = ["mock", "pid_constants"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 token_status_list = { path = "../token_status_list", features = ["mock"] }

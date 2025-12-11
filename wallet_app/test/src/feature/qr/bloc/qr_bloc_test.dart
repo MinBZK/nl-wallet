@@ -5,16 +5,16 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mockito/mockito.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/domain/model/permission/permission_check_result.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
-import 'package:wallet/src/domain/usecase/permission/check_has_permission_usecase.dart';
 import 'package:wallet/src/feature/qr/bloc/qr_bloc.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
 void main() {
   late MockDecodeQrUseCase decodeQrUseCase;
-  late MockCheckHasPermissionUseCase checkHasPermissionUseCase;
+  late MockRequestPermissionUseCase requestPermissionUseCase;
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -24,63 +24,63 @@ void main() {
       },
     );
     decodeQrUseCase = MockDecodeQrUseCase();
-    checkHasPermissionUseCase = MockCheckHasPermissionUseCase();
+    requestPermissionUseCase = MockRequestPermissionUseCase();
   });
 
   blocTest(
-    'verify initial state',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 verify initial state',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     verify: (bloc) {
       expect(bloc.state, QrScanInitial());
     },
   );
 
   blocTest(
-    'verify permission state when permission is not permanentlyDenied',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 verify permission state when permission is not permanentlyDenied',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
     },
     expect: () => [const QrScanNoPermission(permanentlyDenied: false)],
   );
 
   blocTest(
-    'verify permission state when permission is permanentlyDenied',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 verify permission state when permission is permanentlyDenied',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
     },
     expect: () => [const QrScanNoPermission(permanentlyDenied: true)],
   );
 
   blocTest(
-    'verify scanner moves to scanning when permission is granted',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 verify scanner moves to scanning when permission is granted',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
     },
     expect: () => [QrScanScanning()],
   );
 
   blocTest(
-    'verify scanner moves to scan failed when scanner throws',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 verify scanner moves to scan failed when scanner throws',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       when(
         decodeQrUseCase.invoke(any),
       ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
@@ -90,15 +90,15 @@ void main() {
   );
 
   blocTest(
-    'verify scanner moves to scan failed when scanner returns an error',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 verify scanner moves to scan failed when scanner returns an error',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       when(
         decodeQrUseCase.invoke(any),
       ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
@@ -108,15 +108,15 @@ void main() {
   );
 
   blocTest(
-    'verify scanner moves to scan success when scanner returns a valid result',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 verify scanner moves to scan success when scanner returns a valid result',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       when(
         decodeQrUseCase.invoke(any),
       ).thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
@@ -130,8 +130,8 @@ void main() {
   );
 
   blocTest(
-    'triggering multiple scans only should only result in one decode attempt (i.e. process one barcode at a time)',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 triggering multiple scans only should only result in one decode attempt (i.e. process one barcode at a time)',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode(rawValue: 'a')))
@@ -139,8 +139,8 @@ void main() {
       ..add(const QrScanCodeDetected(Barcode(rawValue: 'c'))),
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       when(
         decodeQrUseCase.invoke(any),
       ).thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
@@ -155,8 +155,8 @@ void main() {
   );
 
   blocTest(
-    'resetting the scanner should allow the next uri to be decoded',
-    build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
+    'ltc7 ltc16 ltc19 resetting the scanner should allow the next uri to be decoded',
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
     act: (bloc) async {
       bloc
         ..add(const QrScanCheckPermission())
@@ -169,8 +169,8 @@ void main() {
     },
     setUp: () {
       when(
-        checkHasPermissionUseCase.invoke(Permission.camera),
-      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+        requestPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       when(decodeQrUseCase.invoke(any)).thenAnswer((invocation) async {
         final Barcode barcode = invocation.positionalArguments.first;
         return Result.success(GenericNavigationRequest(barcode.rawValue!));

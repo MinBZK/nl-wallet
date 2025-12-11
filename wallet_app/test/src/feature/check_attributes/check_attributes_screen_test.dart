@@ -16,7 +16,7 @@ class MockCheckAttributesBloc extends MockBloc<CheckAttributesEvent, CheckAttrib
 
 void main() {
   group('goldens', () {
-    testGoldens('check attributes light', (tester) async {
+    testGoldens('ltc15 check attributes light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CheckAttributesScreen(
           onDataIncorrectPressed: () {},
@@ -31,7 +31,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('check multiple attributes light', (tester) async {
+    testGoldens('ltc15 check multiple attributes light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CheckAttributesScreen(
           onDataIncorrectPressed: () {},
@@ -68,7 +68,7 @@ void main() {
       await screenMatchesGolden('multi.light');
     });
 
-    testGoldens('check attributes with alternatives - light', (tester) async {
+    testGoldens('ltc15 check attributes with alternatives - light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CheckAttributesScreen(
           onDataIncorrectPressed: () {},
@@ -85,7 +85,7 @@ void main() {
       await screenMatchesGolden('alternatives.light');
     });
 
-    testGoldens('check attributes dark', (tester) async {
+    testGoldens('ltc15 check attributes dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CheckAttributesScreen(
           onDataIncorrectPressed: () {},
@@ -103,7 +103,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('onDataIncorrect is triggered when pressed', (tester) async {
+    testWidgets('ltc15 onDataIncorrect is triggered when pressed', (tester) async {
       bool isCalled = false;
       await tester.pumpWidgetWithAppWrapper(
         CheckAttributesScreen(

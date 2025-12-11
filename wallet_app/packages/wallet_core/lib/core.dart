@@ -11,9 +11,12 @@ export 'src/models/disclosure.dart';
 export 'src/models/image.dart';
 export 'src/models/instruction.dart';
 export 'src/models/localize.dart';
+export 'src/models/notification.dart';
 export 'src/models/pin.dart';
+export 'src/models/revocation.dart';
 export 'src/models/transfer.dart';
 export 'src/models/uri.dart';
+export 'src/models/validity.dart';
 export 'src/models/version_state.dart';
 export 'src/models/wallet_event.dart';
 export 'src/models/wallet_state.dart';
@@ -29,6 +32,7 @@ Future<void> postInit() async {
     await core.clearVersionStateStream();
     await core.clearAttestationsStream();
     await core.clearRecentHistoryStream();
+    await core.clearNotificationsStream();
     // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
     await core.lockWallet();
   }

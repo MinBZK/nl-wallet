@@ -168,6 +168,9 @@ class ChangeLanguageScreen extends StatelessWidget {
           );
           // Avoid conflicting with the announcement of the (now) selected language
           await Future.delayed(Environment.isTest ? Duration.zero : const Duration(milliseconds: 1500));
+
+          // Check if context is still mounted before using it
+          if (!context.mounted) return;
           await language?.let((it) => _announceNewLanguage(context, it));
         }
       },

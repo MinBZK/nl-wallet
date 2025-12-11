@@ -707,6 +707,7 @@ impl VpAuthorizationResponse {
         trust_anchors: &[TrustAnchor<'_>],
         extending_vct_values: &impl ExtendingVctRetriever,
         revocation_verifier: &RevocationVerifier<C>,
+        accept_undetermined_revocation_status: bool,
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError>
     where
         C: StatusListClient,
@@ -722,6 +723,7 @@ impl VpAuthorizationResponse {
                 trust_anchors,
                 extending_vct_values,
                 revocation_verifier,
+                accept_undetermined_revocation_status,
             )
             .await
     }
@@ -754,6 +756,7 @@ impl VpAuthorizationResponse {
         trust_anchors: &[TrustAnchor<'_>],
         extending_vct_values: &impl ExtendingVctRetriever,
         revocation_verifier: &RevocationVerifier<C>,
+        accept_undetermined_revocation_status: bool,
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError>
     where
         C: StatusListClient,
@@ -822,21 +825,8 @@ impl VpAuthorizationResponse {
                 .flat_map(|attestations: &VecNonEmpty<_>| {
                     attestations.iter().map(|attestation| &attestation.revocation_status)
                 }),
+            accept_undetermined_revocation_status,
         )?;
-
-        if disclosed_attestations
-            .values()
-            .into_iter()
-            .any(|attestations: &VecNonEmpty<_>| {
-                attestations.iter().any(|attestation| {
-                    attestation
-                        .revocation_status
-                        .is_some_and(|status| status != RevocationStatus::Valid)
-                })
-            })
-        {
-            return Err(AuthResponseError::RevocationStatusNotAllValid);
-        }
 
         // Step 3: Verify the PoA, if present. Unfortunately `VerifyingKey` does not
         //         implement `Hash`, so we have to sort and deduplicate manually.
@@ -976,11 +966,14 @@ impl VpAuthorizationResponse {
 
     fn evaluate_revocation_policy<'a>(
         statuses: impl Iterator<Item = &'a Option<RevocationStatus>>,
+        accept_undetermined_revocation_status: bool,
     ) -> Result<(), AuthResponseError> {
-        if !statuses
-            .into_iter()
-            .all(|status| status.is_some_and(|status| status == RevocationStatus::Valid))
-        {
+        if !statuses.into_iter().all(|status| {
+            status.is_some_and(|status| {
+                status == RevocationStatus::Valid
+                    || (status == RevocationStatus::Undetermined && accept_undetermined_revocation_status)
+            })
+        }) {
             return Err(AuthResponseError::RevocationStatusNotAllValid);
         }
 
@@ -1463,9 +1456,10 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
+                false,
             )
             .now_or_never()
             .unwrap()
@@ -1573,9 +1567,10 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
+                false,
             )
             .now_or_never()
             .unwrap()
@@ -1739,9 +1734,10 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
+                false,
             )
             .now_or_never()
             .unwrap()
@@ -1789,9 +1785,10 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
                 ))),
+                false,
             )
             .now_or_never()
             .unwrap()
@@ -1814,9 +1811,10 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
+                false,
             )
             .now_or_never()
             .unwrap()
@@ -1841,9 +1839,10 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
                 ))),
+                false,
             )
             .now_or_never()
             .unwrap()
@@ -1871,9 +1870,10 @@ mod tests {
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
                 ))),
+                false,
             )
             .now_or_never()
             .unwrap()
@@ -1883,20 +1883,26 @@ mod tests {
     }
 
     #[rstest]
-    #[case(&[Some(RevocationStatus::Valid)], Ok(()))]
-    #[case(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Valid)], Ok(()))]
-    #[case(&[Some(RevocationStatus::Revoked)], Err(AuthResponseError::RevocationStatusNotAllValid))]
-    #[case(&[Some(RevocationStatus::Corrupted)], Err(AuthResponseError::RevocationStatusNotAllValid))]
-    #[case(&[Some(RevocationStatus::Undetermined)], Err(AuthResponseError::RevocationStatusNotAllValid))]
-    #[case(&[Some(RevocationStatus::Revoked), Some(RevocationStatus::Valid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
-    #[case(&[Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
-    #[case(&[Some(RevocationStatus::Undetermined), Some(RevocationStatus::Valid)], Err(AuthResponseError::RevocationStatusNotAllValid))]
-    #[case(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Valid), None], Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c1(&[Some(RevocationStatus::Valid)], false, Ok(()))]
+    #[case::c2(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Valid)], false, Ok(()))]
+    #[case::c3(&[Some(RevocationStatus::Revoked)], false, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c4(&[Some(RevocationStatus::Corrupted)], false, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c5(&[Some(RevocationStatus::Undetermined)], false, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c6(&[Some(RevocationStatus::Revoked), Some(RevocationStatus::Valid)], false, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c7(&[Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid)], false, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c8(&[Some(RevocationStatus::Undetermined), Some(RevocationStatus::Valid)], false, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c9(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Valid), None], false, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c10(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Valid)], true, Ok(()))]
+    #[case::c11(&[Some(RevocationStatus::Undetermined)], true, Ok(()))]
+    #[case::c12(&[Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], true, Ok(()))]
+    #[case::c13(&[Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid)], true, Err(AuthResponseError::RevocationStatusNotAllValid))]
+    #[case::c14(&[Some(RevocationStatus::Corrupted), Some(RevocationStatus::Undetermined)], true, Err(AuthResponseError::RevocationStatusNotAllValid))]
     fn test_evaluate_revocation_policy(
         #[case] statuses: &[Option<RevocationStatus>],
+        #[case] accept_undetermined: bool,
         #[case] expected: Result<(), AuthResponseError>,
     ) {
-        match VpAuthorizationResponse::evaluate_revocation_policy(statuses.iter()) {
+        match VpAuthorizationResponse::evaluate_revocation_policy(statuses.iter(), accept_undetermined) {
             Ok(()) => assert!(expected.is_ok()),
             Err(error) => assert_eq!(error.to_string(), expected.err().unwrap().to_string()),
         };

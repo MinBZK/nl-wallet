@@ -10,10 +10,12 @@ import '../models/disclosure.dart';
 import '../models/image.dart';
 import '../models/instruction.dart';
 import '../models/localize.dart';
+import '../models/notification.dart';
 import '../models/pin.dart';
 import '../models/revocation.dart';
 import '../models/transfer.dart';
 import '../models/uri.dart';
+import '../models/validity.dart';
 import '../models/version_state.dart';
 import '../models/wallet_event.dart';
 import '../models/wallet_state.dart';
@@ -42,6 +44,10 @@ Stream<List<AttestationPresentation>> setAttestationsStream() =>
     WalletCore.instance.api.crateApiFullSetAttestationsStream();
 
 Future<void> clearAttestationsStream() => WalletCore.instance.api.crateApiFullClearAttestationsStream();
+
+Stream<List<AppNotification>> setNotificationsStream() => WalletCore.instance.api.crateApiFullSetNotificationsStream();
+
+Future<void> clearNotificationsStream() => WalletCore.instance.api.crateApiFullClearNotificationsStream();
 
 Stream<List<WalletEvent>> setRecentHistoryStream() => WalletCore.instance.api.crateApiFullSetRecentHistoryStream();
 

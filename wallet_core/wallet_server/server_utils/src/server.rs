@@ -78,6 +78,13 @@ pub async fn create_internal_listener(internal_server: &ServerAuth) -> Result<Op
 
 /// Secure [internal_router] with an API key when required by [settings].
 pub fn secure_internal_router(internal_server: &ServerAuth, internal_router: Router) -> Router {
+    #[expect(
+        deprecated,
+        reason = "ValidateRequestHeaderLayer::bearer() was deprecated by its maintainers because it was \"too basic \
+                  to be useful in real applications\". However, we do use it in a real application, so this seems a \
+                  poor reason. If it ever gets removed from the tower_http crate we will have to implement it \
+                  ourselves at that point."
+    )]
     match internal_server {
         ServerAuth::Authentication(Authentication::ApiKey(api_key))
         | ServerAuth::ProtectedInternalEndpoint {

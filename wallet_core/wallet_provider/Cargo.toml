@@ -49,6 +49,8 @@ derive_more = { workspace = true, features = ["as_ref", "display", "from", "into
 futures.workspace = true
 http.workspace = true
 log.workspace = true
+metrics.workspace = true
+metrics-exporter-prometheus = { workspace = true, features = ["http-listener"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 regex.workspace = true
 rustix = { workspace = true, features = ["pipe", "stdio"] }

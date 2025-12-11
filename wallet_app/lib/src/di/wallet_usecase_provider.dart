@@ -48,8 +48,14 @@ import '../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart
 import '../domain/usecase/navigation/impl/check_navigation_prerequisites_usecase_impl.dart';
 import '../domain/usecase/navigation/impl/perform_pre_navigation_actions_usecase_impl.dart';
 import '../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
-import '../domain/usecase/permission/check_has_permission_usecase.dart';
-import '../domain/usecase/permission/impl/check_has_permission_usecase_impl.dart';
+import '../domain/usecase/notification/impl/observe_dashboard_notifications_usecase_impl.dart';
+import '../domain/usecase/notification/impl/observe_os_notifications_usecase_impl.dart';
+import '../domain/usecase/notification/observe_dashboard_notifications_usecase.dart';
+import '../domain/usecase/notification/observe_os_notifications_usecase.dart';
+import '../domain/usecase/permission/check_permission_usecase.dart';
+import '../domain/usecase/permission/impl/check_permission_usecase_impl.dart';
+import '../domain/usecase/permission/impl/request_permission_usecase_impl.dart';
+import '../domain/usecase/permission/request_permission_usecase.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/check_is_pid.dart';
@@ -120,12 +126,14 @@ import '../domain/usecase/wallet/impl/get_wallet_state_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_registered_and_unlocked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/lock_wallet_usecase_impl.dart';
+import '../domain/usecase/wallet/impl/move_to_ready_state_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/observe_wallet_locked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/reset_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart';
 import '../domain/usecase/wallet/lock_wallet_usecase.dart';
+import '../domain/usecase/wallet/move_to_ready_state_usecase.dart';
 import '../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
@@ -258,8 +266,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetWalletEventsForCardUseCase>(
           create: (context) => GetWalletEventsForCardUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<CheckHasPermissionUseCase>(
-          create: (context) => CheckHasPermissionUseCaseImpl(),
+        RepositoryProvider<RequestPermissionUseCase>(
+          create: (context) => RequestPermissionUseCaseImpl(),
         ),
         RepositoryProvider<GetAvailableBiometricsUseCase>(
           create: (context) => GetAvailableBiometricsUseCaseImpl(
@@ -354,7 +362,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => CompletePinRecoveryUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CancelPinRecoveryUseCase>(
-          create: (context) => CancelPinRecoveryUseCaseImpl(context.read()),
+          create: (context) => CancelPinRecoveryUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<GetWalletStateUseCase>(
           create: (context) => GetWalletStateUseCaseImpl(context.read()),
@@ -362,8 +370,25 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<ReceiveWalletTransferUseCase>(
           create: (context) => ReceiveWalletTransferUseCaseImpl(context.read()),
         ),
+        RepositoryProvider<CheckPermissionUseCase>(
+          create: (context) => CheckPermissionUseCaseImpl(),
+        ),
+        RepositoryProvider<ObserveDashboardNotificationsUseCase>(
+          create: (context) => ObserveDashboardNotificationsUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObserveOsNotificationsUseCase>(
+          create: (context) => ObserveOsNotificationsUseCaseImpl(context.read(), context.read()),
+        ),
         RepositoryProvider<CheckIsPidUseCase>(
           create: (context) => CheckIsPidUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<MoveToReadyStateUseCase>(
+          create: (context) => MoveToReadyStateUseCaseImpl(
+            context.read(),
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
         ),
       ],
       child: child,

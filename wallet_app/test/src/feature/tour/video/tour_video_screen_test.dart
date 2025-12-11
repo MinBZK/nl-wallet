@@ -118,7 +118,7 @@ void main() {
   });
 
   group('goldens', () {
-    testGoldens('no internet error', (tester) async {
+    testGoldens('ltc14 no internet error', (tester) async {
       when(mockInternetChecker.hasConnection).thenAnswer((_) async => false);
       await tester.pumpWidgetWithAppWrapper(
         TourVideoScreen(
@@ -135,7 +135,7 @@ void main() {
   });
 
   group('TourVideoScreenArgument', () {
-    test('getArgument parses valid arguments correctly', () {
+    test('ltc14 getArgument parses valid arguments correctly', () {
       final routeSettings = const RouteSettings(
         arguments: {
           'videoTitle': 'video_title',
@@ -152,7 +152,7 @@ void main() {
       expect(argument.subtitleUrl, equals('https://example.com/subtitles.srt'));
     });
 
-    test('getArgument throws UnsupportedError for invalid arguments', () {
+    test('ltc14 getArgument throws UnsupportedError for invalid arguments', () {
       final routeSettings = const RouteSettings(arguments: 'invalid arguments');
 
       expect(
@@ -161,7 +161,7 @@ void main() {
       );
     });
 
-    test('getArgument throws UnsupportedError for null arguments', () {
+    test('ltc14 getArgument throws UnsupportedError for null arguments', () {
       final routeSettings = const RouteSettings(arguments: null);
 
       expect(
@@ -172,7 +172,7 @@ void main() {
   });
 
   group('VideoPlayerInitState enum', () {
-    test('has expected values', () {
+    test('ltc14 has expected values', () {
       expect(VideoPlayerInitState.values, hasLength(3));
       expect(VideoPlayerInitState.values, contains(VideoPlayerInitState.initializing));
       expect(VideoPlayerInitState.values, contains(VideoPlayerInitState.ok));

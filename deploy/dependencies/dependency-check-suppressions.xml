@@ -11,6 +11,12 @@
     <packageUrl>pkg:cocoapods/Flutter@1.0.0</packageUrl>
     <vulnerabilityName regex="true">.*</vulnerabilityName>
   </suppress>
+  <!-- Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.10.0 and Flutter 3.38.1 -->
+  <suppress>
+    <notes><![CDATA[file name: flutter_local_notifications:0.0.1]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/flutter_local_notifications@.*$</packageUrl>
+    <cve>CVE-2022-3095</cve>
+  </suppress>
   <suppress>
     <notes><![CDATA[file name: flutter_native_splash:2.4.3]]></notes>
     <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>

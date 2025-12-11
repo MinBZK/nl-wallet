@@ -10,7 +10,7 @@ import '../../../test_util/test_utils.dart';
 
 void main() {
   group('widgets', () {
-    testWidgets('No QR code announcement is made after 10 seconds', (tester) async {
+    testWidgets('ltc7 ltc16 ltc19 No QR code announcement is made after 10 seconds', (tester) async {
       final mock = MockAnnouncementService();
       final l10n = await TestUtils.englishLocalizations;
       final expectedAnnouncement = l10n.qrScreenScanScannerActiveWCAGAnnouncement;
@@ -25,7 +25,7 @@ void main() {
       verify(mock.announce(expectedAnnouncement));
     });
 
-    testWidgets('No QR code announcement is made repeatedly every 10 seconds', (tester) async {
+    testWidgets('ltc7 ltc16 ltc19 No QR code announcement is made repeatedly every 10 seconds', (tester) async {
       final mock = MockAnnouncementService();
       final l10n = await TestUtils.englishLocalizations;
       final expectedAnnouncement = l10n.qrScreenScanScannerActiveWCAGAnnouncement;

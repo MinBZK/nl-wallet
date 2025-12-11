@@ -10,7 +10,7 @@ import '../../../../test_util/golden_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('ContactScreen light', (tester) async {
+    testGoldens('ltc26 ContactScreen light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ContactScreen(),
         providers: [
@@ -20,7 +20,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('ContactScreen dark - landscape', (tester) async {
+    testGoldens('ltc26 ContactScreen dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ContactScreen(),
         brightness: Brightness.dark,

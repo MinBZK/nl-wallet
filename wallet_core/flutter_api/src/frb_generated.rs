@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1496629093;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 916980055;
 
 // Section: executor
 
@@ -306,6 +306,28 @@ fn wire__crate__api__full__clear_lock_stream_impl(port_: flutter_rust_bridge::fo
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_lock_stream().await;
+                        })?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__clear_notifications_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "clear_notifications_stream",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok({
+                            crate::api::full::clear_notifications_stream().await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -1032,6 +1054,32 @@ fn wire__crate__api__full__set_lock_stream_impl(
         },
     )
 }
+fn wire__crate__api__full__set_notifications_stream_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    sink: impl CstDecode<
+        StreamSink<Vec<crate::models::notification::AppNotification>, flutter_rust_bridge::for_generated::DcoCodec>,
+    >,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_notifications_stream",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_sink = sink.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::set_notifications_stream(api_sink).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__set_recent_history_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     sink: impl CstDecode<
@@ -1327,6 +1375,12 @@ impl CstDecode<u16> for u16 {
         self
     }
 }
+impl CstDecode<u32> for u32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> u32 {
+        self
+    }
+}
 impl CstDecode<u64> for u64 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> u64 {
@@ -1367,6 +1421,16 @@ impl SseDecode
 
 impl SseDecode
     for StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::DcoCodec>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <String>::sse_decode(deserializer);
+        return StreamSink::deserialize(inner);
+    }
+}
+
+impl SseDecode
+    for StreamSink<Vec<crate::models::notification::AppNotification>, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1428,6 +1492,20 @@ impl SseDecode for crate::models::disclosure::AcceptDisclosureResult {
     }
 }
 
+impl SseDecode for crate::models::notification::AppNotification {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <u32>::sse_decode(deserializer);
+        let mut var_typ = <crate::models::notification::NotificationType>::sse_decode(deserializer);
+        let mut var_targets = <Vec<crate::models::notification::DisplayTarget>>::sse_decode(deserializer);
+        return crate::models::notification::AppNotification {
+            id: var_id,
+            typ: var_typ,
+            targets: var_targets,
+        };
+    }
+}
+
 impl SseDecode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1471,6 +1549,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
         let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
         let mut var_revocationStatus = <Option<crate::models::revocation::RevocationStatus>>::sse_decode(deserializer);
+        let mut var_validityWindow = <crate::models::validity::ValidityWindow>::sse_decode(deserializer);
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationPresentation {
             identity: var_identity,
@@ -1478,6 +1557,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
             display_metadata: var_displayMetadata,
             issuer: var_issuer,
             revocation_status: var_revocationStatus,
+            validity_window: var_validityWindow,
             attributes: var_attributes,
         };
     }
@@ -1644,6 +1724,27 @@ impl SseDecode for crate::models::attestation::DisplayMetadata {
     }
 }
 
+impl SseDecode for crate::models::notification::DisplayTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_notifyAt = <String>::sse_decode(deserializer);
+                return crate::models::notification::DisplayTarget::Os {
+                    notify_at: var_notifyAt,
+                };
+            }
+            1 => {
+                return crate::models::notification::DisplayTarget::Dashboard;
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseDecode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1776,6 +1877,18 @@ impl SseDecode for Vec<String> {
     }
 }
 
+impl SseDecode for Vec<crate::models::notification::AppNotification> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::notification::AppNotification>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::models::attestation::AttestationAttribute> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1849,6 +1962,18 @@ impl SseDecode for Vec<crate::models::attestation::DisplayMetadata> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<crate::models::attestation::DisplayMetadata>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::models::notification::DisplayTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::notification::DisplayTarget>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -1931,6 +2056,30 @@ impl SseDecode for crate::models::disclosure::MissingAttribute {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_labels = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         return crate::models::disclosure::MissingAttribute { labels: var_labels };
+    }
+}
+
+impl SseDecode for crate::models::notification::NotificationType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_card = <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
+                return crate::models::notification::NotificationType::CardExpired { card: var_card };
+            }
+            1 => {
+                let mut var_card = <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
+                let mut var_expiresAt = <String>::sse_decode(deserializer);
+                return crate::models::notification::NotificationType::CardExpiresSoon {
+                    card: var_card,
+                    expires_at: var_expiresAt,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -2235,6 +2384,13 @@ impl SseDecode for u16 {
     }
 }
 
+impl SseDecode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u32::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for u64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2252,6 +2408,18 @@ impl SseDecode for u8 {
 impl SseDecode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
+}
+
+impl SseDecode for crate::models::validity::ValidityWindow {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_validFrom = <Option<String>>::sse_decode(deserializer);
+        let mut var_validUntil = <Option<String>>::sse_decode(deserializer);
+        return crate::models::validity::ValidityWindow {
+            valid_from: var_validFrom,
+            valid_until: var_validUntil,
+        };
+    }
 }
 
 impl SseDecode for crate::models::wallet_event::WalletEvent {
@@ -2450,6 +2618,25 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::AcceptDisclosu
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::notification::AppNotification {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.typ.into_into_dart().into_dart(),
+            self.targets.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::notification::AppNotification {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::notification::AppNotification>
+    for crate::models::notification::AppNotification
+{
+    fn into_into_dart(self) -> crate::models::notification::AppNotification {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationAttribute {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -2500,6 +2687,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPr
             self.display_metadata.into_into_dart().into_dart(),
             self.issuer.into_into_dart().into_dart(),
             self.revocation_status.into_into_dart().into_dart(),
+            self.validity_window.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -2705,6 +2893,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::DisplayMetada
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::notification::DisplayTarget {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::notification::DisplayTarget::Os { notify_at } => {
+                [0.into_dart(), notify_at.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::notification::DisplayTarget::Dashboard => [1.into_dart()].into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::notification::DisplayTarget {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::notification::DisplayTarget>
+    for crate::models::notification::DisplayTarget
+{
+    fn into_into_dart(self) -> crate::models::notification::DisplayTarget {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfiguration {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -2844,6 +3054,33 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::MissingAttribu
     for crate::models::disclosure::MissingAttribute
 {
     fn into_into_dart(self) -> crate::models::disclosure::MissingAttribute {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::notification::NotificationType {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::notification::NotificationType::CardExpired { card } => {
+                [0.into_dart(), card.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::notification::NotificationType::CardExpiresSoon { card, expires_at } => [
+                1.into_dart(),
+                card.into_into_dart().into_dart(),
+                expires_at.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::notification::NotificationType {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::notification::NotificationType>
+    for crate::models::notification::NotificationType
+{
+    fn into_into_dart(self) -> crate::models::notification::NotificationType {
         self
     }
 }
@@ -3086,6 +3323,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::transfer::TransferSessionS
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::validity::ValidityWindow {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.valid_from.into_into_dart().into_dart(),
+            self.valid_until.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::validity::ValidityWindow {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::validity::ValidityWindow>
+    for crate::models::validity::ValidityWindow
+{
+    fn into_into_dart(self) -> crate::models::validity::ValidityWindow {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3265,6 +3520,15 @@ impl SseEncode
 }
 
 impl SseEncode
+    for StreamSink<Vec<crate::models::notification::AppNotification>, flutter_rust_bridge::for_generated::DcoCodec>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        unimplemented!("")
+    }
+}
+
+impl SseEncode
     for StreamSink<
         Vec<crate::models::attestation::AttestationPresentation>,
         flutter_rust_bridge::for_generated::DcoCodec,
@@ -3311,6 +3575,15 @@ impl SseEncode for crate::models::disclosure::AcceptDisclosureResult {
     }
 }
 
+impl SseEncode for crate::models::notification::AppNotification {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.id, serializer);
+        <crate::models::notification::NotificationType>::sse_encode(self.typ, serializer);
+        <Vec<crate::models::notification::DisplayTarget>>::sse_encode(self.targets, serializer);
+    }
+}
+
 impl SseEncode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3347,6 +3620,7 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
         <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
         <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
         <Option<crate::models::revocation::RevocationStatus>>::sse_encode(self.revocation_status, serializer);
+        <crate::models::validity::ValidityWindow>::sse_encode(self.validity_window, serializer);
         <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
     }
 }
@@ -3510,6 +3784,24 @@ impl SseEncode for crate::models::attestation::DisplayMetadata {
     }
 }
 
+impl SseEncode for crate::models::notification::DisplayTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::notification::DisplayTarget::Os { notify_at } => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(notify_at, serializer);
+            }
+            crate::models::notification::DisplayTarget::Dashboard => {
+                <i32>::sse_encode(1, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseEncode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3628,6 +3920,16 @@ impl SseEncode for Vec<String> {
     }
 }
 
+impl SseEncode for Vec<crate::models::notification::AppNotification> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::notification::AppNotification>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::models::attestation::AttestationAttribute> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3684,6 +3986,16 @@ impl SseEncode for Vec<crate::models::attestation::DisplayMetadata> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::models::attestation::DisplayMetadata>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::models::notification::DisplayTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::notification::DisplayTarget>::sse_encode(item, serializer);
         }
     }
 }
@@ -3750,6 +4062,26 @@ impl SseEncode for crate::models::disclosure::MissingAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.labels, serializer);
+    }
+}
+
+impl SseEncode for crate::models::notification::NotificationType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::notification::NotificationType::CardExpired { card } => {
+                <i32>::sse_encode(0, serializer);
+                <crate::models::attestation::AttestationPresentation>::sse_encode(card, serializer);
+            }
+            crate::models::notification::NotificationType::CardExpiresSoon { card, expires_at } => {
+                <i32>::sse_encode(1, serializer);
+                <crate::models::attestation::AttestationPresentation>::sse_encode(card, serializer);
+                <String>::sse_encode(expires_at, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -4030,6 +4362,13 @@ impl SseEncode for u16 {
     }
 }
 
+impl SseEncode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
+    }
+}
+
 impl SseEncode for u64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4047,6 +4386,14 @@ impl SseEncode for u8 {
 impl SseEncode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
+}
+
+impl SseEncode for crate::models::validity::ValidityWindow {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.valid_from, serializer);
+        <Option<String>>::sse_encode(self.valid_until, serializer);
+    }
 }
 
 impl SseEncode for crate::models::wallet_event::WalletEvent {
@@ -4246,6 +4593,20 @@ mod io {
     }
     impl
         CstDecode<
+            StreamSink<Vec<crate::models::notification::AppNotification>, flutter_rust_bridge::for_generated::DcoCodec>,
+        > for *mut wire_cst_list_prim_u_8_strict
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(
+            self,
+        ) -> StreamSink<Vec<crate::models::notification::AppNotification>, flutter_rust_bridge::for_generated::DcoCodec>
+        {
+            let raw: String = self.cst_decode();
+            StreamSink::deserialize(raw)
+        }
+    }
+    impl
+        CstDecode<
             StreamSink<
                 Vec<crate::models::attestation::AttestationPresentation>,
                 flutter_rust_bridge::for_generated::DcoCodec,
@@ -4304,6 +4665,16 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::notification::AppNotification> for wire_cst_app_notification {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::notification::AppNotification {
+            crate::models::notification::AppNotification {
+                id: self.id.cst_decode(),
+                typ: self.typ.cst_decode(),
+                targets: self.targets.cst_decode(),
+            }
+        }
+    }
     impl CstDecode<crate::models::attestation::AttestationAttribute> for wire_cst_attestation_attribute {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::AttestationAttribute {
@@ -4339,6 +4710,7 @@ mod io {
                 display_metadata: self.display_metadata.cst_decode(),
                 issuer: self.issuer.cst_decode(),
                 revocation_status: self.revocation_status.cst_decode(),
+                validity_window: self.validity_window.cst_decode(),
                 attributes: self.attributes.cst_decode(),
             }
         }
@@ -4499,6 +4871,21 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::notification::DisplayTarget> for wire_cst_display_target {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::notification::DisplayTarget {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Os };
+                    crate::models::notification::DisplayTarget::Os {
+                        notify_at: ans.notify_at.cst_decode(),
+                    }
+                }
+                1 => crate::models::notification::DisplayTarget::Dashboard,
+                _ => unreachable!(),
+            }
+        }
+    }
     impl CstDecode<crate::models::config::FlutterConfiguration> for wire_cst_flutter_configuration {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::config::FlutterConfiguration {
@@ -4581,6 +4968,16 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
+    impl CstDecode<Vec<crate::models::notification::AppNotification>> for *mut wire_cst_list_app_notification {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::notification::AppNotification> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
     impl CstDecode<Vec<crate::models::attestation::AttestationAttribute>> for *mut wire_cst_list_attestation_attribute {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::attestation::AttestationAttribute> {
@@ -4636,6 +5033,16 @@ mod io {
     impl CstDecode<Vec<crate::models::attestation::DisplayMetadata>> for *mut wire_cst_list_display_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::attestation::DisplayMetadata> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::notification::DisplayTarget>> for *mut wire_cst_list_display_target {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::notification::DisplayTarget> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -4714,6 +5121,27 @@ mod io {
         fn cst_decode(self) -> crate::models::disclosure::MissingAttribute {
             crate::models::disclosure::MissingAttribute {
                 labels: self.labels.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::notification::NotificationType> for wire_cst_notification_type {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::notification::NotificationType {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.CardExpired };
+                    crate::models::notification::NotificationType::CardExpired {
+                        card: ans.card.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.CardExpiresSoon };
+                    crate::models::notification::NotificationType::CardExpiresSoon {
+                        card: ans.card.cst_decode(),
+                        expires_at: ans.expires_at.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
             }
         }
     }
@@ -4812,6 +5240,15 @@ mod io {
                     }
                 }
                 _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::validity::ValidityWindow> for wire_cst_validity_window {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::validity::ValidityWindow {
+            crate::models::validity::ValidityWindow {
+                valid_from: self.valid_from.cst_decode(),
+                valid_until: self.valid_until.cst_decode(),
             }
         }
     }
@@ -4929,6 +5366,20 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_app_notification {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                id: Default::default(),
+                typ: Default::default(),
+                targets: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_app_notification {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_attestation_attribute {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -4965,6 +5416,7 @@ mod io {
                 display_metadata: core::ptr::null_mut(),
                 issuer: Default::default(),
                 revocation_status: core::ptr::null_mut(),
+                validity_window: Default::default(),
                 attributes: core::ptr::null_mut(),
             }
         }
@@ -5038,6 +5490,19 @@ mod io {
         }
     }
     impl Default for wire_cst_display_metadata {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_display_target {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: DisplayTargetKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_display_target {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -5123,6 +5588,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_notification_type {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: NotificationTypeKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_notification_type {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_organization {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -5195,6 +5673,19 @@ mod io {
         }
     }
     impl Default for wire_cst_start_disclosure_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_validity_window {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                valid_from: core::ptr::null_mut(),
+                valid_until: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_validity_window {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -5327,6 +5818,11 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_lock_stream(port_: i64) {
         wire__crate__api__full__clear_lock_stream_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_notifications_stream(port_: i64) {
+        wire__crate__api__full__clear_notifications_stream_impl(port_)
     }
 
     #[unsafe(no_mangle)]
@@ -5533,6 +6029,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_notifications_stream(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__set_notifications_stream_impl(port_, sink)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream(
         port_: i64,
         sink: *mut wire_cst_list_prim_u_8_strict,
@@ -5646,6 +6150,20 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_app_notification(
+        len: i32,
+    ) -> *mut wire_cst_list_app_notification {
+        let wrap = wire_cst_list_app_notification {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_app_notification>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_attestation_attribute(
         len: i32,
     ) -> *mut wire_cst_list_attestation_attribute {
@@ -5720,6 +6238,18 @@ mod io {
         let wrap = wire_cst_list_display_metadata {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
                 <wire_cst_display_metadata>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_display_target(len: i32) -> *mut wire_cst_list_display_target {
+        let wrap = wire_cst_list_display_target {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_display_target>::new_with_null_ptr(),
                 len,
             ),
             len,
@@ -5821,6 +6351,13 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_app_notification {
+        id: u32,
+        typ: wire_cst_notification_type,
+        targets: *mut wire_cst_list_display_target,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_attestation_attribute {
         key: *mut wire_cst_list_prim_u_8_strict,
         labels: *mut wire_cst_list_claim_display_metadata,
@@ -5852,6 +6389,7 @@ mod io {
         display_metadata: *mut wire_cst_list_display_metadata,
         issuer: wire_cst_organization,
         revocation_status: *mut i32,
+        validity_window: wire_cst_validity_window,
         attributes: *mut wire_cst_list_attestation_attribute,
     }
     #[repr(C)]
@@ -5941,6 +6479,23 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_display_target {
+        tag: i32,
+        kind: DisplayTargetKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union DisplayTargetKind {
+        Os: wire_cst_DisplayTarget_Os,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_DisplayTarget_Os {
+        notify_at: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_flutter_configuration {
         inactive_warning_timeout: u16,
         inactive_lock_timeout: u16,
@@ -6015,6 +6570,12 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_list_app_notification {
+        ptr: *mut wire_cst_app_notification,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_list_attestation_attribute {
         ptr: *mut wire_cst_attestation_attribute,
         len: i32,
@@ -6047,6 +6608,12 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_list_display_metadata {
         ptr: *mut wire_cst_display_metadata,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_display_target {
+        ptr: *mut wire_cst_display_target,
         len: i32,
     }
     #[repr(C)]
@@ -6095,6 +6662,30 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_missing_attribute {
         labels: *mut wire_cst_list_localized_string,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_notification_type {
+        tag: i32,
+        kind: NotificationTypeKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union NotificationTypeKind {
+        CardExpired: wire_cst_NotificationType_CardExpired,
+        CardExpiresSoon: wire_cst_NotificationType_CardExpiresSoon,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_NotificationType_CardExpired {
+        card: *mut wire_cst_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_NotificationType_CardExpiresSoon {
+        card: *mut wire_cst_attestation_presentation,
+        expires_at: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -6195,6 +6786,12 @@ mod io {
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
         request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_validity_window {
+        valid_from: *mut wire_cst_list_prim_u_8_strict,
+        valid_until: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

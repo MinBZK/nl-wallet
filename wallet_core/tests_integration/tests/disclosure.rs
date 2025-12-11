@@ -225,7 +225,7 @@ async fn assert_disclosure_ok(
 )]
 #[tokio::test]
 #[serial(hsm)]
-async fn test_disclosure_usecases_ok(
+async fn ltc15_ltc16_test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
     #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] usecase: String,
@@ -247,7 +247,7 @@ async fn test_disclosure_usecases_ok(
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_disclosure_extended_vct_ok() {
+async fn ltc15_test_disclosure_extended_vct_ok() {
     let session_type = SessionType::SameDevice;
     let return_url_template = None;
     let usecase = "xyz_bank_no_return_url".to_owned();
@@ -284,7 +284,7 @@ async fn test_disclosure_extended_vct_ok() {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_disclosure_without_pid() {
+async fn ltc20_test_disclosure_without_pid() {
     let pin = "112233";
     let (mut wallet, urls, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;

@@ -16,14 +16,14 @@ import '../../test_util/test_utils.dart';
 
 void main() {
   group('widgets', () {
-    testWidgets('provided title and description are shown', (WidgetTester tester) async {
+    testWidgets('ltc28 provided title and description are shown', (WidgetTester tester) async {
       await tester.pumpWidgetWithAppWrapper(const InfoScreen(title: 'title', description: 'description'));
 
       expect(find.text('title'), findsAtLeast(1));
       expect(find.text('description'), findsOneWidget);
     });
 
-    testWidgets('showDetailsIncorrect shows the expected copy', (tester) async {
+    testWidgets('ltc28 showDetailsIncorrect shows the expected copy', (tester) async {
       final btnKey = const ValueKey('btn');
       await tester.pumpWidgetWithAppWrapper(
         Builder(
@@ -60,7 +60,7 @@ void main() {
   });
 
   group('goldens', () {
-    testGoldens('InfoScreen', (tester) async {
+    testGoldens('ltc28 InfoScreen', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
         InfoScreen(

@@ -803,9 +803,8 @@ where
 
 #[cfg(any(test, feature = "examples"))]
 mod examples {
-    use std::time::Duration;
-
     use chrono::DateTime;
+    use chrono::Days;
     use chrono::Utc;
     use p256::ecdsa::VerifyingKey;
     use serde_json::Value;
@@ -828,8 +827,8 @@ mod examples {
                 vct: "urn:eudi:pid:nl:1".to_owned(),
                 iss: "https://cert.issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
-                exp: Some((time.generate() + Duration::from_secs(365 * 24 * 60 * 60)).into()),
-                nbf: None,
+                exp: Some((time.generate() + Days::new(365)).into()),
+                nbf: Some((time.generate() - Days::new(365)).into()),
                 attestation_qualification: Some(AttestationQualification::QEAA),
                 status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(json!({

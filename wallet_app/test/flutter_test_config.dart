@@ -5,6 +5,7 @@ import 'package:mockito/mockito.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
@@ -56,6 +57,9 @@ void _setupMockitoDummies() {
   // Organization and policy dummies
   provideDummy<Organization>(WalletMockData.organization);
   provideDummy<Policy>(WalletMockData.policy);
+
+  // Card status dummies
+  provideDummy<CardStatus>(const CardStatusValid(validUntil: null));
 
   // Navigation request dummies
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));

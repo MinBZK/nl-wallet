@@ -19,9 +19,7 @@ mixin _$WalletCard {
  String? get attestationId;/// Type of document
  String get attestationType;/// Organization that issued this card
  Organization get issuer;/// Card status (e.g. valid, expired, revoked)
- CardStatus get status;/// Time from which the card is valid
- DateTime get validFrom;/// Time until the card is valid (expiry date)
- DateTime get validUntil;/// Data attributes stored in the card
+ CardStatus get status;/// Data attributes stored in the card
  List<DataAttribute> get attributes;/// Card display metadata for UI rendering
  List<CardDisplayMetadata> get metadata;
 /// Create a copy of WalletCard
@@ -36,16 +34,16 @@ $WalletCardCopyWith<WalletCard> get copyWith => _$WalletCardCopyWithImpl<WalletC
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletCard&&(identical(other.attestationId, attestationId) || other.attestationId == attestationId)&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.issuer, issuer) || other.issuer == issuer)&&(identical(other.status, status) || other.status == status)&&(identical(other.validFrom, validFrom) || other.validFrom == validFrom)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&const DeepCollectionEquality().equals(other.attributes, attributes)&&const DeepCollectionEquality().equals(other.metadata, metadata));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletCard&&(identical(other.attestationId, attestationId) || other.attestationId == attestationId)&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.issuer, issuer) || other.issuer == issuer)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.attributes, attributes)&&const DeepCollectionEquality().equals(other.metadata, metadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,attestationId,attestationType,issuer,status,validFrom,validUntil,const DeepCollectionEquality().hash(attributes),const DeepCollectionEquality().hash(metadata));
+int get hashCode => Object.hash(runtimeType,attestationId,attestationType,issuer,status,const DeepCollectionEquality().hash(attributes),const DeepCollectionEquality().hash(metadata));
 
 @override
 String toString() {
-  return 'WalletCard(attestationId: $attestationId, attestationType: $attestationType, issuer: $issuer, status: $status, validFrom: $validFrom, validUntil: $validUntil, attributes: $attributes, metadata: $metadata)';
+  return 'WalletCard(attestationId: $attestationId, attestationType: $attestationType, issuer: $issuer, status: $status, attributes: $attributes, metadata: $metadata)';
 }
 
 
@@ -56,11 +54,11 @@ abstract mixin class $WalletCardCopyWith<$Res>  {
   factory $WalletCardCopyWith(WalletCard value, $Res Function(WalletCard) _then) = _$WalletCardCopyWithImpl;
 @useResult
 $Res call({
- String? attestationId, String attestationType, Organization issuer, CardStatus status, DateTime validFrom, DateTime validUntil, List<DataAttribute> attributes, List<CardDisplayMetadata> metadata
+ String? attestationId, String attestationType, Organization issuer, CardStatus status, List<DataAttribute> attributes, List<CardDisplayMetadata> metadata
 });
 
 
-$OrganizationCopyWith<$Res> get issuer;
+$OrganizationCopyWith<$Res> get issuer;$CardStatusCopyWith<$Res> get status;
 
 }
 /// @nodoc
@@ -73,15 +71,13 @@ class _$WalletCardCopyWithImpl<$Res>
 
 /// Create a copy of WalletCard
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? attestationId = freezed,Object? attestationType = null,Object? issuer = null,Object? status = null,Object? validFrom = null,Object? validUntil = null,Object? attributes = null,Object? metadata = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? attestationId = freezed,Object? attestationType = null,Object? issuer = null,Object? status = null,Object? attributes = null,Object? metadata = null,}) {
   return _then(_self.copyWith(
 attestationId: freezed == attestationId ? _self.attestationId : attestationId // ignore: cast_nullable_to_non_nullable
 as String?,attestationType: null == attestationType ? _self.attestationType : attestationType // ignore: cast_nullable_to_non_nullable
 as String,issuer: null == issuer ? _self.issuer : issuer // ignore: cast_nullable_to_non_nullable
 as Organization,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as CardStatus,validFrom: null == validFrom ? _self.validFrom : validFrom // ignore: cast_nullable_to_non_nullable
-as DateTime,validUntil: null == validUntil ? _self.validUntil : validUntil // ignore: cast_nullable_to_non_nullable
-as DateTime,attributes: null == attributes ? _self.attributes : attributes // ignore: cast_nullable_to_non_nullable
+as CardStatus,attributes: null == attributes ? _self.attributes : attributes // ignore: cast_nullable_to_non_nullable
 as List<DataAttribute>,metadata: null == metadata ? _self.metadata : metadata // ignore: cast_nullable_to_non_nullable
 as List<CardDisplayMetadata>,
   ));
@@ -94,6 +90,15 @@ $OrganizationCopyWith<$Res> get issuer {
   
   return $OrganizationCopyWith<$Res>(_self.issuer, (value) {
     return _then(_self.copyWith(issuer: value));
+  });
+}/// Create a copy of WalletCard
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CardStatusCopyWith<$Res> get status {
+  
+  return $CardStatusCopyWith<$Res>(_self.status, (value) {
+    return _then(_self.copyWith(status: value));
   });
 }
 }
@@ -177,10 +182,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? attestationId,  String attestationType,  Organization issuer,  CardStatus status,  DateTime validFrom,  DateTime validUntil,  List<DataAttribute> attributes,  List<CardDisplayMetadata> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? attestationId,  String attestationType,  Organization issuer,  CardStatus status,  List<DataAttribute> attributes,  List<CardDisplayMetadata> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WalletCard() when $default != null:
-return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.status,_that.validFrom,_that.validUntil,_that.attributes,_that.metadata);case _:
+return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.status,_that.attributes,_that.metadata);case _:
   return orElse();
 
 }
@@ -198,10 +203,10 @@ return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.sta
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? attestationId,  String attestationType,  Organization issuer,  CardStatus status,  DateTime validFrom,  DateTime validUntil,  List<DataAttribute> attributes,  List<CardDisplayMetadata> metadata)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? attestationId,  String attestationType,  Organization issuer,  CardStatus status,  List<DataAttribute> attributes,  List<CardDisplayMetadata> metadata)  $default,) {final _that = this;
 switch (_that) {
 case _WalletCard():
-return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.status,_that.validFrom,_that.validUntil,_that.attributes,_that.metadata);case _:
+return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.status,_that.attributes,_that.metadata);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -218,10 +223,10 @@ return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.sta
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? attestationId,  String attestationType,  Organization issuer,  CardStatus status,  DateTime validFrom,  DateTime validUntil,  List<DataAttribute> attributes,  List<CardDisplayMetadata> metadata)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? attestationId,  String attestationType,  Organization issuer,  CardStatus status,  List<DataAttribute> attributes,  List<CardDisplayMetadata> metadata)?  $default,) {final _that = this;
 switch (_that) {
 case _WalletCard() when $default != null:
-return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.status,_that.validFrom,_that.validUntil,_that.attributes,_that.metadata);case _:
+return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.status,_that.attributes,_that.metadata);case _:
   return null;
 
 }
@@ -233,7 +238,7 @@ return $default(_that.attestationId,_that.attestationType,_that.issuer,_that.sta
 @JsonSerializable()
 
 class _WalletCard extends WalletCard {
-  const _WalletCard({this.attestationId, required this.attestationType, required this.issuer, required this.status, required this.validFrom, required this.validUntil, required final  List<DataAttribute> attributes, final  List<CardDisplayMetadata> metadata = const []}): _attributes = attributes,_metadata = metadata,super._();
+  const _WalletCard({this.attestationId, required this.attestationType, required this.issuer, required this.status, required final  List<DataAttribute> attributes, final  List<CardDisplayMetadata> metadata = const []}): _attributes = attributes,_metadata = metadata,super._();
   factory _WalletCard.fromJson(Map<String, dynamic> json) => _$WalletCardFromJson(json);
 
 /// ID of the attestation, null when the card is not persisted in the database
@@ -244,10 +249,6 @@ class _WalletCard extends WalletCard {
 @override final  Organization issuer;
 /// Card status (e.g. valid, expired, revoked)
 @override final  CardStatus status;
-/// Time from which the card is valid
-@override final  DateTime validFrom;
-/// Time until the card is valid (expiry date)
-@override final  DateTime validUntil;
 /// Data attributes stored in the card
  final  List<DataAttribute> _attributes;
 /// Data attributes stored in the card
@@ -280,16 +281,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WalletCard&&(identical(other.attestationId, attestationId) || other.attestationId == attestationId)&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.issuer, issuer) || other.issuer == issuer)&&(identical(other.status, status) || other.status == status)&&(identical(other.validFrom, validFrom) || other.validFrom == validFrom)&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil)&&const DeepCollectionEquality().equals(other._attributes, _attributes)&&const DeepCollectionEquality().equals(other._metadata, _metadata));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WalletCard&&(identical(other.attestationId, attestationId) || other.attestationId == attestationId)&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.issuer, issuer) || other.issuer == issuer)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other._attributes, _attributes)&&const DeepCollectionEquality().equals(other._metadata, _metadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,attestationId,attestationType,issuer,status,validFrom,validUntil,const DeepCollectionEquality().hash(_attributes),const DeepCollectionEquality().hash(_metadata));
+int get hashCode => Object.hash(runtimeType,attestationId,attestationType,issuer,status,const DeepCollectionEquality().hash(_attributes),const DeepCollectionEquality().hash(_metadata));
 
 @override
 String toString() {
-  return 'WalletCard(attestationId: $attestationId, attestationType: $attestationType, issuer: $issuer, status: $status, validFrom: $validFrom, validUntil: $validUntil, attributes: $attributes, metadata: $metadata)';
+  return 'WalletCard(attestationId: $attestationId, attestationType: $attestationType, issuer: $issuer, status: $status, attributes: $attributes, metadata: $metadata)';
 }
 
 
@@ -300,11 +301,11 @@ abstract mixin class _$WalletCardCopyWith<$Res> implements $WalletCardCopyWith<$
   factory _$WalletCardCopyWith(_WalletCard value, $Res Function(_WalletCard) _then) = __$WalletCardCopyWithImpl;
 @override @useResult
 $Res call({
- String? attestationId, String attestationType, Organization issuer, CardStatus status, DateTime validFrom, DateTime validUntil, List<DataAttribute> attributes, List<CardDisplayMetadata> metadata
+ String? attestationId, String attestationType, Organization issuer, CardStatus status, List<DataAttribute> attributes, List<CardDisplayMetadata> metadata
 });
 
 
-@override $OrganizationCopyWith<$Res> get issuer;
+@override $OrganizationCopyWith<$Res> get issuer;@override $CardStatusCopyWith<$Res> get status;
 
 }
 /// @nodoc
@@ -317,15 +318,13 @@ class __$WalletCardCopyWithImpl<$Res>
 
 /// Create a copy of WalletCard
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? attestationId = freezed,Object? attestationType = null,Object? issuer = null,Object? status = null,Object? validFrom = null,Object? validUntil = null,Object? attributes = null,Object? metadata = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? attestationId = freezed,Object? attestationType = null,Object? issuer = null,Object? status = null,Object? attributes = null,Object? metadata = null,}) {
   return _then(_WalletCard(
 attestationId: freezed == attestationId ? _self.attestationId : attestationId // ignore: cast_nullable_to_non_nullable
 as String?,attestationType: null == attestationType ? _self.attestationType : attestationType // ignore: cast_nullable_to_non_nullable
 as String,issuer: null == issuer ? _self.issuer : issuer // ignore: cast_nullable_to_non_nullable
 as Organization,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as CardStatus,validFrom: null == validFrom ? _self.validFrom : validFrom // ignore: cast_nullable_to_non_nullable
-as DateTime,validUntil: null == validUntil ? _self.validUntil : validUntil // ignore: cast_nullable_to_non_nullable
-as DateTime,attributes: null == attributes ? _self._attributes : attributes // ignore: cast_nullable_to_non_nullable
+as CardStatus,attributes: null == attributes ? _self._attributes : attributes // ignore: cast_nullable_to_non_nullable
 as List<DataAttribute>,metadata: null == metadata ? _self._metadata : metadata // ignore: cast_nullable_to_non_nullable
 as List<CardDisplayMetadata>,
   ));
@@ -339,6 +338,15 @@ $OrganizationCopyWith<$Res> get issuer {
   
   return $OrganizationCopyWith<$Res>(_self.issuer, (value) {
     return _then(_self.copyWith(issuer: value));
+  });
+}/// Create a copy of WalletCard
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CardStatusCopyWith<$Res> get status {
+  
+  return $CardStatusCopyWith<$Res>(_self.status, (value) {
+    return _then(_self.copyWith(status: value));
   });
 }
 }

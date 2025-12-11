@@ -145,12 +145,12 @@ class MenuScreen extends StatelessWidget {
       );
       defaultMenuItems.add(designSystemItem);
     }
-    if (Environment.demoRelyingPartyUrl.isNotEmpty) {
+    if (Environment.demoIndexUrl.isNotEmpty) {
       final browserTestItem = MenuItem(
         label: Text.rich(context.l10n.menuScreenBrowserCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.web),
-        onPressed: () => launchUrlString(Environment.demoRelyingPartyUrl, mode: LaunchMode.externalApplication),
-        subtitle: Text('Open url: ${Environment.demoRelyingPartyUrl}'),
+        onPressed: () => launchUrlString(Environment.demoIndexUrl, mode: LaunchMode.externalApplication),
+        subtitle: Text('Open url: ${Environment.demoIndexUrl}'),
       );
       defaultMenuItems.add(browserTestItem);
     }

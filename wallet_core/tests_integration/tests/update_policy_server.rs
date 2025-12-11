@@ -14,7 +14,7 @@ use wallet::test::UpdateableRepository;
 use wallet_configuration::wallet_config::UpdatePolicyServerConfiguration;
 
 #[tokio::test]
-async fn test_wallet_update_policy() {
+async fn ltc42_test_wallet_update_policy() {
     let (mut ups_settings, root_ca) = update_policy_server_settings();
     ups_settings.update_policy =
         serde_json::from_value::<UpdatePolicyConfig>(json!({ env!("CARGO_PKG_VERSION"): "Block" })).unwrap();

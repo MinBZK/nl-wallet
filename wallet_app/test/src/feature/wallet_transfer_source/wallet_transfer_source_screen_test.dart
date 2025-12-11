@@ -23,7 +23,7 @@ class MockWalletTransferSourceBloc extends MockBloc<WalletTransferSourceEvent, W
 
 void main() {
   group('goldens', () {
-    testGoldens('WalletTransferInitial', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferInitial', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -32,7 +32,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_initial.light');
     });
-    testGoldens('WalletTransferInitial - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferInitial - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -43,7 +43,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_initial.dark.landscape');
     });
-    testGoldens('WalletTransferLoading', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferLoading', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -52,7 +52,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_loading.light');
     });
-    testGoldens('WalletTransferCancelling', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferCancelling', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -61,7 +61,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_cancelling.light');
     });
-    testGoldens('WalletTransferIntroduction', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferIntroduction', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -70,7 +70,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_introduction.light');
     });
-    testGoldens('WalletTransferConfirmPin', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferConfirmPin', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -82,7 +82,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_confirm_pin.light');
     });
-    testGoldens('WalletTransferTransferring', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferTransferring', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -94,7 +94,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_transferring.light');
     });
-    testGoldens('WalletTransferSuccess', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferSuccess', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -103,7 +103,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_success.light');
     });
-    testGoldens('WalletTransferStopped', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferStopped', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -113,7 +113,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_stopped.light');
     });
 
-    testGoldens('WalletTransferStopped - PinRecovery', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferStopped - PinRecovery', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -123,7 +123,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_stopped_for_pin_recovery.light');
     });
 
-    testGoldens('WalletTransferGenericError', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferGenericError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -132,7 +132,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_generic_error.light');
     });
-    testGoldens('WalletTransferNetworkError', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferNetworkError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -141,7 +141,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_network_error.light');
     });
-    testGoldens('WalletTransferSessionExpired', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferSessionExpired', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -150,7 +150,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_session_expired.light');
     });
-    testGoldens('WalletTransferFailed', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferFailed', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -160,7 +160,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_failed.light');
     });
 
-    testGoldens('WalletTransferFailed - See Details', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferFailed - See Details', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -199,7 +199,7 @@ void main() {
       await screenMatchesGolden('wallet_transfer_failed.detail_sheet.light');
     });
 
-    testGoldens('WalletTransferLoading - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferLoading - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -210,7 +210,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_loading.dark.landscape');
     });
-    testGoldens('WalletTransferIntroduction - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferIntroduction - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -221,7 +221,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_introduction.dark.landscape');
     });
-    testGoldens('WalletTransferConfirmPin - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferConfirmPin - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -235,7 +235,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_confirm_pin.dark.landscape');
     });
-    testGoldens('WalletTransferTransferring - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferTransferring - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -249,7 +249,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_transferring.dark.landscape');
     });
-    testGoldens('WalletTransferSuccess - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferSuccess - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -260,7 +260,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_success.dark.landscape');
     });
-    testGoldens('WalletTransferStopped - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferStopped - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -271,7 +271,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_stopped.dark.landscape');
     });
-    testGoldens('WalletTransferGenericError - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferGenericError - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -282,7 +282,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_generic_error.dark.landscape');
     });
-    testGoldens('WalletTransferNetworkError - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferNetworkError - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -293,7 +293,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_network_error.dark.landscape');
     });
-    testGoldens('WalletTransferSessionExpired - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferSessionExpired - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -304,7 +304,7 @@ void main() {
       );
       await screenMatchesGolden('wallet_transfer_session_expired.dark.landscape');
     });
-    testGoldens('WalletTransferFailed - dark - landscape', (tester) async {
+    testGoldens('ltc62 ltc63 WalletTransferFailed - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
@@ -317,7 +317,7 @@ void main() {
     });
   });
 
-  testGoldens('WalletTransferTransferring - Stop Sheet', (tester) async {
+  testGoldens('ltc62 ltc63 WalletTransferTransferring - Stop Sheet', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
         MockWalletTransferSourceBloc(),
@@ -332,7 +332,7 @@ void main() {
     await screenMatchesGolden('wallet_transfer_transferring.stop_sheet.light');
   });
 
-  testGoldens('WalletTransferTransferring - Pin Recovery Stop Sheet', (tester) async {
+  testGoldens('ltc62 ltc63 WalletTransferTransferring - Pin Recovery Stop Sheet', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
         MockWalletTransferSourceBloc(),

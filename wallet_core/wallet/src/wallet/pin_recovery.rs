@@ -61,7 +61,7 @@ pub enum PinRecoveryError {
     #[category(expected)]
     NotRegistered,
 
-    #[error("issuance session is not in the correct state")]
+    #[error("pin recovery session is not in the correct state")]
     #[category(expected)]
     SessionState,
 
@@ -474,6 +474,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
@@ -610,6 +611,7 @@ mod tests {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
                     StoredAttestation::SdJwt {
                         key_identifier: "key".to_string(),
                         sd_jwt: create_example_pid_sd_jwt().0,
@@ -915,6 +917,7 @@ mod tests {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
                     StoredAttestation::SdJwt {
                         key_identifier: "key".to_string(),
                         sd_jwt: create_example_pid_sd_jwt().0,

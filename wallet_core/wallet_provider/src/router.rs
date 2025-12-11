@@ -13,6 +13,9 @@ use axum::routing::get;
 use axum::routing::post;
 use futures::TryFutureExt;
 use futures::try_join;
+use metrics::counter;
+use metrics_exporter_prometheus::PrometheusBuilder;
+use metrics_exporter_prometheus::PrometheusHandle;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
@@ -85,6 +88,7 @@ where
 
     Router::new()
         .merge(health_router())
+        .merge(metrics_router())
         .nest(
             "/api/v1",
             Router::new()
@@ -180,6 +184,21 @@ where
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
+}
+
+fn metrics_router() -> Router {
+    let recorder_handle = PrometheusBuilder::new()
+        .install_recorder()
+        .expect("failed to install Prometheus recorder");
+
+    Router::new()
+        .route("/metrics", get(metrics_handler))
+        .with_state(recorder_handle)
+}
+
+async fn metrics_handler(State(handle): State<PrometheusHandle>) -> String {
+    counter!("metrics_endpoint_called", "service" => "http").increment(1);
+    handle.render()
 }
 
 async fn log_headers(req: Request, next: Next) -> Response {

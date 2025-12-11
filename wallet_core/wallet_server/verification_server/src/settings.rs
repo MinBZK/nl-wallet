@@ -38,6 +38,7 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
+use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -69,6 +70,10 @@ pub struct VerifierSettings {
     /// Indicate per vct what extending vcts are accepted during disclosure.
     pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 
+    /// Configuration for caching status list tokens.
+    #[serde(default)]
+    pub status_list_token_cache_settings: StatusListTokenCacheSettings,
+
     #[serde(flatten)]
     pub server_settings: Settings,
 }
@@ -88,6 +93,9 @@ pub struct UseCaseSettings {
 
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
+
+    #[serde(default)]
+    pub accept_undetermined_revocation_status: bool,
 }
 
 impl UseCasesSettings {
@@ -120,6 +128,7 @@ impl UseCaseSettings {
             self.session_type_return_url,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
+            self.accept_undetermined_revocation_status,
         )?;
 
         Ok(use_case)

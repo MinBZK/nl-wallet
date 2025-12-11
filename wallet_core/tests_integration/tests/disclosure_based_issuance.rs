@@ -25,7 +25,7 @@ use tests_integration::common::*;
 #[rstest]
 #[tokio::test]
 #[serial(hsm)]
-async fn test_disclosure_based_issuance_and_disclosure(
+async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] pid_format: CredentialFormat,
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] degree_format: CredentialFormat,
 ) {
@@ -221,7 +221,7 @@ async fn test_disclosure_based_issuance_and_disclosure(
 #[rstest]
 #[tokio::test]
 #[serial(hsm)]
-async fn test_disclosure_based_issuance_error_no_attributes(
+async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
 ) {
     let (issuance_server_settings, _, di_trust_anchor, di_tls_config) = issuance_server_settings();

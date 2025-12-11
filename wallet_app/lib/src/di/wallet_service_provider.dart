@@ -8,7 +8,9 @@ import '../data/service/auto_lock_service.dart';
 import '../data/service/country_code_service.dart';
 import '../data/service/deeplink_service.dart';
 import '../data/service/event/app_event_coordinator.dart';
-import '../data/service/event/listener/wallet_transfer_event_listener.dart';
+import '../data/service/event/listener/notification_app_event_listener.dart';
+import '../data/service/event/listener/wallet_transfer_app_event_listener.dart';
+import '../data/service/local_notification_service.dart';
 import '../data/service/navigation_service.dart';
 import '../data/service/semantics_event_service.dart';
 import '../util/manager/biometric_unlock_manager.dart';
@@ -66,12 +68,21 @@ class WalletServiceProvider extends StatelessWidget {
           lazy: false,
         ),
         RepositoryProvider<AnnouncementService>(create: AnnouncementService.new),
+        RepositoryProvider<LocalNotificationService>(
+          create: (context) => LocalNotificationService(context.read(), context.read()),
+          lazy: false,
+        ),
         RepositoryProvider<AppEventCoordinator>(
           create: (context) => AppEventCoordinator(
             context.read(),
             [
               context.read<NavigationService>(),
-              WalletTransferEventListener(
+              WalletTransferAppEventListener(
+                context.read(),
+                context.read(),
+                context.read(),
+              ),
+              NotificationAppEventListener(
                 context.read(),
                 context.read(),
                 context.read(),

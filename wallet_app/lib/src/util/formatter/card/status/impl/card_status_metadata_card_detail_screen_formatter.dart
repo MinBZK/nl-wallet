@@ -15,65 +15,73 @@ class CardStatusMetadataCardDetailScreenFormatter implements CardStatusMetadataF
 
   @override
   String text(BuildContext context, WalletCard card) {
+    final status = card.status;
     final organisation = _formatIssuer(context, card.issuer);
-    return switch (card.status) {
-      CardStatus.validSoon => context.l10n.cardStatusMetadataCardDetailScreenValidSoon(
-        DateFormatter.formatDate(context, card.validFrom),
+    return switch (status) {
+      CardStatusValidSoon() => context.l10n.cardStatusMetadataCardDetailScreenValidSoon(
+        DateFormatter.formatDate(context, status.validFrom),
       ),
-      CardStatus.valid => context.l10n.cardStatusMetadataCardDetailScreenValid(
-        DateFormatter.formatDate(context, card.validUntil),
-      ),
-      CardStatus.expiresSoon => context.l10n.cardStatusMetadataCardDetailScreenExpiresSoon(
-        DateFormatter.formatDateTime(context, card.validUntil),
+      CardStatusValid() => _formatCardStatusValidText(context, status),
+      CardStatusExpiresSoon() => context.l10n.cardStatusMetadataCardDetailScreenExpiresSoon(
+        DateFormatter.formatDateTime(context, status.validUntil),
         organisation,
-        DurationFormatter.prettyPrintTimeDifference(context.l10n, card.validUntil),
+        DurationFormatter.prettyPrintTimeDifference(context.l10n, status.validUntil),
       ),
-      CardStatus.expired => context.l10n.cardStatusMetadataCardDetailScreenExpired(
-        DateFormatter.formatDateTime(context, card.validUntil),
+      CardStatusExpired() => context.l10n.cardStatusMetadataCardDetailScreenExpired(
+        DateFormatter.formatDateTime(context, status.validUntil),
         organisation,
       ),
-      CardStatus.revoked => context.l10n.cardStatusMetadataCardDetailScreenRevoked(organisation),
-      CardStatus.corrupted => context.l10n.cardStatusMetadataCardDetailScreenCorrupted(organisation),
-      CardStatus.unknown => context.l10n.cardStatusMetadataCardDetailScreenUnknown,
+      CardStatusRevoked() => context.l10n.cardStatusMetadataCardDetailScreenRevoked(organisation),
+      CardStatusCorrupted() => context.l10n.cardStatusMetadataCardDetailScreenCorrupted(organisation),
+      CardStatusUndetermined() => context.l10n.cardStatusMetadataCardDetailScreenUndetermined,
     };
+  }
+
+  String _formatCardStatusValidText(BuildContext context, CardStatusValid status) {
+    final validUntil = status.validUntil;
+    if (validUntil == null) return context.l10n.cardStatusMetadataCardDetailScreenValid;
+
+    return context.l10n.cardStatusMetadataCardDetailScreenValidUntil(
+      DateFormatter.formatDate(context, validUntil),
+    );
   }
 
   @override
   Color textColor(BuildContext context, CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => context.colorScheme.onSurface,
-      CardStatus.valid => context.colorScheme.onSurface,
-      CardStatus.expiresSoon => kStatusWarningColor,
-      CardStatus.expired => context.colorScheme.error,
-      CardStatus.revoked => context.colorScheme.error,
-      CardStatus.corrupted => context.colorScheme.error,
-      CardStatus.unknown => kStatusWarningColor,
+      CardStatusValidSoon() => context.colorScheme.onSurface,
+      CardStatusValid() => context.colorScheme.onSurface,
+      CardStatusExpiresSoon() => kStatusWarningColor,
+      CardStatusExpired() => context.colorScheme.error,
+      CardStatusRevoked() => context.colorScheme.error,
+      CardStatusCorrupted() => context.colorScheme.error,
+      CardStatusUndetermined() => kStatusWarningColor,
     };
   }
 
   @override
   IconData? icon(CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => Icons.block_flipped,
-      CardStatus.valid => null,
-      CardStatus.expiresSoon => Icons.schedule,
-      CardStatus.expired => Icons.event_busy,
-      CardStatus.revoked => Icons.close,
-      CardStatus.corrupted => Icons.block_flipped,
-      CardStatus.unknown => Icons.warning_amber,
+      CardStatusValidSoon() => Icons.block_flipped,
+      CardStatusValid() => null,
+      CardStatusExpiresSoon() => Icons.schedule,
+      CardStatusExpired() => Icons.event_busy,
+      CardStatusRevoked() => Icons.close,
+      CardStatusCorrupted() => Icons.block_flipped,
+      CardStatusUndetermined() => Icons.warning_amber,
     };
   }
 
   @override
   Color? iconColor(BuildContext context, CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => context.colorScheme.onSurfaceVariant,
-      CardStatus.valid => null,
-      CardStatus.expiresSoon => kStatusWarningColor,
-      CardStatus.expired => context.colorScheme.error,
-      CardStatus.revoked => context.colorScheme.error,
-      CardStatus.corrupted => context.colorScheme.error,
-      CardStatus.unknown => kStatusWarningColor,
+      CardStatusValidSoon() => context.colorScheme.onSurfaceVariant,
+      CardStatusValid() => null,
+      CardStatusExpiresSoon() => kStatusWarningColor,
+      CardStatusExpired() => context.colorScheme.error,
+      CardStatusRevoked() => context.colorScheme.error,
+      CardStatusCorrupted() => context.colorScheme.error,
+      CardStatusUndetermined() => kStatusWarningColor,
     };
   }
 

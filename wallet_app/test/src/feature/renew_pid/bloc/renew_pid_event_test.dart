@@ -5,7 +5,7 @@ import 'package:wallet/src/feature/renew_pid/bloc/renew_pid_bloc.dart';
 
 void main() {
   group('RenewPidEvent equality', () {
-    test('RenewPidLoginWithDigidClicked equality', () {
+    test('ltc66 RenewPidLoginWithDigidClicked equality', () {
       expect(
         const RenewPidLoginWithDigidClicked(),
         equals(const RenewPidLoginWithDigidClicked()),
@@ -13,7 +13,7 @@ void main() {
       );
     });
 
-    test('RenewPidContinuePidRenewal equality', () {
+    test('ltc66 RenewPidContinuePidRenewal equality', () {
       expect(
         const RenewPidContinuePidRenewal('url1'),
         equals(const RenewPidContinuePidRenewal('url1')),
@@ -26,7 +26,7 @@ void main() {
       );
     });
 
-    test('RenewPidAttributesRejected equality', () {
+    test('ltc66 RenewPidAttributesRejected equality', () {
       expect(
         const RenewPidAttributesRejected(),
         equals(const RenewPidAttributesRejected()),
@@ -34,7 +34,7 @@ void main() {
       );
     });
 
-    test('RenewPidAttributesConfirmed equality', () {
+    test('ltc66 RenewPidAttributesConfirmed equality', () {
       final attr1 = DataAttribute.untranslated(key: 'a', label: '', value: const StringValue('a'));
       final attr2 = DataAttribute.untranslated(key: 'b', label: '', value: const StringValue('b'));
       expect(
@@ -49,7 +49,7 @@ void main() {
       );
     });
 
-    test('RenewPidPinConfirmed equality', () {
+    test('ltc66 RenewPidPinConfirmed equality', () {
       expect(
         RenewPidPinConfirmed(),
         equals(RenewPidPinConfirmed()),
@@ -57,7 +57,7 @@ void main() {
       );
     });
 
-    test('RenewPidPinConfirmationFailed equality', () {
+    test('ltc66 RenewPidPinConfirmationFailed equality', () {
       final err1 = const GenericError('fail1', sourceError: 'fail1');
       final err2 = const GenericError('fail2', sourceError: 'fail2');
       expect(
@@ -72,7 +72,7 @@ void main() {
       );
     });
 
-    test('RenewPidLaunchDigidUrlFailed equality', () {
+    test('ltc66 RenewPidLaunchDigidUrlFailed equality', () {
       final err1 = const GenericError('fail1', sourceError: 'fail1');
       final err2 = const GenericError('fail2', sourceError: 'fail2');
       expect(
@@ -85,7 +85,7 @@ void main() {
       );
     });
 
-    test('RenewPidLoginWithDigidFailed equality', () {
+    test('ltc66 RenewPidLoginWithDigidFailed equality', () {
       final err1 = const GenericError('fail1', sourceError: 'fail1');
       final err2 = const GenericError('fail2', sourceError: 'fail2');
       expect(
@@ -105,7 +105,7 @@ void main() {
       );
     });
 
-    test('RenewPidRetryPressed equality', () {
+    test('ltc66 RenewPidRetryPressed equality', () {
       expect(
         const RenewPidRetryPressed(),
         equals(const RenewPidRetryPressed()),
@@ -113,7 +113,7 @@ void main() {
       );
     });
 
-    test('RenewPidStopPressed equality', () {
+    test('ltc66 RenewPidStopPressed equality', () {
       expect(
         const RenewPidStopPressed(),
         equals(const RenewPidStopPressed()),
@@ -121,7 +121,7 @@ void main() {
       );
     });
 
-    test('RenewPidBackPressed equality', () {
+    test('ltc66 RenewPidBackPressed equality', () {
       expect(
         const RenewPidBackPressed(),
         equals(const RenewPidBackPressed()),

@@ -16,7 +16,7 @@ class MockMenuBloc extends MockBloc<MenuEvent, MenuState> implements MenuBloc {}
 
 void main() {
   group('goldens', () {
-    testGoldens('light', (tester) async {
+    testGoldens('ltc26 light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const MenuScreen().withState<MenuBloc, MenuState>(
           MockMenuBloc(),
@@ -30,7 +30,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('dark - landscape', (tester) async {
+    testGoldens('ltc26 dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const MenuScreen().withState<MenuBloc, MenuState>(
           MockMenuBloc(),
@@ -48,7 +48,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('expected menu items are visible', (WidgetTester tester) async {
+    testWidgets('ltc26 expected menu items are visible', (WidgetTester tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const MenuScreen(showDesignSystemRow: true).withState<MenuBloc, MenuState>(
           MockMenuBloc(),
@@ -70,7 +70,7 @@ void main() {
       expect(find.text(l10n.menuScreenDesignCta), findsOneWidget);
     });
 
-    testWidgets('design system menu item is hidden when disabled', (WidgetTester tester) async {
+    testWidgets('ltc26 design system menu item is hidden when disabled', (WidgetTester tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const MenuScreen(showDesignSystemRow: false).withState<MenuBloc, MenuState>(
           MockMenuBloc(),
