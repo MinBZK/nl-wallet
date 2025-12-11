@@ -12,8 +12,7 @@ between the two screens, the issuer receives the disclosed attributes, and can
 use those to determine the contents of the attestation(s) to be issued.
 
 The issuer side of this functionality is implemented by the `issuance_server`
-binary, which is a part of the `wallet_server` crate (see also
-[issuance with openid4vci][1]).
+binary, which is a part of the `wallet_server` crate.
 
 Technically, disclosure-based issuance works like this:
 
@@ -23,8 +22,8 @@ Technically, disclosure-based issuance works like this:
      issued. This server is called the *attestation server*.
 
   2. The `issuance_server` starts an OpenID4VCI session in the [Pre-Authorized
-     Code Flow][2], puts the Pre-Authorized Code into an [OpenID4VCI Credential
-     Offer][3], and URL-encodes that into the `redirect_uri` that gets sent to
+     Code Flow][1], puts the Pre-Authorized Code into an [OpenID4VCI Credential
+     Offer][2], and URL-encodes that into the `redirect_uri` that gets sent to
      the wallet.
 
   3. Using the Credential Offer with the Pre-Authorized Code within it, the
@@ -137,7 +136,7 @@ it sends its Proofs of Possession (PoPs) for the keys of the attestation
 
 This enforces that the newly issued attestations are bound to the same Wallet
 Secure Cryptographic Device (WSCD, see [section 4.3.2, Components of a Wallet
-Unit][4]) as the one that disclosed the attestations in the first part of the
+Unit][3]) as the one that disclosed the attestations in the first part of the
 protocol.
 
 ```{mermaid}
@@ -183,7 +182,6 @@ Below you'll find a collection of links which we reference to through the
 entire text. Note that they don't display when rendered within a website, you
 need to read the text in a regular text editor or pager to see them.
 
-[1]: issuance-with-openid4vci.md#generic-issuance
-[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
-[3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer
-[4]: https://eudi.dev/latest/architecture-and-reference-framework-main/#43-reference-architecture
+[1]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
+[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer
+[3]: https://eudi.dev/latest/architecture-and-reference-framework-main/#43-reference-architecture
