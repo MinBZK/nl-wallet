@@ -383,7 +383,7 @@ mod tests {
         let keypair = ca.generate_status_list_mock().unwrap();
 
         let mut wallet_config = default_wallet_config();
-        wallet_config.issuer_trust_anchors = vec![ca.as_borrowing_trust_anchor().clone()];
+        wallet_config.issuer_trust_anchors = vec![ca.borrowing_trust_anchor().clone()];
         let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
 
         let (_, _, status_list_token) = create_status_list_token(&keypair, None, None).await;

@@ -25,7 +25,7 @@ serialize = []
 # Implement Default on AppIdentifier by reading Xcode environment variables.
 xcode_env = []
 # Include the MockAttestationCa type and mock constructors for for the main crate types for use in testing.
-mock = ["dep:rand", "derive_more/debug", "rcgen/ring", "serialize"]
+mock = ["dep:rand", "rcgen/ring", "serialize"]
 # Include constants for the self-signed mock Apple CA (see the assets dir).
 mock_ca_root = []
 # Include support for the self-signed mock Apple CA on the MockAttestationCa type.

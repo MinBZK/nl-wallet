@@ -517,7 +517,7 @@ mod test {
     #[test]
     fn generate_ca() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
         let x509_cert = certificate.x509_certificate();
@@ -535,7 +535,7 @@ mod test {
             not_after: Some(later),
         };
         let ca = Ca::generate("myca", config).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
         assert_eq!("CN=myca", certificate.distinguished_name().unwrap());
