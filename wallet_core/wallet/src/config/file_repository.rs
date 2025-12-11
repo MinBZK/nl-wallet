@@ -125,7 +125,7 @@ mod tests {
         initial_wallet_config.lock_timeouts.background_timeout = 500;
 
         let config_dir = tempfile::tempdir().unwrap();
-        let path = config_dir.into_path();
+        let path = config_dir.keep();
 
         let repo = FileStorageConfigurationRepository::new(
             TestConfigRepo(RwLock::new(initial_wallet_config.clone())),
@@ -165,7 +165,7 @@ mod tests {
     #[tokio::test]
     async fn should_use_newer_embedded_wallet_get() {
         let config_dir = tempfile::tempdir().unwrap();
-        let path = config_dir.into_path();
+        let path = config_dir.keep();
         let verifying_key = *SigningKey::random(&mut OsRng).verifying_key();
         let config_decoding_key: EcdsaDecodingKey = (&verifying_key).into();
 

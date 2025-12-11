@@ -23,6 +23,7 @@ impl From<UnexpectedUniFFICallbackError> for UtilitiesError {
 }
 
 // the callback traits defined in the UDL, which we have write out here ourselves
+#[uniffi::trait_interface]
 pub trait UtilitiesBridge: Send + Sync + Debug {
     fn get_storage_path(&self) -> Result<String, UtilitiesError>;
 }
