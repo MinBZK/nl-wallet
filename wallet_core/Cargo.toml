@@ -152,7 +152,7 @@ mediatype = "0.21.0"
 metrics = "0.24.3"
 metrics-exporter-prometheus = { version = "0.18.1", default-features = false }
 mime = "0.3.17"
-mockall = "0.13.1"
+mockall = "0.14.0"
 moka = "0.12.11"
 nom = "8.0.0"
 nonempty-collections = "1.2.1"
