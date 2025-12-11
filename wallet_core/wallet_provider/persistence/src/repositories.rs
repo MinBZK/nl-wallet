@@ -128,6 +128,14 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::is_blocked_key(transaction, wallet_user_id, key).await
     }
 
+    async fn unblock_blocked_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::unblock_blocked_keys(transaction, wallet_user_id).await
+    }
+
     async fn delete_blocked_keys(
         &self,
         transaction: &Self::TransactionType,
@@ -468,6 +476,12 @@ pub mod mock {
                 _key: VerifyingKey,
             ) -> Result<bool, PersistenceError>;
 
+            async fn unblock_blocked_keys(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: Uuid,
+            ) -> Result<(), PersistenceError>;
+
             async fn delete_blocked_keys(
                 &self,
                 _transaction: &MockTransaction,
@@ -718,6 +732,14 @@ pub mod mock {
             _key: VerifyingKey,
         ) -> Result<bool, PersistenceError> {
             Ok(true)
+        }
+
+        async fn unblock_blocked_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
         }
 
         async fn delete_blocked_keys(

@@ -73,6 +73,27 @@ where
     Ok(is_recovery_key)
 }
 
+pub async fn unblock_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> std::result::Result<(), PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_key::Entity::update(wallet_user_key::ActiveModel {
+        is_blocked: Set(false),
+        ..Default::default()
+    })
+    .filter(
+        wallet_user_key::Column::WalletUserId
+            .eq(wallet_user_id)
+            .and(wallet_user_key::Column::IsBlocked.eq(true)),
+    )
+    .exec(db.connection())
+    .await
+    .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(())
+}
+
 pub async fn delete_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
 where
     S: ConnectionTrait,

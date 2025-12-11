@@ -762,10 +762,12 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
+        let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
+        // Verify the recovery code against the stored recovery code if any
         // Check here as well to prevent failure for retried wallet request
         match wallet_user.recovery_code.as_ref() {
             None => {
@@ -805,6 +807,14 @@ impl HandleInstruction for DiscloseRecoveryCode {
         } else {
             None
         };
+
+        // Unblock the previously blocked private keys
+        if user_state.repositories.is_blocked_key(&tx, wallet_user.id, key).await? {
+            user_state
+                .repositories
+                .unblock_blocked_keys(&tx, wallet_user.id)
+                .await?;
+        }
 
         tx.commit().await?;
 
@@ -1548,6 +1558,65 @@ mod tests {
         wallet_user_repo
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(false));
+        wallet_user_repo
+            .expect_is_blocked_key()
+            .times(1)
+            .returning(|_, _, _| Ok(false));
+        wallet_user_repo.expect_unblock_blocked_keys().never();
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
+                ),
+                &mock::RECOVERY_CODE_CONFIG,
+            )
+            .await
+            .unwrap();
+
+        assert!(result.transfer_session_id.is_none());
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code_and_unblock_blocked_keys() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_find_transfer_session_id_by_destination_wallet_user_id()
+            .returning(|_, _| Ok(None));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(false));
+        wallet_user_repo
+            .expect_is_blocked_key()
+            .times(1)
+            .returning(|_, _, _| Ok(true));
+        wallet_user_repo
+            .expect_unblock_blocked_keys()
+            .times(1)
+            .returning(|_, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1604,6 +1673,7 @@ mod tests {
                 true
             })
             .returning(|_, _, _, _, _| Ok(()));
+        wallet_user_repo.expect_is_blocked_key().returning(|_, _, _| Ok(false));
 
         let result = instruction
             .handle(
@@ -1663,6 +1733,7 @@ mod tests {
                 true
             })
             .returning(|_, _, _, _, _| Ok(()));
+        wallet_user_repo.expect_is_blocked_key().returning(|_, _, _| Ok(false));
 
         let result = instruction
             .handle(
@@ -1705,6 +1776,7 @@ mod tests {
             .expect_find_transfer_session_id_by_destination_wallet_user_id()
             .returning(move |_, _| Ok(Some(transfer_session_id_clone.lock().unwrap().unwrap())));
         wallet_user_repo.expect_create_transfer_session().never();
+        wallet_user_repo.expect_is_blocked_key().returning(|_, _, _| Ok(false));
 
         let result = instruction
             .handle(
