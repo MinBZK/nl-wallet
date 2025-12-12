@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 axum = ["dep:axum", "dep:sea-orm", "utoipa/uuid"]
-verification = ["dep:http", "dep:rustls-pki-types", "http_utils/client", "reqwest/rustls-tls-webpki-roots"]
+verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "http_utils/client"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
 [dependencies]
@@ -25,7 +25,7 @@ flate2.workspace = true
 http = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"] }
 mockall = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
+reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"], optional = true }
 rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
