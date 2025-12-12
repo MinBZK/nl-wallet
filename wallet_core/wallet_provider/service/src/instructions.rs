@@ -476,33 +476,41 @@ where
     Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id))
 }
 
-async fn persist_issuance_keys<T, R, H, S>(
+fn create_issuance_keys<G>(
+    generators: &G,
+    issuance_result: &PerformIssuanceResult,
     wrapped_keys: Vec<WrappedKey>,
-    key_ids: Vec<String>,
     wua_key_and_id: Option<(WrappedKey, String)>,
+    is_blocked: bool,
+) -> Vec<WalletUserKey>
+where
+    G: Generator<Uuid>,
+{
+    let key_ids = issuance_result.key_identifiers.as_ref().to_vec();
+
+    wrapped_keys
+        .into_iter()
+        .zip(key_ids)
+        .chain(wua_key_and_id)
+        .map(|(key, key_identifier)| WalletUserKey {
+            wallet_user_key_id: generators.generate(),
+            key_identifier,
+            key,
+            is_blocked,
+        })
+        .collect()
+}
+
+async fn save_keys<T, R, H>(
     wallet_user: &WalletUser,
-    uuid_generator: &impl Generator<Uuid>,
-    user_state: &UserState<R, H, impl WuaIssuer, S>,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
+    db_keys: Vec<WalletUserKey>,
 ) -> Result<(), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    // Assemble the keys to be stored in the database
-    let db_keys = wrapped_keys
-        .into_iter()
-        .zip(key_ids)
-        .chain(wua_key_and_id.into_iter())
-        .map(|(key, key_identifier)| WalletUserKey {
-            wallet_user_key_id: uuid_generator.generate(),
-            key_identifier,
-            key,
-            is_blocked: false,
-        })
-        .collect();
-
-    // Save the keys in the database
     let tx = user_state.repositories.begin_transaction().await?;
     user_state
         .repositories
@@ -515,7 +523,6 @@ where
         )
         .await?;
     tx.commit().await?;
-
     Ok(())
 }
 
@@ -621,15 +628,9 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
 
-        persist_issuance_keys(
-            wrapped_keys,
-            issuance_result.key_identifiers.as_ref().to_vec(),
-            None,
-            wallet_user,
-            generators,
-            user_state,
-        )
-        .await?;
+        let db_keys = create_issuance_keys(generators, &issuance_result, wrapped_keys, None, false);
+
+        save_keys(wallet_user, user_state, db_keys).await?;
 
         Ok(issuance_result)
     }
@@ -654,19 +655,15 @@ impl HandleInstruction for PerformIssuanceWithWua {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
             perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
 
-        persist_issuance_keys(
-            wrapped_keys,
-            issuance_with_wua_result
-                .issuance_result
-                .key_identifiers
-                .as_ref()
-                .to_vec(),
-            Some(wua_key_and_id),
-            wallet_user,
+        let db_keys = create_issuance_keys(
             generators,
-            user_state,
-        )
-        .await?;
+            &issuance_with_wua_result.issuance_result,
+            wrapped_keys,
+            Some(wua_key_and_id),
+            true,
+        );
+
+        save_keys(wallet_user, user_state, db_keys).await?;
 
         Ok(issuance_with_wua_result)
     }
