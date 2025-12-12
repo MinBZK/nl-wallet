@@ -149,10 +149,14 @@ recoveryCodePaths:
 ## Parameters for the WUA status list configuration
 ## @param wuaStatusList.baseUrl WUA status list base url that will be encoded as iss claim
 ## @param wuaStatusList.certificate WUA status list certificate
+## @param wuaStatusList.volumeClaimName Name of PVC where the WUA status lists are published
+## @param wuaStatusList.volumeClaimPath Path in the PVC where the WUA status lists are published
 ##
 wuaStatusList:
   baseUrl: null
   certificate: null
+  volumeClaimName: null
+  volumeClaimPath: null
 
 ## @section Migration parameters
 ## Parameters for the migration configuration
