@@ -66,7 +66,7 @@ futures = { workspace = true, features = ["std", "async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rustls-pki-types.workspace = true
-rustls-webpki.workspace = true
+rustls-webpki = { workspace = true, features = ["ring"] }
 semver = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
