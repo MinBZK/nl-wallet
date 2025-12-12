@@ -175,75 +175,67 @@ pub fn measure(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs = &input.attrs;
 
     // Build the output with function name added to labels
-    let output = if additional_labels.is_empty() {
-        // Only function label
+    let additional_labels_with_comma = if additional_labels.is_empty() {
+        quote! {}
+    } else {
+        quote! { , #additional_labels }
+    };
+
+    // Check if return type is Result to determine if we should track failures
+    let return_type = &input.sig.output;
+    let is_result = match return_type {
+        syn::ReturnType::Type(_, ty) => {
+            // Check if the type path contains "Result"
+            matches!(ty.as_ref(), syn::Type::Path(type_path)
+                if type_path.path.segments.last().map(|s| s.ident == "Result").unwrap_or(false))
+        }
+        _ => false,
+    };
+
+    let failure_tracking = if is_result {
         quote! {
-            #(#attrs)*
-            #vis #sig {
+            let is_error = match &result {
+                Ok(_) => false,
+                Err(_) => true,
+            };
+
+            if is_error {
                 ::metrics::counter!(
-                    concat!(#metric_name, "_total"),
-                    "function" => #fn_name_str
+                    concat!(#metric_name, "_failures_total"),
+                    "function" => #fn_name_str #additional_labels_with_comma
                 ).increment(1);
-
-                let start = ::std::time::Instant::now();
-                let result = async move #block.await;
-                let duration = start.elapsed().as_secs_f64();
-
-                let is_error = match &result {
-                    Ok(_) => false,
-                    Err(_) => true,
-                };
-
-                if is_error {
-                    ::metrics::counter!(
-                        concat!(#metric_name, "_failures_total"),
-                        "function" => #fn_name_str
-                    ).increment(1);
-                }
-
-                ::metrics::histogram!(
-                    concat!(#metric_name, "_duration_seconds"),
-                    "function" => #fn_name_str,
-                    "failure" => if is_error { "true" } else { "false" }
-                ).record(duration);
-
-                result
             }
+
+            ::metrics::histogram!(
+                concat!(#metric_name, "_duration_seconds"),
+                "function" => #fn_name_str #additional_labels_with_comma,
+                "failure" => if is_error { "true" } else { "false" }
+            ).record(duration);
         }
     } else {
-        // Function label + additional labels
         quote! {
-            #(#attrs)*
-            #vis #sig {
-                ::metrics::counter!(
-                    concat!(#metric_name, "_total"),
-                    "function" => #fn_name_str, #additional_labels
-                ).increment(1);
+            ::metrics::histogram!(
+                concat!(#metric_name, "_duration_seconds"),
+                "function" => #fn_name_str #additional_labels_with_comma
+            ).record(duration);
+        }
+    };
 
-                let start = ::std::time::Instant::now();
-                let result = async move #block.await;
-                let duration = start.elapsed().as_secs_f64();
+    let output = quote! {
+        #(#attrs)*
+        #vis #sig {
+            ::metrics::counter!(
+                concat!(#metric_name, "_total"),
+                "function" => #fn_name_str #additional_labels_with_comma
+            ).increment(1);
 
-                let is_error = match &result {
-                    Ok(_) => false,
-                    Err(_) => true,
-                };
+            let start = ::std::time::Instant::now();
+            let result = async move #block.await;
+            let duration = start.elapsed().as_secs_f64();
 
-                if is_error {
-                    ::metrics::counter!(
-                        concat!(#metric_name, "_failures_total"),
-                        "function" => #fn_name_str, #additional_labels
-                    ).increment(1);
-                }
+            #failure_tracking
 
-                ::metrics::histogram!(
-                    concat!(#metric_name, "_duration_seconds"),
-                    "function" => #fn_name_str, #additional_labels,
-                    "failure" => if is_error { "true" } else { "false" }
-                ).record(duration);
-
-                result
-            }
+            result
         }
     };
 
