@@ -148,7 +148,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
-    let trust_anchor = ca.as_borrowing_trust_anchor().clone();
+    let trust_anchor = ca.borrowing_trust_anchor().clone();
 
     IssuerKey {
         issuance_key,

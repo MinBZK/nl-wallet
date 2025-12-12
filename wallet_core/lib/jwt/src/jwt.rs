@@ -1345,9 +1345,9 @@ mod tests {
         let payload = json!({"hello": "world"});
         let certs = vec_nonempty![
             keypair.certificate().to_owned(),
-            BorrowingCertificate::from_certificate_der(intermediate3.as_certificate_der().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate2.as_certificate_der().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate1.as_certificate_der().to_owned()).unwrap(),
+            BorrowingCertificate::from_certificate_der(intermediate3.certificate().to_owned()).unwrap(),
+            BorrowingCertificate::from_certificate_der(intermediate2.certificate().to_owned()).unwrap(),
+            BorrowingCertificate::from_certificate_der(intermediate1.certificate().to_owned()).unwrap(),
         ];
 
         let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())

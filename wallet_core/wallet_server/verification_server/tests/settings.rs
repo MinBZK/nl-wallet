@@ -37,7 +37,7 @@ fn test_settings_success() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.as_borrowing_trust_anchor().clone()];
+    settings.reader_trust_anchors = vec![reader_ca.borrowing_trust_anchor().clone()];
 
     settings.validate().expect("should succeed");
 }
@@ -78,7 +78,7 @@ fn test_settings_no_reader_registration() {
     usecases.insert("no_registration".to_string(), to_use_case(reader_cert_no_registration));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.as_borrowing_trust_anchor().clone()];
+    settings.reader_trust_anchors = vec![reader_ca.borrowing_trust_anchor().clone()];
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::NoCertificateType(CertificateTypeError::ReaderRegistrationNotFound, key) if key == "no_registration");
@@ -101,7 +101,7 @@ fn test_settings_wrong_reader_ca() {
     usecases.insert("wrong_ca".to_string(), to_use_case(reader_cert_wrong_ca));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.as_borrowing_trust_anchor().clone()];
+    settings.reader_trust_anchors = vec![reader_ca.borrowing_trust_anchor().clone()];
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(
