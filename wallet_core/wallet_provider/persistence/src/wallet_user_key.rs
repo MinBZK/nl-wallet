@@ -5,7 +5,10 @@ use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
+use sea_orm::DerivePartialModel;
 use sea_orm::EntityTrait;
+use sea_orm::FromQueryResult;
+use sea_orm::ModelTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::Set;
@@ -18,7 +21,6 @@ use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 use crate::entity::wallet_user_key;
-use crate::entity::wallet_user_key::IsBlockedModel;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
@@ -47,6 +49,12 @@ where
         .await
         .map(|_| ())
         .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+#[derive(FromQueryResult, DerivePartialModel)]
+#[sea_orm(entity = "<wallet_user_key::Model as ModelTrait>::Entity")]
+pub struct IsBlockedModel {
+    pub is_blocked: bool,
 }
 
 pub async fn is_blocked_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<Option<bool>>
