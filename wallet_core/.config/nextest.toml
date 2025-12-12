@@ -4,6 +4,7 @@ hsm = { max-threads = 1 }
 mock-oidc = { max-threads = 1 }
 mock-issuance-session = { max-threads = 1 }
 mock-pkce = { max-threads = 1 }
+metrics-recorder = { max-threads = 1 }
 
 [[profile.default.overrides]]
 filter = 'package(verification_server) & binary(postgres)'
@@ -25,6 +26,10 @@ test-group = 'mock-issuance-session'
 [[profile.default.overrides]]
 filter = 'package(openid4vc) & test(/(test_start_and_into_token_request|test_user_cancels)$/)'
 test-group = 'mock-pkce'
+
+[[profile.default.overrides]]
+filter = 'package(measure) & binary(measure_tests)'
+test-group = 'metrics-recorder'
 
 [profile.ci]
 fail-fast = false
