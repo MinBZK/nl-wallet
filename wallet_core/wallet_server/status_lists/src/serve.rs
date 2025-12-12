@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::string::ToString;
+use std::sync::Arc;
 use std::time::Duration;
 
 use axum::Router;
-use axum::body::Body;
 use axum::extract::Path;
 use axum::extract::Request;
 use axum::extract::State;
@@ -14,6 +14,7 @@ use axum::http::StatusCode;
 use axum::http::header;
 use axum::middleware;
 use axum::middleware::Next;
+use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use etag::EntityTag;
@@ -34,8 +35,9 @@ const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::from_parts(
 
 #[derive(Debug, Clone)]
 struct RouterState {
-    publish_dir: PublishDir,
-    cache_control: String,
+    publish_dir: Arc<PublishDir>,
+    cache_control: HeaderValue,
+    content_type: HeaderValue,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -74,14 +76,18 @@ pub fn create_serve_router<'a>(
         None => "no-cache".to_string(),
         Some(ttl) => format!("max-age={}; must-revalidate", ttl.as_secs()),
     };
+    // Convert to HeaderValue, unwrap is safe since strings are ASCII
+    let cache_control = HeaderValue::from_str(&cache_control).unwrap();
+    let content_type = HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap();
 
     let serve_dirs = check_serve_directories(serve_dirs)?;
     Ok(serve_dirs
         .into_iter()
         .fold(Router::new(), |router, (path, publish_dir)| {
             let state = RouterState {
-                publish_dir,
+                publish_dir: Arc::new(publish_dir),
                 cache_control: cache_control.clone(),
+                content_type: content_type.clone(),
             };
             router.nest(
                 path,
@@ -120,15 +126,16 @@ async fn serve_status_list(
         return Err(StatusCode::NOT_MODIFIED);
     };
 
-    Response::builder()
-        .header(header::CONTENT_TYPE, STATUSLIST_JWT_MEDIA_TYPE.to_string())
-        .header(header::CACHE_CONTROL, state.cache_control.as_str())
-        .header(header::ETAG, etag.to_string())
-        .body(Body::from(bytes))
-        .map_err(|err| {
-            tracing::warn!("could not read `{}`: {}", path.display(), err);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+    Ok((
+        [
+            (header::CONTENT_TYPE, state.content_type),
+            (header::CACHE_CONTROL, state.cache_control),
+            // Unwrap is safe since etag is ASCII
+            (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
+        ],
+        bytes,
+    )
+        .into_response())
 }
 
 fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, StatusCode> {
