@@ -20,5 +20,5 @@ cargo install cargo-audit --locked --version 0.21.2
 cargo install cargo-nextest --locked --version 0.9.103
 cargo install flutter_rust_bridge_codegen --locked --version 2.11.1
 cargo install lcov2xml --locked --version 1.0.6
-cargo install sea-orm-cli --locked --version 1.1.16 --no-default-features \
+cargo install sea-orm-cli --locked --version 1.1.19 --no-default-features \
     --features sqlx-postgres,runtime-tokio-rustls,cli,codegen
