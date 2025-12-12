@@ -64,7 +64,7 @@ mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand_core.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
+reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"] }
 ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }

@@ -47,6 +47,7 @@ test = [
     "dep:http",
     "dep:itertools",
     "dep:parking_lot",
+    "dep:reqwest",
     "dep:rstest",
     "dep:sd_jwt",
     "dep:sd_jwt_vc_metadata",
@@ -57,7 +58,6 @@ test = [
     "mdoc/mock_example_constructors",
     "openid4vc/mock",
     "openid4vc/test",
-    "reqwest/rustls-tls-webpki-roots",
     "server_utils/parsed_key_pair_conversion",
     "token_status_list/mock",
     "tokio/macros",
@@ -91,7 +91,7 @@ chrono = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
+reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"], optional = true }
 rstest = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
