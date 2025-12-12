@@ -23,6 +23,7 @@ use tower_http::trace::TraceLayer;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use http_utils::health::create_health_router;
 use utils::path::prefix_local_path;
 
 use crate::settings::DemoService;
@@ -71,7 +72,7 @@ pub fn create_router(settings: Settings) -> Router {
         app = app.layer(axum::middleware::from_fn(log_request_response));
     }
 
-    app
+    app.merge(create_health_router([]))
 }
 
 struct BaseTemplate<'a> {
