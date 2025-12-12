@@ -69,6 +69,11 @@ networkPolicy:
 ## @param gbaHcConverter.envVarNamePreloaded Environment variable name for the preloaded run mode
 ## @param gbaHcConverter.envVarNameGbav Environment variable name for the GBAV run mode
 ## @param gbaHcConverter.preloadedXmlPath Path to the preloaded XML files
+## @param gbaHcConverter.probes.config.liveness Additional configuration for liveness probe
+## @param gbaHcConverter.probes.config.readiness Additional configuration for readiness probe
+## @param gbaHcConverter.probes.config.startup Additional configuration for startup probe
+## @param gbaHcConverter.probes.disableLiveness Disable liveness probe
+## @param gbaHcConverter.probes.useLivenessAsReadiness Use liveness endpoint for readiness
 ## @param gbaHcConverter.resources.requests.cpu CPU request
 ## @param gbaHcConverter.resources.requests.memory Memory request
 ## @param gbaHcConverter.resources.limits.cpu CPU limit
@@ -81,6 +86,13 @@ gbaHcConverter:
   envVarNamePreloaded: PRELOADED
   envVarNameGbav: ALL__GBAV
   preloadedXmlPath: "resources/encrypted-gba-v-responses"
+  probes:
+    config:
+      liveness: {}
+      readiness: {}
+      startup: {}
+    disableLiveness: false
+    useLivenessAsReadiness: false
   resources:
     requests:
       cpu: "50m"
@@ -126,6 +138,11 @@ hostAliases: []
 ## @param frontend.ingress.className Ingress class name for the frontend
 ## @param frontend.ingress.hostname Ingress hostname for the frontend
 ## @param frontend.ingress.tlsSecretName Secret name for the ingress TLS configuration
+## @param frontend.probes.config.liveness Additional configuration for liveness probe
+## @param frontend.probes.config.readiness Additional configuration for readiness probe
+## @param frontend.probes.config.startup Additional configuration for startup probe
+## @param frontend.probes.disableLiveness Disable liveness probe
+## @param frontend.probes.useLivenessAsReadiness Use liveness endpoint for readiness
 ## @param frontend.resources.requests.cpu CPU request for the frontend container
 ## @param frontend.resources.requests.memory Memory request for the frontend container
 ## @param frontend.resources.limits.cpu CPU limit for the frontend container
@@ -139,6 +156,13 @@ frontend:
     className: nginx
     hostname: null
     tlsSecretName: null
+  probes:
+    config:
+      liveness: {}
+      readiness: {}
+      startup: {}
+    disableLiveness: false
+    useLivenessAsReadiness: false
   resources:
     requests:
       cpu: "50m"

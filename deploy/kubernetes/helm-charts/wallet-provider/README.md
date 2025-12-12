@@ -70,6 +70,16 @@
 | `ingress.annotations`   | Additional annotations for the ingress                   | `{}`    |
 | `ingress.maxBodySize`   | Sets the maximum allowed size of the client request body | `100m`  |
 
+### Container probes
+
+| Name                            | Description                                  | Value   |
+| ------------------------------- | -------------------------------------------- | ------- |
+| `probes.config.liveness`        | Additional configuration for liveness probe  | `{}`    |
+| `probes.config.readiness`       | Additional configuration for readiness probe | `{}`    |
+| `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
+| `probes.disableLiveness`        | Disable liveness probe                       | `false` |
+| `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
+
 ### Resource requests and limits
 
 | Name                        | Description                                                       | Value  |
