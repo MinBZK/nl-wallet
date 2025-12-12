@@ -301,6 +301,7 @@ impl BrpAddress {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::PathBuf;
 
     use rstest::rstest;
     use serde_json::json;
@@ -312,9 +313,9 @@ mod tests {
     use crate::pid::brp::data::BrpPersons;
 
     fn read_json(name: &str) -> String {
-        fs::read_to_string(prefix_local_path(
-            format!("resources/test/haal-centraal-examples/{name}.json").as_ref(),
-        ))
+        fs::read_to_string(prefix_local_path(PathBuf::from(format!(
+            "resources/test/haal-centraal-examples/{name}.json"
+        ))))
         .unwrap()
     }
 

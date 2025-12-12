@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU8;
+use std::path::Path;
 
 use chrono::Days;
 use derive_more::AsRef;
@@ -85,7 +86,7 @@ where
     let documents = path
         .iter()
         .map(|path| {
-            let path = prefix_local_path(path.as_ref());
+            let path = prefix_local_path(Path::new(path));
             let json = fs::read(&path)
                 .map_err(|err| de::Error::custom(format!("could not read `{}`: {}", path.display(), err)))?;
             let metadata = serde_json::from_slice::<UncheckedTypeMetadata>(json.as_slice())

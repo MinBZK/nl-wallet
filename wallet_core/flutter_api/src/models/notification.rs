@@ -11,7 +11,7 @@ pub enum NotificationType {
     },
     CardExpiresSoon {
         card: AttestationPresentation,
-        expires_at: String, /* ISO8601 */
+        expires_at: String, // ISO8601
     },
 }
 

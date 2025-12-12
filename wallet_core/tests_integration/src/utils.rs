@@ -1,8 +1,10 @@
+use std::path::Path;
+
 use http_utils::urls::BaseUrl;
 use utils::path::prefix_local_path;
 
 pub fn read_file(file_name: &str) -> Vec<u8> {
-    std::fs::read(prefix_local_path(file_name.as_ref()).as_ref()).unwrap()
+    std::fs::read(prefix_local_path(Path::new(file_name)).as_ref()).unwrap()
 }
 
 pub(crate) fn remove_path(base_url: &BaseUrl) -> BaseUrl {

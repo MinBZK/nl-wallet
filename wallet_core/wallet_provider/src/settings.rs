@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::net::IpAddr;
+use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -174,7 +175,7 @@ impl Settings {
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
             .set_default("max_transfer_upload_size_in_bytes", 100_000_000)?
-            .add_source(File::from(prefix_local_path("wallet_provider.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("wallet_provider.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")

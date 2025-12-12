@@ -15,7 +15,11 @@ use tokio::task::JoinError;
 
 use utils::path::prefix_local_path;
 
-#[nutype(derive(Debug, Clone, TryFrom, Into, AsRef, PartialEq, Deserialize), validate(with=PublishDir::validate, error=PublishDirError))]
+#[nutype(
+    derive(Debug, Clone, TryFrom, Into, AsRef, PartialEq, Deserialize),
+    sanitize(with=PublishDir::sanitize),
+    validate(with=PublishDir::validate, error=PublishDirError)
+)]
 pub struct PublishDir(PathBuf);
 
 impl Display for PublishDir {
@@ -34,9 +38,12 @@ pub enum PublishDirError {
 }
 
 impl PublishDir {
+    fn sanitize(path: PathBuf) -> PathBuf {
+        prefix_local_path(path).into_owned()
+    }
+
     fn validate(path: &Path) -> Result<(), PublishDirError> {
-        let path = prefix_local_path(path);
-        let metadata = std::fs::metadata(&path).map_err(PublishDirError::IO)?;
+        let metadata = std::fs::metadata(path).map_err(PublishDirError::IO)?;
         if !metadata.is_dir() {
             return Err(PublishDirError::NotADirectory);
         }
