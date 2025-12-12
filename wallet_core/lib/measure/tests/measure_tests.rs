@@ -12,22 +12,19 @@ use serial_test::serial;
 struct MockCounter {
     name: String,
     labels: Vec<(String, String)>,
-    counters: Arc<Mutex<Vec<(String, Vec<(String, String)>)>>>,
+    counters: Arc<Mutex<Vec<(String, Vec<(String, String)>, u64)>>>,
 }
 
 impl CounterFn for MockCounter {
-    fn increment(&self, _value: u64) {
+    fn increment(&self, value: u64) {
         self.counters
             .lock()
             .unwrap()
-            .push((self.name.clone(), self.labels.clone()));
+            .push((self.name.clone(), self.labels.clone(), value));
     }
 
     fn absolute(&self, _value: u64) {
-        self.counters
-            .lock()
-            .unwrap()
-            .push((self.name.clone(), self.labels.clone()));
+        unimplemented!()
     }
 }
 
@@ -50,7 +47,7 @@ impl metrics::HistogramFn for MockHistogram {
 // Mock recorder that captures metric calls
 #[derive(Clone, Default)]
 struct MockRecorder {
-    counters: Arc<Mutex<Vec<(String, Vec<(String, String)>)>>>,
+    counters: Arc<Mutex<Vec<(String, Vec<(String, String)>, u64)>>>,
     histograms: Arc<Mutex<Vec<(String, Vec<(String, String)>, f64)>>>,
 }
 
@@ -59,7 +56,7 @@ impl MockRecorder {
         Self::default()
     }
 
-    fn get_counters(&self) -> Vec<(String, Vec<(String, String)>)> {
+    fn get_counters(&self) -> Vec<(String, Vec<(String, String)>, u64)> {
         self.counters.lock().unwrap().clone()
     }
 
@@ -197,18 +194,23 @@ async fn test_simple_function_metrics() {
     assert_eq!(result, Ok(42));
 
     let counters = recorder.get_counters();
-    assert!(
-        counters.iter().any(|(name, labels)| name == "custom_metric_total"
-            && labels
-                == &vec![
-                    ("function".to_string(), "simple_function".to_string()),
-                    ("service".to_string(), "test".to_string())
-                ]),
+    assert_eq!(counters.len(), 1);
+    assert_eq!(
+        counters[0],
+        (
+            "custom_metric_total".to_string(),
+            vec![
+                ("function".to_string(), "simple_function".to_string()),
+                ("service".to_string(), "test".to_string())
+            ],
+            1
+        ),
         "Counter not found. Got: {:?}",
         counters
     );
 
     let histograms = recorder.get_histograms();
+    assert_eq!(histograms.len(), 1);
     assert!(
         histograms
             .iter()
@@ -235,9 +237,14 @@ async fn test_function_without_additional_labels() {
     assert_eq!(result, Ok(true));
 
     let counters = recorder.get_counters();
-    assert!(
-        counters.iter().any(|(name, labels)| name == "custom_metric_total"
-            && labels == &vec![("function".to_string(), "function_without_labels".to_string())]),
+    assert_eq!(counters.len(), 1);
+    assert_eq!(
+        counters[0],
+        (
+            "custom_metric_total".to_string(),
+            vec![("function".to_string(), "function_without_labels".to_string())],
+            1
+        ),
         "Counter not found. Got: {:?}",
         counters
     );
@@ -254,27 +261,33 @@ async fn test_function_preserves_errors() {
     assert_eq!(result, Err("test error"));
 
     let counters = recorder.get_counters();
-    assert!(
-        counters.iter().any(|(name, labels)| name == "custom_metric_total"
-            && labels
-                == &vec![
-                    ("function".to_string(), "function_that_errors".to_string()),
-                    ("service".to_string(), "test".to_string())
-                ]),
+    assert_eq!(counters.len(), 1);
+    assert_eq!(
+        counters[0],
+        (
+            "custom_metric_total".to_string(),
+            vec![
+                ("function".to_string(), "function_that_errors".to_string()),
+                ("service".to_string(), "test".to_string())
+            ],
+            1
+        ),
         "Counter not found. Got: {:?}",
         counters
     );
 
     let histograms = recorder.get_histograms();
+    assert_eq!(histograms.len(), 1);
     assert!(
         histograms
             .iter()
-            .any(|(name, labels, _)| name == "custom_metric_duration_seconds"
+            .any(|(name, labels, duration)| name == "custom_metric_duration_seconds"
                 && labels
                     == &vec![
                         ("function".to_string(), "function_that_errors".to_string()),
                         ("service".to_string(), "test".to_string())
-                    ]),
+                    ]
+                && *duration >= 0.0),
         "Histogram not found. Got: {:?}",
         histograms
     );
@@ -292,23 +305,35 @@ async fn test_method_function() {
     assert_eq!(result, Ok(100));
 
     let counters = recorder.get_counters();
-    assert!(
-        counters.iter().any(|(name, labels)| name == "custom_metric_total"
-            && labels.contains(&("function".to_string(), "method_function".to_string()))
-            && labels.contains(&("service".to_string(), "test".to_string()))
-            && labels.contains(&("context".to_string(), "method".to_string()))),
+    assert_eq!(counters.len(), 1);
+    assert_eq!(
+        counters[0],
+        (
+            "custom_metric_total".to_string(),
+            vec![
+                ("function".to_string(), "method_function".to_string()),
+                ("service".to_string(), "test".to_string()),
+                ("context".to_string(), "method".to_string())
+            ],
+            1
+        ),
         "Counter not found. Got: {:?}",
         counters
     );
 
     let histograms = recorder.get_histograms();
+    assert_eq!(histograms.len(), 1);
     assert!(
         histograms
             .iter()
-            .any(|(name, labels, _)| name == "custom_metric_duration_seconds"
-                && labels.contains(&("function".to_string(), "method_function".to_string()))
-                && labels.contains(&("service".to_string(), "test".to_string()))
-                && labels.contains(&("context".to_string(), "method".to_string()))),
+            .any(|(name, labels, duration)| name == "custom_metric_duration_seconds"
+                && labels
+                    == &vec![
+                        ("function".to_string(), "method_function".to_string()),
+                        ("service".to_string(), "test".to_string()),
+                        ("context".to_string(), "method".to_string())
+                    ]
+                && *duration >= 0.0),
         "Histogram not found. Got: {:?}",
         histograms
     );
