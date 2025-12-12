@@ -39,7 +39,7 @@ use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
 use crate::model::wrapped_key::WrappedKey;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum HsmError {
     #[error("pkcs11 error: {0}")]
     Pkcs11(#[from] cryptoki::error::Error),

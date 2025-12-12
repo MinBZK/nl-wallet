@@ -71,6 +71,7 @@ semver = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tracing.workspace = true
 uuid = { workspace = true, features = ["v4"] }

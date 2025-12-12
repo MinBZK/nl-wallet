@@ -39,7 +39,7 @@ pub struct HsmWuaIssuer<H, K = HsmEcdsaKey> {
     wrapping_key_identifier: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum HsmWuaIssuerError {
     #[error("HSM error: {0}")]
     Hsm(#[from] HsmError),

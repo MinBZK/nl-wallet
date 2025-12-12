@@ -135,7 +135,7 @@ pub enum AccountServerInitError {
     AppleCertificate(#[from] webpki::Error),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
     #[error("challenge signing error: {0}")]
     ChallengeSigning(#[from] JwtError),
@@ -193,7 +193,7 @@ pub enum AndroidAppAttestationError {
     IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
@@ -221,7 +221,7 @@ pub enum RegistrationError {
     HsmError(#[from] HsmError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum InstructionError {
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),

@@ -57,6 +57,7 @@ rustix = { workspace = true, features = ["pipe", "stdio"] }
 rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
+strum = { workspace = true, features = ["derive"] }
 spki = { workspace = true, features = ["std"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
