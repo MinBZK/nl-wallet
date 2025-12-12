@@ -26,6 +26,8 @@ type Result<T> = std::result::Result<T, PersistenceError>;
 pub trait WalletUserRepository {
     type TransactionType: Committable;
 
+    async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>>;
+
     async fn create_wallet_user(&self, transaction: &Self::TransactionType, user: WalletUserCreate) -> Result<Uuid>;
 
     async fn find_wallet_user_by_wallet_id(
@@ -186,6 +188,14 @@ pub trait WalletUserRepository {
 
     async fn store_wua_id(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid, wua_id: Uuid)
     -> Result<()>;
+
+    async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>>;
+
+    async fn get_wua_ids_for_wallets(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_ids: Vec<String>,
+    ) -> Result<Vec<Uuid>>;
 }
 
 #[cfg(feature = "mock")]
@@ -202,6 +212,10 @@ pub mod mock {
 
     impl WalletUserRepository for WalletUserRepositoryStub {
         type TransactionType = MockTransaction;
+
+        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>> {
+            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
+        }
 
         async fn create_wallet_user(
             &self,
@@ -436,6 +450,24 @@ pub mod mock {
             _wua_id: Uuid,
         ) -> Result<()> {
             Ok(())
+        }
+
+        async fn get_wua_ids_for_wallets(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_ids: Vec<String>,
+        ) -> Result<Vec<Uuid>> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
+        }
+
+        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
         }
     }
 }

@@ -289,7 +289,7 @@ async fn test_wua_status() {
 
     // fetch all WUA IDs for this wallet directly from the database
     let tx = user_state.repositories.begin_transaction().await.unwrap();
-    let wua_ids = wallet_user_wua::wua_ids_for_wallet(&tx, cert_data.wallet_id)
+    let wua_ids = wallet_user_wua::wua_ids_for_wallets(&tx, vec![cert_data.wallet_id])
         .await
         .unwrap();
     tx.commit().await.unwrap();

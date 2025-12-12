@@ -31,18 +31,34 @@ where
     Ok(())
 }
 
-pub async fn wua_ids_for_wallet<S, T>(db: &T, wallet_id: String) -> Result<Vec<Uuid>, PersistenceError>
+pub async fn list_wua_ids<S, T>(db: &T) -> Result<Vec<Uuid>, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     Ok(wallet_user_wua::Entity::find()
-        .join(JoinType::InnerJoin, wallet_user_wua::Relation::WalletUser.def())
-        .filter(wallet_user::Column::WalletId.eq(wallet_id.to_owned()))
         .all(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?
         .iter()
         .map(|model| model.wua_id)
         .collect())
+}
+
+pub async fn wua_ids_for_wallets<S, T>(db: &T, wallet_ids: Vec<String>) -> Result<Vec<Uuid>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    Ok(wallet_user_wua::Entity::find()
+        .join(JoinType::InnerJoin, wallet_user_wua::Relation::WalletUser.def())
+        .filter(wallet_user::Column::WalletId.is_in(wallet_ids))
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .iter()
+        .map(|model| model.wua_id)
+        .collect())
+
+    // TODO should we return an error if not all wallet_ids are found?
 }

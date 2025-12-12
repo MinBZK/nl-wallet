@@ -31,7 +31,7 @@ struct ApiDoc;
     )
 )]
 async fn revoke_batch<L>(
-    status_list_service: State<Arc<L>>,
+    State(status_list_service): State<Arc<L>>,
     Json(batch_ids): Json<Vec<Uuid>>,
 ) -> Result<(), RevocationError>
 where
@@ -47,7 +47,7 @@ where
         (status = OK, body = Vec<BatchIsRevoked>, description = "Successfully listed the issued batch IDs."),
     )
 )]
-async fn list_batch<L>(status_list_service: State<Arc<L>>) -> Result<Json<Vec<BatchIsRevoked>>, RevocationError>
+async fn list_batch<L>(State(status_list_service): State<Arc<L>>) -> Result<Json<Vec<BatchIsRevoked>>, RevocationError>
 where
     L: StatusListRevocationService + Send + Sync + 'static,
 {
@@ -66,7 +66,7 @@ where
     )
 )]
 async fn get_batch<L>(
-    status_list_service: State<Arc<L>>,
+    State(status_list_service): State<Arc<L>>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<BatchIsRevoked>, RevocationError>
 where
