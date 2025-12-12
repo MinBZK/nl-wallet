@@ -6847,7 +6847,6 @@ dependencies = [
  "attestation_types",
  "axum",
  "chrono",
- "config",
  "crypto",
  "derive_more",
  "etag",

@@ -422,8 +422,9 @@ render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/te
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
-# And the status_lists config for crate level integration test
-render_template "${DEVENV}/status_lists.toml.template" "${STATUS_LISTS_DIR}/status_lists.toml"
+# And the storage config for crate level integration test
+render_template "${DEVENV}/test_settings.toml.template" "${STATUS_LISTS_DIR}/test_settings.toml"
+render_template "${DEVENV}/test_settings.toml.template" "${SERVER_UTILS_DIR}/test_settings.toml"
 
 # Ensure the status_lists dirs exists
 mkdir -p "${ISSUANCE_SERVER_DIR}/resources/status-lists"

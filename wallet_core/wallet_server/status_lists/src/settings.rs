@@ -76,29 +76,3 @@ pub struct StatusListAttestationSettings {
     pub keypair: KeyPair,
 }
 
-#[cfg(feature = "test")]
-pub mod test {
-    use std::path::Path;
-
-    use config::Config;
-    use config::File;
-    use sea_orm::DatabaseConnection;
-    use serde::Deserialize;
-    use url::Url;
-
-    use utils::path::prefix_local_path;
-
-    #[derive(Debug, Clone, Deserialize)]
-    struct TestSettings {
-        storage_url: Url,
-    }
-
-    pub async fn connection_from_settings() -> anyhow::Result<DatabaseConnection> {
-        let settings: TestSettings = Config::builder()
-            .add_source(File::from(prefix_local_path(Path::new("status_lists.toml")).as_ref()).required(true))
-            .build()?
-            .try_deserialize()?;
-        let connection = server_utils::store::postgres::new_connection(settings.storage_url).await?;
-        Ok(connection)
-    }
-}

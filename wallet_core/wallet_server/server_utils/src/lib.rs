@@ -10,3 +10,6 @@ pub mod checkers;
 
 #[cfg(feature = "postgres")]
 pub mod entity;
+
+#[cfg(all(feature = "postgres", feature = "test"))]
+pub mod test_settings;
