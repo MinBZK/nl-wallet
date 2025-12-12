@@ -75,4 +75,3 @@ pub struct StatusListAttestationSettings {
     #[serde(flatten)]
     pub keypair: KeyPair,
 }
-

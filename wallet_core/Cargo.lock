@@ -6408,6 +6408,7 @@ dependencies = [
  "p256",
  "r2d2-cryptoki",
  "ring",
+ "rstest",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",

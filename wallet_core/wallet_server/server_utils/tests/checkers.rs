@@ -1,0 +1,148 @@
+use std::net::SocketAddr;
+use std::time::Duration;
+
+use rstest::rstest;
+use sea_orm::ConnectOptions;
+use sea_orm::Database;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
+use tokio::net::ToSocketAddrs;
+use tokio::net::lookup_host;
+use tokio::select;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::unbounded_channel;
+use tokio::task::JoinHandle;
+
+use http_utils::health::HealthChecker;
+use http_utils::health::HealthStatus;
+use server_utils::checkers::DatabaseChecker;
+use server_utils::test_settings::connection_from_settings;
+use server_utils::test_settings::default_connection_options;
+use server_utils::test_settings::test_settings;
+
+struct Proxy {
+    listener: tokio::net::TcpListener,
+    server_addr: SocketAddr,
+    port: u16,
+}
+
+struct ProxyHandle(UnboundedSender<()>, JoinHandle<()>);
+
+impl ProxyHandle {
+    async fn stop(self) {
+        self.0.send(()).unwrap();
+        self.1.await.unwrap();
+    }
+}
+
+impl Proxy {
+    pub async fn new(server_addr: impl ToSocketAddrs) -> Self {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let server_addr = lookup_host(server_addr).await.unwrap().next().unwrap();
+        let port = listener.local_addr().unwrap().port();
+        Self {
+            listener,
+            server_addr,
+            port,
+        }
+    }
+
+    pub fn spawn(self) -> ProxyHandle {
+        let (tx, mut rx) = unbounded_channel::<()>();
+        let handle = tokio::spawn(async move {
+            let mut abort_handles = Vec::new();
+            loop {
+                let abort = rx.recv();
+                let accept = self.listener.accept();
+                select! {
+                    _ = abort => break,
+                    result = accept => {
+                        let stream = match result {
+                            Ok((stream, _)) => stream,
+                            Err(err) => {
+                                println!("Failed to accept connection: {err}");
+                                break;
+                            }
+                        };
+                        let server_addr = self.server_addr;
+                        let handle = tokio::spawn(async move {
+                            match Self::handle(server_addr, stream).await {
+                                Ok(_) => println!("Connection closed"),
+                                Err(err) => println!("Error while handling connection: {err}")
+                            }
+                        });
+                        abort_handles.push(handle.abort_handle());
+                    },
+                }
+            }
+            for handle in abort_handles {
+                handle.abort();
+            }
+        });
+        ProxyHandle(tx, handle)
+    }
+
+    async fn handle(server_addr: SocketAddr, mut client_stream: TcpStream) -> anyhow::Result<()> {
+        let mut server_stream = TcpStream::connect(server_addr).await?;
+        let mut server_buf = [0; 1024];
+        let mut client_buf = [0; 1024];
+        loop {
+            let client_read = client_stream.read(&mut client_buf);
+            let server_read = server_stream.read(&mut server_buf);
+            select! {
+                result = client_read => {
+                    let len = result?;
+                    if len == 0 { break; }
+                    server_stream.write_all(&client_buf[..len]).await?;
+                }
+                result = server_read => {
+                    let len = result?;
+                    if len == 0 { break; }
+                    client_stream.write_all(&server_buf[..len]).await?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn test_db_check_up() {
+    let connection = connection_from_settings().await;
+    let checker = DatabaseChecker::new("db", &connection);
+    let result = checker.status().await;
+    assert_eq!(result.expect("checker should return ok"), HealthStatus::UP);
+}
+
+#[tokio::test]
+#[rstest]
+async fn test_db_check_down(#[values(false, true)] test_before_acquire: bool) {
+    let url = test_settings().storage_url;
+
+    // Create proxy
+    let addr = format!("{}:{}", url.host().unwrap(), url.port().unwrap());
+    let proxy = Proxy::new(addr).await;
+    let port = proxy.port;
+    let handle = proxy.spawn();
+
+    // Create pool
+    let mut connection_options = ConnectOptions::new(format!(
+        "postgres://{}:{}@127.0.0.1:{port}{}",
+        url.username(),
+        url.password().unwrap_or_default(),
+        url.path()
+    ));
+    default_connection_options(&mut connection_options);
+    connection_options.connect_timeout(Duration::from_secs(1));
+    connection_options.test_before_acquire(test_before_acquire);
+    let connection = Database::connect(connection_options).await.unwrap();
+
+    // Stop proxy
+    handle.stop().await;
+
+    // Check
+    let checker = DatabaseChecker::new("db", &connection);
+    let result = checker.status().await;
+    assert!(result.is_err());
+}

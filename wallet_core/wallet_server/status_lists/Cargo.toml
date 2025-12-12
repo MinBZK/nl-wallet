@@ -28,7 +28,7 @@ required-features = ["db_test"]
 [features]
 default = ["openapi"]
 axum = ["dep:axum", "dep:etag", "dep:mediatype", "token_status_list/axum", "tower-http/compression-gzip"]
-db_test = ["axum", "dep:reqwest", "server_utils/postgres", "server_utils/test"]
+db_test = ["axum", "dep:reqwest", "dep:rstest", "server_utils/postgres", "server_utils/test"]
 openapi = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
 
 [dependencies]
@@ -39,7 +39,6 @@ futures.workspace = true
 itertools.workspace = true
 nutype.workspace = true
 rand.workspace = true
-rstest.workspace = true
 rustix = { workspace = true, features = ["fs"] }
 sea-orm = { workspace = true, features = [
     "macros",
@@ -61,6 +60,7 @@ axum = { workspace = true, optional = true }
 etag = { workspace = true, optional = true }
 mediatype = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
+rstest = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
 
@@ -78,6 +78,7 @@ anyhow.workspace = true
 assert_matches.workspace = true
 futures.workspace = true
 p256.workspace = true
+rstest.workspace = true
 tempfile.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 uuid = { workspace = true, features = ["v4"] }

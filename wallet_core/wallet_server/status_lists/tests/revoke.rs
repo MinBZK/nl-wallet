@@ -50,7 +50,7 @@ pub async fn fetch_attestation_batch(
 
 async fn setup_revocation_test(publish_dir: PublishDir) -> (Arc<PostgresStatusListService>, Url, DatabaseConnection) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
 
     let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
 
