@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "sequoia-wallet:0.2.7"
+  default = "sequoia-wallet:0.2.8"
 }
 
 source "tart-cli" "tart" {
@@ -70,7 +70,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "brew install rustup",
-      "rustup-init -y --default-toolchain 1.90.0 --profile minimal --component clippy,rustfmt",
+      "rustup-init -y --default-toolchain 1.92.0 --profile minimal --component clippy,rustfmt",
     ]
   }
 
