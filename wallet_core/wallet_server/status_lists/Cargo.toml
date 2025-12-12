@@ -37,6 +37,7 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true
+metrics.workspace = true
 nutype.workspace = true
 rand.workspace = true
 rustix = { workspace = true, features = ["fs"] }
@@ -69,6 +70,7 @@ crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
 http_utils.path = "../../lib/http_utils"
 hsm.path = "../../lib/hsm"
+measure.path = "../../lib/measure"
 server_utils.path = "../server_utils"
 token_status_list = { path = "../../lib/token_status_list", features = ["axum"] }
 utils.path = "../../lib/utils"
