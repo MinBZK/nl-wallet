@@ -28,7 +28,7 @@ required-features = ["db_test"]
 [features]
 default = ["openapi"]
 axum = ["dep:axum", "dep:etag", "dep:mediatype", "token_status_list/axum", "tower-http/compression-gzip"]
-db_test = ["axum", "dep:reqwest", "test"]
+db_test = ["axum", "dep:reqwest", "test", "server_utils/postgres"]
 openapi = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
 test = ["dep:config"]
 
