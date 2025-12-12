@@ -194,7 +194,12 @@ async fn test_simple_function_metrics() {
     assert_eq!(result, Ok(42));
 
     let counters = recorder.get_counters();
-    assert_eq!(counters.len(), 1);
+    assert_eq!(
+        counters.len(),
+        1,
+        "Expected 1 counter (no failure), got: {:?}",
+        counters
+    );
     assert_eq!(
         counters[0],
         (
@@ -218,7 +223,8 @@ async fn test_simple_function_metrics() {
                 && labels
                     == &vec![
                         ("function".to_string(), "simple_function".to_string()),
-                        ("service".to_string(), "test".to_string())
+                        ("service".to_string(), "test".to_string()),
+                        ("failure".to_string(), "false".to_string())
                     ]
                 && *duration >= 0.0),
         "Histogram not found. Got: {:?}",
@@ -237,39 +243,17 @@ async fn test_function_without_additional_labels() {
     assert_eq!(result, Ok(true));
 
     let counters = recorder.get_counters();
-    assert_eq!(counters.len(), 1);
+    assert_eq!(
+        counters.len(),
+        1,
+        "Expected 1 counter (no failure), got: {:?}",
+        counters
+    );
     assert_eq!(
         counters[0],
         (
             "custom_metric_total".to_string(),
             vec![("function".to_string(), "function_without_labels".to_string())],
-            1
-        ),
-        "Counter not found. Got: {:?}",
-        counters
-    );
-}
-
-#[tokio::test]
-#[serial(recorder)]
-async fn test_function_preserves_errors() {
-    let recorder = setup_recorder();
-    recorder.clear();
-
-    let result = test_functions::function_that_errors().await;
-
-    assert_eq!(result, Err("test error"));
-
-    let counters = recorder.get_counters();
-    assert_eq!(counters.len(), 1);
-    assert_eq!(
-        counters[0],
-        (
-            "custom_metric_total".to_string(),
-            vec![
-                ("function".to_string(), "function_that_errors".to_string()),
-                ("service".to_string(), "test".to_string())
-            ],
             1
         ),
         "Counter not found. Got: {:?}",
@@ -284,8 +268,74 @@ async fn test_function_preserves_errors() {
             .any(|(name, labels, duration)| name == "custom_metric_duration_seconds"
                 && labels
                     == &vec![
+                        ("function".to_string(), "function_without_labels".to_string()),
+                        ("failure".to_string(), "false".to_string())
+                    ]
+                && *duration >= 0.0),
+        "Histogram not found. Got: {:?}",
+        histograms
+    );
+}
+
+#[tokio::test]
+#[serial(recorder)]
+async fn test_function_preserves_errors() {
+    let recorder = setup_recorder();
+    recorder.clear();
+
+    let result = test_functions::function_that_errors().await;
+
+    assert_eq!(result, Err("test error"));
+
+    let counters = recorder.get_counters();
+    assert_eq!(
+        counters.len(),
+        2,
+        "Expected 2 counters (total and failure), got: {:?}",
+        counters
+    );
+
+    // Check total counter
+    assert!(
+        counters
+            .iter()
+            .any(|(name, labels, value)| name == "custom_metric_total"
+                && labels
+                    == &vec![
                         ("function".to_string(), "function_that_errors".to_string()),
                         ("service".to_string(), "test".to_string())
+                    ]
+                && *value == 1),
+        "Total counter not found. Got: {:?}",
+        counters
+    );
+
+    // Check failure counter
+    assert!(
+        counters
+            .iter()
+            .any(|(name, labels, value)| name == "custom_metric_failures_total"
+                && labels
+                    == &vec![
+                        ("function".to_string(), "function_that_errors".to_string()),
+                        ("service".to_string(), "test".to_string())
+                    ]
+                && *value == 1),
+        "Failure counter not found. Got: {:?}",
+        counters
+    );
+
+    let histograms = recorder.get_histograms();
+    assert_eq!(histograms.len(), 1);
+    assert!(
+        histograms
+            .iter()
+            .any(|(name, labels, duration)| name == "custom_metric_duration_seconds"
+                && labels
+                    == &vec![
+                        ("function".to_string(), "function_that_errors".to_string()),
+                        ("service".to_string(), "test".to_string()),
+                        ("failure".to_string(), "true".to_string())
                     ]
                 && *duration >= 0.0),
         "Histogram not found. Got: {:?}",
@@ -305,7 +355,12 @@ async fn test_method_function() {
     assert_eq!(result, Ok(100));
 
     let counters = recorder.get_counters();
-    assert_eq!(counters.len(), 1);
+    assert_eq!(
+        counters.len(),
+        1,
+        "Expected 1 counter (no failure), got: {:?}",
+        counters
+    );
     assert_eq!(
         counters[0],
         (
@@ -331,7 +386,8 @@ async fn test_method_function() {
                     == &vec![
                         ("function".to_string(), "method_function".to_string()),
                         ("service".to_string(), "test".to_string()),
-                        ("context".to_string(), "method".to_string())
+                        ("context".to_string(), "method".to_string()),
+                        ("failure".to_string(), "false".to_string())
                     ]
                 && *duration >= 0.0),
         "Histogram not found. Got: {:?}",

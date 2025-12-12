@@ -38,12 +38,15 @@ impl Parse for MeasureArgs {
 
 /// Instruments an async function with execution metrics.
 ///
-/// This attribute macro automatically records two metrics for the annotated function:
+/// This attribute macro automatically records three metrics for the annotated function:
 /// - A **counter** named `{name}_total` that increments on each function call
+/// - A **counter** named `{name}_failures_total` that increments only when the function returns an `Err`
 /// - A **histogram** named `{name}_duration_seconds` that records the execution time in seconds
 ///
-/// Both metrics include a `name` label with the function name, plus any additional
-/// labels specified in the macro invocation.
+/// Both the total counter and the histogram include a `function` label with the function name,
+/// plus any additional labels specified in the macro invocation.
+/// The histogram also includes a `failure` label ("true" or "false") indicating whether the function failed.
+/// The failures counter only includes the `function` label and additional labels (no `failure` label).
 ///
 /// # Syntax
 ///
@@ -54,8 +57,8 @@ impl Parse for MeasureArgs {
 ///
 /// # Arguments
 ///
-/// * `name` - **Required**. The base name for the metrics. The macro will append `_total` for the counter and
-///   `_duration_seconds` for the histogram.
+/// * `name` - **Required**. The base name for the metrics. The macro will append `_total` for the counter,
+///   `_failures_total` for the failure counter, and `_duration_seconds` for the histogram.
 ///
 /// * Additional labels - **Optional**. Any number of key-value pairs in the format `"key" => "value"` that will be
 ///   added as metric labels. These follow the same syntax as the `metrics` crate's `counter!` and `histogram!` macros.
@@ -65,7 +68,10 @@ impl Parse for MeasureArgs {
 /// All metrics automatically include:
 /// - `function`: The name of the annotated function
 ///
-/// Additional labels provided in the macro invocation are added to both metrics.
+/// The histogram additionally includes:
+/// - `failure`: "true" if the function returned an `Err`, "false" otherwise
+///
+/// Additional labels provided in the macro invocation are added to all metrics.
 ///
 /// # Examples
 ///
@@ -81,8 +87,9 @@ impl Parse for MeasureArgs {
 /// ```
 ///
 /// This generates:
-/// - Counter: `database_query_total` with label `method = "fetch_user"`
-/// - Histogram: `database_query_elapsed` with label `method = "fetch_user"`
+/// - Counter: `database_query_total` with label `function = "fetch_user"`
+/// - Counter: `database_query_failures_total` with label `function = "fetch_user"` (only on errors)
+/// - Histogram: `database_query_duration_seconds` with labels `function = "fetch_user"` and `failure = "true"/"false"`
 ///
 /// ## With additional labels
 ///
@@ -100,7 +107,8 @@ impl Parse for MeasureArgs {
 ///   - `function = "sign_data"`
 ///   - `service = "pkcs11"`
 ///   - `operation = "sign"`
-/// - Histogram: `hsm_operation_duration_seconds` with the same labels
+/// - Counter: `hsm_operation_failures_total` with the same labels (only on errors)
+/// - Histogram: `hsm_operation_duration_seconds` with the same labels plus `failure = "true"/"false"`
 ///
 /// ## On struct methods
 ///
@@ -125,14 +133,15 @@ impl Parse for MeasureArgs {
 ///
 /// The macro preserves the function's return value, including errors. Metrics are recorded
 /// **regardless of whether the function succeeds or fails**. This means:
-/// - The counter increments even if the function returns an error
-/// - The histogram records the elapsed time up to the point of error
+/// - The total counter increments on every call
+/// - The failures counter increments only when the function returns an `Err` variant
+/// - The histogram records the elapsed time with the appropriate `failure` label
 ///
-/// This behavior ensures you can track error rates and latencies for failing operations.
+/// This behavior ensures you can track error rates and latencies for both successful and failing operations.
 ///
 /// # Performance Considerations
 ///
-/// - The macro adds minimal overhead: two metric recordings and one timestamp operation
+/// - The macro adds minimal overhead: two or three metric recordings and one timestamp operation
 /// - Metric recording is typically very fast (sub-microsecond) with most metric backends
 /// - The histogram records time in seconds as `f64`
 /// - No heap allocations are added by the macro itself
@@ -149,6 +158,7 @@ impl Parse for MeasureArgs {
 /// - Cannot be applied to trait definitions (only to implementations)
 /// - The metric name must be a string literal (cannot be a variable or computed at runtime)
 /// - Label values must be string literals or expressions valid in the `metrics!` macro syntax
+/// - Failure detection only works for functions returning `Result<T, E>` types
 #[proc_macro_attribute]
 pub fn measure(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as MeasureArgs);
@@ -179,9 +189,22 @@ pub fn measure(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let result = async move #block.await;
                 let duration = start.elapsed().as_secs_f64();
 
+                let is_error = match &result {
+                    Ok(_) => false,
+                    Err(_) => true,
+                };
+
+                if is_error {
+                    ::metrics::counter!(
+                        concat!(#metric_name, "_failures_total"),
+                        "function" => #fn_name_str
+                    ).increment(1);
+                }
+
                 ::metrics::histogram!(
                     concat!(#metric_name, "_duration_seconds"),
-                    "function" => #fn_name_str
+                    "function" => #fn_name_str,
+                    "failure" => if is_error { "true" } else { "false" }
                 ).record(duration);
 
                 result
@@ -201,9 +224,22 @@ pub fn measure(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let result = async move #block.await;
                 let duration = start.elapsed().as_secs_f64();
 
+                let is_error = match &result {
+                    Ok(_) => false,
+                    Err(_) => true,
+                };
+
+                if is_error {
+                    ::metrics::counter!(
+                        concat!(#metric_name, "_failures_total"),
+                        "function" => #fn_name_str, #additional_labels
+                    ).increment(1);
+                }
+
                 ::metrics::histogram!(
                     concat!(#metric_name, "_duration_seconds"),
-                    "function" => #fn_name_str, #additional_labels
+                    "function" => #fn_name_str, #additional_labels,
+                    "failure" => if is_error { "true" } else { "false" }
                 ).record(duration);
 
                 result
