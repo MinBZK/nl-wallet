@@ -30,6 +30,7 @@ pub async fn serve<A, L, IS>(
     wua_issuer_pubkey: VerifyingKey,
     status_list_services: L,
     status_list_router: Option<Router>,
+    health_router: Router,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
@@ -46,6 +47,7 @@ where
         wua_issuer_pubkey,
         status_list_services,
         status_list_router,
+        health_router,
     )
     .await
 }
@@ -61,6 +63,7 @@ pub async fn serve_with_listeners<A, L, IS>(
     wua_issuer_pubkey: VerifyingKey,
     status_list_services: L,
     status_list_router: Option<Router>,
+    health_router: Router,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
@@ -97,6 +100,7 @@ where
         internal_listener,
         router,
         internal_router,
+        health_router,
         log_requests,
     )
     .await

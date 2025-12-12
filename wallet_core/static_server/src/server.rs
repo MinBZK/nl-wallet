@@ -15,6 +15,7 @@ use tokio::net::TcpListener;
 use tracing::debug;
 use tracing::info;
 
+use http_utils::health::create_health_router;
 use jwt::VerifiedJwt;
 use status_lists::serve::create_serve_router;
 use utils::built_info::version_string;
@@ -40,7 +41,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     let status_list_router = create_serve_router(std::iter::once(("/wua", settings.wua_publish_dir)), None)?;
 
     let app = Router::new()
-        .merge(health_router())
+        .merge(create_health_router([]))
         .merge(status_list_router)
         .nest("/config/v1", config_router);
 
@@ -50,10 +51,6 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         .await?;
 
     Ok(())
-}
-
-fn health_router() -> Router {
-    Router::new().route("/health", get(|| async {}))
 }
 
 async fn configuration(

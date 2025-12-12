@@ -24,7 +24,7 @@ required-features = ["settings", "test"]
 [dependencies]
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
-derive_more = { workspace = true, features = ["constructor", "debug"] }
+derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
 metrics.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }

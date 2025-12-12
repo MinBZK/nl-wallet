@@ -36,6 +36,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
+use http_utils::health::create_health_router;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::trusted_reqwest_client_builder;
@@ -720,6 +721,7 @@ pub async fn start_issuance_server(
             MockStatusListServices::default(),
             None,
             MockStatusListServicesClient::new(attestation_settings),
+            create_health_router([]),
         )
         .await
         {
@@ -774,6 +776,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             settings.wua_issuer_pubkey.into_inner(),
             MockStatusListServices::default(),
             None,
+            create_health_router([]),
         )
         .await
         {

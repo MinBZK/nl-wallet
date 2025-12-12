@@ -64,7 +64,7 @@ hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils.path = "../../lib/http_utils"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance", "disclosure"] }
-server_utils.path = "../server_utils"
+server_utils = { path = "../server_utils", features = ["checkers"] }
 status_lists = { path = "../status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 utils.path = "../../lib/utils"

@@ -11,6 +11,7 @@ workspace = true
 doctest = false
 
 [features]
+checkers = ["dep:async-trait", "dep:r2d2-cryptoki"]
 parsed_key_pair_conversion = []
 # Include session storage in PostgreSQL
 postgres = [
@@ -53,6 +54,8 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
+async-trait = { workspace = true, optional = true }
+r2d2-cryptoki = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 strum = { workspace = true, optional = true }

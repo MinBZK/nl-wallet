@@ -17,6 +17,7 @@ use tokio::net::TcpListener;
 use tracing::debug;
 use tracing::info;
 
+use http_utils::health::create_health_router;
 use utils::built_info::version_string;
 use utils::generator::TimeGenerator;
 
@@ -42,7 +43,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         update_policy: settings.update_policy,
     });
 
-    let app = Router::new().merge(health_router()).nest(
+    let app = Router::new().merge(create_health_router([])).nest(
         "/update/v1",
         Router::new()
             .route("/update-policy", get(get_policy))
@@ -62,10 +63,6 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     }
 
     Ok(())
-}
-
-fn health_router() -> Router {
-    Router::new().route("/health", get(|| async {}))
 }
 
 async fn get_policy(State(state): State<Arc<ApplicationState>>, headers: HeaderMap) -> Result<Response, StatusCode> {
