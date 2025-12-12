@@ -38,9 +38,8 @@ pub enum PublishDirError {
 }
 
 impl PublishDir {
-    #[expect(clippy::needless_pass_by_value, reason = "nutype sanitize signature")]
     fn sanitize(path: PathBuf) -> PathBuf {
-        prefix_local_path(&path).into_owned()
+        prefix_local_path(path).into_owned()
     }
 
     fn validate(path: &Path) -> Result<(), PublishDirError> {

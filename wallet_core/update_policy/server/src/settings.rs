@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::path::Path;
 
 use config::Config;
 use config::ConfigError;
@@ -28,7 +29,7 @@ impl Settings {
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 8001)?
             .set_default("structured_logging", false)?
-            .add_source(File::from(prefix_local_path("update_policy_server.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("update_policy_server.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("update_policy_server")
                     .separator("__")

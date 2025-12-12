@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -53,9 +54,9 @@ pub fn create_router(settings: Settings) -> Router {
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path("assets".as_ref())).fallback(
+                    ServeDir::new(prefix_local_path(Path::new("assets"))).fallback(
                         ServiceBuilder::new()
-                            .service(ServeDir::new(prefix_local_path("../demo_utils/assets".as_ref())))
+                            .service(ServeDir::new(prefix_local_path(Path::new("../demo_utils/assets"))))
                             .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
                     ),
                 ),

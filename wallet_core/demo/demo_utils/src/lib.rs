@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::sync::LazyLock;
 
 use base64::prelude::*;
@@ -29,5 +30,5 @@ pub static WALLET_WEB_CSS_SHA256: LazyLock<String> = LazyLock::new(|| {
 });
 
 fn read_wallet_web() -> Vec<u8> {
-    fs::read(prefix_local_path("assets/nl-wallet-web.iife.js".as_ref())).expect("no nl-wallet-web.iife.js found")
+    fs::read(prefix_local_path(Path::new("assets/nl-wallet-web.iife.js"))).expect("no nl-wallet-web.iife.js found")
 }

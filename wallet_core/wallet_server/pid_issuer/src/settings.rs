@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use config::Config;
 use config::ConfigError;
 use config::Environment;
@@ -77,7 +79,7 @@ impl ServerSettings for PidIssuerSettings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(Path::new(config_file));
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")

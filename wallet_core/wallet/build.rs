@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::os;
+use std::path::Path;
 use std::path::PathBuf;
 
 use serde::de::DeserializeOwned;
@@ -80,7 +81,7 @@ fn android_x86_64_workaround() {
 }
 
 fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, fallback: &str) {
-    let file_path = prefix_local_path(file.as_ref());
+    let file_path = prefix_local_path(Path::new(file));
     // If the config file doesn't exist, copy the fallback to the config file and use that
     if !file_path.exists() {
         #[cfg(windows)]
