@@ -77,7 +77,7 @@ build {
   provisioner "shell" {
     inline = [
       "source ~/.zprofile",
-      "cargo install cargo-expand --locked --version 1.0.116",
+      "cargo install cargo-expand --locked --version 1.0.118",
       "cargo install lcov2xml --locked --version 1.0.6",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
     ]
