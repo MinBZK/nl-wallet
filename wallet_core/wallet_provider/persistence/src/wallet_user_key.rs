@@ -84,7 +84,7 @@ where
     Ok(is_blocked)
 }
 
-pub async fn unblock_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> std::result::Result<(), PersistenceError>
+pub async fn unblock_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
