@@ -20,8 +20,8 @@ path = "tests/static_server.rs"
 required-features = ["integration_test"]
 
 [[test]]
-name = "metrics"
-path = "tests/metrics.rs"
+name = "health_metrics"
+path = "tests/health_metrics.rs"
 required-features = ["integration_test"]
 
 [[test]]
