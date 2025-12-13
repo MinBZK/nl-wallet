@@ -1,15 +1,17 @@
 #!/bin/bash
 
-# Get the directory of this script.
+# get the directory of this script
 scripts_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
-# Output claim properties in tsv format, extends-aware.
+# output claim properties in sorted tsv format, extends-aware
+# shellcheck disable=SC2016 # not expanding in filter and claims is intentional
 function json_claims_to_tsv() {
     local file="$1"
     local parent="$2"
 
     local header='(["Claim Path","Label","Description","Language"],'
-    local filter='| (.path|join(".")) as $path 
+
+    local filter='| (.path|join(".")) as $path
                   | .display[] 
                   | [$path, .label, .description, .lang]]
                   | sort_by([.[0], .[3]])
@@ -25,7 +27,7 @@ function json_claims_to_tsv() {
     fi
 }
 
-# Output a given tsv as markdown table.
+# output a given tsv as a markdown table
 function tsv_to_markdown_table() {
     local tsv="$1"
     echo "$tsv" | awk '
@@ -66,8 +68,8 @@ function tsv_to_markdown_table() {
         }'
 }
 
-# Iterate over VCT json documents, print header, generate tables.
-for file in $scripts_dir/devenv/eudi:*.json; do
+# iterate over VCT json documents, print header, generate tables
+for file in $scripts_dir/devenv/eudi:{pid,pid-address}:*.json; do
     extends=$(jq -r '.extends // empty' "$file")
 
     printf "\n## Claims in $(basename ${file/.json/})\n\n"
