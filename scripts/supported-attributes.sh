@@ -11,14 +11,16 @@ function json_claims_to_tsv() {
     local header='(["Claim Path","Label","Description","Language"],'
     local filter='| (.path|join(".")) as $path 
                   | .display[] 
-                  | [$path, .label, .description, .lang])) 
+                  | [$path, .label, .description, .lang]]
+                  | sort_by([.[0], .[3]])
+                  | .[])) 
                   | @tsv'
 
     if [[ $parent ]]; then
-        claims='(($parent[0].claims + .claims)[] '
+        claims='([($parent[0].claims + .claims)[] '
         jq -r --slurpfile parent "$parent" "$header$claims$filter" "$file"
     else
-        claims='(.claims[] '
+        claims='([.claims[] '
         jq -r "$header$claims$filter" "$file"
     fi
 }
