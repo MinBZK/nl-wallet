@@ -1,15 +1,16 @@
 # Disclosure with OpenID4VP
 
-## Generic disclosure
+We've implemented disclosure with [OpenID4VP draft 20][1].
+
+## How disclosure is implemented
+
 This diagram shows how OpenID4VP is implemented within the NL Wallet Solution.
 
-[OpenID for Verifiable Presentations - draft 20](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html) is used as basis for the implementation.
+Client authentication is done using the `x509_san_dns` Client Identifier Scheme.
+Other Client Identifier Schemes are currently not supported.
 
-Client authentication is done using the `x509_san_dns` Client Identifier Scheme. Other Client Identifier Schemes are currently not supported.
-
-The reponse mode is `direct_post.jwt`. Other response modes are currently not supported.
-
-In more detail, the protocol works as follows:
+The reponse mode is `direct_post.jwt`. Other response modes are currently not
+supported. In more detail, the protocol works as follows:
 
 ```{mermaid}
 sequenceDiagram
@@ -37,7 +38,6 @@ sequenceDiagram
 
 ```
 
-
 1. From Verifier's website or app, user decides to start an action that requires disclosed attributes
 2. A request goes from Verifier App to OV to start a disclosure session
 3. OV returns `session_token` created for this session
@@ -52,3 +52,12 @@ sequenceDiagram
 12. Redirect to verifier using `redirect_uri`.
 13. Verifier's website or app requests session results from 'OV' using `session_token`
 14. 'OV' returns session results
+
+
+## References
+
+Below you'll find a collection of links which we reference to through the
+entire text. Note that they don't display when rendered within a website, you
+need to read the text in a regular text editor or pager to see them.
+
+[1]: https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html

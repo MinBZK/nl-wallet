@@ -1,5 +1,7 @@
 # Issuance with OpenID4VCI
 
+We've implemented issuance with [OpenID4VCI draft 13][2].
+
 We currently (2025-12-11) have two issuance implementations: The `pid_issuer`,
 a specialized issuer specifically for [PID][1]s, which this document is about,
 and `issuance_server` a reference disclosure-based-issuance service that can
@@ -128,8 +130,8 @@ entire text. Note that they don't display when rendered within a website, you
 need to read the text in a regular text editor or pager to see them.
 
 [1]: https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook
-[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html
-[3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
+[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html
+[3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html#name-pre-authorized-code-flow
 [4]: https://openid.net/developers/how-connect-works
 [5]: https://www.logius.nl/onze-dienstverlening/toegang/digid
 [6]: https://github.com/minvws/nl-rdo-max
