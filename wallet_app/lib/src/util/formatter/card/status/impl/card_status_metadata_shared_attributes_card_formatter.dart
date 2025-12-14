@@ -9,26 +9,26 @@ class CardStatusMetadataSharedAttributesCardFormatter implements CardStatusMetad
   @override
   bool show(CardStatus status) {
     return switch (status) {
-      CardStatus.validSoon => false,
-      CardStatus.valid => false,
-      CardStatus.expiresSoon => false,
-      CardStatus.expired => true,
-      CardStatus.revoked => true,
-      CardStatus.corrupted => true,
-      CardStatus.unknown => false,
+      CardStatusValidSoon() => false,
+      CardStatusValid() => false,
+      CardStatusExpiresSoon() => false,
+      CardStatusExpired() => true,
+      CardStatusRevoked() => true,
+      CardStatusCorrupted() => true,
+      CardStatusUndetermined() => false,
     };
   }
 
   @override
   String text(BuildContext context, WalletCard card) {
     return switch (card.status) {
-      CardStatus.validSoon => '',
-      CardStatus.valid => '',
-      CardStatus.expiresSoon => '',
-      CardStatus.expired => context.l10n.cardStatusMetadataSharedAttributesCardExpired,
-      CardStatus.revoked => context.l10n.cardStatusMetadataSharedAttributesCardRevoked,
-      CardStatus.corrupted => context.l10n.cardStatusMetadataSharedAttributesCardCorrupted,
-      CardStatus.unknown => '',
+      CardStatusValidSoon() => '',
+      CardStatusValid() => '',
+      CardStatusExpiresSoon() => '',
+      CardStatusExpired() => context.l10n.cardStatusMetadataSharedAttributesCardExpired,
+      CardStatusRevoked() => context.l10n.cardStatusMetadataSharedAttributesCardRevoked,
+      CardStatusCorrupted() => context.l10n.cardStatusMetadataSharedAttributesCardCorrupted,
+      CardStatusUndetermined() => '',
     };
   }
 

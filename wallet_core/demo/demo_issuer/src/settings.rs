@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::path::Path;
 
 use config::Config;
 use config::ConfigError;
@@ -69,7 +70,7 @@ impl Settings {
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("structured_logging", false)?
             .set_default("log_requests", false)?
-            .add_source(File::from(prefix_local_path("demo_issuer.json".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("demo_issuer.json")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("demo_issuer")
                     .separator("__")

@@ -1685,7 +1685,7 @@ mod tests {
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
-            RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+            RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
                     .generate_status_list_mock()
@@ -2064,7 +2064,7 @@ mod tests {
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
-            RevocationVerifier::new(Arc::new(StatusListClientStub::new(
+            RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
                     .generate_status_list_mock()

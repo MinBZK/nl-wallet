@@ -147,7 +147,7 @@
 //!         iat_acceptance_window: Duration::from_secs(300),
 //!     },
 //!     &TimeGenerator::default(),
-//!     &RevocationVerifier::new(Arc::new(StatusListClientStub::new(ca.generate_status_list_mock()?))),
+//!     &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(ca.generate_status_list_mock()?))),
 //! ).await?;
 //! let disclosed = verified_presentation.sd_jwt().decoded_claims()?;
 //! assert_eq!(disclosed.claims.get(&ClaimName::try_from("name").unwrap()), Some(&ClaimValue::String("alice".to_owned())));

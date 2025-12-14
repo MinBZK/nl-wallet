@@ -517,7 +517,7 @@ mod test {
     #[test]
     fn generate_ca() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
         let x509_cert = certificate.x509_certificate();
@@ -535,7 +535,7 @@ mod test {
             not_after: Some(later),
         };
         let ca = Ca::generate("myca", config).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
         assert_eq!("CN=myca", certificate.distinguished_name().unwrap());
@@ -572,7 +572,10 @@ mod test {
         let end = Some(now + Duration::days(2));
 
         let error = generate_and_verify_issuer_for_validity(start, end);
-        assert_matches!(error, CertificateError::Verification(webpki::Error::CertNotValidYet));
+        assert_matches!(
+            error,
+            CertificateError::Verification(webpki::Error::CertNotValidYet { .. })
+        );
     }
 
     #[test]
@@ -582,7 +585,7 @@ mod test {
         let end = Some(now - Duration::days(1));
 
         let error = generate_and_verify_issuer_for_validity(start, end);
-        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired));
+        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired { .. }));
     }
 
     fn assert_certificate_default_validity(certificate: &X509Certificate) {

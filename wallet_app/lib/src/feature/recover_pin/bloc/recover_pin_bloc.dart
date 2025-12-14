@@ -98,7 +98,10 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
     final state = this.state;
     if (!state.canGoBack) return;
     if (state is RecoverPinConfirmNewPin) emit(RecoverPinChooseNewPin(didGoBack: true, authUrl: state.authUrl));
-    if (state is RecoverPinChooseNewPin) emit(const RecoverPinInitial(didGoBack: true));
+    if (state is RecoverPinChooseNewPin) {
+      unawaited(_cancelPinRecoveryUsecase.invoke()); // Fix: PVW-5344
+      emit(const RecoverPinInitial(didGoBack: true));
+    }
   }
 
   FutureOr<void> _onDigidLoginFailed(RecoverPinLoginWithDigidFailed event, Emitter<RecoverPinState> emit) async {
@@ -218,13 +221,5 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
         Fimber.w('Handling ${error.runtimeType} as generic error.', ex: error);
         emit(RecoverPinGenericError(error: error));
     }
-  }
-
-  @override
-  Future<void> close() {
-    // TODO(Rob): this line cancels the PIN recovery flow even when it is successful.
-    //            PIN recovery should only be cancelled here if it's still ongoing. See PVW-5067.
-    // _cancelPinRecoveryUsecase.invoke();
-    return super.close();
   }
 }

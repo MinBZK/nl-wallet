@@ -37,6 +37,7 @@ pub enum AttestationData {
 /// Implementation of `AttestedKeyBridge` from the UDL file.
 // Unfortunately we cannot use the built-in support for traits with async methods,
 // as those are not object safe, so we have to rely on the async_trait crate instead.
+#[uniffi::trait_interface]
 #[async_trait]
 pub trait AttestedKeyBridge: Send + Sync + Debug {
     fn key_type(&self) -> AttestedKeyType;

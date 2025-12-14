@@ -101,7 +101,7 @@ fn read_csv(name: &str) -> Result<HashMap<String, String>, csv::Error> {
 }
 
 fn csv_path(name: &str) -> PathBuf {
-    prefix_local_path(format!("resources/stamdata/{name}.csv").as_ref()).into_owned()
+    prefix_local_path(PathBuf::from(format!("resources/stamdata/{name}.csv"))).into_owned()
 }
 
 #[nutype(

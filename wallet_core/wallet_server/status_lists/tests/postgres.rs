@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::ffi::OsStr;
+use std::path::Path;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use assert_matches::assert_matches;
@@ -7,6 +10,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::future::try_join_all;
 use itertools::Itertools;
+use rstest::rstest;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -20,10 +24,12 @@ use uuid::Uuid;
 use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use crypto::EcdsaKey;
+use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
+use jwt::SignedJwt;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
@@ -59,6 +65,8 @@ async fn create_status_list_service(
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
         create_threshold: NonZeroU31::try_new(create_threshold)?,
+        expiry: Duration::from_secs(3600),
+        refresh_threshold: Duration::from_secs(600),
         ttl,
         base_url: format!("https://example.com/tsl/{}", attestation_type)
             .as_str()
@@ -81,6 +89,24 @@ async fn recreate_status_list_service(
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
     Ok(service)
+}
+
+/// Clean publish dir such that all files are deleted and the lock files are truncated
+async fn clean_publish_dir(path: PathBuf) {
+    tokio::task::spawn_blocking(move || {
+        for entry in std::fs::read_dir(path).unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension() == Some(OsStr::new("lock")) {
+                // Lock files always need to be intact (otherwise the lock cannot be guaranteed).
+                // Truncating it, instead of deleting the file
+                std::fs::write(path, "").unwrap();
+            } else {
+                std::fs::remove_file(path).unwrap();
+            }
+        }
+    })
+    .await
+    .unwrap();
 }
 
 async fn attestation_type_id(connection: &DatabaseConnection, name: &str) -> i16 {
@@ -159,6 +185,16 @@ async fn assert_published_list(
     assert_eq!(bits, Bits::One);
     assert_eq!(claims.ttl, config.ttl);
 
+    // Expiry should be less than configured in since time has increased
+    let expiry_from_now = claims.exp.expect("expiry should be set") - Utc::now();
+    assert_eq!(
+        expiry_from_now
+            .to_std()
+            .expect("expiry should be in future")
+            .saturating_sub(config.expiry),
+        Duration::ZERO
+    );
+
     let published = claims.status_list.unpack();
     let mut expected = StatusList::new_aligned(list.size as usize, bits);
     for index in revoked {
@@ -234,7 +270,7 @@ async fn test_service_initializes_status_lists() {
 }
 
 #[tokio::test]
-async fn test_service_initializes_multiple_status_lists() {
+async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await.unwrap();
 
@@ -246,6 +282,8 @@ async fn test_service_initializes_multiple_status_lists() {
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
                 create_threshold: NonZeroU31::try_new(1).unwrap(),
+                expiry: Duration::from_secs(3600),
+                refresh_threshold: Duration::from_secs(600),
                 ttl: None,
                 base_url: "https://example.com/tsl".parse().unwrap(),
                 publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
@@ -268,10 +306,23 @@ async fn test_service_initializes_multiple_status_lists() {
         .unwrap();
 
     // Check if status lists are correctly initialized
-    for attestation_type in attestation_types {
+    for attestation_type in &attestation_types {
         let db_lists = fetch_status_list(&connection, attestation_type.id).await;
         assert_eq!(db_lists.len(), 1);
         assert_status_list_items(&connection, &db_lists[0], 4, 4, 4, false).await;
+        assert_empty_published_list(&configs.as_ref()[&attestation_type.name], &db_lists[0]).await;
+    }
+
+    // Clean published files and start refresh job
+    clean_publish_dir(publish_dir.path().to_path_buf()).await;
+    let refresh_handles = service.start_refresh_jobs();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    refresh_handles.into_iter().for_each(|handle| handle.abort());
+
+    // Check if status lists are correctly republished
+    for attestation_type in attestation_types {
+        let db_lists = fetch_status_list(&connection, attestation_type.id).await;
+        assert_eq!(db_lists.len(), 1);
         assert_empty_published_list(&configs.as_ref()[&attestation_type.name], &db_lists[0]).await;
     }
 }
@@ -617,4 +668,46 @@ async fn test_service_revoke_attestation_batches_concurrently() {
         }),
     )
     .await;
+}
+
+async fn republish_list_with_expiry(path: &Path, key_pair: &KeyPair<impl EcdsaKey>, expiry: Option<DateTime<Utc>>) {
+    let token: StatusListToken = tokio::fs::read_to_string(path).await.unwrap().parse().unwrap();
+    let (_, mut claims) = token.as_ref().dangerous_parse_unverified().unwrap();
+    claims.exp = expiry;
+    let signed = SignedJwt::sign_with_certificate(&claims, key_pair).await.unwrap();
+    tokio::fs::write(path, signed.into_unverified().serialization())
+        .await
+        .unwrap();
+    let lock_path = path.with_extension("lock");
+    tokio::fs::write(&lock_path, []).await.unwrap();
+}
+
+#[tokio::test]
+#[rstest]
+#[case(None)]
+#[case(Some(Utc::now()))]
+async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<DateTime<Utc>>) {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let connection = connection_from_settings().await.unwrap();
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 3, 1, None, &publish_dir)
+        .await
+        .unwrap();
+
+    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
+    assert_eq!(db_lists.len(), 1);
+
+    republish_list_with_expiry(
+        &publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id)),
+        &config.key_pair,
+        expiry,
+    )
+    .await;
+
+    let handle = service.start_refresh_job();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    handle.abort();
+
+    assert_published_list(&config, &db_lists[0], []).await;
 }

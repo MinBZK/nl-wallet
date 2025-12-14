@@ -6,7 +6,6 @@ use der::Decode;
 use der::Encode;
 use der::asn1::BitString;
 use der::asn1::ObjectIdentifier;
-use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::signature::Signer;
@@ -18,13 +17,14 @@ use rcgen::CustomExtension;
 use rcgen::DistinguishedName;
 use rcgen::DnType;
 use rcgen::IsCa;
+use rcgen::Issuer;
 use rcgen::KeyPair;
 use rcgen::PKCS_ECDSA_P256_SHA256;
 use rcgen::PKCS_RSA_SHA256;
 use rcgen::RsaKeySize;
 use rsa::RsaPublicKey;
+use rsa::pkcs1::DecodeRsaPublicKey;
 use spki::AlgorithmIdentifierOwned;
-use spki::DecodePublicKey;
 use x509_cert::certificate::Certificate;
 
 use crate::attestation_extension::KEY_ATTESTATION_EXTENSION_OID;
@@ -36,9 +36,9 @@ use crate::attestation_extension::key_description::KeyDescription;
 #[derive(Debug, Clone)]
 pub struct MockCaChain {
     certificates_der: Vec<Vec<u8>>,
+    pub serial_numbers: Vec<u64>,
     pub root_public_key: RsaPublicKey,
-    #[debug("{:?}", last_certificate_and_keypair.0.der())]
-    pub last_certificate_and_keypair: Arc<(rcgen::Certificate, rcgen::KeyPair)>,
+    pub last_issuer: Arc<Issuer<'static, KeyPair>>,
 }
 
 impl MockCaChain {
@@ -48,23 +48,25 @@ impl MockCaChain {
         let mut rng = rand::thread_rng();
 
         // Start with an iterator that runs backwards from `intermediate_count` down to and including 0.
-        let mut certificates_and_key_pairs = (0..=intermediate_count)
+        let certificates_serials_and_issuers = (0..=intermediate_count)
             .rev()
             .scan(
                 None,
-                |prev_cert_and_pair: &mut Option<Arc<(rcgen::Certificate, rcgen::KeyPair)>>, constrained_count| {
+                |prev_issuer: &mut Option<Arc<Issuer<'static, KeyPair>>>, constrained_count| {
                     // Generate an RSA key pair as root CA and ECDSA key pairs as intermediate CAs and set the `IsCa`
                     // value as certificate parameters, using a decrementing intermediate count as constraint.
                     // The intermediates are ECDSA keys as in 'real' certificate chains the final keys in the chain
                     // are ECDSA also we need this for `generate_attested_leaf_certificate_with_null_sig_parameters`.
-                    let key_pair = if prev_cert_and_pair.is_some() {
+                    let key_pair = if prev_issuer.is_some() {
                         KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap()
                     } else {
                         KeyPair::generate_rsa_for(&PKCS_RSA_SHA256, RsaKeySize::_2048).unwrap()
                     };
 
+                    let serial_number = rng.r#gen::<u64>();
+
                     let mut params = CertificateParams::default();
-                    params.serial_number = Some((rng.r#gen::<u64>()).into());
+                    params.serial_number = Some(serial_number.into());
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(constrained_count));
 
                     // Create a SubjectDN using the constrained_count to make it uniquely recognizable.
@@ -74,61 +76,52 @@ impl MockCaChain {
 
                     // Get the parent certificate and key pair from the previous iteration and use it to sign
                     // a new certificate. If these are not present, this is the CA, which is self-signed.
-                    let certificate =
-                        if let Some((parent_certificate, parent_key_pair)) = prev_cert_and_pair.as_deref() {
-                            params.signed_by(&key_pair, parent_certificate, parent_key_pair)
-                        } else {
-                            params.self_signed(&key_pair)
-                        }
-                        .unwrap();
+                    let certificate = if let Some(parent_issuer) = prev_issuer.as_deref() {
+                        params.signed_by(&key_pair, parent_issuer)
+                    } else {
+                        params.self_signed(&key_pair)
+                    }
+                    .unwrap();
 
-                    // Save the certificate and key pair for the next iteration,
-                    // using `Rc` to keep the borrow checker happy.
-                    let cert_and_pair = Arc::new((certificate, key_pair));
-                    prev_cert_and_pair.replace(Arc::clone(&cert_and_pair));
+                    // Save the issuer for the next iteration, using `Arc` to keep the borrow checker happy.
+                    let issuer = Arc::new(Issuer::new(params, key_pair));
+                    prev_issuer.replace(Arc::clone(&issuer));
 
-                    // Return the tuple of generated certificate and key pair.
-                    Some(cert_and_pair)
+                    // Return the tuple of generated certificate and issuer.
+                    Some((certificate.der().to_vec(), serial_number, issuer))
                 },
             )
             .collect::<Vec<_>>();
 
-        // Convert all of the X.509 certificates to DER and reverse the order,
-        // so that the chain runs from leaf to root.
-        let certificates_der = certificates_and_key_pairs
-            .iter()
-            .rev()
-            .map(Arc::as_ref)
-            .map(|(certificate, _)| certificate.der().to_vec())
-            .collect();
-
         // Extract and decode the public key of the root CA.
-        let (_, root_key_pair) = certificates_and_key_pairs.first().unwrap().as_ref();
-        let root_public_key = RsaPublicKey::from_public_key_der(&root_key_pair.public_key_der()).unwrap();
+        let (_, _, root_issuer) = certificates_serials_and_issuers.first().unwrap();
+        let root_public_key = RsaPublicKey::from_pkcs1_der(root_issuer.key().public_key_raw()).unwrap();
 
         // Save the generated certificate and key pair of the lowest level CA (which may be the root or an
         // intermediate), so that we can generate leaf certificates. We keep the `Arc` to be able to clone it.
-        let last_certificate_and_keypair = certificates_and_key_pairs.pop().unwrap();
+        let (_, _, last_issuer) = certificates_serials_and_issuers.last().unwrap();
+        let last_issuer = Arc::clone(last_issuer);
+
+        // Convert all of the X.509 DER certificates and serial numbers and
+        // reverse the order, so that the chain runs from leaf to root.
+        let (certificates_der, serial_numbers) = certificates_serials_and_issuers
+            .into_iter()
+            .rev()
+            .map(|(certificate, serial_number, _)| (certificate, serial_number))
+            .unzip();
 
         Self {
             certificates_der,
+            serial_numbers,
             root_public_key,
-            last_certificate_and_keypair,
+            last_issuer,
         }
     }
 
-    fn generate_certificate(&self, params: CertificateParams) -> (Vec<Vec<u8>>, SigningKey) {
+    fn generate_certificate(&self, params: &CertificateParams) -> (Vec<Vec<u8>>, SigningKey) {
         // Generate a leaf certificate and convert it to DER.
         let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
-        let certificate = params
-            .signed_by(
-                &key_pair,
-                &self.last_certificate_and_keypair.0,
-                &self.last_certificate_and_keypair.1,
-            )
-            .unwrap()
-            .der()
-            .to_vec();
+        let certificate = params.signed_by(&key_pair, &self.last_issuer).unwrap().der().to_vec();
 
         // Return a copy of the full certificate chain, including the new
         // leaf certificate and the signing key for that leaf certificate.
@@ -153,7 +146,7 @@ impl MockCaChain {
         let tbs_certificate_der = certificate.tbs_certificate.to_der().unwrap();
 
         // Obtain signing key from chain
-        let signing_key = SigningKey::from_pkcs8_der(self.last_certificate_and_keypair.1.serialized_der()).unwrap();
+        let signing_key = SigningKey::from_pkcs8_der(self.last_issuer.key().serialized_der()).unwrap();
 
         // Calculate signature over digest
         let signature: Signature = signing_key.sign(&tbs_certificate_der);
@@ -169,7 +162,7 @@ impl MockCaChain {
     /// Generates a new leaf certificate, returning both the full certificate
     /// chain containing this leaf and the its corresponding private key.
     pub fn generate_leaf_certificate(&self) -> Vec<Vec<u8>> {
-        let (chain, _) = self.generate_certificate(CertificateParams::default());
+        let (chain, _) = self.generate_certificate(&CertificateParams::default());
         chain
     }
 
@@ -184,7 +177,7 @@ impl MockCaChain {
                 rasn::der::encode(key_description).unwrap(),
             ));
 
-        self.generate_certificate(certificate_params)
+        self.generate_certificate(&certificate_params)
     }
 
     /// Generates a new leaf certificate including the android key attestation extension.
@@ -201,7 +194,7 @@ impl MockCaChain {
                 rasn::der::encode(key_description).unwrap(),
             ));
 
-        let (mut certificate_chain, _) = self.generate_certificate(certificate_params);
+        let (mut certificate_chain, _) = self.generate_certificate(&certificate_params);
 
         let leaf_certificate = certificate_chain.remove(0);
 
@@ -230,7 +223,7 @@ impl MockCaChain {
                 rasn::der::encode(key_description).unwrap(),
             ));
 
-        let (chain, _) = self.generate_certificate(certificate_params);
+        let (chain, _) = self.generate_certificate(&certificate_params);
         chain
     }
 }
@@ -287,7 +280,7 @@ mod tests {
         let error = verify_certificate_chain(&certificates, &mock_ca_chain, intermediate_count, &supported_sig_algs)
             .expect_err("certificate chain should not verify");
 
-        assert_matches!(error, webpki::Error::UnsupportedSignatureAlgorithm);
+        assert_matches!(error, webpki::Error::UnsupportedSignatureAlgorithmContext(_));
 
         let supported_sig_algs = [
             RSA_PKCS1_2048_8192_SHA256,

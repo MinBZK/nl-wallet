@@ -59,7 +59,7 @@ void _setupMockitoDummies() {
   provideDummy<Policy>(WalletMockData.policy);
 
   // Card status dummies
-  provideDummy<CardStatus>(CardStatus.valid);
+  provideDummy<CardStatus>(const CardStatusValid(validUntil: null));
 
   // Navigation request dummies
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));

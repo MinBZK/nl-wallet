@@ -244,17 +244,16 @@ pub mod mock {
 
     use coset::CoseKeyBuilder;
     use coset::iana::EllipticCurve;
-    use derive_more::Debug;
     use p256::ecdsa::SigningKey;
     use p256::pkcs8::DecodePrivateKey;
     use passkey_types::ctap2::AttestedCredentialData;
     use passkey_types::ctap2::AuthenticatorData;
     use rand::RngCore;
     use rcgen::BasicConstraints;
-    use rcgen::Certificate;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
     use rcgen::IsCa;
+    use rcgen::Issuer;
     use rcgen::KeyPair;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PKCS_ECDSA_P384_SHA384;
@@ -275,9 +274,8 @@ pub mod mock {
 
     #[derive(Debug, Clone)]
     pub struct MockAttestationCa {
-        #[debug("{:?}", certificate.der())]
-        certificate: Arc<Certificate>,
-        key_pair: Arc<KeyPair>,
+        issuer: Arc<Issuer<'static, KeyPair>>,
+        certificate: CertificateDer<'static>,
     }
 
     impl MockAttestationCa {
@@ -287,25 +285,30 @@ pub mod mock {
             let mut params = CertificateParams::default();
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             let certificate = params.self_signed(&key_pair).unwrap();
+            let issuer = Issuer::new(params, key_pair);
 
             Self {
-                certificate: Arc::new(certificate),
-                key_pair: Arc::new(key_pair),
+                issuer: Arc::new(issuer),
+                certificate: certificate.into(),
             }
         }
 
-        pub fn as_certificate_der(&self) -> &CertificateDer<'static> {
-            self.certificate.der()
+        pub fn certificate(&self) -> &CertificateDer<'_> {
+            &self.certificate
         }
 
         pub fn trust_anchor(&self) -> TrustAnchor<'_> {
-            webpki::anchor_from_trusted_cert(self.as_certificate_der()).unwrap()
+            webpki::anchor_from_trusted_cert(&self.certificate).unwrap()
+        }
+
+        pub fn sign_with_params(&self, params: &CertificateParams, key_pair: &KeyPair) -> CertificateDer<'static> {
+            params.signed_by(key_pair, &self.issuer).unwrap().into()
         }
     }
 
     #[cfg(feature = "mock_ca")]
     mod mock_ca {
-        use rcgen::CertificateParams;
+        use rcgen::Issuer;
         use rcgen::KeyPair;
         use rcgen::PKCS_ECDSA_P384_SHA384;
         use rustls_pki_types::CertificateDer;
@@ -330,17 +333,12 @@ pub mod mock {
                 let key_der = PrivateKeyDer::try_from(key_der).map_err(MockAttestationCaDerError::KeyDer)?;
                 let key_pair = KeyPair::from_der_and_sign_algo(&key_der, &PKCS_ECDSA_P384_SHA384)?;
 
-                let certificate_der = CertificateDer::from(certificate_der);
-                let params = CertificateParams::from_ca_cert_der(&certificate_der)?;
-                // This generates a new self-signed certificate that is different from the one provided as
-                // input to this function. Unfortunately this is necessary for now, as there is no way to
-                // create a `Certificate` type from DER, only `CertificateParams`.
-                // See: https://github.com/rustls/rcgen/issues/274#issuecomment-2121969453
-                let certificate = params.self_signed(&key_pair)?;
+                let certificate = CertificateDer::from(certificate_der).into_owned();
+                let issuer = Issuer::from_ca_cert_der(&certificate, key_pair)?;
 
                 let ca = Self {
-                    certificate: Arc::new(certificate),
-                    key_pair: Arc::new(key_pair),
+                    issuer: Arc::new(issuer),
+                    certificate,
                 };
 
                 Ok(ca)
@@ -349,12 +347,6 @@ pub mod mock {
             pub fn new_mock() -> Self {
                 Self::from_der(MOCK_APPLE_ROOT_CA, MOCK_APPLE_ROOT_CA_KEY).expect("could not decode mock Apple root CA")
             }
-        }
-    }
-
-    impl AsRef<[u8]> for MockAttestationCa {
-        fn as_ref(&self) -> &[u8] {
-            self.certificate.der().as_ref()
         }
     }
 
@@ -410,11 +402,11 @@ pub mod mock {
                 &APPLE_ANONYMOUS_ATTESTATION_OID.iter().unwrap().collect::<Vec<_>>(),
                 extension_content,
             )];
-            let certificate = params.signed_by(&key_pair, &ca.certificate, &ca.key_pair).unwrap();
+            let certificate = ca.sign_with_params(&params, &key_pair);
 
             // Sign the X.509 certificate with the CA private key, then serialize
             // this and the CA certificate into a DER certificate chain.
-            let x509_certificates = vec![certificate.der().to_vec(), ca.certificate.der().to_vec()]
+            let x509_certificates = vec![certificate.to_vec(), ca.certificate().to_vec()]
                 .try_into()
                 .unwrap();
 

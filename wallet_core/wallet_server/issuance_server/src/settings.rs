@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 use config::Config;
 use config::ConfigError;
@@ -23,6 +24,7 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
+use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
@@ -37,6 +39,10 @@ pub struct IssuanceServerSettings {
     pub issuer_settings: IssuerSettings,
 
     pub status_lists: StatusListsSettings,
+
+    /// Configuration for caching status list tokens.
+    #[serde(default)]
+    pub status_list_token_cache_settings: StatusListTokenCacheSettings,
 
     /// Reader trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
     /// application startup.
@@ -75,7 +81,9 @@ impl ServerSettings for IssuanceServerSettings {
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
             .set_default("status_lists.list_size", 100_000)?
-            .set_default("status_lists.create_threshold", 0.1)?
+            .set_default("status_lists.create_threshold_ratio", 0.1)?
+            .set_default("status_lists.expiry_in_hours", 24)?
+            .set_default("status_lists.refresh_threshold_ratio", 0.25)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",
@@ -94,7 +102,7 @@ impl ServerSettings for IssuanceServerSettings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(Path::new(config_file));
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")

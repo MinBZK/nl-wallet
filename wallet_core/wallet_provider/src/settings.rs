@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::net::IpAddr;
+use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -25,10 +26,10 @@ use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
-use server_utils::keys::PrivateKeySettingsError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::PrivateKey;
 use status_lists::config::StatusListConfig;
+use status_lists::config::StatusListConfigError;
 use status_lists::publish::PublishDir;
 use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
@@ -154,7 +155,9 @@ impl Settings {
                 "pin_public_disclosure_protection_key",
             )?
             .set_default("wua_status_list.list_size", 100_000)?
-            .set_default("wua_status_list.create_threshold", 0.01)?
+            .set_default("wua_status_list.create_threshold_ratio", 0.01)?
+            .set_default("wua_status_list.expiry_in_hours", 24)?
+            .set_default("wua_status_list.refresh_threshold_ratio", 0.25)?
             .set_default("wua_status_list.key_identifier", "wua_tsl_key")?
             .set_default("wua_signing_key_identifier", "wua_signing_key")?
             .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
@@ -172,7 +175,7 @@ impl Settings {
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
             .set_default("max_transfer_upload_size_in_bytes", 100_000_000)?
-            .add_source(File::from(prefix_local_path("wallet_provider.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("wallet_provider.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")
@@ -218,7 +221,8 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
 }
 
 impl WuaStatusListsSettings {
-    pub async fn into_config(self, hsm: Pkcs11Hsm) -> Result<StatusListConfig, PrivateKeySettingsError> {
+    pub async fn into_config(self, hsm: Pkcs11Hsm) -> Result<StatusListConfig, StatusListConfigError> {
+        let (expiry, ttl) = self.list_settings.expiry_ttl()?;
         let key_pair = KeyPair {
             certificate: self.key_certificate,
             private_key: PrivateKey::Hsm {
@@ -232,9 +236,11 @@ impl WuaStatusListsSettings {
             list_size: self.list_settings.list_size,
             create_threshold: self
                 .list_settings
-                .create_threshold
+                .create_threshold_ratio
                 .of_nonzero_u31(self.list_settings.list_size),
-            ttl: self.list_settings.ttl,
+            expiry,
+            refresh_threshold: self.list_settings.refresh_threshold_ratio.of_duration(expiry),
+            ttl,
             base_url: self.base_url,
             publish_dir: self.publish_dir,
             key_pair,

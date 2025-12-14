@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use config::Config;
 use config::ConfigError;
 use config::Environment;
@@ -57,7 +59,9 @@ impl ServerSettings for PidIssuerSettings {
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
             .set_default("status_lists.list_size", 100_000)?
-            .set_default("status_lists.create_threshold", 0.1)?
+            .set_default("status_lists.create_threshold_ratio", 0.1)?
+            .set_default("status_lists.expiry_in_hours", 24)?
+            .set_default("status_lists.refresh_threshold_ratio", 0.25)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",
@@ -75,7 +79,7 @@ impl ServerSettings for PidIssuerSettings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(Path::new(config_file));
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")

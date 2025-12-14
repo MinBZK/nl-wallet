@@ -41,7 +41,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.validSoon)),
+          CardDataLoadSuccess(
+            WalletMockData.cardWithStatus(CardStatusValidSoon(validFrom: WalletMockData.validFrom)),
+          ),
         ),
         brightness: Brightness.dark,
       );
@@ -52,7 +54,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.valid)),
+          CardDataLoadSuccess(
+            WalletMockData.cardWithStatus(const CardStatusValid(validUntil: null)),
+          ),
         ),
         brightness: Brightness.dark,
       );
@@ -63,7 +67,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.expiresSoon)),
+          CardDataLoadSuccess(
+            WalletMockData.cardWithStatus(CardStatusExpiresSoon(validUntil: WalletMockData.validUntil)),
+          ),
         ),
         brightness: Brightness.dark,
       );
@@ -74,7 +80,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.expired)),
+          CardDataLoadSuccess(
+            WalletMockData.cardWithStatus(CardStatusExpired(validUntil: WalletMockData.validUntil)),
+          ),
         ),
         brightness: Brightness.dark,
       );
@@ -85,7 +93,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.revoked)),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(const CardStatusRevoked())),
         ),
         brightness: Brightness.dark,
       );
@@ -96,22 +104,22 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.corrupted)),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(const CardStatusCorrupted())),
         ),
         brightness: Brightness.dark,
       );
       await screenMatchesGolden('status.corrupted');
     });
 
-    testGoldens('ltc25 CardDataLoadSuccess status - unknown', (tester) async {
+    testGoldens('ltc25 CardDataLoadSuccess status - undetermined', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.unknown)),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(const CardStatusUndetermined())),
         ),
         brightness: Brightness.dark,
       );
-      await screenMatchesGolden('status.unknown');
+      await screenMatchesGolden('status.undetermined');
     });
 
     testGoldens('ltc25 CardDataInitial state', (tester) async {

@@ -73,6 +73,7 @@ use server_utils::settings::Server;
 use server_utils::settings::ServerAuth;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
+use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::client::mock::StatusListClientStub;
 use utils::generator::mock::MockTimeGenerator;
@@ -133,12 +134,12 @@ async fn wallet_server_settings_and_listener(
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
+    let issuer_trust_anchors = vec![issuer_ca.borrowing_trust_anchor().clone()];
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
-    let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
+    let reader_trust_anchors = vec![rp_ca.borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 
@@ -188,6 +189,8 @@ async fn wallet_server_settings_and_listener(
         wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
 
         extending_vct_values: None,
+
+        status_list_token_cache_settings: StatusListTokenCacheSettings::default(),
     };
 
     (settings, listener, issuer_ca, rp_trust_anchor)

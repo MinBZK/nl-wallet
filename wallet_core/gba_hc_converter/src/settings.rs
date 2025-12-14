@@ -1,5 +1,6 @@
 use std::net::IpAddr;
 use std::path::Path;
+use std::path::PathBuf;
 
 use config::Config;
 use config::ConfigError;
@@ -107,7 +108,7 @@ pub struct PreloadedSettings {
 impl<T> FileGbavClient<T> {
     pub fn try_from_settings(settings: PreloadedSettings, client: T) -> Result<Self, ConfigError> {
         Ok(Self::new(
-            Path::new(&settings.xml_path),
+            PathBuf::from(settings.xml_path),
             settings.encryption_key,
             settings.hmac_key,
             client,
@@ -132,7 +133,7 @@ impl Settings {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 8001)?
-            .add_source(File::from(prefix_local_path("gba_hc_converter.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("gba_hc_converter.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("gba_hc_converter")
                     .separator("__")

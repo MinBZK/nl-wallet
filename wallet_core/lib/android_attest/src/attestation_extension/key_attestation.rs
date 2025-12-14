@@ -850,7 +850,7 @@ mod test {
     #[case(1.into(), &[HardwareAuthenticatorType::PASSWORD])]
     #[case(2.into(), &[HardwareAuthenticatorType::FINGERPRINT])]
     #[case(3.into(), &[HardwareAuthenticatorType::PASSWORD, HardwareAuthenticatorType::FINGERPRINT])]
-    #[case(Integer::Primitive(u32::MAX as isize), &[HardwareAuthenticatorType::PASSWORD, HardwareAuthenticatorType::FINGERPRINT])]
+    #[case(u32::MAX.into(), &[HardwareAuthenticatorType::PASSWORD, HardwareAuthenticatorType::FINGERPRINT])]
     fn hardware_authenticator_type(#[case] input: Integer, #[case] expected: &[HardwareAuthenticatorType]) {
         let actual = HardwareAuthenticatorType::try_from(input.clone()).unwrap();
 
@@ -860,7 +860,7 @@ mod test {
         if expected.is_empty() {
             assert!(actual.is_empty());
         }
-        if input == Integer::Primitive(u32::MAX as isize) {
+        if input == u32::MAX.into() {
             assert!(actual.is_all());
         }
     }

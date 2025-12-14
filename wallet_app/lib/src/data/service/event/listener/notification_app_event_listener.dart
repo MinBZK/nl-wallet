@@ -1,21 +1,20 @@
 import '../../../../domain/app_event/app_event_listener.dart';
 import '../../../../domain/usecase/permission/check_permission_usecase.dart';
-import '../../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../store/notification_settings_store.dart';
+import '../../navigation_service.dart';
 
 /// [AppEventListener] that observes events that require notification related actions
 class NotificationAppEventListener extends AppEventListener {
   final CheckPermissionUseCase _checkPermissionUseCase;
 
-  // ignore: unused_field
-  final RequestPermissionUseCase _requestPermissionUseCase;
+  final NavigationService _navigationService;
   final NotificationSettingsStore _notificationSettingsStore;
 
   bool _requestNotificationPermission = false;
 
   NotificationAppEventListener(
     this._checkPermissionUseCase,
-    this._requestPermissionUseCase,
+    this._navigationService,
     this._notificationSettingsStore,
   ) {
     _checkAndSetRequestNotificationPermission();
@@ -44,10 +43,9 @@ class NotificationAppEventListener extends AppEventListener {
       // Make sure we only execute this block once
       _requestNotificationPermission = false;
       await _notificationSettingsStore.setShowNotificationRequest(showNotificationRequest: false);
-      // In PVW-5249 we want to update this to show a context dialog first
-      // Disabled for now, as without the context sheet this is mainly a nuisance.
-      // await Future.delayed(const Duration(seconds: 2)); // delay and request
-      // await _requestPermissionUseCase.invoke(.notification);
+      // Request permissions as per: PVW-5249
+      await Future.delayed(const Duration(seconds: 2));
+      await _navigationService.showDialog(.requestNotificationPermission);
     }
   }
 }

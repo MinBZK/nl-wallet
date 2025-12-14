@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::path::Path;
 
 use config::Config;
 use config::ConfigError;
@@ -28,7 +29,7 @@ impl Settings {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 8001)?
-            .add_source(File::from(prefix_local_path("static_server.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("static_server.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("static_server")
                     .separator("__")

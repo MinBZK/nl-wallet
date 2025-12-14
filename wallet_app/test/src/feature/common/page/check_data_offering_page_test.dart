@@ -128,8 +128,6 @@ void main() {
             attestationType: 'com.example.attestationType',
             issuer: WalletMockData.organization,
             status: WalletMockData.status,
-            validFrom: WalletMockData.validFrom,
-            validUntil: WalletMockData.validUntil,
             attributes: const [],
           ),
         ),

@@ -578,8 +578,8 @@ mod example_constructors {
     use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
     use crate::examples::SD_JWT_VC_SPEC_METADATA_BYTES;
-    use crate::examples::SIMPLE_EMBEDDED_BYTES;
-    use crate::examples::SIMPLE_REMOTE_BYTES;
+    use crate::examples::SIMPLE_EMBEDDED_METADATA_BYTES;
+    use crate::examples::SIMPLE_REMOTE_METADATA_BYTES;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
@@ -688,12 +688,12 @@ mod example_constructors {
         }
 
         pub fn simple_embedded_example() -> Self {
-            serde_json::from_slice(SIMPLE_EMBEDDED_BYTES).unwrap()
+            serde_json::from_slice(SIMPLE_EMBEDDED_METADATA_BYTES).unwrap()
         }
 
         pub fn simple_remote_example() -> serde_json::Error {
             // Explicitly unsupported at the moment, hence the error return
-            serde_json::from_slice::<Self>(SIMPLE_REMOTE_BYTES).unwrap_err()
+            serde_json::from_slice::<Self>(SIMPLE_REMOTE_METADATA_BYTES).unwrap_err()
         }
     }
 
@@ -781,7 +781,6 @@ mod test {
     use std::str::FromStr;
 
     use assert_matches::assert_matches;
-    use jsonschema::ValidationError;
     use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;
     use serde_json::json;
@@ -1039,16 +1038,9 @@ mod test {
             .validate(&claims)
             .expect_err("JSON schema should fail validation");
 
-        assert_matches!(
-            *error,
-            ValidationError {
-                instance,
-                kind: ValidationErrorKind::Format { format },
-                instance_path,
-                ..
-            } if instance.to_string() == format!("\"{date_str}\"")
-                    && format == "date" && instance_path.to_string() == "/birth_date"
-        );
+        assert_eq!(error.instance().to_string(), format!("\"{date_str}\""));
+        assert_matches!(error.kind(), ValidationErrorKind::Format { format } if format == "date");
+        assert_eq!(error.instance_path().to_string(), "/birth_date");
     }
 
     #[rstest]

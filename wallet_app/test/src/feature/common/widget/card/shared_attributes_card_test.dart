@@ -138,7 +138,9 @@ void main() {
             width: _outdatedFooterTestSurfaceSize.width,
             padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
             child: SharedAttributesCard(
-              card: WalletMockData.cardWithStatus(CardStatus.expired),
+              card: WalletMockData.cardWithStatus(
+                CardStatusExpired(validUntil: WalletMockData.validUntil),
+              ),
               attributes: WalletMockData.card.attributes,
               onPressed: () {},
             ),
@@ -158,7 +160,9 @@ void main() {
             width: _outdatedFooterTestSurfaceSize.width,
             padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
             child: SharedAttributesCard(
-              card: WalletMockData.cardWithStatus(CardStatus.expired),
+              card: WalletMockData.cardWithStatus(
+                CardStatusExpired(validUntil: WalletMockData.validUntil),
+              ),
               attributes: WalletMockData.card.attributes,
               onPressed: () {},
             ),
@@ -181,7 +185,9 @@ void main() {
             width: _largeTestSurfaceSize.width,
             padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
             child: SharedAttributesCard(
-              card: WalletMockData.cardWithStatus(CardStatus.expired),
+              card: WalletMockData.cardWithStatus(
+                CardStatusExpired(validUntil: WalletMockData.validUntil),
+              ),
               attributes: WalletMockData.card.attributes,
               onPressed: () {},
               //showOutdatedFooter: true,
@@ -203,7 +209,9 @@ void main() {
             width: _extraLargeTestSurfaceSize.width,
             padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
             child: SharedAttributesCard(
-              card: WalletMockData.cardWithStatus(CardStatus.expired),
+              card: WalletMockData.cardWithStatus(
+                CardStatusExpired(validUntil: WalletMockData.validUntil),
+              ),
               attributes: WalletMockData.card.attributes,
               onPressed: () {},
               onChangeCardPressed: () {},

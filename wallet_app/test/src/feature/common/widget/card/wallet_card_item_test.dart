@@ -3,7 +3,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
-import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/feature/common/widget/card/card_holograph.dart';
 import 'package:wallet/src/feature/common/widget/card/card_logo.dart';
 import 'package:wallet/src/feature/common/widget/card/mock_card_background.dart';
@@ -164,7 +163,7 @@ void main() {
               builder: (context) {
                 return Column(
                   spacing: 16,
-                  children: CardStatus.values
+                  children: WalletMockData.cardStatusList
                       .mapIndexed(
                         (index, status) => WalletCardItem.fromWalletCard(
                           context,
@@ -194,7 +193,7 @@ void main() {
               builder: (context) {
                 return Column(
                   spacing: 16,
-                  children: CardStatus.values
+                  children: WalletMockData.cardStatusList
                       .mapIndexed(
                         (index, status) => WalletCardItem.fromWalletCard(
                           context,
@@ -225,7 +224,7 @@ void main() {
                   data: const MediaQueryData(textScaler: TextScaler.linear(2)),
                   child: Column(
                     spacing: 16,
-                    children: CardStatus.values
+                    children: WalletMockData.cardStatusList
                         .mapIndexed(
                           (index, status) => WalletCardItem.fromWalletCard(
                             context,

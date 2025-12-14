@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::path::Path;
 
 use config::Config;
 use config::ConfigError;
@@ -36,7 +37,7 @@ impl Settings {
             .set_default("webserver.port", 8001)?
             .set_default("structured_logging", false)?
             .set_default("log_requests", false)?
-            .add_source(File::from(prefix_local_path("demo_index.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("demo_index.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("demo_index")
                     .separator("__")

@@ -26,12 +26,6 @@ abstract class WalletCard with _$WalletCard {
     /// Card status (e.g. valid, expired, revoked)
     required CardStatus status,
 
-    /// Time from which the card is valid
-    required DateTime validFrom,
-
-    /// Time until the card is valid (expiry date)
-    required DateTime validUntil,
-
     /// Data attributes stored in the card
     required List<DataAttribute> attributes,
 

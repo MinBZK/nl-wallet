@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 
 use config::Config;
@@ -38,6 +39,7 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
+use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -68,6 +70,10 @@ pub struct VerifierSettings {
 
     /// Indicate per vct what extending vcts are accepted during disclosure.
     pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
+
+    /// Configuration for caching status list tokens.
+    #[serde(default)]
+    pub status_list_token_cache_settings: StatusListTokenCacheSettings,
 
     #[serde(flatten)]
     pub server_settings: Settings,
@@ -168,7 +174,7 @@ impl ServerSettings for VerifierSettings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(Path::new(config_file));
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")

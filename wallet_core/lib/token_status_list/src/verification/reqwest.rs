@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use derive_more::AsRef;
 use http::header;
 use url::Url;
@@ -28,10 +26,9 @@ impl StatusListClient for HttpStatusListClient {
             .get(url)
             .header(header::ACCEPT, STATUS_LIST_JWT_ACCEPT)
             .send()
-            .await
-            .map_err(Arc::new)?;
+            .await?;
 
-        let status_list_token = response.text().await.map_err(Arc::new)?.parse().map_err(Arc::new)?;
+        let status_list_token = response.error_for_status()?.text().await?.parse()?;
 
         Ok(status_list_token)
     }

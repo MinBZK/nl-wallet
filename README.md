@@ -247,7 +247,7 @@ to install a few additional utilities we use:
 ```shell
 cargo install --locked cargo-edit cargo-expand 'cargo-ndk@^4' cargo-nextest
 cargo install --locked --version 2.11.1 flutter_rust_bridge_codegen
-cargo install --locked --version 1.1.16 sea-orm-cli
+cargo install --locked --version 1.1.19 sea-orm-cli
 cargo install --list
 ```
 
