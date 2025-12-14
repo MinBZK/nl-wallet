@@ -72,7 +72,7 @@ function tsv_to_markdown_table() {
 for file in $scripts_dir/devenv/eudi:{pid,pid-address}:*.json; do
     extends=$(jq -r '.extends // empty' "$file")
 
-    printf "\n## Claims in $(basename ${file/.json/})\n\n"
+    printf "\n### Claims in $(basename ${file/.json/})\n\n"
 
     if [ -n "$extends" ]; then
         tsv_to_markdown_table "$(json_claims_to_tsv "$file" "$scripts_dir/devenv/${extends#urn:}.json")"

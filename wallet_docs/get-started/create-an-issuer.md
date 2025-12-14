@@ -480,29 +480,10 @@ on the plaform, but since we don't have an issuer registry yet, you would need
 to know or otherwise get your hands on the JSON documents that define the claim
 paths that belong to a given `vct` (a Verifiable Credential Type).
 
-For our own issuer(s), you can have a look at our [supported attributes][32]
-document for an overview of claim paths you can use.
-
-For example, suppose you want to verify `age_over_18` and `address.country`,
-then your `authorizedAttributes` object would look as follows:
-
-```json
-"authorizedAttributes": {
-  "urn:eudi:pid:nl:1": [["urn:eudi:pid:nl:1", "age_over_18"]],
-  "urn:eudi:pid-address:nl:1": [["urn:eudi:pid-address:nl:1", "address.country"]],
-}
-```
-
-In the case of our example insurance company, we're interested in the `bsn`, so
-in the next section, where we show an example `reader_auth.json` document, we
-simply use the following:
-
-```json
-"authorizedAttributes": {
-  "urn:eudi:pid:nl:1": [
-    ["urn:eudi:pid:nl:1", "bsn"]
-  ]
-```
+For our own issuer(s), you can have a look at our
+[supported authorized attributes][32] document for an overview of claim paths
+you can use, and some background information on how the `authorizedAttributes`
+object works.
 
 ### Creating the reader_auth JSON document
 
@@ -1465,4 +1446,4 @@ need to read the text in a regular text editor or pager to see them.
 [29]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-digital-credentials-query-l
 [30]: ../development/openapi-specifications
 [31]: create-a-verifier
-[32]: ../development/supported-attributes
+[32]: ../development/authorized-attributes

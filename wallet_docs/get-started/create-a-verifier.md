@@ -170,29 +170,10 @@ on the plaform, but since we don't have an issuer registry yet, you would need
 to know or otherwise get your hands on the JSON documents that define the claim
 paths that belong to a given `vct` (a Verifiable Credential Type).
 
-For our own issuer(s), you can have a look at our [supported attributes][32]
-document for an overview of claim paths you can use.
-
-For example, suppose you want to verify `age_over_18` and `address.country`,
-then your `authorizedAttributes` object would look as follows:
-
-```json
-"authorizedAttributes": {
-    "urn:eudi:pid:nl:1": [["urn:eudi:pid:nl:1", "age_over_18"]],
-    "urn:eudi:pid-address:nl:1": [["urn:eudi:pid-address:nl:1", "address.country"]],
-}
-```
-
-<div class="admonition note"><p class="title">A little more background</p>
-<p>In the `verification_server` we have the concept of `usecases`, which
-encapsulate what you want to use a disclosure for, for example to verify a legal
-age or to login to a website. Every usecase requires a reader certificate with
-an X.509v3 embedded `reader_auth.json`. The `verification_server` can support
-multiple `usecases`.</p>
-<p>In this guide we're creating a single reader certificate (so, for a single
-`usecase`), but there's nothing stopping you from creating multiple reader
-certificates for different `usecases`.</p>
-</div>
+For our own issuer(s), you can have a look at our
+[supported authorized attributes][32] document for an overview of claim paths
+you can use, and some background information on how the `authorizedAttributes`
+object works.
 
 ### Creating the reader_auth JSON document
 
@@ -1192,4 +1173,4 @@ need to read the text in a regular text editor or pager to see them.
 [29]: https://datatracker.ietf.org/doc/rfc9901/
 [30]: ../development/openapi-specifications
 [31]: create-an-issuer
-[32]: ../development/supported-attributes
+[32]: ../development/authorized-attributes
