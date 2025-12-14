@@ -1,6 +1,7 @@
 # Disclosure with OpenID4VP
 
-We've implemented disclosure with [OpenID4VP draft 20][1].
+We've implemented disclosure with [OpenID4VP draft 20][1], with
+Proof-of-Association (PoA) as a custom addition.
 
 ## How disclosure is implemented
 
@@ -35,7 +36,6 @@ sequenceDiagram
     Wallet ->> RP: redirect to the redirect URI (session_token)
     RP ->> WalletServer: fetch response data (session_token)
     WalletServer ->> RP: response data (verified attributes)
-
 ```
 
 1. From Verifier's website or app, user decides to start an action that requires disclosed attributes

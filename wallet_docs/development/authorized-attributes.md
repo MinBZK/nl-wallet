@@ -13,7 +13,7 @@ indicates what attributes you want to verify, called `authorizedAttributes`.
 
 In the `scripts/devenv` subdirectory of our git repository, you'll find various
 `*_reader_auth.json` example documents which all include an
-`authorizedAttributes`.
+`authorizedAttributes` object.
 
 Let's take the (quite extensive) one from our "XYZ Bank" as an example:
 

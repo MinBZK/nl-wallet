@@ -1,6 +1,7 @@
 # Issuance with OpenID4VCI
 
-We've implemented issuance with [OpenID4VCI draft 13][2].
+We've implemented issuance with [OpenID4VCI draft 13][2], with attestation
+preview as a custom addition.
 
 We currently (2025-12-11) have two issuance implementations: The `pid_issuer`,
 a specialized issuer specifically for [PID][1]s, which this document is about,
