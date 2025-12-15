@@ -2992,6 +2992,8 @@ dependencies = [
  "derive_more",
  "futures",
  "hmac",
+ "measure",
+ "metrics",
  "p256",
  "r2d2-cryptoki",
  "rand 0.8.5",
@@ -3876,6 +3878,18 @@ dependencies = [
  "tracing",
  "url",
  "utils",
+]
+
+[[package]]
+name = "measure"
+version = "0.4.0-dev"
+dependencies = [
+ "metrics",
+ "proc-macro2",
+ "quote",
+ "serial_test",
+ "syn",
+ "tokio",
 ]
 
 [[package]]

@@ -197,7 +197,7 @@ fn metrics_router() -> Router {
 }
 
 async fn metrics_handler(State(handle): State<PrometheusHandle>) -> String {
-    counter!("metrics_endpoint_called", "service" => "http").increment(1);
+    counter!("nlwallet_metrics_endpoint_count", "service" => "http").increment(1);
     handle.render()
 }
 
