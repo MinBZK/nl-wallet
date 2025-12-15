@@ -1,7 +1,14 @@
 #!/bin/bash
 
-# get the directory of this script
-scripts_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
+function print_usage() {
+    local program="$(basename $0)"
+    echo "Usage: $program [<.json>...]"
+    echo ""
+    echo "Format VCT claims from JSON definition document(s) as markdown tables."
+    echo "Outputs to stdout. For example:"
+    echo ""
+    echo "    $program devenv/eudi:{pid,pid-address}:*.json"
+}
 
 # output claim properties in sorted tsv format, extends-aware
 # shellcheck disable=SC2016 # not expanding in filter and claims is intentional
@@ -68,14 +75,32 @@ function tsv_to_markdown_table() {
         }'
 }
 
+# print help if no arguments given
+if [ -z "$1" ]; then
+    print_usage
+    exit 1
+fi
+
+# print help if help requested, set files array
+case $1 in
+    -h|--help|help)
+    print_usage
+    exit 1
+    ;;
+    *)
+    files=("$@")
+    ;;
+esac
+
 # iterate over VCT json documents, print header, generate tables
-for file in $scripts_dir/devenv/eudi:{pid,pid-address}:*.json; do
+for file in "${files[@]}"; do
     extends=$(jq -r '.extends // empty' "$file")
 
-    printf "\n### Claims in $(basename ${file/.json/})\n\n"
+    printf "\n### Claims in %s)\n\n" "$(basename "${file/.json/}")"
 
     if [ -n "$extends" ]; then
-        tsv_to_markdown_table "$(json_claims_to_tsv "$file" "$scripts_dir/devenv/${extends#urn:}.json")"
+        parent="$(dirname "$file")/${extends#urn:}.json"
+        tsv_to_markdown_table "$(json_claims_to_tsv "$file" "$parent")"
     else
         tsv_to_markdown_table "$(json_claims_to_tsv "$file")"
     fi
