@@ -39,7 +39,7 @@ url = { workspace = true, features = ["serde"] }
 
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
-reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"], optional = true }
+reqwest = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 
 [dev-dependencies]
