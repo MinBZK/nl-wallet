@@ -75,8 +75,8 @@ example above, you'll find that some values seem a bit redundant, like:
 In this case, the first (somewhat wordy) specification is an MDOC style path
 specification, and the second shorter one is an SD-JWT claim path (which in the
 tables below is shown as `address.street_address`). Specifying this in both
-forms allows the verifier (or issuer doing disclosure-based-issuance) to accept
-both MDOC and SD-JWT style attributes.
+forms allows the verifier (or issuer doing disclosure-based-issuance) to request
+ttributes from attestations in both MDOC and SD-JWT format.
 
 ### A note about extended VCTs
 
