@@ -1,0 +1,553 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Authorized attributes &mdash; NL Wallet 0.4.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=79eb5478" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bf7cd258"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Generic Issuance" href="generic-issuance.html" />
+    <link rel="prev" title="Logical Test Cases" href="../functional-design/logical-test-cases.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/components-overview.html">Components Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Authorized attributes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/development/authorized-attributes.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="authorized-attributes">
+<h1>Authorized attributes<a class="headerlink" href="#authorized-attributes" title="Link to this heading"></a></h1>
+<p>On this page you’ll find a collection of so-called claim paths, which are
+defined within a number of verifiable credential types (or doctypes in mdoc) we
+support. These claim paths are used to indicate what values you’re interested
+in. They are used within the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object in <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>
+documents.</p>
+<section id="how-authorized-attributes-are-specified">
+<h2>How authorized attributes are specified<a class="headerlink" href="#how-authorized-attributes-are-specified" title="Link to this heading"></a></h2>
+<p>As mentioned, in the <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> document, you have an object which
+indicates what attributes you want to verify, called <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code>.</p>
+<p>In the <code class="docutils literal notranslate"><span class="pre">scripts/devenv</span></code> subdirectory of our git repository, you’ll find various
+<code class="docutils literal notranslate"><span class="pre">*_reader_auth.json</span></code> example documents which all include an
+<code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object.</p>
+<p>Let’s take the (quite extensive) one from our “XYZ Bank” as an example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;given_name&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;family_name&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;birthdate&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;given_name&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;family_name&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;birthdate&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;bsn&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;given_name&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;family_name&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;birthdate&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;urn:eudi:pid-address:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid-address:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid-address:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;house_number&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid-address:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;postal_code&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;house_number&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;postal_code&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;urn:eudi:pid-address:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;house_number&quot;</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;postal_code&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+<p>The object contains named array values; the name represents an attestation type
+(a <em>doctype</em> in mdoc parlance, or a <em>Verifiable Credential Type</em>/VCT in SD-JWT
+speak), with a version number appended (i.e., the <code class="docutils literal notranslate"><span class="pre">1</span></code>’s after the name).</p>
+<p>In the above example: <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:nl:1</span></code>, <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:1&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">urn:eudi:pid-address:nl:1</span></code>, and <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid-address:1</span></code> are attestation type
+names with an appended version <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<p>These attestation types are (in our implementation) defined in JSON definition
+documents (for example, see <code class="docutils literal notranslate"><span class="pre">scripts/devenv/eudi:*.json</span></code> in our git repository).</p>
+<p>The tables below, which show you what each attestation type can contain, are
+generated from those documents.</p>
+<section id="support-for-both-sd-jwt-and-mdoc-style-authorized-attributes">
+<h3>Support for both SD-JWT- and mdoc-style authorized attributes<a class="headerlink" href="#support-for-both-sd-jwt-and-mdoc-style-authorized-attributes" title="Link to this heading"></a></h3>
+<p>The array contains one or more arrays with so-called “claim paths”. In the
+example above, you’ll find that some values seem a bit redundant, like:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+<span class="w">  </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid-address:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">]</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>In this case, the first (somewhat wordy) specification is an mdoc style path
+specification, and the second shorter one is an SD-JWT claim path (which in the
+tables below is shown as <code class="docutils literal notranslate"><span class="pre">address.street_address</span></code>). Specifying this in both
+forms allows the verifier (or issuer doing disclosure-based-issuance) to request
+ttributes from attestations in both mdoc and SD-JWT format.</p>
+</section>
+<section id="a-note-about-extended-vcts">
+<h3>A note about extended VCTs<a class="headerlink" href="#a-note-about-extended-vcts" title="Link to this heading"></a></h3>
+<p>In the VCT definition documents (in our git repository, the JSON documents that
+define our VCT/doctypes are <code class="docutils literal notranslate"><span class="pre">scripts/devenv/eudi:*.json</span></code>) there is an optional
+<code class="docutils literal notranslate"><span class="pre">extends</span></code> keyword that can indicate a parent VCT, allowing a VCT to be
+“extended”.</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:nl:1</span></code> extends <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:1</span></code> with <code class="docutils literal notranslate"><span class="pre">bsn</span></code> and
+<code class="docutils literal notranslate"><span class="pre">recovery_code</span></code>, in addition to Dutch language labels and descriptions for all
+claim paths. In <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:nl:1</span></code> you’ll see an <code class="docutils literal notranslate"><span class="pre">extends</span></code> element which points
+to <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:1</span></code>.</p>
+</section>
+</section>
+<section id="overview-of-supported-authorized-attributes">
+<h2>Overview of supported authorized attributes<a class="headerlink" href="#overview-of-supported-authorized-attributes" title="Link to this heading"></a></h2>
+<p>Below you’ll find a few tables which show which attributes we support, in some
+cases in both English and Dutch form.</p>
+<div class="admonition note">
+<p class="admonition-title">These tables are generated</p>
+<p>The below tables are generated using our <code class="docutils literal notranslate"><span class="pre">authorized-attributes-tables.sh</span></code>
+script, which parses our <code class="docutils literal notranslate"><span class="pre">scripts/devenv/eudi:*.json</span></code> documents. If you suspect
+the claim path attributes you’re looking at might be out-of-date, you can invoke
+<code class="docutils literal notranslate"><span class="pre">authorized-attributes-tables.sh</span></code> and make sure you’re looking at the latest we
+support.</p>
+<p>Do note that, while we use the aforementioned JSON definition documents in
+our locally running <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, it is not guaranteed that a <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>
+running in one of our live environments uses these exact-same JSON definition
+documents. When you work with one of our live environments, and thus followed
+our <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> procedure, you can contact our operations team to obtain
+the necessary information.</p>
+</div>
+<section id="claims-in-eudi-pid-1">
+<h3>Claims in eudi:pid:1<a class="headerlink" href="#claims-in-eudi-pid-1" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Claim Path</p></th>
+<th class="head"><p>Label</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Language</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>age_over_18</p></td>
+<td><p>Over 18</p></td>
+<td><p>Whether the person is over 18</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>birthdate</p></td>
+<td><p>Birth date</p></td>
+<td><p>Birth date of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-even"><td><p>family_name</p></td>
+<td><p>Name</p></td>
+<td><p>Family name of the person, including any prefixes</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>given_name</p></td>
+<td><p>First name</p></td>
+<td><p>First name of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-even"><td><p>nationalities</p></td>
+<td><p>Nationalities</p></td>
+<td><p>List of nationalities of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="claims-in-eudi-pid-nl-1">
+<h3>Claims in eudi:pid:nl:1<a class="headerlink" href="#claims-in-eudi-pid-nl-1" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Claim Path</p></th>
+<th class="head"><p>Label</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Language</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>age_over_18</p></td>
+<td><p>Over 18</p></td>
+<td><p>Whether the person is over 18</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>age_over_18</p></td>
+<td><p>18+</p></td>
+<td><p>Of de persoon 18+ is</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>birthdate</p></td>
+<td><p>Birth date</p></td>
+<td><p>Birth date of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>birthdate</p></td>
+<td><p>Geboortedatum</p></td>
+<td><p>Geboortedatum van de persoon</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>bsn</p></td>
+<td><p>BSN</p></td>
+<td><p>BSN of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>bsn</p></td>
+<td><p>BSN</p></td>
+<td><p>BSN van de persoon</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>family_name</p></td>
+<td><p>Name</p></td>
+<td><p>Family name of the person, including any prefixes</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>family_name</p></td>
+<td><p>Achternaam</p></td>
+<td><p>Achternaam van de persoon, inclusief voorvoegsels</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>given_name</p></td>
+<td><p>First name</p></td>
+<td><p>First name of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>given_name</p></td>
+<td><p>Voornaam</p></td>
+<td><p>Voornaam van de persoon</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>nationalities</p></td>
+<td><p>Nationalities</p></td>
+<td><p>List of nationalities of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>nationalities</p></td>
+<td><p>Nationaliteiten</p></td>
+<td><p>Lijst van nationaliteiten van de persoon</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>recovery_code</p></td>
+<td><p>Recovery code</p></td>
+<td><p>Recovery code of the person</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>recovery_code</p></td>
+<td><p>Herstelcode</p></td>
+<td><p>Herstelcode van de persoon</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="claims-in-eudi-pid-address-1">
+<h3>Claims in eudi:pid-address:1<a class="headerlink" href="#claims-in-eudi-pid-address-1" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Claim Path</p></th>
+<th class="head"><p>Label</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Language</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>address.country</p></td>
+<td><p>Country</p></td>
+<td><p>Country of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>address.house_number</p></td>
+<td><p>House number</p></td>
+<td><p>House number of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-even"><td><p>address.locality</p></td>
+<td><p>City</p></td>
+<td><p>City of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>address.postal_code</p></td>
+<td><p>Postal code</p></td>
+<td><p>Postal code of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-even"><td><p>address.street_address</p></td>
+<td><p>Street</p></td>
+<td><p>Street of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="claims-in-eudi-pid-address-nl-1">
+<h3>Claims in eudi:pid-address:nl:1<a class="headerlink" href="#claims-in-eudi-pid-address-nl-1" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Claim Path</p></th>
+<th class="head"><p>Label</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Language</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>address.country</p></td>
+<td><p>Country</p></td>
+<td><p>Country of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>address.country</p></td>
+<td><p>Land</p></td>
+<td><p>Land van het adres</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>address.house_number</p></td>
+<td><p>House number</p></td>
+<td><p>House number of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>address.house_number</p></td>
+<td><p>Huisnummer</p></td>
+<td><p>Huisnummer van het adres</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>address.locality</p></td>
+<td><p>City</p></td>
+<td><p>City of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>address.locality</p></td>
+<td><p>Stad</p></td>
+<td><p>Stad van het adres</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>address.postal_code</p></td>
+<td><p>Postal code</p></td>
+<td><p>Postal code of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>address.postal_code</p></td>
+<td><p>Postcode</p></td>
+<td><p>Postcode van het adres</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+<tr class="row-even"><td><p>address.street_address</p></td>
+<td><p>Street</p></td>
+<td><p>Street of the address</p></td>
+<td><p>en-US</p></td>
+</tr>
+<tr class="row-odd"><td><p>address.street_address</p></td>
+<td><p>Straatnaam</p></td>
+<td><p>Straatnaam van het adres</p></td>
+<td><p>nl-NL</p></td>
+</tr>
+</tbody>
+</table>
+<!-- References -->
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../functional-design/logical-test-cases.html" class="btn btn-neutral float-left" title="Logical Test Cases" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="generic-issuance.html" class="btn btn-neutral float-right" title="Generic Issuance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="authorized-attributes.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

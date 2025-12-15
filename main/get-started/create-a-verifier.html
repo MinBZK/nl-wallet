@@ -121,6 +121,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
@@ -257,7 +258,6 @@ their own frontend and backend.</p>
 <li><p><a class="reference internal" href="#requirements-applicable-to-your-application" id="id39">Requirements applicable to your application</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#references" id="id40">References</a></p></li>
 </ul>
 </nav>
 <section id="what-we-re-going-to-cover">
@@ -447,39 +447,14 @@ provide both Dutch and English values.</p>
 </section>
 <section id="decide-on-attributes-you-want-to-verify">
 <h3>Decide on attributes you want to verify<a class="headerlink" href="#decide-on-attributes-you-want-to-verify" title="Link to this heading"></a></h3>
-<p>You can verify any attribute provided by any issuer on the plaform, but since
-we don’t have an issuer registry yet, you would need to know or otherwise get
-your hands on the JSON documents that define the claim paths that belong to a
-given <code class="docutils literal notranslate"><span class="pre">vct</span></code> (a Verifiable Credential Type).</p>
-<p>For our own issuer(s), you can use the <code class="docutils literal notranslate"><span class="pre">jq</span></code> utility to query our supported
-attribute names:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
-<span class="nb">cd</span><span class="w"> </span>nl-wallet/wallet_core/lib/sd_jwt_vc_metadata/examples
-jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;(select(.vct | startswith(&quot;urn:&quot;)) | .vct) + &quot;: &quot; + (.claims[].path | join(&quot;.&quot;))&#39;</span><span class="w"> </span>*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
-</pre></div>
-</div>
-<p>The above <code class="docutils literal notranslate"><span class="pre">jq</span></code> command will output a sorted unique list of namespaces and the
-attribute name that namespace supports. You will need one or more of those to
-configure the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object in <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>.</p>
-<p>For example, suppose you want to verify <code class="docutils literal notranslate"><span class="pre">age_over_18</span></code> and <code class="docutils literal notranslate"><span class="pre">address.country</span></code>,
-then your <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object would look as follows:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;age_over_18&quot;</span><span class="p">]],</span>
-<span class="w">    </span><span class="nt">&quot;urn:eudi:pid-address:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;urn:eudi:pid-address:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;address.country&quot;</span><span class="p">]],</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">A little more background</p>
-<p>In the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> we have the concept of <code class="docutils literal notranslate"><span class="pre">usecases</span></code>, which
-encapsulate what you want to use a disclosure for, for example to verify a legal
-age or to login to a website. Every usecase requires a reader certificate with
-an X.509v3 embedded <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>. The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> can support
-multiple <code class="docutils literal notranslate"><span class="pre">usecases</span></code>.</p>
-<p>In this guide we’re creating a single reader certificate (so, for a single
-<code class="docutils literal notranslate"><span class="pre">usecase</span></code>), but there’s nothing stopping you from creating multiple reader
-certificates for different <code class="docutils literal notranslate"><span class="pre">usecases</span></code>.</p>
-</div>
+<p>You can verify any attribute (also known as a claim path) provided by any issuer
+on the plaform, but since we don’t have an issuer registry yet, you would need
+to know or otherwise get your hands on the JSON documents that define the claim
+paths that belong to a given <code class="docutils literal notranslate"><span class="pre">vct</span></code> (a Verifiable Credential Type).</p>
+<p>For our own issuer(s), you can have a look at our
+<a class="reference internal" href="../development/authorized-attributes.html"><span class="doc std std-doc">supported authorized attributes</span></a> document for an overview of claim paths
+you can use, and some background information on how the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code>
+object works.</p>
 </section>
 <section id="creating-the-reader-auth-json-document">
 <h3>Creating the reader_auth JSON document<a class="headerlink" href="#creating-the-reader-auth-json-document" title="Link to this heading"></a></h3>
@@ -1349,7 +1324,7 @@ specifically, what you need to keep in mind when you integrate the usage of the
 app for identification or verification of attributes with your application:</p>
 <ul class="simple">
 <li><p>The NL Wallet app presents attestations using the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html">OpenID4VP</a> protocol
-standard using either the <a class="reference external" href="https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/">SD-JWT</a> or the <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021 MDOC</a>
+standard using either the <a class="reference external" href="https://datatracker.ietf.org/doc/rfc9901/">SD-JWT</a> or the <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021 MDOC</a>
 credential format;</p></li>
 <li><p>Any disclosure session initiation request must include the reason why the
 verifier is requesting the attributes;</p></li>
@@ -1364,13 +1339,8 @@ custom button text (within reason);</p></li>
 <li><p>The text “NL Wallet” should always be visible in the call-to-action;</p></li>
 <li><p>Logo of “NL Wallet” should be visible next to the call-to-action.</p></li>
 </ul>
+<!-- References -->
 </section>
-</section>
-<section id="references">
-<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
-<p>Below you’ll find a collection of links which we reference to through the
-entire text. Note that they don’t display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.</p>
 </section>
 </section>
 

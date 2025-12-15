@@ -121,6 +121,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
@@ -263,7 +264,6 @@ issuer/verstrekkende-voorziening.</p>
 </li>
 <li><p><a class="reference internal" href="#issuer-api-specifications" id="id43">Issuer API specifications</a></p></li>
 <li><p><a class="reference internal" href="#integrating-your-app-with-your-issuance-server" id="id44">Integrating your app with your issuance server</a></p></li>
-<li><p><a class="reference internal" href="#references" id="id45">References</a></p></li>
 </ul>
 </nav>
 <section id="what-we-re-going-to-cover">
@@ -833,37 +833,14 @@ provide both Dutch and English values.</p>
 </section>
 <section id="decide-on-attributes-you-want-to-verify">
 <h3>Decide on attributes you want to verify<a class="headerlink" href="#decide-on-attributes-you-want-to-verify" title="Link to this heading"></a></h3>
-<p>You can verify any attribute provided by any issuer on the plaform, but since
-we don’t have an issuer registry yet, you would need to know or otherwise get
-your hands on the JSON documents that define the claim paths that belong to a
-given <code class="docutils literal notranslate"><span class="pre">vct</span></code> (a Verifiable Credential Type).</p>
-<p>For our own issuer(s), you can use the <code class="docutils literal notranslate"><span class="pre">jq</span></code> utility to query our supported
-attribute names:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
-<span class="nb">cd</span><span class="w"> </span>nl-wallet/wallet_core/lib/sd_jwt_vc_metadata/examples
-jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;(select(.vct | startswith(&quot;urn:&quot;)) | .vct) + &quot;: &quot; + (.claims[].path | join(&quot;.&quot;))&#39;</span><span class="w"> </span>*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
-</pre></div>
-</div>
-<p>The above <code class="docutils literal notranslate"><span class="pre">jq</span></code> command will output a sorted unique list of namespaces and the
-attribute name that namespace supports. You will need one or more of those to
-configure the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object in <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>.</p>
-<p>For example, suppose you want to verify <code class="docutils literal notranslate"><span class="pre">age_over_18</span></code> and <code class="docutils literal notranslate"><span class="pre">address.country</span></code>,
-then your <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object would look as follows:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;age_over_18&quot;</span><span class="p">]],</span>
-<span class="w">  </span><span class="nt">&quot;urn:eudi:pid-address:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;urn:eudi:pid-address:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;address.country&quot;</span><span class="p">]],</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>In the case of our example insurance company, we’re interested in the <code class="docutils literal notranslate"><span class="pre">bsn</span></code>, so
-in the next section, where we show an example <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> document, we
-simply use the following:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">]</span>
-<span class="w">  </span><span class="p">]</span>
-</pre></div>
-</div>
+<p>You can verify any attribute (also known as a claim path) provided by any issuer
+on the plaform, but since we don’t have an issuer registry yet, you would need
+to know or otherwise get your hands on the JSON documents that define the claim
+paths that belong to a given <code class="docutils literal notranslate"><span class="pre">vct</span></code> (a Verifiable Credential Type).</p>
+<p>For our own issuer(s), you can have a look at our
+<a class="reference internal" href="../development/authorized-attributes.html"><span class="doc std std-doc">supported authorized attributes</span></a> document for an overview of claim paths
+you can use, and some background information on how the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code>
+object works.</p>
 </section>
 <section id="creating-the-reader-auth-json-document">
 <h3>Creating the reader_auth JSON document<a class="headerlink" href="#creating-the-reader-auth-json-document" title="Link to this heading"></a></h3>
@@ -1723,12 +1700,7 @@ the previous step.</p>
 <li><p>Place this UL on your website (within in a QR code in case of cross device
 flows).</p></li>
 </ol>
-</section>
-<section id="references">
-<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
-<p>Below you’ll find a collection of links which we reference to through the
-entire text. Note that they don’t display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.</p>
+<!-- References -->
 </section>
 </section>
 

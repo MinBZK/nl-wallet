@@ -129,6 +129,7 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../development/authorized-attributes.html">Authorized attributes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/generic-issuance.html">Generic Issuance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
@@ -195,8 +196,7 @@ followed immediately by an issuance screen presenting the new attestations. In
 between the two screens, the issuer receives the disclosed attributes, and can
 use those to determine the contents of the attestation(s) to be issued.</p>
 <p>The issuer side of this functionality is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>
-binary, which is a part of the <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate (see also
-<a class="reference internal" href="issuance-with-openid4vci.html#generic-issuance"><span class="std std-ref">issuance with openid4vci</span></a>).</p>
+binary, which is a part of the <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate.</p>
 <p>Technically, disclosure-based issuance works like this:</p>
 <ol class="arabic simple">
 <li><p>At the end of the disclosure session, the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> sends the
@@ -303,7 +303,7 @@ attestations that it disclosed earlier in its Proof of Association (PoA) when
 it sends its Proofs of Possession (PoPs) for the keys of the attestation
 (copies).</p>
 <p>This enforces that the newly issued attestations are bound to the same Wallet
-Secure Cryptographic Device (WSCD, see <a class="reference external" href="https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/latest/architecture-and-reference-framework-main/#43-reference-architecture">section 4.3.2, Components of a Wallet
+Secure Cryptographic Device (WSCD, see <a class="reference external" href="https://eudi.dev/latest/architecture-and-reference-framework-main/#43-reference-architecture">section 4.3.2, Components of a Wallet
 Unit</a>) as the one that disclosed the attestations in the first part of the
 protocol.</p>
 <pre  class="mermaid">
@@ -341,12 +341,7 @@ protocol.</p>
     Issuer-&gt;&gt;Issuer: Enforce disclosed attestation keys in PoA (from Step 7 *)
     Issuer-&gt;&gt;-App: Attestations [OpenID4VCI]
     deactivate App
-    </pre></section>
-<section id="references">
-<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
-<p>Below you’ll find a collection of links which we reference to through the
-entire text. Note that they don’t display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.</p>
+    </pre><!-- References -->
 </section>
 </section>
 

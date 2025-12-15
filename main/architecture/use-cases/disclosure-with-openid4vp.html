@@ -129,6 +129,7 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../development/authorized-attributes.html">Authorized attributes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/generic-issuance.html">Generic Issuance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
@@ -186,13 +187,15 @@ window.addEventListener("load", () => mermaid.run());
              
   <section id="disclosure-with-openid4vp">
 <h1>Disclosure with OpenID4VP<a class="headerlink" href="#disclosure-with-openid4vp" title="Link to this heading"></a></h1>
-<section id="generic-disclosure">
-<h2>Generic disclosure<a class="headerlink" href="#generic-disclosure" title="Link to this heading"></a></h2>
+<p>We’ve implemented disclosure with <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html">OpenID4VP draft 20</a>, with
+Proof-of-Association (PoA) as a custom addition.</p>
+<section id="how-disclosure-is-implemented">
+<h2>How disclosure is implemented<a class="headerlink" href="#how-disclosure-is-implemented" title="Link to this heading"></a></h2>
 <p>This diagram shows how OpenID4VP is implemented within the NL Wallet Solution.</p>
-<p><a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html">OpenID for Verifiable Presentations - draft 20</a> is used as basis for the implementation.</p>
-<p>Client authentication is done using the <code class="docutils literal notranslate"><span class="pre">x509_san_dns</span></code> Client Identifier Scheme. Other Client Identifier Schemes are currently not supported.</p>
-<p>The reponse mode is <code class="docutils literal notranslate"><span class="pre">direct_post.jwt</span></code>. Other response modes are currently not supported.</p>
-<p>In more detail, the protocol works as follows:</p>
+<p>Client authentication is done using the <code class="docutils literal notranslate"><span class="pre">x509_san_dns</span></code> Client Identifier Scheme.
+Other Client Identifier Schemes are currently not supported.</p>
+<p>The reponse mode is <code class="docutils literal notranslate"><span class="pre">direct_post.jwt</span></code>. Other response modes are currently not
+supported. In more detail, the protocol works as follows:</p>
 <pre  class="mermaid">
         sequenceDiagram
     autonumber
@@ -216,7 +219,6 @@ window.addEventListener("load", () => mermaid.run());
     Wallet -&gt;&gt; RP: redirect to the redirect URI (session_token)
     RP -&gt;&gt; WalletServer: fetch response data (session_token)
     WalletServer -&gt;&gt; RP: response data (verified attributes)
-
     </pre><ol class="arabic simple">
 <li><p>From Verifier’s website or app, user decides to start an action that requires disclosed attributes</p></li>
 <li><p>A request goes from Verifier App to OV to start a disclosure session</p></li>
@@ -233,6 +235,7 @@ window.addEventListener("load", () => mermaid.run());
 <li><p>Verifier’s website or app requests session results from ‘OV’ using <code class="docutils literal notranslate"><span class="pre">session_token</span></code></p></li>
 <li><p>‘OV’ returns session results</p></li>
 </ol>
+<!-- References -->
 </section>
 </section>
 

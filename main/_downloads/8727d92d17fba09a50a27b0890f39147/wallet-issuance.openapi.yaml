@@ -500,9 +500,9 @@ paths:
         - name: session_token
           in: path
           required: true
-          description: Session token
+          description: A unique identifier for the session
           schema:
-            type: string
+            $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
         - name: nonce
           in: query
           required: false
