@@ -62,7 +62,7 @@ impl Proxy {
             loop {
                 let abort = abort_rx.recv();
                 let accept = self.listener.accept();
-                select! {
+                select! { biased;
                     _ = abort => break,
                     result = accept => {
                         let stream = match result {
