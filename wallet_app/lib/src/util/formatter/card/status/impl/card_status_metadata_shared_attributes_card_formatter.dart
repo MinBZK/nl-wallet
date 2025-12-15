@@ -15,7 +15,7 @@ class CardStatusMetadataSharedAttributesCardFormatter implements CardStatusMetad
       CardStatusExpired() => true,
       CardStatusRevoked() => true,
       CardStatusCorrupted() => true,
-      CardStatusUndetermined() => false,
+      CardStatusUndetermined() => true,
     };
   }
 
@@ -28,7 +28,7 @@ class CardStatusMetadataSharedAttributesCardFormatter implements CardStatusMetad
       CardStatusExpired() => context.l10n.cardStatusMetadataSharedAttributesCardExpired,
       CardStatusRevoked() => context.l10n.cardStatusMetadataSharedAttributesCardRevoked,
       CardStatusCorrupted() => context.l10n.cardStatusMetadataSharedAttributesCardCorrupted,
-      CardStatusUndetermined() => '',
+      CardStatusUndetermined() => context.l10n.cardStatusMetadataSharedAttributesCardUndetermined,
     };
   }
 
@@ -36,7 +36,17 @@ class CardStatusMetadataSharedAttributesCardFormatter implements CardStatusMetad
   Color textColor(BuildContext context, CardStatus status) => context.colorScheme.onSurface;
 
   @override
-  IconData? icon(CardStatus status) => Icons.warning_amber;
+  IconData? icon(CardStatus status) {
+    return switch (status) {
+      CardStatusValidSoon() => null,
+      CardStatusValid() => null,
+      CardStatusExpiresSoon() => null,
+      CardStatusExpired() => Icons.warning_amber,
+      CardStatusRevoked() => Icons.warning_amber,
+      CardStatusCorrupted() => Icons.warning_amber,
+      CardStatusUndetermined() => Icons.feedback_outlined,
+    };
+  }
 
   @override
   Color? iconColor(BuildContext context, CardStatus status) => context.colorScheme.onSurfaceVariant;
