@@ -4,8 +4,7 @@ use std::time::Duration;
 use rstest::rstest;
 use sea_orm::ConnectOptions;
 use sea_orm::Database;
-use tokio::io::AsyncReadExt;
-use tokio::io::AsyncWriteExt;
+use tokio::io::copy_bidirectional;
 use tokio::net::TcpStream;
 use tokio::net::ToSocketAddrs;
 use tokio::net::lookup_host;
@@ -97,24 +96,7 @@ impl Proxy {
     /// closes, it closes the other connection as well.
     async fn handle(server_addr: SocketAddr, mut client_stream: TcpStream) -> anyhow::Result<()> {
         let mut server_stream = TcpStream::connect(server_addr).await?;
-        let mut server_buf = [0; 1024];
-        let mut client_buf = [0; 1024];
-        loop {
-            let client_read = client_stream.read(&mut client_buf);
-            let server_read = server_stream.read(&mut server_buf);
-            select! {
-                result = client_read => {
-                    let len = result?;
-                    if len == 0 { break; }
-                    server_stream.write_all(&client_buf[..len]).await?;
-                }
-                result = server_read => {
-                    let len = result?;
-                    if len == 0 { break; }
-                    client_stream.write_all(&server_buf[..len]).await?;
-                }
-            }
-        }
+        copy_bidirectional(&mut client_stream, &mut server_stream).await?;
         Ok(())
     }
 }
