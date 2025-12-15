@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::AsRef;
 use derive_more::From;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
@@ -31,7 +32,7 @@ use crate::wallet_user;
 use crate::wallet_user_key;
 use crate::wallet_user_wua;
 
-#[derive(From)]
+#[derive(From, AsRef)]
 pub struct Repositories(Db);
 
 impl TransactionStarter for Repositories {

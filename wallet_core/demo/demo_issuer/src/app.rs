@@ -33,6 +33,7 @@ use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -102,7 +103,7 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         app = app.layer(axum::middleware::from_fn(log_request_response));
     }
 
-    (app, attestation_router)
+    (app.merge(create_health_router([])), attestation_router)
 }
 
 struct BaseTemplate<'a> {

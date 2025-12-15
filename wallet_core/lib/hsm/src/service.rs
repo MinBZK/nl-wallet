@@ -16,6 +16,7 @@ use cryptoki::types::AuthPin;
 use der::Decode;
 use der::Encode;
 use der::asn1::OctetString;
+use derive_more::AsRef;
 use futures::future;
 use p256::NistP256;
 use p256::ecdsa::Signature;
@@ -153,7 +154,7 @@ pub trait Pkcs11Client {
     ) -> Result<Signature>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, AsRef)]
 pub struct Pkcs11Hsm {
     pool: Pool,
 }

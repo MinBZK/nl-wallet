@@ -27,6 +27,10 @@ use tracing::warn;
 
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
+use hsm::service::Pkcs11Hsm;
+use http_utils::health::create_health_router;
+use server_utils::checkers::DatabaseChecker;
+use server_utils::checkers::HsmChecker;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -56,8 +60,10 @@ use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
+use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
+use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
@@ -87,7 +93,7 @@ where
     let state = Arc::new(router_state);
 
     Router::new()
-        .merge(health_router())
+        .merge(health_router(&state.user_state))
         .merge(metrics_router())
         .nest(
             "/api/v1",
@@ -182,8 +188,12 @@ where
         )
 }
 
-fn health_router() -> Router {
-    Router::new().route("/health", get(|| async {}))
+fn health_router<W, S>(user_state: &UserState<Repositories, Pkcs11Hsm, W, S>) -> Router {
+    let checkers = [
+        Box::new(DatabaseChecker::new("db", user_state.repositories.as_ref().as_ref())) as Box<_>,
+        Box::new(HsmChecker::new(&user_state.wallet_user_hsm)) as Box<_>,
+    ];
+    create_health_router(checkers)
 }
 
 fn metrics_router() -> Router {

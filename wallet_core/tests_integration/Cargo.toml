@@ -20,8 +20,8 @@ path = "tests/static_server.rs"
 required-features = ["integration_test"]
 
 [[test]]
-name = "metrics"
-path = "tests/metrics.rs"
+name = "health_metrics"
+path = "tests/health_metrics.rs"
 required-features = ["integration_test"]
 
 [[test]]
@@ -157,6 +157,7 @@ db_test = [
     "wallet_provider_persistence?/db_test",
     "wallet_provider_service?/db_test",
     "verification_server?/db_test",
+    "server_utils?/db_test",
     "status_lists?/db_test",
 ]
 

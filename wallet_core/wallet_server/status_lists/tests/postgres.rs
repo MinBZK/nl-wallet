@@ -32,6 +32,7 @@ use jwt::EcdsaDecodingKey;
 use jwt::SignedJwt;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::keys::test::private_key_variant;
+use server_utils::test_settings::connection_from_settings;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigs;
 use status_lists::entity::attestation_batch;
@@ -42,7 +43,6 @@ use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::publish::PublishDir;
-use status_lists::settings::test::connection_from_settings;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
@@ -247,7 +247,7 @@ async fn fetch_attestation_batches(
 #[tokio::test]
 async fn test_service_initializes_status_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 10, 1, None, &publish_dir)
         .await
@@ -272,7 +272,7 @@ async fn test_service_initializes_status_lists() {
 #[tokio::test]
 async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
 
     let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
     let publish_dir = tempfile::tempdir().unwrap();
@@ -330,7 +330,7 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
 #[tokio::test]
 async fn test_service_initializes_schedule_housekeeping_empty() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
         .await
@@ -358,7 +358,7 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
 #[tokio::test]
 async fn test_service_initializes_schedule_housekeeping_almost_empty() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
         .await
@@ -386,7 +386,7 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
 #[tokio::test]
 async fn test_service_initializes_schedule_housekeeping_full() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _) = create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
         .await
@@ -406,7 +406,7 @@ async fn test_service_initializes_schedule_housekeeping_full() {
 #[tokio::test]
 async fn test_service_create_status_claims() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 5, None, &publish_dir)
         .await
@@ -464,7 +464,7 @@ async fn test_service_create_status_claims() {
 #[tokio::test]
 async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 8, 1, None, &publish_dir)
         .await
@@ -525,7 +525,7 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
 #[tokio::test]
 async fn test_service_create_status_claims_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 24, 2, None, &publish_dir)
         .await
@@ -565,7 +565,7 @@ async fn test_service_create_status_claims_concurrently() {
 #[tokio::test]
 async fn test_service_revoke_attestation_batches_multiple_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _) =
         create_status_list_service(&ca, &connection, 4, 1, Some(Duration::from_secs(300)), &publish_dir)
@@ -625,7 +625,7 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
 #[tokio::test]
 async fn test_service_revoke_attestation_batches_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 9, 1, None, &publish_dir)
         .await
@@ -688,7 +688,7 @@ async fn republish_list_with_expiry(path: &Path, key_pair: &KeyPair<impl EcdsaKe
 #[case(Some(Utc::now()))]
 async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<DateTime<Utc>>) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, service) = create_status_list_service(&ca, &connection, 3, 1, None, &publish_dir)
         .await

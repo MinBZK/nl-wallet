@@ -47,7 +47,7 @@ db_test = [
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock"] }
-derive_more = { workspace = true, features = ["from"] }
+derive_more = { workspace = true, features = ["as_ref", "from"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 sea-orm = { workspace = true, features = [
     "macros",

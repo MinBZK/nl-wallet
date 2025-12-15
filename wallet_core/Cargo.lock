@@ -3107,12 +3107,14 @@ dependencies = [
 name = "http_utils"
 version = "0.4.0-dev"
 dependencies = [
+ "async-trait",
  "axum",
  "axum-server",
  "base64 0.22.1",
  "cfg-if",
  "data-url",
  "derive_more",
+ "futures",
  "http",
  "itertools 0.14.0",
  "mime",
@@ -3128,6 +3130,7 @@ dependencies = [
  "tokio",
  "toml",
  "tower-http",
+ "tracing",
  "url",
 ]
 
@@ -6390,6 +6393,7 @@ name = "server_utils"
 version = "0.4.0-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "attestation_data",
  "axum",
  "base64 0.22.1",
@@ -6402,7 +6406,9 @@ dependencies = [
  "nutype",
  "openid4vc",
  "p256",
+ "r2d2-cryptoki",
  "ring",
+ "rstest",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",
@@ -6842,7 +6848,6 @@ dependencies = [
  "attestation_types",
  "axum",
  "chrono",
- "config",
  "crypto",
  "derive_more",
  "etag",
