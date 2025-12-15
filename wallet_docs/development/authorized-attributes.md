@@ -1,6 +1,6 @@
 # Authorized attributes
 
-In this document you'll find a collection of so-called claim paths, which are
+On this page you'll find a collection of so-called claim paths, which are
 defined within a number of verifiable credential types (or doctypes in MDOC) we
 support. These claim paths are used to indicate what values you're interested
 in. They are used within the `authorizedAttributes` object in `reader_auth.json`
