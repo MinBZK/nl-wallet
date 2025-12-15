@@ -398,7 +398,7 @@ impl<K> PostgresStatusListService<K>
 where
     K: EcdsaKeySend + Sync + 'static,
 {
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     pub async fn obtain_status_claims_and_scheduled_tasks(
         &self,
         batch_id: Uuid,
@@ -450,7 +450,7 @@ where
         Ok((claims.try_into().unwrap(), tasks))
     }
 
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn fetch_exclusive_available_status_lists_or_create(
         &self,
         copies: usize,
@@ -495,7 +495,7 @@ where
         }
     }
 
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn fetch_status_list_items(
         &self,
         tx: &DatabaseTransaction,
@@ -555,7 +555,7 @@ where
         Ok(list_with_items)
     }
 
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn create_attestation_batch(
         tx: &DatabaseTransaction,
         batch_id: Uuid,
@@ -585,7 +585,7 @@ where
     /// Creates new status list if not already created.
     ///
     /// The `next_sequence_no` is used to ensure only a single new list is created.
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn create_status_list(
         &self,
         next_sequence_no: i64,
@@ -682,7 +682,7 @@ where
         Ok(true)
     }
 
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
         tracing::info!("Initializing status lists for ID {}", self.attestation_type_id);
 
@@ -770,7 +770,7 @@ where
         };
     }
 
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn delete_status_list_items(connection: DatabaseConnection, id: i64) {
         let result = status_list_item::Entity::delete_many()
             .filter(status_list_item::Column::StatusListId.eq(id))
@@ -902,7 +902,7 @@ where
         .await?
     }
 
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn publish_status_list(
         &self,
         list_id: i64,
