@@ -176,11 +176,7 @@ sequenceDiagram
     deactivate App
 ```
 
-## References
-
-Below you'll find a collection of links which we reference to through the
-entire text. Note that they don't display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.
+<!-- References -->
 
 [1]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
 [2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer

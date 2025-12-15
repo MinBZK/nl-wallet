@@ -53,11 +53,6 @@ sequenceDiagram
 13. Verifier's website or app requests session results from 'OV' using `session_token`
 14. 'OV' returns session results
 
-
-## References
-
-Below you'll find a collection of links which we reference to through the
-entire text. Note that they don't display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.
+<!-- References -->
 
 [1]: https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html

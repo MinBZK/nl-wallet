@@ -1136,11 +1136,7 @@ app for identification or verification of attributes with your application:
 - The text "NL Wallet" should always be visible in the call-to-action;
 - Logo of "NL Wallet" should be visible next to the call-to-action.
 
-## References
-
-Below you'll find a collection of links which we reference to through the
-entire text. Note that they don't display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.
+<!-- References -->
 
 [1]: https://www.logius.nl/onze-dienstverlening/toegang/digid
 [2]: https://www.logius.nl/onze-dienstverlening/toegang/voorzieningen/bsnk-pp

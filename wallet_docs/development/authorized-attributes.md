@@ -1,7 +1,7 @@
 # Authorized attributes
 
 On this page you'll find a collection of so-called claim paths, which are
-defined within a number of verifiable credential types (or doctypes in MDOC) we
+defined within a number of verifiable credential types (or doctypes in mdoc) we
 support. These claim paths are used to indicate what values you're interested
 in. They are used within the `authorizedAttributes` object in `reader_auth.json`
 documents.
@@ -50,17 +50,21 @@ Let's take the (quite extensive) one from our "XYZ Bank" as an example:
   }
 ```
 
-The object contains named array values; the name represents a doctype (in MDOC
-parlance) or VCT (Verifiable Credential Type) in SD-JWT speak, with a verion
-number (i.e., the `1`'s after the name) appended. In the above example:
-`urn:eudi:pid:nl:1`, `urn:eudi:pid:1"`, `urn:eudi:pid-address:nl:1`, and
-`urn:eudi:pid-address:1` are doctype/vct names with an appended version `1`.
+The object contains named array values; the name represents an attestation type
+(a _doctype_ in mdoc parlance, or a _Verifiable Credential Type_/VCT in SD-JWT
+speak), with a version number appended (i.e., the `1`'s after the name).
 
-These names refer to a document which defines what values a given doctype/vct
-can contain; the tables below which show you what each doctype/vct can contain
-are generated from those documents.
+In the above example: `urn:eudi:pid:nl:1`, `urn:eudi:pid:1"`,
+`urn:eudi:pid-address:nl:1`, and `urn:eudi:pid-address:1` are attestation type
+names with an appended version `1`.
 
-### Support for both SD-JWT and MDOC style authorized attributes
+These attestation types are (in our implementation) defined in JSON definition
+documents (for example, see `scripts/devenv/eudi:*.json` in our git repository).
+
+The tables below, which show you what each attestation type can contain, are
+generated from those documents.
+
+### Support for both SD-JWT- and mdoc-style authorized attributes
 
 The array contains one or more arrays with so-called "claim paths". In the
 example above, you'll find that some values seem a bit redundant, like:
@@ -72,11 +76,11 @@ example above, you'll find that some values seem a bit redundant, like:
 ]
 ```
 
-In this case, the first (somewhat wordy) specification is an MDOC style path
+In this case, the first (somewhat wordy) specification is an mdoc style path
 specification, and the second shorter one is an SD-JWT claim path (which in the
 tables below is shown as `address.street_address`). Specifying this in both
 forms allows the verifier (or issuer doing disclosure-based-issuance) to request
-ttributes from attestations in both MDOC and SD-JWT format.
+ttributes from attestations in both mdoc and SD-JWT format.
 
 ### A note about extended VCTs
 

@@ -1419,11 +1419,7 @@ a UL within it) of a specific format. To create this UL, proceed as follows.
   4. Place this UL on your website (within in a QR code in case of cross device
      flows).
 
-## References
-
-Below you'll find a collection of links which we reference to through the
-entire text. Note that they don't display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.
+<!-- References -->
 
 [1]: https://github.com/minbzk/nl-wallet
 [2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
