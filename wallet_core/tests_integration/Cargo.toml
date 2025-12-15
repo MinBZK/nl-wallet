@@ -234,7 +234,7 @@ http = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
-reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"], optional = true }
+reqwest = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 
 semver = { workspace = true, optional = true }
