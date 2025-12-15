@@ -26,7 +26,6 @@ http = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"] }
 mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
-rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
@@ -52,6 +51,7 @@ dashmap.workspace = true
 futures.workspace = true
 mockall.workspace = true
 regex.workspace = true
+rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
