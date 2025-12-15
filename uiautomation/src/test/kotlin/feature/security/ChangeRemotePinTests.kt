@@ -6,6 +6,8 @@ import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
@@ -38,6 +40,7 @@ class ChangeRemotePinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC45 Change PIN")
+    @Tags(Tag("a11yBatch1"))
     fun verifyChoosePinScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         menuScreen.clickSettingsButton()
