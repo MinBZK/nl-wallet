@@ -4,7 +4,7 @@ We've implemented issuance with [OpenID4VCI draft 13][2], with attestation
 preview as a custom addition.
 
 We currently (2025-12-11) have two issuance implementations: The `pid_issuer`,
-a specialized issuer specifically for [PID][1]s, which this document is about,
+a specialized issuer specifically for Dutch [PID][1]s, which this page is about,
 and `issuance_server` a reference disclosure-based-issuance service that can
 issue all kinds of things (which you can [read about here][8]).
 
