@@ -100,11 +100,18 @@ Below you'll find a few tables which show which attributes we support, in some
 cases in both English and Dutch form.
 
 <div class="admonition note"><p class="title">These tables are generated</p>
-<p>The below tables are generated using our `authorized-attributes.sh` script,
-which parses our `scripts/devenv/eudi:*.json` documents. If you suspect the
-claim path attributes you're looking at might be out-of-date, you can invoke
-`supported-attributes.sh` and make sure you're looking at the latest we support.
-</p></div>
+<p>The below tables are generated using our `authorized-attributes-tables.sh`
+script, which parses our `scripts/devenv/eudi:*.json` documents. If you suspect
+the claim path attributes you're looking at might be out-of-date, you can invoke
+`authorized-attributes-tables.sh` and make sure you're looking at the latest we
+support.</p>
+<p>Do note that, while we use the aforementioned JSON definition documents in
+our locally running `pid_issuer`, it is not guaranteed that a `pid_issuer`
+running in one of our live environments uses these exact-same JSON definition
+documents. When you work with one of our live environments, and thus followed
+our [onboarding][1] procedure, you can contact our operations team to obtain
+the necessary information.</p>
+</div>
 
 ### Claims in eudi:pid:1
 
@@ -159,3 +166,7 @@ claim path attributes you're looking at might be out-of-date, you can invoke
 | address.postal_code    | Postcode     | Postcode van het adres      | nl-NL    |
 | address.street_address | Street       | Street of the address       | en-US    |
 | address.street_address | Straatnaam   | Straatnaam van het adres    | nl-NL    |
+
+<!-- References -->
+
+[1]: ../community/onboarding
