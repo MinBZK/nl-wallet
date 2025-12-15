@@ -76,7 +76,7 @@ pub struct StatusListAttestationSettings {
     pub keypair: KeyPair,
 }
 
-#[cfg(feature = "test")]
+#[cfg(feature = "db_test")]
 pub mod test {
     use std::path::Path;
 
