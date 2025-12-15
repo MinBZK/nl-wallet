@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use axum::response::IntoResponse;
 use axum::response::Response;
 use derive_more::AsRef;
@@ -144,12 +146,25 @@ impl IntoResponse for WalletProviderError {
 }
 
 fn register_error_metric(error: &WalletProviderError) {
-    let inner_error: &'static str = match error {
-        WalletProviderError::Challenge(inner) => inner.into(),
-        WalletProviderError::Registration(inner) => inner.into(),
-        WalletProviderError::Instruction(inner) => inner.into(),
-        WalletProviderError::Hsm(inner) => inner.into(),
-        WalletProviderError::Wua(inner) => inner.into(),
+    let inner_error: Cow<'static, str> = match error {
+        WalletProviderError::Challenge(inner) => Cow::Borrowed(inner.into()),
+        WalletProviderError::Registration(inner) => Cow::Borrowed(inner.into()),
+        WalletProviderError::Instruction(inner) => {
+            let instruction_error: &'static str = inner.into();
+            match inner {
+                InstructionError::Validation(error) => {
+                    let error: &'static str = error.into();
+                    Cow::Owned(format!("{instruction_error}::{error}"))
+                }
+                InstructionError::WalletCertificate(error) => {
+                    let error: &'static str = error.into();
+                    Cow::Owned(format!("{instruction_error}::{error}"))
+                }
+                _ => Cow::Borrowed(inner.into()),
+            }
+        }
+        WalletProviderError::Hsm(inner) => Cow::Borrowed(inner.into()),
+        WalletProviderError::Wua(inner) => Cow::Borrowed(inner.into()),
     };
 
     let error: &'static str = error.into();
@@ -179,6 +194,10 @@ mod tests {
     use metrics::Recorder;
     use metrics::SharedString;
     use metrics::Unit;
+    use rstest::rstest;
+
+    use wallet_account::error::DecodeError;
+    use wallet_provider_service::account_server::InstructionValidationError;
 
     use super::*;
 
@@ -227,11 +246,39 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_register_error_metric() {
+    #[rstest]
+    #[case::nested_instruction_validation_error(
+        WalletProviderError::Instruction(InstructionError::Validation(
+            InstructionValidationError::SequenceNumberMismatch
+        )),
+        "Instruction",
+        "Validation::SequenceNumberMismatch"
+    )]
+    #[case::deeper_nested_instruction_validation_error(
+        WalletProviderError::Instruction(InstructionError::Validation(
+            InstructionValidationError::VerificationFailed(DecodeError::ChallengeMismatch)
+        )),
+        "Instruction",
+        "Validation::VerificationFailed"
+    )]
+    #[case::nested_wallet_certificate_error(
+        WalletProviderError::Instruction(InstructionError::WalletCertificate(
+            WalletCertificateError::HwPubKeyMismatch
+        )),
+        "Instruction",
+        "WalletCertificate::HwPubKeyMismatch"
+    )]
+    #[case::other_error(
+        WalletProviderError::Registration(RegistrationError::SerialNumberMismatch { expected: 3, received: 2}),
+        "Registration",
+        "SerialNumberMismatch"
+    )]
+    fn test_register_error_metric(
+        #[case] error: WalletProviderError,
+        #[case] expected_error: &str,
+        #[case] expected_inner_error: &str,
+    ) {
         let recorder = MockRecorder::default();
-        let error =
-            WalletProviderError::Challenge(ChallengeError::WalletCertificate(WalletCertificateError::UserBlocked));
 
         metrics::with_local_recorder(&recorder, || {
             register_error_metric(&error);
@@ -242,14 +289,14 @@ mod tests {
 
         let labels = &counters[0];
         assert!(
-            labels.iter().any(|(key, val)| key == "error" && val == "Challenge"),
+            labels.iter().any(|(key, val)| key == "error" && val == expected_error),
             "Missing or incorrect error label. Got labels: {:?}",
             labels
         );
         assert!(
             labels
                 .iter()
-                .any(|(key, val)| key == "inner_error" && val == "WalletCertificate"),
+                .any(|(key, val)| key == "inner_error" && val == expected_inner_error),
             "Missing or incorrect inner_error label. Got labels: {:?}",
             labels
         );

@@ -8369,6 +8369,7 @@ dependencies = [
  "p256",
  "rand_core 0.6.4",
  "regex",
+ "rstest",
  "rustix",
  "rustls",
  "serde",

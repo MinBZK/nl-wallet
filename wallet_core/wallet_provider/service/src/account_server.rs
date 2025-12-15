@@ -149,7 +149,7 @@ pub enum ChallengeError {
     SequenceNumberValidation,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum WalletCertificateError {
     #[error("registration PIN public key DER encoding error: {0}")]
     PinPubKeyEncoding(#[source] der::Error),
@@ -308,7 +308,7 @@ pub enum InstructionError {
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum InstructionValidationError {
     #[error("instruction sequence number mismatch")]
     SequenceNumberMismatch,
