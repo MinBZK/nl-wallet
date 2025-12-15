@@ -1,6 +1,6 @@
 # Overview in C4
 
-C4-methodology is used to model the system context and the composition of the software system (see [C4-model](https://www.c4model.com)).
+C4-methodology is used to model the system context and the composition of the software system (see [C4-model](https://c4model.com/)).
 
 ```{toctree}
 :maxdepth: 1
