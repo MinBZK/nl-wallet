@@ -36,6 +36,7 @@ spec:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.gbaHcConverter.probes | fromYaml | toYaml | nindent 10 }}
           {{ with .Values.gbaHcConverter.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

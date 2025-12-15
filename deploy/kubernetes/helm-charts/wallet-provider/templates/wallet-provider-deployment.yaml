@@ -49,6 +49,7 @@ spec:
           ports:
             - name: http
               containerPort: 8001
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
           env:
             - name: TZ
               value: "Europe/Amsterdam"

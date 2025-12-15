@@ -41,6 +41,7 @@ spec:
         - name: {{ .Values.frontend.name }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageGbaFrontend.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.imageGbaFrontend.pullPolicy }}
+          {{- include "common.defineProbes" .Values.imageGbaFrontend.probes | fromYaml | toYaml | nindent 10 }}
           {{ with .Values.frontend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
