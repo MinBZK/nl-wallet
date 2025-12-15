@@ -89,10 +89,10 @@ class NavigationService extends AppEventListener {
 
   /// Show the dialog specified by [type]. Useful when caller does not have a valid context.
   Future<void> showDialog(WalletDialogType type, {bool dismissOpenDialogs = false}) async {
-    final context = _navigatorKey.currentState?.context;
-    if (context == null) return;
     if (dismissOpenDialogs) await _dismissOpenDialogs(); // Dismiss any open dialogs if requested
-    if (!context.mounted) return;
+
+    final context = _navigatorKey.currentState?.context;
+    if (context == null || !context.mounted) return;
     return switch (type) {
       WalletDialogType.idleWarning => IdleWarningDialog.show(context),
       WalletDialogType.resetWallet => ResetWalletDialog.show(context),
