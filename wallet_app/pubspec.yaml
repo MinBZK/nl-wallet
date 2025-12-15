@@ -55,6 +55,7 @@ dependencies:
   sentry_flutter: ^9.6.0
   shared_preferences: ^2.5.3
   store_redirect: ^2.0.4
+  timezone: ^0.10.1
   url_launcher: ^6.3.2
   vector_graphics: any # explicit transitive dependency to satisfy sonarqube
   vibration: ^3.1.3
