@@ -73,7 +73,7 @@ db_test = ["dep:serial_test", "futures/async-await", "integration_test", "postgr
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
+axum.workspace = true
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures = { workspace = true, features = ["std"] }

@@ -14,7 +14,7 @@ doctest = false
 accept-language.workspace = true
 anyhow.workspace = true
 askama.workspace = true
-axum = { workspace = true, features = ["query"] }
+axum.workspace = true
 base64.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "from"] }
 regex.workspace = true

@@ -14,7 +14,7 @@ name = "static_server"
 doctest = false
 
 [dependencies]
-axum = { workspace = true, features = ["http1", "tokio", "tower-log", "tracing"] }
+axum.workspace = true
 axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true

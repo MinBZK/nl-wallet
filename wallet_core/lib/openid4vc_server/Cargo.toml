@@ -18,7 +18,7 @@ issuance = ["axum-extra/typed-header"]
 disclosure = ["dep:ring"]
 
 [dependencies]
-axum = { workspace = true, features = ["form", "http1", "json", "query", "tower-log", "tracing"] }
+axum = { workspace = true, features = ["form", "json"] }
 http.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }

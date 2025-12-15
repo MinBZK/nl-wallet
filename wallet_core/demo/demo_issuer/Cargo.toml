@@ -14,7 +14,7 @@ doctest = false
 anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
-axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
+axum = { workspace = true, features = ["json"] }
 axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 config = { workspace = true, features = ["preserve_order", "json"] }
 derive_more.workspace = true

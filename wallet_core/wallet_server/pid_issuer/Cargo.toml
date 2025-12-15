@@ -41,7 +41,7 @@ integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversi
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
+axum.workspace = true
 chrono = { workspace = true, features = ["serde", "std"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
 futures = { workspace = true, features = ["std", "async-await"] }
