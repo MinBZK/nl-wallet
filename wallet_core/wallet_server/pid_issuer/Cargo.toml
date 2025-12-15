@@ -49,7 +49,7 @@ hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
-reqwest = { workspace = true }
+reqwest.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

@@ -22,8 +22,8 @@ server = ["axum/json", "axum-server/tls-rustls-no-provider", "serde_with/base64"
 
 [dependencies]
 cfg-if.workspace = true
-base64 = { workspace = true }
-data-url = { workspace = true }
+base64.workspace = true
+data-url.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "constructor"] }
 http.workspace = true
 itertools.workspace = true

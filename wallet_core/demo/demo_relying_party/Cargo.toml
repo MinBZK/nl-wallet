@@ -28,7 +28,7 @@ futures = { workspace = true, features = ["std"] }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-reqwest = { workspace = true }
+reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true

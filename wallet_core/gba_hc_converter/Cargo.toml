@@ -34,7 +34,7 @@ pem.workspace = true
 quick-xml = { workspace = true, features = ["async-tokio", "serialize", "overlapped-lists"] }
 regex.workspace = true
 rand_core.workspace = true
-reqwest = { workspace = true }
+reqwest.workspace = true
 rpassword.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
