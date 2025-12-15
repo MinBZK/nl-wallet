@@ -5,7 +5,6 @@ use android_attest::certificate_chain::verify_google_key_attestation_with_params
 use android_attest::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
 use assert_matches::assert_matches;
 use chrono::Utc;
-use num_bigint::BigUint;
 use rstest::rstest;
 use rustls_pki_types::CertificateDer;
 
@@ -52,16 +51,10 @@ fn revoked_intermediary_from(mock_ca: &MockCaChain) -> RevocationStatusList {
         entries: HashMap::new(),
     };
     // Get SerialNumber of intermediary
-    let serial_number = mock_ca
-        .last_certificate_and_keypair
-        .0
-        .params()
-        .serial_number
-        .as_ref()
-        .unwrap();
+    let last_serial_number = *mock_ca.serial_numbers.last().unwrap();
     // Insert revoked entry in the CRL
     revocation_list.entries.insert(
-        BigUint::from_bytes_be(serial_number.as_ref()),
+        last_serial_number.into(),
         RevocationStatusEntry {
             status: AndroidCrlStatus::Revoked,
             comment: None,

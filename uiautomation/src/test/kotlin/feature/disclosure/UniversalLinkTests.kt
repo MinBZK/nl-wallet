@@ -17,6 +17,7 @@ import screen.demo.DemoScreen
 import screen.disclosure.ScanWithWalletDialog
 import screen.error.InvalidIssuanceULErrorScreen
 import screen.issuance.DisclosureIssuanceScreen
+import screen.security.PinScreen
 import java.net.URLEncoder
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -30,6 +31,7 @@ class UniversalLinkTests : TestBase() {
     private lateinit var invalidIssuanceULErrorScreen: InvalidIssuanceULErrorScreen
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
     private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var pinScreen: PinScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -43,16 +45,20 @@ class UniversalLinkTests : TestBase() {
         invalidIssuanceULErrorScreen = InvalidIssuanceULErrorScreen()
         scanWithWalletDialog = ScanWithWalletDialog()
         organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        disclosureForIssuanceScreen = DisclosureIssuanceScreen()
+        pinScreen = PinScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC33 Universal link is opened via external QR scanner")
+    @DisplayName("LTC33 Open app via universal link")
     fun verifyUlOpensApp(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Dashboard)
         val issuanceUniversalLink = "https://app.example.com/deeplink/disclosure_based_issuance?request_uri=https%3A%2F%2Fexample.com%2Fcd96997cf3772b54a9a0c9f2d261a401%2Fdisclosure%2Finsurance%2Frequest_uri%3Fsession_type%3Dsame_device&request_uri_method=post&client_id=insurance.example.com"
         dashboardScreen.closeApp()
         dashboardScreen.openUniversalLink(issuanceUniversalLink)
+        pinScreen.enterPin(DEFAULT_PIN)
+
         assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)))
 
     }

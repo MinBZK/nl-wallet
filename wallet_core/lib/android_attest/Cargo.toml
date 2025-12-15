@@ -41,11 +41,11 @@ nutype = { workspace = true, features = ["regex", "serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
 rasn = { workspace = true, features = ["std"] }
 regex.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
+reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"] }
 reqwest-middleware.workspace = true
 rsa = { workspace = true, features = ["std"] }
 rustls-pki-types.workspace = true
-rustls-webpki.workspace = true
+rustls-webpki = { workspace = true, features = ["ring"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono", "base64"] }

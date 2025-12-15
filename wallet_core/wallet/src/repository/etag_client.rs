@@ -185,7 +185,7 @@ mod test {
             .await;
 
         let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().into_path())
+            EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();
 
@@ -219,7 +219,7 @@ mod test {
 
         let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
         let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().into_path())
+            EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();
 

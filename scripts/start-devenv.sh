@@ -384,8 +384,8 @@ then
         popd
 
         echo -e "${INFO}Cleaning status lists${NC}"
-        rm -rf "${PID_ISSUER_DIR}/resources/status-lists"
-        mkdir "${PID_ISSUER_DIR}/resources/status-lists"
+        rm -rf "resources/status-lists"
+        mkdir "resources/status-lists"
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
         RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
@@ -450,8 +450,8 @@ then
         popd
 
         echo -e "${INFO}Cleaning status lists${NC}"
-        rm -rf "${ISSUANCE_SERVER_DIR}/resources/status-lists"
-        mkdir "${ISSUANCE_SERVER_DIR}/resources/status-lists"
+        rm -rf "resources/status-lists"
+        mkdir "resources/status-lists"
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
         RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
@@ -484,8 +484,8 @@ then
         popd
 
         echo -e "${INFO}Cleaning status lists${NC}"
-        rm -rf "${WP_DIR}/resources/status-lists"
-        mkdir "${WP_DIR}/resources/status-lists"
+        rm -rf "resources/status-lists"
+        mkdir "resources/status-lists"
 
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
         RUST_LOG=debug cargo run --package wallet_provider --bin wallet_provider --features=android_emulator > "${TARGET_DIR}/wallet_provider.log" 2>&1 &

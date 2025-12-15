@@ -38,7 +38,8 @@ impl Settings {
         config::Config::builder()
             .add_source(
                 config::File::from(
-                    utils::path::prefix_local_path("wallet_provider_database_settings.toml".as_ref()).as_ref(),
+                    utils::path::prefix_local_path(std::path::Path::new("wallet_provider_database_settings.toml"))
+                        .as_ref(),
                 )
                 .required(false),
             )

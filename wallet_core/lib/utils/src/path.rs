@@ -6,18 +6,13 @@ use std::path::PathBuf;
 /// If the file path is relative and this binary is ran through cargo,
 /// prepend the directory that contains the `Cargo.toml` to the path.
 /// Otherwise return the file path unchanged.
-pub fn prefix_local_path(file_path: &Path) -> Cow<'_, Path> {
-    let dev_path = file_path
-        .is_relative()
-        .then(|| {
-            env::var("CARGO_MANIFEST_DIR")
-                .ok()
-                .map(|base_path| PathBuf::from(base_path).join(file_path))
-        })
-        .flatten();
-
-    match dev_path {
-        Some(dev_path) => Cow::Owned(dev_path),
-        None => Cow::Borrowed(file_path),
+pub fn prefix_local_path<'a>(file_path: impl Into<Cow<'a, Path>>) -> Cow<'a, Path> {
+    let file_path = file_path.into();
+    if file_path.is_relative()
+        && let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR")
+    {
+        Cow::Owned(PathBuf::from(manifest_dir).join(file_path))
+    } else {
+        file_path
     }
 }

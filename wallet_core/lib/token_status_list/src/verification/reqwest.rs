@@ -28,7 +28,7 @@ impl StatusListClient for HttpStatusListClient {
             .send()
             .await?;
 
-        let status_list_token = response.text().await?.parse()?;
+        let status_list_token = response.error_for_status()?.text().await?.parse()?;
 
         Ok(status_list_token)
     }

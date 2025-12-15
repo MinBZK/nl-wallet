@@ -220,7 +220,7 @@ impl Command {
                 let configuration = Self::get_certificate_configuration(days);
                 let ca = generate::Ca::generate(&common_name, configuration)?;
                 let signing_key = ca.to_signing_key()?;
-                write_key_pair(ca.as_certificate_der(), &signing_key, &file_prefix, force)?;
+                write_key_pair(ca.certificate(), &signing_key, &file_prefix, force)?;
                 Ok(())
             }
             Issuer {

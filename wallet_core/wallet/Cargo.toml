@@ -43,7 +43,7 @@ nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 parking_lot.workspace = true
 regex.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots", "zstd"] }
+reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots", "zstd"] }
 ring = { workspace = true, features = ["std"] }
 rusqlite = { workspace = true }
 rustls-pki-types.workspace = true

@@ -2,20 +2,17 @@
 
 set -euo pipefail
 
+# Uninstall all helm installs
 for name in $(helm list -q); do
     helm uninstall $name
 done
 
-REPLICAS=$(kubectl get deployment/static-files -o=jsonpath='{.spec.replicas}')
-restore() {
-    kubectl scale --replicas $REPLICAS deployment/static-files
-}
-trap restore EXIT
+# Clean WUA status lists on static server
+POD=$(kubectl get pod -l app=static-files -o=name | head -n 1)
+kubectl exec -t $POD -- sh -c 'rm -rf /usr/share/nginx/html/wua/*'
 
-kubectl scale --replicas 0 deployment/static-files
-
+# Delete PVCs created by helm install
 kubectl delete pvc --wait=true \
     demo-issuer-issuance-server \
     pid-issuer \
-    preloaded-gba-v-data \
-    wallet-provider
+    preloaded-gba-v-data

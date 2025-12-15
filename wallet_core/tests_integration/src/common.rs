@@ -194,9 +194,7 @@ impl MockDeviceConfig {
             team_identifier: self.app_identifier.prefix().to_string(),
             bundle_identifier: self.app_identifier.bundle_identifier().to_string(),
             environment: apple_environment,
-            root_certificates: vec![
-                BorrowingTrustAnchor::from_der(self.apple_ca.as_certificate_der().as_ref()).unwrap(),
-            ],
+            root_certificates: vec![BorrowingTrustAnchor::from_der(self.apple_ca.certificate().as_ref()).unwrap()],
         }
     }
 
@@ -384,7 +382,7 @@ where
 {
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
-        tempfile::tempdir().unwrap().into_path(),
+        tempfile::tempdir().unwrap().keep(),
         wallet_config,
     )
     .await

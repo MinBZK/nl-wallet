@@ -781,7 +781,6 @@ mod test {
     use std::str::FromStr;
 
     use assert_matches::assert_matches;
-    use jsonschema::ValidationError;
     use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;
     use serde_json::json;
@@ -1039,16 +1038,9 @@ mod test {
             .validate(&claims)
             .expect_err("JSON schema should fail validation");
 
-        assert_matches!(
-            *error,
-            ValidationError {
-                instance,
-                kind: ValidationErrorKind::Format { format },
-                instance_path,
-                ..
-            } if instance.to_string() == format!("\"{date_str}\"")
-                    && format == "date" && instance_path.to_string() == "/birth_date"
-        );
+        assert_eq!(error.instance().to_string(), format!("\"{date_str}\""));
+        assert_matches!(error.kind(), ValidationErrorKind::Format { format } if format == "date");
+        assert_eq!(error.instance_path().to_string(), "/birth_date");
     }
 
     #[rstest]

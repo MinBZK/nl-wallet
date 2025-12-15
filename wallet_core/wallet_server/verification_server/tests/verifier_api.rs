@@ -134,12 +134,12 @@ async fn wallet_server_settings_and_listener(
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
+    let issuer_trust_anchors = vec![issuer_ca.borrowing_trust_anchor().clone()];
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
-    let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
+    let reader_trust_anchors = vec![rp_ca.borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 

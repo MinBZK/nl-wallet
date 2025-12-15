@@ -115,10 +115,12 @@
 
 ### WUA status list parameters
 
-| Name                        | Description                                                | Value |
-| --------------------------- | ---------------------------------------------------------- | ----- |
-| `wuaStatusList.baseUrl`     | WUA status list base url that will be encoded as iss claim | `nil` |
-| `wuaStatusList.certificate` | WUA status list certificate                                | `nil` |
+| Name                            | Description                                                | Value |
+| ------------------------------- | ---------------------------------------------------------- | ----- |
+| `wuaStatusList.baseUrl`         | WUA status list base url that will be encoded as iss claim | `nil` |
+| `wuaStatusList.certificate`     | WUA status list certificate                                | `nil` |
+| `wuaStatusList.volumeClaimName` | Name of PVC where the WUA status lists are published       | `nil` |
+| `wuaStatusList.volumeClaimPath` | Path in the PVC where the WUA status lists are published   | `nil` |
 
 ### Migration parameters
 
