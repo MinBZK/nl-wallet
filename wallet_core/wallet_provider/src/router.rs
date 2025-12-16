@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use axum::Router;
 use axum::extract::DefaultBodyLimit;
@@ -196,14 +197,17 @@ fn health_router<W, S>(user_state: &UserState<Repositories, Pkcs11Hsm, W, S>) ->
     create_health_router(checkers)
 }
 
-fn metrics_router() -> Router {
-    let recorder_handle = PrometheusBuilder::new()
+/// Prometheus Handle can only be installed once
+static PROMETHEUS_HANDLE: LazyLock<PrometheusHandle> = LazyLock::new(|| {
+    PrometheusBuilder::new()
         .install_recorder()
-        .expect("failed to install Prometheus recorder");
+        .expect("failed to install Prometheus recorder")
+});
 
+fn metrics_router() -> Router {
     Router::new()
         .route("/metrics", get(metrics_handler))
-        .with_state(recorder_handle)
+        .with_state(PROMETHEUS_HANDLE.clone())
 }
 
 async fn metrics_handler(State(handle): State<PrometheusHandle>) -> String {
