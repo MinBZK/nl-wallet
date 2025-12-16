@@ -9,7 +9,8 @@ class FlutterAppConfiguration extends Equatable {
   final Duration backgroundLockTimeout;
   final String staticAssetsBaseUrl;
   final List<String> pidAttestationTypes;
-  final int version;
+  final String version;
+  final String environment;
 
   const FlutterAppConfiguration({
     required this.idleLockTimeout,
@@ -18,6 +19,7 @@ class FlutterAppConfiguration extends Equatable {
     required this.staticAssetsBaseUrl,
     required this.pidAttestationTypes,
     required this.version,
+    required this.environment,
   });
 
   factory FlutterAppConfiguration.fromFlutterConfig(FlutterConfiguration config) {
@@ -27,8 +29,13 @@ class FlutterAppConfiguration extends Equatable {
       backgroundLockTimeout: Duration(seconds: config.backgroundLockTimeout),
       staticAssetsBaseUrl: config.staticAssetsBaseUrl,
       pidAttestationTypes: config.pidAttestationTypes,
-      version: config.version.toInt(),
+      version: config.version,
+      environment: config.environment,
     );
+  }
+
+  String versionAndEnvironment() {
+    return '$version ($environment)';
   }
 
   @override
