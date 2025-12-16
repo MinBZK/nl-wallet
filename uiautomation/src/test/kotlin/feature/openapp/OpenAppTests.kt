@@ -51,7 +51,7 @@ class OpenAppTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC44 Wallet not created when app is opened, PIN has not been setup")
+    @DisplayName("LTC34 Wallet not created when app is opened, PIN has not been setup")
     fun verifyOpenAppWithoutPinSetup(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecurityChoosePin)
@@ -61,7 +61,7 @@ class OpenAppTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC44 Wallet not created when app is opened, PID has not been issued")
+    @DisplayName("LTC34 Wallet not created when app is opened, PID has not been issued")
     fun verifyOpenAppWithoutPID(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizeConfirmIssuance)
