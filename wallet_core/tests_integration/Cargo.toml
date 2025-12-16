@@ -79,16 +79,7 @@ required-features = ["integration_test"]
 allow_insecure_url = ["openid4vc?/allow_insecure_url"]
 
 # Initialize global logging using tracing-subscriber
-logging = [
-    "dep:tracing",
-    "tracing-subscriber/ansi",
-    "tracing-subscriber/env-filter",
-    "tracing-subscriber/fmt",
-    "tracing-subscriber/parking_lot",
-    "tracing-subscriber/smallvec",
-    "tracing-subscriber/std",
-    "tracing-subscriber/tracing-log",
-]
+logging = ["dep:tracing", "tracing-subscriber/ansi", "tracing-subscriber/env-filter"]
 
 # Include the common submodule, which includes code all integration tests use.
 test_common = [

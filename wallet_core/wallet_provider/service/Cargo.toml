@@ -49,11 +49,7 @@ db_test = [
     "mock",
     "mock_secure_keys",
     "tracing-subscriber/ansi",
-    "tracing-subscriber/fmt",
-    "tracing-subscriber/parking_lot",
-    "tracing-subscriber/smallvec",
-    "tracing-subscriber/std",
-    "tracing-subscriber/tracing-log",
+    "tracing-subscriber/env-filter",
     "wallet_provider_database_settings/test",
 ]
 

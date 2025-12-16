@@ -223,7 +223,13 @@ toml = "0.9.8"
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.2", default-features = false }
 tracing = "0.1.43"
-tracing-subscriber = { version = "0.3.22", default-features = false }
+tracing-subscriber = { version = "0.3.22", default-features = false, features = [
+    "fmt",
+    "smallvec",
+    "std",
+    "tracing-log",
+    "parking_lot",
+] }
 tracing-test = "0.2.5"
 trait-variant = "0.1.2"
 trybuild = "1.0.114"

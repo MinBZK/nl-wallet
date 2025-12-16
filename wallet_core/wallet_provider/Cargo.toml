@@ -62,16 +62,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
 tower-http = { workspace = true, features = ["trace", "limit", "decompression-zstd"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = [
-    "std",
-    "fmt",
-    "tracing-log",
-    "smallvec",
-    "parking_lot",
-    "env-filter",
-    "json",
-    "ansi",
-] }
+tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
 rand_core = { workspace = true, optional = true }

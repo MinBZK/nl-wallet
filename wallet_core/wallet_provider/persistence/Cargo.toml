@@ -36,11 +36,7 @@ db_test = [
     "sea-orm/debug-print",
     "tokio/macros",
     "tracing-subscriber/ansi",
-    "tracing-subscriber/fmt",
-    "tracing-subscriber/parking_lot",
-    "tracing-subscriber/smallvec",
-    "tracing-subscriber/std",
-    "tracing-subscriber/tracing-log",
+    "tracing-subscriber/env-filter",
     "wallet_provider_database_settings/test",
     "wallet_provider_domain/mock",
 ]
