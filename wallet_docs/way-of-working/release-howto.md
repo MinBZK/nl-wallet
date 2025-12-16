@@ -44,7 +44,10 @@ relevant folks with regards to status and discuss with the product owner. When
 an issue is still far from done but important for this release, it effectively
 blocks the release - you need to wait until the issue is done. Alternatively,
 you and/or the product owner might decide that the issue can be moved to the
-next release.
+next release. In this open subtasks under the `In Progress` issues can be moved
+to the backlog and the `In Progress` issue can be moved to done. For certain
+issues an exception can be made; these issues will be partly released and thus
+will get multiple fix versions in the future.
 
 When the release is "green" (i.e., all relevant issues are in the `Done` state)
 you know that the relevant features and fixes have been merged in the `main`
@@ -61,8 +64,8 @@ checks and logs other inconsistencies:
 - MRs with source branches that do not contain an existing Jira item
 
 In the latter case this cannot be synced/corrected automatically. In job
-'verify_release_check', which runs in the release tag pipeline, an artifact is
-created in which all MRs that are misisng a Jira key are logged. Add this file
+'verify_release_check', which runs manual in the main pipeline, an artifact is
+created in which all MRs that are missing a Jira key are logged. Add this file
 to the release ticket in Jira or a separate ticket belonging to the release to
 ensure a quick way to determinate what has been released.
 
@@ -86,10 +89,10 @@ however still a few things we confirm. Most notably:
 - ZAP scanner ran and results accepted (see ZAP in Quality Time)
 - No blocker or critical Sonar findings (you can check our Sonar instance for
   these findings, ask around for the link if you don't have it)
+- A11y scan that ran on Browserstack are evaluated and actual a11y issues are
+  reported Jira as bugs.
 
-The manual E2E tests are usually executed by the test automation engineer. We
-are working on getting automated ZAP tests as part of the pipeline that will
-block on serious issues, and warn on lower priority ones.
+The manual E2E tests are usually executed by the test automation engineer.
 
 The confirmation of the acceptability of the tests and any required reports is
 done by our software quality engineer. He will e-mail our shared e-mail account,
