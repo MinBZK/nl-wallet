@@ -45,7 +45,7 @@ class PinOverlay extends StatelessWidget {
         }
         return Stack(
           children: [
-            child,
+            ExcludeSemantics(excluding: isLocked, child: child),
             if (isLocked) _buildLockedState(),
           ],
         );
