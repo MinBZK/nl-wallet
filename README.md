@@ -718,7 +718,7 @@ s
 
 [2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
 
-[3]: https://www.figma.com/design/Pv7yVW8jg26dgW1IWjVgt1/20250625_Release_UI_NLWallet?node-id=1-3716&t=eVkXvIquG6fOOLOF-1
+[3]: https://www.figma.com/design/XAaFKS0f2Y8KYNkH2fVYDJ/20251209_Release_UI_NLWallet?node-id=47602-6&t=cjbx4TyrKnQMYQl0-1
 
 [4]: https://github.com/MinBZK/nl-wallet/
 

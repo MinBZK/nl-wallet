@@ -383,7 +383,8 @@ extract-manual-test-set:
   allow_failure: true
   script:
     - ./deploy/test-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.default-branch, rules]
+  when: manual
   artifacts:
     name: manual-test-set
     when: always
