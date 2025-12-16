@@ -101,7 +101,6 @@ test_common = [
     "crypto",
     "dcql/mock",
     "dep:android_attest",
-    "dep:chrono",
     "dep:ctor",
     "dep:futures",
     "dep:gba_hc_converter",
@@ -226,7 +225,6 @@ assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }

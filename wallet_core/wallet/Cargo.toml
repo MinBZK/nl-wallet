@@ -27,7 +27,7 @@ test = ["openid4vc/mock", "platform_support/mock_hw_keystore", "dep:mockall"]
 [dependencies]
 async-trait.workspace = true
 base64.workspace = true
-chrono = { workspace = true, features = ["std", "clock"] }
+chrono = { workspace = true, features = ["now"] }
 cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display"] }

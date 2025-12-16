@@ -42,7 +42,7 @@ db_test = ["axum", "dep:config", "dep:reqwest", "server_utils/postgres", "server
 
 [dependencies]
 anyhow.workspace = true
-chrono.workspace = true
+chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true

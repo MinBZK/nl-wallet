@@ -42,7 +42,7 @@ integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversi
 [dependencies]
 anyhow.workspace = true
 axum.workspace = true
-chrono = { workspace = true, features = ["serde", "std"] }
+chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true

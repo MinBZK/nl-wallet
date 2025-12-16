@@ -40,7 +40,6 @@ anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 config = { workspace = true, features = ["toml", "preserve_order"] }
-chrono.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 itertools.workspace = true
 indexmap.workspace = true
@@ -70,6 +69,7 @@ token_status_list.path = "../../lib/token_status_list"
 utils.path = "../../lib/utils"
 
 [dev-dependencies]
+chrono = { workspace = true, features = ["now"] }
 indexmap.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
 tokio = { workspace = true, features = ["macros", "test-util"] }
