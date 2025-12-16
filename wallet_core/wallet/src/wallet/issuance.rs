@@ -552,7 +552,7 @@ where
             _ => issuance_result?,
         };
 
-        info!("Isuance succeeded; removing issuance session state");
+        info!("Issuance succeeded; removing issuance session state");
         let issuance_session = match self.session.take() {
             Some(Session::Issuance(issuance_session)) => issuance_session,
             _ => unreachable!(),
