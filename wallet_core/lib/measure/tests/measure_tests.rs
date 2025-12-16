@@ -173,6 +173,21 @@ mod test_functions {
         Err("test error")
     }
 
+    #[measure(name = "custom_metric", "service" => "test")]
+    pub async fn function_returning_unit() {
+        // Does nothing
+    }
+
+    #[measure(name = "custom_metric", "service" => "test", "return_type" => "string")]
+    pub async fn function_returning_string() -> String {
+        "hello".to_string()
+    }
+
+    #[measure(name = "custom_metric")]
+    pub async fn function_returning_option() -> Option<i32> {
+        Some(42)
+    }
+
     pub struct TestStruct;
 
     impl TestStruct {
@@ -391,6 +406,141 @@ async fn test_method_function() {
                     ]
                 && *duration >= 0.0),
         "Histogram not found. Got: {:?}",
+        histograms
+    );
+}
+
+#[tokio::test]
+#[serial(recorder)]
+async fn test_function_returning_unit() {
+    let recorder = setup_recorder();
+    recorder.clear();
+
+    test_functions::function_returning_unit().await;
+
+    let counters = recorder.get_counters();
+    assert_eq!(
+        counters.len(),
+        1,
+        "Expected 1 counter (no failure counter for non-Result), got: {:?}",
+        counters
+    );
+    assert_eq!(
+        counters[0],
+        (
+            "custom_metric_total".to_string(),
+            vec![
+                ("function".to_string(), "function_returning_unit".to_string()),
+                ("service".to_string(), "test".to_string())
+            ],
+            1
+        ),
+        "Counter not found. Got: {:?}",
+        counters
+    );
+
+    let histograms = recorder.get_histograms();
+    assert_eq!(histograms.len(), 1);
+    assert!(
+        histograms
+            .iter()
+            .any(|(name, labels, duration)| name == "custom_metric_duration_seconds"
+                && labels
+                    == &vec![
+                        ("function".to_string(), "function_returning_unit".to_string()),
+                        ("service".to_string(), "test".to_string()),
+                    ]
+                && *duration >= 0.0),
+        "Histogram without failure label not found. Got: {:?}",
+        histograms
+    );
+}
+
+#[tokio::test]
+#[serial(recorder)]
+async fn test_function_returning_string() {
+    let recorder = setup_recorder();
+    recorder.clear();
+
+    let result = test_functions::function_returning_string().await;
+    assert_eq!(result, "hello");
+
+    let counters = recorder.get_counters();
+    assert_eq!(
+        counters.len(),
+        1,
+        "Expected 1 counter (no failure counter for non-Result), got: {:?}",
+        counters
+    );
+    assert_eq!(
+        counters[0],
+        (
+            "custom_metric_total".to_string(),
+            vec![
+                ("function".to_string(), "function_returning_string".to_string()),
+                ("service".to_string(), "test".to_string()),
+                ("return_type".to_string(), "string".to_string())
+            ],
+            1
+        ),
+        "Counter not found. Got: {:?}",
+        counters
+    );
+
+    let histograms = recorder.get_histograms();
+    assert_eq!(histograms.len(), 1);
+    assert!(
+        histograms
+            .iter()
+            .any(|(name, labels, duration)| name == "custom_metric_duration_seconds"
+                && labels
+                    == &vec![
+                        ("function".to_string(), "function_returning_string".to_string()),
+                        ("service".to_string(), "test".to_string()),
+                        ("return_type".to_string(), "string".to_string()),
+                    ]
+                && *duration >= 0.0),
+        "Histogram without failure label not found. Got: {:?}",
+        histograms
+    );
+}
+
+#[tokio::test]
+#[serial(recorder)]
+async fn test_function_returning_option() {
+    let recorder = setup_recorder();
+    recorder.clear();
+
+    let result = test_functions::function_returning_option().await;
+    assert_eq!(result, Some(42));
+
+    let counters = recorder.get_counters();
+    assert_eq!(
+        counters.len(),
+        1,
+        "Expected 1 counter (no failure counter for non-Result), got: {:?}",
+        counters
+    );
+    assert_eq!(
+        counters[0],
+        (
+            "custom_metric_total".to_string(),
+            vec![("function".to_string(), "function_returning_option".to_string())],
+            1
+        ),
+        "Counter not found. Got: {:?}",
+        counters
+    );
+
+    let histograms = recorder.get_histograms();
+    assert_eq!(histograms.len(), 1);
+    assert!(
+        histograms
+            .iter()
+            .any(|(name, labels, duration)| name == "custom_metric_duration_seconds"
+                && labels == &vec![("function".to_string(), "function_returning_option".to_string()),]
+                && *duration >= 0.0),
+        "Histogram without failure label not found. Got: {:?}",
         histograms
     );
 }

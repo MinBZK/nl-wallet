@@ -47,6 +47,7 @@ use gba_hc_converter::haal_centraal::Bsn;
 use gba_hc_converter::settings::PreloadedSettings;
 use gba_hc_converter::settings::RunMode;
 use gba_hc_converter::settings::Settings;
+use http_utils::health::create_health_router;
 
 const CERT_SERIAL_HEADER: &str = "Cert-Serial";
 
@@ -123,7 +124,7 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
         .layer(CsrfLayer::new(csrf_config))
         .layer(middleware::from_fn(check_auth))
         .layer(TraceLayer::new_for_http())
-        .route("/health", get(|| async {}));
+        .merge(create_health_router([]));
 
     axum::serve(listener, app).await?;
 

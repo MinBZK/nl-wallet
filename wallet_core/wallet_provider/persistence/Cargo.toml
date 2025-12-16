@@ -43,7 +43,8 @@ db_test = [
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
-derive_more = { workspace = true, features = ["from"] }
+derive_more = { workspace = true, features = ["as_ref", "from"] }
+metrics.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 sea-orm = { workspace = true, features = [
     "macros",
@@ -67,6 +68,7 @@ tracing-subscriber = { workspace = true, optional = true }
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
+measure.path = "../../lib/measure"
 status_lists.path = "../../wallet_server/status_lists"
 utils.path = "../../lib/utils"
 wallet_account.path = "../wallet_account"

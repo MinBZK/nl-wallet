@@ -54,19 +54,24 @@
 
 ### GBA HC Converter parameters
 
-| Name                                       | Description                                                    | Value                                 |
-| ------------------------------------------ | -------------------------------------------------------------- | ------------------------------------- |
-| `gbaHcConverter.replicaCount`              | Number of replicas for the GBA HC Converter                    | `2`                                   |
-| `gbaHcConverter.extraAnnotations`          | Additional annotations for the BA HC Converter deployment      | `{}`                                  |
-| `gbaHcConverter.extraPodLabels`            | Additional labels for the BA HC Converter pods                 | `{}`                                  |
-| `gbaHcConverter.runMode`                   | Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV) | `PRELOADED`                           |
-| `gbaHcConverter.envVarNamePreloaded`       | Environment variable name for the preloaded run mode           | `PRELOADED`                           |
-| `gbaHcConverter.envVarNameGbav`            | Environment variable name for the GBAV run mode                | `ALL__GBAV`                           |
-| `gbaHcConverter.preloadedXmlPath`          | Path to the preloaded XML files                                | `resources/encrypted-gba-v-responses` |
-| `gbaHcConverter.resources.requests.cpu`    | CPU request                                                    | `50m`                                 |
-| `gbaHcConverter.resources.requests.memory` | Memory request                                                 | `64Mi`                                |
-| `gbaHcConverter.resources.limits.cpu`      | CPU limit                                                      | `200m`                                |
-| `gbaHcConverter.resources.limits.memory`   | Memory limit                                                   | `128Mi`                               |
+| Name                                           | Description                                                    | Value                                 |
+| ---------------------------------------------- | -------------------------------------------------------------- | ------------------------------------- |
+| `gbaHcConverter.replicaCount`                  | Number of replicas for the GBA HC Converter                    | `2`                                   |
+| `gbaHcConverter.extraAnnotations`              | Additional annotations for the BA HC Converter deployment      | `{}`                                  |
+| `gbaHcConverter.extraPodLabels`                | Additional labels for the BA HC Converter pods                 | `{}`                                  |
+| `gbaHcConverter.runMode`                       | Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV) | `PRELOADED`                           |
+| `gbaHcConverter.envVarNamePreloaded`           | Environment variable name for the preloaded run mode           | `PRELOADED`                           |
+| `gbaHcConverter.envVarNameGbav`                | Environment variable name for the GBAV run mode                | `ALL__GBAV`                           |
+| `gbaHcConverter.preloadedXmlPath`              | Path to the preloaded XML files                                | `resources/encrypted-gba-v-responses` |
+| `gbaHcConverter.probes.config.liveness`        | Additional configuration for liveness probe                    | `{}`                                  |
+| `gbaHcConverter.probes.config.readiness`       | Additional configuration for readiness probe                   | `{}`                                  |
+| `gbaHcConverter.probes.config.startup`         | Additional configuration for startup probe                     | `{}`                                  |
+| `gbaHcConverter.probes.disableLiveness`        | Disable liveness probe                                         | `false`                               |
+| `gbaHcConverter.probes.useLivenessAsReadiness` | Use liveness endpoint for readiness                            | `false`                               |
+| `gbaHcConverter.resources.requests.cpu`        | CPU request                                                    | `50m`                                 |
+| `gbaHcConverter.resources.requests.memory`     | Memory request                                                 | `64Mi`                                |
+| `gbaHcConverter.resources.limits.cpu`          | CPU limit                                                      | `200m`                                |
+| `gbaHcConverter.resources.limits.memory`       | Memory limit                                                   | `128Mi`                               |
 
 ### GBA CLI Tool parameters
 
@@ -92,19 +97,24 @@
 
 ### Frontend parameters
 
-| Name                                 | Description                                        | Value                |
-| ------------------------------------ | -------------------------------------------------- | -------------------- |
-| `frontend.replicaCount`              | Number of replicas for the GBA Fetch frontend      | `1`                  |
-| `frontend.name`                      | Name of the GBA Fetch frontend application         | `gba-fetch-frontend` |
-| `frontend.extraAnnotations`          | Additional annotations for the frontend deployment | `{}`                 |
-| `frontend.extraPodLabels`            | Additional labels for the frontend pods            | `{}`                 |
-| `frontend.ingress.className`         | Ingress class name for the frontend                | `nginx`              |
-| `frontend.ingress.hostname`          | Ingress hostname for the frontend                  | `nil`                |
-| `frontend.ingress.tlsSecretName`     | Secret name for the ingress TLS configuration      | `nil`                |
-| `frontend.resources.requests.cpu`    | CPU request for the frontend container             | `50m`                |
-| `frontend.resources.requests.memory` | Memory request for the frontend container          | `64Mi`               |
-| `frontend.resources.limits.cpu`      | CPU limit for the frontend container               | `200m`               |
-| `frontend.resources.limits.memory`   | Memory limit for the frontend container            | `128Mi`              |
+| Name                                     | Description                                        | Value                |
+| ---------------------------------------- | -------------------------------------------------- | -------------------- |
+| `frontend.replicaCount`                  | Number of replicas for the GBA Fetch frontend      | `1`                  |
+| `frontend.name`                          | Name of the GBA Fetch frontend application         | `gba-fetch-frontend` |
+| `frontend.extraAnnotations`              | Additional annotations for the frontend deployment | `{}`                 |
+| `frontend.extraPodLabels`                | Additional labels for the frontend pods            | `{}`                 |
+| `frontend.ingress.className`             | Ingress class name for the frontend                | `nginx`              |
+| `frontend.ingress.hostname`              | Ingress hostname for the frontend                  | `nil`                |
+| `frontend.ingress.tlsSecretName`         | Secret name for the ingress TLS configuration      | `nil`                |
+| `frontend.probes.config.liveness`        | Additional configuration for liveness probe        | `{}`                 |
+| `frontend.probes.config.readiness`       | Additional configuration for readiness probe       | `{}`                 |
+| `frontend.probes.config.startup`         | Additional configuration for startup probe         | `{}`                 |
+| `frontend.probes.disableLiveness`        | Disable liveness probe                             | `false`              |
+| `frontend.probes.useLivenessAsReadiness` | Use liveness endpoint for readiness                | `false`              |
+| `frontend.resources.requests.cpu`        | CPU request for the frontend container             | `50m`                |
+| `frontend.resources.requests.memory`     | Memory request for the frontend container          | `64Mi`               |
+| `frontend.resources.limits.cpu`          | CPU limit for the frontend container               | `200m`               |
+| `frontend.resources.limits.memory`       | Memory limit for the frontend container            | `128Mi`              |
 
 ### Preload GBA deployement parameters
 

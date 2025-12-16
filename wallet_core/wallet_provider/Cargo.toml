@@ -57,6 +57,7 @@ rustix = { workspace = true, features = ["pipe", "stdio"] }
 rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
+strum = { workspace = true, features = ["derive"] }
 spki = { workspace = true, features = ["std"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
@@ -73,7 +74,7 @@ apple_app_attest.path = "../lib/apple_app_attest"
 crypto = { path = "../lib/crypto" }
 hsm = { path = "../lib/hsm", features = ["settings"] }
 http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
-server_utils.path = "../wallet_server/server_utils"
+server_utils = { path = "../wallet_server/server_utils", features = ["checkers", "postgres"] }
 status_lists = { path = "../wallet_server/status_lists", features = ["axum"] }
 utils = { path = "../lib/utils" }
 wallet_account = { path = "wallet_account", features = ["server"] }
@@ -83,5 +84,6 @@ wallet_provider_persistence.path = "persistence"
 wallet_provider_service.path = "service"
 
 [dev-dependencies]
+rstest.workspace = true
 tempfile.workspace = true
 tracing-test.workspace = true

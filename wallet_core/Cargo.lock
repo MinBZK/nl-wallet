@@ -2992,6 +2992,7 @@ dependencies = [
  "serde_with",
  "serial_test",
  "sha2",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "tokio",
  "utils",
@@ -3095,12 +3096,14 @@ dependencies = [
 name = "http_utils"
 version = "0.4.0-dev"
 dependencies = [
+ "async-trait",
  "axum",
  "axum-server",
  "base64 0.22.1",
  "cfg-if",
  "data-url",
  "derive_more",
+ "futures",
  "http",
  "itertools 0.14.0",
  "mime",
@@ -3116,6 +3119,7 @@ dependencies = [
  "tokio",
  "toml",
  "tower-http",
+ "tracing",
  "url",
 ]
 
@@ -5379,11 +5383,10 @@ checksum = "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
 
 [[package]]
 name = "reqwest"
-version = "0.12.24"
+version = "0.12.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d0946410b9f7b082a427e4ef5c8ff541a88b357bc6c637c40db3a68ac70a36f"
+checksum = "3b4c14b2d9afca6a60277086b0cc6a6ae0b568f6f7916c943a8cdc79f8be240f"
 dependencies = [
- "async-compression",
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
@@ -5410,7 +5413,6 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-rustls",
- "tokio-util",
  "tower",
  "tower-http",
  "tower-service",
@@ -6378,6 +6380,7 @@ name = "server_utils"
 version = "0.4.0-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "attestation_data",
  "axum",
  "base64 0.22.1",
@@ -6390,7 +6393,9 @@ dependencies = [
  "nutype",
  "openid4vc",
  "p256",
+ "r2d2-cryptoki",
  "ring",
+ "rstest",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",
@@ -6830,7 +6835,6 @@ dependencies = [
  "attestation_types",
  "axum",
  "chrono",
- "config",
  "crypto",
  "derive_more",
  "etag",
@@ -6839,7 +6843,9 @@ dependencies = [
  "http_utils",
  "itertools 0.14.0",
  "jwt",
+ "measure",
  "mediatype",
+ "metrics",
  "nutype",
  "p256",
  "rand 0.8.5",
@@ -8348,6 +8354,7 @@ dependencies = [
  "p256",
  "rand_core 0.6.4",
  "regex",
+ "rstest",
  "rustix",
  "rustls",
  "serde",
@@ -8356,6 +8363,7 @@ dependencies = [
  "server_utils",
  "spki",
  "status_lists",
+ "strum 0.27.2",
  "tempfile",
  "thiserror 2.0.17",
  "tokio",
@@ -8427,6 +8435,8 @@ dependencies = [
  "ctor",
  "derive_more",
  "hsm",
+ "measure",
+ "metrics",
  "mockall",
  "p256",
  "rand_core 0.6.4",
@@ -8480,6 +8490,7 @@ dependencies = [
  "serde_with",
  "server_utils",
  "status_lists",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",

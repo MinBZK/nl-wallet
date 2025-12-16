@@ -15,12 +15,12 @@ use url::Url;
 
 use crypto::server_keys::generate::Ca;
 use server_utils::keys::test::private_key_variant;
+use server_utils::test_settings::connection_from_settings;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
-use status_lists::settings::test::connection_from_settings;
 use token_status_list::status_list_service::StatusListRevocationService;
 use utils::num::NonZeroU31;
 use uuid::Uuid;
@@ -50,7 +50,7 @@ pub async fn fetch_attestation_batch(
 
 async fn setup_revocation_test(publish_dir: PublishDir) -> (Arc<PostgresStatusListService>, Url, DatabaseConnection) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await.unwrap();
+    let connection = connection_from_settings().await;
 
     let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
 

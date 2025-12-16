@@ -39,6 +39,7 @@ use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
 use demo_utils::language::LanguageParam;
+use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::ConnectSource;
 use http_utils::urls::SourceExpression;
@@ -125,7 +126,7 @@ pub fn create_router(settings: Settings) -> Router {
         app = app.layer(axum::middleware::from_fn(log_request_response));
     }
 
-    app
+    app.merge(create_health_router([]))
 }
 
 #[derive(Serialize, Deserialize)]

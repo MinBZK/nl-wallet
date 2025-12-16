@@ -16,6 +16,7 @@ use cryptoki::types::AuthPin;
 use der::Decode;
 use der::Encode;
 use der::asn1::OctetString;
+use derive_more::AsRef;
 use futures::future;
 use p256::NistP256;
 use p256::ecdsa::Signature;
@@ -38,7 +39,7 @@ use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
 use crate::model::wrapped_key::WrappedKey;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum HsmError {
     #[error("pkcs11 error: {0}")]
     Pkcs11(#[from] cryptoki::error::Error),
@@ -153,7 +154,7 @@ pub trait Pkcs11Client {
     ) -> Result<Signature>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, AsRef)]
 pub struct Pkcs11Hsm {
     pool: Pool,
 }

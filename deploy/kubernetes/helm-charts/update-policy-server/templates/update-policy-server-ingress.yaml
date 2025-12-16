@@ -30,10 +30,10 @@ spec:
                 port:
                   name: http
 {{ if .Values.ingress.contextPath }}
-            path: /{{ .Values.ingress.contextPath }}/(.*)
+            path: /{{ .Values.ingress.contextPath }}/(update/v1/(?:.*))
             pathType: ImplementationSpecific
 {{ else }}
-            path: /
+            path: /update/v1
             pathType: Prefix
 {{ end }}
   tls:

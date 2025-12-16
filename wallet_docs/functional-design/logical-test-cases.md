@@ -740,6 +740,8 @@ instructs user to choose a new PIN
 
 ---
 
+<!-- Manual  -->
+
 ### LTC59
 
 #### Device does not support biometrics
