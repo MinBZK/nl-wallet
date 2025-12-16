@@ -389,3 +389,13 @@ extract-manual-test-set:
     when: always
     paths:
       - manual-test-set.md
+
+ltc-coverage-check:
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  before_script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip3 install --no-cache-dir --upgrade pip
+  script:
+    - python3 deploy/test-util/traceability-check.py
