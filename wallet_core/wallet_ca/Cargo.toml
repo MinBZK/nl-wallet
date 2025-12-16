@@ -21,7 +21,7 @@ pem.workspace = true
 serde_json.workspace = true
 x509-parser.workspace = true
 
-crypto = { path = "../lib/crypto", features = ["generate"] }
+crypto = { path = "../lib/crypto", features = ["generate", "mock"] }
 attestation_data = { path = "../lib/attestation_data", features = ["generate"] }
 utils.path = "../lib/utils"
 
@@ -31,5 +31,4 @@ assert_fs.workspace = true
 predicates = { workspace = true, features = ["regex"] }
 time.workspace = true
 
-crypto = { path = "../lib/crypto", features = ["mock"] }
 attestation_data = { path = "../lib/attestation_data", features = ["mock"] }
