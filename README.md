@@ -712,12 +712,8 @@ Generate/update localisation files (to compile/run the project successfully):
 
     $ flutter gen-l10n
 
-## References
-
-Below you'll find a collection of links which we reference to through the entire
-text. Note that they don't display when rendered within a website, you need to
-read the text in a regular text editor or pager to see them.
-
+<!-- References -->
+s
 [1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
 
 [2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas

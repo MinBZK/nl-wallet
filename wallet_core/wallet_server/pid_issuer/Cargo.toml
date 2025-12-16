@@ -49,7 +49,7 @@ hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
-reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"] }
+reqwest = { workspace = true }
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -71,7 +71,7 @@ jwt.path = "../../lib/jwt"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
 utils = { path = "../../lib/utils" }
-server_utils.path = "../server_utils"
+server_utils = { path = "../server_utils", features = ["checkers"] }
 status_lists = { path = "../status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 

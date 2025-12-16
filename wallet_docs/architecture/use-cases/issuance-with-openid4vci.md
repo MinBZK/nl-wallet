@@ -1,9 +1,12 @@
 # Issuance with OpenID4VCI
 
-We currently (2025-10-25) have two issuance implementations: The `pid_issuer`,
-a specialized issuer specifically for [PID][1]s, and `issuance_server` a
-reference generic issuer that can issue all kinds of things. We'll cover both
-in this document.
+We've implemented issuance with [OpenID4VCI draft 13][2], with attestation
+preview as a custom addition.
+
+We currently (2025-12-11) have two issuance implementations: The `pid_issuer`,
+a specialized issuer specifically for Dutch [PID][1]s, which this page is about,
+and `issuance_server` a disclosure-based-issuance service that can issue all
+kinds of things (which you can [read about here][8]).
 
 ## PID issuance
 
@@ -121,71 +124,13 @@ sequenceDiagram
     deactivate Wallet
 ```
 
-## Generic issuance
+<!-- References -->
 
-Generic issuance is done by the `issuance_server` which is also a part of the
-`wallet_server` crate. It is created to issue all kinds of attestations.
-
-For generic issuance, we implement a `GenericAttributeService` as follows:
-
-  * The issuer feeds it a bunch of to-be-issued attestations (e.g.
-    `Vec<IssuableDocument>`) and receives a fresh pre-authorized token
-    in return, which it sends to the wallet using a UL or QR;
-
-  * When the `issuance_server` calls `getAttributes(pre-authorized_code)`
-    on the `GenericAttributeService`, it looks up the attributes to be issued
-    using the pre-authorized code and returns them.
-
-This would look like the following diagram:
-
-```{mermaid}
-sequenceDiagram
-    autonumber
-
-    actor User
-    participant OS
-    participant Wallet
-    participant WalletServer as IssuanceServer
-    participant GenericAttributeService
-    participant Issuer
-
-    User->>+Issuer: start issuance flow
-    Issuer->>Issuer: determine attributes to be issued
-    Issuer->>+WalletServer: createSession(attributes)
-    WalletServer->>+GenericAttributeService: createSession(attributes)
-    GenericAttributeService->>GenericAttributeService: generate pre-authorized_code<br/>store attributes
-    GenericAttributeService->>-WalletServer: pre-authorized_code
-    WalletServer->>-Issuer: pre-authorized_code
-    Issuer->>-OS: GET universal_link?pre-authorized_code=...
-    OS->>Wallet: openWallet(pre-authorized_code)
-    activate Wallet
-        Wallet->>+WalletServer: POST /token(pre-authorized_code)
-        WalletServer->>+GenericAttributeService: getAttributes(pre-authorized_code)
-        GenericAttributeService->>GenericAttributeService: lookup attributes using pre-authorized code
-        GenericAttributeService->>-WalletServer: attributes
-        WalletServer->>WalletServer: generate c_nonce, access_token
-        WalletServer->>-Wallet: access_token, c_nonce, attestation_previews
-        Wallet->>+User: Show attributes, ask consent
-    deactivate Wallet
-    User->>-Wallet: approve with PIN
-    activate Wallet
-        Wallet->>Wallet: create PoPs by signing nonce using Wallet Provider
-        Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
-        WalletServer->>-Wallet: attestations
-    deactivate Wallet
-```
-
-
-## References
-
-Below you'll find a collection of links which we reference to through the
-entire text. Note that they don't display when rendered within a website, you
-need to read the text in a regular text editor or pager to see them.
-
-[1]: https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/latest/annexes/annex-3/annex-3.01-pid-rulebook
-[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html
-[3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
+[1]: https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook
+[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html
+[3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html#name-pre-authorized-code-flow
 [4]: https://openid.net/developers/how-connect-works
 [5]: https://www.logius.nl/onze-dienstverlening/toegang/digid
 [6]: https://github.com/minvws/nl-rdo-max
 [7]: https://www.rvig.nl/basisregistratie-personen
+[8]: disclosure-based-issuance

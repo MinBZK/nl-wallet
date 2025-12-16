@@ -47,6 +47,7 @@ pub async fn serve<A, L, IS, DS, C>(
     status_list_services: L,
     status_list_router: Option<Router>,
     status_list_client: C,
+    health_router: Router,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -66,6 +67,7 @@ where
         status_list_services,
         status_list_router,
         status_list_client,
+        health_router,
     )
     .await
 }
@@ -82,6 +84,7 @@ pub async fn serve_with_listeners<A, L, IS, DS, C>(
     status_list_services: L,
     status_list_router: Option<Router>,
     status_list_client: C,
+    health_router: Router,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -170,6 +173,7 @@ where
         internal_listener,
         wallet_router,
         internal_router,
+        health_router,
         log_requests,
     )
     .await

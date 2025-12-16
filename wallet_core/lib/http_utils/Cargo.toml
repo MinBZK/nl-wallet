@@ -18,7 +18,7 @@ client = ["dep:reqwest", "serde_with/base64"]
 # Implement the HttpConfig type for insecurely fetching configurations.
 insecure_http_client = ["client"]
 # Include implementations of the axum IntoResponse trait.
-server = ["axum/json", "axum-server/tls-rustls-no-provider", "serde_with/base64", "tower-http/cors"]
+server = ["axum/json", "axum-server/tls-rustls-no-provider", "dep:async-trait", "dep:tracing", "dep:futures", "serde_with/base64", "tower-http/cors"]
 
 [dependencies]
 cfg-if.workspace = true
@@ -37,9 +37,12 @@ strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
 
+async-trait = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
-reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"], optional = true }
+futures = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 
 [dev-dependencies]

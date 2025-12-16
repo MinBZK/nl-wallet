@@ -24,12 +24,13 @@ required-features = ["settings", "test"]
 [dependencies]
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
-derive_more = { workspace = true, features = ["constructor", "debug"] }
+derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
 metrics.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 r2d2-cryptoki.workspace = true
 sec1.workspace = true
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 
 async-dropper = { workspace = true, optional = true }

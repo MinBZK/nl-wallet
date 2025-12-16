@@ -28,9 +28,8 @@ required-features = ["db_test"]
 [features]
 default = ["openapi"]
 axum = ["dep:axum", "dep:etag", "dep:mediatype", "token_status_list/axum", "tower-http/compression-gzip"]
-db_test = ["axum", "dep:reqwest", "test", "server_utils/postgres"]
+db_test = ["axum", "dep:reqwest", "dep:rstest", "server_utils/postgres", "server_utils/test"]
 openapi = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
-test = ["dep:config"]
 
 [dependencies]
 anyhow.workspace = true
@@ -38,9 +37,9 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true
+metrics.workspace = true
 nutype.workspace = true
 rand.workspace = true
-rstest.workspace = true
 rustix = { workspace = true, features = ["fs"] }
 sea-orm = { workspace = true, features = [
     "macros",
@@ -59,10 +58,10 @@ utoipa-axum.workspace = true
 uuid.workspace = true
 
 axum = { workspace = true, optional = true }
-config = { workspace = true, optional = true }
 etag = { workspace = true, optional = true }
 mediatype = { workspace = true, optional = true }
-reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"], optional = true }
+reqwest = { workspace = true, optional = true }
+rstest = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
 
@@ -71,6 +70,7 @@ crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
 http_utils.path = "../../lib/http_utils"
 hsm.path = "../../lib/hsm"
+measure.path = "../../lib/measure"
 server_utils.path = "../server_utils"
 token_status_list = { path = "../../lib/token_status_list", features = ["axum"] }
 utils.path = "../../lib/utils"
@@ -78,9 +78,9 @@ utils.path = "../../lib/utils"
 [dev-dependencies]
 anyhow.workspace = true
 assert_matches.workspace = true
-config.workspace = true
 futures.workspace = true
 p256.workspace = true
+rstest.workspace = true
 tempfile.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 uuid = { workspace = true, features = ["v4"] }

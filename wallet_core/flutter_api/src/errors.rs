@@ -250,6 +250,9 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             IssuanceError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
+            IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
+                FlutterApiErrorType::WrongDigid
+            }
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -557,8 +560,10 @@ mod tests {
     use rstest::rstest;
 
     use serde_json::json;
+    use wallet::attestation_data::AttributeValue;
     use wallet::errors::DigidError;
     use wallet::errors::IssuanceError;
+    use wallet::errors::RecoveryCodeError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OidcError;
@@ -618,6 +623,14 @@ mod tests {
     #[case(
         IssuanceError::MissingSignature,
         FlutterApiErrorType::Generic,
+        serde_json::Value::Null
+    )]
+    #[case(
+        IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode {
+            expected: AttributeValue::Text("a".to_string()),
+            received: AttributeValue::Text("b".to_string())
+        }),
+        FlutterApiErrorType::WrongDigid,
         serde_json::Value::Null
     )]
     fn test_pid_issuance_error<E>(

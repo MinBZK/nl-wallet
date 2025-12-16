@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::AsRef;
 use derive_more::From;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
@@ -11,6 +12,7 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
+use measure::measure;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::TransferSession;
@@ -30,7 +32,7 @@ use crate::wallet_user;
 use crate::wallet_user_key;
 use crate::wallet_user_wua;
 
-#[derive(From)]
+#[derive(From, AsRef)]
 pub struct Repositories(Db);
 
 impl TransactionStarter for Repositories {
@@ -44,6 +46,7 @@ impl TransactionStarter for Repositories {
 impl WalletUserRepository for Repositories {
     type TransactionType = Transaction;
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn create_wallet_user(
         &self,
         transaction: &Self::TransactionType,
@@ -52,6 +55,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::create_wallet_user(transaction, user).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn find_wallet_user_by_wallet_id(
         &self,
         transaction: &Self::TransactionType,
@@ -60,6 +64,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::find_wallet_user_by_wallet_id(transaction, wallet_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn clear_instruction_challenge(
         &self,
         transaction: &Self::TransactionType,
@@ -68,6 +73,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::clear_instruction_challenge(transaction, wallet_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn update_instruction_challenge_and_sequence_number(
         &self,
         transaction: &Self::TransactionType,
@@ -84,6 +90,7 @@ impl WalletUserRepository for Repositories {
         .await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn update_instruction_sequence_number(
         &self,
         transaction: &Self::TransactionType,
@@ -93,6 +100,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::update_instruction_sequence_number(transaction, wallet_id, instruction_sequence_number).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn register_unsuccessful_pin_entry(
         &self,
         transaction: &Self::TransactionType,
@@ -103,6 +111,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::register_unsuccessful_pin_entry(transaction, wallet_id, is_blocked, datetime).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn reset_unsuccessful_pin_entries(
         &self,
         transaction: &Self::TransactionType,
@@ -111,6 +120,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::reset_unsuccessful_pin_entries(transaction, wallet_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn save_keys(
         &self,
         transaction: &Self::TransactionType,
@@ -119,6 +129,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::create_keys(transaction, keys).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn is_blocked_key(
         &self,
         transaction: &Self::TransactionType,
@@ -128,6 +139,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::is_blocked_key(transaction, wallet_user_id, key).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn unblock_blocked_keys(
         &self,
         transaction: &Self::TransactionType,
@@ -136,6 +148,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::unblock_blocked_keys(transaction, wallet_user_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn delete_blocked_keys(
         &self,
         transaction: &Self::TransactionType,
@@ -144,6 +157,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::delete_blocked_keys(transaction, wallet_user_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn find_active_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
@@ -153,6 +167,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::find_active_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn change_pin(
         &self,
         transaction: &Self::TransactionType,
@@ -163,6 +178,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::change_pin(transaction, wallet_id, new_encrypted_pin_pubkey, user_state).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn commit_pin_change(
         &self,
         transaction: &Self::TransactionType,
@@ -171,6 +187,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::commit_pin_change(transaction, wallet_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn rollback_pin_change(
         &self,
         transaction: &Self::TransactionType,
@@ -179,6 +196,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::rollback_pin_change(transaction, wallet_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn store_recovery_code(
         &self,
         transaction: &Self::TransactionType,
@@ -188,6 +206,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn recover_pin(
         &self,
         transaction: &Self::TransactionType,
@@ -204,6 +223,7 @@ impl WalletUserRepository for Repositories {
         self.delete_blocked_keys(transaction, wallet_user_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
@@ -212,6 +232,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::has_multiple_active_accounts_by_recovery_code(transaction, recovery_code).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn update_apple_assertion_counter(
         &self,
         transaction: &Self::TransactionType,
@@ -221,6 +242,7 @@ impl WalletUserRepository for Repositories {
         wallet_user::update_apple_assertion_counter(transaction, wallet_id, assertion_counter).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn create_transfer_session(
         &self,
         transaction: &Self::TransactionType,
@@ -239,6 +261,7 @@ impl WalletUserRepository for Repositories {
         .await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn find_transfer_session_by_transfer_session_id(
         &self,
         transaction: &Self::TransactionType,
@@ -247,6 +270,7 @@ impl WalletUserRepository for Repositories {
         wallet_transfer::find_transfer_session_by_transfer_session_id(transaction, transfer_session_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn find_transfer_session_id_by_destination_wallet_user_id(
         &self,
         transaction: &Self::TransactionType,
@@ -256,6 +280,7 @@ impl WalletUserRepository for Repositories {
             .await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn pair_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
@@ -281,6 +306,7 @@ impl WalletUserRepository for Repositories {
         .await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn cancel_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
@@ -306,6 +332,7 @@ impl WalletUserRepository for Repositories {
         wallet_transfer::set_wallet_transfer_data(transaction, transfer_session_id, None).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn reset_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
@@ -321,6 +348,7 @@ impl WalletUserRepository for Repositories {
         wallet_transfer::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Created).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn confirm_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
@@ -329,6 +357,7 @@ impl WalletUserRepository for Repositories {
         wallet_transfer::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Confirmed).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn store_wallet_transfer_data(
         &self,
         transaction: &Self::TransactionType,
@@ -340,6 +369,7 @@ impl WalletUserRepository for Repositories {
         wallet_transfer::set_wallet_transfer_data(transaction, transfer_session_id, Some(encrypted_wallet_data)).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn complete_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
@@ -368,6 +398,7 @@ impl WalletUserRepository for Repositories {
         Ok(())
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn store_wua_id(
         &self,
         transaction: &Self::TransactionType,

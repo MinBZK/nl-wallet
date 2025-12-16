@@ -1,3 +1,4 @@
+use derive_more::AsRef;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use tracing::log::LevelFilter;
@@ -8,6 +9,7 @@ use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 
+#[derive(AsRef)]
 pub struct Db(DatabaseConnection);
 
 impl Db {

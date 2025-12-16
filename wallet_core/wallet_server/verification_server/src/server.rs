@@ -6,6 +6,7 @@ use tokio::net::TcpListener;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
+use http_utils::health::create_health_router;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc_server::verifier::VerifierFactory;
@@ -102,6 +103,7 @@ where
             "/disclosure/sessions",
             add_cache_control_no_store_layer(requester_router),
         ),
+        create_health_router([]),
         log_requests,
     )
     .await

@@ -25,7 +25,7 @@ flate2.workspace = true
 http = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"] }
 mockall = { workspace = true, optional = true }
-reqwest = { workspace = true, features = ["http2", "json", "rustls-tls-webpki-roots"], optional = true }
+reqwest = { workspace = true, optional = true }
 rstest.workspace = true
 rustls-pki-types = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
