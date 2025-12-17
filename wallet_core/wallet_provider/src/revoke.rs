@@ -76,7 +76,7 @@ where
     get,
     path = "/admin/wallet/",
     responses(
-        (status = OK, body = Vec<String>, description = "Successfully listed the issued batch IDs."),
+        (status = OK, body = Vec<String>, description = "Successfully listed the registered wallet IDs."),
     )
 )]
 async fn list_wallets<GRC, PIC>(
