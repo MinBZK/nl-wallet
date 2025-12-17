@@ -186,6 +186,10 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
     Client::builder()
         .timeout(CLIENT_REQUEST_TIMEOUT)
         .connect_timeout(CLIENT_CONNECT_TIMEOUT)
+        .no_gzip()
+        .no_brotli()
+        .no_zstd()
+        .no_deflate()
         .tls_built_in_root_certs(true)
 }
 
