@@ -3,7 +3,7 @@ dependency-check:
   extends: .env-k8s
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-release-or-merge-request, rules]
+    - !reference [.default-or-merge-request, rules]
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
@@ -44,7 +44,7 @@ osv-scanner:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-release-or-merge-request, rules]
+    - !reference [.default-or-merge-request, rules]
   script:
     - |
       osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \
@@ -62,7 +62,7 @@ rust-audit:
   extends: .rust
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-release-or-merge-request, rules]
+    - !reference [.default-or-merge-request, rules]
   before_script:
     - mkdir -p $CI_PROJECT_DIR/.cargo
     - cp $CI_PROJECT_DIR/deploy/dependencies/cargo-audit.toml $CI_PROJECT_DIR/.cargo/audit.toml
@@ -152,7 +152,7 @@ trivy-publish:
   extends: .trivy
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: build-wallet-provider-image
       artifacts: false

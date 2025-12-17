@@ -5,7 +5,7 @@
 
 lint-rust:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   before_script:
     - set -euxo pipefail
   script:
@@ -31,7 +31,7 @@ lint-rust:
 
 test-rust:
   extends: .test-rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
@@ -64,7 +64,7 @@ test-rust:
 
 test-rust-doctest:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -72,7 +72,7 @@ test-rust-doctest:
     - RUST_BACKTRACE=1 cargo test --doc --locked
 
 .test-rust-compilation:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     RUSTFLAGS: "-D warnings"
     CONFIG_ENV: "dev"
@@ -100,7 +100,7 @@ test-compilation-performance-test:
 
 test-sea-orm-generate-entity:
   extends: .test-rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
@@ -120,7 +120,7 @@ test-sea-orm-generate-entity:
 
 .build-binary:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   needs:
     - job: test-rust
       artifacts: false
