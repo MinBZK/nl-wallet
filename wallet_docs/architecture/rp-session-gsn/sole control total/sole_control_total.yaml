@@ -1,0 +1,284 @@
+module:
+  name: sole_control_complete
+
+# =========================================================
+# MAIN SOLE CONTROL GOAL
+# =========================================================
+
+G_SoleControl:
+  text: PID issuer has assurance that User will have sole control over the PID
+  supportedBy: [G_WbIssuesWua, G_WbEnforcesSoleControl]
+  inContextOf: A_PidIssuerTrustsWb
+
+A_PidIssuerTrustsWb:
+  text: PID issuer trusts WB to issue WUA only to wallets implementing Sole Control
+
+# =========================================================
+# WUA ISSUANCE
+# =========================================================
+
+G_WbIssuesWua:
+  text: WB issues WUA to Wallet
+  supportedBy:
+    - G_WuaContainsFreshAttestationPubKey
+    - G_WuaSignedByDedicatedWbKey
+    - G_WuaReturnedToWallet
+
+G_WuaContainsFreshAttestationPubKey:
+  text: WB creates a fresh Attestation Private Key and includes its public key in the WUA payload
+  supportedBy:
+    - G_WbGeneratesFreshAttestationPrivKey
+    - G_WbBuildsWuaPayloadFromFreshKey
+
+G_WbGeneratesFreshAttestationPrivKey:
+  text: WB generates a fresh Attestation Private Key specifically for this WUA issuance
+  supportedBy:
+    - Sn_WbGeneratesAttestationKeyUnderWbControl
+    - Sn_WbProtectsAttestationKeyMaterial
+
+Sn_WbGeneratesAttestationKeyUnderWbControl:
+  text: WB generates the new attestation keypair under WB control (not in the wallet)
+
+Sn_WbProtectsAttestationKeyMaterial:
+  text: WB protects attestation private key material using WB HSM and database encryption/wrapping mechanisms
+
+G_WbBuildsWuaPayloadFromFreshKey:
+  text: WB constructs the WUA payload containing the fresh attestation public key and minimal metadata
+  supportedBy:
+    - Sn_WuaPayloadContainsAttestationPubKey
+
+Sn_WuaPayloadContainsAttestationPubKey:
+  text: WUA payload includes the public key corresponding to the freshly created Attestation Private Key
+
+G_WuaSignedByDedicatedWbKey:
+  text: WB signs the WUA payload with a dedicated WUA signing private key
+  supportedBy:
+    - Sn_WbUsesDedicatedWuaSigningKey
+
+Sn_WbUsesDedicatedWuaSigningKey:
+  text: WB signs WUA with a special-purpose WUA signing private key maintained under WB control (in HSM)
+
+G_WuaReturnedToWallet:
+  text: WB returns the resulting signed WUA to the wallet as response to the authenticated instruction
+  supportedBy:
+    - Sn_WbReturnsWuaToWallet
+
+Sn_WbReturnsWuaToWallet:
+  text: WB responds to the authenticated instruction with the resulting signed WUA
+
+
+# =========================================================
+# SOLE CONTROL ENFORCEMENT IN WB
+# =========================================================
+
+G_WbEnforcesSoleControl:
+  text: WB enforces that the User has sole control over all attestations managed in Wallet
+  supportedBy: [Sn_WalletStoresAttestationData, G_PrivKeyExclusiveCustody, G_PrivKeyRequires2fa]
+
+C_AttestationDefinition:
+  text: Attestation consists of PrivKey and Attestation Data
+
+Sn_WalletStoresAttestationData:
+  text: Wallet stores and maintains Attestation Data but not PrivKey
+  horizontalIndex:
+    relative: -1
+  rankIncrement: 1
+
+# =========================================================
+# PRIVATE KEY CUSTODY
+# =========================================================
+
+G_PrivKeyExclusiveCustody:
+  text: PrivKey remains under exclusive custody of WB and is never exposed
+  inContextOf: C_AttestationDefinition
+  supportedBy: S_EnsurePrivKeySecure
+
+S_EnsurePrivKeySecure:
+  text: Ensure secure generation, storage, and usage of PrivKey
+  supportedBy: [G_PrivKeyInHsm, G_PrivKeyCannotBeExtracted]
+  inContextOf: A_WbTrustsHsmVendor
+
+G_PrivKeyInHsm:
+  text: PrivKey is generated inside a certified HSM controlled by WB
+  supportedBy: [Sn_WbUsesHsmForPrivKey]
+
+Sn_WbUsesHsmForPrivKey:
+  text: WB uses certified HSM to generate & protect PrivKey
+
+G_PrivKeyCannotBeExtracted:
+  text: PrivKey cannot be extracted or copied from HSM
+  supportedBy: [Sn_HsmEnforcesNonExport]
+
+Sn_HsmEnforcesNonExport:
+  text: HSM enforces non-export policy for PrivKey
+
+A_WbTrustsHsmVendor:
+  text: WB trusts HSM vendor and certification
+
+# =========================================================
+# 2FA AS SOLE CONTROL ENFORCEMENT
+# =========================================================
+
+G_PrivKeyRequires2fa:
+  text: WB allows usage of PrivKey only after 2FA authentication of User
+  supportedBy: [S_PossessionAndKnowledge]
+
+S_PossessionAndKnowledge:
+  text: Use possession & knowledge factor
+  supportedBy: [S_RegisterEnrollment, S_Use2fa, S_Maintain2faIntegrity]
+
+# =========================================================
+# 2FA ENROLLMENT / REGISTRATION
+# =========================================================
+
+S_RegisterEnrollment:
+  text: Register possession & knowledge factors via enrollment message
+  supportedBy: [G_WbVerifiesApp, G_EnrollmentFreshness, G_WalletRegistersPossesionFactor, G_WalletRegistersKnowledgeFactor]
+  inContextOf: A_WbTrustsAppleGoogle
+  rankIncrement: 4
+
+G_EnrollmentFreshness:
+  text: Enrollment proves message freshness
+  supportedBy: [Sn_WbProvidesNonce]
+
+G_WalletRegistersPossesionFactor:
+  text: Wallet registers possession factor at WB
+  supportedBy: [Sn_WalletRegistersHwBoundKey, Sn_WalletGeneratesHwBoundKey]
+
+G_WalletRegistersKnowledgeFactor:
+  text: Wallet registers knowledge factor at WB
+  supportedBy: [S_PinKey, Sn_WalletRegistersPinPubKey]
+
+S_PinKey:
+  text: Derive PIN private key from stored salt + PIN
+  supportedBy: [G_PinHasMinEntropy, Sn_WalletAsksForPin, Sn_WalletGeneratesSalt]
+
+Sn_WalletAsksForPin:
+  text: Wallet asks user for PIN
+
+Sn_WalletGeneratesSalt:
+  text: Wallet generates and stores a random salt
+
+Sn_WbValidatesAttestations:
+  text: WB validates app & key attestations
+
+Sn_WbProvidesNonce:
+  text: WB provides unique nonce for enrollment, and Wallet includes it in enrollment message
+
+Sn_WalletGeneratesHwBoundKey:
+  text: Wallet generates SE/TEE-bound HwPrivateKey plus Key Attestation
+
+Sn_WalletRegistersHwBoundKey:
+  text: Wallet includes HwBoundPublicKey including Key Attestation in enrollment message
+
+Sn_WalletRegistersPinPubKey:
+  text: Wallet includes PinPublicKey in enrollment message
+
+G_WbVerifiesApp:
+  text: WB verifies that NL Wallet app runs on a trustworthy device
+  supportedBy: [S_UseAppAttestations]
+
+S_UseAppAttestations:
+  text: Use platform app attestations to verify app and device integrity
+  supportedBy: [Sn_WbValidatesAttestations, Sn_WalletProvidesAppAttestation]
+
+Sn_WalletProvidesAppAttestation:
+  text: Wallet provides platform app attestation in enrollment message
+
+G_PinHasMinEntropy:
+  text: PIN has minimum entropy & complexity
+  supportedBy: [Sn_PinComplexity]
+  horizontalIndex:
+    relative: +1
+
+Sn_PinComplexity:
+  text: Wallet enforces PIN complexity rules
+
+A_WbTrustsAppleGoogle:
+  text: WB trusts Apple/Google Key and App Attestation services
+
+# =========================================================
+# USING 2FA
+# =========================================================
+
+S_Use2fa:
+  text: Use 2FA combining possession & knowledge factors
+  supportedBy: [G_UserProvesHwKeyControl, G_UserProvesPin]
+
+G_UserProvesHwKeyControl:
+  text: User proves control of device-bound hardware key
+  supportedBy: [S_ProveHwKeyPossession]
+
+G_UserProvesPin:
+  text: User proves knowledge of PIN
+  supportedBy: [S_VerifyPinKnowledge]
+
+S_ProveHwKeyPossession:
+  text: Prove possession via signed nonces with device-bound key
+  supportedBy: Sn_WalletSignsNonce
+
+Sn_WalletSignsNonce:
+  text: Wallet signs WB nonce with HwPrivateKey
+
+S_VerifyPinKnowledge:
+  text: Verify knowledge via PIN-derived key & signed nonces
+  supportedBy: [Sn_WalletSignsNonceWithPin]
+
+Sn_WalletSignsNonceWithPin:
+  text: Wallet signs WB nonce with PinPrivateKey
+
+# =========================================================
+# 2FA INTEGRITY & RECOVERY
+# =========================================================
+
+S_Maintain2faIntegrity:
+  text: Maintain integrity of both 2FA factors
+  supportedBy: [G_UserCanChangePin, G_UserCanBlockWallet, G_WbBlocksOnCompromise, G_WalletDoesNotStorePin]
+  inContextOf: A_UserDoesNotSharePin
+
+G_WalletDoesNotStorePin:
+  text: Wallet does not store PIN
+  supportedBy: [Sn_WalletDerivesPinPrivateKey]
+
+Sn_WalletDerivesPinPrivateKey:
+  text: Wallet stores salt & derives PinPrivateKey each time
+
+G_UserCanChangePin:
+  text: User can securely change PIN
+  supportedBy: [Sn_PinChangeUses2fa]
+
+G_UserCanBlockWallet:
+  text: User can block wallet if device is lost
+  supportedBy: [S_OutOfBandRevocation]
+
+G_WbBlocksOnCompromise:
+  text: WB blocks wallet on detected device compromise
+  supportedBy: [Sn_WbRevokesOnVulnerability]
+
+Sn_PinChangeUses2fa:
+  text: PIN change uses normal 2FA process
+
+S_OutOfBandRevocation:
+  text: Enable out-of-band revocation using server-generated code
+  supportedBy: [Sn_WbGeneratesRevocationCode, Sn_WalletShowsRevocationCode, G_UserSubmitsRevocationCode]
+
+Sn_WbGeneratesRevocationCode:
+  text: WB generates revocation code and sends it to wallet during enrollment
+
+Sn_WalletShowsRevocationCode:
+  text: Wallet shows revocation code securely
+
+G_UserSubmitsRevocationCode:
+  text: User can later submit revocation code to block wallet
+  supportedBy: [Sn_WbBlocksOnRevocationCode]
+  horizontalIndex:
+    relative: +2
+
+Sn_WbBlocksOnRevocationCode:
+  text: WB blocks wallet upon valid revocation code
+
+Sn_WbRevokesOnVulnerability:
+  text: WB revokes keys & blocks WUA on detected vulnerability
+
+A_UserDoesNotSharePin:
+  text: User does not share knowledge factor with anyone

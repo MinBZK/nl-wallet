@@ -1,0 +1,93 @@
+module:
+  name: sole_control_2fa
+
+S_PossessionAndKnowledge:
+  text: Use possession & knowledge factor
+  supportedBy: [S_RegisterEnrollment, S_Use2fa, S_Maintain2faIntegrity]
+
+S_RegisterEnrollment:
+  text: Register possession & knowledge factors via enrollment message
+  supportedBy: [G_WbVerifiesApp, G_EnrollmentFreshness, G_WalletRegistersPossesionFactor, G_WalletRegistersKnowledgeFactor]
+  inContextOf: A_WbTrustsAppleGoogle
+  rankIncrement: 4
+
+S_Use2fa:
+  text: Use 2FA combining possession & knowledge factors
+  supportedBy: [G_UserProvesHwKeyControl, G_UserProvesPin]
+
+S_Maintain2faIntegrity:
+  text: Maintain integrity of both 2FA factors
+  supportedBy: [G_UserCanChangePin, G_UserCanBlockWallet, G_WbBlocksOnCompromise, G_WalletDoesNotStorePin]
+  inContextOf: A_UserDoesNotSharePin
+
+G_WalletDoesNotStorePin:
+  text: Wallet does not store PIN
+  supportedBy: [Sn_WalletDerivesPinPrivateKey]
+
+Sn_WalletDerivesPinPrivateKey:
+  text: Wallet stores salt & derives PinPrivateKey each time
+
+G_UserCanChangePin:
+  text: User can securely change PIN
+  supportedBy: [Sn_PinChangeUses2fa]
+
+G_UserCanBlockWallet:
+  text: User can block wallet if device is lost
+  supportedBy: [S_OutOfBandRevocation]
+
+G_WbBlocksOnCompromise:
+  text: WB blocks wallet on detected device compromise
+  supportedBy: [Sn_WbRevokesOnVulnerability]
+
+Sn_PinChangeUses2fa:
+  text: PIN change uses normal 2FA process
+
+S_OutOfBandRevocation:
+  text: Enable out-of-band revocation using server-generated code
+  supportedBy: [Sn_WbGeneratesRevocationCode, Sn_WalletShowsRevocationCode, G_UserSubmitsRevocationCode]
+
+Sn_WbGeneratesRevocationCode:
+  text: WB generates revocation code and sends it to wallet during enrollment
+
+Sn_WalletShowsRevocationCode:
+  text: Wallet shows revocation code securely
+
+G_UserSubmitsRevocationCode:
+  text: User can later submit revocation code to block wallet
+  supportedBy: [Sn_WbBlocksOnRevocationCode]
+  horizontalIndex:
+    relative: +2
+
+Sn_WbBlocksOnRevocationCode:
+  text: WB blocks wallet upon valid revocation code
+
+Sn_WbRevokesOnVulnerability:
+  text: WB revokes keys & blocks WUA on detected vulnerability
+
+G_UserProvesHwKeyControl:
+  text: User proves control of device-bound hardware key
+  supportedBy: [S_ProveHwKeyPossession]
+
+G_UserProvesPin:
+  text: User proves knowledge of PIN
+  supportedBy: [S_VerifyPinKnowledge]
+
+S_ProveHwKeyPossession:
+  text: Prove possession via signed nonces with device-bound key
+  supportedBy: Sn_WalletSignsNonce
+
+Sn_WalletSignsNonce:
+  text: Wallet signs WB nonce with HwPrivateKey
+
+S_VerifyPinKnowledge:
+  text: Verify knowledge via PIN-derived key & signed nonces
+  supportedBy: [Sn_WalletSignsNonceWithPin]
+
+Sn_WalletSignsNonceWithPin:
+  text: Wallet signs WB nonce with PinPrivateKey
+
+A_UserDoesNotSharePin:
+  text: User does not share knowledge factor with anyone
+
+A_WbTrustsAppleGoogle:
+  text: WB trusts Apple/Google Key and App Attestation services

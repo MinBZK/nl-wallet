@@ -1,105 +1,94 @@
 module:
   name: rp_session_attribute
-  brief: RP knows Session 1 is controlled by user with Attribute 1
 
-G_A1:
-  text: >
-    RP knows Session 1 is controlled by User 1 with Attribute 1
-  supportedBy: [G_B1, G_B2, Sn_B3]
+G1:
+  text: RP establishes that the attribute is a factually correct statement about the user at LoA High.
+  supportedBy: [S1]
+  inContextOf: [A1.1, A1.2, A1.3, A1.4, A1.5, A1.6]
 
-G_B1:
-  text: >
-    User 1 controls Session 1
-  supportedBy: [G_B10, Sn_B11]
+A1.1:
+  text: Attribute correctness depends on the trustworthiness of the issuer.
 
-G_B2:
-  text: >
-    User 1 is subject of Credential 1
-  supportedBy: [Sn_B20, G_B21, G_B22]
-  inContextOf: [A_B23]
+A1.2:
+  text: Attribute correctness requires cryptographic protection to prevent tampering.
 
-Sn_B3:
-  text: >
-    Credential 1 has Attribute 1
+A1.3:
+  text: Attribute correctness requires binding between the attribute and the correct user.
 
-G_B10:
-  text: >
-    TODO: refine additional argument about User 1 controlling Session 1
+A1.4:
+  text: Factual correctness at LoA High requires that the issuer performed LoA-High identity proofing at issuance.
+
+A1.5:
+  text: Sole control by the user is necessary to preserve the binding and prevent unauthorized use.
+
+A1.6:
+  text: The relying party’s validation is necessary to establish correctness at the time of use.
+
+S1:
+  text: Decompose into issuer trust, cryptographic integrity, correct user binding, LoA-High issuance assurance, WB enforces sole control, verifier validation.
+  supportedBy: [G1.1, G1.2, G1.3, G_WbEnforcesSoleControl, G1.5]
+
+G1.1:
+  text: The attribute originates from a trusted issuer and maintains cryptographic integrity.
+  supportedBy: [Sn1.1, Sn1.2, Sn1.3]
+
+G1.2:
+  text: The attribute is bound to the correct, authenticated user.
+  supportedBy: [G_SoleControl]
+  inContextOf: [A1.2.1, A1.2.2, A1.2.3]
+
+A1.2.1:
+  text: User binding requires sole control over the PID.
+
+A1.2.2:
+  text: Issuer can best enforce sole control conditions at issuance.
+
+A1.2.3:
+  text: Binding requires issuing the PID to a unique, trusted wallet instance.
+
+G1.3:
+  text: The attribute was issued to the correct person at LoA High.
+  supportedBy: [G1.3.1]
+  inContextOf: [A1.3.1, A1.3.2, A1.3.3]
+
+A1.3.1:
+  text: LoA High requires strong identity proofing during PID issuance.
+
+A1.3.2:
+  text: Secure issuance to a single trusted wallet is necessary for binding integrity.
+
+A1.3.3:
+  text: Issuer must ensure PID is delivered to the correct authenticated person.
+
+G1.3.1:
+  text: PID issuer securely issues the PID of the correct authenticated person to a single trusted wallet.
+  supportedBy: []
   undeveloped: true
 
-Sn_B11:
-  text: >
-    User 1 replies quickly
 
-Sn_B20:
-  text: >
-    Credential 1 subject is PubKey 1
 
-G_B21:
-  text: >
-    User 1 controls PubKey 1
-  supportedBy: [Sn_F1]
-  inContextOf: [A_F2]
+G1.5:
+  text: Verifier performs required validation checks.
+  supportedBy: [Sn1.5.1, Sn1.5.2, Sn1.5.3, Sn1.5.4]
 
-G_B22:
-  text: >
-    Credential 1 is authentic from trusted source
-  supportedBy: [Sn_C1, G_C2, G_C3]
+Sn1.1:
+  text: Evidence from the trust framework confirms the issuer is accredited and authorised to issue the attribute.
 
-A_B23:
-  text: >
-    No one else controls PubKey 1
+Sn1.2:
+  text: Cryptographic verification confirms the attribute was issued by the trusted issuer and has not been modified.
 
-Sn_C1:
-  text: >
-    Credential 1 is signed with PubKey 2
+Sn1.3:
+  text: The attribute includes issuer identifiers, signing key references and issuance timestamps enabling validation of origin and integrity.
 
-G_C2:
-  text: >
-    PubKey 2 is controlled solely by Issuer 1
-  supportedBy: [Sn_E1, Sn_E2, G_E3]
-  inContextOf: [A_E4]
 
-G_C3:
-  text: >
-    Issuer 1 is trusted by RP
-  supportedBy: [Sn_D1]
-  inContextOf: [A_D2]
+Sn1.5.1:
+  text: Verifier validates the issuer’s cryptographic signature and trust chain using authoritative trust lists and metadata registries.
 
-Sn_F1:
-  text: >
-    User 1 signs Nonce 1 with PubKey 1
+Sn1.5.2:
+  text: Verifier checks that the attribute satisfies policy requirements (correct LoA, required claims, semantic correctness, and no over-disclosure).
 
-A_F2:
-  text: >
-    RP trusts User 1 to properly manage keys
+Sn1.5.3:
+  text: Verifier confirms that the attribute has not expired and is not revoked using the issuer’s status endpoints or revocation registries.
 
-Sn_D1:
-  text: >
-    Issuer 1 is on Trust List 1
-
-A_D2:
-  text: >
-    Trust List 1 is trusted by RP
-
-Sn_E1:
-  text: >
-    PubKey 2 is on PKI-cert 1
-
-Sn_E2:
-  text: >
-    Issuer 1 is on PKI-cert 1
-
-G_E3:
-  text: >
-    PKI-cert 1 is from source trusted by RP
-  supportedBy: [G_TODO]
-
-A_E4:
-  text: >
-    RP trusts Issuer 1 to manage public keys properly
-
-G_TODO:
-  text: >
-    TODO: refine evidence for PKI-cert 1 source
-  undeveloped: true
+Sn1.5.4:
+  text: Verifier checks that the presentation is bound to the correct holder (e.g., via proof of possession of key material) according to OpenID4VP or equivalent holder-binding requirements.

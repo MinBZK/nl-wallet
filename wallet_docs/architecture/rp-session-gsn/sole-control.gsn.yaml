@@ -1,0 +1,58 @@
+module:
+  name: sole_control_main
+
+G_SoleControl:
+  text: PID issuer has assurance that User will have sole control over the PID
+  supportedBy: [G_WbIssuesWua, G_WbEnforcesSoleControl]
+  inContextOf: A_PidIssuerTrustsWb
+
+A_PidIssuerTrustsWb:
+  text: PID issuer trusts WB to issue WUA only to wallets implementing Sole Control
+
+G_WbIssuesWua:
+  text: WB issues WUA to Wallet
+  undeveloped: true
+
+G_WbEnforcesSoleControl:
+  text: WB enforces that the User has sole control over all attestations managed in Wallet
+  supportedBy: [Sn_WalletStoresAttestationData, G_PrivKeyExclusiveCustody, G_PrivKeyRequires2fa]
+
+C_AttestationDefinition:
+  text: Attestation consists of PrivKey and Attestation Data
+
+Sn_WalletStoresAttestationData:
+  text: Wallet stores and maintains Attestation Data but not PrivKey
+  horizontalIndex:
+    relative: -1
+  rankIncrement: 1
+
+G_PrivKeyExclusiveCustody:
+  text: PrivKey remains under exclusive custody of WB and is never exposed
+  inContextOf: C_AttestationDefinition
+  supportedBy: S_EnsurePrivKeySecure
+
+S_EnsurePrivKeySecure:
+  text: Ensure secure generation, storage, and usage of PrivKey
+  supportedBy: [G_PrivKeyInHsm, G_PrivKeyCannotBeExtracted]
+  inContextOf: A_WbTrustsHsmVendor
+
+G_PrivKeyRequires2fa:
+  text: WB allows usage of PrivKey only after 2FA authentication of User
+  supportedBy: [S_PossessionAndKnowledge]
+
+G_PrivKeyInHsm:
+  text: PrivKey is generated inside a certified HSM controlled by WB
+  supportedBy: [Sn_WbUsesHsmForPrivKey]
+
+Sn_WbUsesHsmForPrivKey:
+  text: WB uses certified HSM to generate & protect PrivKey
+
+G_PrivKeyCannotBeExtracted:
+  text: PrivKey cannot be extracted or copied from HSM
+  supportedBy: [Sn_HsmEnforcesNonExport]
+
+Sn_HsmEnforcesNonExport:
+  text: HSM enforces non-export policy for PrivKey
+
+A_WbTrustsHsmVendor:
+  text: WB trusts HSM vendor and certification
