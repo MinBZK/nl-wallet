@@ -6,7 +6,7 @@ info:
     This server provides credential issuance using OpenID4VCI and handles
     disclosure based issuance using OpenID4VP. The disclosure flow triggers
     credential issuance based on disclosed attributes.
-  version: 0.4.0-dev
+  version: 0.4.0
 
 components:
   securitySchemes:
