@@ -24,6 +24,7 @@ where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
+    // TODO actually block the wallets (PVW-5302)
     let tx = user_state.repositories.begin_transaction().await?;
     let wua_ids = user_state.repositories.get_wua_ids_for_wallets(&tx, wallet_ids).await?;
 
@@ -49,7 +50,7 @@ where
 
     tx.commit().await?;
 
-    // TODO should we instead have a revoke_all method on the status list service?
+    // TODO consider adding a `revoke_all` method to `StatusListRevocationService` for efficiency (PVW-5299)
     user_state
         .status_list_service
         .revoke_attestation_batches(wua_ids)

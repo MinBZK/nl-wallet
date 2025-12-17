@@ -2,7 +2,6 @@ use std::num::NonZeroUsize;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crypto::utils::random_string;
 use futures::future::join_all;
 use futures::future::try_join_all;
 use rstest::rstest;
@@ -12,8 +11,10 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use tokio::net::TcpListener;
 use url::Url;
+use uuid::Uuid;
 
 use crypto::server_keys::generate::Ca;
+use crypto::utils::random_string;
 use server_utils::keys::test::private_key_variant;
 use server_utils::test_settings::connection_from_settings;
 use status_lists::config::StatusListConfig;
@@ -23,7 +24,6 @@ use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
 use token_status_list::status_list_service::StatusListRevocationService;
 use utils::num::NonZeroU31;
-use uuid::Uuid;
 
 async fn setup_revocation_server<L>(service: Arc<L>) -> anyhow::Result<Url>
 where
