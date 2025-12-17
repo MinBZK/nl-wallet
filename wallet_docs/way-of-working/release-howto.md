@@ -192,18 +192,9 @@ to the relevant job and click on download artifact/zip. You might need to rename
 the zip file and/or repackage in the case of `issuance_server`,
 `verification_server` and `wallet_web`.
 
-Currently (2024-11-07) you need to create the sha256sums manually (in the future
-we would like to adjust the pipeline that creates the binary artifacts such that
-it will create the sha256 hashes also). To create the sha256sum texts, enter the
-directory which contains the above mentioned zip files and run:
-
-```shell
-for zip in *.zip; do sha256sum $zip > $(echo $zip | sed 's|.zip$|.sha256sum.txt|g'); done
-```
-
-When you have these zip files and sha256sum texts, and you made sure they're
-named correctly, you are ready to create the release description. We will upload
-the zip files and sha256sum texts as artifacts of the release.
+When you have these zip files, and you made sure they're named correctly, you
+are ready to create the release description. We will upload the zip files as
+the artifacts of the release.
 
 Note on other binaries like `verification_server_migrations` and schema changes
 in general: When any of our binaries that use a database backend require schema
