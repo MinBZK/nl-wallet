@@ -34,9 +34,7 @@ class FlutterAppConfiguration extends Equatable {
     );
   }
 
-  String versionAndEnvironment() {
-    return '$version ($environment)';
-  }
+  String get versionAndEnvironment => '$version ($environment)';
 
   @override
   List<Object?> get props => [
