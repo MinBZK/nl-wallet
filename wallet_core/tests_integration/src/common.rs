@@ -663,6 +663,7 @@ async fn start_mock_attestation_server(
             .serve(
                 Router::new()
                     .route("/", post(|| async { Json(issuable_documents) }))
+                    .merge(create_health_router([]))
                     .into_make_service(),
             )
             .await
@@ -850,9 +851,14 @@ pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl Iterator<Ite
     let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
-        let mut interval = time::interval(Duration::from_millis(10));
+        let mut interval = time::interval(Duration::from_millis(100));
         loop {
-            match client.get(base_url.join("health")).send().await {
+            match client
+                .get(base_url.join("health"))
+                .send()
+                .await
+                .and_then(|r| r.error_for_status())
+            {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Server not yet up: {e:?}");
