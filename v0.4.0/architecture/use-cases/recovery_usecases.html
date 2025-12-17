@@ -1,0 +1,445 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallet recovery &mdash; NL Wallet 0.4.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=79eb5478" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
+      <script src="../../_static/js/custom.js?v=48752f09"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Components Overview" href="../components-overview.html" />
+    <link rel="prev" title="Wallet Creation" href="wallet-creation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.4.0.html">v0.4.0</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../architecture-overview.html">Overview in C4</a></li>
+      <li class="breadcrumb-item active">Wallet recovery</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/architecture/use-cases/recovery_usecases.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="wallet-recovery">
+<h1>Wallet recovery<a class="headerlink" href="#wallet-recovery" title="Link to this heading"></a></h1>
+<section id="recovery-code">
+<h2>Recovery code<a class="headerlink" href="#recovery-code" title="Link to this heading"></a></h2>
+<p>When a user loses their PIN or device or when they wish to migrate their wallet data to another device within the same wallet solution, the restored or new account must be matched to the original account with a high level of assurance.</p>
+<p>The NL PID Provider includes a persistent Recovery Code as part of the PID that is issued to the NL Wallet in the onboarding process. This Recovery Code is derived from the BSN and shall be consistent across all issuances of PID of the same user to the NL Wallet.
+The Recovery Code will be stored in the user account (in Wallet Backend, not on user device) after PID issuance.</p>
+<p>The Recovery Code is solely intended to be used by the NL Wallet and will be prevented from being disclosed to Relying Parties.</p>
+<p>The Recovery Code is used in the usecases described below:</p>
+</section>
+<section id="recovery-usecases">
+<h2>Recovery usecases<a class="headerlink" href="#recovery-usecases" title="Link to this heading"></a></h2>
+<p>NL Wallet supports the following use cases that rely on the Recovery Code:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#pin-recovery">PIN Recovery</a>:
+With the PIN Recovery flow, the user can reset a forgotten PIN by re-authenticating with DigiD.</p></li>
+<li><p><a class="reference internal" href="#wallet-device-transfer">Wallet device transfer</a>
+Wallet Device Transfer will allow transfer of contents from an existing active wallet to a newly activated wallet on another device.</p></li>
+<li><p><a class="reference internal" href="#pid-renewal">PID renewal flow</a>:
+PID Renewal allows the user to fetch a new PID attestation in case the current PID is expired or revoked.</p></li>
+</ol>
+<section id="pin-recovery">
+<h3>PIN Recovery<a class="headerlink" href="#pin-recovery" title="Link to this heading"></a></h3>
+<p>PIN Recovery is desired in the following situations</p>
+<ol class="arabic simple">
+<li><p>When the user has entered his PIN wrongly (&gt; max attempts). In this case the Wallet is blocked from further usage.</p></li>
+<li><p>When the user forgot his PIN.</p></li>
+</ol>
+<p>To restore access to his Wallet, the user can use the PIN-Recovery flow. In this flow, the user will:</p>
+<ol class="arabic simple">
+<li><p>Select a new PIN</p></li>
+<li><p>Reauthenticate using DigiD</p></li>
+<li><p>When user identity matches with the registered user identity (has same Recovery Code), unblock the account and use the new PIN</p></li>
+</ol>
+<p>PIN Recovery flow reuses parts of the <a class="reference internal" href="issuance-with-openid4vci.html"><span class="std std-doc">PID issuance flow</span></a>.</p>
+<section id="pin-recovery-flow-sequence-diagram">
+<h4>PIN Recovery flow sequence diagram<a class="headerlink" href="#pin-recovery-flow-sequence-diagram" title="Link to this heading"></a></h4>
+<p>The sequence diagram below, describes the process and the interactions between the relevant components.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+    actor User as User
+    participant Wallet as Wallet App
+    participant WP as Wallet Backend
+    participant PID as PID Issuer
+    
+    note over User, WP: Account status is 'blocked' or user forgot PIN 
+    User -&gt;&gt; Wallet : Start PIN Recovery 
+    note over User, PID:Steps 2-17 from PID-issuance flow. &lt;br/&gt; Wallet has received access token from PID Issuer (and PID-preview)
+    Wallet -&gt;&gt; Wallet: Check Recovery code in stored PID against recovery code in PID-preview&lt;br/&gt;Must match, else terminate with error
+    Wallet -&gt;&gt; User: Request new PIN
+    User -&gt;&gt; Wallet: Give new PIN (including confirmation)
+    Wallet -&gt;&gt; WP: Send start_pin_recovery(new PIN public key, c_nonce for PID issuance)
+    WP -&gt;&gt; WP: Update PIN public key for account&lt;br/&gt; sign Wallet Certificate&lt;br/&gt;genereate new keys (blocked for regular use)&lt;br/&gt; sign PoP's&lt;br/&gt; issue WUA&lt;br/&gt;set account in 'recovery' state
+    WP -&gt;&gt; Wallet: New PIN OK, return new Wallet Certificate, WUA, signed PoP's
+    Wallet -&gt;&gt; Wallet: Delete previous Wallet Certificate,&lt;br/&gt; store new Wallet Certificate    
+    note over Wallet, PID: Steps 22-24 from PID-issuance flow. &lt;br/&gt; Wallet has requested and received attestations from PID-issuer. 
+    Wallet -&gt;&gt; WP: Send DiscloseRecoveryCodePinRecovery(new PID, with recovery code) instruction
+    WP -&gt;&gt; WP: Verify recovery code with account (must match)&lt;br/&gt;Remove private keys that were created at start_pin_recovery&lt;br/&gt;Update account to 'active'
+    WP -&gt;&gt; Wallet: Report PIN Recovery success
+    Wallet -&gt;&gt; Wallet: Dispose PID used in PIN-recovery process
+    Wallet -&gt;&gt; User: Show PIN Recovery complete
+    </pre></section>
+</section>
+<section id="wallet-device-transfer">
+<h3>Wallet device transfer<a class="headerlink" href="#wallet-device-transfer" title="Link to this heading"></a></h3>
+<p>Wallet device transfer allows the user the move te contents of a wallet installation on a source device to another device.</p>
+<p>To migrate a wallet from a source device to another destination device, the user can use Wallet Device Transfer flow. In this flow, the user will:</p>
+<ol class="arabic simple">
+<li><p>Active a new NL Wallet instance on the destination device (Destination Wallet) using the regular onboarding flow. After the onboarding flow, the Recovery Code (from the PID) wil be disclosed to NL Wallet. If the NL Wallet discovers that another account is active (has the same Recovery Code) a migration possibility will be offered to the user.</p></li>
+<li><p>Transfer the content of his Source Wallet to the Destination Wallet. This is only possible when the identity of the Destination Wallet matches with the registered user identity in the Source Wallet account (has same Recovery Code)</p></li>
+<li><p>After completion, the contents of the Source Wallet are migrated to the Destination Wallet. The Source Wallet will be emptied.</p></li>
+</ol>
+<section id="wallet-device-transfer-flow">
+<h4>Wallet Device Transfer flow<a class="headerlink" href="#wallet-device-transfer-flow" title="Link to this heading"></a></h4>
+<p>The sequence diagram below, describes the process and the interactions between the relevant components.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    actor User
+    participant WT as Destination Wallet
+    participant WS as Source Wallet
+    participant WP as Wallet Backend
+
+    User -&gt;&gt; WT: Yes start migration (using `transfer_session_id` resulting from recovery_code disclosure in activation) &lt;br/&gt;(tranfer_state= created)
+    WT -&gt;&gt; WT: Create asymmetric EC key (using ECIES)
+    WT -&gt;&gt; User: Present QR code containing pubkey and transfer_session_id (to be scanned from source device)
+    User -&gt;&gt; WS: Open app (with PIN/biometrics), Scan QR from target device (read public key and transfer_session_id)
+    WS -&gt;&gt; WP: pair_transfer (with transfer_session_id, app_version)
+    WP -&gt;&gt; WP: validate recovery codes for Source and Destination Wallets (must be equal)
+    WP -&gt;&gt; WP: validate app versions (Destination app_version must be &gt;= than than Source app_version) &lt;br/&gt;tranfer_state = ready_for_transfer
+    WP -&gt;&gt; WS: confirm session (ok)
+    WS -&gt;&gt; User: Request PIN to confirm data transfer
+    User -&gt;&gt; WS: Confirm transfer with PIN
+    WS -&gt;&gt; WS: Encrypt database to encrypted_payload
+    par Upload payload from Source Wallet and wait for completion.
+        WS -&gt;&gt; WP: send_wallet_payload (transfer_session_id, encrypted_payload)
+        WP -&gt;&gt; WP: stash payload for Destination Wallet&lt;br/&gt;transfer_state = ready_for_download
+        WP -&gt;&gt; WS: ok
+        note over WS, WP: After upload: Poll transfer status while transfer not completed or canceled.
+        WS -&gt;&gt; WP: check_transfer_status(transfer_session_id)  
+        WP -&gt;&gt; WS: return transfer status (pending, canceled, completed)  
+    and (Wait for and) Receive payload from Wallet Backend and report migration status back to Wallet Bakckend afterwards.
+        WT -&gt;&gt; WP: receive_payload (transfer_session_id)
+        WP -&gt;&gt; WP: while not (uploaded) complete from source wallet: &lt;br/&gt;return pending else return payload
+        WP -&gt;&gt; WT: Transfer encrypted_payload to Destination Wallet
+        WT -&gt;&gt; WT: decrypt data, restore wallet
+        WT -&gt;&gt; WP: complete_transfer(transfer_session_id) 
+        WP -&gt;&gt; WP: move private keys from Source Wallet to Destination Wallet&lt;br/&gt;transfer_session = complete&lt;br/&gt;source wallet state=transferred
+        WP -&gt;&gt; WT: Report session complete
+    end
+    WT -&gt;&gt; WT: set imported database as current database&lt;br/&gt;sync instruction counter (from previous database)&lt;br/&gt;dispose previous database that was used in onboarding
+    WT -&gt;&gt; User: Transfer complete
+    WS -&gt;&gt; User: transfer complete (Source wallet now deactivated)
+   
+    </pre></section>
+<section id="data-encryption">
+<h4>Data encryption<a class="headerlink" href="#data-encryption" title="Link to this heading"></a></h4>
+<p>Data exchanged in Wallet Device transfer is encrypted, using ECIES in JWE. Encryption/decryption of data is performed in the following steps from the above Sequence Diagram:</p>
+<ol class="arabic simple" start="2">
+<li><p>The public/private key pair is generated in Step 2.</p></li>
+</ol>
+<ol class="arabic simple" start="4">
+<li><p>The public key is exchanged from the destination device to the source device using the presented QR-code (step 4).</p></li>
+</ol>
+<ol class="arabic simple" start="11">
+<li><p>The data (step 11) is encoded in a JWE using ECIES:  ECDH-ES (for key agreement) + symmetric encryption (AES-GCM).</p></li>
+</ol>
+<ol class="arabic simple" start="19">
+<li><p>In step 19, the encrypted data is retrieved from the WalletBackend and will be decrypted in the Destionation Wallet.</p></li>
+</ol>
+</section>
+<section id="alternate-flows">
+<h4>Alternate flows<a class="headerlink" href="#alternate-flows" title="Link to this heading"></a></h4>
+<p>The alternate flows are not modelled withtin the <a class="reference internal" href="#wallet-device-transfer-flow">Wallet Device Transfer sequence Diagram</a>  above. Alternate flows are:</p>
+<ul class="simple">
+<li><p>Cancellation: Before completion Wallet Device Transfer can be cancelled by the user from both the Destination and the Source Wallet any time.</p></li>
+<li><p>Error: An out-of-power device, network failure or unexpected termination of the app may terminate the transfer and leave the transfer in a non-completed state.</p></li>
+</ul>
+<p>As long as the user has not explicitly made a choice to start using the Destination Wallet <strong>without</strong> Wallet Device Transfer, the user will be offered the choice to start a Wallet Device Transfer again, even after Cancellation or Error.</p>
+</section>
+<section id="wallet-transfer-states">
+<h4>Wallet transfer states<a class="headerlink" href="#wallet-transfer-states" title="Link to this heading"></a></h4>
+<p>See the <a class="reference internal" href="#wallet-device-transfer-flow">Wallet Device Transfer sequence Diagram</a> above to see excactly at which point in the process a state update occurs.</p>
+<p>After activating a new NL Wallet (Destination Wallet) when another account exists for the same user, a Wallet Transfer record will be linked to the new account.
+The Wallet Transfer record can have the following states:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Transfer State</p></th>
+<th class="head"><p>State is set when</p></th>
+<th class="head"><p>Next State(s)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>created</p></td>
+<td><p>- Wallet Transfer record is created.<br/>- <code class="docutils literal notranslate"><span class="pre">reset_transfer</span></code> instruction is called when recovering from a failed or cancelled transfer.</p></td>
+<td><p>paired, canceled</p></td>
+</tr>
+<tr class="row-odd"><td><p>paired</p></td>
+<td><p>After scanning QR from Destination Wallet and <code class="docutils literal notranslate"><span class="pre">pair_transfer</span></code> instruction, Source Wallet is linked to transfer session.</p></td>
+<td><p>confirmed, canceled, created</p></td>
+</tr>
+<tr class="row-even"><td><p>confirmed</p></td>
+<td><p>After <code class="docutils literal notranslate"><span class="pre">confirm_transfer</span></code> instruction from Source Wallet</p></td>
+<td><p>uploaded, canceled, created</p></td>
+</tr>
+<tr class="row-odd"><td><p>uploaded</p></td>
+<td><p>After <code class="docutils literal notranslate"><span class="pre">send_wallet_payload</span></code> instruction from Source Wallet</p></td>
+<td><p>completed, canceled, created</p></td>
+</tr>
+<tr class="row-even"><td><p>completed</p></td>
+<td><p>Destination Wallet after succesfull download (<code class="docutils literal notranslate"><span class="pre">receive_wallet_payload</span></code> instruction) and processing of payload confirmed with <code class="docutils literal notranslate"><span class="pre">complete_transfer</span></code> instruction.</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p>canceled</p></td>
+<td><p>User can cancel transfer from Destination Wallet or Source Wallet from any state before reaching the <code class="docutils literal notranslate"><span class="pre">completed</span></code> state. The <code class="docutils literal notranslate"><span class="pre">cancel_transfer</span></code> instruction is used.</p></td>
+<td><p>created</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="pid-renewal">
+<h3>PID Renewal<a class="headerlink" href="#pid-renewal" title="Link to this heading"></a></h3>
+<p>PID Renewal allows the user to fetch a new PID attestation in case the current PID is expired or revoked.</p>
+<p>The PID renewal flow reuses steps from <a class="reference internal" href="issuance-with-openid4vci.html"><span class="std std-doc">PID issuance flow</span></a></p>
+<section id="pid-renewal-flow-sequence-diagram">
+<h4>PID Renewal flow sequence diagram<a class="headerlink" href="#pid-renewal-flow-sequence-diagram" title="Link to this heading"></a></h4>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+    actor User as User
+    participant Wallet as Wallet App
+    participant WP as Wallet Backend
+    participant PID as PID Issuer
+    
+    note over User, Wallet: Wallet is active, PID is revoked/expired' 
+    User -&gt;&gt; Wallet : Start PID renewal
+    note over Wallet, PID:Steps 2-17 from DigiD authentication / PID-issuance flow. &lt;br/&gt; Wallet has received access token from PID Issuer (and PID-preview)
+    Wallet -&gt;&gt; Wallet: Check Recovery code in stored PID against recovery code in PID-preview    
+    note over Wallet, PID: Steps 20-23 from PID-issuance flow. &lt;br/&gt; Wallet has requested and received attestations from PID-issuer. Wallet Backend creates PoPs and new WUA. &lt;br/&gt;Issuance of new WUA will put account into 'recovery' and disable existing keys except the newly created keys for PID issuance.
+    Wallet -&gt;&gt; WP: Call DiscloseRecoveryCode(recovery_code) (Recovery Code from new PID is used) to Wallet Backend.
+    WP -&gt;&gt; WP: Check recovery code with account (fail if not matching) &lt;br/&gt; and update account to 'active'
+    WP -&gt;&gt; Wallet: New PID accepted
+    Wallet -&gt;&gt; Wallet: Store new PID attestation (as replacement for previous PID)
+    Wallet -&gt;&gt; User: Report success (New PID visible in wallet)
+    </pre></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="wallet-creation.html" class="btn btn-neutral float-left" title="Wallet Creation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../components-overview.html" class="btn btn-neutral float-right" title="Components Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.4.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="recovery_usecases.html">v0.4.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../main/architecture/use-cases/recovery_usecases.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

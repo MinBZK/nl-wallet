@@ -1,0 +1,332 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Software System overview &mdash; NL Wallet 0.4.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=79eb5478" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/custom.js?v=48752f09"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Disclosure-based Issuance" href="../use-cases/disclosure-based-issuance.html" />
+    <link rel="prev" title="System Context (C4)" href="system-context.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.4.0.html">v0.4.0</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../architecture-overview.html">Overview in C4</a></li>
+      <li class="breadcrumb-item active">Software System overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/architecture/c4/software-system.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="software-system-overview">
+<h1>Software System overview<a class="headerlink" href="#software-system-overview" title="Link to this heading"></a></h1>
+<p>The container diagram shown in Figure 2 describes all applications and data stores (containers) that are part of the NL Wallet Software System. External systems that interact with the containers in the NL Wallet Software System are also shown. (See the Context chapter for description of the External systems.)</p>
+<p><img alt="Context diagram" src="../../_images/D2NL-WalletSystem.png" /></p>
+<p><img alt="c4_legend" src="../../_images/D2NL-WalletSystem-key.png" /></p>
+<section id="wallet-app">
+<h2>1. Wallet app<a class="headerlink" href="#wallet-app" title="Link to this heading"></a></h2>
+<p>The Wallet app is a mobile application that  provides the user with an interface to manage stored credentials, retrieve new credentials from issuers and present stored credentials to verifiers.
+Technology: Android/iOS</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>[I-101] uses the App database to store credentials, configuration and user preferences</p></li>
+<li><p>[I-102] uses the Secure Element to generate and store app- and PIN private keys and perform signing operations using those keys</p></li>
+<li><p>[I-103] Interacts with WalletBackend for account management and HSM-assisted operations</p></li>
+<li><p>[I-104] Uses ConfigurationServer to get runtime configuration</p></li>
+<li><p>[I-105] Uses UpdateServer to get update policies</p></li>
+<li><p>[I-106] DigiD to start user authentication for onboarding or recovery [E-201]</p></li>
+<li><p>[I-107] Receive PID-credential from PID-issuer, for enrollment and recovery [E-101]</p></li>
+<li><p>[I-108] Retrieve Status List for revocation status of PID credentials from PID-Issuer [E-103]</p></li>
+<li><p>[I-109] Other Issuers, to retrieve other types of (PUB/Q)EAA credentials [E-301]</p></li>
+<li><p>[I-110] Retrieve Status List for revocation status of credentials from Other Issuers [E-302]</p></li>
+<li><p>[I-111] Verifiers, to present stored credentials [E-401]</p></li>
+<li><p>[I-112] Retrieve WUA Status List for revocation status of WUA</p></li>
+<li><p>[I-113] Request App Attest attestation from Apple (iOS only)</p></li>
+</ul>
+</section>
+<section id="app-database">
+<h2>2. App database<a class="headerlink" href="#app-database" title="Link to this heading"></a></h2>
+<p>The App database is an on-device store that is used for storing credentials, app configuration and user preferences.
+Technology: sqlite (on Android/iOS)</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>Wallet app uses the App database [I-101]</p></li>
+</ul>
+</section>
+<section id="secure-element">
+<h2>3. Secure Element<a class="headerlink" href="#secure-element" title="Link to this heading"></a></h2>
+<p>The Secure Element is a tamper-resistant environment that stores cryptographic keys  and can perform actions using the stored cryptographic keys. It prevents the keys from being exposed to the rest of the system.</p>
+<p>Technology: Secure Enclave (iOS), Trusted Execution Enivornment (Android)</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>Wallet app uses the Secure Element [I-102]</p></li>
+</ul>
+</section>
+<section id="walletbackend-wp">
+<h2>4. WalletBackend (WP)<a class="headerlink" href="#walletbackend-wp" title="Link to this heading"></a></h2>
+<p>WalletBackend provides backend services to support the Wallet app. WalletBackend facilitates account management, Wallet Unit Attestation status management and offers an endpoint to the Wallet app to perform HSM-assisted operations.</p>
+<p>Technology: axum (rust)</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>Used by Wallet App [I-103]</p></li>
+<li><p>[I-401] Reads from and writes to WP database (account data and WUA Status)</p></li>
+<li><p>[I-402] Generates and publishes WUA status list</p></li>
+<li><p>[I-403] Sends cryptographic instructions to HSM device to generate keys and perform signing operations</p></li>
+<li><p>[I-404] Wallet Unit management functions for Wallet User Support</p></li>
+<li><p>[I-405] Request app integrity verdict from Google Play Integrity (Android only)</p></li>
+<li><p>[I-406] Issue WUA to Wallet on activation</p></li>
+</ul>
+</section>
+<section id="configurationserver">
+<h2>5. ConfigurationServer<a class="headerlink" href="#configurationserver" title="Link to this heading"></a></h2>
+<p>ConfigurationServer is a content server that serves the Configuration data that is used by the app. Configuration items include: trust roots for issuer and verifier certificates, reference to current update policy, the URLs to components such as the WalletBackend, DigiD and the PID issuer, and more.</p>
+<p>Technology: nginx (static)</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>Serves configuration to Wallet app [I-104]</p></li>
+<li><p>Configuration is maintained by Wallet Technical Support</p></li>
+</ul>
+</section>
+<section id="updateserver">
+<h2>6. UpdateServer<a class="headerlink" href="#updateserver" title="Link to this heading"></a></h2>
+<p>UpdateServer is a content server that serves the Update policy data that is used by the app. The update policy instructs the app to display update notifications to the end-user when appropriate.</p>
+<p>Technology: nginx (static)</p>
+<p>Relations:
+•	Serves update policy to Wallet app [I-105]
+•	Update policy is maintained by Wallet Technical Support</p>
+</section>
+<section id="wua-status-list">
+<h2>7. WUA status list<a class="headerlink" href="#wua-status-list" title="Link to this heading"></a></h2>
+<p>The WUA Status list container contains the WUA Status List(s) that provide information about the validity of Wallet Unit Attestations to consumers (Wallet app and PID-issuer). The WUA Status Lists are published by the WalletBackend.</p>
+<p>Technology: nginx (static content, Token Status List)</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>Store Status Lists that are generated by WalletBackend [I-402]</p></li>
+<li><p>Status List is consumed by Wallet app [I-112] and PID Issuer [E-202]</p></li>
+</ul>
+</section>
+<section id="wp-database-accounts-wua-status">
+<h2>8. WP database (accounts, WUA status)<a class="headerlink" href="#wp-database-accounts-wua-status" title="Link to this heading"></a></h2>
+<p>The WP database contains user account data, and the statuses for issued Wallet Unit Attestations.
+Technology: postgres
+Relations:</p>
+<ul class="simple">
+<li><p>Accessed by WalletBackend  [I-401]</p></li>
+</ul>
+</section>
+<section id="hsm-device">
+<h2>9. HSM device<a class="headerlink" href="#hsm-device" title="Link to this heading"></a></h2>
+<p>Dedicated cryptographic hardware used to perform issuing of keys and signing operations.</p>
+<p>Technology: (not specified)</p>
+<p>Interaction:</p>
+<ul class="simple">
+<li><p>Receives instructions from WalletBackend to perform cryptographic operations (PKCS#11) [I-403]</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="system-context.html" class="btn btn-neutral float-left" title="System Context (C4)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../use-cases/disclosure-based-issuance.html" class="btn btn-neutral float-right" title="Disclosure-based Issuance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.4.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="software-system.html">v0.4.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../main/architecture/c4/software-system.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

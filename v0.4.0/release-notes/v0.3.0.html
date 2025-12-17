@@ -1,0 +1,411 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>v0.3.0 &mdash; NL Wallet 0.4.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=79eb5478" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="v0.4.0" href="v0.4.0.html" />
+    <link rel="prev" title="Glossary" href="../glossary/glossary.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/components-overview.html">Components Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.4.0.html">v0.4.0</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">v0.3.0</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/release-notes/v0.3.0.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="v0-3-0">
+<h1>v0.3.0<a class="headerlink" href="#v0-3-0" title="Link to this heading"></a></h1>
+<section id="upgrading">
+<h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>This release makes key and app attestation mandatory for both the iOS and
+Android app, which is preformed during registration with the Wallet Provider.
+The wallet contains the following changes in order to implement this:</p>
+<ul>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet-config.json</span></code> needs to have a value for a new setting,
+<code class="docutils literal notranslate"><span class="pre">google_cloud_project_number</span></code>. This value needs to be set to whatever the
+project number is for the project configured in Play Integrity within the
+Play Store Console for the wallet app.</p></li>
+</ul>
+</li>
+<li><p>The Wallet provider contains the following changes for iOS app and key
+attestation:</p>
+<ul>
+<li><p>The signing of messages sent to the Wallet Provider has been amended to
+support the specifics of iOS attested key usage. This is a backwards
+incompatible change.</p></li>
+<li><p>A database table has been added to store Apple attested key information.</p></li>
+<li><p>The Wallet Provider configuration has been amended with an <code class="docutils literal notranslate"><span class="pre">ios</span></code> section,
+containing the team and bundle identifiers of the Wallet app, as well as a
+list of Apple Root CAs against which attestations are validated.</p></li>
+</ul>
+</li>
+<li><p>The Wallet provider contains the following changes for Android key and app
+attestation:</p>
+<ul>
+<li><p>A database table has been added to store Android attested key and
+integrity verdict information. Note that this also includes a
+restructuring of the database tables, which is a backwards incompatible
+change.</p></li>
+<li><p>The signing of messages sent to the Wallet Provider has been changed in a
+way that is backwards incompatible.</p></li>
+<li><p>The Wallet Provider configuration has been amended with an <code class="docutils literal notranslate"><span class="pre">android</span></code>
+section, which contains the following:</p>
+<ul>
+<li><p>A list of root CA public keys, against which the certificate chain
+received during Android key attestation is validated. These can be
+either RSA or ECDSA keys, encoded in PKCS 8 in a Base64 string.</p></li>
+<li><p>The package name of the Wallet app.</p></li>
+<li><p>A boolean to indicate whether to allow side loading the wallet app
+when evaluating the integrity verdict as returned by Google.</p></li>
+<li><p>A path to a file containing the credentials for a Google Cloud service
+account, which can be used to retrieve integrity verdicts.</p></li>
+<li><p>A list of hashes of the certificates under which the Wallet app is
+published in the Play Store, against which the integrity verdict is
+checked.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>The embedded configuration server config and wallet config are now parsed and
+validated at build time.</p>
+<ul>
+<li><p>This requires adding the <code class="docutils literal notranslate"><span class="pre">environment</span></code> property to the hosted
+<code class="docutils literal notranslate"><span class="pre">wallet-config.json</span></code> for all environments.</p></li>
+<li><p>When running the app locally against a remote environment, the
+<code class="docutils literal notranslate"><span class="pre">CONFIG_DEV</span></code> environment variable must be set to the remote environment.</p></li>
+</ul>
+</li>
+<li><p>The PID issuer now requires the configuration of Technical Attestation Schemas
+(TAS). It looks for JSON files on the filesystem relative to the binary. The
+names of the JSON files can be configured using the
+<code class="docutils literal notranslate"><span class="pre">PID_ISSUER__ISSUER__METADATA</span></code> environment variable or through the
+<code class="docutils literal notranslate"><span class="pre">issuer.metadata</span></code> key in the PID issuer TOML configuration. Note that TAS for
+both the PID and address has been split into two (fictitious) metadata
+documents for demonstration purposes.</p></li>
+<li><p>The settings now use a <code class="docutils literal notranslate"><span class="pre">__</span></code> for the prefix separator.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">issuer.</span></code> or <code class="docutils literal notranslate"><span class="pre">verifier.</span></code> prefixes of some of the items in the TOML
+configuration file(s) of the <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> must be removed.</p></li>
+<li><p>flutter_rust_bridge has been updated to 2.9.0, run
+<code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">install</span> <span class="pre">flutter_rust_bridge_codegen</span></code> to update.</p></li>
+</ul>
+</section>
+<section id="new-features">
+<h2>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Implement performing key and app attestation during registration in iOS app.</p></li>
+<li><p>Implement performing key and app attestation during registration in the
+Android app.</p></li>
+<li><p>Add processing of Apple key and app attestations to the Wallet Provider.</p></li>
+<li><p>Verification Server now requires that a Proof of Association is included when
+attestations from multiple documents are submitted by the Wallet. The Wallet
+includes the Proof of Association if this is the case.</p></li>
+<li><p>Issue PID data based on a generic metadata format in the form of SD-JWT VC
+Type Metadata.</p></li>
+<li><p>Send the SD-JWT VC Type Metadata along with the credential previews and signed
+mdocs from the issuer to the wallet.</p></li>
+<li><p>Implement support for sending and validating a chain of SD-JWT VC Type
+Metadata documents, where each document extends the previous, and normalizing
+these documents for use in converting an attestation into its display
+representation.</p></li>
+<li><p>Add algorithm for unpacking mdoc namespaces to nested data structures for
+verification against SD-JWT VC Type Metadata documents.</p></li>
+<li><p>Validate attestations against their metadata in the issuer.</p></li>
+<li><p>Add issuer_uri to MobileSecurityObject and verify it against the SAN DNS name
+or URI in the issuer certificate.</p></li>
+<li><p>Both the PID issuer server and the verification server now support HSM keys in
+addition to software keys.</p></li>
+<li><p>Add support for SD-JWT.</p></li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">attestationQualification</span></code> to Mdoc, configurable per attestation type.</p></li>
+<li><p>Add support for optional <code class="docutils literal notranslate"><span class="pre">summary</span></code> field to the SD-JWT VC Type Metadata, to be
+used to show a summary of attestations. Attestations should be referred to by
+their <code class="docutils literal notranslate"><span class="pre">svg_id</span></code>.</p></li>
+<li><p>Add a new <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> binary that can do disclosure based issuance of
+attestations.</p></li>
+<li><p>Support disclosure based issuance in the <code class="docutils literal notranslate"><span class="pre">wallet</span></code> crate.</p></li>
+<li><p>Previewing the credential before issuance is now independent of the credential
+format.</p></li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code> to demonstrate disclosure based issuance.</p></li>
+<li><p>Add support for static Universal Links in <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>, to be used for
+disclosure based issuance.</p></li>
+<li><p>Add functionality for issuing, storing and viewing attestations in SD-JWT
+format.</p></li>
+</ul>
+</section>
+<section id="code-improvements">
+<h2>Code improvements<a class="headerlink" href="#code-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The part of <code class="docutils literal notranslate"><span class="pre">wallet_common</span></code> that implements communication between <code class="docutils literal notranslate"><span class="pre">wallet</span></code> and
+<code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code> has been split off into a separate <code class="docutils literal notranslate"><span class="pre">wallet_account</span></code> crate.
+This new crate provides a <code class="docutils literal notranslate"><span class="pre">client</span></code> and <code class="docutils literal notranslate"><span class="pre">server</span></code> cargo feature, which allows
+separating the dependency tree for the <code class="docutils literal notranslate"><span class="pre">wallet</span></code> and <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>
+respectively. This change also enables moving some other code from
+<code class="docutils literal notranslate"><span class="pre">wallet_common</span></code> to <code class="docutils literal notranslate"><span class="pre">platform_support</span></code>.</p></li>
+<li><p>The axum routers used by OpenID4VCI/OpenID4VP servers have been split off to a
+new crate called <code class="docutils literal notranslate"><span class="pre">openid4vc_server</span></code>. This makes these routers more reusable.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate has been split off into separate new crates for the
+<code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> and <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p></li>
+<li><p>Common utilities have been extracted from the <code class="docutils literal notranslate"><span class="pre">wallet_common</span></code> crate into new
+crates:</p>
+<ul>
+<li><p>Proof of Association utilities: <code class="docutils literal notranslate"><span class="pre">poa</span></code></p></li>
+<li><p>Json Web Tokens: <code class="docutils literal notranslate"><span class="pre">jwt</span></code></p></li>
+<li><p>ECDSA keys and X.509 certificates: <code class="docutils literal notranslate"><span class="pre">crypto</span></code></p></li>
+<li><p>HTTP client and server utilities: <code class="docutils literal notranslate"><span class="pre">http_utils</span></code></p></li>
+<li><p>Attestation data types: <code class="docutils literal notranslate"><span class="pre">attestation_data</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_common</span></code> has been renamed to <code class="docutils literal notranslate"><span class="pre">utils</span></code></p></li>
+<li><p>Disclosure and Issuance errors report the organization of the verifier/issuer
+when the error is caused by the remote party.</p></li>
+</ul>
+</section>
+<section id="wallet-app-improvements">
+<h2>Wallet app improvements<a class="headerlink" href="#wallet-app-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Updated app theme; aligning Figma and Flutter text styles.</p></li>
+<li><p>Accessibility improvements; improved focus indicators and talkback/voiceover
+hints.</p></li>
+<li><p>Dynamic cards; card backgrounds are now rendered using the <code class="docutils literal notranslate"><span class="pre">DisplayMetadata</span></code>
+provided by the issuer. Currently only the ‘simple’ SD-JWT spec is supported.</p></li>
+<li><p>Improved accuracy of the copy in the history detail screen; there is now a
+subtle distinction between data ‘may have been shared’ and ‘was not shared’ in
+error cases, this is based on the shared attestations field.</p></li>
+<li><p>Inactivity warning dialog; The user is now presented with an inactivity
+warning before locking the app.</p></li>
+<li><p>Support disclosure based issuance flow.</p></li>
+<li><p>Improve ‘missing attributes’ flow UI.</p></li>
+<li><p>The app now shows a dedicated ‘check url page’ when the user performs a
+cross device disclosure request.</p></li>
+<li><p>Update to Flutter 3.32.1.</p></li>
+<li><p>Renewed cards are now rendered separately during the issuance flow.</p></li>
+<li><p>History renders dedicated ‘renewed’ events.</p></li>
+<li><p>Add support for card selection during disclosure (pending wallet_core support).</p></li>
+</ul>
+</section>
+<section id="bug-fixes">
+<h2>Bug fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Fix house number in test data.</p></li>
+<li><p>Do not panic in <code class="docutils literal notranslate"><span class="pre">gba_hca_converter</span></code> when house number parsing fails.</p></li>
+</ul>
+</section>
+<section id="ci-changes">
+<h2>CI changes<a class="headerlink" href="#ci-changes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Add MR template.</p></li>
+<li><p>Change deployment files to use environment variables (except
+demo-relying-party and private keys of pid-issuer).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../glossary/glossary.html" class="btn btn-neutral float-left" title="Glossary" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="v0.4.0.html" class="btn btn-neutral float-right" title="v0.4.0" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.4.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="v0.3.0.html">v0.4.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../main/release-notes/v0.3.0.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

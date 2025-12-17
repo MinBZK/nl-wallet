@@ -1,0 +1,526 @@
+openapi: 3.1.0
+info:
+  title: 'Wallet Server Issuance API'
+  description:
+    OpenID4VCI Credential Issuance and OpenID4VP Disclosure API for NL Wallet.
+    This server provides credential issuance using OpenID4VCI and handles
+    disclosure based issuance using OpenID4VP. The disclosure flow triggers
+    credential issuance based on disclosed attributes.
+  version: 0.4.0
+
+components:
+  securitySchemes:
+    dpop_bearer:
+      description: DPoP-bound access token
+      scheme: DPoP
+      type: http
+
+security:
+  - {}
+  - dpop_bearer: []
+
+servers:
+  - url: '{scheme}://{is_host}:{is_port}'
+    variables:
+      scheme:
+        enum:
+          - http
+          - https
+        default: http
+      is_host:
+        enum:
+          - localhost
+          - demo
+        default: localhost
+      is_port:
+        default: '8001'
+
+tags:
+  - name: Issuance
+    description: OpenID4VCI credential issuance endpoints
+  - name: Disclosure
+    description: OpenID4VP disclosure and verification endpoints
+  - name: Metadata
+    description: OpenID configuration and metadata endpoints
+
+paths:
+  # Metadata Endpoints
+  /issuance/.well-known/openid-credential-issuer:
+    get:
+      tags:
+        - Metadata
+      summary: Get OpenID4VCI Issuer Metadata
+      description: Returns the OpenID4VCI credential issuer metadata
+      operationId: getIssuerMetadata
+      responses:
+        '200':
+          description: Issuer metadata
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/IssuerMetadata'
+
+  /issuance/.well-known/oauth-authorization-server:
+    get:
+      tags:
+        - Metadata
+      summary: Get OAuth Authorization Server Metadata
+      description: Returns the OAuth 2.0 authorization server metadata
+      operationId: getOAuthMetadata
+      responses:
+        '200':
+          description: OAuth metadata
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/OAuthConfig'
+
+  # Issuance Endpoints
+  /issuance/token:
+    post:
+      tags:
+        - Issuance
+      summary: Request Access Token
+      description: |
+        Exchange a pre-authorized code for an access token using DPoP.
+        This endpoint implements the OAuth 2.0 token endpoint with DPoP support.
+      operationId: requestToken
+      parameters:
+        - name: DPoP
+          in: header
+          required: true
+          description: DPoP proof JWT
+          schema:
+            type: string
+            format: jwt
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Access token issued successfully
+          headers:
+            DPoP-Nonce:
+              description: Server-generated nonce for DPoP proof
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/TokenError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/TokenError'
+
+  /issuance/credential:
+    post:
+      tags:
+        - Issuance
+      summary: Request Single Credential
+      description: Request a single verifiable credential using an access token and DPoP
+      operationId: requestCredential
+      security:
+        - dpop_bearer: []
+      parameters:
+        - name: DPoP
+          in: header
+          required: true
+          description: DPoP proof JWT
+          schema:
+            type: string
+            format: jwt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialRequest'
+      responses:
+        '200':
+          description: Credential issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+    delete:
+      tags:
+        - Issuance
+      summary: Reject Credential Issuance
+      description: Reject the issuance of credentials for this session
+      operationId: rejectCredentialIssuance
+      security:
+        - dpop_bearer: []
+      parameters:
+        - name: DPoP
+          in: header
+          required: true
+          description: DPoP proof JWT
+          schema:
+            type: string
+            format: jwt
+      responses:
+        '204':
+          description: Issuance rejected successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+
+  /issuance/batch_credential:
+    post:
+      tags:
+        - Issuance
+      summary: Request Multiple Credentials
+      description: Request multiple verifiable credentials in a single request
+      operationId: requestBatchCredential
+      security:
+        - dpop_bearer: []
+      parameters:
+        - name: DPoP
+          in: header
+          required: true
+          description: DPoP proof JWT
+          schema:
+            type: string
+            format: jwt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialRequests'
+      responses:
+        '200':
+          description: Credentials issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialResponses'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+    delete:
+      tags:
+        - Issuance
+      summary: Reject Batch Credential Issuance
+      description: Reject the issuance of batch credentials for this session
+      operationId: rejectBatchCredentialIssuance
+      security:
+        - dpop_bearer: []
+      parameters:
+        - name: DPoP
+          in: header
+          required: true
+          description: DPoP proof JWT
+          schema:
+            type: string
+            format: jwt
+      responses:
+        '204':
+          description: Batch issuance rejected successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
+
+  # Disclosure Endpoints - Wallet-facing
+  /disclosure/{identifier}/request_uri:
+    get:
+      tags:
+        - Disclosure
+      summary: Retrieve Authorization Request (GET)
+      description: |
+        Retrieve the Authorization Request JWT for a disclosure session.
+        This endpoint is called by the wallet to get the request object.
+      operationId: getAuthorizationRequest
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: Session identifier
+          schema:
+            type: string
+        - name: wallet_nonce
+          in: query
+          required: false
+          description: Wallet-provided nonce
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Authorization Request JWT
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                type: string
+                format: jwt
+                description: Signed JWT containing the authorization request
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/GetRequestError'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/GetRequestError'
+    post:
+      tags:
+        - Disclosure
+      summary: Retrieve Authorization Request (POST)
+      description: |
+        Retrieve the Authorization Request JWT for a disclosure session using POST.
+        This is an OpenID4VP extension to the standard GET method.
+      operationId: postAuthorizationRequest
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: Session identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/WalletRequest'
+      responses:
+        '200':
+          description: Authorization Request JWT
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                type: string
+                format: jwt
+                description: Signed JWT containing the authorization request
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/GetRequestError'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/GetRequestError'
+
+  /disclosure/{session_token}/response_uri:
+    post:
+      tags:
+        - Disclosure
+      summary: Submit Verifiable Presentation
+      description: |
+        Submit the verifiable presentation response from the wallet.
+        This endpoint processes the disclosed attributes.
+      operationId: submitPresentation
+      parameters:
+        - name: session_token
+          in: path
+          required: true
+          description: Session token
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/WalletAuthResponse'
+      responses:
+        '200':
+          description: Presentation processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/VpResponse'
+        '400':
+          description: Invalid presentation
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/PostAuthResponseError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/PostAuthResponseError'
+
+  /disclosure/{session_token}:
+    get:
+      tags:
+        - Disclosure
+      summary: Get Session Status
+      description: Query the status of a disclosure session
+      operationId: getSessionStatus
+      parameters:
+        - name: session_token
+          in: path
+          required: true
+          description: Session token
+          schema:
+            type: string
+        - name: session_type
+          in: query
+          required: false
+          description: Type of session
+          schema:
+            $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionType'
+      responses:
+        '200':
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/StatusResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/VerificationError'
+    delete:
+      tags:
+        - Disclosure
+      summary: Cancel Session
+      description: Cancel an active disclosure session
+      operationId: cancelSession
+      parameters:
+        - name: session_token
+          in: path
+          required: true
+          description: Session token
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Session cancelled successfully
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/VerificationError'
+
+  # Disclosure Endpoints - Requester-facing
+  /disclosure/:
+    post:
+      tags:
+        - Disclosure
+      summary: Start Disclosure Session
+      description: |
+        Start a new disclosure session. This is called by the relying party
+        to initiate a request for disclosed attributes from a wallet.
+      operationId: startDisclosure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/StartDisclosureRequest'
+      responses:
+        '200':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/StartDisclosureResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/VerificationError'
+
+  /disclosure/{session_token}/disclosed_attributes:
+    get:
+      tags:
+        - Disclosure
+      summary: Get Disclosed Attributes
+      description: |
+        Retrieve the attributes that were disclosed by the wallet.
+        This endpoint is called by the relying party after successful disclosure.
+      operationId: getDisclosedAttributes
+      parameters:
+        - name: session_token
+          in: path
+          required: true
+          description: A unique identifier for the session
+          schema:
+            $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
+        - name: nonce
+          in: query
+          required: false
+          description: Optional nonce for verification
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Disclosed attributes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'wallet-components.openapi.yaml#/components/schemas/DisclosedAttestations'
+        '404':
+          description: Session not found or no attributes disclosed
+          content:
+            application/json:
+              schema:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/VerificationError'
