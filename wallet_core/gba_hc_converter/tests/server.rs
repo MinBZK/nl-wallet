@@ -1,12 +1,17 @@
+use std::sync::Once;
+use std::time::Duration;
+
 use assert_json_diff::CompareMode;
 use assert_json_diff::Config;
 use assert_json_diff::assert_json_matches;
-use ctor::ctor;
 use http::StatusCode;
 use reqwest::Response;
 use serde_json::Value;
 use serde_json::json;
 use tokio::net::TcpListener;
+use tokio::time;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::EnvFilter;
 
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::error::Error;
@@ -16,26 +21,49 @@ use gba_hc_converter::haal_centraal::PersonQuery;
 use gba_hc_converter::haal_centraal::PersonsResponse;
 use gba_hc_converter::server;
 use http_utils::reqwest::default_reqwest_client_builder;
-use tests_integration::common::wait_for_server;
+use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::urls::BaseUrl;
 
 use crate::common::read_file;
 
 pub mod common;
 
-#[ctor]
-fn init_logging() {
-    let _ = tracing::subscriber::set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .with_test_writer()
-            .finish(),
-    );
+static LOGGING: Once = Once::new();
+
+pub async fn wait_for_server(base_url: BaseUrl) {
+    let client = trusted_reqwest_client_builder(std::iter::empty()).build().unwrap();
+
+    time::timeout(Duration::from_secs(3), async {
+        let mut interval = time::interval(Duration::from_millis(10));
+        loop {
+            match client.get(base_url.join("health")).send().await {
+                Ok(_) => break,
+                Err(e) => {
+                    println!("Server not yet up: {e:?}");
+                    interval.tick().await;
+                }
+            }
+        }
+    })
+    .await
+    .unwrap();
 }
 
 async fn start_server_with_mock<T>(gbav_client: T) -> u16
 where
     T: GbavClient + Send + Sync + 'static,
 {
+    LOGGING.call_once(|| {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                EnvFilter::builder()
+                    .with_default_directive(LevelFilter::DEBUG.into())
+                    .from_env_lossy(),
+            )
+            .with_test_writer()
+            .init();
+    });
+
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
@@ -43,7 +71,7 @@ where
         server::serve(listener, gbav_client).await.unwrap();
     });
 
-    wait_for_server(format!("http://localhost:{port}").parse().unwrap(), std::iter::empty()).await;
+    wait_for_server(format!("http://localhost:{port}").parse().unwrap()).await;
     port
 }
 
