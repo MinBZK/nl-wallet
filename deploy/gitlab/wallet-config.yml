@@ -25,27 +25,3 @@ wallet-config-demo:
     - job: build-env-demo
       artifacts: true
   rules: !reference [.on-demo-build, rules]
-
-wallet-config-acceptance:
-  extends: .wallet-config
-  needs:
-    - job: build-env-acceptance
-      artifacts: true
-  rules: !reference [.release-tag, rules]
-  when: manual
-
-wallet-config-preproduction:
-  extends: .wallet-config
-  needs:
-    - job: build-env-preproduction
-      artifacts: true
-  rules: !reference [.release-tag, rules]
-  when: manual
-
-wallet-config-production:
-  extends: .wallet-config
-  needs:
-    - job: build-env-production
-      artifacts: true
-  rules: !reference [.release-tag, rules]
-  when: manual

@@ -19,8 +19,7 @@ upload-browserstack-android-app:
   script:
     - |
       bundle exec fastlane android ci_browserstack \
-        application_id:"${INTERNAL_APP_IDENTIFIER}.latest" \
-        version:"${CI_COMMIT_TAG#v}"
+        application_id:"${INTERNAL_APP_IDENTIFIER}.latest"
 
 upload-browserstack-ios-app:
   extends: .upload-browserstack-base
@@ -30,5 +29,4 @@ upload-browserstack-ios-app:
   script:
     - |
       bundle exec fastlane ios ci_browserstack \
-        application_id:"${INTERNAL_APP_IDENTIFIER}.latest" \
-        version:"${CI_COMMIT_TAG#v}"
+        application_id:"${INTERNAL_APP_IDENTIFIER}.latest"

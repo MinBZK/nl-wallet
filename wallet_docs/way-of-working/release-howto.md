@@ -53,18 +53,18 @@ When the release is "green" (i.e., all relevant issues are in the `Done` state)
 you know that the relevant features and fixes have been merged in the `main`
 branch, and you can create a release tag (which we do later on in this guide).
 
-The nightly_git_jira_check job automatically keeps Jira issues up-to-date with
+The `nightly-git-jira-check` job automatically keeps Jira issues up-to-date with
 GitLab MRs by setting the correct fixVersion based on merged branches. So by the
 time you're prepping the release, Jira should already reflect the correct state,
-but it is advised to verify the job log of nightly_git_jira_check. This job also
-checks and logs other inconsistencies:
+but it is advised to verify the job log of `nightly-git-jira-check`. This job
+also checks and logs other inconsistencies:
 
 - Issues with the wrong version
 - Issues with multiple fixVersions
 - MRs with source branches that do not contain an existing Jira item
 
 In the latter case this cannot be synced/corrected automatically. In job
-'verify_release_check', which runs manual in the main pipeline, an artifact is
+`verify-release-check`, which runs manual in the main pipeline, an artifact is
 created in which all MRs that are missing a Jira key are logged. Add this file
 to the release ticket in Jira or a separate ticket belonging to the release to
 ensure a quick way to determinate what has been released.
@@ -219,11 +219,9 @@ installation instructions).
 Note about obtaining artifacts automatically: Currently the above is manual. We
 have an issue on Jira which is about creating an artifact uploader. This utility
 is called `uploader.mjs` and can talk to the GitHub releases API and add binary
-artifacts and their sha256 sums to a release. The idea is that our pipeline,
-when invoked with a CI_COMMIT_TAG environment variable present (i.e., a build
-triggered by a `git push --tags` that results in new version tags being pushed)
-can invoke this utility and create or update a release with relevant binary
-artifacts.
+artifacts and their sha256 sums to a release. The idea is that there is a job in
+our pipeline that can invoke this utility and create or update a release with
+relevant binary artifacts.
 
 ### Step 9: Create a release description
 

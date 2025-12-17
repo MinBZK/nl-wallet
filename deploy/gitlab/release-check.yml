@@ -14,16 +14,16 @@
 
 nightly-git-jira-check:
   extends: .git-jira-check-base
+  rules: !reference [ .on-schedule-scan, rules ]
   script:
     - python3 deploy/git-jira-check/git_jira_sync.py sync-nightly
-  rules: !reference [.on-schedule-scan, rules]
 
 verify-release-check:
   extends: .git-jira-check-base
-  script:
-    - python3 deploy/git-jira-check/git_jira_sync.py verify-release
   rules: !reference [.default-branch, rules]
   when: manual
+  script:
+    - python3 deploy/git-jira-check/git_jira_sync.py verify-release
   artifacts:
     name: mrs-missing-jira-key
     when: always
