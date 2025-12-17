@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 axum = ["axum/json", "sea-orm/macros", "sea-orm/with-uuid", "utoipa/uuid", "uuid/serde"]
-verification = ["dep:http", "dep:rustls-pki-types", "reqwest/gzip", "http_utils/client"]
+verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "http_utils/client"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
 [dependencies]
