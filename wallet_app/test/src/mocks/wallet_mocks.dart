@@ -321,7 +321,8 @@ class Mocks {
             backgroundLockTimeout: Duration(minutes: 1),
             staticAssetsBaseUrl: 'https://example.com/',
             pidAttestationTypes: ['com.example.attestationType'],
-            version: 1,
+            version: '1',
+            environment: 'test',
           ),
         ),
       );

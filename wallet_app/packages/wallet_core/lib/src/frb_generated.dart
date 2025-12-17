@@ -1804,14 +1804,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return FlutterConfiguration(
       inactiveWarningTimeout: dco_decode_u_16(arr[0]),
       inactiveLockTimeout: dco_decode_u_16(arr[1]),
       backgroundLockTimeout: dco_decode_u_16(arr[2]),
       pidAttestationTypes: dco_decode_list_String(arr[3]),
       staticAssetsBaseUrl: dco_decode_String(arr[4]),
-      version: dco_decode_u_64(arr[5]),
+      version: dco_decode_String(arr[5]),
+      environment: dco_decode_String(arr[6]),
     );
   }
 
@@ -2648,7 +2649,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_backgroundLockTimeout = sse_decode_u_16(deserializer);
     var var_pidAttestationTypes = sse_decode_list_String(deserializer);
     var var_staticAssetsBaseUrl = sse_decode_String(deserializer);
-    var var_version = sse_decode_u_64(deserializer);
+    var var_version = sse_decode_String(deserializer);
+    var var_environment = sse_decode_String(deserializer);
     return FlutterConfiguration(
       inactiveWarningTimeout: var_inactiveWarningTimeout,
       inactiveLockTimeout: var_inactiveLockTimeout,
@@ -2656,6 +2658,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       pidAttestationTypes: var_pidAttestationTypes,
       staticAssetsBaseUrl: var_staticAssetsBaseUrl,
       version: var_version,
+      environment: var_environment,
     );
   }
 
@@ -3745,7 +3748,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_u_16(self.backgroundLockTimeout, serializer);
     sse_encode_list_String(self.pidAttestationTypes, serializer);
     sse_encode_String(self.staticAssetsBaseUrl, serializer);
-    sse_encode_u_64(self.version, serializer);
+    sse_encode_String(self.version, serializer);
+    sse_encode_String(self.environment, serializer);
   }
 
   @protected
