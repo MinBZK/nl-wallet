@@ -61,11 +61,11 @@ paths:
         schema:
           $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
       - name: nonce
-          in: query
-          required: false
-          description: Optional nonce for verification
-          schema:
-            type: string
+        in: query
+        required: false
+        description: Optional nonce for verification
+        schema:
+          type: string
     get:
       summary: Retrieve disclosed attributes
       responses:

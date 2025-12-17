@@ -145,13 +145,13 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
     use crate::WalletState;
+    use crate::digid::MockDigidSession;
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::PinRecoveryData;
     use crate::storage::TransferData;
     use crate::storage::TransferKeyData;
-    use crate::test::MockDigidSession;
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::WalletDisclosureSession;
