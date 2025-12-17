@@ -226,18 +226,18 @@ will get multiple fix versions in the future.</p>
 <p>When the release is “green” (i.e., all relevant issues are in the <code class="docutils literal notranslate"><span class="pre">Done</span></code> state)
 you know that the relevant features and fixes have been merged in the <code class="docutils literal notranslate"><span class="pre">main</span></code>
 branch, and you can create a release tag (which we do later on in this guide).</p>
-<p>The nightly_git_jira_check job automatically keeps Jira issues up-to-date with
+<p>The <code class="docutils literal notranslate"><span class="pre">nightly-git-jira-check</span></code> job automatically keeps Jira issues up-to-date with
 GitLab MRs by setting the correct fixVersion based on merged branches. So by the
 time you’re prepping the release, Jira should already reflect the correct state,
-but it is advised to verify the job log of nightly_git_jira_check. This job also
-checks and logs other inconsistencies:</p>
+but it is advised to verify the job log of <code class="docutils literal notranslate"><span class="pre">nightly-git-jira-check</span></code>. This job
+also checks and logs other inconsistencies:</p>
 <ul class="simple">
 <li><p>Issues with the wrong version</p></li>
 <li><p>Issues with multiple fixVersions</p></li>
 <li><p>MRs with source branches that do not contain an existing Jira item</p></li>
 </ul>
 <p>In the latter case this cannot be synced/corrected automatically. In job
-‘verify_release_check’, which runs manual in the main pipeline, an artifact is
+<code class="docutils literal notranslate"><span class="pre">verify-release-check</span></code>, which runs manual in the main pipeline, an artifact is
 created in which all MRs that are missing a Jira key are logged. Add this file
 to the release ticket in Jira or a separate ticket belonging to the release to
 ensure a quick way to determinate what has been released.</p>
@@ -355,16 +355,9 @@ applications with the wallet platform.</p></li>
 to the relevant job and click on download artifact/zip. You might need to rename
 the zip file and/or repackage in the case of <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>,
 <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> and <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>.</p>
-<p>Currently (2024-11-07) you need to create the sha256sums manually (in the future
-we would like to adjust the pipeline that creates the binary artifacts such that
-it will create the sha256 hashes also). To create the sha256sum texts, enter the
-directory which contains the above mentioned zip files and run:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="k">for</span><span class="w"> </span>zip<span class="w"> </span><span class="k">in</span><span class="w"> </span>*.zip<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span>sha256sum<span class="w"> </span><span class="nv">$zip</span><span class="w"> </span>&gt;<span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="nv">$zip</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span><span class="s1">&#39;s|.zip$|.sha256sum.txt|g&#39;</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
-</pre></div>
-</div>
-<p>When you have these zip files and sha256sum texts, and you made sure they’re
-named correctly, you are ready to create the release description. We will upload
-the zip files and sha256sum texts as artifacts of the release.</p>
+<p>When you have these zip files, and you made sure they’re named correctly, you
+are ready to create the release description. We will upload the zip files as
+the artifacts of the release.</p>
 <p>Note on other binaries like <code class="docutils literal notranslate"><span class="pre">verification_server_migrations</span></code> and schema changes
 in general: When any of our binaries that use a database backend require schema
 changes in the database, we can provide either documentation that instruct how
@@ -378,11 +371,9 @@ installation instructions).</p>
 <p>Note about obtaining artifacts automatically: Currently the above is manual. We
 have an issue on Jira which is about creating an artifact uploader. This utility
 is called <code class="docutils literal notranslate"><span class="pre">uploader.mjs</span></code> and can talk to the GitHub releases API and add binary
-artifacts and their sha256 sums to a release. The idea is that our pipeline,
-when invoked with a CI_COMMIT_TAG environment variable present (i.e., a build
-triggered by a <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">--tags</span></code> that results in new version tags being pushed)
-can invoke this utility and create or update a release with relevant binary
-artifacts.</p>
+artifacts and their sha256 sums to a release. The idea is that there is a job in
+our pipeline that can invoke this utility and create or update a release with
+relevant binary artifacts.</p>
 </section>
 <section id="step-9-create-a-release-description">
 <h3>Step 9: Create a release description<a class="headerlink" href="#step-9-create-a-release-description" title="Link to this heading"></a></h3>
