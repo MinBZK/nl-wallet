@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-axum = ["dep:axum", "dep:sea-orm", "utoipa/uuid"]
+axum = ["axum/json", "sea-orm/macros", "sea-orm/with-uuid", "utoipa/uuid", "uuid/serde"]
 verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "http_utils/client"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
