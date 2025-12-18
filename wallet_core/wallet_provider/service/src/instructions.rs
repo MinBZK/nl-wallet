@@ -378,7 +378,7 @@ pub(super) async fn perform_issuance_with_wua<T, R, H>(
     instruction: PerformIssuance,
     wallet_user: &WalletUser,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
-) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, (WrappedKey, String)), InstructionError>
+) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, WrappedKey), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -406,7 +406,7 @@ pub async fn perform_issuance<T, R, H>(
         PerformIssuanceResult,
         Option<WuaDisclosure>,
         Vec<WrappedKey>,
-        Option<(WrappedKey, String)>,
+        Option<WrappedKey>,
     ),
     InstructionError,
 >
@@ -435,20 +435,16 @@ where
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wua_key_and_id, wua_disclosure, key_count_including_wua) = if let Some(wallet_user) = wallet_user {
-        let (key, key_id, wua_disclosure) = wua(&claims, wallet_user, user_state).await?;
-        (
-            Some((key, key_id)),
-            Some(wua_disclosure),
-            instruction.key_count.get() + 1,
-        )
+    let (wua_key, wua_disclosure, key_count_including_wua) = if let Some(wallet_user) = wallet_user {
+        let (key, wua_disclosure) = wua(&claims, wallet_user, user_state).await?;
+        (Some(key), Some(wua_disclosure), instruction.key_count.get() + 1)
     } else {
         (None, None, instruction.key_count.get())
     };
 
     let pops = issuance_pops(&attestation_keys, &claims).await?;
     let poa = if key_count_including_wua > 1 {
-        let wua_attestation_key = wua_key_and_id.as_ref().map(|(key, _)| attestation_key(key, user_state));
+        let wua_attestation_key = wua_key.as_ref().map(|key| attestation_key(key, user_state));
         Some(
             // Unwrap is safe because we're operating on the output of `generate_wrapped_keys()`
             // which returns `VecNonEmpty`
@@ -473,25 +469,20 @@ where
         poa,
     };
 
-    Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id))
+    Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key))
 }
 
 fn create_issuance_keys(
     uuid_generator: &impl Generator<Uuid>,
-    issuance_result: &PerformIssuanceResult,
     wrapped_keys: Vec<WrappedKey>,
-    wua_key_and_id: Option<(WrappedKey, String)>,
+    wua_key: Option<WrappedKey>,
     is_blocked: bool,
 ) -> Vec<WalletUserKey> {
-    let key_ids = issuance_result.key_identifiers.as_ref().to_vec();
-
     wrapped_keys
         .into_iter()
-        .zip(key_ids)
-        .chain(wua_key_and_id)
-        .map(|(key, key_identifier)| WalletUserKey {
+        .chain(wua_key)
+        .map(|key| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
-            key_identifier,
             key,
             is_blocked,
         })
@@ -527,7 +518,7 @@ async fn wua<T, R, H>(
     claims: &JwtPopClaims,
     wallet_user: &WalletUser,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
-) -> Result<(WrappedKey, String, WuaDisclosure), InstructionError>
+) -> Result<(WrappedKey, WuaDisclosure), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -555,7 +546,7 @@ where
         .await?;
     tx.commit().await?;
 
-    let (wua_wrapped_key, wua_key_id, wua) = user_state
+    let (wua_wrapped_key, wua) = user_state
         .wua_issuer
         .issue_wua(exp, status_claim)
         .await
@@ -566,7 +557,7 @@ where
         .map_err(InstructionError::PopSigning)?
         .into();
 
-    Ok((wua_wrapped_key, wua_key_id, WuaDisclosure::new(wua, wua_disclosure)))
+    Ok((wua_wrapped_key, WuaDisclosure::new(wua, wua_disclosure)))
 }
 
 async fn issuance_pops<H>(
@@ -625,7 +616,7 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
 
-        let db_keys = create_issuance_keys(generators, &issuance_result, wrapped_keys, None, false);
+        let db_keys = create_issuance_keys(generators, wrapped_keys, None, false);
 
         persist_keys(wallet_user, user_state, db_keys).await?;
 
@@ -652,13 +643,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
             perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
 
-        let db_keys = create_issuance_keys(
-            generators,
-            &issuance_with_wua_result.issuance_result,
-            wrapped_keys,
-            Some(wua_key_and_id),
-            true,
-        );
+        let db_keys = create_issuance_keys(generators, wrapped_keys, Some(wua_key_and_id), true);
 
         persist_keys(wallet_user, user_state, db_keys).await?;
 

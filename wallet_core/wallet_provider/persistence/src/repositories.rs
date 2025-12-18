@@ -126,7 +126,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         keys: WalletUserKeys,
     ) -> Result<(), PersistenceError> {
-        wallet_user_key::create_keys(transaction, keys).await
+        wallet_user_key::persist_keys(transaction, keys).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]

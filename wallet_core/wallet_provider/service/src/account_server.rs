@@ -58,7 +58,6 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_types::claim_path::ClaimPath;
-use crypto::p256_der::verifying_key_sha256;
 use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
@@ -1168,7 +1167,6 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                         .iter()
                         .map(|key| WalletUserKey {
                             wallet_user_key_id: generators.generate(),
-                            key_identifier: verifying_key_sha256(key.public_key()),
                             key: key.clone(),
                             is_blocked: true,
                         })

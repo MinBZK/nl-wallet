@@ -5,15 +5,14 @@ use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use uuid::Uuid;
 
-use crypto::p256_der::verifying_key_sha256;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_persistence::wallet_user_key::create_keys;
 use wallet_provider_persistence::wallet_user_key::delete_blocked_keys;
 use wallet_provider_persistence::wallet_user_key::find_active_keys_by_identifiers;
 use wallet_provider_persistence::wallet_user_key::is_blocked_key;
 use wallet_provider_persistence::wallet_user_key::move_keys;
+use wallet_provider_persistence::wallet_user_key::persist_keys;
 use wallet_provider_persistence::wallet_user_key::unblock_blocked_keys;
 
 pub mod common;
@@ -23,7 +22,6 @@ fn test_wallet_user_key() -> WalletUserKey {
     let key = WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key());
     WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
-        key_identifier: verifying_key_sha256(key.public_key()),
         key,
         is_blocked: false,
     }
@@ -46,7 +44,7 @@ async fn test_create_keys() {
 
     let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
-    create_keys(
+    persist_keys(
         &db,
         WalletUserKeys {
             wallet_user_id,
@@ -56,12 +54,15 @@ async fn test_create_keys() {
     .await
     .unwrap();
 
-    let mut persisted_keys =
-        find_active_keys_by_identifiers(&db, wallet_user_id, &[key1.key_identifier, key2.key_identifier])
-            .await
-            .unwrap()
-            .into_iter()
-            .collect::<Vec<_>>();
+    let mut persisted_keys = find_active_keys_by_identifiers(
+        &db,
+        wallet_user_id,
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
+    )
+    .await
+    .unwrap()
+    .into_iter()
+    .collect::<Vec<_>>();
     persisted_keys.sort_by_key(|(key, _)| key.clone());
     let keys = persisted_keys
         .iter()
@@ -99,7 +100,7 @@ async fn test_move_keys() {
 
     // Create example keys in source and destination wallets
 
-    create_keys(
+    persist_keys(
         &db,
         WalletUserKeys {
             wallet_user_id: source_wallet_user_id,
@@ -109,7 +110,7 @@ async fn test_move_keys() {
     .await
     .unwrap();
 
-    create_keys(
+    persist_keys(
         &db,
         WalletUserKeys {
             wallet_user_id: destination_wallet_user_id,
@@ -124,7 +125,7 @@ async fn test_move_keys() {
     let persisted_source_keys = find_active_keys_by_identifiers(
         &db,
         source_wallet_user_id,
-        &[source_key1.key_identifier.clone(), source_key2.key_identifier.clone()],
+        &[source_key1.sha256_fingerprint(), source_key2.sha256_fingerprint()],
     )
     .await
     .unwrap()
@@ -132,14 +133,14 @@ async fn test_move_keys() {
     .collect::<HashSet<_>>();
 
     assert_eq!(
-        HashSet::from([source_key1.key_identifier.clone(), source_key2.key_identifier.clone()]),
+        HashSet::from([source_key1.sha256_fingerprint(), source_key2.sha256_fingerprint()]),
         persisted_source_keys
     );
 
     let persisted_destination_keys = find_active_keys_by_identifiers(
         &db,
         destination_wallet_user_id,
-        from_ref(&destination_key1.key_identifier),
+        from_ref(&destination_key1.sha256_fingerprint()),
     )
     .await
     .unwrap()
@@ -147,7 +148,7 @@ async fn test_move_keys() {
     .collect::<HashSet<_>>();
 
     assert_eq!(
-        HashSet::from([destination_key1.key_identifier.clone()]),
+        HashSet::from([destination_key1.sha256_fingerprint()]),
         persisted_destination_keys
     );
 
@@ -162,7 +163,7 @@ async fn test_move_keys() {
     let persisted_source_keys = find_active_keys_by_identifiers(
         &db,
         source_wallet_user_id,
-        &[source_key1.key_identifier.clone(), source_key2.key_identifier.clone()],
+        &[source_key1.sha256_fingerprint(), source_key2.sha256_fingerprint()],
     )
     .await
     .unwrap()
@@ -173,7 +174,7 @@ async fn test_move_keys() {
     let persisted_destination_keys = find_active_keys_by_identifiers(
         &db,
         destination_wallet_user_id,
-        &[source_key1.key_identifier.clone(), source_key2.key_identifier.clone()],
+        &[source_key1.sha256_fingerprint(), source_key2.sha256_fingerprint()],
     )
     .await
     .unwrap()
@@ -181,7 +182,7 @@ async fn test_move_keys() {
     .collect::<HashSet<_>>();
 
     assert_eq!(
-        HashSet::from([source_key1.key_identifier, source_key2.key_identifier]),
+        HashSet::from([source_key1.sha256_fingerprint(), source_key2.sha256_fingerprint()]),
         persisted_destination_keys
     );
 }
@@ -203,7 +204,7 @@ async fn test_create_blocked_keys() {
 
     let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
-    create_keys(
+    persist_keys(
         &db,
         WalletUserKeys {
             wallet_user_id,
@@ -217,7 +218,7 @@ async fn test_create_blocked_keys() {
     let active_keys = find_active_keys_by_identifiers(
         &db,
         wallet_user_id,
-        &[key1.key_identifier.clone(), key2.key_identifier.clone()],
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
     )
     .await
     .unwrap()
@@ -242,7 +243,7 @@ async fn test_create_blocked_keys() {
     let active_keys = find_active_keys_by_identifiers(
         &db,
         wallet_user_id,
-        &[key1.key_identifier.clone(), key2.key_identifier.clone()],
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
     )
     .await
     .unwrap()
@@ -268,7 +269,7 @@ async fn test_delete_blocked_keys() {
 
     let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
-    create_keys(
+    persist_keys(
         &db,
         WalletUserKeys {
             wallet_user_id,
@@ -279,18 +280,22 @@ async fn test_delete_blocked_keys() {
     .unwrap();
 
     // Blocked keys should not be retrieved by `find_active_keys_by_identifiers`
-    let active_keys = find_active_keys_by_identifiers(&db, wallet_user_id, &["key1".to_string(), "key2".to_string()])
-        .await
-        .unwrap()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let active_keys = find_active_keys_by_identifiers(
+        &db,
+        wallet_user_id,
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
+    )
+    .await
+    .unwrap()
+    .into_iter()
+    .collect::<Vec<_>>();
     assert!(active_keys.is_empty());
 
     // Delete the blocked keys
     delete_blocked_keys(&db, wallet_user_id).await.unwrap();
 
     // Keys should no longer be found
-    for key in [key1, key2] {
+    for key in [&key1, &key2] {
         assert!(
             is_blocked_key(&db, wallet_user_id, *key.key.public_key())
                 .await
@@ -303,10 +308,14 @@ async fn test_delete_blocked_keys() {
     unblock_blocked_keys(&db, wallet_user_id).await.unwrap();
 
     // Keys should not be found
-    let active_keys = find_active_keys_by_identifiers(&db, wallet_user_id, &["key1".to_string(), "key2".to_string()])
-        .await
-        .unwrap()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let active_keys = find_active_keys_by_identifiers(
+        &db,
+        wallet_user_id,
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
+    )
+    .await
+    .unwrap()
+    .into_iter()
+    .collect::<Vec<_>>();
     assert!(active_keys.is_empty());
 }
