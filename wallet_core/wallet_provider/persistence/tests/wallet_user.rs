@@ -15,6 +15,9 @@ use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::entity::wallet_user;
+use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
+use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::encrypted_pin_key;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
@@ -26,8 +29,6 @@ use wallet_provider_persistence::wallet_user::rollback_pin_change;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
 use wallet_provider_persistence::wallet_user::transition_wallet_user_state;
 use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
-
-use crate::common::encrypted_pin_key;
 
 pub mod common;
 
@@ -79,7 +80,7 @@ async fn test_find_wallet_user_by_wallet_id() {
 
 #[tokio::test]
 async fn test_create_wallet_user_transaction_commit() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let transaction = transaction::begin_transaction(&db)
         .await
@@ -87,7 +88,7 @@ async fn test_create_wallet_user_transaction_commit() {
 
     let wallet_id = random_string(32);
 
-    let wallet_user_id = common::create_wallet_user_with_random_keys(&transaction, wallet_id.clone()).await;
+    let wallet_user_id = create_wallet_user_with_random_keys(&transaction, wallet_id.clone()).await;
 
     let maybe_wallet_user = common::find_wallet_user(&db, wallet_user_id).await;
 
@@ -107,7 +108,7 @@ async fn test_create_wallet_user_transaction_commit() {
 
 #[tokio::test]
 async fn test_create_wallet_user_transaction_rollback() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
     let wallet_id = random_string(32);
 
     let wallet_user_id = {
@@ -115,7 +116,7 @@ async fn test_create_wallet_user_transaction_rollback() {
             .await
             .expect("Could not begin transaction");
 
-        common::create_wallet_user_with_random_keys(&transaction, wallet_id).await
+        create_wallet_user_with_random_keys(&transaction, wallet_id).await
     };
 
     let maybe_wallet_user = common::find_wallet_user(&db, wallet_user_id).await;
@@ -165,7 +166,7 @@ async fn test_insert_instruction_challenge_on_conflict() {
 
     // create a second wallet
     let wallet_id2 = random_string(32);
-    let wallet_user_id2 = common::create_wallet_user_with_random_keys(&db, wallet_id2.clone()).await;
+    let wallet_user_id2 = create_wallet_user_with_random_keys(&db, wallet_id2.clone()).await;
 
     let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);

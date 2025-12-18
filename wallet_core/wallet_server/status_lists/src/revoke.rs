@@ -7,6 +7,7 @@ use axum::extract::State;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
+#[cfg(feature = "admin-ui")]
 use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
@@ -81,6 +82,7 @@ where
 {
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi()).routes(routes!(revoke_batch));
 
+    #[cfg(feature = "admin-ui")]
     let router = {
         let (router, openapi) = router
             .routes(routes!(get_batch))
@@ -89,6 +91,9 @@ where
 
         router.merge(SwaggerUi::new("/api-docs").url("/openapi.json", openapi))
     };
+
+    #[cfg(not(feature = "admin-ui"))]
+    let router: Router<Arc<L>> = router.into();
 
     router.with_state(status_list_service)
 }

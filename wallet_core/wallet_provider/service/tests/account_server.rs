@@ -22,18 +22,17 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::signed::ChallengeResponse;
-use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::generator::mock::MockGenerators;
 use wallet_provider_domain::model::TimeoutPinPolicy;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
-use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
+use wallet_provider_persistence::test::db_from_env;
 use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock;
@@ -47,11 +46,6 @@ use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
 use wallet_provider_service::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
-
-async fn db_from_env() -> Result<Db, PersistenceError> {
-    let settings = Settings::new().unwrap();
-    Db::new(settings.url, Default::default()).await
-}
 
 async fn do_registration(
     account_server: &MockAccountServer,

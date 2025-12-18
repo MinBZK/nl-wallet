@@ -8487,6 +8487,7 @@ dependencies = [
  "server_utils",
  "status_lists",
  "strum 0.27.2",
+ "tempfile",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
