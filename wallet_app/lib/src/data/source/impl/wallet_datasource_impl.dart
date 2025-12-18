@@ -14,7 +14,14 @@ class WalletDataSourceImpl implements WalletDataSource {
 
   @override
   Future<List<WalletCard>> readAll() async {
-    final cards = await _walletCore.observeCards().first.timeout(const Duration(seconds: 5));
+    final cards = await _walletCore
+        .observeCards()
+        .where((cards) => cards.isNotEmpty)
+        .first
+        .timeout(
+          const Duration(seconds: 1),
+          onTimeout: () => <AttestationPresentation>[],
+        );
     return _cardMapper.mapList(cards);
   }
 
