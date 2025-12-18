@@ -1,3 +1,7 @@
+ARG HARBOR_REGISTRY
+ARG HARBOR_PROJECT
+ARG HSM_CLIENT_TAG
+
 ### Copy Shared Library Stage ###
 FROM ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-hsm-pkcs11-client:${HSM_CLIENT_TAG} AS hsm-client
 
