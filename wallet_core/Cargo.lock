@@ -3651,6 +3651,7 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.17",
  "tokio",
+ "tokio-test",
  "tracing",
  "utils",
 ]
