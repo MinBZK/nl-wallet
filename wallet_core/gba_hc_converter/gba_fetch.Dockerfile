@@ -1,3 +1,4 @@
+ARG HARBOR_REGISTRY
 FROM ${HARBOR_REGISTRY}/gcr-io-proxy/distroless/cc-debian12:debug-nonroot
 
 COPY ./target/x86_64-unknown-linux-musl/debug/gba_encrypt .
