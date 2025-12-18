@@ -476,16 +476,13 @@ where
     Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id))
 }
 
-fn create_issuance_keys<G>(
-    generators: &G,
+fn create_issuance_keys(
+    uuid_generator: &impl Generator<Uuid>,
     issuance_result: &PerformIssuanceResult,
     wrapped_keys: Vec<WrappedKey>,
     wua_key_and_id: Option<(WrappedKey, String)>,
     is_blocked: bool,
-) -> Vec<WalletUserKey>
-where
-    G: Generator<Uuid>,
-{
+) -> Vec<WalletUserKey> {
     let key_ids = issuance_result.key_identifiers.as_ref().to_vec();
 
     wrapped_keys
@@ -493,7 +490,7 @@ where
         .zip(key_ids)
         .chain(wua_key_and_id)
         .map(|(key, key_identifier)| WalletUserKey {
-            wallet_user_key_id: generators.generate(),
+            wallet_user_key_id: uuid_generator.generate(),
             key_identifier,
             key,
             is_blocked,
@@ -501,7 +498,7 @@ where
         .collect()
 }
 
-async fn save_keys<T, R, H>(
+async fn persist_keys<T, R, H>(
     wallet_user: &WalletUser,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
     db_keys: Vec<WalletUserKey>,
@@ -630,7 +627,7 @@ impl HandleInstruction for PerformIssuance {
 
         let db_keys = create_issuance_keys(generators, &issuance_result, wrapped_keys, None, false);
 
-        save_keys(wallet_user, user_state, db_keys).await?;
+        persist_keys(wallet_user, user_state, db_keys).await?;
 
         Ok(issuance_result)
     }
@@ -663,7 +660,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
             true,
         );
 
-        save_keys(wallet_user, user_state, db_keys).await?;
+        persist_keys(wallet_user, user_state, db_keys).await?;
 
         Ok(issuance_with_wua_result)
     }
