@@ -15,7 +15,9 @@ pub struct HttpStatusListClient(reqwest::Client);
 
 impl HttpStatusListClient {
     pub fn new() -> Result<Self, reqwest::Error> {
-        Ok(Self(default_reqwest_client_builder().build()?))
+        let client = default_reqwest_client_builder().build()?;
+
+        Ok(Self(client))
     }
 }
 
