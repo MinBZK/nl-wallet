@@ -9,10 +9,6 @@ G_SoleControl:
 A_PidIssuerTrustsWb:
   text: PID issuer trusts WB to issue WUA only to wallets implementing Sole Control
 
-G_WbIssuesWua:
-  text: WB issues WUA to Wallet
-  undeveloped: true
-
 G_WbEnforcesSoleControl:
   text: WB enforces that the User has sole control over all attestations managed in Wallet
   supportedBy: [Sn_WalletStoresAttestationData, G_PrivKeyExclusiveCustody, G_PrivKeyRequires2fa]
@@ -55,3 +51,33 @@ Sn_HsmEnforcesNonExport:
 
 A_WbTrustsHsmVendor:
   text: WB trusts HSM vendor and certification
+
+
+# =========================================================
+# WUA ISSUANCE
+# =========================================================
+
+G_WbIssuesWua:
+  text: WB issues WUA to Wallet
+  rankIncrement: 1
+  supportedBy:
+    - G_WbGeneratesAttestationPrivKey
+    - Sn_WbBuildsWuaPayload
+    - Sn_WuaSignedByDedicatedWbKey
+    - Sn_WuaReturnedToWallet
+
+G_WbGeneratesAttestationPrivKey:
+  text: WB generates a fresh WUA private key
+  supportedBy:
+    - S_EnsurePrivKeySecure
+
+Sn_WbBuildsWuaPayload:
+  text: WB constructs the WUA payload containing the WUA public key and minimal metadata
+
+Sn_WuaSignedByDedicatedWbKey:
+  text: WB signs the WUA payload with a dedicated WUA signing private key maintained under WB control (in HSM)
+
+Sn_WuaReturnedToWallet:
+  text: WB returns the resulting signed WUA to the wallet as response to the authenticated instruction
+  horizontalIndex:
+    absolute: last
