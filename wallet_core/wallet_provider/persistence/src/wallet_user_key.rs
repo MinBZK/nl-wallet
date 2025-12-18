@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crypto::p256_der::verifying_key_sha256;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
@@ -62,26 +63,21 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let blocked_query_result: Vec<IsBlockedModel> = wallet_user_key::Entity::find()
+    let key_identifier = verifying_key_sha256(&key);
+
+    let blocked_query_result: Option<IsBlockedModel> = wallet_user_key::Entity::find()
         .column(wallet_user_key::Column::IsBlocked)
         .filter(
             wallet_user_key::Column::WalletUserId
                 .eq(wallet_user_id)
-                .and(wallet_user_key::Column::PublicKey.eq(key.to_public_key_der()?.into_vec())),
+                .and(wallet_user_key::Column::Identifier.eq(key_identifier)),
         )
         .into_partial_model()
-        .all(db.connection())
+        .one(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    let is_blocked = blocked_query_result
-        .into_iter()
-        .fold(None, |acc, is_blocked| match acc {
-            None => Some(is_blocked.is_blocked),
-            _ => panic!("multiple identical public keys found"),
-        });
-
-    Ok(is_blocked)
+    Ok(blocked_query_result.map(|query_result| query_result.is_blocked))
 }
 
 pub async fn unblock_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
