@@ -4,91 +4,39 @@ module:
 G1:
   text: RP establishes that the attribute is a factually correct statement about the user at LoA High.
   supportedBy: [S1]
-  inContextOf: [A1.1, A1.2, A1.3, A1.4, A1.5, A1.6]
-
-A1.1:
-  text: Attribute correctness depends on the trustworthiness of the issuer.
-
-A1.2:
-  text: Attribute correctness requires cryptographic protection to prevent tampering.
-
-A1.3:
-  text: Attribute correctness requires binding between the attribute and the correct user.
-
-A1.4:
-  text: Factual correctness at LoA High requires that the issuer performed LoA-High identity proofing at issuance.
-
-A1.5:
-  text: Sole control by the user is necessary to preserve the binding and prevent unauthorized use.
-
-A1.6:
-  text: The relying party’s validation is necessary to establish correctness at the time of use.
 
 S1:
-  text: Decompose into issuer trust, cryptographic integrity, correct user binding, LoA-High issuance assurance, WB enforces sole control, verifier validation.
-  supportedBy: [G1.1, G1.2, G1.3, G_WbEnforcesSoleControl, G1.5]
-
-G1.1:
-  text: The attribute originates from a trusted issuer and maintains cryptographic integrity.
-  supportedBy: [Sn1.1, Sn1.2, Sn1.3]
+  text: Decompose into issuer trust, cryptographic integrity, verifier validations, replay attack preventions
+  supportedBy: [G1.1, G1.2, Sn1.2.1, Sn1.2.2, Sn1.2.3]
 
 G1.2:
-  text: The attribute is bound to the correct, authenticated user.
-  supportedBy: [G_SoleControl]
-  inContextOf: [A1.2.1, A1.2.2, A1.2.3]
+  text: RP enforces that the attribute is contained in a PID that originates from a trusted issuer and maintains cryptographic integrity.
+  supportedBy: [Sn1.1, Sn1.2]
 
-A1.2.1:
-  text: User binding requires sole control over the PID.
+G1.1:
+  text: RP trusts the PID issuer to (1) issue only to wallets that implement Sole Control, (2) issue only attributes that it has checked to be factually correct, (3) issue the PID at LoA High
+  supportedBy: [G_SoleControl, G1.4]
+  inContextOf: [A1.1]
 
-A1.2.2:
-  text: Issuer can best enforce sole control conditions at issuance.
-
-A1.2.3:
-  text: Binding requires issuing the PID to a unique, trusted wallet instance.
-
-G1.3:
-  text: The attribute was issued to the correct person at LoA High.
-  supportedBy: [G1.3.1]
-  inContextOf: [A1.3.1, A1.3.2, A1.3.3]
-
-A1.3.1:
-  text: LoA High requires strong identity proofing during PID issuance.
-
-A1.3.2:
-  text: Secure issuance to a single trusted wallet is necessary for binding integrity.
-
-A1.3.3:
-  text: Issuer must ensure PID is delivered to the correct authenticated person.
-
-G1.3.1:
-  text: PID issuer securely issues the PID of the correct authenticated person to a single trusted wallet.
-  supportedBy: []
+G1.4:
+  text: PID issuer issues at LoA High and issues only attributes that it knows to be factually correct
   undeveloped: true
 
-
-
-G1.5:
-  text: Verifier performs required validation checks.
-  supportedBy: [Sn1.5.1, Sn1.5.2, Sn1.5.3, Sn1.5.4]
+A1.1:
+  text: Sole control by the user is necessary for factual correctness and prevent unauthorized use.
 
 Sn1.1:
-  text: Evidence from the trust framework confirms the issuer is accredited and authorised to issue the attribute.
+  text: RP parses the the issuer's certificate out of the attestation and verifies it against its CA store of trusted PID issuers
+  
 
 Sn1.2:
-  text: Cryptographic verification confirms the attribute was issued by the trusted issuer and has not been modified.
+  text: RP verifies the issuer signature over the attributes against the PID issuer public key from its certificate
 
-Sn1.3:
-  text: The attribute includes issuer identifiers, signing key references and issuance timestamps enabling validation of origin and integrity.
+Sn1.2.1:
+  text: RP checks that the attribute satisfies policy requirements (PID doctype/vct, required claims, no over-disclosure).
 
+Sn1.2.2:
+  text: RP confirms that the attribute has not expired and is not revoked using the issuer's status endpoint.
 
-Sn1.5.1:
-  text: Verifier validates the issuer’s cryptographic signature and trust chain using authoritative trust lists and metadata registries.
-
-Sn1.5.2:
-  text: Verifier checks that the attribute satisfies policy requirements (correct LoA, required claims, semantic correctness, and no over-disclosure).
-
-Sn1.5.3:
-  text: Verifier confirms that the attribute has not expired and is not revoked using the issuer’s status endpoints or revocation registries.
-
-Sn1.5.4:
-  text: Verifier checks that the presentation is bound to the correct holder (e.g., via proof of possession of key material) according to OpenID4VP or equivalent holder-binding requirements.
+Sn1.2.3:
+  text: RP checks that the wallet that presents the attribute is the wallet it was issued to using liveness check (challenge/response) from OpenID4VP or ISO 18013-5
