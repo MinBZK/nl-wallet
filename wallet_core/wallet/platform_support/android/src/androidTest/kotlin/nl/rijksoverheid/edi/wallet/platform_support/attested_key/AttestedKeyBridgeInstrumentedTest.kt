@@ -32,7 +32,7 @@ import java.security.spec.X509EncodedKeySpec
 class AttestedKeyBridgeInstrumentedTest {
     companion object {
         const val CHALLENGE: String = "test-challenge"
-        const val GOOGLE_CLOUD_PROJECT_NUMBER: ULong = 123456789u
+        const val GOOGLE_CLOUD_PROJECT_NUMBER: ULong = 1234567890u
 
         @JvmStatic
         external fun attested_key_test()
