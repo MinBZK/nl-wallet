@@ -12,7 +12,8 @@ class FlutterConfiguration {
   final int backgroundLockTimeout;
   final List<String> pidAttestationTypes;
   final String staticAssetsBaseUrl;
-  final BigInt version;
+  final String version;
+  final String environment;
 
   const FlutterConfiguration({
     required this.inactiveWarningTimeout,
@@ -21,6 +22,7 @@ class FlutterConfiguration {
     required this.pidAttestationTypes,
     required this.staticAssetsBaseUrl,
     required this.version,
+    required this.environment,
   });
 
   @override
@@ -30,7 +32,8 @@ class FlutterConfiguration {
       backgroundLockTimeout.hashCode ^
       pidAttestationTypes.hashCode ^
       staticAssetsBaseUrl.hashCode ^
-      version.hashCode;
+      version.hashCode ^
+      environment.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -42,5 +45,6 @@ class FlutterConfiguration {
           backgroundLockTimeout == other.backgroundLockTimeout &&
           pidAttestationTypes == other.pidAttestationTypes &&
           staticAssetsBaseUrl == other.staticAssetsBaseUrl &&
-          version == other.version;
+          version == other.version &&
+          environment == other.environment;
 }

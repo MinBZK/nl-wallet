@@ -1,5 +1,5 @@
 .build-image:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
 
 build-images-tag:
   extends: .build-image

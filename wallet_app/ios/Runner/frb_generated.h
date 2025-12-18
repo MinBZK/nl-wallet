@@ -403,7 +403,8 @@ typedef struct wire_cst_flutter_configuration {
   uint16_t background_lock_timeout;
   struct wire_cst_list_String *pid_attestation_types;
   struct wire_cst_list_prim_u_8_strict *static_assets_base_url;
-  uint64_t version;
+  struct wire_cst_list_prim_u_8_strict *version;
+  struct wire_cst_list_prim_u_8_strict *environment;
 } wire_cst_flutter_configuration;
 
 typedef struct wire_cst_FlutterVersionState_Warn {

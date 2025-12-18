@@ -27,7 +27,7 @@ class ConfigVersionText extends StatelessWidget {
             ),
             alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
             TextSpan(
-              text: config.version.toString(),
+              text: config.versionAndEnvironment,
               style: valueTextStyle ?? context.textTheme.bodyMedium,
             ),
           ],

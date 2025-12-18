@@ -1,6 +1,6 @@
 build-mock-trigger:
   rules:
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: test-flutter
       artifacts: false
@@ -28,7 +28,7 @@ build-mock-trigger:
 
 build-demo-trigger:
   rules:
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: test-flutter
       artifacts: false

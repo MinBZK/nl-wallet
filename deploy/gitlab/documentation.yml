@@ -1,5 +1,5 @@
 build-documentation:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   script:
     - cd wallet_docs
     - python3 -m venv .venv
@@ -46,7 +46,7 @@ build-documentation:
   allow_failure: true
 
 generate-c4-puml:
-  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request-manual, rules]
   image:
     name: "${HARBOR_REGISTRY}/docker-hub-proxy/structurizr/cli:latest"
     entrypoint: [""]
@@ -61,7 +61,7 @@ generate-c4-puml:
     expire_in: 1 week
 
 generate-c4-png:
-  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request-manual, rules]
   image:
     name: "${HARBOR_REGISTRY}/docker-hub-proxy/plantuml/plantuml:latest"
     entrypoint: [""]
