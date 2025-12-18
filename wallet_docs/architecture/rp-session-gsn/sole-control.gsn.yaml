@@ -28,17 +28,16 @@ Sn_WalletStoresAttestationData:
 
 G_PrivKeyExclusiveCustody:
   text: PrivKey remains under exclusive custody of WB and is never exposed
-  inContextOf: C_AttestationDefinition
+  inContextOf: [C_AttestationDefinition, A_WbIsTrusted]
   supportedBy: S_EnsurePrivKeySecure
+
+A_WbIsTrusted:
+  text: WB is trusted by Issuers, Verifiers, Wallets to not obtain Attestation Data
 
 S_EnsurePrivKeySecure:
   text: Ensure secure generation, storage, and usage of PrivKey
   supportedBy: [G_PrivKeyInHsm, G_PrivKeyCannotBeExtracted]
   inContextOf: A_WbTrustsHsmVendor
-
-G_PrivKeyRequires2fa:
-  text: WB allows usage of PrivKey only after 2FA authentication of User
-  supportedBy: [S_PossessionAndKnowledge]
 
 G_PrivKeyInHsm:
   text: PrivKey is generated inside a certified HSM controlled by WB
