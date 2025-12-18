@@ -32,7 +32,6 @@ tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json
 url.workspace = true
 
 attestation_data.path = "../../lib/attestation_data"
-dcql.path = "../../lib/dcql"
 demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc.path = "../../lib/openid4vc"

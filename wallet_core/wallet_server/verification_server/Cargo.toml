@@ -82,7 +82,6 @@ rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex"] }
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
-tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
 
 assert_matches = { workspace = true, optional = true }

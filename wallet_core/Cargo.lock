@@ -1759,7 +1759,6 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "url",
  "utils",
 ]
 
@@ -1774,7 +1773,6 @@ dependencies = [
  "axum",
  "axum-server",
  "config",
- "dcql",
  "demo_utils",
  "derive_more",
  "http_utils",
@@ -1805,7 +1803,6 @@ dependencies = [
  "attestation_data",
  "axum",
  "base64 0.22.1",
- "ciborium",
  "config",
  "crypto",
  "dcql",
@@ -1839,7 +1836,6 @@ version = "0.4.0-dev"
 dependencies = [
  "accept-language",
  "anyhow",
- "askama 0.14.0",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -3469,7 +3465,6 @@ dependencies = [
  "tokio",
  "trait-variant",
  "utils",
- "uuid",
 ]
 
 [[package]]
@@ -3656,7 +3651,6 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.17",
  "tokio",
- "tokio-test",
  "tracing",
  "utils",
 ]
@@ -4767,7 +4761,6 @@ dependencies = [
  "indexmap 2.12.1",
  "issuer_settings",
  "itertools 0.14.0",
- "jwt",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -8128,7 +8121,6 @@ dependencies = [
  "ssri",
  "token_status_list",
  "tokio",
- "tower-http",
  "tracing",
  "url",
  "utils",
