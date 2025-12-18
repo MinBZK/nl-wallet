@@ -93,7 +93,11 @@ where
     };
 
     #[cfg(not(feature = "admin-ui"))]
-    let router: Router<Arc<L>> = router.into();
+    let router: Router<Arc<L>> = {
+        let (router, openapi) = router.split_for_parts();
+
+        router.route("/openapi.json", axum::routing::get(Json(openapi))).into()
+    };
 
     router.with_state(status_list_service)
 }
