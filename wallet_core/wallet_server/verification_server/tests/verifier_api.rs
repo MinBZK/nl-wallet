@@ -233,9 +233,14 @@ async fn wait_for_server(base_url: BaseUrl) {
     let client = default_reqwest_client_builder().build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
-        let mut interval = time::interval(Duration::from_millis(10));
+        let mut interval = time::interval(Duration::from_millis(100));
         loop {
-            match client.get(base_url.join("health")).send().await {
+            match client
+                .get(base_url.join("health"))
+                .send()
+                .await
+                .and_then(|r| r.error_for_status())
+            {
                 Ok(_) => break,
                 Err(error) => {
                     println!("Server not yet up: {error}");

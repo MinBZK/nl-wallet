@@ -24,7 +24,8 @@ void main() {
     backgroundLockTimeout: Duration.zero,
     staticAssetsBaseUrl: testBaseUrl,
     pidAttestationTypes: ['com.example.attestationType'],
-    version: 0,
+    version: '0',
+    environment: 'test',
   );
 
   setUp(() {

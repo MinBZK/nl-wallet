@@ -1753,7 +1753,8 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_pidAttestationTypes = <Vec<String>>::sse_decode(deserializer);
         let mut var_staticAssetsBaseUrl = <String>::sse_decode(deserializer);
-        let mut var_version = <u64>::sse_decode(deserializer);
+        let mut var_version = <String>::sse_decode(deserializer);
+        let mut var_environment = <String>::sse_decode(deserializer);
         return crate::models::config::FlutterConfiguration {
             inactive_warning_timeout: var_inactiveWarningTimeout,
             inactive_lock_timeout: var_inactiveLockTimeout,
@@ -1761,6 +1762,7 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
             pid_attestation_types: var_pidAttestationTypes,
             static_assets_base_url: var_staticAssetsBaseUrl,
             version: var_version,
+            environment: var_environment,
         };
     }
 }
@@ -2924,6 +2926,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfigurati
             self.pid_attestation_types.into_into_dart().into_dart(),
             self.static_assets_base_url.into_into_dart().into_dart(),
             self.version.into_into_dart().into_dart(),
+            self.environment.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3810,7 +3813,8 @@ impl SseEncode for crate::models::config::FlutterConfiguration {
         <u16>::sse_encode(self.background_lock_timeout, serializer);
         <Vec<String>>::sse_encode(self.pid_attestation_types, serializer);
         <String>::sse_encode(self.static_assets_base_url, serializer);
-        <u64>::sse_encode(self.version, serializer);
+        <String>::sse_encode(self.version, serializer);
+        <String>::sse_encode(self.environment, serializer);
     }
 }
 
@@ -4896,6 +4900,7 @@ mod io {
                 pid_attestation_types: self.pid_attestation_types.cst_decode(),
                 static_assets_base_url: self.static_assets_base_url.cst_decode(),
                 version: self.version.cst_decode(),
+                environment: self.environment.cst_decode(),
             }
         }
     }
@@ -5515,7 +5520,8 @@ mod io {
                 background_lock_timeout: Default::default(),
                 pid_attestation_types: core::ptr::null_mut(),
                 static_assets_base_url: core::ptr::null_mut(),
-                version: Default::default(),
+                version: core::ptr::null_mut(),
+                environment: core::ptr::null_mut(),
             }
         }
     }
@@ -6502,7 +6508,8 @@ mod io {
         background_lock_timeout: u16,
         pid_attestation_types: *mut wire_cst_list_String,
         static_assets_base_url: *mut wire_cst_list_prim_u_8_strict,
-        version: u64,
+        version: *mut wire_cst_list_prim_u_8_strict,
+        environment: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

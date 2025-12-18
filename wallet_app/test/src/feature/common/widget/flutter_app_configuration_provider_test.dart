@@ -10,7 +10,8 @@ void main() {
     backgroundLockTimeout: Duration(seconds: 20),
     staticAssetsBaseUrl: 'https://example.com/',
     pidAttestationTypes: ['com.example.attestationType'],
-    version: 0,
+    version: '0',
+    environment: 'test',
   );
 
   group('hashCode', () {
@@ -21,7 +22,8 @@ void main() {
         backgroundLockTimeout: Duration(seconds: 20),
         staticAssetsBaseUrl: 'https://example.com/',
         pidAttestationTypes: ['com.example.attestationType'],
-        version: 0,
+        version: '0',
+        environment: 'test',
       );
 
       expect(defaultMockConfig.hashCode, sameAsDefaultConfig.hashCode);
@@ -35,6 +37,7 @@ void main() {
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
+        environment: defaultMockConfig.environment,
       );
       final otherIdle = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
@@ -43,6 +46,7 @@ void main() {
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
+        environment: defaultMockConfig.environment,
       );
       final otherBackground = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
@@ -51,6 +55,7 @@ void main() {
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
+        environment: defaultMockConfig.environment,
       );
       final otherStaticAssetsBaseUrlPrefix = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
@@ -59,6 +64,7 @@ void main() {
         staticAssetsBaseUrl: 'https://other.example.com/',
         pidAttestationTypes: ['com.example.attestationType'],
         version: defaultMockConfig.version,
+        environment: defaultMockConfig.environment,
       );
       final otherVersion = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
@@ -66,7 +72,8 @@ void main() {
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
-        version: 1337,
+        version: '1337',
+        environment: defaultMockConfig.environment,
       );
 
       expect(defaultMockConfig.hashCode == otherWarning.hashCode, isFalse);
@@ -103,7 +110,8 @@ void main() {
       backgroundLockTimeout: Duration(seconds: 5),
       staticAssetsBaseUrl: 'https://example.com/',
       pidAttestationTypes: ['com.example.attestationType'],
-      version: 0,
+      version: '0',
+      environment: 'test',
     );
     late FlutterAppConfiguration receivedConfig;
     await tester.pumpWidget(

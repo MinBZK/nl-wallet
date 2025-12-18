@@ -193,7 +193,8 @@ class WalletCoreMock implements WalletCoreApi {
         backgroundLockTimeout: const Duration(seconds: 20).inSeconds,
         pidAttestationTypes: [MockAttestationTypes.pid, MockAttestationTypes.address],
         staticAssetsBaseUrl: 'https://example.com/',
-        version: BigInt.one,
+        version: '1',
+        environment: 'mock',
       ),
     );
   }

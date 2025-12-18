@@ -34,7 +34,8 @@ void main() {
           backgroundLockTimeout: Duration.zero,
           staticAssetsBaseUrl: 'https://example.com/',
           pidAttestationTypes: ['com.example.attestationType'],
-          version: 1337,
+          version: '1337',
+          environment: 'test',
         ),
       ),
     );

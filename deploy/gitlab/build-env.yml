@@ -16,23 +16,11 @@ build-env-ont:
   extends: .build-env
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
 
 build-env-demo:
   extends: .build-env
   rules: !reference [.on-demo-build, rules]
-
-build-env-acceptance:
-  extends: .build-env
-  rules: !reference [.release-tag, rules]
-
-build-env-preproduction:
-  extends: .build-env
-  rules: !reference [.release-tag, rules]
-
-build-env-production:
-  extends: .build-env
-  rules: !reference [.release-tag, rules]
 
 .sentry-env:
   before_script:

@@ -1162,7 +1162,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.background_lock_timeout = cst_encode_u_16(apiObj.backgroundLockTimeout);
     wireObj.pid_attestation_types = cst_encode_list_String(apiObj.pidAttestationTypes);
     wireObj.static_assets_base_url = cst_encode_String(apiObj.staticAssetsBaseUrl);
-    wireObj.version = cst_encode_u_64(apiObj.version);
+    wireObj.version = cst_encode_String(apiObj.version);
+    wireObj.environment = cst_encode_String(apiObj.environment);
   }
 
   @protected
@@ -3588,8 +3589,9 @@ final class wire_cst_flutter_configuration extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> static_assets_base_url;
 
-  @ffi.Uint64()
-  external int version;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> version;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> environment;
 }
 
 final class wire_cst_FlutterVersionState_Warn extends ffi.Struct {

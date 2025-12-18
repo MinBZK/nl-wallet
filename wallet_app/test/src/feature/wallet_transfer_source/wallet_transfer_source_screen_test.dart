@@ -178,7 +178,8 @@ void main() {
                     idleWarningTimeout: Duration.zero,
                     staticAssetsBaseUrl: 'https://example.org/',
                     pidAttestationTypes: ['com.example.attestationType'],
-                    version: 1337,
+                    version: '1337',
+                    environment: 'test',
                   ),
                 ),
               );
