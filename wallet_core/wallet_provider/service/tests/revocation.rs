@@ -115,7 +115,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
             .await
             .unwrap();
 
-        !batch.is_revoked
+        assert!(!batch.is_revoked);
     }))
     .await;
 
@@ -126,15 +126,15 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
         .collect_vec();
     revoke_wallets(wallet_ids_to_revoke.clone(), &user_state).await.unwrap();
 
-    let revoked_wua_ids = indices_to_revoke
+    let revoked_wua_ids = wuas
         .iter()
-        .filter_map(|i| wuas.get(*i))
-        .cloned()
+        .enumerate()
+        .filter_map(|(i, val)| indices_to_revoke.contains(&i).then_some(val.clone()))
         .collect_vec();
-    let non_revoked_wua_ids = indices_to_revoke
+    let non_revoked_wua_ids = wuas
         .iter()
-        .filter_map(|i| wuas.get(*i))
-        .cloned()
+        .enumerate()
+        .filter_map(|(i, val)| (!indices_to_revoke.contains(&i)).then_some(val.clone()))
         .collect_vec();
 
     // check revoked wuas
@@ -145,7 +145,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
             .await
             .unwrap();
 
-        batch.is_revoked
+        assert!(batch.is_revoked);
     }))
     .await;
     join_all(non_revoked_wua_ids.iter().flatten().map(async |wua_id| {
@@ -155,7 +155,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
             .await
             .unwrap();
 
-        !batch.is_revoked
+        assert!(!batch.is_revoked);
     }))
     .await;
 
@@ -168,7 +168,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
             .await
             .unwrap();
 
-        batch.is_revoked
+        assert!(batch.is_revoked);
     }))
     .await;
     join_all(non_revoked_wua_ids.iter().flatten().map(async |wua_id| {
@@ -178,7 +178,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
             .await
             .unwrap();
 
-        !batch.is_revoked
+        assert!(!batch.is_revoked);
     }))
     .await;
 }
@@ -232,7 +232,7 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
             .await
             .unwrap();
 
-        !batch.is_revoked
+        assert!(!batch.is_revoked);
     }))
     .await;
 
@@ -246,7 +246,7 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
             .await
             .unwrap();
 
-        batch.is_revoked
+        assert!(batch.is_revoked);
     }))
     .await;
 
@@ -259,9 +259,7 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
             .await
             .unwrap();
 
-        batch.is_revoked
+        assert!(batch.is_revoked);
     }))
     .await;
-
-    drop(publish_dir);
 }
