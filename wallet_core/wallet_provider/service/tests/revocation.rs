@@ -187,8 +187,6 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
 #[rstest]
 #[case(vec![1])]
 #[case(vec![4, 4, 4])]
-#[case(vec![4, 4, 4])]
-#[case(vec![0, 10, 10])]
 #[case(vec![0, 10, 10])]
 #[ignore] // TODO this test fails due to the DB already containing token status lists
 async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
