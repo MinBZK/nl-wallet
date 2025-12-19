@@ -59,6 +59,4 @@ where
         .iter()
         .map(|model| model.wua_id)
         .collect())
-
-    // TODO should we return an error if not all wallet_ids are found?
 }

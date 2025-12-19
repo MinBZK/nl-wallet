@@ -25,6 +25,7 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     // TODO actually block the wallets (PVW-5302)
+    // TODO return error if one of the wallet IDs does not exist? (PVW-5297)
     let tx = user_state.repositories.begin_transaction().await?;
     let wua_ids = user_state.repositories.get_wua_ids_for_wallets(&tx, wallet_ids).await?;
 
