@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reader Authentication Document",
+  "description": "Schema for NL Wallet reader authentication documents used in verifier certificates",
+  "type": "object",
+  "required": [
+    "purposeStatement",
+    "retentionPolicy",
+    "sharingPolicy",
+    "deletionPolicy",
+    "organization",
+    "requestOriginBaseUrl",
+    "authorizedAttributes"
+  ],
+  "properties": {
+    "purposeStatement": {
+      "type": "object",
+      "description": "Purpose for requesting attestations (e.g., Login, Age verification)",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "retentionPolicy": {
+      "type": "object",
+      "description": "Data retention policy. Note: maxDurationInMinutes is required when intentToRetain is true",
+      "required": ["intentToRetain"],
+      "properties": {
+        "intentToRetain": {
+          "type": "boolean",
+          "description": "Whether there is an intent to retain data"
+        },
+        "maxDurationInMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum retention duration in minutes (required if intentToRetain is true)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sharingPolicy": {
+      "type": "object",
+      "description": "Data sharing policy",
+      "required": ["intentToShare"],
+      "properties": {
+        "intentToShare": {
+          "type": "boolean",
+          "description": "Whether there is an intent to share data with third parties"
+        }
+      },
+      "additionalProperties": false
+    },
+    "deletionPolicy": {
+      "type": "object",
+      "description": "Data deletion policy",
+      "required": ["deleteable"],
+      "properties": {
+        "deleteable": {
+          "type": "boolean",
+          "description": "Whether users can request deletion of their data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "organization": {
+      "type": "object",
+      "description": "Verifier organization information",
+      "required": [
+        "displayName",
+        "legalName",
+        "description",
+        "webUrl",
+        "city",
+        "category",
+        "logo",
+        "countryCode",
+        "kvk",
+        "privacyPolicyUrl"
+      ],
+      "properties": {
+        "displayName": {
+          "type": "object",
+          "description": "Organization display name as shown in the app",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "legalName": {
+          "type": "object",
+          "description": "Legal name of the organization",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "description": {
+          "type": "object",
+          "description": "Short one-sentence description or mission statement",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "webUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "The home URL of the verifier"
+        },
+        "city": {
+          "type": "object",
+          "description": "The home city of the verifier",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "category": {
+          "type": "object",
+          "description": "Organization category (e.g., Bank, Municipality, Trading, Delivery Service)",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "logo": {
+          "type": "object",
+          "description": "Organization logo",
+          "required": ["mimeType", "imageData"],
+          "properties": {
+            "mimeType": {
+              "type": "string",
+              "enum": ["image/svg+xml", "image/png", "image/jpeg"],
+              "description": "Logo MIME type"
+            },
+            "imageData": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Logo image data. For SVG: escaped XML string, for PNG/JPEG: base64 encoded"
+            }
+          },
+          "additionalProperties": false
+        },
+        "countryCode": {
+          "type": "string",
+          "pattern": "^[a-z]{2}$",
+          "description": "Two-letter ISO 3166-1 alpha-2 country code (lowercase)"
+        },
+        "kvk": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Chamber of Commerce number (KVK) - 8 digits"
+        },
+        "privacyPolicyUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Link to verifier's privacy policy"
+        }
+      },
+      "additionalProperties": false
+    },
+    "requestOriginBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://",
+      "description": "Base URL for request origin validation"
+    },
+    "authorizedAttributes": {
+      "type": "object",
+      "description": "Attributes the verifier is authorized to request, organized by VCT (Verifiable Credential Type)",
+      "minProperties": 1,
+      "patternProperties": {
+        "^urn:": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Attribute claim path as an array of strings"
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Attribute claim path as an array of strings"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
