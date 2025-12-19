@@ -40,6 +40,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(WalletUserKey::Table)
+                    .name("wallet_user_key_is_blocked_true")
+                    .col(WalletUserKey::IsBlocked)
+                    .and_where(Expr::column(WalletUserKey::IsBlocked))
+                    .to_owned(),
+            )
+            .await?;
         Ok(())
     }
 }
