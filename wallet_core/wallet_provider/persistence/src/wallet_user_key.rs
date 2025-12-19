@@ -157,9 +157,9 @@ where
         .column(wallet_user_key::Column::Identifier)
         .column(wallet_user_key::Column::EncryptedPrivateKey)
         .column(wallet_user_key::Column::PublicKey)
+        .filter(wallet_user_key::Column::Identifier.is_in(identifiers))
         .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
         .filter(wallet_user_key::Column::IsBlocked.eq(false))
-        .filter(wallet_user_key::Column::Identifier.is_in(identifiers))
         .into_tuple::<(String, Vec<u8>, Vec<u8>)>()
         .all(db.connection())
         .await
