@@ -73,6 +73,7 @@ where
     Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state).await?)
 }
 
+#[cfg(feature = "admin-ui")]
 #[utoipa::path(
     get,
     path = "/admin/wallet/",

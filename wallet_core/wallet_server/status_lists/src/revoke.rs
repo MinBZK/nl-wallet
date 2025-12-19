@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::Router;
+#[cfg(feature = "admin-ui")]
 use axum::extract::Path;
 use axum::extract::State;
 use utoipa::OpenApi;
@@ -11,6 +12,7 @@ use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
+#[cfg(feature = "admin-ui")]
 use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
@@ -41,6 +43,7 @@ where
     status_list_service.revoke_attestation_batches(batch_ids).await
 }
 
+#[cfg(feature = "admin-ui")]
 #[utoipa::path(
     get,
     path = "/batch/",
@@ -55,6 +58,7 @@ where
     Ok(Json(status_list_service.list_attestation_batches().await?))
 }
 
+#[cfg(feature = "admin-ui")]
 #[utoipa::path(
     get,
     path = "/batch/{batch_id}",
