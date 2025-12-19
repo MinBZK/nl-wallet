@@ -159,6 +159,14 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
         git -C "${DIGID_CONNECTOR_PATH}" checkout -- resources/css/app.scss resources/js/app.js
     fi
 
+    # Undo any changes to docker/Dockerfile we know to be discardable.
+    DIGID_CONNECTOR_CODE_CHANGES_HASH=1f62b863412ecac49d60571e3231d814a7d13f535bdbac34aa5a9f8a4101c2f0
+    DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff docker/Dockerfile | sha256sum | awk '{print $1}')
+    if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
+        echo -e "${INFO}Reverting known docker/Dockerfile changes${NC}"
+        git -C "${DIGID_CONNECTOR_PATH}" checkout -- docker/Dockerfile
+    fi
+
     # Warn user if any changes remain.
     if [[ -n "$(git status --porcelain)" ]]; then
         echo -e "${WARN}There are unknown changes in your nl-rdo-max repository, will attempt switch to ${DIGID_CONNECTOR_VERSION} anyway, but this might fail...${NC}"
