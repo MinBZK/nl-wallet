@@ -30,8 +30,8 @@ server = [
 
 [dependencies]
 cfg-if.workspace = true
-base64 = { workspace = true }
-data-url = { workspace = true }
+base64.workspace = true
+data-url.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "constructor"] }
 http.workspace = true
 itertools.workspace = true

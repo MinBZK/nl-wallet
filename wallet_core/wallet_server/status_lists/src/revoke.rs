@@ -7,7 +7,6 @@ use axum::extract::State;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-#[cfg(feature = "openapi")]
 use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
@@ -82,19 +81,14 @@ where
 {
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi()).routes(routes!(revoke_batch));
 
-    #[cfg(feature = "openapi")]
     let router = {
         let (router, openapi) = router
-            // only expose these routes when openapi feature is enabled
             .routes(routes!(get_batch))
             .routes(routes!(list_batch))
             .split_for_parts();
 
         router.merge(SwaggerUi::new("/api-docs").url("/openapi.json", openapi))
     };
-
-    #[cfg(not(feature = "openapi"))]
-    let router = router.into();
 
     router.with_state(status_list_service)
 }

@@ -701,7 +701,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b098575ebe77cb6d14fc7f32749631a6e44edbef6b796f89b020e99ba20d425"
 dependencies = [
  "axum-core",
- "axum-macros",
  "bytes",
  "form_urlencoded",
  "futures-util",
@@ -767,17 +766,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "axum-macros"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604fde5e028fea851ce1d8570bbdc034bec850d157f7569d10f347d06808c05c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -1771,7 +1759,6 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "url",
  "utils",
 ]
 
@@ -1786,7 +1773,6 @@ dependencies = [
  "axum",
  "axum-server",
  "config",
- "dcql",
  "demo_utils",
  "derive_more",
  "http_utils",
@@ -1817,7 +1803,6 @@ dependencies = [
  "attestation_data",
  "axum",
  "base64 0.22.1",
- "ciborium",
  "config",
  "crypto",
  "dcql",
@@ -1851,7 +1836,6 @@ version = "0.5.0-dev"
 dependencies = [
  "accept-language",
  "anyhow",
- "askama 0.14.0",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -3481,7 +3465,6 @@ dependencies = [
  "tokio",
  "trait-variant",
  "utils",
- "uuid",
 ]
 
 [[package]]
@@ -4779,7 +4762,6 @@ dependencies = [
  "indexmap 2.12.1",
  "issuer_settings",
  "itertools 0.14.0",
- "jwt",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -7058,7 +7040,6 @@ dependencies = [
  "attestation_types",
  "axum",
  "axum-server",
- "chrono",
  "crypto",
  "ctor",
  "dcql",
@@ -8141,7 +8122,6 @@ dependencies = [
  "ssri",
  "token_status_list",
  "tokio",
- "tower-http",
  "tracing",
  "url",
  "utils",

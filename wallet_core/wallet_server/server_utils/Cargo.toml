@@ -33,9 +33,9 @@ test = []
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
+axum.workspace = true
 base64.workspace = true
-chrono = { workspace = true, features = ["clock", "serde", "std"] }
+chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
 nutype.workspace = true
@@ -48,16 +48,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = [
-    "std",
-    "fmt",
-    "tracing-log",
-    "smallvec",
-    "parking_lot",
-    "env-filter",
-    "json",
-    "ansi",
-] }
+tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 url = { workspace = true, features = ["serde"] }
 
 async-trait = { workspace = true, optional = true }

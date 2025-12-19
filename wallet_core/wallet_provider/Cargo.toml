@@ -40,10 +40,10 @@ android_emulator = ["allow_android_emulator_keys", "mock_android_integrity_verdi
 hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
 
 [dependencies]
-axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
+axum.workspace = true
 axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 cfg-if.workspace = true
-chrono = { workspace = true, features = ["clock", "serde", "std"] }
+chrono = { workspace = true, features = ["now"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }
 futures.workspace = true
@@ -63,16 +63,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
 tower-http = { workspace = true, features = ["trace", "limit", "decompression-zstd"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = [
-    "std",
-    "fmt",
-    "tracing-log",
-    "smallvec",
-    "parking_lot",
-    "env-filter",
-    "json",
-    "ansi",
-] }
+tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
 rand_core = { workspace = true, optional = true }
@@ -94,5 +85,5 @@ wallet_provider_service.path = "service"
 
 [dev-dependencies]
 rstest.workspace = true
-tempfile = { workspace = true }
-tracing-test = { workspace = true }
+tempfile.workspace = true
+tracing-test.workspace = true

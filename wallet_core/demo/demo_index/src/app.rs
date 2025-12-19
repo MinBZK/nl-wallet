@@ -89,7 +89,6 @@ struct IndexTemplate<'a> {
     base: BaseTemplate<'a>,
 }
 
-#[axum::debug_handler]
 async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Response {
     IndexTemplate {
         demo_services: &state.demo_services,

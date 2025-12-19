@@ -25,7 +25,7 @@ mock_secure_keys = []
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
-chrono = { workspace = true, features = ["std", "clock"] }
+chrono.workspace = true
 derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
@@ -58,5 +58,6 @@ time = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+chrono = { workspace = true, features = ["now"] }
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 time.workspace = true

@@ -26,14 +26,23 @@ path = "tests/serve.rs"
 required-features = ["db_test"]
 
 [features]
-default = ["openapi"]
-axum = ["dep:axum", "dep:etag", "dep:mediatype", "token_status_list/axum", "tower-http/compression-gzip"]
-db_test = ["axum", "dep:reqwest", "dep:rstest", "server_utils/postgres", "server_utils/test"]
-openapi = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
+default = []
+axum = [
+    "dep:etag",
+    "dep:mediatype",
+    "dep:utoipa-axum",
+    "axum/json",
+    "tower-http/compression-gzip",
+    "utoipa/uuid",
+    "utoipa-swagger-ui/axum",
+    "utoipa-swagger-ui/vendored",
+    "token_status_list/axum",
+]
+db_test = ["axum", "dep:reqwest", "server_utils/postgres", "server_utils/test"]
 
 [dependencies]
 anyhow.workspace = true
-chrono.workspace = true
+chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true
@@ -50,19 +59,18 @@ sea-orm = { workspace = true, features = [
 ] }
 serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt", "fs"] }
 tracing.workspace = true
 url.workspace = true
-utoipa = { workspace = true, features = ["uuid"] }
-utoipa-axum.workspace = true
 uuid.workspace = true
 
 axum = { workspace = true, optional = true }
 etag = { workspace = true, optional = true }
 mediatype = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
-rstest = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
+utoipa-axum = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
 
 attestation_types.path = "../../lib/attestation_types"
@@ -72,13 +80,11 @@ http_utils.path = "../../lib/http_utils"
 hsm.path = "../../lib/hsm"
 measure.path = "../../lib/measure"
 server_utils.path = "../server_utils"
-token_status_list = { path = "../../lib/token_status_list", features = ["axum"] }
+token_status_list = { path = "../../lib/token_status_list" }
 utils.path = "../../lib/utils"
 
 [dev-dependencies]
-anyhow.workspace = true
 assert_matches.workspace = true
-futures.workspace = true
 p256.workspace = true
 rstest.workspace = true
 tempfile.workspace = true
@@ -86,5 +92,4 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 uuid = { workspace = true, features = ["v4"] }
 
 crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
-server_utils = { path = "../server_utils", features = ["parsed_key_pair_conversion", "postgres", "test"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
