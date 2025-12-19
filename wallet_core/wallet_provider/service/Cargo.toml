@@ -15,6 +15,11 @@ name = "account_server"
 path = "tests/account_server.rs"
 required-features = ["db_test"]
 
+[[test]]
+name = "revocation"
+path = "tests/revocation.rs"
+required-features = ["db_test"]
+
 [features]
 # This disables checking the request hash within an Android integrity verdict, which should only be used when combining
 # real Android integrity tokens (either from a real device or the emulator) with the MockPlayIntegrityClient below.
@@ -48,9 +53,11 @@ db_test = [
     "dep:status_lists",
     "mock",
     "mock_secure_keys",
+    "dep:tempfile",
     "tracing-subscriber/ansi",
     "tracing-subscriber/env-filter",
     "wallet_provider_database_settings/test",
+    "wallet_provider_persistence/test",
 ]
 
 [dependencies]
@@ -76,6 +83,7 @@ trait-variant.workspace = true
 anyhow = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
 
 android_attest.path = "../../lib/android_attest"

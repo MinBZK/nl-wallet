@@ -38,6 +38,8 @@ db_test = ["allow_insecure_url", "openid4vc/test", "postgres", "tokio/sync"]
 mock = ["attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
+# Enable the Admin UI
+admin-ui = ["status_lists/admin-ui"]
 
 [dependencies]
 anyhow.workspace = true

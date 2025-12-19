@@ -39,7 +39,10 @@ db_test = [
     "tracing-subscriber/env-filter",
     "wallet_provider_database_settings/test",
     "wallet_provider_domain/mock",
+    "test",
 ]
+# Include code used for testing
+test = []
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }

@@ -7,6 +7,8 @@ use uuid::Uuid;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
+use wallet_provider_persistence::test::db_from_env;
 use wallet_provider_persistence::wallet_user_key::create_keys;
 use wallet_provider_persistence::wallet_user_key::find_keys_by_identifiers;
 use wallet_provider_persistence::wallet_user_key::move_keys;
@@ -15,7 +17,7 @@ pub mod common;
 
 #[tokio::test]
 async fn test_create_keys() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let privkey = SigningKey::random(&mut OsRng);
     let key1 = WalletUserKey {
@@ -32,7 +34,7 @@ async fn test_create_keys() {
 
     let wallet_id = Uuid::new_v4().to_string();
 
-    let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
+    let wallet_user_id = create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
     create_keys(
         &db,
@@ -62,7 +64,7 @@ async fn test_create_keys() {
 
 #[tokio::test]
 async fn test_move_keys() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let privkey = SigningKey::random(&mut OsRng);
     let source_key1 = WalletUserKey {
@@ -84,11 +86,10 @@ async fn test_move_keys() {
     };
 
     let source_wallet_id = Uuid::new_v4();
-    let source_wallet_user_id = common::create_wallet_user_with_random_keys(&db, source_wallet_id.to_string()).await;
+    let source_wallet_user_id = create_wallet_user_with_random_keys(&db, source_wallet_id.to_string()).await;
 
     let destination_wallet_id = Uuid::new_v4();
-    let destination_wallet_user_id =
-        common::create_wallet_user_with_random_keys(&db, destination_wallet_id.to_string()).await;
+    let destination_wallet_user_id = create_wallet_user_with_random_keys(&db, destination_wallet_id.to_string()).await;
 
     // Create example keys in source and destination wallets
 

@@ -48,6 +48,11 @@ impl WalletUserRepository for Repositories {
     type TransactionType = Transaction;
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
+        wallet_user::list_wallet_ids(transaction).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn create_wallet_user(
         &self,
         transaction: &Self::TransactionType,
@@ -395,6 +400,20 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user_wua::create(transaction, wallet_user_id, wua_id).await
     }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn get_wua_ids_for_wallets(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_ids: Vec<String>,
+    ) -> Result<Vec<Uuid>, PersistenceError> {
+        wallet_user_wua::wua_ids_for_wallets(transaction, wallet_ids).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
+        wallet_user_wua::list_wua_ids(transaction).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -435,6 +454,11 @@ pub mod mock {
 
         impl WalletUserRepository for TransactionalWalletUserRepository {
             type TransactionType = MockTransaction;
+
+            async fn list_wallet_ids(
+                &self,
+                transaction: &MockTransaction,
+            ) -> Result<Vec<String>, PersistenceError>;
 
             async fn create_wallet_user(
                 &self,
@@ -627,6 +651,17 @@ pub mod mock {
                 wallet_user_id: Uuid,
                 wua_id: Uuid,
             ) -> Result<(), PersistenceError>;
+
+            async fn list_wua_ids(
+                &self,
+                transaction: &MockTransaction,
+            ) -> Result<Vec<Uuid>, PersistenceError>;
+
+            async fn get_wua_ids_for_wallets(
+                &self,
+                transaction: &MockTransaction,
+                wallet_ids: Vec<String>,
+            ) -> Result<Vec<Uuid>, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -650,6 +685,10 @@ pub mod mock {
 
     impl WalletUserRepository for WalletUserTestRepo {
         type TransactionType = MockTransaction;
+
+        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
+            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
+        }
 
         async fn create_wallet_user(
             &self,
@@ -927,6 +966,24 @@ pub mod mock {
             _wallet_user_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
+        }
+
+        async fn get_wua_ids_for_wallets(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_ids: Vec<String>,
+        ) -> Result<Vec<Uuid>, PersistenceError> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
+        }
+
+        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
         }
     }
 
