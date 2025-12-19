@@ -16,6 +16,7 @@ impl MigrationTrait for Migration {
                     .table(WalletUserKey::Table)
                     .col(pk_uuid(WalletUserKey::Id))
                     .col(uuid(WalletUserKey::WalletUserId))
+                    .col(uuid(WalletUserKey::BatchId))
                     .col(string(WalletUserKey::Identifier))
                     .col(binary(WalletUserKey::PublicKey))
                     .col(binary(WalletUserKey::EncryptedPrivateKey))
@@ -48,6 +49,7 @@ enum WalletUserKey {
     Table,
     Id,
     WalletUserId,
+    BatchId,
     Identifier,
     EncryptedPrivateKey,
     PublicKey,

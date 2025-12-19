@@ -8,12 +8,12 @@ use uuid::Uuid;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_persistence::wallet_user_key::delete_blocked_keys;
+use wallet_provider_persistence::wallet_user_key::delete_blocked_keys_in_same_batch;
 use wallet_provider_persistence::wallet_user_key::find_active_keys_by_identifiers;
 use wallet_provider_persistence::wallet_user_key::is_blocked_key;
 use wallet_provider_persistence::wallet_user_key::move_keys;
 use wallet_provider_persistence::wallet_user_key::persist_keys;
-use wallet_provider_persistence::wallet_user_key::unblock_blocked_keys;
+use wallet_provider_persistence::wallet_user_key::unblock_blocked_keys_in_same_batch;
 
 pub mod common;
 
@@ -48,6 +48,7 @@ async fn test_create_keys() {
         &db,
         WalletUserKeys {
             wallet_user_id,
+            batch_id: Uuid::new_v4(),
             keys: vec![key1.clone(), key2.clone()],
         },
     )
@@ -104,6 +105,7 @@ async fn test_move_keys() {
         &db,
         WalletUserKeys {
             wallet_user_id: source_wallet_user_id,
+            batch_id: Uuid::new_v4(),
             keys: vec![source_key1.clone(), source_key2.clone()],
         },
     )
@@ -114,6 +116,7 @@ async fn test_move_keys() {
         &db,
         WalletUserKeys {
             wallet_user_id: destination_wallet_user_id,
+            batch_id: Uuid::new_v4(),
             keys: vec![destination_key1.clone()],
         },
     )
@@ -204,10 +207,13 @@ async fn test_create_blocked_keys() {
 
     let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
+    let batch_id = Uuid::new_v4();
+
     persist_keys(
         &db,
         WalletUserKeys {
             wallet_user_id,
+            batch_id,
             keys: vec![key1.clone(), key2.clone()],
         },
     )
@@ -232,12 +238,14 @@ async fn test_create_blocked_keys() {
             is_blocked_key(&db, wallet_user_id, *key.key.public_key())
                 .await
                 .unwrap()
-                .unwrap()
+                .unwrap(),
         );
     }
 
     // Unblock keys
-    unblock_blocked_keys(&db, wallet_user_id).await.unwrap();
+    unblock_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.public_key())
+        .await
+        .unwrap();
 
     // Keys should be active now
     let active_keys = find_active_keys_by_identifiers(
@@ -269,10 +277,13 @@ async fn test_delete_blocked_keys() {
 
     let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
+    let batch_id = Uuid::new_v4();
+
     persist_keys(
         &db,
         WalletUserKeys {
             wallet_user_id,
+            batch_id,
             keys: vec![key1.clone(), key2.clone()],
         },
     )
@@ -292,7 +303,9 @@ async fn test_delete_blocked_keys() {
     assert!(active_keys.is_empty());
 
     // Delete the blocked keys
-    delete_blocked_keys(&db, wallet_user_id).await.unwrap();
+    delete_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.public_key())
+        .await
+        .unwrap();
 
     // Keys should no longer be found
     for key in [&key1, &key2] {
@@ -305,7 +318,9 @@ async fn test_delete_blocked_keys() {
     }
 
     // Try to unblock keys
-    unblock_blocked_keys(&db, wallet_user_id).await.unwrap();
+    unblock_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.public_key())
+        .await
+        .unwrap();
 
     // Keys should not be found
     let active_keys = find_active_keys_by_identifiers(

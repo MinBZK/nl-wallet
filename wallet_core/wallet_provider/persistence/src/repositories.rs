@@ -140,21 +140,32 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn unblock_blocked_keys(
+    async fn unblock_blocked_keys_in_batch(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
+        key: VerifyingKey,
     ) -> Result<(), PersistenceError> {
-        wallet_user_key::unblock_blocked_keys(transaction, wallet_user_id).await
+        wallet_user_key::unblock_blocked_keys_in_same_batch(transaction, wallet_user_id, key).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn delete_blocked_keys(
+    async fn delete_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::delete_blocked_keys_in_same_batch(transaction, wallet_user_id, key).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn delete_all_blocked_keys(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
     ) -> Result<(), PersistenceError> {
-        wallet_user_key::delete_blocked_keys(transaction, wallet_user_id).await
+        wallet_user_key::delete_all_blocked_keys(transaction, wallet_user_id).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -211,6 +222,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
+        key: VerifyingKey,
     ) -> Result<(), PersistenceError> {
         wallet_user::transition_wallet_user_state(
             transaction,
@@ -220,7 +232,8 @@ impl WalletUserRepository for Repositories {
         )
         .await?;
 
-        self.delete_blocked_keys(transaction, wallet_user_id).await
+        self.delete_blocked_keys_in_batch(transaction, wallet_user_id, key)
+            .await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -507,13 +520,21 @@ pub mod mock {
                 _key: VerifyingKey,
             ) -> Result<Option<bool>, PersistenceError>;
 
-            async fn unblock_blocked_keys(
+            async fn unblock_blocked_keys_in_batch(
                 &self,
                 _transaction: &MockTransaction,
                 _wallet_user_id: Uuid,
+                _key: VerifyingKey,
             ) -> Result<(), PersistenceError>;
 
-            async fn delete_blocked_keys(
+            async fn delete_blocked_keys_in_batch(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: Uuid,
+                _key: VerifyingKey,
+            ) -> Result<(), PersistenceError>;
+
+            async fn delete_all_blocked_keys(
                 &self,
                 _transaction: &MockTransaction,
                 _wallet_user_id: Uuid,
@@ -564,6 +585,7 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 wallet_user_id: Uuid,
+                key: VerifyingKey,
             ) -> Result<(), PersistenceError>;
 
             async fn has_multiple_active_accounts_by_recovery_code(
@@ -765,15 +787,25 @@ pub mod mock {
             Ok(Some(true))
         }
 
-        async fn unblock_blocked_keys(
+        async fn unblock_blocked_keys_in_batch(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
+            _key: VerifyingKey,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
 
-        async fn delete_blocked_keys(
+        async fn delete_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn delete_all_blocked_keys(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
@@ -839,6 +871,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
+            _key: VerifyingKey,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

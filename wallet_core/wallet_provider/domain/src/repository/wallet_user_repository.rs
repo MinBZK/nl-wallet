@@ -69,9 +69,21 @@ pub trait WalletUserRepository {
         key: VerifyingKey,
     ) -> Result<Option<bool>>;
 
-    async fn delete_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
+    async fn delete_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<()>;
 
-    async fn unblock_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
+    async fn delete_all_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
+
+    async fn unblock_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<()>;
 
     async fn find_active_keys_by_identifiers(
         &self,
@@ -99,7 +111,12 @@ pub trait WalletUserRepository {
         recovery_code: String,
     ) -> Result<()>;
 
-    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
+    async fn recover_pin(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<()>;
 
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
@@ -276,15 +293,29 @@ pub mod mock {
             Ok(Some(true))
         }
 
-        async fn unblock_blocked_keys(
+        async fn unblock_blocked_keys_in_batch(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
+            _key: VerifyingKey,
         ) -> Result<()> {
             Ok(())
         }
 
-        async fn delete_blocked_keys(&self, _transaction: &Self::TransactionType, _wallet_user_id: Uuid) -> Result<()> {
+        async fn delete_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn delete_all_blocked_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+        ) -> Result<()> {
             Ok(())
         }
 
@@ -324,7 +355,12 @@ pub mod mock {
             Ok(())
         }
 
-        async fn recover_pin(&self, _transaction: &Self::TransactionType, _wallet_user_id: Uuid) -> Result<()> {
+        async fn recover_pin(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<()> {
             Ok(())
         }
 

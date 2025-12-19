@@ -473,10 +473,10 @@ where
 }
 
 fn create_issuance_keys(
-    uuid_generator: &impl Generator<Uuid>,
     wrapped_keys: Vec<WrappedKey>,
     wua_key: Option<WrappedKey>,
     is_blocked: bool,
+    uuid_generator: &impl Generator<Uuid>,
 ) -> Vec<WalletUserKey> {
     wrapped_keys
         .into_iter()
@@ -493,6 +493,7 @@ async fn persist_keys<T, R, H>(
     wallet_user: &WalletUser,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
     db_keys: Vec<WalletUserKey>,
+    uuid_generator: &impl Generator<Uuid>,
 ) -> Result<(), InstructionError>
 where
     T: Committable,
@@ -506,6 +507,7 @@ where
             &tx,
             WalletUserKeys {
                 wallet_user_id: wallet_user.id,
+                batch_id: uuid_generator.generate(),
                 keys: db_keys,
             },
         )
@@ -616,9 +618,9 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
 
-        let db_keys = create_issuance_keys(generators, wrapped_keys, None, false);
+        let db_keys = create_issuance_keys(wrapped_keys, None, false, generators);
 
-        persist_keys(wallet_user, user_state, db_keys).await?;
+        persist_keys(wallet_user, user_state, db_keys, generators).await?;
 
         Ok(issuance_result)
     }
@@ -643,9 +645,9 @@ impl HandleInstruction for PerformIssuanceWithWua {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
             perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
 
-        let db_keys = create_issuance_keys(generators, wrapped_keys, Some(wua_key_and_id), true);
+        let db_keys = create_issuance_keys(wrapped_keys, Some(wua_key_and_id), true, generators);
 
-        persist_keys(wallet_user, user_state, db_keys).await?;
+        persist_keys(wallet_user, user_state, db_keys, generators).await?;
 
         Ok(issuance_with_wua_result)
     }
@@ -787,14 +789,11 @@ impl HandleInstruction for DiscloseRecoveryCode {
             None
         };
 
-        // Unblock the previously blocked private keys
-        if user_state.repositories.is_blocked_key(&tx, wallet_user.id, key).await? == Some(true) {
-            // key exists and is blocked
-            user_state
-                .repositories
-                .unblock_blocked_keys(&tx, wallet_user.id)
-                .await?;
-        }
+        // Unblock any previously blocked private keys in this batch
+        user_state
+            .repositories
+            .unblock_blocked_keys_in_batch(&tx, wallet_user.id, key)
+            .await?;
 
         tx.commit().await?;
 
@@ -843,7 +842,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             return Err(InstructionError::PinRecoveryAccountMismatch);
         }
 
-        user_state.repositories.recover_pin(&tx, wallet_user.id).await?;
+        user_state.repositories.recover_pin(&tx, wallet_user.id, key).await?;
 
         tx.commit().await?;
 
@@ -1540,10 +1539,9 @@ mod tests {
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(false));
         wallet_user_repo
-            .expect_is_blocked_key()
+            .expect_unblock_blocked_keys_in_batch()
             .times(1)
-            .returning(|_, _, _| Ok(Some(false)));
-        wallet_user_repo.expect_unblock_blocked_keys().never();
+            .returning(|_, _, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1591,13 +1589,9 @@ mod tests {
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(false));
         wallet_user_repo
-            .expect_is_blocked_key()
+            .expect_unblock_blocked_keys_in_batch()
             .times(1)
-            .returning(|_, _, _| Ok(Some(true)));
-        wallet_user_repo
-            .expect_unblock_blocked_keys()
-            .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1655,8 +1649,8 @@ mod tests {
             })
             .returning(|_, _, _, _, _| Ok(()));
         wallet_user_repo
-            .expect_is_blocked_key()
-            .returning(|_, _, _| Ok(Some(false)));
+            .expect_unblock_blocked_keys_in_batch()
+            .returning(|_, _, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1717,8 +1711,8 @@ mod tests {
             })
             .returning(|_, _, _, _, _| Ok(()));
         wallet_user_repo
-            .expect_is_blocked_key()
-            .returning(|_, _, _| Ok(Some(false)));
+            .expect_unblock_blocked_keys_in_batch()
+            .returning(|_, _, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1762,8 +1756,8 @@ mod tests {
             .returning(move |_, _| Ok(Some(transfer_session_id_clone.lock().unwrap().unwrap())));
         wallet_user_repo.expect_create_transfer_session().never();
         wallet_user_repo
-            .expect_is_blocked_key()
-            .returning(|_, _, _| Ok(Some(false)));
+            .expect_unblock_blocked_keys_in_batch()
+            .returning(|_, _, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1815,7 +1809,10 @@ mod tests {
                 assert_eq!(key, *holder_key.verifying_key());
                 Ok(Some(true))
             });
-        wallet_user_repo.expect_recover_pin().times(1).returning(|_, _| Ok(()));
+        wallet_user_repo
+            .expect_recover_pin()
+            .times(1)
+            .returning(|_, _, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1928,7 +1925,7 @@ mod tests {
         wallet_user_repo
             .expect_is_blocked_key()
             .times(1)
-            .returning(|_, _, _| Ok(Some(false)));
+            .returning(|_, _, _| Ok(None));
 
         let err = instruction
             .handle(

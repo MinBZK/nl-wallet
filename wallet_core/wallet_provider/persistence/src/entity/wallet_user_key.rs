@@ -8,6 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub wallet_user_id: Uuid,
+    pub batch_id: Uuid,
     pub identifier: String,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub public_key: Vec<u8>,

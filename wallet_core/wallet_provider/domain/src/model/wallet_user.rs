@@ -113,6 +113,7 @@ pub enum WalletUserAttestationCreate {
 #[derive(Clone)]
 pub struct WalletUserKeys {
     pub wallet_user_id: Uuid,
+    pub batch_id: Uuid,
     pub keys: Vec<WalletUserKey>,
 }
 
