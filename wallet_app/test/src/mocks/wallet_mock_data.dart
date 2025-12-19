@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -8,6 +9,7 @@ import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/document.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
+import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
@@ -133,6 +135,36 @@ abstract class WalletMockData {
     title: 'Title',
     fileName: 'docs/agreement.pdf',
     url: 'https://example.org/agreement.pdf',
+  );
+
+  /// Notification data
+  static final DateTime _appNotificationNow = clock.now();
+  static final DateTime expiresIn30Days = _appNotificationNow.add(const Duration(days: 30));
+  static final DateTime expiresIn5Days = _appNotificationNow.add(const Duration(days: 5));
+  static final DateTime defaultNotifyAt = _appNotificationNow.add(const Duration(days: 1));
+
+  static AppNotification dashboardCardExpiresSoonNotification = AppNotification(
+    id: 1,
+    type: CardExpiresSoon(card: card, expiresAt: expiresIn30Days),
+    displayTargets: [const Dashboard()],
+  );
+
+  static AppNotification dashboardCardExpiredNotification = AppNotification(
+    id: 2,
+    type: CardExpired(card: card),
+    displayTargets: [const Dashboard()],
+  );
+
+  static AppNotification osCardExpiresSoonNotification = AppNotification(
+    id: 3,
+    type: CardExpiresSoon(card: card, expiresAt: expiresIn5Days),
+    displayTargets: [Os(notifyAt: defaultNotifyAt)],
+  );
+
+  static AppNotification osCardExpiredNotification = AppNotification(
+    id: 4,
+    type: CardExpired(card: card),
+    displayTargets: [Os(notifyAt: defaultNotifyAt)],
   );
 
   /// Disclosure events

@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:rxdart/rxdart.dart';
+
 import '../../../../data/repository/notification/notification_repository.dart';
 import '../../../../data/store/active_locale_provider.dart';
 import '../../../../util/extension/locale_extension.dart';
@@ -13,11 +15,14 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
   final NotificationRepository _notificationRepository;
   final ActiveLocaleProvider _activeLocaleProvider;
 
-  ObserveOsNotificationsUseCaseImpl(this._notificationRepository, this._activeLocaleProvider);
+  ObserveOsNotificationsUseCaseImpl(
+    this._notificationRepository,
+    this._activeLocaleProvider,
+  );
 
   @override
   Stream<List<OsNotification>> invoke() {
-    return _notificationRepository.observeNotifications().map(
+    final notificationStream = _notificationRepository.observeNotifications().map(
       (input) {
         // Filter out notifications which target the [Os].
         final osNotifications = input.where((it) => it.displayTargets.any((target) => target is Os)).toList();
@@ -34,6 +39,11 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
           },
         ).toList();
       },
+    );
+
+    // Only emit [OsNotification]s when push notification setting is enabled
+    return _notificationRepository.observePushNotificationsEnabled().switchMap(
+      (enabled) => enabled ? notificationStream : Stream.value([]),
     );
   }
 

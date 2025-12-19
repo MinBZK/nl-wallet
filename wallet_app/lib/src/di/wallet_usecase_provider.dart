@@ -50,8 +50,12 @@ import '../domain/usecase/navigation/impl/perform_pre_navigation_actions_usecase
 import '../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import '../domain/usecase/notification/impl/observe_dashboard_notifications_usecase_impl.dart';
 import '../domain/usecase/notification/impl/observe_os_notifications_usecase_impl.dart';
+import '../domain/usecase/notification/impl/observe_push_notifications_setting_usecase_impl.dart';
+import '../domain/usecase/notification/impl/set_push_notifications_setting_usecase_impl.dart';
 import '../domain/usecase/notification/observe_dashboard_notifications_usecase.dart';
 import '../domain/usecase/notification/observe_os_notifications_usecase.dart';
+import '../domain/usecase/notification/observe_push_notifications_setting_usecase.dart';
+import '../domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import '../domain/usecase/permission/check_permission_usecase.dart';
 import '../domain/usecase/permission/impl/check_permission_usecase_impl.dart';
 import '../domain/usecase/permission/impl/request_permission_usecase_impl.dart';
@@ -381,6 +385,12 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<CheckIsPidUseCase>(
           create: (context) => CheckIsPidUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObservePushNotificationsSettingUseCase>(
+          create: (context) => ObservePushNotificationsSettingUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<SetPushNotificationsSettingUseCase>(
+          create: (context) => SetPushNotificationsSettingUseCaseImpl(context.read()),
         ),
         RepositoryProvider<MoveToReadyStateUseCase>(
           create: (context) => MoveToReadyStateUseCaseImpl(

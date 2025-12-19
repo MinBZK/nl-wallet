@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-12-10T15:25:30+01:00",
+    "@@last_modified": "2025-12-15T11:23:36+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -971,6 +971,10 @@
     "loginDetailScreenCredentialsBody": "Alleen de volgende gegeven worden gedeeld om in te loggen. Niets meer.",
     "loginDetailScreenCredentialsTitle": "Inloggegevens",
     "loginDetailScreenTitle": "Informatie over inloggen bij {organization}",
+    "manageNotificationsScreenDescription": "Ontvang meldingen over wijzigingen aan je kaarten, app-updates en andere belangrijke berichten.",
+    "manageNotificationsScreenPushSettingSubtitle": "Ontvang meldingen, zelfs wanneer je de app niet opent.",
+    "manageNotificationsScreenPushSettingTitle": "Push meldingen",
+    "manageNotificationsScreenTitle": "Meldingen",
     "menuScreenAboutCta": "Over deze app",
     "menuScreenBrowserCta": "Browser Test",
     "menuScreenDesignCta": "Design System",
@@ -1327,6 +1331,7 @@
     "settingsScreenChangeLanguageCta": "Taal veranderen",
     "settingsScreenChangePinCta": "Pincode veranderen",
     "settingsScreenClearDataCta": "Gegevens verwijderen",
+    "settingsScreenManageNotificationsCta": "Notificaties",
     "settingsScreenSetupBiometricsCta": "Open met {supportedBiometrics}",
     "@settingsScreenSetupBiometricsCta": {
         "placeholders": {

@@ -20,6 +20,7 @@ import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/paragraphed_sliver_list.dart';
+import '../common/widget/setting/switch_setting_row.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -117,15 +118,6 @@ class BiometricSettingScreen extends StatelessWidget {
   }
 
   Widget _buildLoaded(BuildContext context, BiometricSettingsLoaded state) {
-    final inactiveThumbColor = context.colorScheme.onSurfaceVariant;
-    final WidgetStateProperty<Icon?> thumbIcon = WidgetStateProperty.resolveWith<Icon?>(
-      (Set<WidgetState> states) {
-        if (states.contains(WidgetState.selected)) return null;
-        // There is no property to change the size of the 'inactive' thumb, but it does grow
-        // when an icon is specified, as such we provide an empty icon here.
-        return const Icon(null);
-      },
-    );
     final supportedBiometricsText = context.bloc.supportedBiometrics.prettyPrint(context);
     return CustomScrollView(
       slivers: [
@@ -136,33 +128,24 @@ class BiometricSettingScreen extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: ParagraphedSliverList.splitContent(
             context.l10n.biometricSettingsScreenDescription(supportedBiometricsText.capitalize),
             splitPattern: '\n',
           ),
         ),
+        const SliverSizedBox(height: 24),
         SliverToBoxAdapter(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Divider(height: 16),
-              SwitchListTile(
-                value: state.biometricLoginEnabled,
-                inactiveThumbColor: inactiveThumbColor,
-                thumbIcon: thumbIcon,
-                trackOutlineColor: state.biometricLoginEnabled ? null : WidgetStatePropertyAll(inactiveThumbColor),
-                onChanged: (enabled) => context.bloc.add(const BiometricUnlockToggled()),
-                title: Text.rich(
-                  context.l10n.biometricSettingsScreenSwitchCta(supportedBiometricsText).toTextSpan(context),
-                  style: context.textTheme.labelLarge,
-                ),
-              ),
-              const Divider(height: 16),
-            ],
+          child: SwitchSettingRow(
+            dividerSide: .both,
+            label: Text.rich(
+              context.l10n.biometricSettingsScreenSwitchCta(supportedBiometricsText).toTextSpan(context),
+            ),
+            value: state.biometricLoginEnabled,
+            onChanged: (enabled) => context.bloc.add(const BiometricUnlockToggled()),
           ),
         ),
-        const SliverSizedBox(height: 16),
+        const SliverSizedBox(height: 24),
         const SliverToBoxAdapter(
           child: PageIllustration(asset: WalletAssets.svg_biometrics_face),
         ),
