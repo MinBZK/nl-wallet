@@ -43,7 +43,7 @@ async fn setup_state(
 
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(100).unwrap(),
-        create_threshold: NonZeroU31::try_new(1).unwrap(), // no new lists are needed during test
+        create_threshold: 0, // no new lists are needed during test
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl: None,

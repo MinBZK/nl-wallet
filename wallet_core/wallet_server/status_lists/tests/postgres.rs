@@ -57,14 +57,14 @@ async fn create_status_list_service(
     ca: &Ca,
     connection: &DatabaseConnection,
     list_size: i32,
-    create_threshold: i32,
+    create_threshold: u32,
     ttl: Option<Duration>,
     publish_dir: &TempDir,
 ) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService)> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
-        create_threshold: NonZeroU31::try_new(create_threshold)?,
+        create_threshold,
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl,
@@ -281,7 +281,7 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
             let attestation_type = random_string(20);
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
-                create_threshold: NonZeroU31::try_new(1).unwrap(),
+                create_threshold: 1,
                 expiry: Duration::from_secs(3600),
                 refresh_threshold: Duration::from_secs(600),
                 ttl: None,

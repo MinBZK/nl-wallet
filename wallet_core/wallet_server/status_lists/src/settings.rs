@@ -1,6 +1,7 @@
 use std::num::NonZeroU16;
 use std::time::Duration;
 
+use derive_more::Debug;
 use serde::Deserialize;
 use url::Url;
 
@@ -11,7 +12,7 @@ use utils::num::Ratio;
 
 use crate::publish::PublishDir;
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct StatusListsSettings {
     /// Optional storage url if different from rest of application
     pub storage_url: Option<Url>,
@@ -63,15 +64,19 @@ fn default_serve() -> bool {
     true
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct StatusListAttestationSettings {
     /// Base url for the status list if different from public url of the server
     pub base_url: Option<BaseUrl>,
+
     /// Context path for the status list joined with base_url, also used for serving
     pub context_path: String,
+
     /// Path to directory for the published status list
     pub publish_dir: PublishDir,
+
     /// Key pair to sign status list
     #[serde(flatten)]
+    #[debug(skip)]
     pub keypair: KeyPair,
 }

@@ -467,6 +467,16 @@ where
                 .all(&tx)
                 .await?;
 
+            let max_next_sequence_no = status_list::Entity::find()
+                .select_only()
+                .column_as(status_list::Column::NextSequenceNo.max(), "max_next_sequence_no")
+                .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
+                .group_by(status_list::Column::AttestationTypeId)
+                .into_tuple()
+                .one(&tx)
+                .await?
+                .unwrap_or_default();
+
             // If the `create_threshold` is large enough compared to the requested claim_size and
             // concurrent requests, this should always be true. If this is false, the
             // `create_threshold` should be increased.
@@ -485,13 +495,16 @@ where
             }
             tries -= 1;
 
-            let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or_default();
-            if !self.create_status_list(next_sequence_no, true).await? {
-                tracing::warn!(
-                    "Failed to create status list in flight for attestation type ID {}",
-                    self.attestation_type_id,
-                );
-            }
+            let _ = self
+                .create_status_list(max_next_sequence_no, true)
+                .await
+                .inspect_err(|err| {
+                    tracing::error!(
+                        "Error creating status list in flight for attestation type ID {}: {:?}",
+                        self.attestation_type_id,
+                        err
+                    );
+                })?;
         }
     }
 
@@ -735,7 +748,7 @@ where
                 let list_id = list.id;
                 tasks.push(tokio::spawn(Self::delete_status_list_items(connection, list_id)));
             }
-            if list.available <= self.config.create_threshold.into_inner() {
+            if list.available >= 0 && ((list.available as u32) < self.config.create_threshold) {
                 tracing::info!(
                     "Schedule creation of status list items for attestation type ID {}",
                     list.attestation_type_id,

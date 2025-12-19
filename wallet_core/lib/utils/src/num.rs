@@ -16,18 +16,13 @@ impl NonZeroU31 {
 
 #[nutype(
     derive(Debug, Clone, Copy, PartialEq, Eq, TryFrom, Into, Deserialize),
-    validate(finite, greater = 0, less_or_equal = 1)
+    validate(finite, greater_or_equal = 0, less_or_equal = 1)
 )]
 pub struct Ratio(f64);
 
 impl Ratio {
-    pub fn of_nonzero_u31(self, size: NonZeroU31) -> NonZeroU31 {
-        let mut result = ((i32::from(size) as f64) * self.into_inner()).round() as u32;
-        if result == 0 {
-            result = 1
-        }
-        // source is a larger NonZeroU31
-        NonZeroU31::try_new(result as i32).unwrap()
+    pub fn of_nonzero_u31(self, size: NonZeroU31) -> u32 {
+        ((i32::from(size) as f64) * self.into_inner()).round() as u32
     }
 
     pub fn of_duration(self, duration: Duration) -> Duration {
@@ -45,13 +40,10 @@ mod tests {
     #[case(0.1, 99, 10)]
     #[case(0.1, 100, 10)]
     #[case(0.1, 101, 10)]
-    #[case(0.0001, 1, 1)]
+    #[case(0.0001, 1, 0)]
     #[case(1.0, i32::MAX, i32::MAX)]
     fn test_ratio_of_nonzero_u31(#[case] ratio: f64, #[case] size: i32, #[case] expected_result: i32) {
         let ratio = Ratio::try_new(ratio).unwrap();
-        assert_eq!(
-            ratio.of_nonzero_u31(size.try_into().unwrap()),
-            NonZeroU31::try_new(expected_result).unwrap()
-        )
+        assert_eq!(ratio.of_nonzero_u31(size.try_into().unwrap()), expected_result as u32)
     }
 }

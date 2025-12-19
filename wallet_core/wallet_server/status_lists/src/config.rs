@@ -21,7 +21,7 @@ use crate::settings::StatusListsSettings;
 #[derive(Debug, Clone)]
 pub struct StatusListConfig<K = PrivateKeyVariant> {
     pub list_size: NonZeroU31,
-    pub create_threshold: NonZeroU31,
+    pub create_threshold: u32,
     pub expiry: Duration,
     pub refresh_threshold: Duration,
     pub ttl: Option<Duration>,
