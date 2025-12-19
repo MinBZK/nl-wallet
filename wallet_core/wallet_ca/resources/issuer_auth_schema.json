@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Issuer Authentication Document",
+  "description": "Schema for NL Wallet issuer authentication documents embedded in issuer certificates",
+  "type": "object",
+  "required": ["organization"],
+  "properties": {
+    "organization": {
+      "type": "object",
+      "description": "Issuer organization information",
+      "required": [
+        "displayName",
+        "legalName",
+        "description",
+        "webUrl",
+        "city",
+        "category",
+        "logo",
+        "countryCode",
+        "kvk",
+        "privacyPolicyUrl"
+      ],
+      "properties": {
+        "displayName": {
+          "type": "object",
+          "description": "Organization display name as shown in the app",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "legalName": {
+          "type": "object",
+          "description": "Legal name of the organization",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "description": {
+          "type": "object",
+          "description": "Short one-sentence description or mission statement",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "webUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "The home URL of the issuer"
+        },
+        "city": {
+          "type": "object",
+          "description": "The home city of the issuer",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "category": {
+          "type": "object",
+          "description": "Organization category (e.g., Bank, Municipality, Trading, Delivery Service)",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "logo": {
+          "type": "object",
+          "description": "Organization logo",
+          "required": ["mimeType", "imageData"],
+          "properties": {
+            "mimeType": {
+              "type": "string",
+              "enum": ["image/svg+xml", "image/png", "image/jpeg"],
+              "description": "Logo MIME type"
+            },
+            "imageData": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Logo image data. For SVG: escaped XML string, for PNG/JPEG: base64 encoded"
+            }
+          },
+          "additionalProperties": false
+        },
+        "countryCode": {
+          "type": "string",
+          "pattern": "^[a-z]{2}$",
+          "description": "Two-letter ISO 3166-1 alpha-2 country code (lowercase)"
+        },
+        "kvk": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "description": "Chamber of Commerce number (KVK) - 8 digits"
+        },
+        "privacyPolicyUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Link to issuer's privacy policy"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
