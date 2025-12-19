@@ -401,6 +401,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_wua::create(transaction, wallet_user_id, wua_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn get_wua_ids_for_wallets(
         &self,
         transaction: &Self::TransactionType,
@@ -409,6 +410,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_wua::wua_ids_for_wallets(transaction, wallet_ids).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
         wallet_user_wua::list_wua_ids(transaction).await
     }
