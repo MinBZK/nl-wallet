@@ -178,6 +178,9 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   # Don't use the rijksoverheid ui-theme.
   npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
 
+  # Workaround for groupadd existing group
+  sed -i 's|^RUN groupadd --system|RUN groupadd -f --system|g' docker/Dockerfile
+
   # Create an RDO max container.
   make setup-remote
 
