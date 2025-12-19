@@ -179,7 +179,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
 
   # Workaround for groupadd existing group
-  sed -i 's|^RUN groupadd --system|RUN groupadd -f --system|g' docker/Dockerfile
+  ${SED} -i 's|^RUN groupadd --system|RUN groupadd -f --system|' docker/Dockerfile
 
   # Create an RDO max container.
   make setup-remote
