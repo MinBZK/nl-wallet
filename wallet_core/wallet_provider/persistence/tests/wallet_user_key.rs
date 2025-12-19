@@ -169,9 +169,7 @@ async fn test_move_keys() {
         &[source_key1.sha256_fingerprint(), source_key2.sha256_fingerprint()],
     )
     .await
-    .unwrap()
-    .into_iter()
-    .collect::<HashSet<_>>();
+    .unwrap();
     assert!(persisted_source_keys.is_empty());
 
     let persisted_destination_keys = find_active_keys_by_identifiers(
@@ -227,9 +225,7 @@ async fn test_create_blocked_keys() {
         &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
     )
     .await
-    .unwrap()
-    .into_iter()
-    .collect::<Vec<_>>();
+    .unwrap();
     assert!(active_keys.is_empty());
 
     // Check whether both keys are blocked
@@ -297,9 +293,7 @@ async fn test_delete_blocked_keys() {
         &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
     )
     .await
-    .unwrap()
-    .into_iter()
-    .collect::<Vec<_>>();
+    .unwrap();
     assert!(active_keys.is_empty());
 
     // Delete the blocked keys
@@ -329,8 +323,6 @@ async fn test_delete_blocked_keys() {
         &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
     )
     .await
-    .unwrap()
-    .into_iter()
-    .collect::<Vec<_>>();
+    .unwrap();
     assert!(active_keys.is_empty());
 }
