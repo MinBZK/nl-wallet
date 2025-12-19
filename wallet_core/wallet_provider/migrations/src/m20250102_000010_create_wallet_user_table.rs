@@ -78,6 +78,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(WalletUser::Table)
+                    .name("wallet_user_recovery_code")
+                    .col(WalletUser::RecoveryCode)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 }
