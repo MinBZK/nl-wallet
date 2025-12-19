@@ -222,7 +222,6 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
-        key: VerifyingKey,
     ) -> Result<(), PersistenceError> {
         wallet_user::transition_wallet_user_state(
             transaction,
@@ -230,10 +229,7 @@ impl WalletUserRepository for Repositories {
             WalletUserState::RecoveringPin,
             WalletUserState::Active,
         )
-        .await?;
-
-        self.delete_blocked_keys_in_batch(transaction, wallet_user_id, key)
-            .await
+        .await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -585,7 +581,6 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 wallet_user_id: Uuid,
-                key: VerifyingKey,
             ) -> Result<(), PersistenceError>;
 
             async fn has_multiple_active_accounts_by_recovery_code(
@@ -871,7 +866,6 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
-            _key: VerifyingKey,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

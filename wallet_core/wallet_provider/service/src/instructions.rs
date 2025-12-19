@@ -842,7 +842,12 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             return Err(InstructionError::PinRecoveryAccountMismatch);
         }
 
-        user_state.repositories.recover_pin(&tx, wallet_user.id, key).await?;
+        user_state.repositories.recover_pin(&tx, wallet_user.id).await?;
+
+        user_state
+            .repositories
+            .delete_blocked_keys_in_batch(&tx, wallet_user.id, key)
+            .await?;
 
         tx.commit().await?;
 
@@ -1798,6 +1803,9 @@ mod tests {
         };
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+
+        let pubkey = *holder_key.verifying_key();
+
         wallet_user_repo
             .expect_begin_transaction()
             .times(1)
@@ -1806,13 +1814,17 @@ mod tests {
             .expect_is_blocked_key()
             .times(1)
             .returning(move |_, _, key| {
-                assert_eq!(key, *holder_key.verifying_key());
+                assert_eq!(key, pubkey);
                 Ok(Some(true))
             });
+        wallet_user_repo.expect_recover_pin().times(1).returning(|_, _| Ok(()));
         wallet_user_repo
-            .expect_recover_pin()
+            .expect_delete_blocked_keys_in_batch()
             .times(1)
-            .returning(|_, _, _| Ok(()));
+            .returning(move |_, _, key| {
+                assert_eq!(key, pubkey);
+                Ok(())
+            });
 
         let result = instruction
             .handle(
