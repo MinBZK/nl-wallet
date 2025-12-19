@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-12-10T15:25:30+01:00",
+    "@@last_modified": "2025-12-15T11:23:36+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -975,6 +975,10 @@
     "loginDetailScreenCredentialsBody": "Only the following data is shared. No more.",
     "loginDetailScreenCredentialsTitle": "Login credentials",
     "loginDetailScreenTitle": "Information about logging in at {organization}",
+    "manageNotificationsScreenDescription": "Get alerts about your cards changes, app updates, and other important messages.",
+    "manageNotificationsScreenPushSettingSubtitle": "Get alerts, even when you don’t open the app.",
+    "manageNotificationsScreenPushSettingTitle": "Push notifications",
+    "manageNotificationsScreenTitle": "Notifications",
     "menuScreenAboutCta": "About this app",
     "menuScreenBrowserCta": "Browser Test",
     "menuScreenDesignCta": "Design System",
@@ -1331,6 +1335,7 @@
     "settingsScreenChangeLanguageCta": "Change language",
     "settingsScreenChangePinCta": "Change PIN",
     "settingsScreenClearDataCta": "Remove data",
+    "settingsScreenManageNotificationsCta": "Notifications",
     "settingsScreenSetupBiometricsCta": "Unlock with {supportedBiometrics}",
     "@settingsScreenSetupBiometricsCta": {
         "placeholders": {

@@ -44,6 +44,8 @@ import '../feature/menu/menu_screen.dart';
 import '../feature/menu/sub_menu/contact/contact_screen.dart';
 import '../feature/menu/sub_menu/need_help/need_help_screen.dart';
 import '../feature/menu/sub_menu/settings/settings_screen.dart';
+import '../feature/notification/bloc/manage_notifications_bloc.dart';
+import '../feature/notification/manage_notifications_screen.dart';
 import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
 import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
 import '../feature/organization/detail/organization_detail_screen.dart';
@@ -145,6 +147,7 @@ class WalletRoutes {
   static const walletTransferSourceRoute = '/wallet_transfer/source';
   static const walletTransferTargetRoute = '/wallet_transfer/target';
   static const walletTransferFaqRoute = '/settings/wallet_transfer_faq';
+  static const manageNotificationsRoute = '/settings/manage_notifications';
 
   static final Map<String, WidgetBuilder Function(RouteSettings)> _routeBuilders = {
     WalletRoutes.splashRoute: (_) => _createSplashScreenBuilder,
@@ -188,6 +191,7 @@ class WalletRoutes {
     WalletRoutes.walletTransferSourceRoute: _createWalletTransferSourceRoute,
     WalletRoutes.walletTransferTargetRoute: _createWalletTransferTargetRoute,
     WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
+    WalletRoutes.manageNotificationsRoute: (_) => _createManageNotificationsScreenBuilder,
   };
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -597,3 +601,14 @@ WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
 }
 
 Widget _createWalletTransferFaqScreenBuilder(BuildContext context) => const WalletTransferFaqScreen();
+
+Widget _createManageNotificationsScreenBuilder(BuildContext context) => BlocProvider<ManageNotificationsBloc>(
+  create: (BuildContext context) => ManageNotificationsBloc(
+    context.read(),
+    context.read(),
+    context.read(),
+    context.read(),
+    context.read(),
+  )..add(const ManageNotificationsLoadTriggered()),
+  child: const ManageNotificationsScreen(),
+);

@@ -90,6 +90,12 @@ class SettingsScreen extends StatelessWidget {
         ),
         const Divider(),
         MenuItem(
+          label: Text.rich(context.l10n.settingsScreenManageNotificationsCta.toTextSpan(context)),
+          leftIcon: Image.asset(WalletAssets.icon_manage_notifications, color: context.theme.iconTheme.color),
+          onPressed: () => Navigator.pushNamed(context, WalletRoutes.manageNotificationsRoute),
+        ),
+        const Divider(),
+        MenuItem(
           label: Text.rich(context.l10n.settingsScreenClearDataCta.toTextSpan(context)),
           leftIcon: const Icon(Icons.delete_outline),
           onPressed: () => ResetWalletDialog.show(context),
