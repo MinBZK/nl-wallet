@@ -29,3 +29,13 @@ sdkmanager --install \
   "platform-tools"
 
 rm -rf ~/.android
+
+# Install bundletool
+wget --no-hsts -q -O /usr/local/bin/bundletool.jar https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
+echo "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29 /usr/local/bin/bundletool.jar" | sha256sum -c
+
+cat > /usr/local/bin/bundletool <<'EOD'
+#!/bin/sh
+exec java -jar "$0.jar" "$@"
+EOD
+chmod +x /usr/local/bin/bundletool
