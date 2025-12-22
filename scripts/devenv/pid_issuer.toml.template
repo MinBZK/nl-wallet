@@ -22,6 +22,14 @@ port = ${PID_ISSUER_WS_PORT}
 ip = '0.0.0.0'
 port = ${PID_ISSUER_IS_PORT}
 
+[status_lists]
+# Make sure the list_size is as large as the number of attestation copies, so that every issued attestation gets its
+# own status list. This is necessary for integration testing, because otherwise the status list would be reused and the
+# url claims wouldn't match.
+list_size = 8
+# Ensure that no new lists (having the wrong url claim) are created when the current list is full.
+create_threshold_ratio = 0
+
 [recovery_code]
 secret_key = "fb34c5a3e40a818197ed866e4a38dafcf2158bd1fda2cbe1ff22e40e77b4f4f9"
 secret_key_type = "software"
@@ -56,14 +64,14 @@ certificate = "${PID_ISSUER_CRT}"
 
 [attestation_settings."urn:eudi:pid:nl:1".status_list]
 context_path = "/tsl"
-publish_dir = "resources/status-lists"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 private_key_type = "software"
 private_key = "${PID_ISSUER_TSL_KEY}"
 certificate = "${PID_ISSUER_TSL_CRT}"
 
 [attestation_settings."urn:eudi:pid-address:nl:1".status_list]
 context_path = "/tsl"
-publish_dir = "resources/status-lists"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 private_key_type = "software"
 private_key = "${PID_ISSUER_TSL_KEY}"
 certificate = "${PID_ISSUER_TSL_CRT}"

@@ -19,6 +19,14 @@ port = ${ISSUANCE_SERVER_WS_PORT}
 ip = '0.0.0.0'
 port = ${ISSUANCE_SERVER_IS_PORT}
 
+[status_lists]
+# Make sure the list_size is as large as the number of attestation copies, so that every issued attestation gets its
+# own status list. This is necessary for integration testing, because otherwise the status list would be reused and the
+# url claims wouldn't match.
+list_size = 8
+# Ensure that no new lists (having the wrong url claim) are created when the current list is full.
+create_threshold_ratio = 0
+
 [hsm]
 library_path = "${HSM_LIBRARY_PATH}"
 user_pin = "${HSM_USER_PIN}"
@@ -68,7 +76,7 @@ certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
 
 [attestation_settings."com.example.degree".status_list]
 context_path = "/tsl"
-publish_dir = "resources/status-lists"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_TSL}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_TSL}"
@@ -99,7 +107,7 @@ certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
 
 [attestation_settings."com.example.insurance".status_list]
 context_path = "/tsl"
-publish_dir = "resources/status-lists"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_TSL}"
@@ -130,7 +138,7 @@ trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [attestation_settings."com.example.housing".status_list]
 context_path = "/tsl"
-publish_dir = "resources/status-lists"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_HOUSING_TSL}"
 certificate = "${DEMO_ISSUER_CRT_HOUSING_TSL}"

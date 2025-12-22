@@ -384,8 +384,8 @@ then
         popd
 
         echo -e "${INFO}Cleaning status lists${NC}"
-        rm -rf "resources/status-lists"
-        mkdir "resources/status-lists"
+        rm -rf "${WALLET_CORE_DIR}/target/status-lists"
+        mkdir "${WALLET_CORE_DIR}/target/status-lists"
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
         RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
