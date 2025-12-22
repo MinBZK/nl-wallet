@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crypto::p256_der::verifying_key_sha256;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
@@ -18,6 +17,7 @@ use sea_orm::prelude::Expr;
 use sea_orm::sea_query::SelectStatement;
 use uuid::Uuid;
 
+use crypto::p256_der::verifying_key_sha256;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::repository::PersistenceError;
