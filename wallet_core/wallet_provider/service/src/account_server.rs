@@ -1144,12 +1144,6 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let tx = user_state.repositories.begin_transaction().await?;
 
-        // Delete all blocked keys for any previous PID renewal or PIN recovery
-        user_state
-            .repositories
-            .delete_all_blocked_keys(&tx, wallet_user.id)
-            .await?;
-
         user_state
             .repositories
             .change_pin(
@@ -3365,10 +3359,6 @@ mod tests {
             .expect_begin_transaction()
             .times(4)
             .returning(|| Ok(MockTransaction));
-        repositories
-            .expect_delete_all_blocked_keys()
-            .times(1)
-            .returning(|_, _| Ok(()));
         repositories.expect_store_wua_id().once().returning(|_, _, _| Ok(()));
 
         repositories

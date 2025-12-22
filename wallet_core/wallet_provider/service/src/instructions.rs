@@ -490,6 +490,7 @@ fn create_issuance_keys(
 }
 
 async fn persist_keys<T, R, H>(
+    tx: &T,
     wallet_user: &WalletUser,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListService>,
     db_keys: Vec<WalletUserKey>,
@@ -500,20 +501,18 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let tx = user_state.repositories.begin_transaction().await?;
     user_state
         .repositories
         .save_keys(
-            &tx,
+            tx,
             WalletUserKeys {
                 wallet_user_id: wallet_user.id,
                 batch_id: uuid_generator.generate(),
                 keys: db_keys,
             },
         )
-        .await?;
-    tx.commit().await?;
-    Ok(())
+        .await
+        .map_err(Into::into)
 }
 
 async fn wua<T, R, H>(
@@ -618,9 +617,12 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys, None, false, generators);
+        let tx = user_state.repositories.begin_transaction().await?;
 
-        persist_keys(wallet_user, user_state, db_keys, generators).await?;
+        let db_keys = create_issuance_keys(wrapped_keys, None, false, generators);
+        persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;
+
+        tx.commit().await?;
 
         Ok(issuance_result)
     }
@@ -645,9 +647,18 @@ impl HandleInstruction for PerformIssuanceWithWua {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
             perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys, Some(wua_key_and_id), true, generators);
+        let tx = user_state.repositories.begin_transaction().await?;
 
-        persist_keys(wallet_user, user_state, db_keys, generators).await?;
+        // Delete all blocked keys for any previous PID renewal or PIN recovery
+        user_state
+            .repositories
+            .delete_all_blocked_keys(&tx, wallet_user.id)
+            .await?;
+
+        let db_keys = create_issuance_keys(wrapped_keys, Some(wua_key_and_id), true, generators);
+        persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;
+
+        tx.commit().await?;
 
         Ok(issuance_with_wua_result)
     }
@@ -2023,6 +2034,9 @@ mod tests {
             .returning(|| Ok(MockTransaction));
         wallet_user_repo.expect_save_keys().returning(|_, _| Ok(()));
         wallet_user_repo.expect_store_wua_id().returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_delete_all_blocked_keys()
+            .returning(|_, _| Ok(()));
 
         instruction
             .handle(
