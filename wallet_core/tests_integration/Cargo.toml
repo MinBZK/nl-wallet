@@ -79,16 +79,7 @@ required-features = ["integration_test"]
 allow_insecure_url = ["openid4vc?/allow_insecure_url"]
 
 # Initialize global logging using tracing-subscriber
-logging = [
-    "dep:tracing",
-    "tracing-subscriber/ansi",
-    "tracing-subscriber/env-filter",
-    "tracing-subscriber/fmt",
-    "tracing-subscriber/parking_lot",
-    "tracing-subscriber/smallvec",
-    "tracing-subscriber/std",
-    "tracing-subscriber/tracing-log",
-]
+logging = ["dep:tracing", "tracing-subscriber/ansi", "tracing-subscriber/env-filter"]
 
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
@@ -97,13 +88,10 @@ test_common = [
     "attestation_data/mock",
     "attestation_data/test_credential",
     "axum-server/tls-rustls-no-provider",
-    "axum/http1",
     "axum/json",
-    "axum/tokio",
     "crypto",
     "dcql/mock",
     "dep:android_attest",
-    "dep:chrono",
     "dep:ctor",
     "dep:futures",
     "dep:gba_hc_converter",
@@ -229,7 +217,6 @@ assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
@@ -274,12 +261,12 @@ openid4vc_server = { path = "../lib/openid4vc_server", optional = true }
 wscd = { path = "../lib/wscd", optional = true }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true }
 platform_support = { path = "../wallet/platform_support", optional = true }
-server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
+server_utils = { path = "../wallet_server/server_utils", optional = true }
 static_server = { path = "../static_server", optional = true }
 status_lists = { path = "../wallet_server/status_lists", optional = true }
 token_status_list = { path = "../lib/token_status_list", features = ["mock"] }
 update_policy_server = { path = "../update_policy/server", optional = true }
-verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
+verification_server = { path = "../wallet_server/verification_server", optional = true }
 wallet = { path = "../wallet", optional = true }
 utils = { path = "../lib/utils", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }

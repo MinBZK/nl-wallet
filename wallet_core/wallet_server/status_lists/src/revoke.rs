@@ -2,15 +2,17 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::Router;
+#[cfg(feature = "admin-ui")]
 use axum::extract::Path;
 use axum::extract::State;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "admin-ui")]
 use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
+#[cfg(feature = "admin-ui")]
 use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
@@ -32,7 +34,7 @@ struct ApiDoc;
     )
 )]
 async fn revoke_batch<L>(
-    status_list_service: State<Arc<L>>,
+    State(status_list_service): State<Arc<L>>,
     Json(batch_ids): Json<Vec<Uuid>>,
 ) -> Result<(), RevocationError>
 where
@@ -41,6 +43,7 @@ where
     status_list_service.revoke_attestation_batches(batch_ids).await
 }
 
+#[cfg(feature = "admin-ui")]
 #[utoipa::path(
     get,
     path = "/batch/",
@@ -48,13 +51,14 @@ where
         (status = OK, body = Vec<BatchIsRevoked>, description = "Successfully listed the issued batch IDs."),
     )
 )]
-async fn list_batch<L>(status_list_service: State<Arc<L>>) -> Result<Json<Vec<BatchIsRevoked>>, RevocationError>
+async fn list_batch<L>(State(status_list_service): State<Arc<L>>) -> Result<Json<Vec<BatchIsRevoked>>, RevocationError>
 where
     L: StatusListRevocationService + Send + Sync + 'static,
 {
     Ok(Json(status_list_service.list_attestation_batches().await?))
 }
 
+#[cfg(feature = "admin-ui")]
 #[utoipa::path(
     get,
     path = "/batch/{batch_id}",
@@ -67,7 +71,7 @@ where
     )
 )]
 async fn get_batch<L>(
-    status_list_service: State<Arc<L>>,
+    State(status_list_service): State<Arc<L>>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<BatchIsRevoked>, RevocationError>
 where
@@ -82,10 +86,9 @@ where
 {
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi()).routes(routes!(revoke_batch));
 
-    #[cfg(feature = "openapi")]
+    #[cfg(feature = "admin-ui")]
     let router = {
         let (router, openapi) = router
-            // only expose these routes when openapi feature is enabled
             .routes(routes!(get_batch))
             .routes(routes!(list_batch))
             .split_for_parts();
@@ -93,8 +96,12 @@ where
         router.merge(SwaggerUi::new("/api-docs").url("/openapi.json", openapi))
     };
 
-    #[cfg(not(feature = "openapi"))]
-    let router = router.into();
+    #[cfg(not(feature = "admin-ui"))]
+    let router: Router<Arc<L>> = {
+        let (router, openapi) = router.split_for_parts();
+
+        router.route("/openapi.json", axum::routing::get(Json(openapi))).into()
+    };
 
     router.with_state(status_list_service)
 }

@@ -259,8 +259,8 @@ then
     fi
     if [[ $START == '0' ]]
     then
-        echo -e "Building and starting ${ORANGE}digid-connector${NC}"
-        docker compose up --detach --build --force-recreate
+        echo -e "Starting ${ORANGE}digid-connector${NC}"
+        docker compose up --detach
     fi
 fi
 

@@ -4,6 +4,8 @@ use derive_more::Debug;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
@@ -128,6 +130,19 @@ impl WalletUserKey {
     pub fn sha256_fingerprint(&self) -> String {
         verifying_key_sha256(self.key.public_key())
     }
+}
+
+#[derive(Debug, Clone, Copy, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
+#[strum(serialize_all = "snake_case")]
+pub enum RevocationReason {
+    // upon the explicit request of the User
+    UserRequest,
+    // can have several reasons, e.g.,
+    // * the security of the mobile device and OS on which the corresponding Wallet Instance is installed
+    // * ...
+    AdminRequest,
+    // the security of the Wallet Solution is breached or compromised
+    WalletSolutionCompromised,
 }
 
 #[cfg(feature = "mock")]

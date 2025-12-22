@@ -44,25 +44,28 @@ relevant folks with regards to status and discuss with the product owner. When
 an issue is still far from done but important for this release, it effectively
 blocks the release - you need to wait until the issue is done. Alternatively,
 you and/or the product owner might decide that the issue can be moved to the
-next release.
+next release. In this open subtasks under the `In Progress` issues can be moved
+to the backlog and the `In Progress` issue can be moved to done. For certain
+issues an exception can be made; these issues will be partly released and thus
+will get multiple fix versions in the future.
 
 When the release is "green" (i.e., all relevant issues are in the `Done` state)
 you know that the relevant features and fixes have been merged in the `main`
 branch, and you can create a release tag (which we do later on in this guide).
 
-The nightly_git_jira_check job automatically keeps Jira issues up-to-date with
+The `nightly-git-jira-check` job automatically keeps Jira issues up-to-date with
 GitLab MRs by setting the correct fixVersion based on merged branches. So by the
 time you're prepping the release, Jira should already reflect the correct state,
-but it is advised to verify the job log of nightly_git_jira_check. This job also
-checks and logs other inconsistencies:
+but it is advised to verify the job log of `nightly-git-jira-check`. This job
+also checks and logs other inconsistencies:
 
 - Issues with the wrong version
 - Issues with multiple fixVersions
 - MRs with source branches that do not contain an existing Jira item
 
 In the latter case this cannot be synced/corrected automatically. In job
-'verify_release_check', which runs in the release tag pipeline, an artifact is
-created in which all MRs that are misisng a Jira key are logged. Add this file
+`verify-release-check`, which runs manual in the main pipeline, an artifact is
+created in which all MRs that are missing a Jira key are logged. Add this file
 to the release ticket in Jira or a separate ticket belonging to the release to
 ensure a quick way to determinate what has been released.
 
@@ -86,10 +89,10 @@ however still a few things we confirm. Most notably:
 - ZAP scanner ran and results accepted (see ZAP in Quality Time)
 - No blocker or critical Sonar findings (you can check our Sonar instance for
   these findings, ask around for the link if you don't have it)
+- A11y scan that ran on Browserstack are evaluated and actual a11y issues are
+  reported Jira as bugs.
 
-The manual E2E tests are usually executed by the test automation engineer. We
-are working on getting automated ZAP tests as part of the pipeline that will
-block on serious issues, and warn on lower priority ones.
+The manual E2E tests are usually executed by the test automation engineer.
 
 The confirmation of the acceptability of the tests and any required reports is
 done by our software quality engineer. He will e-mail our shared e-mail account,
@@ -189,18 +192,9 @@ to the relevant job and click on download artifact/zip. You might need to rename
 the zip file and/or repackage in the case of `issuance_server`,
 `verification_server` and `wallet_web`.
 
-Currently (2024-11-07) you need to create the sha256sums manually (in the future
-we would like to adjust the pipeline that creates the binary artifacts such that
-it will create the sha256 hashes also). To create the sha256sum texts, enter the
-directory which contains the above mentioned zip files and run:
-
-```shell
-for zip in *.zip; do sha256sum $zip > $(echo $zip | sed 's|.zip$|.sha256sum.txt|g'); done
-```
-
-When you have these zip files and sha256sum texts, and you made sure they're
-named correctly, you are ready to create the release description. We will upload
-the zip files and sha256sum texts as artifacts of the release.
+When you have these zip files, and you made sure they're named correctly, you
+are ready to create the release description. We will upload the zip files as
+the artifacts of the release.
 
 Note on other binaries like `verification_server_migrations` and schema changes
 in general: When any of our binaries that use a database backend require schema
@@ -216,11 +210,9 @@ installation instructions).
 Note about obtaining artifacts automatically: Currently the above is manual. We
 have an issue on Jira which is about creating an artifact uploader. This utility
 is called `uploader.mjs` and can talk to the GitHub releases API and add binary
-artifacts and their sha256 sums to a release. The idea is that our pipeline,
-when invoked with a CI_COMMIT_TAG environment variable present (i.e., a build
-triggered by a `git push --tags` that results in new version tags being pushed)
-can invoke this utility and create or update a release with relevant binary
-artifacts.
+artifacts and their sha256 sums to a release. The idea is that there is a job in
+our pipeline that can invoke this utility and create or update a release with
+relevant binary artifacts.
 
 ### Step 9: Create a release description
 

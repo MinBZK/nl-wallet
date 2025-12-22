@@ -1,11 +1,11 @@
 .create-deployment:
   extends: .clone-variables
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   script:
     # CI variables take precedence over dotenv
     - . deploy-variables/${DEPLOY_ENV}/cluster.env
     - export DEPLOY_ENV
-    - export DEPLOY_IMAGE_VERSION="${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
+    - export DEPLOY_IMAGE_VERSION="${CI_COMMIT_SHORT_SHA}"
     - export K8S_CLUSTER
     - export K8S_NAMESPACE
     - envsubst '${DEPLOY_ENV} ${DEPLOY_IMAGE_VERSION} ${K8S_CLUSTER} ${K8S_NAMESPACE}' < deploy/gitlab-templates/deploy-template.yml > deploy-${DEPLOY_ENV}.yml
@@ -27,7 +27,7 @@ create-deployment-ont:
     DEPLOY_ENV: ont
 
 .deploy-apps:
-  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request-manual, rules]
   needs:
     - job: build-update-policy-server-image
       artifacts: false

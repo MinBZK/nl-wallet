@@ -33,7 +33,7 @@ class NoInternetErrorScreen : MobileActions() {
 
     fun appConfigVisible(): Boolean  {
         return getTextFromElementContainingText(l10n.getString("generalConfigVersionText"))
-            ?.contains(""".*\d+$""".toRegex()) ?: false
+            ?.contains(""".*\d+""".toRegex()) ?: false
     }
 
     fun seeDetails() = clickElementWithText(seeDetailsButton)

@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/busybox sh
 set -euo pipefail
 
 CONTEXT_BASE="$( cd -- "$( dirname -- "$0" )" &> /dev/null && pwd -P )"

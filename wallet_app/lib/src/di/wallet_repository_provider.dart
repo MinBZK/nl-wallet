@@ -132,7 +132,11 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => CoreVersionStringRepository(context.read()),
         ),
         RepositoryProvider<NotificationRepository>(
-          create: (context) => NotificationRepositoryImpl(context.read(), context.read()),
+          create: (context) => NotificationRepositoryImpl(
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
         ),
         RepositoryProvider<NetworkRepository>(
           lazy: false /* false to make sure [CoreErrorExtension.networkRepository] is available */,

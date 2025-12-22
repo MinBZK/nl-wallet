@@ -46,7 +46,7 @@ class ListItem extends StatelessWidget {
     required this.label,
     required this.subtitle,
     this.icon,
-    this.button,
+    this.button, // Ignored, only supported in .vertical
     this.style = ListItemStyle.compact,
     this.dividerSide = DividerSide.none,
     super.key,
@@ -56,7 +56,7 @@ class ListItem extends StatelessWidget {
     required this.label,
     required this.subtitle,
     this.icon,
-    this.button,
+    this.button, // Ignored, only supported in .vertical
     this.style = ListItemStyle.horizontal,
     this.dividerSide = DividerSide.none,
     super.key,

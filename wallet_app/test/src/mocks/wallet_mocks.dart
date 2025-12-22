@@ -12,6 +12,7 @@ import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
+import 'package:wallet/src/data/repository/notification/notification_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/pin/pin_repository.dart';
 import 'package:wallet/src/data/repository/tour/tour_repository.dart';
@@ -25,6 +26,7 @@ import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
+import 'package:wallet/src/data/store/notification_settings_store.dart';
 import 'package:wallet/src/domain/app_event/app_event_listener.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
@@ -53,6 +55,8 @@ import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisi
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
@@ -137,6 +141,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<TourRepository>()])
 @GenerateNiceMocks([MockSpec<IssuanceRepository>()])
 @GenerateNiceMocks([MockSpec<TransferRepository>()])
+@GenerateNiceMocks([MockSpec<NotificationRepository>()])
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 @GenerateNiceMocks([MockSpec<NavigationService>()])
@@ -148,6 +153,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<AppEventListener>()])
 @GenerateNiceMocks([MockSpec<AutoLockService>()])
 @GenerateNiceMocks([MockSpec<AnnouncementService>()])
+@GenerateNiceMocks([MockSpec<NotificationSettingsStore>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])
@@ -220,6 +226,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ObserveOsNotificationsUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckIsPidUseCase>()])
 @GenerateNiceMocks([MockSpec<MoveToReadyStateUseCase>()])
+@GenerateNiceMocks([MockSpec<ObservePushNotificationsSettingUseCase>()])
+@GenerateNiceMocks([MockSpec<SetPushNotificationsSettingUseCase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants
@@ -321,7 +329,8 @@ class Mocks {
             backgroundLockTimeout: Duration(minutes: 1),
             staticAssetsBaseUrl: 'https://example.com/',
             pidAttestationTypes: ['com.example.attestationType'],
-            version: 1,
+            version: '1',
+            environment: 'test',
           ),
         ),
       );

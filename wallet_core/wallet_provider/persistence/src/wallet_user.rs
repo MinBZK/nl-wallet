@@ -42,6 +42,22 @@ use crate::entity::wallet_user_instruction_challenge;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
+pub async fn list_wallet_ids<S, T>(db: &T) -> Result<Vec<String>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    Ok(wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::WalletId)
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .into_iter()
+        .map(|model| model.wallet_id)
+        .collect())
+}
+
 pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<Uuid>
 where
     S: ConnectionTrait,

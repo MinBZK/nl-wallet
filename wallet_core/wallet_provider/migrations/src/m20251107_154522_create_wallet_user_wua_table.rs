@@ -26,6 +26,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(WalletUserWua::Table)
+                    .name("wallet_wua_wallet_user_id")
+                    .col(WalletUserWua::WalletUserId)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 }

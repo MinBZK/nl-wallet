@@ -27,7 +27,7 @@ mock_example_constructors = [
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
-chrono = { workspace = true, features = ["std", "clock"] }
+chrono.workspace = true
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["debug"] }
@@ -65,6 +65,7 @@ sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+chrono = { workspace = true, features = ["now"] }
 hex-literal.workspace = true
 regex.workspace = true
 rstest.workspace = true

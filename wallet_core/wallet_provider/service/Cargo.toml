@@ -15,6 +15,11 @@ name = "account_server"
 path = "tests/account_server.rs"
 required-features = ["db_test"]
 
+[[test]]
+name = "revocation"
+path = "tests/revocation.rs"
+required-features = ["db_test"]
+
 [features]
 # This disables checking the request hash within an Android integrity verdict, which should only be used when combining
 # real Android integrity tokens (either from a real device or the emulator) with the MockPlayIntegrityClient below.
@@ -48,18 +53,16 @@ db_test = [
     "dep:status_lists",
     "mock",
     "mock_secure_keys",
+    "dep:tempfile",
     "tracing-subscriber/ansi",
-    "tracing-subscriber/fmt",
-    "tracing-subscriber/parking_lot",
-    "tracing-subscriber/smallvec",
-    "tracing-subscriber/std",
-    "tracing-subscriber/tracing-log",
+    "tracing-subscriber/env-filter",
     "wallet_provider_database_settings/test",
+    "wallet_provider_persistence/test",
 ]
 
 [dependencies]
 base64.workspace = true
-chrono = { workspace = true, features = ["clock", "std"] }
+chrono = { workspace = true, features = ["now", "serde"] }
 der = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["constructor", "into"] }
 futures = { workspace = true, features = ["std", "async-await"] }
@@ -67,7 +70,7 @@ itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rustls-pki-types.workspace = true
 rustls-webpki = { workspace = true, features = ["ring"] }
-semver = { workspace = true }
+semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
@@ -80,6 +83,7 @@ trait-variant.workspace = true
 anyhow = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
 
 android_attest.path = "../../lib/android_attest"

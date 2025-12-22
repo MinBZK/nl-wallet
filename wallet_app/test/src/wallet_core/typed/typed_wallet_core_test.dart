@@ -108,13 +108,14 @@ void main() {
     test('configuration is fetched through core by setting the configuration stream', () async {
       when(core.crateApiFullSetConfigurationStream()).thenAnswer(
         (_) => Stream.value(
-          FlutterConfiguration(
+          const FlutterConfiguration(
             inactiveWarningTimeout: 0,
             inactiveLockTimeout: 0,
             backgroundLockTimeout: 0,
             pidAttestationTypes: [],
             staticAssetsBaseUrl: '',
-            version: BigInt.zero,
+            version: '0',
+            environment: 'test',
           ),
         ),
       );

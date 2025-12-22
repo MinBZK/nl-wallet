@@ -183,9 +183,15 @@ pub fn is_problem_json_response(response: &Response) -> bool {
 }
 
 pub fn default_reqwest_client_builder() -> ClientBuilder {
+    // Enable gzip compression by default, but explicitly disable any other compression algorithm,
+    // to prevent these from being automatically enabled by `reqwest` feature flags.
     Client::builder()
         .timeout(CLIENT_REQUEST_TIMEOUT)
         .connect_timeout(CLIENT_CONNECT_TIMEOUT)
+        .gzip(true)
+        .no_brotli()
+        .no_zstd()
+        .no_deflate()
         .tls_built_in_root_certs(true)
 }
 

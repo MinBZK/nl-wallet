@@ -7,7 +7,7 @@ automation-compile-check:
 
 scheduled-automation-tests-trigger:
   rules:
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: deploy-apps-ont
       artifacts: false
@@ -380,10 +380,11 @@ run-performance-test-ont:
   allow_failure: true
 
 extract-manual-test-set:
-  allow_failure: true
+  rules: !reference [.default-branch, rules]
   script:
     - ./deploy/test-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
-  rules: !reference [.release-tag, rules]
+  when: manual
+  allow_failure: true
   artifacts:
     name: manual-test-set
     when: always

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use axum::Router;
 use axum::extract::DefaultBodyLimit;
@@ -70,6 +71,7 @@ use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::wua_issuer::WuaIssuer;
 
 use crate::errors::WalletProviderError;
+use crate::revoke;
 use crate::router_state::RouterState;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
@@ -186,6 +188,12 @@ where
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
+        // don't nest this as that won't work with utoipa
+        .merge(
+            revoke::internal_router()
+                .layer(TraceLayer::new_for_http())
+                .with_state(Arc::clone(&state)),
+        )
 }
 
 fn health_router<W, S>(user_state: &UserState<Repositories, Pkcs11Hsm, W, S>) -> Router {
@@ -196,14 +204,17 @@ fn health_router<W, S>(user_state: &UserState<Repositories, Pkcs11Hsm, W, S>) ->
     create_health_router(checkers)
 }
 
-fn metrics_router() -> Router {
-    let recorder_handle = PrometheusBuilder::new()
+/// Prometheus Handle can only be installed once
+static PROMETHEUS_HANDLE: LazyLock<PrometheusHandle> = LazyLock::new(|| {
+    PrometheusBuilder::new()
         .install_recorder()
-        .expect("failed to install Prometheus recorder");
+        .expect("failed to install Prometheus recorder")
+});
 
+fn metrics_router() -> Router {
     Router::new()
         .route("/metrics", get(metrics_handler))
-        .with_state(recorder_handle)
+        .with_state(PROMETHEUS_HANDLE.clone())
 }
 
 async fn metrics_handler(State(handle): State<PrometheusHandle>) -> String {

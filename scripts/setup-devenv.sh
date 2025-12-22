@@ -136,34 +136,63 @@ fi
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   echo -e "${SECTION}Configure and start digid-connector${NC}"
 
-  # Check for existing nl-rdo-max, re-use if existing, clone if not
+  # Check for existing nl-rdo-max, re-use if existing, clone if not.
   if [[ -d "${DIGID_CONNECTOR_PATH}" ]]; then
-    echo -e "${INFO}Using existing nl-rdo-max repository (not cloning)${NC}"
+    echo -e "${INFO}Using existing nl-rdo-max repository, making sure we're at the requested version tag/branch${NC}"
+
+    # Git fetch first, so we have the latest available
+    git -C "${DIGID_CONNECTOR_PATH}" fetch
+
+    # Undo any changes to package.json and package-lock.json we know to be discardable.
+    DIGID_CONNECTOR_PACKAGE_CHANGES_HASH=aec3870a1961fe429ffc00e171c48e58e6607be988698b1921a5d3d715fca155
+    DIGID_CONNECTOR_PACKAGE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff package.json package-lock.json | sha256sum | awk '{print $1}')
+    if [[ "$DIGID_CONNECTOR_PACKAGE_CHANGES_HASH" == "$DIGID_CONNECTOR_PACKAGE_CHANGES_COMMAND" ]]; then
+        echo -e "${INFO}Reverting known package.json, package-lock.json changes${NC}"
+        git -C "${DIGID_CONNECTOR_PATH}" checkout -- package.json package-lock.json
+    fi
+
+    # Undo any changes to resources/css/app.scss and resources/js/app.js we know to be discardable.
+    DIGID_CONNECTOR_CODE_CHANGES_HASH=3df338dfbafd21c15fbab77d2e72188cc1be1e8f0bb3a1a1667ed11d14fcbb26
+    DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff resources/css/app.scss resources/js/app.js | sha256sum | awk '{print $1}')
+    if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
+        echo -e "${INFO}Reverting known resources/css/app.scss, resources/js/app.js changes${NC}"
+        git -C "${DIGID_CONNECTOR_PATH}" checkout -- resources/css/app.scss resources/js/app.js
+    fi
+
+    # Undo any changes to docker/Dockerfile we know to be discardable.
+    DIGID_CONNECTOR_CODE_CHANGES_HASH=1f62b863412ecac49d60571e3231d814a7d13f535bdbac34aa5a9f8a4101c2f0
+    DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff docker/Dockerfile | sha256sum | awk '{print $1}')
+    if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
+        echo -e "${INFO}Reverting known docker/Dockerfile changes${NC}"
+        git -C "${DIGID_CONNECTOR_PATH}" checkout -- docker/Dockerfile
+    fi
+
+    # Warn user if any changes remain.
+    if [[ -n "$(git status --porcelain)" ]]; then
+        echo -e "${WARN}There are unknown changes in your nl-rdo-max repository, will attempt switch to ${DIGID_CONNECTOR_VERSION} anyway, but this might fail...${NC}"
+    fi
+
+    # Regardless any remaining changes, attempt to switch, catch error.
+    git -C "${DIGID_CONNECTOR_PATH}" checkout "${DIGID_CONNECTOR_VERSION}"
+
   else
     echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
-    # Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
-    git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
+    git clone -b "${DIGID_CONNECTOR_VERSION}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
   fi
 
-  # Enter nl-rdo-max git repository
+  # Enter nl-rdo-max git repository.
   cd "${DIGID_CONNECTOR_PATH}"
 
-  # Checkout validated-working commit
-  echo -e "${INFO}Switching to commit: ${DIGID_CONNECTOR_BASE_COMMIT}${NC}"
-  git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
+  # Don't use the rijksoverheid ui-theme.
+  npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
 
-  # Apply the patches, if not applied before
-  for p in "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*; do
-    if git apply --check "$p" 2> /dev/null; then
-      echo -e "${INFO}Applying patch: $p${NC}"
-      git apply "$p"
-    else
-      echo -e "${INFO}Skipping previously applied patch: $p${NC}"
-    fi
-  done
+  # Workaround for groupadd existing group
+  ${SED} -i 's|^RUN groupadd --system|RUN groupadd -f --system|' docker/Dockerfile
 
-  make setup-secrets setup-saml setup-config
+  # Create an RDO max container.
+  make setup-remote
 
+  # Create our config files (overwrites defaults created in make targets).
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
   render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
   render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
@@ -171,13 +200,13 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
   openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
       -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
+
   DIGID_CA_CRT=$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})
   export DIGID_CA_CRT
 
-  # Build max docker container
-  docker compose build max
   # Generate JWK from private RSA key of test_client.
-  CLIENT_PRIVKEY_JWK=$(docker compose run --rm max make --silent create-jwk)
+  CLIENT_PRIVKEY_JWK=$(docker compose run --rm app make --silent create-jwk)
+
   # Remove the 'kid' json field, because the digid-connector does not send a JWE 'kid' header claim, which is required
   # if `kid` field is specified.
   BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')

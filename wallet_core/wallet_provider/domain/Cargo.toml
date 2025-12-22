@@ -15,12 +15,13 @@ doctest = false
 mock = ["hmac/std", "hsm/mock", "rand"]
 
 [dependencies]
-chrono = { workspace = true, features = ["clock", "serde", "std"] }
+chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
-semver = { workspace = true }
+semver.workspace = true
 serde.workspace = true
+serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 uuid = { workspace = true, features = ["v4"] }

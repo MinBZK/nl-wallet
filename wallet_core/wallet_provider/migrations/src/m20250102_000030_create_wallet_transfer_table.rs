@@ -46,6 +46,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(WalletTransfer::Table)
+                    .name("wallet_transfer_destination_wallet_user_id")
+                    .col(WalletTransfer::DestinationWalletUserId)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 }

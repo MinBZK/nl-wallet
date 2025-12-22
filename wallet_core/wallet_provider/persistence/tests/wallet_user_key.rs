@@ -8,6 +8,8 @@ use uuid::Uuid;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
+use wallet_provider_persistence::test::db_from_env;
 use wallet_provider_persistence::wallet_user_key::delete_blocked_keys_in_same_batch;
 use wallet_provider_persistence::wallet_user_key::find_active_keys_by_identifiers;
 use wallet_provider_persistence::wallet_user_key::is_blocked_key;
@@ -29,7 +31,7 @@ fn test_wallet_user_key() -> WalletUserKey {
 
 #[tokio::test]
 async fn test_create_keys() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let key1 = WalletUserKey {
         is_blocked: false,
@@ -42,7 +44,7 @@ async fn test_create_keys() {
 
     let wallet_id = Uuid::new_v4().to_string();
 
-    let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
+    let wallet_user_id = create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
     persist_keys(
         &db,
@@ -77,7 +79,7 @@ async fn test_create_keys() {
 
 #[tokio::test]
 async fn test_move_keys() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let source_key1 = WalletUserKey {
         is_blocked: false,
@@ -93,11 +95,10 @@ async fn test_move_keys() {
     };
 
     let source_wallet_id = Uuid::new_v4();
-    let source_wallet_user_id = common::create_wallet_user_with_random_keys(&db, source_wallet_id.to_string()).await;
+    let source_wallet_user_id = create_wallet_user_with_random_keys(&db, source_wallet_id.to_string()).await;
 
     let destination_wallet_id = Uuid::new_v4();
-    let destination_wallet_user_id =
-        common::create_wallet_user_with_random_keys(&db, destination_wallet_id.to_string()).await;
+    let destination_wallet_user_id = create_wallet_user_with_random_keys(&db, destination_wallet_id.to_string()).await;
 
     // Create example keys in source and destination wallets
 
@@ -190,7 +191,7 @@ async fn test_move_keys() {
 
 #[tokio::test]
 async fn test_create_blocked_keys() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let key1 = WalletUserKey {
         is_blocked: true,
@@ -203,7 +204,7 @@ async fn test_create_blocked_keys() {
 
     let wallet_id = Uuid::new_v4().to_string();
 
-    let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
+    let wallet_user_id = create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
     let batch_id = Uuid::new_v4();
 
@@ -258,7 +259,7 @@ async fn test_create_blocked_keys() {
 
 #[tokio::test]
 async fn test_delete_blocked_keys() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let key1 = WalletUserKey {
         is_blocked: true,
@@ -271,7 +272,7 @@ async fn test_delete_blocked_keys() {
 
     let wallet_id = Uuid::new_v4().to_string();
 
-    let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
+    let wallet_user_id = create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
     let batch_id = Uuid::new_v4();
 
