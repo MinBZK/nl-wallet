@@ -7,7 +7,6 @@ use p256::ecdsa::VerifyingKey;
 
 use attestation_types::status_claim::StatusClaim;
 use crypto::keys::SecureEcdsaKey;
-use crypto::p256_der::verifying_key_sha256;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
@@ -27,7 +26,7 @@ pub trait WuaIssuer {
         &self,
         exp: DateTime<Utc>,
         status_claim: StatusClaim,
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error>;
+    ) -> Result<(WrappedKey, UnverifiedJwt<WuaClaims>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -60,7 +59,7 @@ where
         &self,
         exp: DateTime<Utc>,
         status_claim: StatusClaim,
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
+    ) -> Result<(WrappedKey, UnverifiedJwt<WuaClaims>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
@@ -71,7 +70,7 @@ where
         .await?
         .into();
 
-        Ok((wrapped_privkey, verifying_key_sha256(&pubkey), jwt))
+        Ok((wrapped_privkey, jwt))
     }
 
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -92,7 +91,6 @@ pub mod mock {
     use rand_core::OsRng;
 
     use attestation_types::status_claim::StatusClaim;
-    use crypto::p256_der::verifying_key_sha256;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::SignedJwt;
     use jwt::UnverifiedJwt;
@@ -109,7 +107,7 @@ pub mod mock {
             &self,
             exp: DateTime<Utc>,
             status_claim: StatusClaim,
-        ) -> Result<(WrappedKey, String, UnverifiedJwt<WuaClaims>), Self::Error> {
+        ) -> Result<(WrappedKey, UnverifiedJwt<WuaClaims>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
@@ -123,7 +121,6 @@ pub mod mock {
 
             Ok((
                 WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
-                verifying_key_sha256(privkey.verifying_key()),
                 jwt,
             ))
         }
@@ -165,7 +162,7 @@ mod tests {
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
-        let (wua_privkey, _key_id, wua) = wua_issuer
+        let (wua_privkey, wua) = wua_issuer
             .issue_wua(Utc::now() + Duration::from_secs(600), StatusClaim::new_mock())
             .await
             .unwrap();

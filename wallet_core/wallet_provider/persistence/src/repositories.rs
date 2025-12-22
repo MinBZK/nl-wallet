@@ -18,7 +18,6 @@ use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
@@ -132,36 +131,56 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         keys: WalletUserKeys,
     ) -> Result<(), PersistenceError> {
-        wallet_user_key::create_keys(transaction, keys).await
+        wallet_user_key::persist_keys(transaction, keys).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn save_pin_recovery_keys(
-        &self,
-        transaction: &Self::TransactionType,
-        keys: WalletUserPinRecoveryKeys,
-    ) -> Result<(), PersistenceError> {
-        wallet_user_key::create_pin_recovery_keys(transaction, keys).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn is_pin_recovery_key(
+    async fn is_blocked_key(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key: VerifyingKey,
-    ) -> Result<bool, PersistenceError> {
-        wallet_user_key::is_pin_recovery_key(transaction, wallet_user_id, key).await
+    ) -> Result<Option<bool>, PersistenceError> {
+        wallet_user_key::is_blocked_key(transaction, wallet_user_id, key).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn find_keys_by_identifiers(
+    async fn unblock_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::unblock_blocked_keys_in_same_batch(transaction, wallet_user_id, key).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn delete_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::delete_blocked_keys_in_same_batch(transaction, wallet_user_id, key).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn delete_all_blocked_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::delete_all_blocked_keys(transaction, wallet_user_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_active_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key_identifiers: &[String],
     ) -> Result<HashMap<String, WrappedKey>, PersistenceError> {
-        wallet_user_key::find_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
+        wallet_user_key::find_active_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -204,16 +223,18 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_id: Uuid) -> Result<(), PersistenceError> {
+    async fn recover_pin(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+    ) -> Result<(), PersistenceError> {
         wallet_user::transition_wallet_user_state(
             transaction,
-            wallet_id,
+            wallet_user_id,
             WalletUserState::RecoveringPin,
             WalletUserState::Active,
         )
-        .await?;
-
-        wallet_user_key::delete_pin_recovery_keys(transaction, wallet_id).await
+        .await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -440,7 +461,6 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-    use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
@@ -513,20 +533,34 @@ pub mod mock {
                 _keys: WalletUserKeys,
             ) -> Result<(), PersistenceError>;
 
-            async fn save_pin_recovery_keys(
-                &self,
-                _transaction: &MockTransaction,
-                _keys: WalletUserPinRecoveryKeys,
-            ) -> Result<(), PersistenceError>;
-
-            async fn is_pin_recovery_key(
+            async fn is_blocked_key(
                 &self,
                 _transaction: &MockTransaction,
                 _wallet_user_id: Uuid,
                 _key: VerifyingKey,
-            ) -> Result<bool, PersistenceError>;
+            ) -> Result<Option<bool>, PersistenceError>;
 
-            async fn find_keys_by_identifiers(
+            async fn unblock_blocked_keys_in_batch(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: Uuid,
+                _key: VerifyingKey,
+            ) -> Result<(), PersistenceError>;
+
+            async fn delete_blocked_keys_in_batch(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: Uuid,
+                _key: VerifyingKey,
+            ) -> Result<(), PersistenceError>;
+
+            async fn delete_all_blocked_keys(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: Uuid,
+            ) -> Result<(), PersistenceError>;
+
+            async fn find_active_keys_by_identifiers(
                 &self,
                 _transaction: &MockTransaction,
                 wallet_user_id: Uuid,
@@ -570,7 +604,7 @@ pub mod mock {
             async fn recover_pin(
                 &self,
                 transaction: &MockTransaction,
-                wallet_id: Uuid,
+                wallet_user_id: Uuid,
             ) -> Result<(), PersistenceError>;
 
             async fn has_multiple_active_accounts_by_recovery_code(
@@ -778,24 +812,42 @@ pub mod mock {
             Ok(())
         }
 
-        async fn save_pin_recovery_keys(
-            &self,
-            _transaction: &MockTransaction,
-            _keys: WalletUserPinRecoveryKeys,
-        ) -> Result<(), PersistenceError> {
-            Ok(())
-        }
-
-        async fn is_pin_recovery_key(
+        async fn is_blocked_key(
             &self,
             _transaction: &MockTransaction,
             _wallet_user_id: Uuid,
             _key: VerifyingKey,
-        ) -> Result<bool, PersistenceError> {
-            Ok(true)
+        ) -> Result<Option<bool>, PersistenceError> {
+            Ok(Some(true))
         }
 
-        async fn find_keys_by_identifiers(
+        async fn unblock_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn delete_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn delete_all_blocked_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn find_active_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
@@ -852,7 +904,7 @@ pub mod mock {
         async fn recover_pin(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: Uuid,
+            _wallet_user_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

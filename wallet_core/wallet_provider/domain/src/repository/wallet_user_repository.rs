@@ -14,7 +14,6 @@ use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
-use crate::model::wallet_user::WalletUserPinRecoveryKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
 use crate::model::wallet_user::WalletUserState;
 
@@ -65,20 +64,30 @@ pub trait WalletUserRepository {
 
     async fn save_keys(&self, transaction: &Self::TransactionType, keys: WalletUserKeys) -> Result<()>;
 
-    async fn save_pin_recovery_keys(
-        &self,
-        transaction: &Self::TransactionType,
-        keys: WalletUserPinRecoveryKeys,
-    ) -> Result<()>;
-
-    async fn is_pin_recovery_key(
+    async fn is_blocked_key(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key: VerifyingKey,
-    ) -> Result<bool>;
+    ) -> Result<Option<bool>>;
 
-    async fn find_keys_by_identifiers(
+    async fn delete_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<()>;
+
+    async fn delete_all_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
+
+    async fn unblock_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<()>;
+
+    async fn find_active_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
@@ -104,7 +113,7 @@ pub trait WalletUserRepository {
         recovery_code: String,
     ) -> Result<()>;
 
-    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_id: Uuid) -> Result<()>;
+    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
 
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
@@ -284,24 +293,42 @@ pub mod mock {
             Ok(())
         }
 
-        async fn save_pin_recovery_keys(
-            &self,
-            _transaction: &Self::TransactionType,
-            _keys: WalletUserPinRecoveryKeys,
-        ) -> Result<()> {
-            Ok(())
-        }
-
-        async fn is_pin_recovery_key(
+        async fn is_blocked_key(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             _key: VerifyingKey,
-        ) -> Result<bool> {
-            Ok(true)
+        ) -> Result<Option<bool>> {
+            Ok(Some(true))
         }
 
-        async fn find_keys_by_identifiers(
+        async fn unblock_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn delete_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn delete_all_blocked_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn find_active_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
@@ -337,7 +364,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn recover_pin(&self, _transaction: &Self::TransactionType, _wallet_id: Uuid) -> Result<()> {
+        async fn recover_pin(&self, _transaction: &Self::TransactionType, _wallet_user_id: Uuid) -> Result<()> {
             Ok(())
         }
 

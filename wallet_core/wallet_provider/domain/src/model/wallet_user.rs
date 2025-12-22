@@ -9,6 +9,7 @@ use serde_with::SerializeDisplay;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
+use crypto::p256_der::verifying_key_sha256;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_account::messages::transfer::TransferSessionState;
@@ -114,27 +115,21 @@ pub enum WalletUserAttestationCreate {
 #[derive(Clone)]
 pub struct WalletUserKeys {
     pub wallet_user_id: Uuid,
+    pub batch_id: Uuid,
     pub keys: Vec<WalletUserKey>,
 }
 
 #[derive(Clone)]
 pub struct WalletUserKey {
     pub wallet_user_key_id: Uuid,
-    pub key_identifier: String,
     pub key: WrappedKey,
+    pub is_blocked: bool,
 }
 
-#[derive(Clone)]
-pub struct WalletUserPinRecoveryKeys {
-    pub wallet_user_id: Uuid,
-    pub keys: Vec<WalletUserPinRecoveryKey>,
-}
-
-#[derive(Clone)]
-pub struct WalletUserPinRecoveryKey {
-    pub wallet_user_key_id: Uuid,
-    pub key_identifier: String,
-    pub pubkey: VerifyingKey,
+impl WalletUserKey {
+    pub fn sha256_fingerprint(&self) -> String {
+        verifying_key_sha256(self.key.public_key())
+    }
 }
 
 #[derive(Debug, Clone, Copy, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]

@@ -5,17 +5,21 @@ use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
+use sea_orm::DerivePartialModel;
 use sea_orm::EntityTrait;
-use sea_orm::PaginatorTrait;
+use sea_orm::FromQueryResult;
+use sea_orm::ModelTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
+use sea_orm::QueryTrait;
 use sea_orm::Set;
 use sea_orm::prelude::Expr;
+use sea_orm::sea_query::SelectStatement;
 use uuid::Uuid;
 
+use crypto::p256_der::verifying_key_sha256;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
@@ -23,7 +27,7 @@ use crate::entity::wallet_user_key;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-pub async fn create_keys<S, T>(db: &T, create: WalletUserKeys) -> Result<()>
+pub async fn persist_keys<S, T>(db: &T, create: WalletUserKeys) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -32,12 +36,16 @@ where
         .keys
         .into_iter()
         .map(|key_create| {
+            let key_identifier = verifying_key_sha256(key_create.key.public_key());
+
             Ok(wallet_user_key::ActiveModel {
                 id: Set(key_create.wallet_user_key_id),
                 wallet_user_id: Set(create.wallet_user_id),
-                identifier: Set(key_create.key_identifier),
+                batch_id: Set(create.batch_id),
+                identifier: Set(key_identifier),
                 public_key: Set(key_create.key.public_key().to_public_key_der()?.into_vec()),
-                encrypted_private_key: Set(Some(key_create.key.wrapped_private_key().to_vec())),
+                encrypted_private_key: Set(key_create.key.wrapped_private_key().to_vec()),
+                is_blocked: Set(key_create.is_blocked),
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -49,67 +57,52 @@ where
         .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
-pub async fn create_pin_recovery_keys<S, T>(db: &T, create: WalletUserPinRecoveryKeys) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let models = create
-        .keys
-        .into_iter()
-        .map(|key_create| {
-            Ok(wallet_user_key::ActiveModel {
-                id: Set(key_create.wallet_user_key_id),
-                wallet_user_id: Set(create.wallet_user_id),
-                identifier: Set(key_create.key_identifier),
-                public_key: Set(key_create.pubkey.to_public_key_der()?.into_vec()),
-                encrypted_private_key: Set(None),
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    wallet_user_key::Entity::insert_many(models)
-        .exec(db.connection())
-        .await
-        .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+#[derive(FromQueryResult, DerivePartialModel)]
+#[sea_orm(entity = "<wallet_user_key::Model as ModelTrait>::Entity")]
+pub struct IsBlockedModel {
+    pub is_blocked: bool,
 }
 
-pub async fn is_pin_recovery_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<bool>
+pub async fn is_blocked_key<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<Option<bool>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let is_recovery_key = match wallet_user_key::Entity::find()
-        .filter(
-            wallet_user_key::Column::WalletUserId
-                .eq(wallet_user_id)
-                .and(wallet_user_key::Column::PublicKey.eq(key.to_public_key_der()?.into_vec()))
-                .and(wallet_user_key::Column::EncryptedPrivateKey.is_null()),
-        )
-        .count(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
-    {
-        0 => false,
-        1 => true,
-        _ => panic!("multiple identical public keys found"),
-    };
+    let key_identifier = verifying_key_sha256(&key);
 
-    Ok(is_recovery_key)
+    let blocked_query_result: Option<IsBlockedModel> = wallet_user_key::Entity::find()
+        .select_only()
+        .column(wallet_user_key::Column::IsBlocked)
+        .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
+        .filter(wallet_user_key::Column::Identifier.eq(key_identifier))
+        .into_partial_model()
+        .one(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(blocked_query_result.map(|query_result| query_result.is_blocked))
 }
 
-pub async fn delete_pin_recovery_keys<S, T>(db: &T, wallet_id: Uuid) -> Result<()>
+fn select_batch_id(wallet_user_id: Uuid, key_identifier: String) -> SelectStatement {
+    wallet_user_key::Entity::find()
+        .select_only()
+        .column(wallet_user_key::Column::BatchId)
+        .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
+        .filter(wallet_user_key::Column::Identifier.eq(key_identifier))
+        .into_query()
+}
+
+pub async fn unblock_blocked_keys_in_same_batch<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user_key::Entity::delete_many()
-        .filter(
-            wallet_user_key::Column::WalletUserId
-                .eq(wallet_id)
-                .and(wallet_user_key::Column::EncryptedPrivateKey.is_null()),
-        )
+    let key_identifier = verifying_key_sha256(&key);
+
+    wallet_user_key::Entity::update_many()
+        .col_expr(wallet_user_key::Column::IsBlocked, Expr::value(false))
+        .filter(wallet_user_key::Column::IsBlocked.eq(true))
+        .filter(wallet_user_key::Column::BatchId.in_subquery(select_batch_id(wallet_user_id, key_identifier)))
         .exec(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
@@ -117,9 +110,42 @@ where
     Ok(())
 }
 
-pub async fn find_keys_by_identifiers<S, T>(
+pub async fn delete_blocked_keys_in_same_batch<S, T>(db: &T, wallet_user_id: Uuid, key: VerifyingKey) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let key_identifier = verifying_key_sha256(&key);
+
+    wallet_user_key::Entity::delete_many()
+        .filter(wallet_user_key::Column::IsBlocked.eq(true))
+        .filter(wallet_user_key::Column::BatchId.in_subquery(select_batch_id(wallet_user_id, key_identifier)))
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(())
+}
+
+pub async fn delete_all_blocked_keys<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_key::Entity::delete_many()
+        .filter(wallet_user_key::Column::IsBlocked.eq(true))
+        .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(())
+}
+
+/// Retrieves all active (i.e. unblocked) keys for user `[wallet_user_id]` by `[identifiers]`.
+pub async fn find_active_keys_by_identifiers<S, T>(
     db: &T,
-    wallet_user_id: uuid::Uuid,
+    wallet_user_id: Uuid,
     identifiers: &[String],
 ) -> Result<HashMap<String, WrappedKey>>
 where
@@ -131,11 +157,9 @@ where
         .column(wallet_user_key::Column::Identifier)
         .column(wallet_user_key::Column::EncryptedPrivateKey)
         .column(wallet_user_key::Column::PublicKey)
-        .filter(
-            wallet_user_key::Column::WalletUserId
-                .eq(wallet_user_id)
-                .and(wallet_user_key::Column::Identifier.is_in(identifiers)),
-        )
+        .filter(wallet_user_key::Column::Identifier.is_in(identifiers))
+        .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
+        .filter(wallet_user_key::Column::IsBlocked.eq(false))
         .into_tuple::<(String, Vec<u8>, Vec<u8>)>()
         .all(db.connection())
         .await
