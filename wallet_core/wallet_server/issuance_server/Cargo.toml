@@ -42,6 +42,7 @@ anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 config = { workspace = true, features = ["toml", "preserve_order"] }
+derive_more = { workspace = true, features = ["debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 itertools.workspace = true
 indexmap.workspace = true
@@ -52,6 +53,7 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 serde_urlencoded.workspace = true
 thiserror.workspace = true
+tracing.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 trait-variant.workspace = true
 sea-orm = { workspace = true, optional = true }

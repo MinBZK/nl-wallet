@@ -46,6 +46,7 @@ anyhow.workspace = true
 axum.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
+derive_more = { workspace = true, features = ["debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
@@ -58,9 +59,9 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
-derive_more = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 
 attestation_data = { path = "../../lib/attestation_data" }

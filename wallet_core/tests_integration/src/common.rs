@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -11,7 +10,6 @@ use axum::Json;
 use axum::Router;
 use axum::routing::post;
 use ctor::ctor;
-use futures::future;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use reqwest::Certificate;
@@ -22,6 +20,8 @@ use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
 use tokio::net::TcpListener;
 use tokio::time;
+use tracing::Instrument;
+use tracing::info_span;
 use url::Url;
 
 use android_attest::android_crl::RevocationStatusList;
@@ -31,7 +31,6 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
-use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -63,15 +62,18 @@ use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::Server;
 use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
+use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
-use token_status_list::status_list_service::mock::MockStatusListServices;
-use token_status_list::verification::client::mock::MockStatusListServicesClient;
+use status_lists::config::StatusListConfigs;
+use status_lists::postgres::PostgresStatusListServices;
+use status_lists::serve::create_serve_router;
+use status_lists::settings::StatusListsSettings;
+use token_status_list::verification::reqwest::HttpStatusListClient;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
@@ -288,23 +290,10 @@ pub async fn setup_env(
     )
     .unwrap();
 
-    let attestation_settings = attestation_settings(
-        &issuer_settings.issuer_settings,
-        &issuance_server_settings.issuer_settings,
-        Some(hsm.clone()),
-    )
-    .await;
+    let verifier_server_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
 
-    let verifier_server_urls =
-        start_verification_server(verifier_settings, attestation_settings.clone(), Some(hsm.clone())).await;
-
-    let issuance_server_url = start_issuance_server(
-        issuance_server_settings,
-        Some(hsm.clone()),
-        attributes_fetcher,
-        attestation_settings,
-    )
-    .await;
+    let issuance_server_url =
+        start_issuance_server(issuance_server_settings, Some(hsm.clone()), attributes_fetcher).await;
 
     let pid_issuer_port = start_pid_issuer_server(
         issuer_settings,
@@ -620,33 +609,54 @@ fn internal_url(server_settings: &Settings) -> BaseUrl {
     }
 }
 
-async fn attestation_settings(
-    pid_issuer_settings: &IssuerSettings,
-    disclosure_based_issuance_settings: &IssuerSettings,
-    hsm: Option<Pkcs11Hsm>,
-) -> HashMap<String, KeyPair<PrivateKeyVariant>> {
-    HashMap::from_iter(
-        future::join_all(
-            pid_issuer_settings
-                .attestation_settings
-                .as_ref()
-                .iter()
-                .chain(disclosure_based_issuance_settings.attestation_settings.as_ref().iter())
-                .map(|(vct, attestation_type_config_settings)| async {
-                    let status_list_attestation_settings = &attestation_type_config_settings.status_list;
-                    (
-                        vct.clone(),
-                        status_list_attestation_settings
-                            .keypair
-                            .clone()
-                            .parse(hsm.clone())
-                            .await
-                            .unwrap(),
-                    )
-                }),
-        )
-        .await,
+async fn get_internal_listener(server_settings: &mut server_utils::settings::Settings) -> Option<TcpListener> {
+    match &mut server_settings.internal_server {
+        ServerAuth::Authentication(_) => None,
+        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
+            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
+            server.port = listener.local_addr().unwrap().port();
+            Some(listener)
+        }
+    }
+}
+
+async fn get_status_list_service_and_router(
+    storage_url: Url,
+    issuer_settings: &IssuerSettings,
+    status_lists_settings: &StatusListsSettings,
+    hsm: &Option<Pkcs11Hsm>,
+) -> (Router, PostgresStatusListServices) {
+    let db_connection = new_connection(storage_url).await.unwrap();
+
+    let status_list_router = create_serve_router(
+        (&issuer_settings.attestation_settings)
+            .into_iter()
+            .map(|(_, settings)| {
+                (
+                    settings.status_list.context_path.as_str(),
+                    settings.status_list.publish_dir.clone(),
+                )
+            }),
+        None,
     )
+    .unwrap();
+
+    let status_list_configs = StatusListConfigs::from_settings(
+        &issuer_settings.server_settings.public_url,
+        status_lists_settings,
+        (&issuer_settings.attestation_settings)
+            .into_iter()
+            .map(|(id, settings)| (id.to_owned(), settings.status_list.clone())),
+        hsm,
+    )
+    .await
+    .unwrap();
+
+    let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs)
+        .await
+        .unwrap();
+
+    (status_list_router, status_list_services)
 }
 
 async fn start_mock_attestation_server(
@@ -679,21 +689,13 @@ pub async fn start_issuance_server(
     mut settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     attributes_fetcher: impl AttributesFetcher + Sync + 'static,
-    attestation_settings: HashMap<String, KeyPair<PrivateKeyVariant>>,
 ) -> BaseUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = public_listener.local_addr().unwrap().port();
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
     settings.issuer_settings.server_settings.public_url = public_url.clone();
 
-    let internal_listener = match &mut settings.issuer_settings.server_settings.internal_server {
-        ServerAuth::Authentication(_) => None,
-        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
-            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
-            server.port = listener.local_addr().unwrap().port();
-            Some(listener)
-        }
-    };
+    let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
 
@@ -710,27 +712,39 @@ pub async fn start_issuance_server(
         storage_settings.into(),
     ));
 
-    tokio::spawn(async move {
-        if let Err(error) = issuance_server::server::serve_with_listeners(
-            public_listener,
-            internal_listener,
-            settings,
-            hsm,
-            issuance_sessions,
-            disclosure_settings,
-            attributes_fetcher,
-            MockStatusListServices::default(),
-            None,
-            MockStatusListServicesClient::new(attestation_settings),
-            create_health_router([]),
-        )
-        .await
-        {
-            println!("Could not start issuance_server: {error:?}");
+    let (status_list_router, status_list_services) = get_status_list_service_and_router(
+        storage_settings.url.clone(),
+        &settings.issuer_settings,
+        &settings.status_lists,
+        &hsm,
+    )
+    .await;
+    let status_list_client = HttpStatusListClient::new().unwrap();
 
-            process::exit(1);
+    tokio::spawn(
+        async move {
+            if let Err(error) = issuance_server::server::serve_with_listeners(
+                public_listener,
+                internal_listener,
+                settings,
+                hsm,
+                issuance_sessions,
+                disclosure_settings,
+                attributes_fetcher,
+                status_list_services,
+                Some(status_list_router),
+                status_list_client,
+                create_health_router([]),
+            )
+            .await
+            {
+                println!("Could not start issuance_server: {error:?}");
+
+                process::exit(1);
+            }
         }
-    });
+        .instrument(info_span!("service", name = "issuance_server")),
+    );
 
     wait_for_server(public_url.clone(), std::iter::empty()).await;
     public_url
@@ -745,14 +759,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     let port = public_listener.local_addr().unwrap().port();
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
 
-    let internal_listener = match &mut settings.issuer_settings.server_settings.internal_server {
-        ServerAuth::Authentication(_) => None,
-        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
-            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
-            server.port = listener.local_addr().unwrap().port();
-            Some(listener)
-        }
-    };
+    let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
     settings.issuer_settings.server_settings.public_url = public_url.clone();
@@ -766,47 +773,47 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         storage_settings.into(),
     ));
 
-    tokio::spawn(async move {
-        if let Err(error) = pid_issuer::server::serve_with_listeners(
-            public_listener,
-            internal_listener,
-            attr_service,
-            settings.issuer_settings,
-            hsm,
-            issuance_sessions,
-            settings.wua_issuer_pubkey.into_inner(),
-            MockStatusListServices::default(),
-            None,
-            create_health_router([]),
-        )
-        .await
-        {
-            println!("Could not start pid_issuer: {error:?}");
+    let (status_list_router, status_list_services) = get_status_list_service_and_router(
+        storage_settings.url.clone(),
+        &settings.issuer_settings,
+        &settings.status_lists,
+        &hsm,
+    )
+    .await;
 
-            process::exit(1);
+    tokio::spawn(
+        async move {
+            if let Err(error) = pid_issuer::server::serve_with_listeners(
+                public_listener,
+                internal_listener,
+                attr_service,
+                settings.issuer_settings,
+                hsm,
+                issuance_sessions,
+                settings.wua_issuer_pubkey.into_inner(),
+                status_list_services,
+                Some(status_list_router),
+                create_health_router([]),
+            )
+            .await
+            {
+                println!("Could not start pid_issuer: {error:?}");
+
+                process::exit(1);
+            }
         }
-    });
+        .instrument(info_span!("service", name = "pid_issuer")),
+    );
 
     wait_for_server(public_url, std::iter::empty()).await;
     port
 }
 
-pub async fn start_verification_server(
-    mut settings: VerifierSettings,
-    attestation_settings: HashMap<String, KeyPair<PrivateKeyVariant>>,
-    hsm: Option<Pkcs11Hsm>,
-) -> DisclosureParameters {
+pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) -> DisclosureParameters {
     let wallet_listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = wallet_listener.local_addr().unwrap().port();
 
-    let requester_listener = match &mut settings.server_settings.internal_server {
-        ServerAuth::Authentication(_) => None,
-        ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
-            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
-            server.port = listener.local_addr().unwrap().port();
-            Some(listener)
-        }
-    };
+    let requester_listener = get_internal_listener(&mut settings.server_settings).await;
 
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
     let internal_url = internal_url(&settings.server_settings);
@@ -823,22 +830,27 @@ pub async fn start_verification_server(
         storage_settings.into(),
     ));
 
-    tokio::spawn(async move {
-        if let Err(error) = verification_server::server::serve_with_listeners(
-            wallet_listener,
-            requester_listener,
-            settings,
-            hsm,
-            disclosure_sessions,
-            MockStatusListServicesClient::new(attestation_settings),
-        )
-        .await
-        {
-            println!("Could not start verification_server: {error:?}");
+    let status_list_client = HttpStatusListClient::new().unwrap();
 
-            process::exit(1);
+    tokio::spawn(
+        async move {
+            if let Err(error) = verification_server::server::serve_with_listeners(
+                wallet_listener,
+                requester_listener,
+                settings,
+                hsm,
+                disclosure_sessions,
+                status_list_client,
+            )
+            .await
+            {
+                println!("Could not start verification_server: {error:?}");
+
+                process::exit(1);
+            }
         }
-    });
+        .instrument(info_span!("service", name = "verification_server")),
+    );
 
     wait_for_server(public_url.clone(), std::iter::empty()).await;
     DisclosureParameters {

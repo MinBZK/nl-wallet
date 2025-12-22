@@ -65,6 +65,11 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "revocation"
+path = "tests/revocation.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "transfer"
 path = "tests/transfer.rs"
 required-features = ["integration_test"]
@@ -121,6 +126,7 @@ test_common = [
     "openid4vc_server/issuance",
     "p256/pkcs8",
     "pid_issuer/mock",
+    "pid_issuer/postgres",
     "platform_support/mock",
     "rustls/ring",
     "sea-orm/debug-print",
@@ -128,6 +134,7 @@ test_common = [
     "sea-orm/runtime-tokio-rustls",
     "sea-orm/sqlx-postgres",
     "sea-orm/with-uuid",
+    "status_lists/axum",
     "tokio/parking_lot",
     "tokio/rt",
     "tokio/time",
