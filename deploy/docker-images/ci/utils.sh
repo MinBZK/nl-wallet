@@ -11,6 +11,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   git \
   jq \
   xxd \
+  imagemagick \
   gnupg2 \
   sudo \
   openssh-client \
