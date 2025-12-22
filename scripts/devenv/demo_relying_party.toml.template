@@ -34,17 +34,10 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "nationalities"], intent_to_retain = true }
-]
-
-[[usecases.online_marketplace.dcql_query.credentials]]
-id = "my_address"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
-claims = [
-    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "nationalities"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "postal_code"], intent_to_retain = true }
 ]
 
 [[usecases.xyz_bank_mdoc.dcql_query.credentials]]
@@ -54,17 +47,10 @@ meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
     { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true }
-]
-
-[[usecases.xyz_bank_mdoc.dcql_query.credentials]]
-id = "mdoc_address"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
-claims = [
-    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "postal_code"], intent_to_retain = true }
 ]
 
 [[usecases.xyz_bank_sd_jwt.dcql_query.credentials]]
@@ -74,14 +60,7 @@ meta = { vct_values = ["urn:eudi:pid:nl:1"] }
 claims = [
     { path = ["given_name"]},
     { path = ["family_name"] },
-    { path = ["birthdate"] }
-]
-
-[[usecases.xyz_bank_sd_jwt.dcql_query.credentials]]
-id = "sd_jwt_address"
-format = "dc+sd-jwt"
-meta = { vct_values = ["urn:eudi:pid-address:nl:1"] }
-claims = [
+    { path = ["birthdate"] },
     { path = ["address", "street_address"] },
     { path = ["address", "house_number"] },
     { path = ["address", "postal_code"] }
@@ -94,14 +73,7 @@ meta = { vct_values = ["urn:eudi:pid:1"] }
 claims = [
     { path = ["given_name"]},
     { path = ["family_name"] },
-    { path = ["birthdate"] }
-]
-
-[[usecases.xyz_bank_sd_jwt_eu.dcql_query.credentials]]
-id = "sd_jwt_address"
-format = "dc+sd-jwt"
-meta = { vct_values = ["urn:eudi:pid-address:1"] }
-claims = [
+    { path = ["birthdate"] },
     { path = ["address", "street_address"] },
     { path = ["address", "house_number"] },
     { path = ["address", "postal_code"] }
@@ -115,18 +87,11 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "gender"], intent_to_retain = true }
-]
-
-[[usecases.monkey_bike.dcql_query.credentials]]
-id = "my_address"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
-claims = [
-    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "locality"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "gender"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "postal_code"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "locality"], intent_to_retain = true }
 ]
 
 [[usecases.job_finder.dcql_query.credentials]]

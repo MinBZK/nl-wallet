@@ -7,7 +7,6 @@ allow_origins = ["http://${SERVICES_HOST}:${DEMO_RP_PORT}"]
 
 [extending_vct_values]
 "urn:eudi:pid:1" = ["urn:eudi:pid:nl:1"]
-"urn:eudi:pid-address:1" = ["urn:eudi:pid-address:nl:1"]
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/verification_server'

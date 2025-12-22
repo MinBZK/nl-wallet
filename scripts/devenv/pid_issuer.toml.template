@@ -7,8 +7,6 @@ wua_issuer_pubkey = "${WP_WUA_PUBLIC_KEY}"
 metadata = [
     "${ISSUER_METADATA_PID_PATH}",
     "${ISSUER_METADATA_PID_NL_PATH}",
-    "${ISSUER_METADATA_ADDRESS_PATH}",
-    "${ISSUER_METADATA_ADDRESS_NL_PATH}"
 ]
 
 [storage]
@@ -47,21 +45,7 @@ private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 
-[attestation_settings."urn:eudi:pid-address:nl:1"]
-valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
-private_key_type = "hsm"
-private_key = "${PID_ISSUER_KEY}"
-certificate = "${PID_ISSUER_CRT}"
-
 [attestation_settings."urn:eudi:pid:nl:1".status_list]
-context_path = "/tsl"
-publish_dir = "resources/status-lists"
-private_key_type = "software"
-private_key = "${PID_ISSUER_TSL_KEY}"
-certificate = "${PID_ISSUER_TSL_CRT}"
-
-[attestation_settings."urn:eudi:pid-address:nl:1".status_list]
 context_path = "/tsl"
 publish_dir = "resources/status-lists"
 private_key_type = "software"

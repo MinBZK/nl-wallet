@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-vVXio7oP2Xnm9DwNx7nY3BFut7g7MJO9EzicYCEbL4E=",
+  "extends#integrity": "sha256-+lQlbtIT80DYuPwDxEry2iN1UF6Uhh1SrQ9iJVEHiOs=",
   "display": [
     {
       "lang": "en-US",
@@ -118,6 +118,62 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": ["address", "street_address"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Straatnaam",
+          "description": "Straatnaam van het adres"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "house_number"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Huisnummer",
+          "description": "Huisnummer van het adres"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "postal_code"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Postcode",
+          "description": "Postcode van het adres"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "locality"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Stad",
+          "description": "Stad van het adres"
+        }
+      ],
+      "sd": "always",
+      "svg_id": "resident_city"
+    },
+    {
+      "path": ["address", "country"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Land",
+          "description": "Land van het adres"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {
@@ -180,17 +236,41 @@
       },
       "recovery_code": {
         "type": "string"
+      },
+      "address": {
+        "type": "object",
+        "properties": {
+          "street_address": {
+            "type": "string"
+          },
+          "house_number": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        },
+        "required": ["street_address", "house_number", "postal_code", "locality", "country"]
       }
     },
     "required": [
       "vct",
       "iss",
+      "iat",
+      "exp",
       "attestation_qualification",
       "given_name",
       "family_name",
       "birthdate",
       "bsn",
-      "recovery_code"
+      "recovery_code",
+      "address"
     ]
   }
 }
