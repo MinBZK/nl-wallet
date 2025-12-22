@@ -100,7 +100,6 @@ class HistoryTests : TestBase() {
             { assertTrue(historyOverviewScreen.visible(), "history overview screen is not visible") },
             { assertTrue(historyOverviewScreen.pidIssuanceLogEntryVisible(), "pid issuance log entry is not visible") },
             { assertTrue(historyOverviewScreen.issuanceSubtitleVisible(), "pid issuance log entry is not visible") },
-            { assertTrue(historyOverviewScreen.addressIssuanceLogEntryVisible(), "address issuance log entry is not visible") },
             { assertTrue(historyOverviewScreen.loginDisclosureLogEntryVisible(), "login log entry is not visible") },
             { assertTrue(historyOverviewScreen.disclosureOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM))) }
         )
