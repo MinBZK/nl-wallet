@@ -1,9 +1,12 @@
 require 'active_support'
 require 'active_support/core_ext'
 
+require_relative 'badge'
+
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
 DEFAULT_APP_NAME = "NL Wallet"
+BADGE_FONT='../wallet_core/demo/demo_utils/assets/non-free/fonts/RO-SansWebText-Regular.ttf'
 
 # opt out of analytics
 opt_out_usage
@@ -90,6 +93,12 @@ private_lane :upload_to_browserstack do |options|
 end
 
 platform :android do
+  desc "Add badge to launcher icons"
+  lane :add_badge do |options|
+    badge = Badge::new(options['label'] || 'latest', BADGE_FONT)
+    Pathname.new('../wallet_app').glob('**/ic_launcher*.{png,webp}').each { |i| badge.add_to_image(i) }
+  end
+
   desc "Build and sign Android app"
   lane :build do |options|
 
@@ -200,6 +209,12 @@ platform :android do
 end
 
 platform :ios do
+  desc "Add badge to app icons"
+  lane :add_badge do |options|
+    badge = Badge::new(options['label'] || 'latest', BADGE_FONT)
+    Pathname.new('../wallet_app').glob('**/AppIcon.appiconset/*.png').each { |i| badge.add_to_image(i) }
+  end
+
   desc "Deploy iOS app from GitLab CI"
   lane :ci_deploy do |options|
     # Get app identifier
