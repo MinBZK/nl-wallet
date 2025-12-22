@@ -251,9 +251,8 @@ async fn test_create_blocked_keys() {
         &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
     )
     .await
-    .unwrap()
-    .into_iter()
-    .collect::<Vec<_>>();
+    .unwrap();
+
     assert_eq!(active_keys.len(), 2);
 }
 
