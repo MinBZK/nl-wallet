@@ -23,7 +23,7 @@ use tests_integration::common::*;
 #[serial(hsm)]
 async fn ltc1_test_pid_ok() {
     let pin = "112233";
-    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -129,7 +129,7 @@ fn pid_missing_required() -> IssuableDocument {
 #[serial(hsm)]
 async fn ltc1_test_pid_optional_attributes() {
     let pin = "112233";
-    let (mut wallet, _, _) = setup_wallet_and_env(
+    let (mut wallet, _, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(),
@@ -173,7 +173,7 @@ async fn ltc1_test_pid_optional_attributes() {
 #[serial(hsm)]
 async fn ltc2_test_pid_missing_required_attributes() {
     let pin = "112233";
-    let (mut wallet, _, _) = setup_wallet_and_env(
+    let (mut wallet, _, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(),

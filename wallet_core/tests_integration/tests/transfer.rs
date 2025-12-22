@@ -41,7 +41,7 @@ async fn init_wallets() -> (WalletData, WalletData) {
     let source_tempdir = TempDir::new().unwrap();
     let destination_tempdir = TempDir::new().unwrap();
 
-    let (config_server_config, mock_device_config, wallet_config, issuance_url, _) = setup_env_default().await;
+    let (config_server_config, mock_device_config, wallet_config, _, issuance_url, _) = setup_env_default().await;
 
     let mut source = setup_file_wallet(
         config_server_config.clone(),

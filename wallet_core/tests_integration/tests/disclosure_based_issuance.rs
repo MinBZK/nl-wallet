@@ -31,7 +31,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
 ) {
     // Start with a wallet that contains the PID.
     let pin = "112233";
-    let (mut wallet, urls, issuance_url) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, issuance_url, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
@@ -227,7 +227,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     let (issuance_server_settings, _, di_trust_anchor, di_tls_config) = issuance_server_settings();
 
     let pin = "112233";
-    let (mut wallet, _, issuance_url) = setup_wallet_and_env(
+    let (mut wallet, _, issuance_url, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(),

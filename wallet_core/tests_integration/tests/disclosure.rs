@@ -58,7 +58,7 @@ async fn assert_disclosure_ok(
     };
 
     let pin = "112233";
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -286,7 +286,7 @@ async fn ltc15_test_disclosure_extended_vct_ok() {
 #[serial(hsm)]
 async fn ltc20_test_disclosure_without_pid() {
     let pin = "112233";
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     let client = reqwest::Client::new();

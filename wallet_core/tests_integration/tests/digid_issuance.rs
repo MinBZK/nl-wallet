@@ -61,7 +61,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     )
     .unwrap();
 
-    let port = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
+    let (pid_issuer_public_port, _) = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
@@ -90,7 +90,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .await
         .unwrap();
 
-    let server_url = local_pid_base_url(port);
+    let server_url = local_pid_base_url(pid_issuer_public_port);
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let issuance_session = HttpIssuanceSession::start_issuance(

@@ -1,8 +1,11 @@
 use std::time::Duration;
 
+use sea_orm::prelude::Uuid;
+use serde::Deserialize;
 use serial_test::serial;
 
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use http_utils::reqwest::default_reqwest_client_builder;
 use token_status_list::verification::verifier::RevocationStatus;
 use wallet::AttestationPresentation;
 
@@ -13,7 +16,7 @@ use tests_integration::common::*;
 async fn test_revocation_ok() {
     let pin = "112233";
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _, pid_issuer_internal_url) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -32,7 +35,7 @@ async fn test_revocation_ok() {
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let pid_attestation = get_pid_attestation(&mut wallet).await;
-            if pid_attestation.validity.revocation_status.is_some() {
+            if pid_attestation.validity.revocation_status == Some(RevocationStatus::Valid) {
                 break;
             }
 
@@ -43,12 +46,54 @@ async fn test_revocation_ok() {
     .expect("Timeout waiting for revocation status");
 
     wallet.stop_background_revocation_checks();
-    let pid_attestation = get_pid_attestation(&mut wallet).await;
 
-    assert_eq!(
-        Some(RevocationStatus::Valid),
-        pid_attestation.validity.revocation_status,
-    );
+    let client = default_reqwest_client_builder().build().unwrap();
+
+    #[derive(Deserialize)]
+    struct Batch {
+        batch_id: Uuid,
+        is_revoked: bool,
+    }
+
+    // Retrieve all batches
+    let batch_values = client
+        .get(pid_issuer_internal_url.join("/batch/"))
+        .send()
+        .await
+        .unwrap()
+        .json::<Vec<Batch>>()
+        .await
+        .unwrap();
+
+    let batch_ids = batch_values
+        .into_iter()
+        .filter_map(|batch| (!batch.is_revoked).then_some(batch.batch_id))
+        .collect::<Vec<_>>();
+
+    // Revoke all batches
+    client
+        .post(pid_issuer_internal_url.join("/revoke/"))
+        .json(&batch_ids)
+        .send()
+        .await
+        .unwrap();
+
+    // Check that the pid attestation now is revoked
+    wallet.start_background_revocation_checks(Duration::from_millis(10));
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let pid_attestation = get_pid_attestation(&mut wallet).await;
+            if pid_attestation.validity.revocation_status == Some(RevocationStatus::Revoked) {
+                break;
+            }
+
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await
+    .expect("Timeout waiting for revocation status");
+
+    wallet.stop_background_revocation_checks();
 }
 
 async fn get_pid_attestation(wallet: &mut WalletWithStorage) -> AttestationPresentation {
