@@ -211,9 +211,16 @@ build-wallet-server-migrations-binaries:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "pid_issuer_migrations" --bin pid_issuer_migrations
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "issuance_server_migrations" --bin issuance_server_migrations
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "verification_server_migrations" --bin verification_server_migrations
+    # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package "issuance_server_migrations" --bin issuance_server_migrations
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package "verification_server_migrations" --bin verification_server_migrations
+      fi
   artifacts:
     name: wallet_server_migrations
     paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/*_migrations
       - wallet_core/target/x86_64-unknown-linux-musl/release/*_migrations
 
 build-demo-relying-party-binary:
