@@ -12,17 +12,16 @@ class Badge
         @font = font
         @bg_fill = '#ff9900a0'
         @fg_fill = '#eeeeee'
-        @font_rel_size = 0.12
         @scale = 1.2
     end
 
-    def add_to_image(path, translate, compose: 'atop')
+    def add_to_image(path, font_rel_size:, translate:, compose: 'atop')
         image = MiniMagick::Image.new(path)
         raise BadgeError.new("ERROR: `#{path}` not a square image") unless image.width == image.height
 
-        font_size = (@font_rel_size * image.height).round
-        rect_y0 = ((0.5 + @font_rel_size * 0.6) * image.height).floor
-        rect_y1 = ((0.5 - @font_rel_size * 0.6) * image.height).ceil
+        font_size = (font_rel_size * image.height).round
+        rect_y0 = ((0.5 + font_rel_size * 0.6) * image.height).floor
+        rect_y1 = ((0.5 - font_rel_size * 0.6) * image.height).ceil
         center_x = (0.5 * image.width).round
         center_y = (0.5 * image.height).round
         transl_x = (translate * image.width).round
