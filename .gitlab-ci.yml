@@ -26,9 +26,9 @@ variables:
       namespace: ${K8S_NAMESPACE}
 
 .env-macos-runner:
+  image: sequoia-wallet:0.2.8
   tags:
     - macos
-  image: sequoia-wallet:0.2.8
 
 .default-branch:
   rules:

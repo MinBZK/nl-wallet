@@ -21,7 +21,7 @@ variables:
 
 .docker-login:
   script: |
-    mkdir -p /root/.docker
+    mkdir -p ~/.docker
     echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
 
 .replace-chart-app-version:
