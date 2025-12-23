@@ -74,7 +74,7 @@ build-demo-issuer-image:
     DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_issuer/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-demo-issuer
 
-build-demo-issuer-index:
+build-demo-index-image:
   extends: .build-docker-image
   needs:
     - job: build-demo-index-binary
