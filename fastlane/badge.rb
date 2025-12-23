@@ -1,3 +1,4 @@
+require 'fileutils'
 require 'pathname'
 
 require 'mini_magick'
@@ -41,7 +42,7 @@ class Badge
                 magick << '-compose' << 'atop' << '-composite'
                 magick << tempfile.path
             end
-            File.rename(tempfile.path, path)
+            FileUtils.mv(tempfile.path, path)
         end
     end
 
@@ -69,7 +70,7 @@ class Badge
                 magick << '-compose' << 'atop' << '-composite'
                 magick << tempfile.path
             end
-            File.rename(tempfile.path, path)
+            FileUtils.mv(tempfile.path, path)
         end
     end
 end

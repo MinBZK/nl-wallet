@@ -155,7 +155,7 @@ platform :android do
       source_filepath = "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}"
       target_filepath = "../#{application_id}-#{version}-#{build_mode}.#{file_format}"
 
-      File.rename(source_filepath, target_filepath)
+      FileUtils.mv(source_filepath, target_filepath)
     end
   end
 
