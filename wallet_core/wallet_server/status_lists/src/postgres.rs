@@ -748,7 +748,7 @@ where
                 let list_id = list.id;
                 tasks.push(tokio::spawn(Self::delete_status_list_items(connection, list_id)));
             }
-            if list.available >= 0 && ((list.available as u32) < self.config.create_threshold) {
+            if list.available < self.config.create_threshold.into_inner() {
                 tracing::info!(
                     "Schedule creation of status list items for attestation type ID {}",
                     list.attestation_type_id,

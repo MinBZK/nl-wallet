@@ -24,6 +24,7 @@ use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
 use token_status_list::status_list_service::StatusListRevocationService;
 use utils::num::NonZeroU31;
+use utils::num::U31;
 
 async fn setup_revocation_server<L>(service: Arc<L>) -> anyhow::Result<Url>
 where
@@ -56,7 +57,7 @@ async fn setup_revocation_test(publish_dir: PublishDir) -> (Arc<PostgresStatusLi
 
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(100).unwrap(),
-        create_threshold: 0, // no new lists are needed during test
+        create_threshold: U31::ZERO, // no new lists are needed during test
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl: None,
