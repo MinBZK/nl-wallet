@@ -467,16 +467,6 @@ where
                 .all(&tx)
                 .await?;
 
-            let max_next_sequence_no = status_list::Entity::find()
-                .select_only()
-                .column_as(status_list::Column::NextSequenceNo.max(), "max_next_sequence_no")
-                .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
-                .group_by(status_list::Column::AttestationTypeId)
-                .into_tuple()
-                .one(&tx)
-                .await?
-                .unwrap_or_default();
-
             // If the `create_threshold` is large enough compared to the requested claim_size and
             // concurrent requests, this should always be true. If this is false, the
             // `create_threshold` should be increased.
@@ -494,6 +484,21 @@ where
                 return Err(StatusListServiceError::NoStatusListAvailable);
             }
             tries -= 1;
+
+            let max_next_sequence_no = if let Some(max) = lists.iter().map(|list| list.next_sequence_no).max() {
+                max
+            } else {
+                status_list::Entity::find()
+                    .select_only()
+                    .column_as(status_list::Column::NextSequenceNo.max(), "max_next_sequence_no")
+                    .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
+                    .group_by(status_list::Column::AttestationTypeId)
+                    .into_tuple::<Option<i64>>()
+                    .one(&tx)
+                    .await?
+                    .flatten()
+                    .unwrap_or_default()
+            };
 
             let _ = self
                 .create_status_list(max_next_sequence_no, true)
