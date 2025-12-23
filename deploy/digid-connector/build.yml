@@ -7,12 +7,14 @@ variables:
     value: fc917dffbe97dd36f89e185af42f853d1251acdc73ee2faa398c4ed89471c26f
     description: "The SHA256 sum of the rdo-max tar archive"
 
-# Obtain nl-rdo-max
-get-rdo-max-source:
+.base:
   rules:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+
+# Obtain nl-rdo-max
+get-rdo-max-source:
+  extends: .base
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   variables:
     GIT_STRATEGY: empty
   script:
@@ -23,27 +25,27 @@ get-rdo-max-source:
     - cd nl-rdo-max
     - npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
   artifacts:
-      name: rdo-max-source
-      paths:
-        - nl-rdo-max
+    name: rdo-max-source
+    paths:
+      - nl-rdo-max
 
 # Build nl-rdo-max
 build-rdo-max-image:
+  extends: .base
+  image: "$HARBOR_REGISTRY/quay-proxy/buildah/stable:v1.42.2"
+  tags:
+    - linux
   needs:
     - job: get-rdo-max-source
       artifacts: true
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
-  image: "$HARBOR_REGISTRY/quay-proxy/buildah/stable"
-  tags:
-    - linux
   variables:
     GIT_STRATEGY: none
     STORAGE_DRIVER: vfs
     BUILDAH_FORMAT: docker
     BUILDAH_ISOLATION: chroot
   before_script:
-    - echo "$(echo "$HARBOR_GN2_ROBOT_SECRET" | base64 -d)" | buildah login -u "$HARBOR_GN2_ROBOT_NAME" --password-stdin "$HARBOR_REGISTRY"
+    - mkdir -p ~/.docker
+    - echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
   script:
     - cd nl-rdo-max
     - |
