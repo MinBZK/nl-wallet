@@ -48,7 +48,7 @@ use super::WalletRegistration;
 
 const DATABASE_NAME: &str = "wallet";
 
-const REVOCATION_CHECK_FREQUENCY_IN_SECONDS: u64 = 60 * 60 * 24;
+const REVOCATION_CHECK_FREQUENCY: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -259,7 +259,7 @@ where
             registration_status,
         );
 
-        wallet.start_background_revocation_checks(Duration::from_secs(REVOCATION_CHECK_FREQUENCY_IN_SECONDS));
+        wallet.start_background_revocation_checks(REVOCATION_CHECK_FREQUENCY);
 
         Ok(wallet)
     }
