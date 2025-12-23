@@ -16,7 +16,7 @@ class Badge
         @scale = 1.2
     end
 
-    def add_to_image(path, compose: 'atop')
+    def add_to_image(path, translate, compose: 'atop')
         image = MiniMagick::Image.new(path)
         raise BadgeError.new("ERROR: `#{path}` not a square image") unless image.width == image.height
 
@@ -25,8 +25,8 @@ class Badge
         rect_y1 = ((0.5 - @font_rel_size * 0.6) * image.height).ceil
         center_x = (0.5 * image.width).round
         center_y = (0.5 * image.height).round
-        transl_x = (0.74 * image.width).round
-        transl_y = (0.74 * image.width).round
+        transl_x = (translate * image.width).round
+        transl_y = (translate * image.width).round
 
         MiniMagick::Utilities.tempfile(path.extname) do |tempfile|
             MiniMagick::Tool::Magick.new do |magick|
