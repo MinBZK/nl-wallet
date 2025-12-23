@@ -16,7 +16,7 @@ class Badge
         @scale = 1.2
     end
 
-    def add_to_image(path)
+    def add_to_image(path, compose: 'atop')
         image = MiniMagick::Image.new(path)
         raise BadgeError.new("ERROR: `#{path}` not a square image") unless image.width == image.height
 
@@ -39,14 +39,14 @@ class Badge
                     badge << '-virtual-pixel' << 'transparent' << '-distort' << 'SRT'
                     badge << "#{center_x},#{center_y} #{@scale} -45 #{transl_x},#{transl_y}"
                 end
-                magick << '-compose' << 'atop' << '-composite'
+                magick << '-compose' << compose << '-composite'
                 magick << tempfile.path
             end
             FileUtils.mv(tempfile.path, path)
         end
     end
 
-    def add_seasonal_image(path)
+    def add_seasonal_image(path, compose: 'atop')
         return unless Date.today.month == 12
 
         image = MiniMagick::Image.new(path)
@@ -67,7 +67,7 @@ class Badge
                     add << '-virtual-pixel' << 'transparent' << '-distort' << 'SRT'
                     add << "#{center_x},#{center_y} #{scale} 0 #{transl_x},#{transl_y}"
                 end
-                magick << '-compose' << 'atop' << '-composite'
+                magick << '-compose' << compose << '-composite'
                 magick << tempfile.path
             end
             FileUtils.mv(tempfile.path, path)

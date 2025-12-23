@@ -97,8 +97,9 @@ platform :android do
   lane :add_badge do |options|
     badge = Badge::new(options['label'] || 'latest', BADGE_FONT)
     Pathname.new('../wallet_app').glob('**/ic_launcher*.{png,webp}').each do |i|
-      badge.add_to_image(i)
-      badge.add_seasonal_image(i)
+      compose = i.basename.to_s.match?('foreground') ? 'over' : 'atop'
+      badge.add_to_image(i, compose: compose)
+      badge.add_seasonal_image(i, compose: compose)
     end
   end
 
