@@ -9,7 +9,7 @@ use wallet::errors::WalletUnlockError;
 #[serial(hsm)]
 async fn ltc41_test_pin_recovery() {
     let pin = "112233".to_string();
-    let (mut wallet, _, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, &pin).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
@@ -26,7 +26,7 @@ async fn ltc41_test_pin_recovery() {
 #[serial(hsm)]
 async fn ltc46_test_pin_recovery_timeout() {
     let pin = "112233".to_string();
-    let (mut wallet, _, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, &pin).await;
     wallet = do_pid_issuance(wallet, pin).await;
 

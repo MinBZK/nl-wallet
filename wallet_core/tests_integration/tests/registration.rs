@@ -18,7 +18,7 @@ async fn ltc51_test_wallet_registration(
         .await
         .expect("Could not open database connection");
 
-    let (wallet, _, _, _) = setup_wallet_and_default_env(vendor).await;
+    let (wallet, _, _) = setup_wallet_and_default_env(vendor).await;
 
     let before = wallet_user_count(&connection).await;
     do_wallet_registration(wallet, "123344").await;
@@ -34,7 +34,7 @@ async fn ltc43_test_registration_blocked() {
     settings.update_policy =
         serde_json::from_value::<UpdatePolicyConfig>(json!({ env!("CARGO_PKG_VERSION"): "Block" })).unwrap();
 
-    let (mut wallet, _, _, _) = setup_wallet_and_env(
+    let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         (settings, root_ca),
         wallet_provider_settings(),

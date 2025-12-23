@@ -16,7 +16,7 @@ use tests_integration::common::*;
 async fn test_revocation_ok() {
     let pin = "112233";
 
-    let (mut wallet, _, _, pid_issuer_internal_url) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, issuance_urls) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -57,7 +57,7 @@ async fn test_revocation_ok() {
 
     // Retrieve all batches
     let batch_values = client
-        .get(pid_issuer_internal_url.join("/batch/"))
+        .get(issuance_urls.pid_issuer_internal_url.join("/batch/"))
         .send()
         .await
         .unwrap()
@@ -72,7 +72,7 @@ async fn test_revocation_ok() {
 
     // Revoke all batches
     client
-        .post(pid_issuer_internal_url.join("/revoke/"))
+        .post(issuance_urls.pid_issuer_internal_url.join("/revoke/"))
         .json(&batch_ids)
         .send()
         .await

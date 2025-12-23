@@ -17,7 +17,7 @@ async fn ltc37_test_unlock_ok(
 ) {
     let pin = "112234";
 
-    let (mut wallet, _, _, _) = setup_wallet_and_default_env(vendor).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(vendor).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();
@@ -43,7 +43,7 @@ async fn ltc47_test_block() {
     settings.pin_policy.attempts_per_round = 2;
     settings.pin_policy.timeouts = vec![];
 
-    let (mut wallet, _, _, _) = setup_wallet_and_env(
+    let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         (settings, wp_root_ca),
@@ -88,7 +88,7 @@ async fn ltc47_test_block() {
 #[serial(hsm)]
 async fn ltc46_test_unlock_error() {
     let pin = "112234";
-    let (mut wallet, _, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();

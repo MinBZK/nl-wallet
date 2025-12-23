@@ -158,7 +158,7 @@ pub type WalletWithStorage = Wallet<
 
 pub async fn setup_wallet_and_default_env(
     vendor: WalletDeviceVendor,
-) -> (WalletWithStorage, DisclosureParameters, BaseUrl, BaseUrl) {
+) -> (WalletWithStorage, DisclosureParameters, IssuerUrls) {
     setup_wallet_and_env(
         vendor,
         update_policy_server_settings(),
@@ -172,6 +172,11 @@ pub async fn setup_wallet_and_default_env(
 pub struct DisclosureParameters {
     pub verifier_url: BaseUrl,
     pub verifier_internal_url: BaseUrl,
+}
+
+pub struct IssuerUrls {
+    pub issuance_server_url: BaseUrl,
+    pub pid_issuer_internal_url: BaseUrl,
 }
 
 pub struct MockDeviceConfig {
@@ -228,8 +233,7 @@ pub async fn setup_env_default() -> (
     ConfigServerConfiguration,
     MockDeviceConfig,
     WalletConfiguration,
-    BaseUrl,
-    BaseUrl,
+    IssuerUrls,
     DisclosureParameters,
 ) {
     setup_env(
@@ -259,8 +263,7 @@ pub async fn setup_env(
     ConfigServerConfiguration,
     MockDeviceConfig,
     WalletConfiguration,
-    BaseUrl,
-    BaseUrl,
+    IssuerUrls,
     DisclosureParameters,
 ) {
     let mock_device_config = MockDeviceConfig::default();
@@ -309,7 +312,11 @@ pub async fn setup_env(
         MockAttributeService::new(pid_issuable_documents),
     )
     .await;
-    let pid_issuer_internal_url = local_base_url(pid_issuer_internal_port);
+
+    let issuer_urls = IssuerUrls {
+        issuance_server_url,
+        pid_issuer_internal_url: local_base_url(pid_issuer_internal_port),
+    };
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -339,8 +346,7 @@ pub async fn setup_env(
         config_server_config,
         mock_device_config,
         wallet_config,
-        pid_issuer_internal_url,
-        issuance_server_url,
+        issuer_urls,
         verifier_server_urls,
     )
 }
@@ -420,15 +426,8 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-) -> (WalletWithStorage, DisclosureParameters, BaseUrl, BaseUrl) {
-    let (
-        config_server_config,
-        mock_device_config,
-        wallet_config,
-        pid_issuer_internal_url,
-        issuance_server_url,
-        verifier_server_urls,
-    ) = setup_env(
+) -> (WalletWithStorage, DisclosureParameters, IssuerUrls) {
+    let (config_server_config, mock_device_config, wallet_config, issuer_urls, verifier_server_urls) = setup_env(
         static_server_settings(),
         ups_config,
         wp_config,
@@ -445,12 +444,7 @@ pub async fn setup_wallet_and_env(
 
     let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await;
 
-    (
-        wallet,
-        verifier_server_urls,
-        issuance_server_url,
-        pid_issuer_internal_url,
-    )
+    (wallet, verifier_server_urls, issuer_urls)
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
