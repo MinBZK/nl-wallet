@@ -96,7 +96,10 @@ platform :android do
   desc "Add badge to launcher icons"
   lane :add_badge do |options|
     badge = Badge::new(options['label'] || 'latest', BADGE_FONT)
-    Pathname.new('../wallet_app').glob('**/ic_launcher*.{png,webp}').each { |i| badge.add_to_image(i) }
+    Pathname.new('../wallet_app').glob('**/ic_launcher*.{png,webp}').each do |i|
+      badge.add_to_image(i)
+      badge.add_seasonal_image(i)
+    end
   end
 
   desc "Build and sign Android app"
@@ -212,7 +215,10 @@ platform :ios do
   desc "Add badge to app icons"
   lane :add_badge do |options|
     badge = Badge::new(options['label'] || 'latest', BADGE_FONT)
-    Pathname.new('../wallet_app').glob('**/AppIcon.appiconset/*.png').each { |i| badge.add_to_image(i) }
+    Pathname.new('../wallet_app').glob('**/AppIcon.appiconset/*.png').each do |i|
+      badge.add_to_image(i)
+      badge.add_seasonal_image(i)
+    end
   end
 
   desc "Deploy iOS app from GitLab CI"

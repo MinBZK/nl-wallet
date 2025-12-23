@@ -1,3 +1,5 @@
+require 'pathname'
+
 require 'mini_magick'
 
 class BadgeError < StandardError
@@ -35,6 +37,34 @@ class Badge
                     badge << '-gravity' << 'center' << '-draw' << "text 0,0 '#{@label}'"
                     badge << '-virtual-pixel' << 'transparent' << '-distort' << 'SRT'
                     badge << "#{center_x},#{center_y} #{@scale} -45 #{transl_x},#{transl_y}"
+                end
+                magick << '-compose' << 'atop' << '-composite'
+                magick << tempfile.path
+            end
+            File.rename(tempfile.path, path)
+        end
+    end
+
+    def add_seasonal_image(path)
+        return unless Date.today.month == 12
+
+        image = MiniMagick::Image.new(path)
+        add_path = Pathname::new(__FILE__).parent.join('badges').join('tree.png')
+        add_image = MiniMagick::Image.new(add_path)
+
+        scale = 0.4 * image.width / add_image.width
+        center_x = (0.5 * add_image.width).round
+        center_y = (0.5 * add_image.height).round
+        transl_x = (0.3 * image.width).round
+        transl_y = (0.74 * image.width).round
+
+        MiniMagick::Utilities.tempfile(path.extname) do |tempfile|
+            MiniMagick::Tool::Magick.new do |magick|
+                magick << path
+                magick.stack do |add|
+                    add << add_path
+                    add << '-virtual-pixel' << 'transparent' << '-distort' << 'SRT'
+                    add << "#{center_x},#{center_y} #{scale} 0 #{transl_x},#{transl_y}"
                 end
                 magick << '-compose' << 'atop' << '-composite'
                 magick << tempfile.path
