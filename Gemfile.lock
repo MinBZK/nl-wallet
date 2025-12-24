@@ -340,6 +340,7 @@ DEPENDENCIES
   cocoapods
   fastlane
   ffi (~> 1.16.3)
+  mini_magick (~> 4.13.2)
   nokogiri (~> 1.18.9)
   slather
 

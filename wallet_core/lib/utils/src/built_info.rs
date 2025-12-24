@@ -11,7 +11,7 @@ use semver::Version;
 include!(concat!(env!("OUT_DIR"), "/built.rs"));
 
 pub fn version_string() -> String {
-    let dirty_flag: &str = if GIT_DIRTY.unwrap_or_default() {
+    let dirty_flag: &str = if CI_PLATFORM.is_none() && GIT_DIRTY.unwrap_or_default() {
         "+modifications"
     } else {
         ""

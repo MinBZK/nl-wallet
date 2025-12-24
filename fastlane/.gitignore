@@ -1,0 +1,7 @@
+# Fastlane
+/report.xml
+/Preview.html
+/screenshots/
+/test_output/
+/entitlements.plist
+/tmp/

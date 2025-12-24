@@ -56,7 +56,9 @@ test-ios:
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
     - git config --global url.https://repo-certificates-deploy-token:${REPO_CERTIFICATES_DEPLOY_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
+    - label="${CI_JOB_NAME##*-}"
     - bundle install
+    - bundle exec fastlane ios add_badge label:"${label}"
     # Build
     - |
       bundle exec fastlane ios build \
