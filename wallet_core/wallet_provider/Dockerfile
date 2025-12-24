@@ -1,8 +1,13 @@
+ARG HARBOR_REGISTRY
+ARG HARBOR_PROJECT
+ARG HSM_CLIENT_TAG
+ARG GCR_IO_PROXY=gcr.io
+
 ### Copy Shared Library Stage ###
 FROM ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-hsm-pkcs11-client:${HSM_CLIENT_TAG} AS hsm-client
 
 ### Bundle Stage ###
-FROM ${HARBOR_REGISTRY}/gcr-io-proxy/distroless/cc-debian12:nonroot
+FROM ${GCR_IO_PROXY}/distroless/cc-debian12:nonroot
 
 COPY --from=hsm-client /opt/utimaco/Crypto_APIs/PKCS11_R3/lib/libcs_pkcs11_R3.so .
 
