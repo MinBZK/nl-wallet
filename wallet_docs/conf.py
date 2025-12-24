@@ -27,7 +27,7 @@ source_suffix = {
 }
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', '_venv', 'venv']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', '_venv', 'venv', 'README.md']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
