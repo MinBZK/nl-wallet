@@ -6,7 +6,7 @@ require_relative 'badge'
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
 DEFAULT_APP_NAME = "NL Wallet"
-BADGE_FONT='../wallet_core/demo/demo_utils/assets/non-free/fonts/RO-SansWebText-Regular.ttf'
+BADGE_FONT='../wallet_app/assets/non-free/fonts/rijksoverheid-sans-web-text-regular.ttf'
 
 # opt out of analytics
 opt_out_usage
