@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::TryFromInto;
+use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
@@ -144,24 +144,8 @@ pub struct CredentialOffer {
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialOfferContainer {
-    #[serde_as(as = "TryFromInto<String>")]
+    #[serde_as(as = "JsonString")]
     pub credential_offer: CredentialOffer,
-}
-
-impl TryFrom<String> for CredentialOffer {
-    type Error = serde_json::Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        serde_json::from_str(&value)
-    }
-}
-
-impl TryInto<String> for CredentialOffer {
-    type Error = serde_json::Error;
-
-    fn try_into(self) -> Result<String, Self::Error> {
-        serde_json::to_string(&self)
-    }
 }
 
 /// Grants for a Verifiable Credential.
