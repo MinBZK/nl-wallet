@@ -1,9 +1,9 @@
 # Redis Helm Chart
 
 This chart deploys a standalone Redis instance using a StatefulSet and an 
-optional PVC. You can set a list key/values to initialize with, using 
-`redisConfig.initialKeys`. Lastly, you can enable network policy and set
-a `tierLabel`.
+optional PVC. You can set a list of key/values to initialize with, using
+`redisConfig.initialKeys`. Lastly, you can enable a network policy and
+optionally set a `tierLabel`.
 
 ## Values
 
@@ -32,18 +32,18 @@ a `tierLabel`.
 | networkPolicy.ingressFromSelector | object | {}                | Pod selector labels allowed to access Redis.        |
 | tierLabel                         | string | ""                | Optional `tier` label specification.                |
 
-## Example installation
+## Installation
 
 On a locally running single-node cluster, not using a PVC:
 
-```bash
+```shell
 helm install redis charts/redis \
   --set redisConfig.initialKeys[0]="foo:some_key bar"
 ```
 
 Locally with PVC:
 
-```bash
+```shell
 helm install redis charts/redis \
   --set persistence.enabled=true \
   --set persistence.storageClassName=local-path \
@@ -52,7 +52,7 @@ helm install redis charts/redis \
 
 On an enterprisey Kubernetes environment with PVC, NetworkPolicy and tierLabel:
 
-```bash
+```shell
 helm install redis charts/redis \
   --set persistence.enabled=true \
   --set persistence.storageClassName=expensive-storage \
@@ -60,4 +60,17 @@ helm install redis charts/redis \
   --set networkPolicy.ingressFromSelector.something-this-or-that=allow \
   --set tierLabel=a-silly-tiering-label \
   --set redisConfig.initialKeys[0]="foo:another_key baz"
+```
+
+## Connect
+
+You can connect to the redis service using `kubectl port-forward` and either
+`redis-cli` or `valkey-cli`:
+
+```shell
+# directly on the pod:
+kubectl exec redis-0 -- redis-cli get foo:some_key
+# or from the host using port forwarding:
+kubectl port-forward service/redis 6379:6379
+redis-cli -h localhost -p 6379 get foo:some_key
 ```
