@@ -57,7 +57,7 @@ metrics-exporter-prometheus = { workspace = true, features = ["http-listener"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 regex.workspace = true
 rustix = { workspace = true, features = ["pipe", "stdio"] }
-rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
+rustls.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
 spki = { workspace = true, features = ["std"] }
