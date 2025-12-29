@@ -189,7 +189,7 @@ rstest = "0.26.1"
 rusqlite = "0.32.1"
 rustix = "1.1.2"
 rustls = { version = "0.23.35", default-features = false, features = ["logging", "std", "tls12", "ring"] }
-rustls-pki-types = "1.13.1"
+rustls-pki-types = { version = "1.13.1", features = ["std"] }
 rustls-webpki = { version = "0.103.8", features = ["ring"] }
 sanitize-filename = "0.6.0"
 sea-orm = { version = "1.1.19", default-features = false }
