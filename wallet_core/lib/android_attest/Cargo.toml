@@ -31,7 +31,7 @@ chrono = { workspace = true, features = ["now"] }
 const-decoder.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
-gcloud-auth = { workspace = true, features = ["rustls-tls"] }
+gcloud-auth.workspace = true
 http.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 int-enum.workspace = true
