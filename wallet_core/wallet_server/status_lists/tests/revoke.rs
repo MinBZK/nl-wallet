@@ -132,7 +132,7 @@ async fn test_revoke_batch(#[case] batch: &[Uuid]) {
 }
 
 #[tokio::test]
-async fn test_revoke_batch_not_found() {
+async fn test_revoke_non_existing_batch_should_return_success() {
     let publish_dir = tempfile::tempdir().unwrap();
 
     let (_, revocation_endpoint, _) =
@@ -147,5 +147,5 @@ async fn test_revoke_batch_not_found() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), 404);
+    assert_eq!(response.status(), 200);
 }

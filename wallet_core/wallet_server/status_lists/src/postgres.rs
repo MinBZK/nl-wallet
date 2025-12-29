@@ -195,7 +195,14 @@ where
     K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
-        self.first_service().revoke_attestation_batches(batch_ids).await
+        // Each service is responsible for revoking and publishing the status list it is configured for.
+        try_join_all(
+            self.services()
+                .map(|service| async { service.revoke_attestation_batches(batch_ids.clone()).await }),
+        )
+        .await?;
+
+        Ok(())
     }
 
     async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
@@ -244,6 +251,10 @@ where
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
     }
 
+    fn services(&self) -> impl Iterator<Item = &PostgresStatusListService<K>> {
+        self.0.values()
+    }
+
     fn first_service(&self) -> &PostgresStatusListService<K> {
         // in the constructor we ensure that at least one service is present
         self.0.values().next().expect("at least one service should be present")
@@ -278,60 +289,45 @@ where
     K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
-        // Find batches by batch_ids
-        let batches = attestation_batch::Entity::find()
-            .filter(attestation_batch::Column::BatchId.is_in(batch_ids.iter().copied()))
-            .all(&self.connection)
-            .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
-
-        // Check if all batch_ids were found
-        if batches.len() != batch_ids.len() {
-            let mut found_ids = batches.iter().map(|batch| batch.batch_id);
-            let missing_ids = batch_ids
-                .iter()
-                .filter(|id| !found_ids.contains(id))
-                .copied()
-                .collect_vec()
-                .try_into()
-                .unwrap();
-            return Err(RevocationError::BatchIdsNotFound(missing_ids));
-        }
-
-        // Update revocation for all batches
-        let attestation_batch_ids: Vec<_> = batches.iter().map(|b| b.id).collect();
-        attestation_batch::Entity::update_many()
-            .col_expr(attestation_batch::Column::IsRevoked, Expr::value(true))
-            .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids.iter().copied()))
-            .exec(&self.connection)
-            .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
-
-        // Find status list, external ID and size for all related status lists
-        let list_external_ids_and_size: Vec<(i64, String, i32)> = status_list::Entity::find()
+        // Find batches and status_lists for this service by batch_ids
+        let batches: Vec<(i64, i64, String, i32)> = attestation_batch::Entity::find()
             .select_only()
+            .column(attestation_batch::Column::Id)
             .select_column(status_list::Column::Id)
             .select_column(status_list::Column::ExternalId)
             .select_column(status_list::Column::Size)
+            .inner_join(status_list::Entity)
             .filter(
-                status_list::Column::Id.in_subquery(
-                    Query::select()
-                        .expr(Expr::column(attestation_batch_list_indices::Column::StatusListId))
-                        .from(attestation_batch_list_indices::Entity)
-                        .and_where(
-                            attestation_batch_list_indices::Column::AttestationBatchId.is_in(attestation_batch_ids),
-                        )
-                        .to_owned(),
-                ),
+                attestation_batch::Column::BatchId
+                    .is_in(batch_ids.iter().copied())
+                    .and(status_list::Column::AttestationTypeId.eq(self.attestation_type_id)),
             )
             .into_tuple()
             .all(&self.connection)
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
+        let (attestation_batch_ids, status_list_info): (Vec<_>, Vec<_>) = batches
+            .into_iter()
+            .map(|(batch_id, status_list_id, external_id, size)| (batch_id, (status_list_id, external_id, size)))
+            .unzip();
+
+        // Update revocation for all batches
+        let update_result = attestation_batch::Entity::update_many()
+            .col_expr(attestation_batch::Column::IsRevoked, Expr::value(true))
+            .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids.iter().copied()))
+            .exec(&self.connection)
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+
+        // No need to publish new status list if nothing has been revoked
+        if update_result.rows_affected == 0 {
+            return Ok(());
+        }
+
         // Publish new status list
         try_join_all(
-            list_external_ids_and_size
+            status_list_info
                 .into_iter()
                 .map(|(list_id, external_id, size)| async move {
                     let size = size.try_into().expect("size should be non-zero");

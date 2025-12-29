@@ -54,7 +54,7 @@ async fn init_wallets() -> (WalletData, WalletData) {
     source = do_pid_issuance(source, String::from(source_wallet_pin)).await;
     source
         .start_disclosure(
-            &universal_link(&issuance_urls.issuance_server_url, CredentialFormat::SdJwt),
+            &universal_link(&issuance_urls.issuance_server.public, CredentialFormat::SdJwt),
             DisclosureUriSource::Link,
         )
         .await

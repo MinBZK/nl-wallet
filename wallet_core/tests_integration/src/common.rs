@@ -49,6 +49,7 @@ use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
 use issuer_settings::settings::IssuerSettings;
 use jwt::SignedJwt;
+use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
@@ -133,8 +134,14 @@ pub fn local_pid_base_url(port: u16) -> BaseUrl {
         .expect("hardcoded values should always parse successfully")
 }
 
-pub fn local_base_url(port: u16) -> BaseUrl {
+pub fn local_http_base_url(port: u16) -> BaseUrl {
     format!("http://localhost:{port}/")
+        .parse()
+        .expect("hardcoded values should always parse successfully")
+}
+
+pub fn local_https_base_url(port: u16) -> BaseUrl {
+    format!("https://localhost:{port}/")
         .parse()
         .expect("hardcoded values should always parse successfully")
 }
@@ -158,7 +165,7 @@ pub type WalletWithStorage = Wallet<
 
 pub async fn setup_wallet_and_default_env(
     vendor: WalletDeviceVendor,
-) -> (WalletWithStorage, DisclosureParameters, IssuerUrls) {
+) -> (WalletWithStorage, DisclosureUrls, IssuerUrls) {
     setup_wallet_and_env(
         vendor,
         update_policy_server_settings(),
@@ -169,14 +176,19 @@ pub async fn setup_wallet_and_default_env(
     .await
 }
 
-pub struct DisclosureParameters {
+pub struct DisclosureUrls {
     pub verifier_url: BaseUrl,
     pub verifier_internal_url: BaseUrl,
 }
 
+pub struct IssuerUrl {
+    pub internal: BaseUrl,
+    pub public: BaseUrl,
+}
+
 pub struct IssuerUrls {
-    pub issuance_server_url: BaseUrl,
-    pub pid_issuer_internal_url: BaseUrl,
+    pub pid_issuer: IssuerUrl,
+    pub issuance_server: IssuerUrl,
 }
 
 pub struct MockDeviceConfig {
@@ -234,7 +246,7 @@ pub async fn setup_env_default() -> (
     MockDeviceConfig,
     WalletConfiguration,
     IssuerUrls,
-    DisclosureParameters,
+    DisclosureUrls,
 ) {
     setup_env(
         static_server_settings(),
@@ -264,7 +276,7 @@ pub async fn setup_env(
     MockDeviceConfig,
     WalletConfiguration,
     IssuerUrls,
-    DisclosureParameters,
+    DisclosureUrls,
 ) {
     let mock_device_config = MockDeviceConfig::default();
     wp_settings.ios = mock_device_config.ios_wp_settings();
@@ -306,7 +318,7 @@ pub async fn setup_env(
     let issuance_server_url =
         start_issuance_server(issuance_server_settings, Some(hsm.clone()), attributes_fetcher).await;
 
-    let (pid_issuer_public_port, pid_issuer_internal_port) = start_pid_issuer_server(
+    let pid_issuer_url = start_pid_issuer_server(
         issuer_settings,
         Some(hsm),
         MockAttributeService::new(pid_issuable_documents),
@@ -314,13 +326,13 @@ pub async fn setup_env(
     .await;
 
     let issuer_urls = IssuerUrls {
-        issuance_server_url,
-        pid_issuer_internal_url: local_base_url(pid_issuer_internal_port),
+        issuance_server: issuance_server_url,
+        pid_issuer: pid_issuer_url,
     };
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(pid_issuer_public_port);
+    served_wallet_config.pid_issuance.pid_issuer_url = issuer_urls.pid_issuer.public.clone();
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(wp_port);
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
@@ -337,7 +349,7 @@ pub async fn setup_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(pid_issuer_public_port);
+    wallet_config.pid_issuance.pid_issuer_url = issuer_urls.pid_issuer.public.clone();
     wallet_config.account_server.http_config.base_url = local_wp_base_url(wp_port);
     wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca];
@@ -426,7 +438,7 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-) -> (WalletWithStorage, DisclosureParameters, IssuerUrls) {
+) -> (WalletWithStorage, DisclosureUrls, IssuerUrls) {
     let (config_server_config, mock_device_config, wallet_config, issuer_urls, verifier_server_urls) = setup_env(
         static_server_settings(),
         ups_config,
@@ -619,7 +631,7 @@ fn internal_url(server_settings: &Settings) -> BaseUrl {
             server: Server { port, .. },
             ..
         }
-        | ServerAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
+        | ServerAuth::InternalEndpoint(Server { port, .. }) => local_http_base_url(port),
         ServerAuth::Authentication(_) => server_settings.public_url.clone(),
     }
 }
@@ -695,7 +707,7 @@ async fn start_mock_attestation_server(
             .expect("issuance server should be started");
     });
 
-    let url: BaseUrl = format!("https://localhost:{port}/").as_str().parse().unwrap();
+    let url = local_https_base_url(port);
     wait_for_server(url.clone(), std::iter::once(trust_anchor.into_certificate())).await;
     url
 }
@@ -704,13 +716,15 @@ pub async fn start_issuance_server(
     mut settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     attributes_fetcher: impl AttributesFetcher + Sync + 'static,
-) -> BaseUrl {
+) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
-    let port = public_listener.local_addr().unwrap().port();
-    let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
+    let public_port = public_listener.local_addr().unwrap().port();
+    let public_url = local_http_base_url(public_port);
     settings.issuer_settings.server_settings.public_url = public_url.clone();
 
     let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
+    let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
+    let internal_url = local_http_base_url(internal_port);
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
 
@@ -762,20 +776,24 @@ pub async fn start_issuance_server(
     );
 
     wait_for_server(public_url.clone(), std::iter::empty()).await;
-    public_url
+    IssuerUrl {
+        internal: internal_url,
+        public: public_url,
+    }
 }
 
 pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static>(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     attr_service: A,
-) -> (u16, u16) {
+) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
-    let public_url = BaseUrl::from_str(format!("http://localhost:{public_port}/").as_str()).unwrap();
+    let public_url = local_http_base_url(public_port);
 
     let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
+    let internal_url = local_http_base_url(internal_port);
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
     settings.issuer_settings.server_settings.public_url = public_url.clone();
@@ -821,11 +839,14 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         .instrument(info_span!("service", name = "pid_issuer")),
     );
 
-    wait_for_server(public_url, std::iter::empty()).await;
-    (public_port, internal_port)
+    wait_for_server(public_url.clone(), std::iter::empty()).await;
+    IssuerUrl {
+        internal: internal_url,
+        public: local_pid_base_url(public_port),
+    }
 }
 
-pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) -> DisclosureParameters {
+pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) -> DisclosureUrls {
     let wallet_listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = wallet_listener.local_addr().unwrap().port();
 
@@ -869,7 +890,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
     );
 
     wait_for_server(public_url.clone(), std::iter::empty()).await;
-    DisclosureParameters {
+    DisclosureUrls {
         verifier_url: public_url,
         verifier_internal_url: internal_url,
     }
@@ -907,9 +928,7 @@ pub fn gba_hc_converter_settings() -> GbaSettings {
 }
 
 pub async fn start_gba_hc_converter(settings: GbaSettings) {
-    let base_url = format!("http://localhost:{}/", settings.port)
-        .parse()
-        .expect("hardcode values should always parse successfully");
+    let base_url = local_http_base_url(settings.port);
 
     tokio::spawn(async {
         if let Err(error) = gba_hc_converter::app::serve_from_settings(settings).await {
@@ -972,6 +991,27 @@ pub async fn do_pid_issuance_with_purpose(
         .await
         .expect("Could not accept pid issuance");
     wallet
+}
+
+pub async fn do_degree_issuance(
+    wallet: &mut WalletWithStorage,
+    pin: String,
+    issuance_server_url: &BaseUrl,
+    format: CredentialFormat,
+) -> Vec<AttestationPresentation> {
+    let _proposal = wallet
+        .start_disclosure(&universal_link(issuance_server_url, format), DisclosureUriSource::Link)
+        .await
+        .unwrap();
+
+    let attestation_previews = wallet
+        .continue_disclosure_based_issuance(&[0], pin.to_owned())
+        .await
+        .unwrap();
+
+    wallet.accept_issuance(pin.to_owned()).await.unwrap();
+
+    attestation_previews
 }
 
 /// Configure [`MockDigidClient`] to return a [`MockDigidClient`] that returns some arbitrary token.
