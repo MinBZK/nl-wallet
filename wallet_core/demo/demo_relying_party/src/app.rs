@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::LazyLock;
 use std::sync::OnceLock;
@@ -17,7 +18,6 @@ use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
 use base64::prelude::*;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -62,7 +62,7 @@ struct ApplicationState {
     public_url: BaseUrl,
     help_base_url: BaseUrl,
     demo_index_url: BaseUrl,
-    usecases: IndexMap<String, Usecase>,
+    usecases: HashMap<String, Usecase>,
 }
 
 static CSP_HEADER: OnceLock<String> = OnceLock::new();
