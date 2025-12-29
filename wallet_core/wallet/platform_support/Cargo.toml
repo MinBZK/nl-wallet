@@ -39,8 +39,8 @@ mock_attested_key = ["mock_attested_key_apple", "mock_attested_key_google"]
 mock_attested_key_apple_ca = ["apple_app_attest/mock_ca", "mock_attested_key_apple"]
 # Include PersistentMockAttestedKeyHolder for use in the iOS simulator
 persistent_mock_attested_key = [
+    "dep:futures",
     "dep:serde_json",
-    "futures/std",
     "mock_attested_key_apple_ca",
     "serde/derive",
     "serde/rc",

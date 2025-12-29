@@ -23,7 +23,7 @@ askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["json"] }
 base64.workspace = true
 config = { workspace = true, features = ["toml"] }
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 http.workspace = true
 itertools.workspace = true
 reqwest.workspace = true

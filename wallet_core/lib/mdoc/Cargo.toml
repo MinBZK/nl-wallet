@@ -31,7 +31,7 @@ chrono.workspace = true
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["debug"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures.workspace = true
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true

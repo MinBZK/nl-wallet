@@ -31,7 +31,7 @@ chrono = { workspace = true, features = ["now"] }
 cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true

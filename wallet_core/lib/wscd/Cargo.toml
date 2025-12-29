@@ -18,7 +18,7 @@ mock = ["dep:parking_lot", "dep:rand_core", "chrono/now", "attestation_types/moc
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
 serde = { workspace = true, features = ["derive"] }

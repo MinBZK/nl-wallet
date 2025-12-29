@@ -18,9 +18,9 @@ required-features = ["integration_test"]
 [features]
 client = [
     "dep:error_category",
+    "dep:futures",
     "dep:platform_support",
     "dep:thiserror",
-    "futures/std",
     "p256/ecdsa",
     "p256/pem",
     "p256/std",
@@ -57,7 +57,7 @@ error_category = { path = "../../lib/error_category", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 

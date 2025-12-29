@@ -75,7 +75,7 @@ anyhow.workspace = true
 axum.workspace = true
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 ring.workspace = true
 rustls-pki-types.workspace = true

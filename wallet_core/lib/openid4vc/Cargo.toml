@@ -55,7 +55,7 @@ derive_more = { workspace = true, features = [
     "into",
     "into_iterator",
 ] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
