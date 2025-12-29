@@ -45,7 +45,7 @@ reqwest.workspace = true
 reqwest-middleware.workspace = true
 rsa = { workspace = true, features = ["std"] }
 rustls-pki-types.workspace = true
-rustls-webpki = { workspace = true, features = ["ring"] }
+rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono", "base64"] }
