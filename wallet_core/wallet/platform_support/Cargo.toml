@@ -13,7 +13,7 @@ doctest = false
 
 [features]
 # Implement the mock hardware key types
-mock_hw_keystore = ["aes-gcm/std", "dep:rand_core"]
+mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
 # Include the MockHardwareAttestedKeyHolder type for use in Apple tests
 mock_attested_key_apple = [
     "apple_app_attest/mock",

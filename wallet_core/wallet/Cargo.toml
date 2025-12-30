@@ -89,7 +89,7 @@ wscd.path = "../lib/wscd"
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
 [dev-dependencies]
-aes-gcm = { workspace = true, features = ["std"] }
+aes-gcm.workspace = true
 assert_matches.workspace = true
 mockall.workspace = true
 rand_core.workspace = true

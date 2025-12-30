@@ -23,7 +23,7 @@ mock = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
 mock_secure_keys = []
 
 [dependencies]
-aes-gcm = { workspace = true, features = ["std"] }
+aes-gcm.workspace = true
 base64.workspace = true
 chrono.workspace = true
 derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into", "display"] }
