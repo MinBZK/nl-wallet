@@ -3824,7 +3824,6 @@ dependencies = [
 name = "mdoc"
 version = "0.5.0-dev"
 dependencies = [
- "aes-gcm",
  "assert_matches",
  "attestation_types",
  "base64 0.22.1",
