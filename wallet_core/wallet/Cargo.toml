@@ -44,7 +44,7 @@ p256.workspace = true
 parking_lot.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["zstd"] }
-ring = { workspace = true, features = ["std"] }
+ring.workspace = true
 rusqlite.workspace = true
 rustls-pki-types.workspace = true
 sanitize-filename.workspace = true
