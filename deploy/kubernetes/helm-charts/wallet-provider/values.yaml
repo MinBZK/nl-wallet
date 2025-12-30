@@ -63,6 +63,23 @@ serviceAccountName: null
 ##
 securityContext: {}
 
+## @section Ingress internal parameters
+## Parameters for the internal ingress
+## @param ingressInternal.enabled Enable or disable the internal ingress
+## @param ingressInternal.className Ingress class name
+## @param ingressInternal.hostname Hostname for the internal ingress
+## @param ingressInternal.tlsSecretName Name of the TLS secret for the internal ingress
+## @param ingressInternal.labels Additional labels for the internal ingress
+## @param ingressInternal.annotations Additional annotations for the internal ingress
+##
+ingressInternal:
+  enabled: false
+  className: "nginx"
+  hostname: null
+  tlsSecretName: null
+  labels: {}
+  annotations: {}
+
 ## @section Ingress parameters
 ## @param ingress.className Ingress class name
 ## @param ingress.hostname Hostname for the ingress
