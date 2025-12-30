@@ -217,7 +217,7 @@ time = "0.3.44"
 tokio = { version = "1.48.0", default-features = false, features = ["parking_lot"] }
 tokio-test = "0.4.4"
 toml = "0.9.8"
-tower = { version = "0.5.2", default-features = false }
+tower.version = "0.5.2"
 tower-http.version = "0.6.2"
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", default-features = false, features = [
