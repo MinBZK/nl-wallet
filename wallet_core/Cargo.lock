@@ -7265,7 +7265,6 @@ dependencies = [
  "reqwest",
  "rstest",
  "rustls-pki-types",
- "sea-orm",
  "serde",
  "serde_json",
  "serde_with",

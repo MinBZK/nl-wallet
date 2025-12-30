@@ -56,10 +56,7 @@ impl axum::response::IntoResponse for RevocationError {
     }
 }
 
-#[cfg_attr(
-    feature = "axum",
-    derive(serde::Serialize, serde::Deserialize, sea_orm::FromQueryResult, utoipa::ToSchema)
-)]
+#[cfg_attr(feature = "axum", derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema))]
 pub struct BatchIsRevoked {
     pub batch_id: Uuid,
     pub is_revoked: bool,
