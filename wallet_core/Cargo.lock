@@ -3460,7 +3460,6 @@ dependencies = [
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
- "tracing",
  "trait-variant",
  "utils",
 ]
@@ -4773,7 +4772,6 @@ dependencies = [
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
- "tracing",
  "url",
  "utils",
 ]
