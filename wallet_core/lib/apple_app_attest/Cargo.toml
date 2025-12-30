@@ -29,7 +29,7 @@ mock = ["dep:rand", "rcgen/ring", "serialize"]
 # Include constants for the self-signed mock Apple CA (see the assets dir).
 mock_ca_root = []
 # Include support for the self-signed mock Apple CA on the MockAttestationCa type.
-mock_ca = ["mock_ca_root", "rcgen?/ring", "rcgen?/x509-parser"]
+mock_ca = ["mock", "mock_ca_root", "rcgen/x509-parser"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
