@@ -3,6 +3,7 @@
 source "${SCRIPTS_DIR}/utils.sh"
 
 WALLET_CORE_DIR="${BASE_DIR}/wallet_core"
+export WALLET_CORE_DIR
 WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
 PID_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/pid_issuer"
 ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/issuance_server"

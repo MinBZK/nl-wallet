@@ -52,6 +52,7 @@ use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::num::NonZeroU31;
+use utils::num::U31;
 
 async fn create_status_list_service(
     ca: &Ca,
@@ -64,7 +65,7 @@ async fn create_status_list_service(
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
-        create_threshold: NonZeroU31::try_new(create_threshold)?,
+        create_threshold: U31::try_new(create_threshold)?,
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl,
@@ -281,7 +282,7 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
             let attestation_type = random_string(20);
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
-                create_threshold: NonZeroU31::try_new(1).unwrap(),
+                create_threshold: U31::ONE,
                 expiry: Duration::from_secs(3600),
                 refresh_threshold: Duration::from_secs(600),
                 ttl: None,

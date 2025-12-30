@@ -12,6 +12,7 @@ use http_utils::urls::BaseUrl;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
 use utils::num::NonZeroU31;
+use utils::num::U31;
 
 use crate::publish::PublishDir;
 use crate::settings::ExpiryLessThanTtl;
@@ -21,7 +22,7 @@ use crate::settings::StatusListsSettings;
 #[derive(Debug, Clone)]
 pub struct StatusListConfig<K = PrivateKeyVariant> {
     pub list_size: NonZeroU31,
-    pub create_threshold: NonZeroU31,
+    pub create_threshold: U31,
     pub expiry: Duration,
     pub refresh_threshold: Duration,
     pub ttl: Option<Duration>,

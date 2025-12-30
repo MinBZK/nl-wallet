@@ -65,6 +65,11 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "revocation"
+path = "tests/revocation.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "transfer"
 path = "tests/transfer.rs"
 required-features = ["integration_test"]
@@ -121,6 +126,7 @@ test_common = [
     "openid4vc_server/issuance",
     "p256/pkcs8",
     "pid_issuer/mock",
+    "pid_issuer/postgres",
     "platform_support/mock",
     "rustls/ring",
     "sea-orm/debug-print",
@@ -128,6 +134,7 @@ test_common = [
     "sea-orm/runtime-tokio-rustls",
     "sea-orm/sqlx-postgres",
     "sea-orm/with-uuid",
+    "status_lists/axum",
     "tokio/parking_lot",
     "tokio/rt",
     "tokio/time",
@@ -160,11 +167,14 @@ integration_test = [
     "dep:rand_core",
     "dep:regex",
     "dep:rstest",
+    "dep:serde",
     "dep:serial_test",
     "dep:zstd",
     "hsm_test",
+    "issuance_server/admin-ui",
     "jsonwebtoken/use_pem",
     "p256/pkcs8",
+    "pid_issuer/admin-ui",
     "test_common",
     "tokio/macros",
     "tokio/parking_lot",
@@ -234,6 +244,7 @@ ring = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }

@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
+use std::time::Duration;
 
 use cfg_if::cfg_if;
 use futures::try_join;
@@ -46,6 +47,8 @@ use super::Wallet;
 use super::WalletRegistration;
 
 const DATABASE_NAME: &str = "wallet";
+
+const REVOCATION_CHECK_FREQUENCY: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -256,7 +259,7 @@ where
             registration_status,
         );
 
-        wallet.start_background_revocation_checks();
+        wallet.start_background_revocation_checks(REVOCATION_CHECK_FREQUENCY);
 
         Ok(wallet)
     }
