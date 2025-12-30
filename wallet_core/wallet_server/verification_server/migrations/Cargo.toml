@@ -16,4 +16,3 @@ sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
 
 server_utils_migrations.path = "../../server_utils/migrations"
-
