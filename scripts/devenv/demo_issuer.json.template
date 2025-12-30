@@ -17,6 +17,18 @@
     "university_mdoc": {
       "client_id": "university.example.com",
       "data": {
+        "900253022": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Mathematics",
+              "graduation_date": "1995-10-10",
+              "grade": "9",
+              "cum_laude": true
+            }
+          }
+        ],
         "999991772": [
           {
             "attestation_type": "com.example.degree",
@@ -38,6 +50,18 @@
               "cum_laude": false
             }
           }
+        ],
+        "999991905": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Zealand University",
+              "education": "Leisure management",
+              "graduation_date": "2010-08-31",
+              "grade": "9",
+              "cum_laude": true
+            }
+          }
         ]
       },
       "disclosed": {
@@ -48,6 +72,18 @@
     "university_sd_jwt": {
       "client_id": "university.example.com",
       "data": {
+        "900253022": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Mathematics",
+              "graduation_date": "1995-10-10",
+              "grade": "9",
+              "cum_laude": true
+            }
+          }
+        ],
         "999991772": [
           {
             "attestation_type": "com.example.degree",
@@ -67,6 +103,18 @@
               "graduation_date": "2004-07-01",
               "grade": "7",
               "cum_laude": false
+            }
+          }
+        ],
+        "999991905": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Zealand University",
+              "education": "Leisure management",
+              "graduation_date": "2010-08-31",
+              "grade": "9",
+              "cum_laude": true
             }
           }
         ]
