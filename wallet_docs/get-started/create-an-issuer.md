@@ -634,10 +634,10 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" reader \
 
 # Create the tsl certificate using wallet_ca.
 cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" tsl \
-        --ca-key-file "${CA_DIR}/ca.issuer.key.pem" \
-        --ca-crt-file "${CA_DIR}/ca.issuer.crt.pem" \
-        --common-name "tsl.${IDENTIFIER}" \
-        --file-prefix "${TARGET_DIR}/tsl.${IDENTIFIER}"
+    --ca-key-file "${CA_DIR}/ca.issuer.key.pem" \
+    --ca-crt-file "${CA_DIR}/ca.issuer.crt.pem" \
+    --common-name "issuer.${IDENTIFIER}" \
+    --file-prefix "${TARGET_DIR}/tsl.${IDENTIFIER}"
 
 # Convert certificates PEM to DER.
 openssl x509 \
