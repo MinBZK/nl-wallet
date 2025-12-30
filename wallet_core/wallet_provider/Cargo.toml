@@ -64,7 +64,7 @@ spki = { workspace = true, features = ["std"] }
 strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
-tower-http = { workspace = true, features = ["trace", "limit", "decompression-zstd"] }
+tower-http = { workspace = true, features = ["trace", "decompression-zstd"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 uuid = { workspace = true, features = ["serde", "v4"] }

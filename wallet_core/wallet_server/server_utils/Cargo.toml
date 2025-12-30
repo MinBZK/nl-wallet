@@ -46,7 +46,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
-tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
+tower-http = { workspace = true, features = ["auth", "set-header", "trace", "validate-request"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 url = { workspace = true, features = ["serde"] }
