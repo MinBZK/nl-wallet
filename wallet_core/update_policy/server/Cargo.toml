@@ -21,7 +21,7 @@ chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
-postcard = { workspace = true, features = ["use-std"] }
+postcard.workspace = true
 rustls.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
