@@ -193,7 +193,6 @@ rustls-webpki = { version = "0.103.8", features = ["ring"] }
 sanitize-filename = "0.6.0"
 sea-orm = { version = "1.1.19", default-features = false }
 sea-orm-migration = { version = "1.1.19", default-features = false }
-sea-query = { version = "0.32.7", default-features = false }
 sec1 = "0.7.3"
 semver = "1.0.27"
 sentry = { version = "0.46.0", default-features = false }

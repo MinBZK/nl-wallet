@@ -8210,7 +8210,6 @@ dependencies = [
  "sd_jwt",
  "sd_jwt_vc_metadata",
  "sea-orm",
- "sea-query",
  "serde",
  "serde_json",
  "serde_urlencoded",
