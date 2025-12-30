@@ -75,11 +75,24 @@ test-android:
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
+    # Check for unsigned build, the build.gradle supports it, but we always want signed build from the CI
     - |
       if [[ -f *.aab ]] && jarsigner -verify *.aab | grep -q 'jar is unsigned'; then
         echo "Unsigned build, correctly set key.properties and key store"
         exit 1
       fi
+    # Convert aab to apk
+    - NAME=$(echo *.aab)
+    - NAME=${NAME%.aab}
+    - source wallet_app/android/key.properties
+    - |
+      bundletool build-apks --bundle=${NAME}.aab --output=${NAME}.apks --mode=universal \
+        --ks="wallet_app/android/$storeFile" \
+        --ks-pass="pass:$storePassword" \
+        --ks-key-alias="$keyAlias" \
+        --key-pass="pass:$keyPassword"
+    - unzip ${NAME}.apks universal.apk
+    - mv universal.apk ${NAME}.apk
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -95,11 +108,6 @@ build-android-app-ont:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
-
-build-android-app-apk-ont:
-  extends: build-android-app-ont
-  variables:
-    APP_FILE_FORMAT: "apk"
 
 build-android-app-mock:
   extends: [.env-k8s, .build-android-app]

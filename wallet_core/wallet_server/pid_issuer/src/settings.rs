@@ -4,6 +4,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::Debug;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -22,14 +23,17 @@ use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PidIssuerSettings {
+    #[debug(skip)]
     pub digid: Digid,
     pub brp_server: BaseUrl,
 
     #[serde_as(as = "Base64")]
+    #[debug(skip)]
     pub wua_issuer_pubkey: DerVerifyingKey,
 
+    #[debug(skip)]
     pub recovery_code: SecretKey,
 
     #[serde(flatten)]

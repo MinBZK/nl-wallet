@@ -5,7 +5,7 @@ use serde_with::DurationSeconds;
 use serde_with::serde_as;
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct StatusListTokenCacheSettings {
     pub capacity: u64,
 
