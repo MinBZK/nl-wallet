@@ -2111,7 +2111,6 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
- "token_status_list",
  "uuid",
  "zstd",
 ]
