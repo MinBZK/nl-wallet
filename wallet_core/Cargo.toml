@@ -124,7 +124,7 @@ csv = "1.4.0"
 ctor = "0.6.3"
 dashmap = "6.1.0"
 data-url = "0.3.2"
-der = "0.7.10"
+der = { version = "0.7.10", features = ["std"] }
 derive_more = "2.1.0"
 dotenvy = "0.15.7"
 etag = "4.0.0"

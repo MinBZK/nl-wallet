@@ -63,7 +63,7 @@ db_test = [
 [dependencies]
 base64.workspace = true
 chrono = { workspace = true, features = ["now", "serde"] }
-der = { workspace = true, features = ["std"] }
+der.workspace = true
 derive_more = { workspace = true, features = ["constructor", "into"] }
 futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true

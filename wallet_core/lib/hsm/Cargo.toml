@@ -23,7 +23,7 @@ required-features = ["settings", "test"]
 
 [dependencies]
 cryptoki.workspace = true
-der = { workspace = true, features = ["std"] }
+der.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
 metrics.workspace = true
