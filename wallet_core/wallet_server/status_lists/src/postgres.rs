@@ -313,17 +313,12 @@ where
             .unzip();
 
         // Update revocation for all batches
-        let update_result = attestation_batch::Entity::update_many()
+        attestation_batch::Entity::update_many()
             .col_expr(attestation_batch::Column::IsRevoked, Expr::value(true))
             .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids.iter().copied()))
             .exec(&self.connection)
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
-
-        // No need to publish new status list if nothing has been revoked
-        if update_result.rows_affected == 0 {
-            return Ok(());
-        }
 
         // Publish new status list
         try_join_all(
