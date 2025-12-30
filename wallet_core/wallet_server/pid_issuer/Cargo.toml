@@ -50,7 +50,7 @@ futures.workspace = true
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
+p256 = { workspace = true, features = ["pkcs8"] }
 reqwest.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }

@@ -75,7 +75,7 @@ hardware_integration_test = [
 [dependencies]
 async-trait.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
-p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
+p256 = { workspace = true, features = ["pkcs8"] }
 parking_lot.workspace = true
 thiserror.workspace = true
 trait-variant.workspace = true

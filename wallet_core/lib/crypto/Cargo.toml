@@ -29,7 +29,7 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
+p256 = { workspace = true, features = ["pem"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 rand.workspace = true

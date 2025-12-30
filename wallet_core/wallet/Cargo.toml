@@ -40,7 +40,7 @@ libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-ope
 josekit.workspace = true
 mime.workspace = true
 nutype.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "std"] }
+p256.workspace = true
 parking_lot.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["zstd"] }

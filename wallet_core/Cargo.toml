@@ -160,7 +160,7 @@ num-bigint = "0.4.6"
 num-traits = "0.2.19"
 nutype = "0.6.2"
 oslog = { version = "0.2.0", default-features = false }
-p256 = { version = "0.13.2", default-features = false }
+p256 = { version = "0.13.2", default-features = false, features = ["ecdsa", "std"] }
 passkey-types = "0.4.0"
 parking_lot = "0.12.5"
 pem = "3.0.6"

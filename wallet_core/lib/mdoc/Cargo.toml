@@ -36,7 +36,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 nom.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "std"] }
+p256 = { workspace = true, features = ["ecdh", "pem"] }
 rand_core.workspace = true
 ring.workspace = true
 rustls-pki-types.workspace = true

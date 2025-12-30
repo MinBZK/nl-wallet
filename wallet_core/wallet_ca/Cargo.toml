@@ -16,7 +16,7 @@ chrono = { workspace = true, features = ["now"] }
 clap = { workspace = true, features = ["derive", "string"] }
 clio = { workspace = true, features = ["clap-parse"] }
 itertools.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pem"] }
+p256 = { workspace = true, features = ["pem"] }
 pem.workspace = true
 serde_json.workspace = true
 x509-parser.workspace = true

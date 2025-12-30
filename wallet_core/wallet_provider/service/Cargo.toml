@@ -67,7 +67,7 @@ der = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["constructor", "into"] }
 futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
+p256 = { workspace = true, features = ["pem"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 semver.workspace = true

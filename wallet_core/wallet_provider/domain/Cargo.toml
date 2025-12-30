@@ -18,7 +18,7 @@ mock = ["hmac/std", "hsm/mock", "rand"]
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["debug"] }
 futures.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "std"] }
+p256.workspace = true
 semver.workspace = true
 serde.workspace = true
 serde_with.workspace = true

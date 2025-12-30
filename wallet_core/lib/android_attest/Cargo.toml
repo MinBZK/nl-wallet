@@ -38,7 +38,7 @@ int-enum.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
-p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
+p256 = { workspace = true, features = ["pkcs8"] }
 rasn = { workspace = true, features = ["std"] }
 regex.workspace = true
 reqwest.workspace = true
@@ -68,7 +68,7 @@ x509-cert = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
-p256 = { workspace = true, features = ["std", "ecdsa", "pem", "pkcs8"] }
+p256 = { workspace = true, features = ["pem"] }
 rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "parking_lot"] }

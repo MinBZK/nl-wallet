@@ -62,7 +62,7 @@ itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
+p256 = { workspace = true, features = ["serde"] }
 rand_core.workspace = true
 reqwest.workspace = true
 ring.workspace = true
