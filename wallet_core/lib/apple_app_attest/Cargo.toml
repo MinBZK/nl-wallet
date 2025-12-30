@@ -40,7 +40,7 @@ derive_more = { workspace = true, features = ["as_ref", "display", "from", "dere
 nutype.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 passkey-types.workspace = true
-rasn = { workspace = true, features = ["std"] }
+rasn.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
 sha2.workspace = true
