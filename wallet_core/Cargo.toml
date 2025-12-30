@@ -238,7 +238,7 @@ utoipa-axum = "0.2.0"
 utoipa-swagger-ui = "9.0.2"
 uuid = "1.19.0"
 wiremock = "0.6.5"
-x509-cert = { version = "0.2.5", default-features = false }
+x509-cert = { version = "0.2.5", default-features = false, features = ["std"] }
 x509-parser = "0.18.0"
 yoke = "0.8.1"
 zstd = "0.13.3"

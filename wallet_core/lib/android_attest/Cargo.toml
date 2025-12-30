@@ -19,7 +19,7 @@ required-features = ["mock"]
 # Accept attested keys from the emulator. This allows software security level.
 allow_emulator_keys = ["dep:tracing"]
 encode = []
-mock = ["dep:der", "dep:rand", "dep:time", "encode", "rcgen/aws_lc_rs", "x509-cert/std"]
+mock = ["dep:der", "dep:rand", "dep:time", "dep:x509-cert", "encode", "rcgen/aws_lc_rs"]
 network_test = []
 # Derive Serialize for KeyAttestation and related types, to use in JSON APIs.
 serialize_key_attestation = ["bytes/serde", "dep:cfg_eval", "dep:serde_repr"]
