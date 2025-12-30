@@ -46,13 +46,12 @@ persistent_mock_attested_key = [
     "serde/rc",
     "serde_with/base64",
     "tokio/fs",
-    "tokio/parking_lot",
     "tokio/sync",
 ]
 # Implement extra constructor on PersistentMockAttestedKeyHolder by reading Xcode environment variables
 xcode_env = ["apple_app_attest/xcode_env"]
 # Include the MockHardwareUtilities type for use in tests
-mock_utils = ["tokio/parking_lot"]
+mock_utils = ["dep:tokio"]
 # Include all mock implementations for use in tests
 mock = ["mock_attested_key", "mock_hw_keystore", "mock_utils"]
 # Enable helper code for iOS and Android integration tests
@@ -68,7 +67,6 @@ hardware_integration_test = [
     "dep:rustls-pki-types",
     "tokio/fs",
     "tokio/io-util",
-    "tokio/parking_lot",
     "tokio/rt",
 ]
 

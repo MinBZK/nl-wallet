@@ -45,7 +45,7 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 serde_urlencoded.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 trait-variant.workspace = true
 
 attestation_data.path = "../../lib/attestation_data"

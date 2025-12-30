@@ -57,7 +57,7 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
 ] }
 semver.workspace = true
-tokio = { workspace = true, features = ["parking_lot", "rt"] }
+tokio = { workspace = true, features = ["rt"] }
 tracing.workspace = true
 url.workspace = true
 uuid.workspace = true

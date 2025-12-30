@@ -56,7 +56,7 @@ serde_with = { workspace = true, features = ["base64", "json"] }
 strum = { workspace = true, features = ["derive"] }
 tempfile.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["sync", "fs"] }
+tokio = { workspace = true, features = ["rt", "sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
@@ -96,7 +96,7 @@ rand_core.workspace = true
 rstest.workspace = true
 serial_test.workspace = true
 ssri.workspace = true
-tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
+tokio = { workspace = true, features = ["macros", "test-util"] }
 wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }

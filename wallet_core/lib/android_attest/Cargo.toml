@@ -52,7 +52,7 @@ serde_with = { workspace = true, features = ["chrono", "base64"] }
 spki = { workspace = true, features = ["std"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["fs", "sync", "parking_lot"] }
+tokio = { workspace = true, features = ["fs", "sync"] }
 url.workspace = true
 x509-parser.workspace = true
 
@@ -71,5 +71,5 @@ assert_matches.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 rand.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["macros", "parking_lot"] }
+tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true

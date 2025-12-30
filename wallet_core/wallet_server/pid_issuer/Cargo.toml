@@ -50,7 +50,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 url = { workspace = true, features = ["serde"] }
 
 derive_more = { workspace = true, optional = true }

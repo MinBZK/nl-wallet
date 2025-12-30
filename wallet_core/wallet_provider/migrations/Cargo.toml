@@ -14,6 +14,6 @@ doctest = false
 [dependencies]
 async-trait.workspace = true
 sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls", "sqlx-postgres"] }
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 
 status_lists_migrations.path = "../../wallet_server/status_lists/migrations"

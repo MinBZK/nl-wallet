@@ -29,6 +29,6 @@ cli = [
 async-trait.workspace = true
 sea-orm-migration.workspace = true
 
-tokio = { version = "1.0.0", optional = true }
+tokio = { workspace = true, optional = true }
 
 entity.path = "../entity"

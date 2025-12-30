@@ -114,7 +114,7 @@ rand.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tracing-test.workspace = true
-tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }

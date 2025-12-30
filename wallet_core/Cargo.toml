@@ -214,7 +214,7 @@ syn = "2.0.111"
 tempfile = "3.23.0"
 thiserror = "2.0.17"
 time = "0.3.44"
-tokio = { version = "1.48.0", default-features = false }
+tokio = { version = "1.48.0", default-features = false, features = ["parking_lot"] }
 tokio-test = "0.4.4"
 toml = "0.9.8"
 tower = { version = "0.5.2", default-features = false }
