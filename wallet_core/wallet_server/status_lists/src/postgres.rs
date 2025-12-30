@@ -321,14 +321,12 @@ where
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         // Publish new status list
-        try_join_all(
-            status_list_info
-                .into_iter()
-                .map(|(list_id, external_id, size)| async move {
-                    let size = size.try_into().expect("size should be non-zero");
-                    self.publish_status_list(list_id, external_id.as_str(), size).await
-                }),
-        )
+        try_join_all(status_list_info.into_iter().unique_by(|(id, _, _)| *id).map(
+            |(list_id, external_id, size)| async move {
+                let size = size.try_into().expect("size should be non-zero");
+                self.publish_status_list(list_id, external_id.as_str(), size).await
+            },
+        ))
         .await
         .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
