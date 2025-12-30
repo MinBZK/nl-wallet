@@ -20,7 +20,7 @@ test_credential = ["dep:futures", "mock"]
 [dependencies]
 chrono.workspace = true
 ciborium.workspace = true
-coset = { workspace = true, features = ["std"] }
+coset.workspace = true
 derive_more = { workspace = true, features = ["debug", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true

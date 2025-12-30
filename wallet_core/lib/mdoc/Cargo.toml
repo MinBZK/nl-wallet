@@ -28,7 +28,7 @@ mock_example_constructors = [
 base64.workspace = true
 chrono.workspace = true
 ciborium.workspace = true
-coset = { workspace = true, features = ["std"] }
+coset.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
 futures.workspace = true
 hex.workspace = true

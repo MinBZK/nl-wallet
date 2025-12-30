@@ -116,7 +116,7 @@ clio = "0.3.5"
 config = { version = "0.15.19", default-features = false }
 const-decoder = "0.4.0"
 # coset version 0.5.x and above is held back by passkey-types
-coset = "0.3.8"
+coset = { version = "0.3.8", features = ["std"] }
 cryptoki = "0.10.0"
 crypto-common = "0.1.7"
 cstr = "0.2.12"
