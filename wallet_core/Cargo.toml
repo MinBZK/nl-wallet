@@ -182,7 +182,7 @@ reqwest = { version = "0.12.26", default-features = false, features = ["json", "
 reqwest-middleware = { version = "0.4.2", default-features = false }
 ring = "0.17.14"
 rpassword = "7.4.0"
-rsa = { version = "0.9.9", default-features = false }
+rsa = { version = "0.9.9", default-features = false, features = ["std", "u64_digit"] }
 rstest = "0.26.1"
 # held back by sea-orm / sqlx via libsqlite3-sys
 rusqlite = "0.32.1"

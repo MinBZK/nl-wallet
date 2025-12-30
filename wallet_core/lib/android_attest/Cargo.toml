@@ -43,7 +43,7 @@ rasn = { workspace = true, features = ["std"] }
 regex.workspace = true
 reqwest.workspace = true
 reqwest-middleware.workspace = true
-rsa = { workspace = true, features = ["std"] }
+rsa.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
