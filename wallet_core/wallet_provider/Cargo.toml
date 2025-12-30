@@ -53,7 +53,7 @@ futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
 log.workspace = true
 metrics.workspace = true
-metrics-exporter-prometheus = { workspace = true, features = ["http-listener"] }
+metrics-exporter-prometheus.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 regex.workspace = true
 rustix = { workspace = true, features = ["pipe", "stdio"] }

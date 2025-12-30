@@ -150,7 +150,7 @@ libsqlite3-sys = { version = "0.30.1", default-features = false }
 log = "0.4.29"
 mediatype = "0.21.0"
 metrics = "0.24.3"
-metrics-exporter-prometheus = { version = "0.18.1", default-features = false }
+metrics-exporter-prometheus = { version = "0.18.1", default-features = false, features = ["http-listener"] }
 mime = "0.3.17"
 mockall = "0.14.0"
 moka = "0.12.11"
