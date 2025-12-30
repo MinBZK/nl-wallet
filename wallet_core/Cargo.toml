@@ -206,7 +206,7 @@ serde_valid = "2.0.0"
 serde_with = "3.16.1"
 serial_test = "3.2.0"
 sha2 = "0.10.9"
-spki = "0.7.3"
+spki = { version = "0.7.3", features = ["std"] }
 ssri = "9.2.0"
 strfmt = "0.2.5"
 strum = "0.27.2"
