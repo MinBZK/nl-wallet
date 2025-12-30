@@ -278,8 +278,6 @@ run-automation-smoke-test-ont:
   needs:
     - job: upload-browserstack-android-app
       artifacts: false
-    - job: deploy-apps-ont
-      artifacts: false
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace smokeTest
