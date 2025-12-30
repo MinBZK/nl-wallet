@@ -35,10 +35,10 @@ code base using Appium and BrowserStack.
    `npm i --location=global appium`
 2. Install
    [Appium uiautomator2 Driver](https://github.com/appium-userland/appium-uiautomator2-driver):
-   `appium driver install --source=npm uiautomator2`
+   `appium driver install uiautomator2`
 3. Install
    [Appium xcuitest Driver](https://github.com/appium/appium-xcuitest-driver):
-   `appium driver install --source=npm xcuitest`
+   `appium driver install xcuitest`
 4. Verify setup by running: `appium doctor`
 
 ## Run Automation Tests
@@ -65,8 +65,17 @@ code base using Appium and BrowserStack.
   and put it in wallet_app/android
 - and then create an APK by executing
   `CONFIG_ENV=ont UNIVERSAL_LINK_BASE=https://app.example.com/deeplink/ bundle exec fastlane android build build_mode:release file_format:apk demo_index_url:https://example.com/ universal_link_base:app.example.com`.
-- and then create an IPA by executing
-  `CONFIG_ENV="ont" UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:false build_mode:release demo_index_url:https://example.com/ universal_link_base:app.example.com`.
+- and then create an IPA by executing:
+   `CONFIG_ENV="ont" \
+    UL_HOSTNAME=app.example.com \
+    UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" \
+    APPLE_ATTESTATION_ENVIRONMENT="production" \
+    bundle exec fastlane ios build \
+    build_mode:release \
+    demo_index_url:https://example.com/ \
+    universal_link_base:app.example.com`.
+  followed by signing it with:
+   `bundle exec fastlane ios sign app_store:false`
 - Above commands creates apps that run against the test environment.
 - For IOS the value of variable ipaPath in
   `uiautomation/src/main/kotlin/driver/LocalMobileDriver.kt` needs to be changed

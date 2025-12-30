@@ -95,14 +95,14 @@ class UniversalLinkTests : TestBase() {
             { assertTrue(invalidIssuanceULErrorScreen.headlineVisible(), "Headline is not visible") },
             { assertTrue(invalidIssuanceULErrorScreen.closeButtonVisible(), "Close button is not visible") },
         )
-        invalidIssuanceULErrorScreen.seeDetails()
+        invalidIssuanceULErrorScreen.errorDetails.seeDetails()
         assertAll(
-            { assertTrue(invalidIssuanceULErrorScreen.appVersionLabelVisible(), "App version label is not visible") },
-            { assertTrue(invalidIssuanceULErrorScreen.osVersionLabelVisible(), "OS version label is not visible") },
-            { assertTrue(invalidIssuanceULErrorScreen.appConfigLabelVisible(), "App config label is not visible") },
-            { assertTrue(invalidIssuanceULErrorScreen.appVersionVisible(), "App version is not visible") },
-            { assertTrue(invalidIssuanceULErrorScreen.osVersionVisible(), "OS version is not visible") },
-            { assertTrue(invalidIssuanceULErrorScreen.appConfigVisible(), "App config is not visible") }
+            { assertTrue(invalidIssuanceULErrorScreen.errorDetails.appVersionLabelVisible(), "App version label is not visible") },
+            { assertTrue(invalidIssuanceULErrorScreen.errorDetails.osVersionLabelVisible(), "OS version label is not visible") },
+            { assertTrue(invalidIssuanceULErrorScreen.errorDetails.appConfigLabelVisible(), "App config label is not visible") },
+            { assertTrue(invalidIssuanceULErrorScreen.errorDetails.appVersionVisible(), "App version is not visible") },
+            { assertTrue(invalidIssuanceULErrorScreen.errorDetails.osVersionVisible(), "OS version is not visible") },
+            { assertTrue(invalidIssuanceULErrorScreen.errorDetails.appConfigVisible(), "App config is not visible") }
         )
     }
 }
