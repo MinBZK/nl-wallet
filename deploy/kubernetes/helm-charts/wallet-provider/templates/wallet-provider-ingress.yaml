@@ -1,8 +1,9 @@
+{{ $name := include "common.names.fullname" . }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "common.names.fullname" . }}
+  name: {{ $name }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}
@@ -44,3 +45,50 @@ spec:
     - hosts:
         - {{ .Values.ingress.hostname }}
       secretName: {{ .Values.ingress.tlsSecretName | quote }}
+{{ if .Values.ingressInternal.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}-internal
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- with .Values.ingressInternal.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.ingressInternal.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressInternal.className }}
+  rules:
+    - host: {{ .Values.ingressInternal.hostname | quote }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  name: http
+            path: /admin
+            pathType: Prefix
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  name: http
+            path: /config
+            pathType: Prefix
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  name: http
+            path: /openapi.json
+            pathType: Prefix
+  tls:
+    - hosts:
+        - {{ .Values.ingressInternal.hostname | quote }}
+      secretName: {{ .Values.ingressInternal.tlsSecretName | quote }}
+{{ end }}
