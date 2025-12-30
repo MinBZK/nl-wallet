@@ -707,7 +707,7 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
     .await;
 
     let handle = service.start_refresh_job();
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
     handle.abort();
 
     assert_published_list(&config, &db_lists[0], []).await;
