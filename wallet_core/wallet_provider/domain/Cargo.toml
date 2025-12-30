@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["hmac/std", "hsm/mock", "rand"]
+mock = ["dep:hmac", "dep:rand", "hsm/mock"]
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }

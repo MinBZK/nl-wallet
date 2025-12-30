@@ -31,15 +31,15 @@ mock_play_integrity = ["android_attest/mock"]
 mock_secure_keys = ["crypto/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
+    "dep:anyhow",
+    "dep:hmac",
+    "dep:rand_core",
     "apple_app_attest/mock",
     "attestation_data/generate",
     "attestation_data/mock",
     "attestation_types/pid_constants",
     "crypto/generate",
     "crypto/mock_secure_keys",
-    "dep:anyhow",
-    "dep:rand_core",
-    "hmac/std",
     "mock_play_integrity",
     "platform_support/mock_attested_key_apple",
     "sd_jwt/examples",
@@ -108,7 +108,7 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 [dev-dependencies]
 anyhow.workspace = true
 assert_matches.workspace = true
-hmac = { workspace = true, features = ["std"] }
+hmac.workspace = true
 mockall.workspace = true
 rand.workspace = true
 rand_core.workspace = true
