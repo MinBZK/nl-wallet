@@ -16,19 +16,21 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [features]
-client = ["dep:error_category", "dep:futures", "dep:platform_support", "dep:thiserror", "p256/pem"]
-server = ["dep:apple_app_attest", "dep:thiserror", "p256/pem"]
+client = ["dep:error_category", "dep:futures", "dep:platform_support", "p256/pem"]
+server = ["dep:apple_app_attest", "p256/pem"]
 integration_test = ["android_attest/mock", "client", "dep:rustls-pki-types", "server"]
 mock = []
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
-derive_more = { workspace = true, features = ["constructor"] }
+derive_more = { workspace = true, features = ["constructor", "display", "into"] }
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
+rand.workspace = true
+thiserror.workspace = true
 uuid = { workspace = true, features = ["v4", "serde"] }
 
 crypto.path = "../../lib/crypto"
@@ -39,7 +41,6 @@ wscd.path = "../../lib/wscd"
 
 futures = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true }
-thiserror = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
 
 android_attest = { path = "../../lib/android_attest", optional = true }
