@@ -19,7 +19,7 @@ if [[ -e $DOCKERFILE ]]; then
         gsub(/\$\{TAG}/, "'"${IMAGE_TAG}"'", $2);
         print $2;
     }' "${DOCKERFILE}"); do
-        buildah pull "docker-daemon:${id}"
+        buildah pull "docker-daemon:${id}" || true
     done
 
     buildah build \
