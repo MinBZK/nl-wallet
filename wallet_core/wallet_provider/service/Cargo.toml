@@ -32,7 +32,6 @@ mock_secure_keys = ["crypto/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
     "dep:anyhow",
-    "dep:hmac",
     "dep:rand_core",
     "apple_app_attest/mock",
     "attestation_data/generate",
@@ -81,7 +80,6 @@ uuid = { workspace = true, features = ["v4"] }
 trait-variant.workspace = true
 
 anyhow = { workspace = true, optional = true }
-hmac = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
@@ -108,7 +106,6 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 [dev-dependencies]
 anyhow.workspace = true
 assert_matches.workspace = true
-hmac.workspace = true
 mockall.workspace = true
 rand.workspace = true
 rand_core.workspace = true

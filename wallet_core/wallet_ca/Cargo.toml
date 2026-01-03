@@ -29,6 +29,7 @@ utils.path = "../lib/utils"
 assert_cmd.workspace = true
 assert_fs.workspace = true
 predicates = { workspace = true, features = ["regex"] }
+rand_core.workspace = true
 time.workspace = true
 
 attestation_data = { path = "../lib/attestation_data", features = ["mock"] }
