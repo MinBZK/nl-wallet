@@ -71,6 +71,7 @@ use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+use server_utils::keys::SecretKeyVariant;
 use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -450,6 +451,7 @@ pub struct AndroidAttestationConfiguration {
 pub struct AccountServerKeys {
     pub wallet_certificate_signing_pubkey: EcdsaDecodingKey,
     pub pin_keys: AccountServerPinKeys,
+    pub revocation_code_key: SecretKeyVariant,
 }
 
 pub struct AccountServerPinKeys {
@@ -1582,6 +1584,8 @@ pub mod mock {
 
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use ring::hmac;
+    use ring::rand;
 
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
@@ -1656,6 +1660,9 @@ pub mod mock {
                     public_disclosure_protection_key_identifier:
                         wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 },
+                revocation_code_key: SecretKeyVariant::Software(
+                    hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+                ),
             },
             RECOVERY_CODE_CONFIG.clone(),
             AppleAttestationConfiguration {

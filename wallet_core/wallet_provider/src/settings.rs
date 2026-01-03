@@ -28,6 +28,7 @@ use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use server_utils::settings::KeyPair;
 use server_utils::settings::PrivateKey;
+use server_utils::settings::SecretKey;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigError;
 use status_lists::publish::PublishDir;
@@ -56,6 +57,7 @@ pub struct Settings {
     pub structured_logging: bool,
     pub capture_and_redirect_logging: Option<PathBuf>,
     pub max_transfer_upload_size_in_bytes: usize,
+    pub revocation_code_key: SecretKey,
 
     pub wua_status_list: WuaStatusListsSettings,
 
