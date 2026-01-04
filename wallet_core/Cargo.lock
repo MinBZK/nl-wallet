@@ -3442,6 +3442,7 @@ dependencies = [
  "config",
  "crypto",
  "dcql",
+ "derive_more",
  "futures",
  "hsm",
  "http_utils",
@@ -3463,6 +3464,7 @@ dependencies = [
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
+ "tracing",
  "trait-variant",
  "utils",
 ]
@@ -4777,6 +4779,7 @@ dependencies = [
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
+ "tracing",
  "url",
  "utils",
 ]
@@ -7069,6 +7072,7 @@ dependencies = [
  "rustls-pki-types",
  "sea-orm",
  "semver",
+ "serde",
  "serde_json",
  "serde_urlencoded",
  "serial_test",

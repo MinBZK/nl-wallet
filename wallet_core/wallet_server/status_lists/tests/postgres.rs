@@ -52,6 +52,7 @@ use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::num::NonZeroU31;
+use utils::num::U31;
 
 async fn create_status_list_service(
     ca: &Ca,
@@ -64,7 +65,7 @@ async fn create_status_list_service(
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
-        create_threshold: NonZeroU31::try_new(create_threshold)?,
+        create_threshold: U31::try_new(create_threshold)?,
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl,
@@ -281,7 +282,7 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
             let attestation_type = random_string(20);
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
-                create_threshold: NonZeroU31::try_new(1).unwrap(),
+                create_threshold: U31::ONE,
                 expiry: Duration::from_secs(3600),
                 refresh_threshold: Duration::from_secs(600),
                 ttl: None,
@@ -682,6 +683,23 @@ async fn republish_list_with_expiry(path: &Path, key_pair: &KeyPair<impl EcdsaKe
     tokio::fs::write(&lock_path, []).await.unwrap();
 }
 
+async fn wait_for_refresh(service: &PostgresStatusListService, path: &Path) -> anyhow::Result<()> {
+    let before = tokio::fs::metadata(path).await?.modified()?;
+    let handle = service.start_refresh_job();
+    for _ in 0..10 {
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        match tokio::fs::metadata(path).await?.modified() {
+            Ok(current) if current > before => {
+                handle.abort();
+                return Ok(());
+            }
+            _ => {}
+        }
+    }
+    handle.abort();
+    Err(anyhow::Error::msg("Timeout waiting for refresh"))
+}
+
 #[tokio::test]
 #[rstest]
 #[case(None)]
@@ -698,16 +716,9 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1);
 
-    republish_list_with_expiry(
-        &publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id)),
-        &config.key_pair,
-        expiry,
-    )
-    .await;
+    let path = publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id));
+    republish_list_with_expiry(&path, &config.key_pair, expiry).await;
 
-    let handle = service.start_refresh_job();
-    tokio::time::sleep(Duration::from_millis(100)).await;
-    handle.abort();
-
+    wait_for_refresh(&service, &path).await.unwrap();
     assert_published_list(&config, &db_lists[0], []).await;
 }

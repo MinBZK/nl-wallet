@@ -31,23 +31,19 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
 ) {
     // Start with a wallet that contains the PID.
     let pin = "112233";
-    let (mut wallet, urls, issuance_url) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, issuance_urls) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     // Perform issuance of university degrees based on this PID.
-    let _proposal = wallet
-        .start_disclosure(&universal_link(&issuance_url, pid_format), DisclosureUriSource::Link)
-        .await
-        .unwrap();
-
-    let attestation_previews = wallet
-        .continue_disclosure_based_issuance(&[0], pin.to_owned())
-        .await
-        .unwrap();
-
-    wallet.accept_issuance(pin.to_owned()).await.unwrap();
+    let attestation_previews = do_degree_issuance(
+        &mut wallet,
+        pin.to_owned(),
+        &issuance_urls.issuance_server.public,
+        pid_format,
+    )
+    .await;
 
     let attestations = wallet_attestations(&mut wallet).await;
 
@@ -107,7 +103,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
         .await
         .unwrap();
 
-    // The the universal link the wallet can use for disclosure.
+    // The universal link the wallet can use for disclosure.
     let mut status_url = urls.verifier_url.join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: Some(SessionType::SameDevice),
@@ -227,7 +223,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     let (issuance_server_settings, _, di_trust_anchor, di_tls_config) = issuance_server_settings();
 
     let pin = "112233";
-    let (mut wallet, _, issuance_url) = setup_wallet_and_env(
+    let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(),
@@ -240,7 +236,10 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let _proposal = wallet
-        .start_disclosure(&universal_link(&issuance_url, format), DisclosureUriSource::Link)
+        .start_disclosure(
+            &universal_link(&issuance_urls.issuance_server.public, format),
+            DisclosureUriSource::Link,
+        )
         .await
         .unwrap();
 

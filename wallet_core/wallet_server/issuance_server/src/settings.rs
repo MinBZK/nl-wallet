@@ -5,6 +5,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::Debug;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -31,7 +32,7 @@ use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct IssuanceServerSettings {
     pub disclosure_settings: HashMap<String, AttestationSettings>,
 
@@ -47,6 +48,7 @@ pub struct IssuanceServerSettings {
     /// Reader trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
     /// application startup.
     #[serde_as(as = "Vec<Base64>")]
+    #[debug(skip)]
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     pub universal_link_base_url: BaseUrl,
@@ -55,14 +57,16 @@ pub struct IssuanceServerSettings {
     pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AttestationSettings {
     #[serde(flatten)]
+    #[debug(skip)]
     pub key_pair: KeyPair,
     pub dcql_query: Query,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).
+    #[debug(skip)]
     pub attestation_url_config: TlsPinningConfig,
 }
 

@@ -102,6 +102,10 @@ pub mod mock {
     use crate::attributes::AttributeValue;
 
     impl IssuableDocument {
+        pub fn into_parts(self) -> (String, Attributes, Uuid) {
+            (self.attestation_type, self.attributes, self.id)
+        }
+
         pub fn new_mock_degree(education: String) -> Self {
             IssuableDocument::try_new_with_random_id(
                 "com.example.degree".to_string(),

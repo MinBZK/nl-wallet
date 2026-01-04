@@ -23,6 +23,7 @@ use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
+use wallet_provider_persistence::wallet_user::list_wallet_ids;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::reset_wallet_user_state;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
@@ -36,6 +37,13 @@ pub mod common;
 async fn test_create_wallet_user() {
     let (_db, _wallet_user_id, wallet_id, wallet_user) = common::create_test_user().await;
     assert_eq!(wallet_id, wallet_user.wallet_id);
+}
+
+#[tokio::test]
+async fn test_list_wallet_ids() {
+    let (db, _wallet_user_id, wallet_id, _) = common::create_test_user().await;
+    let wallet_ids = list_wallet_ids(&db).await.unwrap();
+    assert!(wallet_ids.contains(&wallet_id));
 }
 
 #[tokio::test]

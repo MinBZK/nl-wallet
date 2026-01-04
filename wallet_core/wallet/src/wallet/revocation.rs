@@ -35,7 +35,6 @@ use crate::storage::StorageState;
 use crate::wallet::attestations::AttestationsCallback;
 use crate::wallet::attestations::AttestationsError;
 
-const CHECK_FREQUENCY_IN_SECONDS: u64 = 60 * 60 * 24;
 const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
 const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(180);
 const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(10);
@@ -66,7 +65,7 @@ where
     /// Spawns a background task that only accesses storage, not the entire wallet.
     /// Stores the ablort handle in the wallet.
     #[instrument(skip_all)]
-    pub fn start_background_revocation_checks(&mut self)
+    pub fn start_background_revocation_checks(&mut self, check_frequency: Duration)
     where
         S: Sync + 'static,
         SLC: Sync + 'static,
@@ -83,10 +82,18 @@ where
             Arc::clone(&self.storage),
             Arc::clone(&self.attestations_callback),
             TimeGenerator,
-            Duration::from_secs(CHECK_FREQUENCY_IN_SECONDS),
+            check_frequency,
         );
 
         self.revocation_status_job_handle = Some(abort_handle);
+    }
+
+    /// Stop background revocation checks
+    #[instrument(skip_all)]
+    pub fn stop_background_revocation_checks(&mut self) {
+        if let Some(handle) = &self.revocation_status_job_handle.take() {
+            handle.abort();
+        }
     }
 
     fn spawn_revocation_checks<T>(

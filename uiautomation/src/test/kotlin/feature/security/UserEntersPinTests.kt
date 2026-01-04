@@ -72,14 +72,14 @@ class UserEntersPinTests : TestBase() {
                 { assertTrue(noInternetErrorScreen.tryAgainButtonVisible(), "Try again button is not visible") }
             )
 
-            noInternetErrorScreen.seeDetails()
+            noInternetErrorScreen.errorDetails.seeDetails()
             assertAll(
-                { assertTrue(noInternetErrorScreen.appVersionLabelVisible(), "App version is not visible") },
-                { assertTrue(noInternetErrorScreen.osVersionLabelVisible(), "Os version is not visible") },
-                { assertTrue(noInternetErrorScreen.appConfigLabelVisible(), "appConfig is not visible") },
-                { assertTrue(noInternetErrorScreen.appVersionVisible(), "App version is not visible") },
-                { assertTrue(noInternetErrorScreen.osVersionVisible(), "Os version is not visible") },
-                { assertTrue(noInternetErrorScreen.appConfigVisible(), "appConfig is not visible") }
+                { assertTrue(noInternetErrorScreen.errorDetails.appVersionLabelVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.osVersionLabelVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.appConfigLabelVisible(), "appConfig is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.appVersionVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.osVersionVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.appConfigVisible(), "appConfig is not visible") }
             )
         } finally {
             noInternetErrorScreen.enableInternetConnection();
