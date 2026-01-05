@@ -714,7 +714,6 @@ pub mod mock {
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
         pub state: WalletUserState,
-        pub transfer_session: Option<TransferSession>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {

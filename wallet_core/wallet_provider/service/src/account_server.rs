@@ -1893,14 +1893,12 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
-    use wallet_account::messages::transfer::TransferSessionState;
     use wallet_account::signed::ChallengeResponse;
     use wallet_provider_domain::EpochGenerator;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-    use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
@@ -2103,7 +2101,6 @@ mod tests {
             instruction_sequence_number: 0,
             apple_assertion_counter,
             state: WalletUserState::Active,
-            transfer_session: None,
         };
 
         let user_state = mock::user_state(
@@ -3411,16 +3408,6 @@ mod tests {
 
         user_state.repositories = WalletUserTestRepo {
             challenge: Some(challenge.clone()),
-            transfer_session: Some(TransferSession {
-                id: Uuid::new_v4(),
-                source_wallet_user_id: Some(Uuid::new_v4()),
-                destination_wallet_user_id: Uuid::new_v4(),
-                destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
-                destination_wallet_recovery_code: String::from("12345678"),
-                transfer_session_id: Uuid::new_v4(),
-                state: TransferSessionState::Confirmed,
-                encrypted_wallet_data: None,
-            }),
             instruction_sequence_number: 43,
             apple_assertion_counter: match &hw_privkey {
                 MockHardwareKey::Apple(attested_key) => Some(AssertionCounter::from(*attested_key.next_counter() - 1)),

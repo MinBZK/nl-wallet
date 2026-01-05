@@ -372,7 +372,6 @@ mod tests {
                 instruction_sequence_number: 42,
                 apple_assertion_counter: None,
                 state: WalletUserState::Active,
-                transfer_session: None,
             },
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
