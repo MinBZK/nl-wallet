@@ -15,7 +15,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
@@ -49,7 +48,7 @@ use crate::translations::TRANSLATIONS;
 use crate::translations::Words;
 
 struct ApplicationState {
-    usecases: IndexMap<String, Usecase>,
+    usecases: HashMap<String, Usecase>,
     issuance_server_url: BaseUrl,
     universal_link_base_url: BaseUrl,
     help_base_url: BaseUrl,

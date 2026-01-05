@@ -13,4 +13,4 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls", "sqlx-postgres"] }
+sea-orm-migration.workspace = true

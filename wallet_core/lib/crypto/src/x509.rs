@@ -446,23 +446,19 @@ where
 /// A distinguished name encoded in a canonical, OID-registry-independent format.
 /// This type is specifically designed for database persistence and comparison.
 /// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Constructor)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Display, Constructor)]
 #[cfg_attr(feature = "persistence", derive(sea_orm::DeriveValueType))]
 pub struct DistinguishedName(String);
 
 impl DistinguishedName {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
     pub fn into_inner(self) -> String {
         self.0
     }
 }
 
-impl std::fmt::Display for DistinguishedName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+impl AsRef<str> for DistinguishedName {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }
 
@@ -541,7 +537,7 @@ mod test {
         assert_eq!("CN=myca", certificate.distinguished_name().unwrap());
         assert_eq!(
             "2.5.4.3=DARteWNh",
-            certificate.distinguished_name_canonical().unwrap().as_str()
+            certificate.distinguished_name_canonical().unwrap().as_ref()
         );
 
         let x509_cert = certificate.x509_certificate();

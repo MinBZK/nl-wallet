@@ -49,22 +49,22 @@ cfg-if.workspace = true
 chrono = { workspace = true, features = ["now"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }
-futures.workspace = true
+futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
 log.workspace = true
 metrics.workspace = true
-metrics-exporter-prometheus = { workspace = true, features = ["http-listener"] }
-p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
+metrics-exporter-prometheus.workspace = true
+p256 = { workspace = true, features = ["pem"] }
 regex.workspace = true
 rustix = { workspace = true, features = ["pipe", "stdio"] }
-rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
+rustls.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
-spki = { workspace = true, features = ["std"] }
+spki.workspace = true
 strum.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
-tower-http = { workspace = true, features = ["trace", "limit", "decompression-zstd"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
+tower-http = { workspace = true, features = ["trace", "decompression-zstd"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 uuid = { workspace = true, features = ["serde", "v4"] }

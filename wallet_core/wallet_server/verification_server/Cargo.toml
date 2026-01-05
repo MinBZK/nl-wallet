@@ -75,13 +75,13 @@ anyhow.workspace = true
 axum.workspace = true
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex"] }
-tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tracing.workspace = true
 
 assert_matches = { workspace = true, optional = true }

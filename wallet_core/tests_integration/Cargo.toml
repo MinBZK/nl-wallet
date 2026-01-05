@@ -105,6 +105,7 @@ test_common = [
     "dep:issuer_settings",
     "dep:openid4vc",
     "dep:reqwest",
+    "dep:rustls",
     "dep:semver",
     "dep:serde_json",
     "dep:serde_urlencoded",
@@ -124,18 +125,12 @@ test_common = [
     "logging",
     "openid4vc_server/disclosure",
     "openid4vc_server/issuance",
-    "p256/pkcs8",
+    "p256/pem",
     "pid_issuer/mock",
     "pid_issuer/postgres",
     "platform_support/mock",
-    "rustls/ring",
     "sea-orm/debug-print",
-    "sea-orm/macros",
-    "sea-orm/runtime-tokio-rustls",
-    "sea-orm/sqlx-postgres",
-    "sea-orm/with-uuid",
     "status_lists/axum",
-    "tokio/parking_lot",
     "tokio/rt",
     "tokio/time",
     "wallet/test",
@@ -164,6 +159,7 @@ integration_test = [
     "allow_insecure_url",
     "db_test",
     "dep:assert_matches",
+    "dep:jsonwebtoken",
     "dep:rand_core",
     "dep:regex",
     "dep:rstest",
@@ -172,12 +168,10 @@ integration_test = [
     "dep:zstd",
     "hsm_test",
     "issuance_server/admin-ui",
-    "jsonwebtoken/use_pem",
-    "p256/pkcs8",
+    "p256/pem",
     "pid_issuer/admin-ui",
     "test_common",
     "tokio/macros",
-    "tokio/parking_lot",
     "tokio/rt",
     "tokio/sync",
     "tokio/time",
@@ -201,6 +195,7 @@ performance_test = [
     "dep:dotenvy",
     "dep:indexmap",
     "dep:openid4vc",
+    "dep:reqwest",
     "dep:server_utils",
     "dep:serde_urlencoded",
     "dep:tempfile",
@@ -215,8 +210,6 @@ performance_test = [
     "pid_issuer/mock",
     "platform_support/mock",
     "platform_support/mock_attested_key_apple_ca",
-    "reqwest/rustls-tls-webpki-roots",
-    "tokio/parking_lot",
     "tokio/rt",
     "tokio/time",
     "wallet/test",
@@ -237,7 +230,7 @@ sea-orm = { workspace = true, optional = true }
 
 semver = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-p256 = { workspace = true, optional = true }
+p256.workspace = true
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }

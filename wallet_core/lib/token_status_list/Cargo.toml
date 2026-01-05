@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-axum = ["axum/json", "sea-orm/macros", "sea-orm/with-uuid", "utoipa/uuid", "uuid/serde"]
+axum = ["axum/json", "utoipa/uuid", "uuid/serde"]
 verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "http_utils/client"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
@@ -42,7 +42,6 @@ http = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
 
 http_utils = { path = "../http_utils", optional = true }

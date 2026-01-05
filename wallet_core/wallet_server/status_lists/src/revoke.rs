@@ -99,7 +99,7 @@ where
     let router: Router<Arc<L>> = {
         let (router, openapi) = router.split_for_parts();
 
-        router.route("/openapi.json", axum::routing::get(Json(openapi))).into()
+        router.route("/openapi.json", axum::routing::get(Json(openapi)))
     };
 
     router.with_state(status_list_service)
