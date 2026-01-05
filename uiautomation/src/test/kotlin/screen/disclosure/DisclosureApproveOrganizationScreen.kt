@@ -8,7 +8,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val goToWebsiteButton = l10n.getString("disclosureSuccessPageToWebsiteCta")
     private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
     private val closeButton = l10n.getString("disclosureSuccessPageCloseCta")
-    private val attributesMissingMessage = l10n.getString("missingAttributesPageTitle")
     private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
     private val viewDisclosureOrganizationDetailsButton = l10n.getString("organizationButtonLabel")
     private val goBackButton = l10n.getString("generalBottomBackCta")
@@ -40,8 +39,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         clickElementWithText(closeButton)
         switchToWebViewContext()
     }
-
-    fun attributesMissingMessageVisible() = elementWithTextVisible(attributesMissingMessage)
 
     fun organizationNameForSharingFlowVisible(organizationName: String): Boolean {
         val selectorText = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organizationName)

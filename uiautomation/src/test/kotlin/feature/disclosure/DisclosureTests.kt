@@ -24,6 +24,7 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.disclosure.DisclosureApproveOrganizationScreen
 import screen.disclosure.SharingStoppedScreen
+import screen.error.AttributesMissingErrorScreen
 import screen.issuance.CardIssuanceScreen
 import screen.issuance.DisclosureIssuanceScreen
 import screen.menu.MenuScreen
@@ -58,6 +59,7 @@ class DisclosureTests : TestBase() {
     private lateinit var issuanceData : IssuanceDataHelper
     private lateinit var jobFinderWebPage : RelyingPartyJobFinderWebPage
     private lateinit var sharingStoppedScreen: SharingStoppedScreen
+    private lateinit var attributesMissingErrorScreen: AttributesMissingErrorScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -75,6 +77,7 @@ class DisclosureTests : TestBase() {
         jobFinderWebPage = RelyingPartyJobFinderWebPage()
         cardIssuanceScreen = CardIssuanceScreen()
         sharingStoppedScreen = SharingStoppedScreen()
+        attributesMissingErrorScreen = AttributesMissingErrorScreen()
 
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
@@ -262,7 +265,7 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickMonkeyBikeButton()
         monkeyBikeWebPage.openSameDeviceWalletFlow()
         monkeyBikeWebPage.switchToNativeContext()
-        assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
+        assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
 
         disclosureScreen.stopRequestAfterMissingAttributeFailure()
         assertTrue(dashboardScreen.visible(), "App dashboard not visible")

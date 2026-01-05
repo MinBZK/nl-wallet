@@ -331,6 +331,15 @@ open class MobileActions {
         }
     }
 
+    fun elementContainingTextsVisible(partialTexts: List<String>): Boolean {
+        return try {
+            findElementByPartialTexts(partialTexts).isDisplayed
+        } catch (e: Exception) {
+            println("Element not found or error occurred: ${e.message}")
+            false
+        }
+    }
+
     fun elementWithTextVisible(text: String): Boolean {
         return try {
             findElementByText(text).isDisplayed
@@ -368,6 +377,36 @@ open class MobileActions {
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(
                         By.xpath("//*[contains(@name, $quotedText)]")
+                    )
+                )
+            }
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
+    private fun findElementByPartialTexts(
+        partialTexts: List<String>,
+        timeoutInSeconds: Long = 5
+    ): WebElement {
+        val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+        return when (val platform = platformName()) {
+            "ANDROID" -> {
+                val regexPattern = ".*" + partialTexts.joinToString(".*") { Regex.escape(it) } + ".*"
+                val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        AppiumBy.androidUIAutomator("new UiSelector().descriptionMatches($quotedPattern)")
+                    )
+                )
+            }
+            "IOS" -> {
+                val xpathConditions = partialTexts.joinToString(" and ") { partialText ->
+                    val quotedText = quoteForIos(partialText)
+                    "contains(@name, $quotedText)"
+                }
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//*[$xpathConditions]")
                     )
                 )
             }
