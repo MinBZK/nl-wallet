@@ -881,7 +881,7 @@ mod test {
     fn test_from_mdoc_invalid() {
         let mdoc = Mdoc::new_mock().now_or_never().unwrap();
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
-            "urn:eudi:pid:nl:1",
+            "urn:example:pid:nl:1",
             &[
                 ("family_name", JsonSchemaPropertyType::Number, None),
                 ("bsn", JsonSchemaPropertyType::String, None),

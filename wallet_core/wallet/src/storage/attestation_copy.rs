@@ -367,7 +367,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
-    use crate::config::default_wallet_config;
+    use crate::config::test::test_wallet_config;
 
     use super::DisclosableAttestation;
     use super::PartialAttestation;
@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn test_stored_attestation_copy() {
-        let wallet_config = default_wallet_config();
+        let wallet_config = test_wallet_config();
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_registration = IssuerRegistration::new_mock();
         let issuer_keypair = generate_issuer_mock_with_registration(&ca, issuer_registration.clone()).unwrap();

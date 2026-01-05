@@ -225,7 +225,7 @@ pub mod test {
     use utils::vec_nonempty;
 
     use crate::attestation::AttestationValidity;
-    use crate::config::default_wallet_config;
+    use crate::config::test::test_wallet_config;
 
     use super::super::AttestationAttribute;
     use super::super::AttestationAttributeValue;
@@ -610,7 +610,7 @@ pub mod test {
 
     #[test]
     fn test_filter_recovery_code() {
-        let config = default_wallet_config();
+        let config = test_wallet_config();
         let mdoc_attributes = IndexMap::from([(
             String::from(PID_ATTESTATION_TYPE),
             vec![
@@ -642,8 +642,8 @@ pub mod test {
 
         let attrs = attestation
             .attributes
-            .iter()
-            .map(|attr| (attr.key.clone(), attr.value.clone()))
+            .into_iter()
+            .map(|attr| (attr.key, attr.value))
             .collect::<Vec<_>>();
 
         assert_eq!(

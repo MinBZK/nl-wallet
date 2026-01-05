@@ -1,9 +1,9 @@
 {
-  "vct": "urn:eudi:pid-address:nl:1",
+  "vct": "urn:example:pid-address:nl:1",
   "name": "NL address credential",
   "description": "Working version of the Dutch address credential",
-  "extends": "urn:eudi:pid-address:1",
-  "extends#integrity": "sha256-8VoBY+NcnqzXtLcvmwmEzwMN8QlViubwhes4OAr4PxM=",
+  "extends": "urn:example:pid-address:1",
+  "extends#integrity": "sha256-XR7RonmI9GxwHUe8bioFCxkuX0IOAfRTEq0GpKSqaDA=",
   "display": [
     {
       "lang": "en-US",

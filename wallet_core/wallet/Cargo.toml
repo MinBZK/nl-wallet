@@ -101,7 +101,7 @@ tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lo
 wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
-attestation_types = { path = "../lib/attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../lib/attestation_types" }
 attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
 crypto = { path = "../lib/crypto", features = ["mock", "mock_secure_keys"] }
 dcql = { path = "../lib/dcql", features = ["mock"] }

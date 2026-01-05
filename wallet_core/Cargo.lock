@@ -7067,6 +7067,7 @@ dependencies = [
  "rstest",
  "rustls",
  "rustls-pki-types",
+ "sd_jwt_vc_metadata",
  "sea-orm",
  "semver",
  "serde_json",

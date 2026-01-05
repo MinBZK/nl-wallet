@@ -1,3 +1,5 @@
+pub use ssri::Integrity;
+
 pub use chain::*;
 pub use metadata::*;
 pub use normalized::*;

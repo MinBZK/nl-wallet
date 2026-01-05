@@ -699,6 +699,41 @@ mod mock {
                 ),
             ])
         }
+
+        /// Represents a single card with both PID and address claims
+        pub fn unified_nl_pid_example() -> Self {
+            Self::example([
+                (
+                    vec![PID_GIVEN_NAME],
+                    AttributeValue::Text("Willeke Liselotte".to_string()),
+                ),
+                (vec![PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
+                (vec![PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
+                (vec![PID_AGE_OVER_18], AttributeValue::Bool(true)),
+                (vec![PID_BSN], AttributeValue::Text("999991772".to_string())),
+                (vec![PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+                (
+                    vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
+                    AttributeValue::Text("Turfmarkt".to_string()),
+                ),
+                (
+                    vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
+                    AttributeValue::Text("147".to_string()),
+                ),
+                (
+                    vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+                    AttributeValue::Text("2511 DP".to_string()),
+                ),
+                (
+                    vec![PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
+                    AttributeValue::Text("Den Haag".to_string()),
+                ),
+                (
+                    vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
+                    AttributeValue::Text("Nederland".to_string()),
+                ),
+            ])
+        }
     }
 }
 

@@ -83,7 +83,7 @@ use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
 use wscd::mock_remote::MockRemoteWscd;
 
-const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
+const PID_ATTESTATION_TYPE: &str = "urn:example:pid:nl:1";
 const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {

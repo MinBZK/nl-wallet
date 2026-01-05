@@ -64,7 +64,7 @@ derive_more = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 
 attestation_data = { path = "../../lib/attestation_data" }
-attestation_types = { path = "../../lib/attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../../lib/attestation_types" }
 crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
 hsm = { path = "../../lib/hsm", features = ["settings"] }

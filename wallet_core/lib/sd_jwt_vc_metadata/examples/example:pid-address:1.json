@@ -1,5 +1,5 @@
 {
-  "vct": "urn:eudi:pid-address:1",
+  "vct": "urn:example:pid-address:1",
   "name": "Address credential",
   "description": "Working version of the address credential",
   "display": [

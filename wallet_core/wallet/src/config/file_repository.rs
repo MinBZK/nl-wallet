@@ -119,7 +119,6 @@ mod tests {
     }
 
     #[tokio::test]
-
     async fn should_store_config_to_filesystem() {
         let mut initial_wallet_config = default_wallet_config();
         initial_wallet_config.lock_timeouts.background_timeout = 500;

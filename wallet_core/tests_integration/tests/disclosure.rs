@@ -9,13 +9,6 @@ use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_credential::TestCredentials;
-use attestation_data::test_credential::nl_pid_address_minimal_address;
-use attestation_data::test_credential::nl_pid_credentials_family_name;
-use attestation_data::test_credential::nl_pid_credentials_full_name;
-use attestation_data::test_credential::nl_pid_credentials_given_name;
-use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_id;
-use attestation_types::pid_constants::EUDI_PID_ATTESTATION_TYPE;
-use attestation_types::pid_constants::PID_GIVEN_NAME;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
@@ -29,7 +22,14 @@ use openid4vc_server::verifier::DisclosedAttributesParams;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
+use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
+use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use tests_integration::common::*;
+use tests_integration::test_credential::nl_pid_credentials_family_name;
+use tests_integration::test_credential::nl_pid_credentials_full_name;
+use tests_integration::test_credential::nl_pid_credentials_given_name;
+use tests_integration::test_credential::nl_pid_credentials_given_name_for_query_id;
+use tests_integration::test_credential::nl_pid_full_name_and_minimal_address;
 use wallet::DisclosureUriSource;
 use wallet::errors::DisclosureError;
 
@@ -218,10 +218,11 @@ async fn assert_disclosure_ok(
     "xyz_bank_no_return_url",
     nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
 )]
-#[case(SessionType::SameDevice,
+#[case(
+    SessionType::SameDevice,
     None,
     "xyz_bank_no_return_url",
-    nl_pid_credentials_full_name() + nl_pid_address_minimal_address(),
+    nl_pid_full_name_and_minimal_address()
 )]
 #[tokio::test]
 #[serial(hsm)]

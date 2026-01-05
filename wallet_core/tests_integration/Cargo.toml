@@ -87,6 +87,7 @@ test_common = [
     "attestation_data/example_credential_payloads",
     "attestation_data/mock",
     "attestation_data/test_credential",
+    "attestation_types",
     "axum-server/tls-rustls-no-provider",
     "axum/json",
     "crypto",
@@ -123,6 +124,7 @@ test_common = [
     "pid_issuer/mock",
     "platform_support/mock",
     "rustls/ring",
+    "sd_jwt_vc_metadata",
     "sea-orm/debug-print",
     "sea-orm/macros",
     "sea-orm/runtime-tokio-rustls",
@@ -247,7 +249,7 @@ zstd = { workspace = true, optional = true }
 android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 attestation_data = { path = "../lib/attestation_data", optional = true }
-
+attestation_types = { path = "../lib/attestation_types", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
 dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
@@ -261,6 +263,7 @@ openid4vc_server = { path = "../lib/openid4vc_server", optional = true }
 wscd = { path = "../lib/wscd", optional = true }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true }
 platform_support = { path = "../wallet/platform_support", optional = true }
+sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", optional = true }
 server_utils = { path = "../wallet_server/server_utils", optional = true }
 static_server = { path = "../static_server", optional = true }
 status_lists = { path = "../wallet_server/status_lists", optional = true }
@@ -280,7 +283,7 @@ dotenvy = { workspace = true, optional = true }
 [dev-dependencies]
 itertools.workspace = true
 
-attestation_types = { path = "../lib/attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../lib/attestation_types" } # TODO: integration tests should probably use `pid_issuer::pid::constants`
 
 # This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:

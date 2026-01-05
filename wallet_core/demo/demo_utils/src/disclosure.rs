@@ -56,9 +56,9 @@ mod test {
     fn test_deserialize_disclosed_attestations() {
         let attestations = vec![
             DisclosedAttestation {
-                attestation_type: "urn:eudi:pid:nl:1".to_string(),
+                attestation_type: "urn:example:pid:nl:1".to_string(),
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::from_iter(vec![(
-                    "urn:eudi:pid:nl:1".to_string(),
+                    "urn:example:pid:nl:1".to_string(),
                     IndexMap::from_iter(vec![
                         ("bsn".to_string(), AttributeValue::Text("999991772".to_string())),
                         ("birthdate".to_string(), AttributeValue::Text("2000-03-24".to_string())),
@@ -77,7 +77,7 @@ mod test {
                 revocation_status: Some(RevocationStatus::Valid),
             },
             DisclosedAttestation {
-                attestation_type: "urn:eudi:pid-address:nl:1".to_string(),
+                attestation_type: "urn:example:pid-address:nl:1".to_string(),
                 attributes: DisclosedAttributes::SdJwt(
                     IndexMap::from_iter(vec![(
                         "address".to_string(),

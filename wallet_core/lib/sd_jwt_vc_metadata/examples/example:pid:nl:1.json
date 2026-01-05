@@ -1,9 +1,9 @@
 {
-  "vct": "urn:eudi:pid:nl:1",
+  "vct": "urn:example:pid:nl:1",
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
-  "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-pyWOFfcIFqX4VDNUW4r8t1ZrKIkCkDQmUmP+Mmxg8P0=",
+  "extends": "urn:example:pid:1",
+  "extends#integrity": "sha256-W7R6Oim3Sim/XN1FAPjnt41ZDHPREF7fqa5Kzs12K4M=",
   "display": [
     {
       "lang": "en-US",
