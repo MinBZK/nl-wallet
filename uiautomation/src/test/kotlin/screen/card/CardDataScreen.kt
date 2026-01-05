@@ -7,6 +7,7 @@ class CardDataScreen : MobileActions() {
     private val cardPreviewScreenIncorrectCta = l10n.getString("cardPreviewScreenIncorrectCta")
     private val dataIncorrectButton = l10n.getString("cardDataScreenIncorrectCta")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
+    private val revocationMessage = l10n.getString("cardStatusMetadataCardDataScreenRevoked")
 
     fun visible(): Boolean {
         scrollToElementWithText(cardPreviewScreenIncorrectCta)
@@ -25,4 +26,6 @@ class CardDataScreen : MobileActions() {
     }
 
     fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
+
+    fun revocationMessageVisible() = elementWithTextVisible(revocationMessage)
 }
