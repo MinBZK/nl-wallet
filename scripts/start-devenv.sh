@@ -383,9 +383,9 @@ then
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer" cargo run --package pid_issuer_migrations --bin pid_issuer_migrations -- fresh
         popd
 
-        echo -e "${INFO}Cleaning status lists${NC}"
-        rm -rf "${WALLET_CORE_DIR}/target/status-lists"
-        mkdir "${WALLET_CORE_DIR}/target/status-lists"
+        echo -e "${INFO}Cleaning status lists for pid_issuer${NC}"
+        rm -rf "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
+        mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
         RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "admin-ui,postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
@@ -449,12 +449,12 @@ then
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_server" cargo run --package issuance_server_migrations --bin issuance_server_migrations -- fresh
         popd
 
-        echo -e "${INFO}Cleaning status lists${NC}"
-        rm -rf "resources/status-lists"
-        mkdir "resources/status-lists"
+        echo -e "${INFO}Cleaning status lists for issuance_server${NC}"
+        rm -rf "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+        mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
-        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "admin_ui,allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "admin-ui,allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
 
         echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
     fi
@@ -483,9 +483,9 @@ then
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider" cargo run --package wallet_provider_migrations --bin wallet_provider_migrations -- fresh
         popd
 
-        echo -e "${INFO}Cleaning status lists${NC}"
-        rm -rf "resources/status-lists"
-        mkdir "resources/status-lists"
+        echo -e "${INFO}Cleaning status lists for wallet_provider${NC}"
+        rm -rf "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
+        mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
         RUST_LOG=debug cargo run --package wallet_provider --bin wallet_provider --features=admin-ui,android_emulator > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
