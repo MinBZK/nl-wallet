@@ -39,6 +39,11 @@ where
         let wallet_config = self.config_repository.get();
         let storage = self.storage.read().await;
 
+        let has_callback = self.attestations_callback.lock().is_some();
+        if !has_callback {
+            return Ok(());
+        }
+
         let attestations = storage
             .fetch_unique_attestations()
             .await?
