@@ -7095,6 +7095,56 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<List<_i26.WalletEvent>>);
 
   @override
+  _i10.Future<String> crateApiFullGetRegistrationRevocationCode() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullGetRegistrationRevocationCode, []),
+            returnValue: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #crateApiFullGetRegistrationRevocationCode,
+                  [],
+                ),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #crateApiFullGetRegistrationRevocationCode,
+                  [],
+                ),
+              ),
+            ),
+          )
+          as _i10.Future<String>);
+
+  @override
+  _i10.Future<_i26.RevocationCodeResult> crateApiFullGetRevocationCode({
+    required String? pin,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullGetRevocationCode, [], {#pin: pin}),
+            returnValue: _i10.Future<_i26.RevocationCodeResult>.value(
+              _i14.dummyValue<_i26.RevocationCodeResult>(
+                this,
+                Invocation.method(#crateApiFullGetRevocationCode, [], {
+                  #pin: pin,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i26.RevocationCodeResult>.value(
+              _i14.dummyValue<_i26.RevocationCodeResult>(
+                this,
+                Invocation.method(#crateApiFullGetRevocationCode, [], {
+                  #pin: pin,
+                }),
+              ),
+            ),
+          )
+          as _i10.Future<_i26.RevocationCodeResult>);
+
+  @override
   _i10.Future<String> crateApiFullGetVersionString() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullGetVersionString, []),

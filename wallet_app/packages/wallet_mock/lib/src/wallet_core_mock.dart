@@ -356,4 +356,18 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Stream<List<AppNotification>> crateApiFullSetNotificationsStream() => PublishSubject();
+
+  @override
+  Future<String> crateApiFullGetRegistrationRevocationCode() async => 'AB12CD34EF56GH78IJ';
+
+  @override
+  Future<RevocationCodeResult> crateApiFullGetRevocationCode({required String pin}) async {
+    final result = _pinManager.checkPin(pin);
+    switch (result) {
+      case WalletInstructionResult_Ok():
+        return const RevocationCodeResult.ok(revocationCode: 'AB12CD34EF56GH78IJ');
+      case WalletInstructionResult_InstructionError():
+        return RevocationCodeResult.instructionError(error: result.error);
+    }
+  }
 }

@@ -620,6 +620,307 @@ $WalletInstructionErrorCopyWith<$Res> get error {
 }
 
 /// @nodoc
+mixin _$RevocationCodeResult {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'RevocationCodeResult()';
+}
+
+
+}
+
+/// @nodoc
+class $RevocationCodeResultCopyWith<$Res>  {
+$RevocationCodeResultCopyWith(RevocationCodeResult _, $Res Function(RevocationCodeResult) __);
+}
+
+
+/// Adds pattern-matching-related methods to [RevocationCodeResult].
+extension RevocationCodeResultPatterns on RevocationCodeResult {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( RevocationCodeResult_Ok value)?  ok,TResult Function( RevocationCodeResult_InstructionError value)?  instructionError,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case RevocationCodeResult_Ok() when ok != null:
+return ok(_that);case RevocationCodeResult_InstructionError() when instructionError != null:
+return instructionError(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( RevocationCodeResult_Ok value)  ok,required TResult Function( RevocationCodeResult_InstructionError value)  instructionError,}){
+final _that = this;
+switch (_that) {
+case RevocationCodeResult_Ok():
+return ok(_that);case RevocationCodeResult_InstructionError():
+return instructionError(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( RevocationCodeResult_Ok value)?  ok,TResult? Function( RevocationCodeResult_InstructionError value)?  instructionError,}){
+final _that = this;
+switch (_that) {
+case RevocationCodeResult_Ok() when ok != null:
+return ok(_that);case RevocationCodeResult_InstructionError() when instructionError != null:
+return instructionError(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String revocationCode)?  ok,TResult Function( WalletInstructionError error)?  instructionError,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case RevocationCodeResult_Ok() when ok != null:
+return ok(_that.revocationCode);case RevocationCodeResult_InstructionError() when instructionError != null:
+return instructionError(_that.error);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String revocationCode)  ok,required TResult Function( WalletInstructionError error)  instructionError,}) {final _that = this;
+switch (_that) {
+case RevocationCodeResult_Ok():
+return ok(_that.revocationCode);case RevocationCodeResult_InstructionError():
+return instructionError(_that.error);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String revocationCode)?  ok,TResult? Function( WalletInstructionError error)?  instructionError,}) {final _that = this;
+switch (_that) {
+case RevocationCodeResult_Ok() when ok != null:
+return ok(_that.revocationCode);case RevocationCodeResult_InstructionError() when instructionError != null:
+return instructionError(_that.error);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class RevocationCodeResult_Ok extends RevocationCodeResult {
+  const RevocationCodeResult_Ok({required this.revocationCode}): super._();
+  
+
+ final  String revocationCode;
+
+/// Create a copy of RevocationCodeResult
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$RevocationCodeResult_OkCopyWith<RevocationCodeResult_Ok> get copyWith => _$RevocationCodeResult_OkCopyWithImpl<RevocationCodeResult_Ok>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult_Ok&&(identical(other.revocationCode, revocationCode) || other.revocationCode == revocationCode));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,revocationCode);
+
+@override
+String toString() {
+  return 'RevocationCodeResult.ok(revocationCode: $revocationCode)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $RevocationCodeResult_OkCopyWith<$Res> implements $RevocationCodeResultCopyWith<$Res> {
+  factory $RevocationCodeResult_OkCopyWith(RevocationCodeResult_Ok value, $Res Function(RevocationCodeResult_Ok) _then) = _$RevocationCodeResult_OkCopyWithImpl;
+@useResult
+$Res call({
+ String revocationCode
+});
+
+
+
+
+}
+/// @nodoc
+class _$RevocationCodeResult_OkCopyWithImpl<$Res>
+    implements $RevocationCodeResult_OkCopyWith<$Res> {
+  _$RevocationCodeResult_OkCopyWithImpl(this._self, this._then);
+
+  final RevocationCodeResult_Ok _self;
+  final $Res Function(RevocationCodeResult_Ok) _then;
+
+/// Create a copy of RevocationCodeResult
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? revocationCode = null,}) {
+  return _then(RevocationCodeResult_Ok(
+revocationCode: null == revocationCode ? _self.revocationCode : revocationCode // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class RevocationCodeResult_InstructionError extends RevocationCodeResult {
+  const RevocationCodeResult_InstructionError({required this.error}): super._();
+  
+
+ final  WalletInstructionError error;
+
+/// Create a copy of RevocationCodeResult
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$RevocationCodeResult_InstructionErrorCopyWith<RevocationCodeResult_InstructionError> get copyWith => _$RevocationCodeResult_InstructionErrorCopyWithImpl<RevocationCodeResult_InstructionError>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult_InstructionError&&(identical(other.error, error) || other.error == error));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,error);
+
+@override
+String toString() {
+  return 'RevocationCodeResult.instructionError(error: $error)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $RevocationCodeResult_InstructionErrorCopyWith<$Res> implements $RevocationCodeResultCopyWith<$Res> {
+  factory $RevocationCodeResult_InstructionErrorCopyWith(RevocationCodeResult_InstructionError value, $Res Function(RevocationCodeResult_InstructionError) _then) = _$RevocationCodeResult_InstructionErrorCopyWithImpl;
+@useResult
+$Res call({
+ WalletInstructionError error
+});
+
+
+$WalletInstructionErrorCopyWith<$Res> get error;
+
+}
+/// @nodoc
+class _$RevocationCodeResult_InstructionErrorCopyWithImpl<$Res>
+    implements $RevocationCodeResult_InstructionErrorCopyWith<$Res> {
+  _$RevocationCodeResult_InstructionErrorCopyWithImpl(this._self, this._then);
+
+  final RevocationCodeResult_InstructionError _self;
+  final $Res Function(RevocationCodeResult_InstructionError) _then;
+
+/// Create a copy of RevocationCodeResult
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? error = null,}) {
+  return _then(RevocationCodeResult_InstructionError(
+error: null == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as WalletInstructionError,
+  ));
+}
+
+/// Create a copy of RevocationCodeResult
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WalletInstructionErrorCopyWith<$Res> get error {
+  
+  return $WalletInstructionErrorCopyWith<$Res>(_self.error, (value) {
+    return _then(_self.copyWith(error: value));
+  });
+}
+}
+
+/// @nodoc
 mixin _$WalletInstructionError {
 
 

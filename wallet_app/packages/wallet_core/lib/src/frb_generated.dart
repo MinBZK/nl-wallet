@@ -81,7 +81,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 916980055;
+  int get rustContentHash => 509254084;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -148,6 +148,10 @@ abstract class WalletCoreApi extends BaseApi {
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
   Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId});
+
+  Future<String> crateApiFullGetRegistrationRevocationCode();
+
+  Future<RevocationCodeResult> crateApiFullGetRevocationCode({required String pin});
 
   Future<String> crateApiFullGetVersionString();
 
@@ -829,6 +833,53 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullGetHistoryForCardConstMeta => const TaskConstMeta(
     debugName: "get_history_for_card",
     argNames: ["attestationId"],
+  );
+
+  @override
+  Future<String> crateApiFullGetRegistrationRevocationCode() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__get_registration_revocation_code(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullGetRegistrationRevocationCodeConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullGetRegistrationRevocationCodeConstMeta => const TaskConstMeta(
+    debugName: "get_registration_revocation_code",
+    argNames: [],
+  );
+
+  @override
+  Future<RevocationCodeResult> crateApiFullGetRevocationCode({required String pin}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__get_revocation_code(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_revocation_code_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullGetRevocationCodeConstMeta,
+        argValues: [pin],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullGetRevocationCodeConstMeta => const TaskConstMeta(
+    debugName: "get_revocation_code",
+    argNames: ["pin"],
   );
 
   @override
@@ -2142,6 +2193,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  RevocationCodeResult dco_decode_revocation_code_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return RevocationCodeResult_Ok(
+          revocationCode: dco_decode_String(raw[1]),
+        );
+      case 1:
+        return RevocationCodeResult_InstructionError(
+          error: dco_decode_box_autoadd_wallet_instruction_error(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   RevocationStatus dco_decode_revocation_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return RevocationStatus.values[raw as int];
@@ -3104,6 +3172,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       dataDeletionPossible: var_dataDeletionPossible,
       policyUrl: var_policyUrl,
     );
+  }
+
+  @protected
+  RevocationCodeResult sse_decode_revocation_code_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_revocationCode = sse_decode_String(deserializer);
+        return RevocationCodeResult_Ok(revocationCode: var_revocationCode);
+      case 1:
+        var var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
+        return RevocationCodeResult_InstructionError(error: var_error);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -4110,6 +4195,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_bool(self.dataSharedWithThirdParties, serializer);
     sse_encode_bool(self.dataDeletionPossible, serializer);
     sse_encode_String(self.policyUrl, serializer);
+  }
+
+  @protected
+  void sse_encode_revocation_code_result(RevocationCodeResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case RevocationCodeResult_Ok(revocationCode: final revocationCode):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(revocationCode, serializer);
+      case RevocationCodeResult_InstructionError(error: final error):
+        sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_wallet_instruction_error(error, serializer);
+    }
   }
 
   @protected

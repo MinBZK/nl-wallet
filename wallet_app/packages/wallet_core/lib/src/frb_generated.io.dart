@@ -250,6 +250,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RequestPolicy dco_decode_request_policy(dynamic raw);
 
   @protected
+  RevocationCodeResult dco_decode_revocation_code_result(dynamic raw);
+
+  @protected
   RevocationStatus dco_decode_revocation_status(dynamic raw);
 
   @protected
@@ -508,6 +511,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RequestPolicy sse_decode_request_policy(SseDeserializer deserializer);
+
+  @protected
+  RevocationCodeResult sse_decode_revocation_code_result(SseDeserializer deserializer);
 
   @protected
   RevocationStatus sse_decode_revocation_status(SseDeserializer deserializer);
@@ -1313,6 +1319,25 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_revocation_code_result(
+    RevocationCodeResult apiObj,
+    wire_cst_revocation_code_result wireObj,
+  ) {
+    if (apiObj is RevocationCodeResult_Ok) {
+      var pre_revocation_code = cst_encode_String(apiObj.revocationCode);
+      wireObj.tag = 0;
+      wireObj.kind.Ok.revocation_code = pre_revocation_code;
+      return;
+    }
+    if (apiObj is RevocationCodeResult_InstructionError) {
+      var pre_error = cst_encode_box_autoadd_wallet_instruction_error(apiObj.error);
+      wireObj.tag = 1;
+      wireObj.kind.InstructionError.error = pre_error;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_start_disclosure_result(
     StartDisclosureResult apiObj,
     wire_cst_start_disclosure_result wireObj,
@@ -1766,6 +1791,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_request_policy(RequestPolicy self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_revocation_code_result(RevocationCodeResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_revocation_status(RevocationStatus self, SseSerializer serializer);
@@ -2284,6 +2312,38 @@ class WalletCoreWire implements BaseWire {
         'frbgen_wallet_core_wire__crate__api__full__get_history_for_card',
       );
   late final _wire__crate__api__full__get_history_for_card = _wire__crate__api__full__get_history_for_cardPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__full__get_registration_revocation_code(
+    int port_,
+  ) {
+    return _wire__crate__api__full__get_registration_revocation_code(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__get_registration_revocation_codePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__get_registration_revocation_code',
+      );
+  late final _wire__crate__api__full__get_registration_revocation_code =
+      _wire__crate__api__full__get_registration_revocation_codePtr.asFunction<void Function(int)>();
+
+  void wire__crate__api__full__get_revocation_code(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> _pin,
+  ) {
+    return _wire__crate__api__full__get_revocation_code(
+      port_,
+      _pin,
+    );
+  }
+
+  late final _wire__crate__api__full__get_revocation_codePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__get_revocation_code',
+      );
+  late final _wire__crate__api__full__get_revocation_code = _wire__crate__api__full__get_revocation_codePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__get_version_string(
@@ -3630,6 +3690,27 @@ final class wire_cst_pid_issuance_result extends ffi.Struct {
   external int tag;
 
   external PidIssuanceResultKind kind;
+}
+
+final class wire_cst_RevocationCodeResult_Ok extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> revocation_code;
+}
+
+final class wire_cst_RevocationCodeResult_InstructionError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_wallet_instruction_error> error;
+}
+
+final class RevocationCodeResultKind extends ffi.Union {
+  external wire_cst_RevocationCodeResult_Ok Ok;
+
+  external wire_cst_RevocationCodeResult_InstructionError InstructionError;
+}
+
+final class wire_cst_revocation_code_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external RevocationCodeResultKind kind;
 }
 
 final class wire_cst_StartDisclosureResult_Request extends ffi.Struct {

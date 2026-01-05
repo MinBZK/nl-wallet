@@ -19,6 +19,11 @@ pub enum PidIssuanceResult {
     InstructionError { error: WalletInstructionError },
 }
 
+pub enum RevocationCodeResult {
+    Ok { revocation_code: String },
+    InstructionError { error: WalletInstructionError },
+}
+
 pub enum DisclosureBasedIssuanceResult {
     Ok(Vec<AttestationPresentation>),
     InstructionError { error: WalletInstructionError },
