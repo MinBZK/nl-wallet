@@ -240,7 +240,6 @@ where
                     .await
                     .map(|message| (message, AttestedKey::Apple(key)))
             }
-            // TODO: Remove into() from app_attestation_token.into() once we merge wallet_provider stuff.
             KeyWithAttestation::Google {
                 key,
                 certificate_chain,
