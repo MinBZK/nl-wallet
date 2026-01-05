@@ -195,7 +195,14 @@ where
     K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
-        self.first_service().revoke_attestation_batches(batch_ids).await
+        // Each service is responsible for revoking and publishing the status list it is configured for.
+        try_join_all(
+            self.services()
+                .map(|service| async { service.revoke_attestation_batches(batch_ids.clone()).await }),
+        )
+        .await?;
+
+        Ok(())
     }
 
     async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
@@ -244,6 +251,10 @@ where
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
     }
 
+    fn services(&self) -> impl Iterator<Item = &PostgresStatusListService<K>> {
+        self.0.values()
+    }
+
     fn first_service(&self) -> &PostgresStatusListService<K> {
         // in the constructor we ensure that at least one service is present
         self.0.values().next().expect("at least one service should be present")
@@ -278,28 +289,30 @@ where
     K: EcdsaKeySend + Sync + 'static,
 {
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
-        // Find batches by batch_ids
-        let batches = attestation_batch::Entity::find()
-            .filter(attestation_batch::Column::BatchId.is_in(batch_ids.iter().copied()))
+        // Find batches and status_lists for this service by batch_ids
+        let batches: Vec<(i64, i64, String, i32)> = attestation_batch::Entity::find()
+            .select_only()
+            .column(attestation_batch::Column::Id)
+            .select_column(status_list::Column::Id)
+            .select_column(status_list::Column::ExternalId)
+            .select_column(status_list::Column::Size)
+            .inner_join(status_list::Entity)
+            .filter(
+                attestation_batch::Column::BatchId
+                    .is_in(batch_ids.iter().copied())
+                    .and(status_list::Column::AttestationTypeId.eq(self.attestation_type_id)),
+            )
+            .into_tuple()
             .all(&self.connection)
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
-        // Check if all batch_ids were found
-        if batches.len() != batch_ids.len() {
-            let mut found_ids = batches.iter().map(|batch| batch.batch_id);
-            let missing_ids = batch_ids
-                .iter()
-                .filter(|id| !found_ids.contains(id))
-                .copied()
-                .collect_vec()
-                .try_into()
-                .unwrap();
-            return Err(RevocationError::BatchIdsNotFound(missing_ids));
-        }
+        let (attestation_batch_ids, status_list_info): (Vec<_>, Vec<_>) = batches
+            .into_iter()
+            .map(|(batch_id, status_list_id, external_id, size)| (batch_id, (status_list_id, external_id, size)))
+            .unzip();
 
         // Update revocation for all batches
-        let attestation_batch_ids: Vec<_> = batches.iter().map(|b| b.id).collect();
         attestation_batch::Entity::update_many()
             .col_expr(attestation_batch::Column::IsRevoked, Expr::value(true))
             .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids.iter().copied()))
@@ -307,37 +320,13 @@ where
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
-        // Find status list, external ID and size for all related status lists
-        let list_external_ids_and_size: Vec<(i64, String, i32)> = status_list::Entity::find()
-            .select_only()
-            .select_column(status_list::Column::Id)
-            .select_column(status_list::Column::ExternalId)
-            .select_column(status_list::Column::Size)
-            .filter(
-                status_list::Column::Id.in_subquery(
-                    Query::select()
-                        .expr(Expr::column(attestation_batch_list_indices::Column::StatusListId))
-                        .from(attestation_batch_list_indices::Entity)
-                        .and_where(
-                            attestation_batch_list_indices::Column::AttestationBatchId.is_in(attestation_batch_ids),
-                        )
-                        .to_owned(),
-                ),
-            )
-            .into_tuple()
-            .all(&self.connection)
-            .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
-
         // Publish new status list
-        try_join_all(
-            list_external_ids_and_size
-                .into_iter()
-                .map(|(list_id, external_id, size)| async move {
-                    let size = size.try_into().expect("size should be non-zero");
-                    self.publish_status_list(list_id, external_id.as_str(), size).await
-                }),
-        )
+        try_join_all(status_list_info.into_iter().unique_by(|(id, _, _)| *id).map(
+            |(list_id, external_id, size)| async move {
+                let size = size.try_into().expect("size should be non-zero");
+                self.publish_status_list(list_id, external_id.as_str(), size).await
+            },
+        ))
         .await
         .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
@@ -485,13 +474,31 @@ where
             }
             tries -= 1;
 
-            let next_sequence_no = lists.iter().map(|list| list.next_sequence_no).max().unwrap_or_default();
-            if !self.create_status_list(next_sequence_no, true).await? {
-                tracing::warn!(
-                    "Failed to create status list in flight for attestation type ID {}",
-                    self.attestation_type_id,
-                );
-            }
+            let max_next_sequence_no = if let Some(max) = lists.iter().map(|list| list.next_sequence_no).max() {
+                max
+            } else {
+                status_list::Entity::find()
+                    .select_only()
+                    .column_as(status_list::Column::NextSequenceNo.max(), "max_next_sequence_no")
+                    .filter(status_list::Column::AttestationTypeId.eq(self.attestation_type_id))
+                    .group_by(status_list::Column::AttestationTypeId)
+                    .into_tuple::<Option<i64>>()
+                    .one(&tx)
+                    .await?
+                    .flatten()
+                    .unwrap_or_default()
+            };
+
+            let _ = self
+                .create_status_list(max_next_sequence_no, true)
+                .await
+                .inspect_err(|err| {
+                    tracing::error!(
+                        "Error creating status list in flight for attestation type ID {}: {:?}",
+                        self.attestation_type_id,
+                        err
+                    );
+                })?;
         }
     }
 
@@ -735,7 +742,7 @@ where
                 let list_id = list.id;
                 tasks.push(tokio::spawn(Self::delete_status_list_items(connection, list_id)));
             }
-            if list.available <= self.config.create_threshold.into_inner() {
+            if list.available < self.config.create_threshold.into_inner() {
                 tracing::info!(
                     "Schedule creation of status list items for attestation type ID {}",
                     list.attestation_type_id,

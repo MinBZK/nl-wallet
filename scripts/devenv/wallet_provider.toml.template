@@ -18,7 +18,7 @@ url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_pro
 
 [wua_status_list]
 base_url = "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wua"
-publish_dir = "resources/status-lists"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 key_identifier = "wua_tsl_key"
 key_certificate = "${WUA_TSL_CRT}"
 

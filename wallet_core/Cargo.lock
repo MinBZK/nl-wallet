@@ -1776,7 +1776,6 @@ dependencies = [
  "demo_utils",
  "derive_more",
  "http_utils",
- "indexmap 2.12.1",
  "itertools 0.14.0",
  "openid4vc",
  "serde",
@@ -1810,7 +1809,6 @@ dependencies = [
  "futures",
  "http",
  "http_utils",
- "indexmap 2.12.1",
  "itertools 0.14.0",
  "openid4vc",
  "openid4vc_server",
@@ -2113,7 +2111,6 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
- "token_status_list",
  "uuid",
  "zstd",
 ]
@@ -3442,6 +3439,7 @@ dependencies = [
  "config",
  "crypto",
  "dcql",
+ "derive_more",
  "futures",
  "hsm",
  "http_utils",
@@ -3453,7 +3451,6 @@ dependencies = [
  "p256",
  "reqwest",
  "rustls-pki-types",
- "sea-orm",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -3826,7 +3823,6 @@ dependencies = [
 name = "mdoc"
 version = "0.5.0-dev"
 dependencies = [
- "aes-gcm",
  "assert_matches",
  "attestation_types",
  "base64 0.22.1",
@@ -4768,7 +4764,6 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
- "sea-orm",
  "serde",
  "serde_json",
  "serde_with",
@@ -7070,6 +7065,7 @@ dependencies = [
  "sd_jwt_vc_metadata",
  "sea-orm",
  "semver",
+ "serde",
  "serde_json",
  "serde_urlencoded",
  "serial_test",
@@ -7270,7 +7266,6 @@ dependencies = [
  "reqwest",
  "rstest",
  "rustls-pki-types",
- "sea-orm",
  "serde",
  "serde_json",
  "serde_with",
@@ -8215,7 +8210,6 @@ dependencies = [
  "sd_jwt",
  "sd_jwt_vc_metadata",
  "sea-orm",
- "sea-query",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -8287,6 +8281,7 @@ dependencies = [
  "p256",
  "pem",
  "predicates",
+ "rand_core 0.6.4",
  "serde_json",
  "time",
  "utils",
@@ -8418,7 +8413,6 @@ dependencies = [
  "sea-orm-migration",
  "status_lists_migrations",
  "tokio",
- "wallet_provider_database_settings",
 ]
 
 [[package]]
@@ -8468,7 +8462,6 @@ dependencies = [
  "der",
  "derive_more",
  "futures",
- "hmac",
  "hsm",
  "itertools 0.14.0",
  "jwt",

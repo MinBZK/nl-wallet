@@ -29,8 +29,7 @@ struct ApiDoc;
         example = json!(["67e55044-10b1-426f-9247-bb680e5fe0c8"]),
     ),
     responses(
-        (status = OK, description = "Successfully revoked the provided batch IDs."),
-        (status = NOT_FOUND, description = "One or more of the provided batch IDs were not found.")
+        (status = OK, description = "Successfully revoked the provided batch IDs.")
     )
 )]
 async fn revoke_batch<L>(
@@ -100,7 +99,7 @@ where
     let router: Router<Arc<L>> = {
         let (router, openapi) = router.split_for_parts();
 
-        router.route("/openapi.json", axum::routing::get(Json(openapi))).into()
+        router.route("/openapi.json", axum::routing::get(Json(openapi)))
     };
 
     router.with_state(status_list_service)

@@ -3,31 +3,24 @@ variables:
   IMAGE_PREFIX:
     value: "nl-wallet-app-builder"
     description: "Prefix to use for Docker image name"
-  IMAGE_TAG:
-    value: null
-    description: "Tag of all build images"
-  KANIKO_IMAGE_TAG:
-    value: "v1.23.2-debug"
-    description: "The version of kaniko, a container image builder, to use"
-  KANIKO_VERBOSITY:
-    value: "info"
-    description: "The log verbosity level of the kaniko executor"
-  KANIKO_CACHE:
-    value: "false"
-    description: "Enable or disable storing intermediate layers within a container image registry"
 
 # The default image to use for each job
 default:
-  image:
-    name: "$HARBOR_REGISTRY/gcr-io-proxy/kaniko-project/executor:${KANIKO_IMAGE_TAG}"
-    entrypoint: [""]
+  image: "$HARBOR_REGISTRY/quay-proxy/buildah/stable:v1.42.2"
+  tags:
+    - linux
 
 .build:
   rules:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
   before_script:
-    - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
+    - mkdir -p ~/.docker
+    - echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
   script: sh "deploy/docker-images/build-ci.sh" "$CI_JOB_NAME"
+  variables:
+    STORAGE_DRIVER: vfs
+    BUILDAH_FORMAT: docker
+    BUILDAH_ISOLATION: chroot
 
 # Build ci Dockerfiles
 ci-base:

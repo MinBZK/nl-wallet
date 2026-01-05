@@ -9,7 +9,7 @@ use futures::future::try_join_all;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use p256::elliptic_curve::rand_core::OsRng;
+use rand_core::OsRng;
 use reqwest::Method;
 use reqwest::header::AUTHORIZATION;
 use reqwest::header::ToStrError;

@@ -24,14 +24,7 @@ default = ["postgres"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["http_utils/allow_insecure_url", "openid4vc/allow_insecure_url"]
 # Include session storage in PostgreSQL
-postgres = [
-    "sea-orm/macros",
-    "sea-orm/runtime-tokio-rustls",
-    "sea-orm/sqlx-postgres",
-    "sea-orm/with-chrono",
-    "sea-orm/with-json",
-    "server_utils/postgres",
-]
+postgres = ["server_utils/postgres"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["allow_insecure_url", "openid4vc/test", "postgres", "tokio/sync"]
 # Enable mock PID issuance
@@ -46,22 +39,20 @@ anyhow.workspace = true
 axum.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+derive_more = { workspace = true, features = ["debug"] }
+futures.workspace = true
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
+p256 = { workspace = true, features = ["pkcs8"] }
 reqwest.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 url = { workspace = true, features = ["serde"] }
-
-derive_more = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true }
 
 attestation_data = { path = "../../lib/attestation_data" }
 attestation_types = { path = "../../lib/attestation_types" }

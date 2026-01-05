@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [dependencies]
-aes-gcm = { workspace = true, features = ["std", "rand_core"] }
+aes-gcm.workspace = true
 anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
@@ -42,7 +42,7 @@ serde_with = { workspace = true, features = ["base64"] }
 sha2.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "fs", "net"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "fs", "net"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }

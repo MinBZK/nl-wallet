@@ -454,10 +454,9 @@ render_template "${DEVENV}/test_settings.toml.template" "${STATUS_LISTS_DIR}/tes
 render_template "${DEVENV}/test_settings.toml.template" "${SERVER_UTILS_DIR}/test_settings.toml"
 
 # Ensure the status_lists dirs exists
-mkdir -p "${ISSUANCE_SERVER_DIR}/resources/status-lists"
-mkdir -p "${PID_ISSUER_DIR}/resources/status-lists"
-mkdir -p "${WP_DIR}/resources/status-lists"
-mkdir -p "${BASE_DIR}/wallet_core/tests_integration/resources/status-lists"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

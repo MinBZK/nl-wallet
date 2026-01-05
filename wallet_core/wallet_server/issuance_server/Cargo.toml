@@ -24,14 +24,7 @@ default = ["postgres"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Include session storage in PostgreSQL
-postgres = [
-    "sea-orm/macros",
-    "sea-orm/runtime-tokio-rustls",
-    "sea-orm/sqlx-postgres",
-    "sea-orm/with-chrono",
-    "sea-orm/with-json",
-    "server_utils/postgres",
-]
+postgres = ["server_utils/postgres"]
 # Enable integration tests
 integration_test = []
 # Enable the Admin UI
@@ -42,7 +35,8 @@ anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 config = { workspace = true, features = ["toml", "preserve_order"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+derive_more = { workspace = true, features = ["debug"] }
+futures.workspace = true
 itertools.workspace = true
 indexmap.workspace = true
 reqwest.workspace = true
@@ -52,9 +46,8 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 serde_urlencoded.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 trait-variant.workspace = true
-sea-orm = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
@@ -73,7 +66,7 @@ utils.path = "../../lib/utils"
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
 indexmap.workspace = true
-p256 = { workspace = true, features = ["ecdsa"] }
+p256.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }

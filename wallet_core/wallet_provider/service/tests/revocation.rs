@@ -7,6 +7,7 @@ use futures::future::try_join_all;
 use itertools::Itertools;
 use rstest::rstest;
 use utils::num::NonZeroU31;
+use utils::num::U31;
 use uuid::Uuid;
 
 use crypto::server_keys::generate::Ca;
@@ -43,7 +44,7 @@ async fn setup_state(
 
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(100).unwrap(),
-        create_threshold: NonZeroU31::try_new(1).unwrap(), // no new lists are needed during test
+        create_threshold: U31::ZERO, // no new lists are needed during test
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl: None,

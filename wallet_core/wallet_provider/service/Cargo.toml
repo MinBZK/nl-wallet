@@ -31,15 +31,14 @@ mock_play_integrity = ["android_attest/mock"]
 mock_secure_keys = ["crypto/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
+    "dep:anyhow",
+    "dep:rand_core",
     "apple_app_attest/mock",
     "attestation_data/generate",
     "attestation_data/mock",
     "attestation_types/pid_constants",
     "crypto/generate",
     "crypto/mock_secure_keys",
-    "dep:anyhow",
-    "dep:rand_core",
-    "hmac/std",
     "mock_play_integrity",
     "platform_support/mock_attested_key_apple",
     "sd_jwt/examples",
@@ -63,13 +62,13 @@ db_test = [
 [dependencies]
 base64.workspace = true
 chrono = { workspace = true, features = ["now", "serde"] }
-der = { workspace = true, features = ["std"] }
+der.workspace = true
 derive_more = { workspace = true, features = ["constructor", "into"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
+p256 = { workspace = true, features = ["pem"] }
 rustls-pki-types.workspace = true
-rustls-webpki = { workspace = true, features = ["ring"] }
+rustls-webpki.workspace = true
 semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -81,7 +80,6 @@ uuid = { workspace = true, features = ["v4"] }
 trait-variant.workspace = true
 
 anyhow = { workspace = true, optional = true }
-hmac = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
@@ -108,13 +106,12 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 [dev-dependencies]
 anyhow.workspace = true
 assert_matches.workspace = true
-hmac = { workspace = true, features = ["std"] }
 mockall.workspace = true
 rand.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tracing-test.workspace = true
-tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }

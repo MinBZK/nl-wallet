@@ -12,13 +12,13 @@ doctest = false
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["hmac/std", "hsm/mock", "rand"]
+mock = ["dep:hmac", "dep:rand", "hsm/mock"]
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["debug"] }
-futures = { workspace = true, features = ["std", "async-await"] }
-p256 = { workspace = true, features = ["ecdsa", "std"] }
+futures.workspace = true
+p256.workspace = true
 semver.workspace = true
 serde.workspace = true
 serde_with.workspace = true

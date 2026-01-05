@@ -8,6 +8,7 @@ use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::pid::constants::PID_ATTESTATION_TYPE;
@@ -32,7 +33,16 @@ impl AttributeService for MockAttributeService {
     async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
         let Self(documents) = self;
 
-        Ok(documents.clone())
+        // Create a copy of the document having a new random id, ensuring unique batch_ids
+        let documents = documents
+            .nonempty_iter()
+            .map(|document| {
+                let (attestation_id, attributes, _) = document.clone().into_parts();
+                IssuableDocument::try_new_with_random_id(attestation_id, attributes).unwrap()
+            })
+            .collect();
+
+        Ok(documents)
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {

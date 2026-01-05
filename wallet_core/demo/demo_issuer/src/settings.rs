@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::Path;
 
@@ -6,7 +7,6 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use derive_more::Into;
-use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_valid::Validate;
 
@@ -29,7 +29,7 @@ pub struct Settings {
     pub help_base_url: BaseUrl,
     pub structured_logging: bool,
     pub log_requests: bool,
-    pub usecases: IndexMap<String, Usecase>,
+    pub usecases: HashMap<String, Usecase>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -40,7 +40,7 @@ pub struct Server {
 
 #[derive(Deserialize, Clone)]
 pub struct Usecase {
-    pub data: IndexMap<AttributeValue, IssuableDocumentTemplates>,
+    pub data: HashMap<AttributeValue, IssuableDocumentTemplates>,
     pub client_id: String,
     pub disclosed: Disclosed,
 }

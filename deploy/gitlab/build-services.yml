@@ -16,6 +16,7 @@
       --build-arg HSM_CLIENT_TAG=$HSM_CLIENT_TAG
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_PROJECT=$HARBOR_PROJECT
+      --build-arg GCR_IO_PROXY=$GCR_IO_PROXY
       --destination $HARBOR_REGISTRY/$HARBOR_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_PROJECT/$DOCKER_IMAGE_NAME:latest
 
@@ -36,6 +37,7 @@ build-wallet-provider-image:
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider
+    GCR_IO_PROXY: "$HARBOR_REGISTRY/gcr-io-proxy"
 
 build-wallet-provider-migrations-image:
   extends: .build-docker-image
@@ -72,7 +74,7 @@ build-demo-issuer-image:
     DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_issuer/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-demo-issuer
 
-build-demo-issuer-index:
+build-demo-index-image:
   extends: .build-docker-image
   needs:
     - job: build-demo-index-binary
@@ -154,6 +156,7 @@ build-gba-fetch-image:
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/gba_fetch.Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-gba-fetch
+    GCR_IO_PROXY: "$HARBOR_REGISTRY/gcr-io-proxy"
 
 build-gba-fetch-frontend-image:
   extends: .build-docker-image

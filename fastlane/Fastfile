@@ -1,9 +1,12 @@
 require 'active_support'
 require 'active_support/core_ext'
 
+require_relative 'badge'
+
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
 DEFAULT_APP_NAME = "NL Wallet"
+BADGE_FONT='../wallet_app/assets/non-free/fonts/rijksoverheid-sans-web-text-regular.ttf'
 
 # opt out of analytics
 opt_out_usage
@@ -90,6 +93,16 @@ private_lane :upload_to_browserstack do |options|
 end
 
 platform :android do
+  desc "Add badge to launcher icons"
+  lane :add_badge do |options|
+    badge = Badge::new(options[:label] || 'latest', BADGE_FONT)
+    Pathname.new('../wallet_app').glob('**/ic_launcher*.{png,webp}').each do |i|
+      compose = i.basename.to_s.match?('foreground') ? 'over' : 'atop'
+      badge.add_to_image(i, font_rel_size: 0.12, translate: 0.65, compose: compose)
+      badge.add_seasonal_image(i, compose: compose)
+    end
+  end
+
   desc "Build and sign Android app"
   lane :build do |options|
 
@@ -143,7 +156,7 @@ platform :android do
       source_filepath = "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}"
       target_filepath = "../#{application_id}-#{version}-#{build_mode}.#{file_format}"
 
-      File.rename(source_filepath, target_filepath)
+      FileUtils.mv(source_filepath, target_filepath)
     end
   end
 
@@ -200,6 +213,15 @@ platform :android do
 end
 
 platform :ios do
+  desc "Add badge to app icons"
+  lane :add_badge do |options|
+    badge = Badge::new(options[:label] || 'latest', BADGE_FONT)
+    Pathname.new('../wallet_app').glob('**/AppIcon.appiconset/*.png').each do |i|
+      badge.add_to_image(i, font_rel_size: 0.15, translate: 0.74)
+      badge.add_seasonal_image(i)
+    end
+  end
+
   desc "Deploy iOS app from GitLab CI"
   lane :ci_deploy do |options|
     # Get app identifier

@@ -5,6 +5,7 @@ use std::path::Path;
 
 use chrono::Days;
 use derive_more::AsRef;
+use derive_more::Debug;
 use derive_more::From;
 use derive_more::IntoIterator;
 use futures::future::join_all;
@@ -37,11 +38,12 @@ use utils::path::prefix_local_path;
 
 pub type TypeMetadataByVct = HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>;
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct IssuerSettings {
     pub attestation_settings: AttestationTypesConfigSettings,
 
     #[serde(deserialize_with = "deserialize_type_metadata")]
+    #[debug(skip)]
     pub metadata: TypeMetadataByVct,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
@@ -52,15 +54,17 @@ pub struct IssuerSettings {
     pub wallet_client_ids: Vec<String>,
 
     #[serde(flatten)]
+    #[debug(skip)]
     pub server_settings: Settings,
 }
 
-#[derive(Clone, Deserialize, From, IntoIterator, AsRef)]
+#[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
 pub struct AttestationTypesConfigSettings(#[into_iterator(owned, ref)] HashMap<String, AttestationTypeConfigSettings>);
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AttestationTypeConfigSettings {
     #[serde(flatten)]
+    #[debug(skip)]
     pub keypair: KeyPair,
 
     pub valid_days: u64,

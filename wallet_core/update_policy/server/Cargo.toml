@@ -21,12 +21,12 @@ chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
-postcard = { workspace = true, features = ["use-std"] }
-rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
+postcard.workspace = true
+rustls.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 

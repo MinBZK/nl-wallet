@@ -47,15 +47,13 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    Ok(wallet_user::Entity::find()
+    wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::WalletId)
+        .into_tuple()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
-        .into_iter()
-        .map(|model| model.wallet_id)
-        .collect())
+        .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
 pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<Uuid>

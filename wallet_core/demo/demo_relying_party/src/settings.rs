@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::Path;
 
@@ -5,7 +6,6 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use indexmap::IndexMap;
 use serde::Deserialize;
 
 use dcql::Query;
@@ -28,7 +28,7 @@ pub struct Settings {
     pub connect_src: Option<ConnectSource>,
 
     #[serde(default)]
-    pub usecases: IndexMap<String, Usecase>,
+    pub usecases: HashMap<String, Usecase>,
 }
 
 #[derive(Deserialize, Clone)]

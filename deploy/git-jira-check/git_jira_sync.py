@@ -53,9 +53,19 @@ class JiraClientWrapper:
         jira_url = get_env_var("JIRA_BASE_URL")
         jira_token = get_env_var("JIRA_PAT")
         self.client = JIRA(jira_url, token_auth=jira_token)
+        self._issue_cache = {}
 
     def fetch_issue(self, key):
-        return self.client.issue(key, fields="fixVersions,parent")
+        if key not in self._issue_cache:
+            try:
+                self._issue_cache[key] = self.client.issue(key, fields="fixVersions,parent")
+            except JIRAError as e:
+                if e.status_code == 404:
+                    self._issue_cache[key] = None
+                else:
+                    raise e
+        return self._issue_cache[key]
+
 
     def fetch_issues_for_version(self, version):
         jql = f'fixVersion="{version}"'
@@ -63,7 +73,10 @@ class JiraClientWrapper:
 
     def update_fix_version(self, issue_key, version):
         issue = self.client.issue(issue_key)
-        issue.update(fields={"fixVersions": [{"name": version}]})
+        existing_versions = [{"name": v.name} for v in issue.fields.fixVersions]
+        if not any(v["name"] == version for v in existing_versions):
+            existing_versions.append({"name": version})
+            issue.update(fields={"fixVersions": existing_versions})
 
 
 def fetch_merged_mrs(gl, project_id, target_branch, since):
@@ -77,9 +90,6 @@ def fetch_merged_mrs(gl, project_id, target_branch, since):
 
 
 def verify_release():
-    with open("mrs_missing_jira.log", "w"):
-        pass
-
     tags = fetch_git_tags()
     if len(tags) < 1:
         sys.exit("No tag found")
@@ -102,50 +112,44 @@ def verify_release():
     mrs = fetch_merged_mrs(gl, project_id, target_branch, since)
 
     mr_keys = {}
-    for mr in mrs:
-        merged_at = datetime.strptime(mr.merged_at, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
-        branch = mr.source_branch
-        if previous_ts <= merged_at <= current_ts:
-            key = extract_jira_key(branch)
-            if key:
-                mr_keys[mr.iid] = key
-            else:
-                warning_msg = f"[WARN] MR {mr.iid} (branch: {branch}) in timeframe has no Jira key"
-                print(warning_msg)
-                with open("mrs_missing_jira.log", "a") as log_file:
+    with open("mrs_missing_jira.log", "w") as log_file:
+        for mr in mrs:
+            merged_at = datetime.strptime(mr.merged_at, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
+            branch = mr.source_branch
+            if previous_ts <= merged_at <= current_ts:
+                key = extract_jira_key(branch)
+                if key:
+                    mr_keys[mr.iid] = key
+                else:
+                    warning_msg = f"[WARN] MR {mr.iid} (branch: {branch}) in timeframe has no Jira key"
+                    print(warning_msg)
                     log_file.write(warning_msg + "\n")
-        else:
-            print(f"[DEBUG] Skipping MR {mr.iid} merged_at {mr.merged_at} (outside release window)")
+            else:
+                print(f"[DEBUG] Skipping MR {mr.iid} merged_at {mr.merged_at} (outside release window)")
 
-    print(f"[DEBUG] Extracted Jira keys from MRs in window: {list(mr_keys.values())}")
+        print(f"[DEBUG] Extracted Jira keys from MRs in window: {list(mr_keys.values())}")
 
-    jira_issues = jira.fetch_issues_for_version(current_tag)
-    print(f"[DEBUG] JIRA issues returned for fixVersion={current_tag}: {[issue.key for issue in jira_issues]}")
-    fixed_keys = {issue.key for issue in jira_issues}
-    children = {
-        issue.fields.parent.key: issue.key
-        for issue in jira_issues
-        if getattr(issue.fields, "parent", None)
-    }
+        jira_issues = jira.fetch_issues_for_version(current_tag)
+        print(f"[DEBUG] JIRA issues returned for fixVersion={current_tag}: {[issue.key for issue in jira_issues]}")
+        fixed_keys = {issue.key for issue in jira_issues}
+        children = {
+            issue.fields.parent.key: issue.key
+            for issue in jira_issues
+            if getattr(issue.fields, "parent", None)
+        }
 
-    jira_issue_cache = {}
-    for jira_key in set(mr_keys.values()):
-        try:
-            jira_issue_cache[jira_key] = jira.fetch_issue(jira_key)
-        except JIRAError as e:
-            jira_issue_cache[jira_key] = None
-            mrs_for_key = [mr_id for mr_id, key in mr_keys.items() if key == jira_key]
-            warning_msg = (
-                f"[WARN] MR {mrs_for_key} refers to {jira_key} which was not found in Jira."
-                f"message: {getattr(e, 'text', str(e))}"
-            )
-            print(warning_msg)
-            with open("mrs_missing_jira.log", "a") as log_file:
+        for jira_key in set(mr_keys.values()):
+            if not jira.fetch_issue(jira_key):
+                mrs_for_key = [mr_id for mr_id, key in mr_keys.items() if key == jira_key]
+                warning_msg = (
+                    f"[WARN] MR {mrs_for_key} refers to {jira_key} which was not found in Jira."
+                )
+                print(warning_msg)
                 log_file.write(warning_msg + "\n")
 
     parents_with_mr_children = set()
-    for issue in jira_issue_cache.values():
-        if issue:
+    for jira_key in set(mr_keys.values()):
+        if issue := jira.fetch_issue(jira_key):
             parent = getattr(issue.fields, "parent", None)
             if parent:
                 parents_with_mr_children.add(parent.key)
@@ -156,10 +160,8 @@ def verify_release():
             print(warning_msg)
 
     for mr_id, jira_key in mr_keys.items():
-        issue = jira_issue_cache.get(jira_key)
-        if not issue:
+        if not (issue := jira.fetch_issue(jira_key)):
             continue
-
         versions = [v.name for v in issue.fields.fixVersions]
         parent = getattr(issue.fields, "parent", None)
         parent_key = parent.key if parent else None
@@ -170,11 +172,7 @@ def verify_release():
         parent_has_correct_version = False
         if parent_key:
             try:
-                parent_issue = jira_issue_cache.get(parent_key)
-                if not parent_issue:
-                    parent_issue = jira.fetch_issue(parent_key)
-                    jira_issue_cache[parent_key] = parent_issue
-
+                parent_issue = jira.fetch_issue(parent_key)
                 parent_versions = [v.name for v in parent_issue.fields.fixVersions]
                 if current_tag in parent_versions:
                     parent_has_correct_version = True
@@ -249,18 +247,15 @@ def sync_nightly():
             target_issue = jira.fetch_issue(target_key)
             versions = [v.name for v in target_issue.fields.fixVersions]
 
-            if len(versions) > 1:
-                print(f"[WARN] Jira issue {target_key} has multiple fixVersions: {versions}. Overwriting with {current_release}")
+            if current_release not in versions:
+                if len(versions) > 1:
+                    print(f"[INFO] Jira issue {target_key} has multiple fixVersions: {versions}. Adding {current_release}")
+                elif versions:
+                    print(f"[INFO] Jira issue {target_key} has fixVersion: {versions[0]}. Adding {current_release}")
+                else:
+                    print(f"[ACTION] Setting fixVersion {current_release} on {target_key}")
                 jira.update_fix_version(target_key, current_release)
-                print(f"[DONE] fixVersion set on {target_key}")
-            elif versions and versions[0] != current_release:
-                print(f"[WARN] Jira issue {target_key} has incorrect fixVersion: {versions[0]}. Overwriting with {current_release}")
-                jira.update_fix_version(target_key, current_release)
-                print(f"[DONE] fixVersion set on {target_key}")
-            elif not versions:
-                print(f"[ACTION] Setting fixVersion {current_release} on {target_key}")
-                jira.update_fix_version(target_key, current_release)
-                print(f"[DONE] fixVersion set on {target_key}")
+                print(f"[DONE] fixVersion {current_release} added to {target_key}")
             else:
                 print(f"[OK] {target_key} already has fixVersion {current_release}")
         except Exception as e:

@@ -13,7 +13,7 @@ path = "tests/api_test.rs"
 required-features = ["examples"]
 
 [features]
-examples = ["futures", "rand_core", "token_status_list/mock", "utils/mock_time"]
+examples = ["dep:futures", "dep:rand_core", "token_status_list/mock", "utils/mock_time"]
 mock = []
 test = []
 
@@ -25,7 +25,7 @@ indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["default", "pem"] }
+p256.workspace = true
 rand.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }

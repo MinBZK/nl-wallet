@@ -268,9 +268,9 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
 
     use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
@@ -330,9 +330,9 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
 
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;

@@ -55,14 +55,14 @@ derive_more = { workspace = true, features = [
     "into",
     "into_iterator",
 ] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
+p256 = { workspace = true, features = ["serde"] }
 rand_core.workspace = true
 reqwest.workspace = true
 ring.workspace = true
@@ -70,12 +70,12 @@ rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with.workspace = true
+serde_with = { workspace = true, features = ["json"] }
 ssri.workspace = true
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt", "time"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
@@ -105,7 +105,7 @@ assert_matches.workspace = true
 mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
-serde_bytes = { workspace = true, features = ["std"] }
+serde_bytes.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
 serial_test.workspace = true
 tracing-test.workspace = true
