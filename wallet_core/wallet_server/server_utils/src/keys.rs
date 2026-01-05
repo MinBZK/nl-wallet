@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use p256::ecdsa;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
@@ -75,17 +77,36 @@ impl PrivateKeyVariant {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum SecretKeyVariantError {
+    #[error("HMAC verification failed")]
+    SoftwareVerification,
+    #[error("HSM error: {0}")]
+    Hsm(#[from] HsmError),
+}
+
 pub enum SecretKeyVariant {
     Software(hmac::Key),
     Hsm(HsmHmacKey),
 }
 
 impl SecretKeyVariant {
-    pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, HsmError> {
+    pub async fn sign_hmac(&self, data: Cow<'_, [u8]>) -> Result<Vec<u8>, HsmError> {
         match self {
-            SecretKeyVariant::Software(key) => Ok(hmac::sign(key, msg).as_ref().to_vec()),
-            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(msg.to_vec()).await?),
+            SecretKeyVariant::Software(key) => Ok(hmac::sign(key, &data).as_ref().to_vec()),
+            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(data.into_owned()).await?),
         }
+    }
+
+    pub async fn verify_hmac(&self, data: Cow<'_, [u8]>, tag: Cow<'_, [u8]>) -> Result<(), SecretKeyVariantError> {
+        match self {
+            SecretKeyVariant::Software(key) => {
+                hmac::verify(key, &data, &tag).map_err(|_| SecretKeyVariantError::SoftwareVerification)?
+            }
+            SecretKeyVariant::Hsm(key) => key.verify_hmac(data.into_owned(), tag.into_owned()).await?,
+        };
+
+        Ok(())
     }
 }
 

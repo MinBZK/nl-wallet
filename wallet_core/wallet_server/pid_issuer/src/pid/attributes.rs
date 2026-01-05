@@ -143,7 +143,7 @@ impl BrpPidAttributeService {
             _ => return Err(Error::BsnUnexpectedType),
         };
 
-        let recovery_code = AttributeValue::Text(hex::encode(secret_key.sign_hmac(bsn.as_bytes()).await?));
+        let recovery_code = AttributeValue::Text(hex::encode(secret_key.sign_hmac(bsn.as_bytes().into()).await?));
 
         attributes
             .insert(
