@@ -178,7 +178,8 @@ workspace "Name" "NL-Wallet" {
         ws.walletBackend.walletStatusManager -> ws.db "Store/retrieve WUA data + status"
         ws.walletBackend.walletDenyList -> ws.db "Store/retrieve denylist"
         us -> ws.revokeUi "Revoke wallet"
-        issuerPid -> ws.statusList "Get WUA status" 
+        issuerPid -> ws.statusList "Check wallet validity" 
+        issuerPid.vvPid -> ws.statusList "Get WUA status" 
 
         ws.walletApp.appCore -> issuerPid.statusList "Get attestation status list (PID)" 
         //verifier.ov -> issuerPid.statusList "Get attestation status list (PID)"
@@ -216,7 +217,7 @@ workspace "Name" "NL-Wallet" {
 
     views {
         systemContext ws "AD1NL-Wallet" {
-            include u ws verifier issuerPb issuerPid platformServices digid ua us
+            include u ws verifier issuerPid 
         }
 
         systemContext ws "B1PID-Issuer" {
@@ -225,18 +226,18 @@ workspace "Name" "NL-Wallet" {
 
         container ws "D2NL-WalletSystem" {
             include * platformServices
-            exclude ws.updateServer ws.revokeUi us issuerPb verifier
+            exclude ws.updateServer ws.revokeUi us issuerPb 
         }
 
         component ws.walletBackend "GD2NL-walletBackend" {
             include *
-            exclude ws.updateServer ws.revokeUi us issuerPb verifier
+            exclude ws.updateServer ws.revokeUi us issuerPb 
             
         }
 
         component ws.walletApp "HD2NL-WalletApp" {
             include * verifier ws.wab
-            exclude ws.updateServer ws.revokeUi us issuerPb verifier
+            exclude ws.updateServer ws.revokeUi us issuerPb 
         }
 
         systemContext issuerPb "ID3IssuerSoftwareSystem" {
