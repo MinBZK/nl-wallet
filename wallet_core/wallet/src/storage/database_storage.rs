@@ -1350,6 +1350,7 @@ pub(crate) mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use test_storage::MockHardwareDatabaseStorage;
     use utils::generator::mock::MockTimeGenerator;
+    use wallet_account::RevocationCode;
 
     use crate::attestation::AttestationValidity;
     use crate::attestation::mock::EmptyPresentationConfig;
@@ -1461,6 +1462,7 @@ pub(crate) mod tests {
             pin_salt: random_bytes(8),
             wallet_id: String::from("wallet123"),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
         };
 
         let exported_registration = RegistrationData {
@@ -1468,6 +1470,7 @@ pub(crate) mod tests {
             pin_salt: random_bytes(8),
             wallet_id: String::from("wallet456"),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
         };
 
         // Export via block to have everything dropped
@@ -1503,6 +1506,7 @@ pub(crate) mod tests {
             pin_salt: vec![1, 2, 3, 4],
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
         };
 
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
@@ -1546,6 +1550,7 @@ pub(crate) mod tests {
             pin_salt: new_salt,
             wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),
+            revocation_code: RevocationCode::new_random(),
         };
         storage
             .upsert_data(&updated_registration)

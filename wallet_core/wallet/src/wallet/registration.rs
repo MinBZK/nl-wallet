@@ -259,7 +259,7 @@ where
         .map_err(WalletRegistrationError::Signing)?;
 
         // Send the registration message to the account server and receive the wallet certificate in response.
-        let wallet_certificate = self
+        let (wallet_certificate, revocation_code) = self
             .account_provider_client
             .register(&config.account_server.http_config, registration_message)
             .await
@@ -295,8 +295,9 @@ where
         // Save the registration data in storage.
         let data = RegistrationData {
             attested_key_identifier: key_identifier,
-            wallet_id: cert_claims.wallet_id,
             pin_salt,
+            wallet_id: cert_claims.wallet_id,
+            revocation_code,
             wallet_certificate,
         };
         storage
@@ -335,6 +336,7 @@ mod tests {
     use jwt::SignedJwt;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
+    use wallet_account::RevocationCode;
     use wallet_account::messages::registration::RegistrationAttestation;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::SequenceNumberComparison;
@@ -381,6 +383,9 @@ mod tests {
         // Set up a mutex for the mock callback to write the generated wallet certificate to.
         let generated_certificate: Arc<Mutex<Option<WalletCertificate>>> = Arc::new(Mutex::new(None));
         let generated_certificate_clone = Arc::clone(&generated_certificate);
+
+        let revocation_code = RevocationCode::new_random();
+        let revocation_code_clone = revocation_code.clone();
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -437,7 +442,7 @@ mod tests {
                 let certificate = valid_certificate(None, attested_public_key);
                 generated_certificate_clone.lock().replace(certificate.clone());
 
-                Ok(certificate)
+                Ok((certificate, revocation_code_clone))
             });
 
         // Register the wallet with a valid PIN.
@@ -457,10 +462,13 @@ mod tests {
             .await
             .unwrap()
             .expect("Registration data not present in storage");
+
         assert_eq!(
             &stored_registration.wallet_certificate,
             generated_certificate.lock().as_ref().unwrap()
         );
+        assert_eq!(stored_registration.revocation_code, revocation_code);
+
         assert!(
             wallet
                 .key_holder
@@ -750,7 +758,9 @@ mod tests {
                         .unwrap()
                         .into();
 
-                Ok(certificate)
+                let revocation_code = RevocationCode::new_random();
+
+                Ok((certificate, revocation_code))
             });
 
         let error = wallet
@@ -782,7 +792,9 @@ mod tests {
                 let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
                 let certificate = valid_certificate(None, random_pubkey);
 
-                Ok(certificate)
+                let revocation_code = RevocationCode::new_random();
+
+                Ok((certificate, revocation_code))
             });
     }
 

@@ -303,6 +303,8 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use wallet_account::RevocationCode;
+
     use crate::pin::key as pin_key;
     use crate::storage::MockStorage;
     use crate::wallet::test::TestWalletMockStorage;
@@ -390,6 +392,7 @@ mod tests {
                 pin_salt: expected_pin_salt.clone(),
                 wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "this.isa.jwt".parse().unwrap(),
+                revocation_code: RevocationCode::new_random(),
             }))
         });
         storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
