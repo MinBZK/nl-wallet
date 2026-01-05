@@ -1396,10 +1396,22 @@ mod tests {
         );
     }
 
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    enum ToyEnum {
+        Variant,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    struct MessageWithEnum {
+        number: u8,
+        string: String,
+        enumerate: ToyEnum,
+    }
+
     #[rstest]
-    #[case(Header::default())]
-    #[case(HeaderWithTyp::default())]
+    #[case(ToyMessage::default())]
     #[case(ToyMessage { number: 1, string: "a".to_string() })]
+    #[case(MessageWithEnum  { number: 1, string: "a".to_string(), enumerate: ToyEnum::Variant })]
     fn test_payload_with_sub_deserialize<U>(#[case] u: U)
     where
         U: Serialize + DeserializeOwned + Debug + PartialEq + Eq,

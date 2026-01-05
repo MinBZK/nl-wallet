@@ -130,7 +130,7 @@ dotenvy = "0.15.7"
 etag = "4.0.0"
 flate2 = "1.1.5"
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
-gcloud-auth = { version = "1.1.2", default-features = false, features = ["rustls-tls"] }
+gcloud-auth = { version = "1.2.0", default-features = false, features = ["jwt-rust-crypto", "rustls-tls"] }
 hex = "0.4.3"
 hex-literal = "1.1.0"
 http = "1.4.0"
@@ -142,8 +142,7 @@ itertools = "0.14.0"
 jni = "0.21.1"
 josekit = "0.10.3"
 jsonschema = { version = "0.37.4", default-features = false }
-# jsonwebtoken 10.x.x and above is held back because it leads to failing tests.
-jsonwebtoken = { version = "9.3.1", default-features = false }
+jsonwebtoken = { version = "10.2.0", default-features = false, features = ["rust_crypto"] }
 libc = "0.2.178"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
