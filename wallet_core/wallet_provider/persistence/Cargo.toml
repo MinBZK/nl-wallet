@@ -48,7 +48,7 @@ test = []
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "from"] }
 metrics.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
+p256 = { workspace = true, features = ["pkcs8"] }
 sea-orm = { workspace = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -57,7 +57,7 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
 ] }
 semver.workspace = true
-tokio = { workspace = true, features = ["parking_lot", "rt"] }
+tokio = { workspace = true, features = ["rt"] }
 tracing.workspace = true
 url.workspace = true
 uuid.workspace = true

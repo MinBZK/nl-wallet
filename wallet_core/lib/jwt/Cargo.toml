@@ -19,10 +19,10 @@ chrono = { workspace = true, features = ["now", "serde"] }
 derive_more = { workspace = true, features = ["constructor", "display"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
-p256 = { workspace = true, features = ["std", "ecdsa"] }
+p256.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true, features = ["std"] }
+serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tracing.workspace = true
@@ -34,7 +34,7 @@ utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

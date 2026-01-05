@@ -22,7 +22,7 @@ axum = { workspace = true, features = ["form", "json"] }
 http.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
-tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
+tower-http = { workspace = true, features = ["cors"] }
 tracing.workspace = true
 
 axum-extra = { workspace = true, optional = true }

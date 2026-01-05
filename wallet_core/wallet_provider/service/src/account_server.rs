@@ -1839,9 +1839,9 @@ mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
-    use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
     use rstest::rstest;
     use semver::Version;
     use uuid::Uuid;

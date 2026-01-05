@@ -16,16 +16,8 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [features]
-client = [
-    "dep:error_category",
-    "dep:platform_support",
-    "dep:thiserror",
-    "futures/std",
-    "p256/ecdsa",
-    "p256/pem",
-    "p256/std",
-]
-server = ["dep:apple_app_attest", "dep:thiserror", "p256/ecdsa", "p256/pem", "p256/std"]
+client = ["dep:error_category", "dep:futures", "dep:platform_support", "dep:thiserror", "p256/pem"]
+server = ["dep:apple_app_attest", "dep:thiserror", "p256/pem"]
 integration_test = ["android_attest/mock", "client", "dep:rustls-pki-types", "server"]
 mock = []
 
@@ -34,7 +26,7 @@ chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["constructor"] }
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true, features = ["std", "raw_value"] }
+serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 uuid = { workspace = true, features = ["v4", "serde"] }
@@ -57,7 +49,7 @@ error_category = { path = "../../lib/error_category", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 

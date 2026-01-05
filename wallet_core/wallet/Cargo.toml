@@ -31,7 +31,7 @@ chrono = { workspace = true, features = ["now"] }
 cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
@@ -40,16 +40,15 @@ libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-ope
 josekit.workspace = true
 mime.workspace = true
 nutype.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "std"] }
+p256.workspace = true
 parking_lot.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["zstd"] }
-ring = { workspace = true, features = ["std"] }
+ring.workspace = true
 rusqlite.workspace = true
 rustls-pki-types.workspace = true
 sanitize-filename.workspace = true
-sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
-sea-query.workspace = true
+sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
@@ -57,7 +56,7 @@ serde_with = { workspace = true, features = ["base64", "json"] }
 strum = { workspace = true, features = ["derive"] }
 tempfile.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["sync", "fs"] }
+tokio = { workspace = true, features = ["rt", "sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
@@ -90,14 +89,14 @@ wscd.path = "../lib/wscd"
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
 [dev-dependencies]
-aes-gcm = { workspace = true, features = ["std"] }
+aes-gcm.workspace = true
 assert_matches.workspace = true
 mockall.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 serial_test.workspace = true
 ssri.workspace = true
-tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
+tokio = { workspace = true, features = ["macros", "test-util"] }
 wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }

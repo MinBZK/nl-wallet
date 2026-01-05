@@ -13,8 +13,8 @@ the following:
 
 ```shell
 touch wallet.sqlite
-cargo run -- fresh -u sqlite://wallet.sqlite
-cargo run -- status -u sqlite://wallet.sqlite
+cargo run --features cli -- fresh -u sqlite://wallet.sqlite
+cargo run --features cli -- status -u sqlite://wallet.sqlite
 ```
 
 After doing the above, you'll see a `wallet.sqlite` file which you can open
