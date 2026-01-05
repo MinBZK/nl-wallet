@@ -703,6 +703,8 @@ impl From<ClaimValue> for ClaimType {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroUsize;
+
     use assert_matches::assert_matches;
     use rstest::rstest;
     use serde_json::json;
@@ -727,7 +729,7 @@ mod tests {
 
         assert_eq!(object_claims.claims.len(), 2);
         assert!(object_claims._sd.is_some());
-        assert_eq!(object_claims._sd.unwrap().len(), 1.try_into().unwrap());
+        assert_eq!(object_claims._sd.unwrap().len(), NonZeroUsize::MIN);
 
         assert_eq!(
             disclosure.content,

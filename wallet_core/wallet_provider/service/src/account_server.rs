@@ -1832,6 +1832,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroUsize;
+
     use assert_matches::assert_matches;
     use base64::prelude::*;
     use chrono::DateTime;
@@ -3230,7 +3232,7 @@ mod tests {
         let instruction = StartPinRecovery {
             issuance_with_wua_instruction: PerformIssuanceWithWua {
                 issuance_instruction: PerformIssuance {
-                    key_count: 1.try_into().unwrap(),
+                    key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
                     nonce: Some("nonce".to_string()),
                 },
@@ -3319,7 +3321,7 @@ mod tests {
         let instruction = StartPinRecovery {
             issuance_with_wua_instruction: PerformIssuanceWithWua {
                 issuance_instruction: PerformIssuance {
-                    key_count: 1.try_into().unwrap(),
+                    key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
                     nonce: Some("nonce".to_string()),
                 },

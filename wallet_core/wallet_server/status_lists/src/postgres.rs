@@ -1081,7 +1081,7 @@ mod tests {
 
         let batch_id = Uuid::new_v4();
         let result = service
-            .obtain_status_claims("invalid", batch_id, None, 1.try_into().unwrap())
+            .obtain_status_claims("invalid", batch_id, None, NonZeroUsize::MIN)
             .await;
         assert_matches!(result, Err(StatusListServiceError::UnknownAttestationType(attestation_type)) if attestation_type == "invalid");
     }

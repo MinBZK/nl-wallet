@@ -1175,10 +1175,7 @@ mod tests {
                     .into_iter()
                     .map(|preview_payload| CredentialPreview {
                         content: CredentialPreviewContent {
-                            copies_per_format: formats
-                                .iter()
-                                .map(|format| (*format, NonZeroU8::new(1).unwrap()))
-                                .collect(),
+                            copies_per_format: formats.iter().map(|format| (*format, NonZeroU8::MIN)).collect(),
                             credential_payload: preview_payload,
                             issuer_certificate: issuance_key.certificate().clone(),
                         },
@@ -1316,10 +1313,8 @@ mod tests {
 
         let preview_payload =
             PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
-        let copies_per_format: IndexMap<Format, NonZeroU8> = IndexMap::from_iter([
-            (Format::MsoMdoc, NonZeroU8::new(1).unwrap()),
-            (Format::SdJwt, NonZeroU8::new(1).unwrap()),
-        ]);
+        let copies_per_format: IndexMap<Format, NonZeroU8> =
+            IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::MIN), (Format::SdJwt, NonZeroU8::MIN)]);
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -1430,7 +1425,7 @@ mod tests {
 
             let preview = NormalizedCredentialPreview {
                 content: CredentialPreviewContent {
-                    copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
+                    copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::MIN)]),
                     credential_payload: preview_payload,
                     issuer_certificate,
                 },

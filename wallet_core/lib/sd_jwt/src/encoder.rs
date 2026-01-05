@@ -127,6 +127,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
 #[cfg(test)]
 mod test {
+    use std::num::NonZeroUsize;
     use std::vec;
 
     use assert_matches::assert_matches;
@@ -239,10 +240,7 @@ mod test {
                 .claims
                 .contains_key(&"claim1".parse::<ClaimName>().unwrap())
         );
-        assert_eq!(
-            encoder.object.claims()._sd.as_ref().unwrap().len(),
-            1.try_into().unwrap()
-        );
+        assert_eq!(encoder.object.claims()._sd.as_ref().unwrap().len(), NonZeroUsize::MIN);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::num::NonZeroU8;
+use std::num::NonZero;
 use std::ops::Add;
 use std::sync::Arc;
 
@@ -221,7 +221,7 @@ pub struct CredentialPreviewState {
     /// The amount of copies of this attestation that the holder will receive per credential format. This is serialized
     /// as a list of pairs in order to guarantee the order across system boundaries.
     #[serde(with = "indexmap::map::serde_seq")]
-    pub copies_per_format: IndexMap<Format, NonZeroU8>,
+    pub copies_per_format: IndexMap<Format, NonZero<u8>>,
     pub credential_payload: PreviewableCredentialPayload,
     pub batch_id: Uuid,
 }
@@ -343,7 +343,7 @@ pub struct AttestationTypeConfig<K> {
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub valid_days: Days,
-    pub copies_per_format: IndexMap<Format, NonZeroU8>,
+    pub copies_per_format: IndexMap<Format, NonZero<u8>>,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
     #[debug(skip)]
@@ -359,7 +359,7 @@ impl<K> AttestationTypeConfig<K> {
         attestation_type: &str,
         key_pair: KeyPair<K>,
         valid_days: Days,
-        copies_per_format: IndexMap<Format, NonZeroU8>,
+        copies_per_format: IndexMap<Format, NonZero<u8>>,
         issuer_uri: HttpsUri,
         attestation_qualification: AttestationQualification,
         metadata_documents: TypeMetadataDocuments,
@@ -1044,7 +1044,7 @@ impl Session<WaitingForResponse> {
                 &preview.credential_payload.attestation_type,
                 preview.batch_id,
                 preview.credential_payload.expires,
-                1.try_into().unwrap(),
+                NonZero::<usize>::MIN,
             )
             .await
             .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
@@ -1379,7 +1379,7 @@ mod tests {
             )
             .unwrap(),
             Days::new(1),
-            IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
+            IndexMap::from_iter([(Format::MsoMdoc, NonZero::<u8>::MIN)]),
             "https://example.com".parse().unwrap(),
             AttestationQualification::default(),
             TypeMetadataDocuments::degree_example().1,
