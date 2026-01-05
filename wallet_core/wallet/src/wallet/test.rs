@@ -213,7 +213,7 @@ pub fn create_example_preview_data(
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
-            copies_per_format: IndexMap::from([(format, NonZeroU8::new(1).unwrap())]),
+            copies_per_format: IndexMap::from([(format, NonZeroU8::MIN)]),
             credential_payload: credential_payload.previewable_payload,
             issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
         },

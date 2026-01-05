@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ffi::OsStr;
+use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -641,7 +642,7 @@ async fn test_service_revoke_attestation_batches_concurrently() {
         batch_ids
             .iter()
             .copied()
-            .map(|batch_id| service.obtain_status_claims(batch_id, None, 1.try_into().unwrap())),
+            .map(|batch_id| service.obtain_status_claims(batch_id, None, NonZeroUsize::MIN)),
     )
     .await
     .unwrap();

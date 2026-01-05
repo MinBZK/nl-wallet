@@ -4,6 +4,7 @@ use nutype::nutype;
 
 /// This type exists to be able to hold non-zero u31 values that are stored in i32 database columns.
 #[nutype(
+    const_fn,
     derive(Debug, Clone, Copy, PartialEq, Eq, TryFrom, Into, Deserialize),
     validate(greater = 0)
 )]
@@ -13,6 +14,14 @@ impl NonZeroU31 {
     pub fn as_usize(self) -> usize {
         self.into_inner() as usize
     }
+}
+
+impl NonZeroU31 {
+    // Result<T, E>::unwrap() is not a `const fn` yet
+    pub const MIN: Self = match NonZeroU31::try_new(1) {
+        Ok(value) => value,
+        Err(_) => panic!("Invalid value"),
+    };
 }
 
 /// This type exists to be able to hold u31 values that are stored in i32 database columns.

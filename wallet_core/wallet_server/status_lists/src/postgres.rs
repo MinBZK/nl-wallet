@@ -1047,6 +1047,8 @@ mod tests {
     use p256::ecdsa::SigningKey;
 
     use crypto::server_keys::generate::Ca;
+    use utils::num::NonZeroU31;
+    use utils::num::U31;
 
     use crate::publish::PublishDir;
 
@@ -1057,8 +1059,8 @@ mod tests {
             connection: DatabaseConnection::default(),
             attestation_type_id: 1,
             config: StatusListConfig {
-                list_size: 1.try_into().unwrap(),
-                create_threshold: 1.try_into().unwrap(),
+                list_size: NonZeroU31::MIN,
+                create_threshold: U31::ONE,
                 expiry: Duration::from_secs(3600),
                 refresh_threshold: Duration::from_secs(600),
                 ttl: None,
@@ -1079,7 +1081,7 @@ mod tests {
 
         let batch_id = Uuid::new_v4();
         let result = service
-            .obtain_status_claims("invalid", batch_id, None, 1.try_into().unwrap())
+            .obtain_status_claims("invalid", batch_id, None, NonZeroUsize::MIN)
             .await;
         assert_matches!(result, Err(StatusListServiceError::UnknownAttestationType(attestation_type)) if attestation_type == "invalid");
     }

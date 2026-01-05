@@ -1351,6 +1351,7 @@ fn is_poa_message(message: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::Mutex;
 
@@ -2119,7 +2120,7 @@ mod tests {
     async fn should_handle_perform_issuance_with_wua() {
         let result = perform_issuance(PerformIssuanceWithWua {
             issuance_instruction: PerformIssuance {
-                key_count: 1.try_into().unwrap(),
+                key_count: NonZeroUsize::MIN,
                 aud: POP_AUD.to_string(),
                 nonce: Some(POP_NONCE.to_string()),
             },
@@ -2154,7 +2155,7 @@ mod tests {
         StartPinRecovery {
             issuance_with_wua_instruction: PerformIssuanceWithWua {
                 issuance_instruction: PerformIssuance {
-                    key_count: 1.try_into().unwrap(),
+                    key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
                     nonce: None,
                 },

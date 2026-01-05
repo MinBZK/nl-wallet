@@ -139,9 +139,7 @@ fn setup(
 
 #[rstest]
 #[tokio::test]
-async fn accept_issuance(
-    #[values(NonZeroUsize::new(1).unwrap(), NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
-) {
+async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize) {
     let (issuer, trust_anchor, server_url, wua_signing_key) = setup_mock_issuer(attestation_count);
     let trust_anchors = &[trust_anchor];
     let message_client = MockOpenidMessageClient::new(issuer);
@@ -185,7 +183,7 @@ async fn accept_issuance(
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, trust_anchor, server_url, _) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, _) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let session =
@@ -219,7 +217,7 @@ async fn start_and_accept_err(
 
 #[tokio::test]
 async fn wrong_access_token() {
-    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient {
         wrong_access_token: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -234,7 +232,7 @@ async fn wrong_access_token() {
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -249,7 +247,7 @@ async fn invalid_dpop() {
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -264,7 +262,7 @@ async fn invalid_pop() {
 
 #[tokio::test]
 async fn invalid_poa() {
-    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient {
         invalidate_poa: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -279,7 +277,7 @@ async fn invalid_poa() {
 
 #[tokio::test]
 async fn no_poa() {
-    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient {
         strip_poa: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -294,7 +292,7 @@ async fn no_poa() {
 
 #[tokio::test]
 async fn no_wua() {
-    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient {
         strip_wua: true,
         ..MockOpenidMessageClient::new(issuer)
