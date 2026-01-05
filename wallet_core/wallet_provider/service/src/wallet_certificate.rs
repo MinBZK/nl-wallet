@@ -334,6 +334,7 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
 
+    use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
@@ -372,6 +373,7 @@ mod tests {
                 instruction_sequence_number: 42,
                 apple_assertion_counter: None,
                 state: WalletUserState::Active,
+                revocation_code_hmac: random_bytes(32),
             },
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),

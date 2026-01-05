@@ -28,6 +28,8 @@ pub struct Model {
     pub apple_attestation_id: Option<Uuid>,
     #[sea_orm(unique)]
     pub android_attestation_id: Option<Uuid>,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)", unique)]
+    pub revocation_code_hmac: Vec<u8>,
     pub recovery_code: Option<String>,
 }
 

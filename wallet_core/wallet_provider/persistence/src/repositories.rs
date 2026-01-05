@@ -714,6 +714,7 @@ pub mod mock {
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
         pub state: WalletUserState,
+        pub revocation_code_hmac: Vec<u8>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -754,6 +755,7 @@ pub mod mock {
                     None => WalletUserAttestation::Android,
                 },
                 state: self.state,
+                revocation_code_hmac: self.revocation_code_hmac.clone(),
                 recovery_code: None,
             })))
         }

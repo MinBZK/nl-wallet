@@ -253,13 +253,16 @@ where
 {
     info!("Received create wallet request, registering with account server");
 
-    let cert = state
+    let (certificate, revocation_code) = state
         .account_server
         .register(&state.certificate_signing_key, payload, &state.user_state)
         .await
         .inspect_err(|error| warn!("wallet registration failed: {}", error))?;
 
-    let body = Certificate { certificate: cert };
+    let body = Certificate {
+        certificate,
+        revocation_code,
+    };
 
     info!("Replying with the created wallet certificate");
 
