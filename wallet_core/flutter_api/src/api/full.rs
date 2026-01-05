@@ -21,6 +21,7 @@ use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
+use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::notification::AppNotification;
 use crate::models::pin::PinValidationResult;
@@ -512,6 +513,18 @@ pub async fn get_history_for_card(attestation_id: String) -> anyhow::Result<Vec<
     let history = wallet.get_history_for_card(&attestation_id).await?;
     let history = history.into_iter().map(WalletEvent::from).collect();
     Ok(history)
+}
+
+#[flutter_api_error]
+pub fn get_registration_revocation_code() -> anyhow::Result<String> {
+    Ok("AB12CD34EF56GH78IJ".to_string())
+}
+
+#[flutter_api_error]
+pub async fn get_revocation_code(_pin: String) -> anyhow::Result<RevocationCodeResult> {
+    Ok(RevocationCodeResult::Ok {
+        revocation_code: "AB12CD34EF56GH78IJ".to_string(),
+    })
 }
 
 #[flutter_api_error]

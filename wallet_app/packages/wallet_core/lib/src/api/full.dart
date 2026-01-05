@@ -144,6 +144,11 @@ Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGe
 Future<List<WalletEvent>> getHistoryForCard({required String attestationId}) =>
     WalletCore.instance.api.crateApiFullGetHistoryForCard(attestationId: attestationId);
 
+Future<String> getRegistrationRevocationCode() => WalletCore.instance.api.crateApiFullGetRegistrationRevocationCode();
+
+Future<RevocationCodeResult> getRevocationCode({required String pin}) =>
+    WalletCore.instance.api.crateApiFullGetRevocationCode(pin: pin);
+
 Future<void> resetWallet() => WalletCore.instance.api.crateApiFullResetWallet();
 
 Future<String> getVersionString() => WalletCore.instance.api.crateApiFullGetVersionString();
