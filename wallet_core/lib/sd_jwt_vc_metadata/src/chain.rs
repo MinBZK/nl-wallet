@@ -407,6 +407,8 @@ mod test {
     use ssri::Integrity;
     use ssri::IntegrityOpts;
 
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_nonempty;
 
@@ -479,8 +481,8 @@ mod test {
 
     #[rstest]
     #[case(VCT_EXAMPLE_CREDENTIAL, TypeMetadataDocuments::example())]
-    #[case("urn:example:pid:nl:1", TypeMetadataDocuments::nl_pid_example())]
-    #[case("urn:example:pid-address:nl:1", TypeMetadataDocuments::nl_address_example())]
+    #[case(PID_ATTESTATION_TYPE, TypeMetadataDocuments::nl_pid_example())]
+    #[case(ADDRESS_ATTESTATION_TYPE, TypeMetadataDocuments::nl_address_example())]
     #[case("com.example.degree", TypeMetadataDocuments::degree_example())]
     #[case(VCT_EXAMPLE_CREDENTIAL_V3, TypeMetadataDocuments::example_with_extensions())]
     #[case(VCT_EXAMPLE_CREDENTIAL_V3, reversed_example_with_extension())]
@@ -578,7 +580,7 @@ mod test {
             .into_normalized(VCT_EXAMPLE_CREDENTIAL_V3)
             .expect_err("parsing metadata document chain should not succeed");
 
-        assert_matches!(error, TypeMetadataChainError::ExcessDocuments(vcts) if vcts == vec!["urn:example:pid:nl:1"]);
+        assert_matches!(error, TypeMetadataChainError::ExcessDocuments(vcts) if vcts == vec![PID_ATTESTATION_TYPE]);
     }
 
     fn test_type_metadata_documents_incorrect_extended_resource_integrity(

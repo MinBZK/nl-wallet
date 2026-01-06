@@ -33,6 +33,7 @@ use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use crypto::server_keys::KeyPair;
@@ -83,7 +84,6 @@ use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
 use wscd::mock_remote::MockRemoteWscd;
 
-const PID_ATTESTATION_TYPE: &str = "urn:example:pid:nl:1";
 const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {

@@ -32,9 +32,9 @@ use attestation_data::test_credential::nl_pid_credentials_full_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_id;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
-use attestation_types::pid_constants::EUDI_PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -922,7 +922,7 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
     let query_id = "eudi_pid_given_name";
     let test_credentials = nl_pid_credentials_given_name_for_query_id(query_id);
     let mut dcql_query: Query = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
-        &[EUDI_PID_ATTESTATION_TYPE],
+        &[ROOT_PID_ATTESTATION_TYPE],
         &[&[PID_GIVEN_NAME]],
     )])
     .into();
@@ -1088,7 +1088,7 @@ fn setup_verifier(
         Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::from([(
-            String::from(EUDI_PID_ATTESTATION_TYPE),
+            String::from(ROOT_PID_ATTESTATION_TYPE),
             vec_nonempty![String::from(PID_ATTESTATION_TYPE)],
         )]),
         RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(

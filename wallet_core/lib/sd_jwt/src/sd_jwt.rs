@@ -810,6 +810,7 @@ mod examples {
     use serde_json::Value;
     use serde_json::json;
 
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
     use jwt::confirmation::ConfirmationClaim;
@@ -824,7 +825,7 @@ mod examples {
                 _sd_alg: None,
                 cnf: ConfirmationClaim::from_verifying_key(holder_pubkey).unwrap(),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
-                vct: "urn:example:pid:nl:1".to_owned(),
+                vct: PID_ATTESTATION_TYPE.to_owned(),
                 iss: "https://cert.issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
                 exp: Some((time.generate() + Days::new(365)).into()),
@@ -851,7 +852,7 @@ mod examples {
                 _sd_alg: None,
                 cnf: ConfirmationClaim::Jwk(jwk_from_p256(holder_public_key).unwrap()),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
-                vct: "urn:example:pid:nl:1".to_owned(),
+                vct: PID_ATTESTATION_TYPE.to_owned(),
                 iss: "https://cert.issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
                 exp: None,
