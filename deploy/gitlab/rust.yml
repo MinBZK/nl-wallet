@@ -9,6 +9,7 @@ lint-rust:
   before_script:
     - set -euxo pipefail
   script:
+    - SKIP_DIGID_CONNECTOR=1 SKIP_WALLET_WEB=1 ./scripts/setup-devenv.sh
     # Check Rust formatting
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} -- --check
     # Check clippy
