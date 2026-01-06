@@ -259,7 +259,7 @@ where
             .storage
             .write()
             .await
-            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types())
+            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types().collect_vec())
             .await
             .map_err(IssuanceError::AttestationQuery)?;
         if purpose == PidIssuancePurpose::Enrollment && has_pid {
@@ -712,9 +712,10 @@ fn match_preview_and_stored_attestations<'a>(
                         // If this is PID issuance, and the two cards are both PIDs, then they match.
                         // If not, fall back to contents comparison.
                         |pid_config| {
-                            let pid_types = pid_config.pid_attestation_types();
-                            let both_pid = pid_types.contains(&preview.content.credential_payload.attestation_type)
-                                && pid_types.contains(&stored_preview.attestation_type);
+                            let pid_types = pid_config.pid_attestation_types().collect_vec();
+                            let both_pid = pid_types
+                                .contains(&preview.content.credential_payload.attestation_type.as_str())
+                                && pid_types.contains(&stored_preview.attestation_type.as_str());
                             both_pid || compare_contents(preview, stored_preview, time_generator)
                         },
                     )

@@ -280,9 +280,9 @@ impl<K> DatabaseStorage<K> {
         Ok(attestations)
     }
 
-    async fn query_unique_attestations_with_parameters<'a>(
-        &'a self,
-        attestation_types: &HashSet<&'a str>,
+    async fn query_unique_attestations_with_parameters(
+        &self,
+        attestation_types: &HashSet<&str>,
         format: Option<CredentialFormat>,
         condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
@@ -799,11 +799,11 @@ where
         Ok(())
     }
 
-    async fn has_any_attestations_with_types(&self, attestation_types: &[String]) -> StorageResult<bool> {
+    async fn has_any_attestations_with_types<'a>(&self, attestation_types: &[&'a str]) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column((attestation::Entity, attestation::Column::Id))
             .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).is_in(attestation_types))
+            .and_where(Expr::col(attestation::Column::AttestationType).is_in(attestation_types.iter().copied()))
             .take();
 
         let exists_query = Query::select()
@@ -835,7 +835,7 @@ where
     }
 
     async fn fetch_unique_attestations_by_types<'a>(
-        &'a self,
+        &self,
         attestation_types: &HashSet<&'a str>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_with_parameters(attestation_types, None, None)
@@ -1608,7 +1608,7 @@ pub(crate) mod tests {
 
     async fn has_any_pid_attestation_types(storage: &MockHardwareDatabaseStorage) -> bool {
         storage
-            .has_any_attestations_with_types(&[PID_ATTESTATION_TYPE.to_string()])
+            .has_any_attestations_with_types(&[PID_ATTESTATION_TYPE])
             .await
             .unwrap()
     }

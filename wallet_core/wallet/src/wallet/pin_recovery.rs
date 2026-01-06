@@ -149,13 +149,12 @@ where
 
         info!("Checking if a pid is present");
         let config = &self.config_repository.get();
-        let pid_config = config.pid_attributes.clone();
-        let pid_attestation_types = pid_config.sd_jwt.keys().map(String::clone).collect_vec();
+        let pid_attestation_types = config.pid_attributes.sd_jwt.keys().map(String::as_str).collect_vec();
         let has_pid = self
             .storage
             .read()
             .await
-            .has_any_attestations_with_types(pid_attestation_types.as_slice())
+            .has_any_attestations_with_types(&pid_attestation_types)
             .await?;
         if !has_pid {
             return Err(PinRecoveryError::NoPidPresent);
@@ -183,7 +182,7 @@ where
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = session.auth_url().clone();
         self.session.replace(Session::PinRecovery {
-            pid_config,
+            pid_config: config.pid_attributes.clone(),
             session: PinRecoverySession::Digid(session),
         });
 

@@ -187,14 +187,14 @@ pub trait Storage: Send {
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
     async fn has_any_attestations(&self) -> StorageResult<bool>;
-    async fn has_any_attestations_with_types(&self, attestation_types: &[String]) -> StorageResult<bool>;
+    async fn has_any_attestations_with_types<'a>(&self, attestation_types: &[&'a str]) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to one of
     /// types requested. The format of the copy returned is undetermined.
     async fn fetch_unique_attestations_by_types<'a>(
-        &'a self,
+        &self,
         attestation_types: &HashSet<&'a str>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
