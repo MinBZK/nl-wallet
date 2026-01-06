@@ -49,7 +49,7 @@ class RecoverPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC41 Recover PIN happy flow")
-    @Tags(Tag("a11yBatch1"))
+    @Tags(Tag("a11yBatch3"))
     fun verifyRecoverPinFlow(testInfo: TestInfo) {
         setUp(testInfo)
         menuScreen.clickLogoutButton()

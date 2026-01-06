@@ -63,7 +63,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC5 Disclosure based Issuance happy flow, university, SD-JWT")
-    @Tags(Tag("a11yBatch1"))
+    @Tags(Tag("a11yBatch3"))
     fun verifyDiplomaIssuanceSdJwt(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)

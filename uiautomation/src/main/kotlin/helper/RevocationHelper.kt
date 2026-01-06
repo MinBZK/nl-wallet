@@ -3,11 +3,12 @@ package helper
 import io.restassured.RestAssured
 import io.restassured.http.ContentType
 import org.json.JSONArray
+import util.EnvironmentUtil
 
 class RevocationHelper {
 
-    private val pidIssuerBaseUrl: String = System.getenv("INTERNAL_PID_ISSUER_URL")
-    private val issuanceServerBaseUrl: String = System.getenv("INTERNAL_ISSUANCE_SERVER_URL")
+    private val pidIssuerBaseUrl: String = EnvironmentUtil.getVar("INTERNAL_PID_ISSUER_URL")
+    private val issuanceServerBaseUrl: String = EnvironmentUtil.getVar("INTERNAL_ISSUANCE_SERVER_URL")
 
     fun revokeAllNonRevokedPids() {
         revokeAllNonRevoked(pidIssuerBaseUrl)

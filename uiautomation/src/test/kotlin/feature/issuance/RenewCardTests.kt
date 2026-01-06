@@ -124,7 +124,7 @@ class RenewCardTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC66 Renew PID")
-    @Tags(Tag("a11yBatch1"))
+    @Tags(Tag("a11yBatch3"))
     fun verifyPIDCardRenewal(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickCard(tasData.getPidDisplayName())

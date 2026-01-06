@@ -23,7 +23,7 @@ class TestInfoHandler {
         }
 
         private fun setupLanguage(tags: Set<String>) {
-            if (System.getenv("ENABLE_BROWSERSTACK_A11Y_CHECKS") == "true") {
+            if (EnvironmentUtil.getVar("ENABLE_BROWSERSTACK_A11Y_CHECKS") == "true") {
                 setEnglishLanguage()
                 return
             }
