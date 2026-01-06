@@ -1,0 +1,58 @@
+module:
+  name: pid_issuer
+
+G_PID_issuer:
+  text: PID issuer issues at LoA High and issues only attributes that it knows to be factually correct
+  supportedBy: [S2, S3]
+
+S2:
+  text: Trust IdP authentication for LoA High subject authentication
+  supportedBy: [G2.2]
+
+G2.2:
+  text: PID issuer relies on authentication assertion from the IdP at LoA High
+  inContextOf: [A2.1, A2.2]
+  supportedBy: [Sn2.1]
+
+A2.1:
+  text: IdP performs secure identity proofing and authentication at LoA High
+
+A2.2:
+  text: Wallet owner is the same natural person identified by the IdP token
+
+Sn2.1:
+  text: PID issuer verifies IdP token signature, issuer, audience, nonce, and subject
+
+
+S3:
+  text: Assure factual correctness of all issued attributes
+  supportedBy: [G3.1, G3.2, G3.3]
+
+G3.1:
+  text: PID issuer determines attribute values using authoritative and governed sources
+  inContextOf: [A3.1]
+  supportedBy: [Sn3.1]
+
+A3.1:
+  text: Authoritative source registers are governed, accurate, and audited within the applicable trust framework
+
+Sn3.1:
+  text: PID issuer uses approved authoritative registers and has evidence of governance, audits and data origin
+
+G3.2:
+  text: PID issuer binds each attribute value to the authenticated subject before issuance
+  supportedBy: [Sn3.2]
+  inContextOf: [A3.2]
+
+A3.2:
+  text: A unique identifier exists to link authoritative records to the IdP-authenticated subject
+
+Sn3.2:
+  text: PID issuer performs subject matching and logs the binding
+
+G3.3:
+  text: PID issuer ensures attribute validity throughout the attribute lifecycle
+  supportedBy: [Sn3.3]
+
+Sn3.3:
+  text: PID issuer applies validity rules, includes issuance timestamps and supports update processes for changed attributes

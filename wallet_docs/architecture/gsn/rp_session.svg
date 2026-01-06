@@ -100,16 +100,22 @@ svg { background-color: white;}
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="403">(challenge/response) from</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="416">OpenID4VP or ISO 18013-5</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsngoal gsn_undeveloped" id="node_g1_4">
-<title>G1.4</title>
-<path class="border" d="M20,578 L192,578 L192,666 L20,666 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="27" y="598">G1.4</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="616">PID issuer issues at LoA High</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="629">and issues only attributes that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="642">it knows to be factually</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="655">correct</text>
-<path d="M106,666 l5,5 l-5,5 l-5,-5 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<a href="PID_issuer.gsn.svg#node_g_pid_issuer">
+<g class="gsn_module_pid_issuer gsnelem gsnawaygoal" id="node_g_pid_issuer">
+<title>G_PID_issuer</title>
+<path class="border" d="M20,654 V563 H192 V654" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="27" y="583">G_PID_issuer</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="601">PID issuer issues at LoA High</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="614">and issues only attributes that</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="627">it knows to be factually</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="640">correct</text>
+<a href="PID_issuer.gsn.svg#node_g_pid_issuer">
+<path class="border" d="M20,654 H192 v27 H20 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="54" y="674">pid_issuer</text>
+</a>
+<use href="#module_icon" x="27" y="661"/>
 </g>
+</a>
 <a href="sole-control.gsn.svg#node_g_solecontrol">
 <g class="gsn_module_sole_control_main gsnelem gsnawaygoal" id="node_g_solecontrol">
 <title>G_SoleControl</title>
@@ -146,7 +152,7 @@ svg { background-color: white;}
 </g>
 <path class="gsnedge gsninspby" d="M795,104 C795,134,795,114,795,134" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninctxt" d="M298,374 C328,374,308,374,328,374" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M212,435 C212,465,106,548,106,568" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M212,435 C212,465,106,533,106,553" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M212,435 C212,465,319,540,319,560" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M677,422 C677,452,558,490,558,510" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M677,422 C677,452,797,495,797,515" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>

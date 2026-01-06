@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg class="gsndiagram" viewBox="0 0 220 376" xmlns="http://www.w3.org/2000/svg">
+<svg class="gsndiagram" viewBox="0 0 333 376" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <marker id="supportedby_arrow" markerHeight="9" markerUnits="userSpaceOnUse" markerWidth="10" orient="auto-start-reverse" refX="0" refY="4.5">
 <polyline fill="black" points="0 0, 10 4.5, 0 9"/>
@@ -17,32 +17,40 @@ svg { background-color: white;}
 <a href="rp_session.svg">
 <g class="gsn_module_ gsnelem gsnmodule" id="node_rp_session_attribute">
 <title>rp_session_attribute</title>
-<path class="border" d="M45,20 h30 v10 L175,30 L175,74 L45,74 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="52" y="50">rp_session_attribute</text>
+<path class="border" d="M82,20 h30 v10 L212,30 L212,74 L82,74 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="89" y="50">rp_session_attribute</text>
+</g>
+</a>
+<a href="PID_issuer.gsn.svg">
+<g class="gsn_module_ gsnelem gsnmodule" id="node_pid_issuer">
+<title>pid_issuer</title>
+<path class="border" d="M20,114 h30 v10 L124,124 L124,168 L20,168 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="27" y="144">pid_issuer</text>
 </g>
 </a>
 <a href="sole-control.gsn.svg">
 <g class="gsn_module_ gsnelem gsnmodule" id="node_sole_control_main">
 <title>sole_control_main</title>
-<path class="border" d="M51,114 h30 v10 L169,124 L169,168 L51,168 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="58" y="144">sole_control_main</text>
+<path class="border" d="M164,114 h30 v10 L282,124 L282,168 L164,168 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="171" y="144">sole_control_main</text>
 </g>
 </a>
 <a href="sole-control-2fa.gsn.svg">
 <g class="gsn_module_ gsnelem gsnmodule" id="node_sole_control_2fa">
 <title>sole_control_2fa</title>
-<path class="border" d="M56,208 h30 v10 L164,218 L164,262 L56,262 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="63" y="238">sole_control_2fa</text>
+<path class="border" d="M169,208 h30 v10 L277,218 L277,262 L169,262 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="176" y="238">sole_control_2fa</text>
 </g>
 </a>
 <a href="sole-control-2fa-registration.gsn.svg">
 <g class="gsn_module_ gsnelem gsnmodule" id="node_sole_control_2fa_registration">
 <title>sole_control_2fa_registration</title>
-<path class="border" d="M20,302 h30 v10 L200,312 L200,356 L20,356 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="27" y="332">sole_control_2fa_registration</text>
+<path class="border" d="M133,302 h30 v10 L313,312 L313,356 L133,356 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="140" y="332">sole_control_2fa_registration</text>
 </g>
 </a>
-<path class="gsnedge gsninspby" d="M110,74 C110,104,110,94,110,114" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M110,262 C110,292,110,282,110,302" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M110,168 C110,198,110,188,110,208" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M147,74 C147,104,72,94,72,114" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M147,74 C147,104,223,94,223,114" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M223,262 C223,292,223,282,223,302" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M223,168 C223,198,223,188,223,208" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 </svg>
