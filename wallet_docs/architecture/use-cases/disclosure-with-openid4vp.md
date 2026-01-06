@@ -52,3 +52,40 @@ sequenceDiagram
 12. Redirect to verifier using `redirect_uri`.
 13. Verifier's website or app requests session results from 'OV' using `session_token`
 14. 'OV' returns session results
+
+
+```{mermaid}
+sequenceDiagram
+    autonumber
+
+    actor User
+    participant RP as Verifier
+    participant Wallet
+    participant WB as Wallet Backend 
+    participant HSM as HSM
+    participant DB as WB Database
+    User->>RP: Start action to disclose attributes
+    RP ->>+ Wallet: authorization request (request_uri) (open wallet through universal link or scan QR on another device)
+    Wallet ->>- RP: request Request Object (using request_uri)
+    note over RP, Wallet: Request Object (signed) also contains 'client_metadata',<Br/> including jwks with an ephemeral key for encrypting the authorization response
+    RP ->> Wallet: response with (signed) Request Object
+    Wallet ->>+ User: request user consent for disclosure
+    User ->>+ Wallet: provide consent for disclosure of attributes (using PIN)
+    Wallet ->>+ WB: instruction: Sign(message[], key_identifiers, [PoA nonce])
+    WB ->> DB: retrieve key(s) by key_identifiers
+    DB ->>+ WB: wrapped_key(s) from account (from key_identifiers)
+    WB ->> HSM: sign message(s) using wrapped_key(s)
+    HSM ->> HSM: unwrap wrapped_key(s) and use unwrapped key for signing message(s)
+    HSM ->>+ WB: signed message
+    opt PoA requested (in case of multiple messages)
+        WB ->>+ HSM: sign PoAs for keys, using PoA nonce  
+        HSM -->>- WB: signed PoAs
+    end
+    WB -->>+ Wallet: instruction response: signed messsage(s), PoA
+    Wallet->>- RP: POST authorization response (VP Token) with presentations (JWE using ephemeral key)
+    RP ->> RP: Validate VP Token
+    RP ->> RP: process and fetch response data
+    RP ->>+ Wallet: response object containing [redirect_uri]
+    Wallet -->>+ User: redirect user to [redirect_uri]
+
+```
