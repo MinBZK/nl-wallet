@@ -1270,7 +1270,7 @@
     "renewPidStoppedDescription": "Because you stopped the process, your card was not replaced. Replace the card using your DigiD app.",
     "renewPidStoppedTitle": "Stopped",
     "renewPidSuccessPageDescription": "Your have replaced your Personal Data card. You can now use the app fully again.",
-    "renewPidSuccessPageTitle": "Cards replaced",
+    "renewPidSuccessPageTitle": "Card replaced",
     "renewPidSuccessPageToDashboardCta": "To my overview",
     "renewPidUpdatingCardsDescription": "Your request is being retrieved",
     "renewPidUpdatingCardsTitle": "Please wait",
