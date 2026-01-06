@@ -1,9 +1,11 @@
 use wallet::IssuanceResult;
+use wallet::RevocationCode;
 use wallet::errors::ChangePinError;
 use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
+use wallet::errors::RevocationCodeError;
 use wallet::errors::TransferError;
 use wallet::errors::WalletUnlockError;
 
@@ -122,6 +124,31 @@ impl TryFrom<Result<IssuanceResult, IssuanceError>> for PidIssuanceResult {
             Err(IssuanceError::Instruction(instruction_error)) => Ok(PidIssuanceResult::InstructionError {
                 error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
             }),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// This conversion distinguishes between 3 distinct cases:
+///
+/// 1. In case of a successful result, [`RevocationCodeResult::Ok`] will be returned, including the revocation code.
+/// 2. In case of an expected and/or specific error case a different variant of [`PidIssuanceResult`] by mapping the
+///    nested [`InstructionError`].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`RevocationCodeError`] will be returned
+///    unchanged.
+impl TryFrom<Result<&RevocationCode, RevocationCodeError>> for RevocationCodeResult {
+    type Error = RevocationCodeError;
+
+    fn try_from(value: Result<&RevocationCode, RevocationCodeError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(revocation_code) => Ok(Self::Ok {
+                revocation_code: revocation_code.clone().into(),
+            }),
+            Err(RevocationCodeError::Unlock(WalletUnlockError::Instruction(instruction_error))) => {
+                Ok(Self::InstructionError {
+                    error: instruction_error.try_into().map_err(WalletUnlockError::Instruction)?,
+                })
+            }
             Err(error) => Err(error),
         }
     }

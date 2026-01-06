@@ -641,25 +641,28 @@ fn wire__crate__api__full__get_history_for_card_impl(
 fn wire__crate__api__full__get_registration_revocation_code_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_registration_revocation_code",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
-                    let output_ok = crate::api::full::get_registration_revocation_code()?;
-                    Ok(output_ok)
-                })())
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::get_registration_revocation_code().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
             }
         },
     )
 }
 fn wire__crate__api__full__get_revocation_code_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    _pin: impl CstDecode<String>,
+    pin: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -668,11 +671,11 @@ fn wire__crate__api__full__get_revocation_code_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api__pin = _pin.cst_decode();
+            let api_pin = pin.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::get_revocation_code(api__pin).await?;
+                        let output_ok = crate::api::full::get_revocation_code(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -6067,9 +6070,9 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_revocation_code(
         port_: i64,
-        _pin: *mut wire_cst_list_prim_u_8_strict,
+        pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__get_revocation_code_impl(port_, _pin)
+        wire__crate__api__full__get_revocation_code_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]

@@ -225,14 +225,10 @@ pub enum PidAttestationFormat {
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
-    CR: Repository<Arc<WalletConfiguration>>,
-    UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
-    IS: IssuanceSession,
     DCC: DisclosureClient,
-    APC: AccountProviderClient,
 {
     pub(super) async fn has_pid(
         &self,
@@ -250,7 +246,19 @@ where
             .has_any_attestations_with_types(&pid_attestation_types)
             .await
     }
+}
 
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+where
+    CR: Repository<Arc<WalletConfiguration>>,
+    UR: Repository<VersionState>,
+    S: Storage,
+    AKH: AttestedKeyHolder,
+    DC: DigidClient,
+    IS: IssuanceSession,
+    DCC: DisclosureClient,
+    APC: AccountProviderClient,
+{
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {

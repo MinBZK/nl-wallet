@@ -147,7 +147,7 @@ where
         };
     }
 
-    async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
+    pub(super) async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
