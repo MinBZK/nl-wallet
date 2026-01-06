@@ -1,8 +1,12 @@
+use attestation_data::attributes::Attributes;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::test_credential::TestCredential;
 use attestation_data::test_credential::TestCredentials;
 use attestation_types::status_claim::StatusClaim;
+use dcql::CredentialQuery;
+use dcql::Query;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
+use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_BIRTH_DATE;
 use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
@@ -24,7 +28,11 @@ fn new_nl_pid<'a>(
     let (_, metadata_documents) = eudi_nl_pid_type_metadata_documents();
 
     TestCredential::new(
-        PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+        PreviewableCredentialPayload::example_with_attributes(
+            PID_ATTESTATION_TYPE,
+            Attributes::unified_nl_pid_example(),
+            &MockTimeGenerator::default(),
+        ),
         metadata_documents,
         query_id.parse().unwrap(),
         query_claim_paths,
@@ -122,4 +130,13 @@ pub fn nl_pid_address_minimal_address() -> TestCredentials {
 
 pub fn nl_pid_full_name_and_minimal_address() -> TestCredentials {
     TestCredentials::new(vec_nonempty![new_nl_pid_full_name_and_minimal_address()])
+}
+
+pub fn new_mock_mdoc_pid_example() -> Query {
+    Query::new_mock_single(CredentialQuery::new_mock_mdoc(
+        "mdoc_pid_example",
+        PID_ATTESTATION_TYPE,
+        PID_ATTESTATION_TYPE,
+        &["bsn", "given_name", "family_name"],
+    ))
 }

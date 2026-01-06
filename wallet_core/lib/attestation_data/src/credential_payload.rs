@@ -611,7 +611,7 @@ mod examples {
             let time = time_generator.generate();
 
             let issuer = match attestation_type {
-                PID_ATTESTATION_TYPE | ADDRESS_ATTESTATION_TYPE => "https://pid.example.com",
+                PID_ATTESTATION_TYPE | ADDRESS_ATTESTATION_TYPE | "urn:eudi:pid:nl:1" => "https://pid.example.com",
                 _ => "https://cert.issuer.example.com",
             }
             .parse()

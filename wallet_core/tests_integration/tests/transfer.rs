@@ -145,7 +145,7 @@ async fn ltc62_test_wallet_transfer() {
 
     // Check if the content of the destination wallet
     let attestations = wallet_attestations(&mut destination).await;
-    assert_eq!(4, attestations.len());
+    assert_eq!(3, attestations.len());
 
     // Check that the source wallet is empty
     let attestations = wallet_attestations(&mut source).await;

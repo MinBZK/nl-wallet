@@ -25,6 +25,7 @@ use openid4vc_server::verifier::StatusParams;
 use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use tests_integration::common::*;
+use tests_integration::test_credential::new_mock_mdoc_pid_example;
 use tests_integration::test_credential::nl_pid_credentials_family_name;
 use tests_integration::test_credential::nl_pid_credentials_full_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name;
@@ -294,7 +295,7 @@ async fn ltc20_test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        dcql_query: Some(Query::new_mock_mdoc_pid_example()),
+        dcql_query: Some(new_mock_mdoc_pid_example()),
         return_url_template: None,
     };
     let response = client
