@@ -21,7 +21,6 @@ sequenceDiagram
     actor User
     participant RP as Verifier
     participant Wallet
-    participant WB as Wallet Backend 
      
     User->>RP: Start action to disclose attributes
     RP ->>+ Wallet: authorization request (request_uri) (open wallet through universal link or scan QR on another device)
@@ -32,9 +31,7 @@ sequenceDiagram
     User ->> Wallet: provide consent for disclosure of attributes (using PIN)
   
 
-    Wallet ->>+ WB: instruction: Sign(message[], key_identifiers, [PoA nonce])
-  
-    WB -->>- Wallet: instruction response: signed messsage(s), PoA  
+    Wallet ->> Wallet: Sign response (using Wallet Backend)
   
     Wallet->>- RP: POST authorization response (VP Token) with presentations (JWE using ephemeral key)
     RP ->> RP: Validate VP Token
@@ -50,16 +47,15 @@ sequenceDiagram
 5. The requested attributes and the identity of the verifier are presented to the user for consent
 6. User provides consent (using PIN)
 7. Wallet App collects the attributes to be sent and asks the Wallet Backend to sign the response
-8. Wallet Backend returns the signed response
-9. Response is posted back to Verifier (endpoint address was supplied in `response_uri` in the Request Object)
-10. Verifier verifies the received VP Token
-11. Verifier endpoint returns a `redirect_uri` back into the verfier's website or app to the Wallet
-12. Wallet redirects user to Verifier using `redirect_uri`.
-13. User proceeds in Verifier application using the data from the disclosure session
+8. Response is posted back to Verifier (endpoint address was supplied in `response_uri` in the Request Object)
+9. Verifier verifies the received VP Token
+10. Verifier endpoint returns a `redirect_uri` back into the verfier's website or app to the Wallet
+11. Wallet redirects user to Verifier using `redirect_uri`.
+12. User proceeds in Verifier application using the data from the disclosure session
 
 #### Key usage during dicslosure
 
-During disclosure, the Wallet will interact with the backend to sign the response to the verifier. The sequence diagram below describes this process in detail. 
+During disclosure, the Wallet will interact with the backend to sign the response that will be sent to the Verifier. (Step 7 in the previous diagram) The sequence diagram below describes this process in detail. 
 
 ```{mermaid}
 sequenceDiagram
@@ -84,8 +80,11 @@ sequenceDiagram
 
 ```
 
+
+
 ### Disclosure using OpenID4VP (using OV software component)
 
+NL-Wallet provides Relying Parties with a software component that will unburden the RP application from implmenting the OpenID4VP Protocol. The sequence diagram below describes the steps in the disclosure flow when the OV software component is integrated at the Relying Party. 
 
 ```{mermaid}
 sequenceDiagram
