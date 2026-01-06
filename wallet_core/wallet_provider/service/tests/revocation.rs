@@ -88,6 +88,24 @@ async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, pub
         .single_unpack(claim.idx as usize)
 }
 
+async fn verify_revocation(
+    (wua_id, wua_claim): &(Uuid, StatusClaim),
+    publish_dir: &PublishDir,
+    user_state: &UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService>,
+    expected_status_type: StatusType,
+) {
+    let batch = user_state
+        .status_list_service
+        .get_attestation_batch(*wua_id)
+        .await
+        .unwrap();
+    assert_eq!(expected_status_type == StatusType::Invalid, batch.is_revoked);
+
+    // since the status list is not served in this test, we read it directly from disk
+    let status_type = status_type_for_claim(wua_claim, &publish_dir).await;
+    assert_eq!(status_type, expected_status_type);
+}
+
 #[tokio::test]
 #[rstest]
 #[case(vec![1], vec![0])]
@@ -130,14 +148,8 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
         .unzip();
 
     // all wuas should not be revoked
-    join_all(wuas.iter().flatten().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(!batch.is_revoked);
+    join_all(wuas.iter().flatten().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Valid).await;
     }))
     .await;
 
@@ -160,62 +172,23 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
         .collect_vec();
 
     // check revoked wuas
-    join_all(revoked_wua_ids.iter().flatten().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(batch.is_revoked);
+    join_all(revoked_wua_ids.iter().flatten().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Invalid).await;
     }))
     .await;
-    join_all(non_revoked_wua_ids.iter().flatten().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(!batch.is_revoked);
+    join_all(non_revoked_wua_ids.iter().flatten().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Valid).await;
     }))
     .await;
 
     // verify idempotency
     revoke_wallets(wallet_ids_to_revoke, &user_state).await.unwrap();
-    join_all(revoked_wua_ids.iter().flatten().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(batch.is_revoked);
+    join_all(revoked_wua_ids.iter().flatten().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Invalid).await;
     }))
     .await;
-    join_all(non_revoked_wua_ids.iter().flatten().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(!batch.is_revoked);
-    }))
-    .await;
-
-    join_all(revoked_wua_ids.iter().flatten().map(async |(_, wua_claim)| {
-        // since the status list is not served in this test, we read it directly from disk
-        let status_type = status_type_for_claim(wua_claim, &publish_dir).await;
-
-        assert_eq!(status_type, StatusType::Invalid);
-    }))
-    .await;
-    join_all(non_revoked_wua_ids.iter().flatten().map(async |(_, wua_claim)| {
-        // since the status list is not served in this test, we read it directly from disk
-        let status_type = status_type_for_claim(wua_claim, &publish_dir).await;
-
-        assert_eq!(status_type, StatusType::Valid);
+    join_all(non_revoked_wua_ids.iter().flatten().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Valid).await;
     }))
     .await;
 }
@@ -261,49 +234,23 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     .collect_vec();
 
     // all wuas should not be revoked
-    join_all(wuas.iter().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(!batch.is_revoked);
+    join_all(wuas.iter().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Valid).await;
     }))
     .await;
 
     revoke_all_wallets(&user_state).await.unwrap();
 
     // all wuas should be revoked
-    join_all(wuas.iter().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(batch.is_revoked);
+    join_all(wuas.iter().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Invalid).await;
     }))
     .await;
 
     // verify idempotency
     revoke_all_wallets(&user_state).await.unwrap();
-    join_all(wuas.iter().map(async |(wua_id, _)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
-
-        assert!(batch.is_revoked);
-    }))
-    .await;
-
-    join_all(wuas.iter().map(async |(_, wua_claim)| {
-        // since the status list is not served in this test, we read it directly from disk
-        let status_type = status_type_for_claim(wua_claim, &publish_dir).await;
-
-        assert_eq!(status_type, StatusType::Invalid);
+    join_all(wuas.iter().map(async |wua| {
+        verify_revocation(wua, &publish_dir, &user_state, StatusType::Invalid).await;
     }))
     .await;
 }
