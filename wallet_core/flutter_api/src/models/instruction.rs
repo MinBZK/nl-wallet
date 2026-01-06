@@ -40,8 +40,8 @@ pub enum WalletInstructionError {
     Blocked,
 }
 
-/// This converts the [InstructionError] to the corresponding [WalletInstructionResult].
-/// If no matching [WalletInstructionResult] is available the [InstructionError] will be returned
+/// This converts the [`InstructionError`] to the corresponding [`WalletInstructionResult`].
+/// If no matching [WalletInstructionResult] is available the [`InstructionError`] will be returned
 /// unchanged.
 impl TryFrom<InstructionError> for WalletInstructionError {
     type Error = InstructionError;
@@ -66,7 +66,7 @@ impl TryFrom<InstructionError> for WalletInstructionError {
 ///
 /// 1. In case of a successful result, [`WalletInstructionResult::Ok`] will be returned.
 /// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by
-///    converting the nested [InstructionError].
+///    converting the nested [`InstructionError`].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`WalletUnlockError`] will be returned
 ///    unchanged.
 impl TryFrom<Result<(), WalletUnlockError>> for WalletInstructionResult {
@@ -87,8 +87,8 @@ impl TryFrom<Result<(), WalletUnlockError>> for WalletInstructionResult {
 ///
 /// 1. In case of a successful result, [`WalletInstructionResult::Ok`] will be returned.
 /// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
-///    the nested [InstructionError].
-/// 3. In any other cases, this is an unexpected and/or generic error and the [`PidIssuanceError`] will be returned
+///    the nested [`InstructionError`].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`IssuanceError`] will be returned
 ///    unchanged.
 impl TryFrom<Result<IssuanceResult, IssuanceError>> for WalletInstructionResult {
     type Error = IssuanceError;
@@ -108,8 +108,8 @@ impl TryFrom<Result<IssuanceResult, IssuanceError>> for WalletInstructionResult 
 ///
 /// 1. In case of a successful result, [`PidIssuanceResult::Ok`] will be returned.
 /// 2. In case of an expected and/or specific error case a different variant of [`PidIssuanceResult`] by mapping the
-///    nested [InstructionError].
-/// 3. In any other cases, this is an unexpected and/or generic error and the [`PidIssuanceError`] will be returned
+///    nested [`InstructionError`].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`IssuanceError`] will be returned
 ///    unchanged.
 impl TryFrom<Result<IssuanceResult, IssuanceError>> for PidIssuanceResult {
     type Error = IssuanceError;
@@ -131,7 +131,7 @@ impl TryFrom<Result<IssuanceResult, IssuanceError>> for PidIssuanceResult {
 ///
 /// 1. In case of a successful result, [`WalletInstructionResult::Ok`] will be returned.
 /// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
-///    the nested [InstructionError].
+///    the nested [`InstructionError`].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`ChangePinError`] will be returned
 ///    unchanged.
 impl TryFrom<Result<(), ChangePinError>> for WalletInstructionResult {
@@ -153,7 +153,7 @@ impl TryFrom<Result<(), ChangePinError>> for WalletInstructionResult {
 /// 1. In case of a successful result, [`DisclosureBasedIssuanceResult::Ok`] will be returned, with the attestations
 ///    converted into the expected format.
 /// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
-///    the nested [InstructionError].
+///    the nested [`InstructionError`].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`DisclosureBasedIssuanceError`] will be
 ///    returned unchanged.
 impl TryFrom<Result<Vec<wallet::AttestationPresentation>, DisclosureBasedIssuanceError>>
@@ -191,7 +191,7 @@ impl TryFrom<Result<Vec<wallet::AttestationPresentation>, DisclosureBasedIssuanc
 ///
 /// 1. In case of a successful result, [`WalletInstructionResult::Ok`] will be returned.
 /// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
-///    the nested [InstructionError].
+///    the nested [`InstructionError`].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`TransferError`] will be returned
 ///    unchanged.
 impl TryFrom<Result<(), TransferError>> for WalletInstructionResult {
