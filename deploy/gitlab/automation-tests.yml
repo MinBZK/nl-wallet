@@ -37,6 +37,9 @@ scheduled-automation-tests-trigger:
 .run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .run-automation-tests-base
+  needs:
+    - job: build-env-ont
+      artifacts: true
   artifacts:
     name: uiautomation
     when: always
@@ -120,12 +123,12 @@ run-automation-english-tests:
   rules:
     - !reference [.on-schedule-automation, rules]
 
-run-automation-a11y-batch1-tests:
+.run-automation-a11y-batch:
   extends: .run-automation-tests-common-setup
   resource_group: null
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace testA11yBatch1
+    - ./gradlew --no-daemon --info --stacktrace testA11yBatch${BATCH_NUMBER}
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
   rules:
@@ -133,24 +136,29 @@ run-automation-a11y-batch1-tests:
   variables:
     ENABLE_BROWSERSTACK_A11Y_CHECKS: true
 
+run-automation-a11y-batch1-tests:
+  extends: .run-automation-a11y-batch
+  variables:
+    BATCH_NUMBER: "1"
+
 run-automation-a11y-batch2-tests:
-  extends: .run-automation-tests-common-setup
-  resource_group: null
+  extends: .run-automation-a11y-batch
   needs:
     - job: run-automation-a11y-batch1-tests
       artifacts: false
-  script:
-    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace testA11yBatch2
-      -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8 || true
-  rules:
-    - !reference [.on-schedule-trigger-scan, rules]
+  variables:
+    BATCH_NUMBER: "2"
+
+run-automation-a11y-batch3-tests:
+  extends: .run-automation-a11y-batch
+  needs:
+    - job: run-automation-a11y-batch2-tests
+      artifacts: false
   after_script:
     - echo "$CI_PIPELINE_ID" > a11y-build-name.txt
     - deploy/bin/store-artifact.sh a11y-build-name.txt qt/quality-time/a11y-results/a11y-build-name.txt
   variables:
-    ENABLE_BROWSERSTACK_A11Y_CHECKS: true
+    BATCH_NUMBER: "3"
 
 browserstack-a11y-merge:
   extends: .run-automation-tests-base

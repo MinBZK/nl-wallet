@@ -37,7 +37,7 @@ class AppTourVideoTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC14 User views app tour")
-    @Tags(Tag("a11yBatch1"))
+    @Tags(Tag("a11yBatch3"))
     fun verifyVideoTour(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(dashboardScreen.appTourBannerVisible(), "app tour banner is not visible")
