@@ -295,12 +295,12 @@ mod tests {
     use crate::pin::key::PinKey;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
-    use crate::wallet::test::TestWalletInMemoryStorage;
 
     use super::super::WalletRegistration;
-    use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::super::test::TestWalletInMemoryStorage;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
+    use super::super::test::create_wp_result;
     use super::*;
 
     const PIN: &str = "051097";
@@ -395,15 +395,7 @@ mod tests {
         };
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
-        let result_claims = InstructionResultClaims {
-            result: (),
-            iss: "wallet_unit_test".to_string(),
-            iat: Utc::now(),
-        };
-        let result = SignedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
-            .await
-            .unwrap()
-            .into();
+        let result = create_wp_result(());
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
