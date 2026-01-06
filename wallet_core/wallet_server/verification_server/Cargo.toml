@@ -42,7 +42,7 @@ test = [
     "chrono/now",
     "dcql/mock",
     "dep:assert_matches",
-    "dep:attestation_types",
+    "attestation_types/pid_constants",
     "dep:http",
     "dep:itertools",
     "dep:parking_lot",
@@ -107,7 +107,7 @@ openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosur
 server_utils = { path = "../server_utils", features = ["checkers"] }
 utils = { path = "../../lib/utils" }
 
-attestation_types = { path = "../../lib/attestation_types", optional = true, features = ["pid_constants"] }
+attestation_types = { path = "../../lib/attestation_types", optional = true }
 mdoc = { path = "../../lib/mdoc", optional = true }
 sd_jwt = { path = "../../lib/sd_jwt", optional = true }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", optional = true }
