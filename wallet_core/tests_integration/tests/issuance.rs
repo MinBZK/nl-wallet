@@ -1,10 +1,21 @@
-use pid_issuer::pid::constants::*;
 use serial_test::serial;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
+use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
+use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
+use pid_issuer::pid::constants::PID_BIRTH_DATE;
+use pid_issuer::pid::constants::PID_BSN;
+use pid_issuer::pid::constants::PID_FAMILY_NAME;
+use pid_issuer::pid::constants::PID_GIVEN_NAME;
+use pid_issuer::pid::constants::PID_RECOVERY_CODE;
+use pid_issuer::pid::constants::PID_RESIDENT_CITY;
+use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
+use pid_issuer::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
+use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
+use pid_issuer::pid::constants::PID_RESIDENT_STREET;
 use wallet::AttestationAttributeValue;
 use wallet::PidIssuancePurpose;
 use wallet::attestation_data::AttributeValue;
