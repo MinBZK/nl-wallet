@@ -24,7 +24,7 @@ optionally set a `tierLabel`.
 | redisConfig.save                  | string | ""                | "seconds changes" pairs for snapshot intervals.     |
 | redisConfig.loglevel              | string | "warning"         | Redis log level.                                    |
 | redisConfig.initialKeys           | list   | []                | Do `redis-cli set` for each `"key value"`.          |
-| persistence.enabled               | bool   | true              | Enable PVC creation.                                |
+| persistence.enabled               | bool   | false             | Enable PVC creation.                                |
 | persistence.storageClassName      | string | ""                | StorageClass name for PVC; leave unset for default. |
 | persistence.accessModes           | list   | ["ReadWriteOnce"] | PVC access modes.                                   |
 | persistence.size                  | string | "1Gi"             | PVC size.                                           |
