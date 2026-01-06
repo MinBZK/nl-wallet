@@ -43,12 +43,13 @@ use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
-use crate::wallet::recovery_code::RecoveryCodeError;
 
 use super::IssuanceError;
 use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
+use super::issuance::PidAttestationFormat;
+use super::recovery_code::RecoveryCodeError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -149,13 +150,11 @@ where
 
         info!("Checking if a pid is present");
         let config = &self.config_repository.get();
-        let pid_attestation_types = config.pid_attributes.sd_jwt.keys().map(String::as_str).collect_vec();
+
         let has_pid = self
-            .storage
-            .read()
-            .await
-            .has_any_attestations_with_types(&pid_attestation_types)
+            .has_pid(&config.pid_attributes, PidAttestationFormat::SdJwt)
             .await?;
+
         if !has_pid {
             return Err(PinRecoveryError::NoPidPresent);
         }

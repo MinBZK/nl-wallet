@@ -217,6 +217,12 @@ pub enum PidIssuancePurpose {
     Renewal,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum PidAttestationFormat {
+    SdJwt,
+    Either,
+}
+
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -228,6 +234,23 @@ where
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
+    pub(super) async fn has_pid(
+        &self,
+        config: &PidAttributesConfiguration,
+        format: PidAttestationFormat,
+    ) -> Result<bool, StorageError> {
+        let pid_attestation_types = match format {
+            PidAttestationFormat::Either => config.pid_attestation_types().collect_vec(),
+            PidAttestationFormat::SdJwt => config.sd_jwt.keys().map(String::as_str).collect_vec(),
+        };
+
+        self.storage
+            .read()
+            .await
+            .has_any_attestations_with_types(&pid_attestation_types)
+            .await
+    }
+
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
@@ -254,14 +277,15 @@ where
         }
 
         info!("Checking if a pid is already present");
-        let pid_attributes = &self.config_repository.get().pid_attributes;
+
         let has_pid = self
-            .storage
-            .write()
-            .await
-            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types().collect_vec())
+            .has_pid(
+                &self.config_repository.get().pid_attributes,
+                PidAttestationFormat::Either,
+            )
             .await
             .map_err(IssuanceError::AttestationQuery)?;
+
         if purpose == PidIssuancePurpose::Enrollment && has_pid {
             return Err(IssuanceError::PidAlreadyPresent);
         }
