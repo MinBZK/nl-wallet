@@ -6,7 +6,6 @@ use chrono::Duration;
 use chrono::Utc;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use server_utils::keys::SecretKeyVariant;
 use status_lists::postgres::PostgresStatusListService;
 use tracing::info;
 use uuid::Uuid;
@@ -105,10 +104,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                     public_disclosure_protection_key_identifier: settings
                         .pin_public_disclosure_protection_key_identifier,
                 },
-                revocation_code_key: SecretKeyVariant::from_settings(
-                    settings.revocation_code_key,
-                    Some(wallet_user_hsm.clone()),
-                )?,
+                revocation_code_key_identifier: settings.revocation_code_key_identifier,
             },
             settings.recovery_code_paths.into(),
             apple_config,

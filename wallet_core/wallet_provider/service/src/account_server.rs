@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
+use std::sync::Arc;
 use std::time::Duration;
 
 use base64::prelude::*;
@@ -72,7 +73,6 @@ use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
-use server_utils::keys::SecretKeyVariant;
 use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -453,7 +453,7 @@ pub struct AndroidAttestationConfiguration {
 pub struct AccountServerKeys {
     pub wallet_certificate_signing_pubkey: EcdsaDecodingKey,
     pub pin_keys: AccountServerPinKeys,
-    pub revocation_code_key: SecretKeyVariant,
+    pub revocation_code_key_identifier: String,
 }
 
 pub struct AccountServerPinKeys {
@@ -739,9 +739,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 pin_pubkey,
             )
             .map_err(RegistrationError::from),
-            self.keys
-                .revocation_code_key
-                .sign_hmac(revocation_code.as_ref().as_bytes().into())
+            user_state
+                .wallet_user_hsm
+                .sign_hmac(
+                    &self.keys.revocation_code_key_identifier,
+                    Arc::new(revocation_code.as_ref().as_bytes().to_vec())
+                )
                 .map_err(RegistrationError::from),
         )?;
 
@@ -1597,8 +1600,6 @@ pub mod mock {
 
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-    use ring::hmac;
-    use ring::rand;
 
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
@@ -1673,9 +1674,7 @@ pub mod mock {
                     public_disclosure_protection_key_identifier:
                         wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 },
-                revocation_code_key: SecretKeyVariant::Software(
-                    hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
-                ),
+                revocation_code_key_identifier: wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER.to_string(),
             },
             RECOVERY_CODE_CONFIG.clone(),
             AppleAttestationConfiguration {
@@ -1884,6 +1883,7 @@ mod tests {
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
+    use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
@@ -2366,12 +2366,12 @@ mod tests {
         .unwrap();
 
         // Check that the revocation code HMAC stored in the datbase matches the returned revocation code.
-        account_server
-            .keys
-            .revocation_code_key
+        user_state
+            .wallet_user_hsm
             .verify_hmac(
-                String::from(revocation_code).into_bytes().into(),
-                wallet_user.revocation_code_hmac.into(),
+                wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER,
+                Arc::new(String::from(revocation_code).into_bytes()),
+                wallet_user.revocation_code_hmac,
             )
             .await
             .expect("stored revocation code hmac should match revocation code");

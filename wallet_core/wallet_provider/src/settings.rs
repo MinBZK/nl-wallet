@@ -28,7 +28,6 @@ use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use server_utils::settings::KeyPair;
 use server_utils::settings::PrivateKey;
-use server_utils::settings::SecretKey;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigError;
 use status_lists::publish::PublishDir;
@@ -45,6 +44,7 @@ pub struct Settings {
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
     pub pin_public_disclosure_protection_key_identifier: String,
+    pub revocation_code_key_identifier: String,
     pub wua_signing_key_identifier: String,
     pub wua_issuer_identifier: String,
     pub wua_valid_days: u64,
@@ -57,7 +57,6 @@ pub struct Settings {
     pub structured_logging: bool,
     pub capture_and_redirect_logging: Option<PathBuf>,
     pub max_transfer_upload_size_in_bytes: usize,
-    pub revocation_code_key: SecretKey,
 
     pub wua_status_list: WuaStatusListsSettings,
 
@@ -156,6 +155,7 @@ impl Settings {
                 "pin_public_disclosure_protection_key_identifier",
                 "pin_public_disclosure_protection_key",
             )?
+            .set_default("revocation_code_key_identifier", "revocation_code_key")?
             .set_default("wua_status_list.list_size", 100_000)?
             .set_default("wua_status_list.create_threshold_ratio", 0.01)?
             .set_default("wua_status_list.expiry_in_hours", 24)?

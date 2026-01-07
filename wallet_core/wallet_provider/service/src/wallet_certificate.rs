@@ -282,11 +282,15 @@ pub mod mock {
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
         "pin_public_disclosure_protection_key_identifier_1";
     pub const ENCRYPTION_KEY_IDENTIFIER: &str = "encryption_key_1";
+    pub const REVOCATION_CODE_KEY_IDENTIFIER: &str = "revocation_code_key_identifier_1";
 
     pub async fn setup_hsm() -> MockPkcs11Client<HsmError> {
         let hsm = MockPkcs11Client::default();
         hsm.generate_generic_secret_key(SIGNING_KEY_IDENTIFIER).await.unwrap();
         hsm.generate_generic_secret_key(PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER)
+            .await
+            .unwrap();
+        hsm.generate_generic_secret_key(REVOCATION_CODE_KEY_IDENTIFIER)
             .await
             .unwrap();
         hsm

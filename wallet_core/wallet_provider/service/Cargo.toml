@@ -33,7 +33,6 @@ mock_secure_keys = ["crypto/mock_secure_keys"]
 mock = [
     "dep:anyhow",
     "dep:rand_core",
-    "dep:ring",
     "apple_app_attest/mock",
     "attestation_data/generate",
     "attestation_data/mock",
@@ -82,7 +81,6 @@ trait-variant.workspace = true
 
 anyhow = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-ring = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
 
@@ -94,7 +92,6 @@ crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 jwt.path = "../../lib/jwt"
 sd_jwt.path = "../../lib/sd_jwt"
-server_utils.path = "../../wallet_server/server_utils"
 token_status_list.path = "../../lib/token_status_list"
 wallet_account = { path = "../wallet_account", features = ["server"] }
 wallet_provider_domain.path = "../domain"
@@ -112,7 +109,6 @@ assert_matches.workspace = true
 mockall.workspace = true
 rand.workspace = true
 rand_core.workspace = true
-ring.workspace = true
 rstest.workspace = true
 tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
