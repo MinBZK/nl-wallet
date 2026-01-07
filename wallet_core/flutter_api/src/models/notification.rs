@@ -16,7 +16,7 @@ pub enum NotificationType {
 }
 
 pub struct AppNotification {
-    pub id: u32,
+    pub id: i32,
     pub typ: NotificationType,
     pub targets: Vec<DisplayTarget>,
 }
@@ -26,7 +26,7 @@ impl From<wallet::Notification> for AppNotification {
         AppNotification {
             id: value.id,
             typ: value.typ.into(),
-            targets: vec![],
+            targets: value.targets.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -34,11 +34,27 @@ impl From<wallet::Notification> for AppNotification {
 impl From<wallet::NotificationType> for NotificationType {
     fn from(value: wallet::NotificationType) -> Self {
         match value {
-            wallet::NotificationType::CardExpired { card } => NotificationType::CardExpired { card: card.into() },
-            wallet::NotificationType::CardExpiresSoon { card, expires_at } => NotificationType::CardExpiresSoon {
+            wallet::NotificationType::Expired { attestation: card } => {
+                NotificationType::CardExpired { card: card.into() }
+            }
+            wallet::NotificationType::ExpiresSoon {
+                attestation: card,
+                expires_at,
+            } => NotificationType::CardExpiresSoon {
                 card: card.into(),
                 expires_at: expires_at.to_rfc3339(),
             },
+        }
+    }
+}
+
+impl From<wallet::DisplayTarget> for DisplayTarget {
+    fn from(value: wallet::DisplayTarget) -> Self {
+        match value {
+            wallet::DisplayTarget::Os { notify_at } => DisplayTarget::Os {
+                notify_at: notify_at.to_rfc3339(),
+            },
+            wallet::DisplayTarget::Dashboard => DisplayTarget::Dashboard,
         }
     }
 }

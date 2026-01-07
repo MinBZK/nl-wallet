@@ -268,9 +268,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int dco_decode_u_16(dynamic raw);
 
   @protected
-  int dco_decode_u_32(dynamic raw);
-
-  @protected
   BigInt dco_decode_u_64(dynamic raw);
 
   @protected
@@ -529,9 +526,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
-
-  @protected
-  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer);
@@ -970,7 +964,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_app_notification(AppNotification apiObj, wire_cst_app_notification wireObj) {
-    wireObj.id = cst_encode_u_32(apiObj.id);
+    wireObj.id = cst_encode_i_32(apiObj.id);
     cst_api_fill_to_wire_notification_type(apiObj.typ, wireObj.typ);
     wireObj.targets = cst_encode_list_display_target(apiObj.targets);
   }
@@ -1556,9 +1550,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_u_16(int raw);
 
   @protected
-  int cst_encode_u_32(int raw);
-
-  @protected
   int cst_encode_u_8(int raw);
 
   @protected
@@ -1809,9 +1800,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer);
@@ -3491,7 +3479,7 @@ final class wire_cst_list_display_target extends ffi.Struct {
 }
 
 final class wire_cst_app_notification extends ffi.Struct {
-  @ffi.Uint32()
+  @ffi.Int32()
   external int id;
 
   external wire_cst_notification_type typ;

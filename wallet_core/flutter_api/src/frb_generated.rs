@@ -1418,12 +1418,6 @@ impl CstDecode<u16> for u16 {
         self
     }
 }
-impl CstDecode<u32> for u32 {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    fn cst_decode(self) -> u32 {
-        self
-    }
-}
 impl CstDecode<u64> for u64 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> u64 {
@@ -1538,7 +1532,7 @@ impl SseDecode for crate::models::disclosure::AcceptDisclosureResult {
 impl SseDecode for crate::models::notification::AppNotification {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_id = <u32>::sse_decode(deserializer);
+        let mut var_id = <i32>::sse_decode(deserializer);
         let mut var_typ = <crate::models::notification::NotificationType>::sse_decode(deserializer);
         let mut var_targets = <Vec<crate::models::notification::DisplayTarget>>::sse_decode(deserializer);
         return crate::models::notification::AppNotification {
@@ -2448,13 +2442,6 @@ impl SseDecode for u16 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u16::<NativeEndian>().unwrap()
-    }
-}
-
-impl SseDecode for u32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_u32::<NativeEndian>().unwrap()
     }
 }
 
@@ -3670,7 +3657,7 @@ impl SseEncode for crate::models::disclosure::AcceptDisclosureResult {
 impl SseEncode for crate::models::notification::AppNotification {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <u32>::sse_encode(self.id, serializer);
+        <i32>::sse_encode(self.id, serializer);
         <crate::models::notification::NotificationType>::sse_encode(self.typ, serializer);
         <Vec<crate::models::notification::DisplayTarget>>::sse_encode(self.targets, serializer);
     }
@@ -4471,13 +4458,6 @@ impl SseEncode for u16 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u16::<NativeEndian>(self).unwrap();
-    }
-}
-
-impl SseEncode for u32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
     }
 }
 
@@ -6512,7 +6492,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_app_notification {
-        id: u32,
+        id: i32,
         typ: wire_cst_notification_type,
         targets: *mut wire_cst_list_display_target,
     }

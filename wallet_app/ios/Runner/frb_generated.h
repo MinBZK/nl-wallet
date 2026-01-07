@@ -290,7 +290,7 @@ typedef struct wire_cst_list_display_target {
 } wire_cst_list_display_target;
 
 typedef struct wire_cst_app_notification {
-  uint32_t id;
+  int32_t id;
   struct wire_cst_notification_type typ;
   struct wire_cst_list_display_target *targets;
 } wire_cst_app_notification;
