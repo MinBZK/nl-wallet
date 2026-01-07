@@ -4,6 +4,7 @@ use chrono::Utc;
 use rand::Rng;
 
 use attestation_data::validity::ValidityWindow;
+use token_status_list::verification::verifier::RevocationStatus;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -50,8 +51,15 @@ impl Notification {
 
         // If the attestation is not yet valid, we don't issue expiration notifications and assume this will be
         // scheduled later.
-        if let Some(from) = valid_from
-            && time < from
+        if valid_from.is_some_and(|from| time < from) {
+            return None;
+        }
+
+        // If the attestation is revoked, we don't issue expiration notifications
+        if attestation
+            .validity
+            .revocation_status
+            .is_some_and(|revocation_status| revocation_status == RevocationStatus::Revoked)
         {
             return None;
         }
@@ -141,6 +149,25 @@ mod tests {
         assert_eq!(ns.len().get(), 1);
         assert_matches!(ns[0].typ, NotificationType::Expired { .. });
         assert!(ns[0].targets.iter().any(|t| matches!(t, DisplayTarget::Dashboard)));
+    }
+
+    #[test]
+    fn test_notification_revoked() {
+        let now = Utc::now();
+        let generator = MockTimeGenerator::new(now);
+
+        let mut presentation = AttestationPresentation::new_mock();
+        // Card is technically valid and expires soon, BUT it is revoked
+        presentation.validity.revocation_status = Some(RevocationStatus::Revoked);
+        presentation.validity.validity_window = ValidityWindow {
+            valid_from: Some(now - Duration::days(1)),
+            valid_until: Some(now + Duration::days(1)),
+        };
+
+        let notification = Notification::create_for_attestation(presentation, &generator);
+
+        // Should be None because revoked cards don't get expiration notifications
+        assert!(notification.is_none());
     }
 
     #[test]
