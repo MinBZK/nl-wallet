@@ -23,6 +23,8 @@ pub struct Model {
     pub pin_entries: i16,
     pub last_unsuccessful_pin: Option<DateTimeWithTimeZone>,
     pub state: String,
+    pub revocation_reason: Option<String>,
+    pub revocation_date_time: Option<DateTimeWithTimeZone>,
     pub attestation_date_time: DateTimeWithTimeZone,
     #[sea_orm(unique)]
     pub apple_attestation_id: Option<Uuid>,

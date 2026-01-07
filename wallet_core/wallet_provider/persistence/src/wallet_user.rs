@@ -113,6 +113,8 @@ where
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
         state: Set(WalletUserState::Active.to_string()),
+        revocation_reason: Set(None),
+        revocation_date_time: Set(None),
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),

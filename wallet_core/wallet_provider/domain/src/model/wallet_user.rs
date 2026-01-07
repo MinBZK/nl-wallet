@@ -100,6 +100,7 @@ pub enum WalletUserState {
     RecoveringPin,
     Transferring,
     Transferred,
+    Revoked,
 }
 
 #[derive(Debug)]
