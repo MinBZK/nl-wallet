@@ -73,8 +73,8 @@ async fn setup_state(
 }
 
 async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, publish_dir: &PublishDir) -> StatusType {
-    let external_id = claim.uri.path().split('/').last().unwrap();
-    let path = publish_dir.jwt_path(&external_id);
+    let external_id = claim.uri.path().split('/').next_back().unwrap();
+    let path = publish_dir.jwt_path(external_id);
     tokio::fs::read_to_string(path)
         .await
         .unwrap()
@@ -102,7 +102,7 @@ async fn verify_revocation(
     assert_eq!(expected_status_type == StatusType::Invalid, batch.is_revoked);
 
     // since the status list is not served in this test, we read it directly from disk
-    let status_type = status_type_for_claim(wua_claim, &publish_dir).await;
+    let status_type = status_type_for_claim(wua_claim, publish_dir).await;
     assert_eq!(status_type, expected_status_type);
 }
 
