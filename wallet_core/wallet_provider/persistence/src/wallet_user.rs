@@ -26,11 +26,12 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::QueryResult;
+use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
@@ -39,6 +40,7 @@ use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
 use crate::entity::wallet_user_instruction_challenge;
+use crate::entity::wallet_user_wua;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
@@ -150,7 +152,7 @@ struct WalletUserJoinedModel {
 
 /// Find a user by its `wallet_id` and return it, if it exists.
 /// Note that this function will also return blocked users.
-pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
+pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<QueryResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -193,7 +195,7 @@ where
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?
     else {
-        return Ok(WalletUserQueryResult::NotFound);
+        return Ok(QueryResult::NotFound);
     };
 
     let state: WalletUserState = model
@@ -245,7 +247,7 @@ where
         recovery_code: model.recovery_code.clone(),
     };
 
-    Ok(WalletUserQueryResult::Found(Box::new(wallet_user)))
+    Ok(QueryResult::Found(Box::new(wallet_user)))
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -630,4 +632,69 @@ where
         .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
     Ok(count > 1)
+}
+
+pub async fn find_wallet_user_id_and_wuas_by_wallet_id<S, T>(
+    db: &T,
+    wallet_id: &str,
+) -> Result<QueryResult<(Uuid, Vec<Uuid>)>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let (mut wallet_user_ids, wua_ids): (Vec<Uuid>, Vec<Option<Uuid>>) = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .column(wallet_user_wua::Column::WuaId)
+        .join(JoinType::LeftJoin, wallet_user::Relation::WalletUserWua.def())
+        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .into_tuple::<(Uuid, Option<Uuid>)>()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .into_iter()
+        .unzip();
+
+    // convert Vec<Option<Uuid>> to Vec<Uuid>, dropping None. None can only occur if no WUAs were issued
+    let wua_ids = wua_ids.into_iter().flatten().collect();
+
+    match wallet_user_ids.pop() {
+        Some(wallet_user_id) => {
+            assert!(wallet_user_ids.iter().all(|id| *id == wallet_user_id));
+            Ok(QueryResult::Found(Box::new((wallet_user_id, wua_ids))))
+        }
+        None => Ok(QueryResult::NotFound),
+    }
+}
+
+pub async fn revoke_wallet<S, T>(
+    db: &T,
+    wallet_user_id: Uuid,
+    revocation_reason: RevocationReason,
+    revocation_date_time: DateTime<Utc>,
+) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::update_many()
+        .col_expr(
+            wallet_user::Column::RevocationReason,
+            Expr::value(revocation_reason.to_string()),
+        )
+        .col_expr(
+            wallet_user::Column::RevocationDateTime,
+            Expr::value(revocation_date_time),
+        )
+        .filter(
+            wallet_user::Column::Id
+                .eq(wallet_user_id)
+                .and(wallet_user::Column::RevocationReason.is_null())
+                .and(wallet_user::Column::RevocationDateTime.is_null()),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+    Ok(())
 }

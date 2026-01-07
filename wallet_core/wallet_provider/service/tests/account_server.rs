@@ -24,7 +24,7 @@ use wallet_account::signed::ChallengeResponse;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::generator::mock::MockGenerators;
 use wallet_provider_domain::model::TimeoutPinPolicy;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wallet_user::QueryResult;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -32,7 +32,7 @@ use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::db_from_env;
-use wallet_provider_persistence::wallet_user_wua;
+use wallet_provider_persistence::wallet_user;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
@@ -149,7 +149,7 @@ async fn assert_instruction_data(
     let tx = repos.begin_transaction().await.unwrap();
     let user_result = repos.find_wallet_user_by_wallet_id(&tx, wallet_id).await.unwrap();
     match user_result {
-        WalletUserQueryResult::Found(user_boxed) => {
+        QueryResult::Found(user_boxed) => {
             let user = *user_boxed;
 
             assert_eq!(expected_sequence_number, user.instruction_sequence_number);
@@ -282,13 +282,16 @@ async fn test_wua_status() {
 
     // fetch all WUA IDs for this wallet directly from the database
     let tx = user_state.repositories.begin_transaction().await.unwrap();
-    let wua_ids = wallet_user_wua::wua_ids_for_wallets(&tx, vec![cert_data.wallet_id])
+    let QueryResult::Found(found) = wallet_user::find_wallet_user_id_and_wuas_by_wallet_id(&tx, &cert_data.wallet_id)
         .await
-        .unwrap();
+        .unwrap()
+    else {
+        panic!("User should have been found")
+    };
     tx.commit().await.unwrap();
 
     // assert that one WUA has been stored in the database, linked to this wallet
-    assert!(wua_ids.len() == 1);
+    assert!((*found).1.len() == 1);
 
     assert!(matches!(
         result

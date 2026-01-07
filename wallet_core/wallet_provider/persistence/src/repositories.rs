@@ -15,10 +15,11 @@ use hsm::model::wrapped_key::WrappedKey;
 use measure::measure;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::QueryResult;
+use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -65,7 +66,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-    ) -> Result<WalletUserQueryResult, PersistenceError> {
+    ) -> Result<QueryResult, PersistenceError> {
         wallet_user::find_wallet_user_by_wallet_id(transaction, wallet_id).await
     }
 
@@ -423,17 +424,30 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn get_wua_ids_for_wallets(
-        &self,
-        transaction: &Self::TransactionType,
-        wallet_ids: Vec<String>,
-    ) -> Result<Vec<Uuid>, PersistenceError> {
-        wallet_user_wua::wua_ids_for_wallets(transaction, wallet_ids).await
+    async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
+        wallet_user_wua::list_wua_ids(transaction).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
-        wallet_user_wua::list_wua_ids(transaction).await
+    async fn revoke_wallet(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        revocation_reason: RevocationReason,
+        revocation_date_time: DateTime<Utc>,
+    ) -> Result<Vec<Uuid>, PersistenceError> {
+        let wua_ids = match wallet_user::find_wallet_user_id_and_wuas_by_wallet_id(transaction, wallet_id).await? {
+            QueryResult::Found(wallet_user_id_and_wuas) => {
+                let (wallet_user_id, wua_ids) = *wallet_user_id_and_wuas;
+                wallet_user_key::delete_all_keys(transaction, wallet_user_id).await?;
+                wallet_user::revoke_wallet(transaction, wallet_user_id, revocation_reason, revocation_date_time)
+                    .await?;
+                wua_ids
+            }
+            QueryResult::NotFound => vec![],
+        };
+
+        Ok(wua_ids)
     }
 }
 
@@ -456,12 +470,13 @@ pub mod mock {
     use hsm::model::encrypted::Encrypted;
     use hsm::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+    use wallet_provider_domain::model::wallet_user::QueryResult;
+    use wallet_provider_domain::model::wallet_user::RevocationReason;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-    use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
@@ -490,7 +505,7 @@ pub mod mock {
                 &self,
                 _transaction: &MockTransaction,
                 wallet_id: &str,
-            ) -> Result<WalletUserQueryResult, PersistenceError>;
+            ) -> Result<QueryResult, PersistenceError>;
 
             async fn register_unsuccessful_pin_entry(
                 &self,
@@ -691,10 +706,12 @@ pub mod mock {
                 transaction: &MockTransaction,
             ) -> Result<Vec<Uuid>, PersistenceError>;
 
-            async fn get_wua_ids_for_wallets(
+            async fn revoke_wallet(
                 &self,
                 transaction: &MockTransaction,
-                wallet_ids: Vec<String>,
+                wallet_id: &str,
+                revocation_reason: RevocationReason,
+                revocation_date_time: DateTime<Utc>
             ) -> Result<Vec<Uuid>, PersistenceError>;
         }
 
@@ -736,8 +753,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             wallet_id: &str,
-        ) -> Result<WalletUserQueryResult, PersistenceError> {
-            Ok(WalletUserQueryResult::Found(Box::new(WalletUser {
+        ) -> Result<QueryResult, PersistenceError> {
+            Ok(QueryResult::Found(Box::new(WalletUser {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: wallet_id.to_string(),
                 hw_pubkey: self.hw_pubkey,
@@ -1021,18 +1038,20 @@ pub mod mock {
             Ok(())
         }
 
-        async fn get_wua_ids_for_wallets(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_ids: Vec<String>,
-        ) -> Result<Vec<Uuid>, PersistenceError> {
+        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
             Ok(vec![
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
             ])
         }
 
-        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
+        async fn revoke_wallet(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _revocation_reason: RevocationReason,
+            _revocation_date_time: DateTime<Utc>,
+        ) -> Result<Vec<Uuid>, PersistenceError> {
             Ok(vec![
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),

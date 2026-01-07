@@ -1,4 +1,9 @@
+use chrono::Utc;
+use futures::future::try_join_all;
+use uuid::Uuid;
+
 use token_status_list::status_list_service::StatusListRevocationService;
+use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -24,13 +29,26 @@ where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    // TODO actually block the wallets (PVW-5302)
+    let revocation_reason = RevocationReason::AdminRequest;
+    let revocation_date_time = Utc::now();
     // TODO return error if one of the wallet IDs does not exist? (PVW-5297)
-    let tx = user_state.repositories.begin_transaction().await?;
-    let wua_ids = user_state.repositories.get_wua_ids_for_wallets(&tx, wallet_ids).await?;
+    let wua_ids: Vec<Uuid> = try_join_all(wallet_ids.iter().map(async |wallet_id| {
+        let tx = user_state.repositories.begin_transaction().await?;
+        let wua_ids = user_state
+            .repositories
+            .revoke_wallet(&tx, wallet_id, revocation_reason, revocation_date_time)
+            .await?;
+        tx.commit().await?;
 
-    tx.commit().await?;
+        // TODO what if error
+        Result::<_, RevocationError>::Ok(wua_ids)
+    }))
+    .await?
+    .into_iter()
+    .flatten()
+    .collect();
 
+    // Revoke WUA attestations of all successfully revoked wallets
     user_state
         .status_list_service
         .revoke_attestation_batches(wua_ids)

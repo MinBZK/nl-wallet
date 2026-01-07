@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
+use derive_more::Unwrap;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use serde::Serialize;
@@ -75,9 +76,9 @@ pub struct InstructionChallenge {
     pub expiration_date_time: DateTime<Utc>,
 }
 
-#[derive(Debug)]
-pub enum WalletUserQueryResult {
-    Found(Box<WalletUser>),
+#[derive(Debug, Unwrap)]
+pub enum QueryResult<T = WalletUser> {
+    Found(Box<T>),
     NotFound,
 }
 
@@ -140,9 +141,7 @@ impl WalletUserKey {
 pub enum RevocationReason {
     // upon the explicit request of the User
     UserRequest,
-    // can have several reasons, e.g.,
-    // * the security of the mobile device and OS on which the corresponding Wallet Instance is installed
-    // * ...
+    // can have several reasons
     AdminRequest,
     // the security of the Wallet Solution is breached or compromised
     WalletSolutionCompromised,
