@@ -358,9 +358,7 @@ where
         Ok(())
     }
 
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
-    pub async fn complete_transfer(&mut self, transfer_session_id: Uuid) -> Result<(), TransferError> {
+    async fn complete_transfer(&mut self, transfer_session_id: Uuid) -> Result<(), TransferError> {
         self.send_transfer_instruction(CompleteTransfer { transfer_session_id })
             .await?;
 
