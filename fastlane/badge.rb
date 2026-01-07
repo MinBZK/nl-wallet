@@ -10,8 +10,8 @@ class Badge
     def initialize(label, font)
         @label = label
         @font = font
-        @bg_fill = '#ff9900a0'
-        @fg_fill = '#eeeeee'
+        @bg_fill = '#AB0065'
+        @fg_fill = '#FFFFFF'
         @scale = 1.2
     end
 
