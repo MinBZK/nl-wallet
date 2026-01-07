@@ -54,6 +54,7 @@ use crate::attestation::AttestationPresentationConfig;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -748,9 +749,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 

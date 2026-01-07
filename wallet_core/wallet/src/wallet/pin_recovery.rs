@@ -349,9 +349,13 @@ where
             .new_instruction_client(
                 new_pin.clone(),
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    config.account_server.instruction_result_public_key.as_inner().into(),
+                ),
             )
             .await
             .map_err(IssuanceError::from)?;
@@ -422,7 +426,9 @@ where
             attested_key,
             Arc::clone(&self.account_provider_client),
             Arc::new(InstructionClientParameters::new(
-                registration_data,
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
                 config.account_server.instruction_result_public_key.as_inner().into(),
             )),

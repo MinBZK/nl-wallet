@@ -35,6 +35,7 @@ use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClientParameters;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -272,9 +273,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 
@@ -432,9 +437,13 @@ where
 
         let instruction_client = self.new_hw_signed_instruction_client(
             Arc::clone(attested_key),
-            registration_data.clone(),
-            config.account_server.http_config.clone(),
-            instruction_result_public_key,
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                instruction_result_public_key,
+            ),
         );
 
         let result = instruction_client

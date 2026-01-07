@@ -14,11 +14,11 @@ use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
+use wallet_account::messages::registration::WalletCertificate;
 
 use crate::account_provider::AccountProviderClient;
 use crate::pin::key::PinKey;
 use crate::storage::InstructionData;
-use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
 use super::InstructionError;
@@ -38,7 +38,9 @@ pub struct HwSignedInstructionClient<S, AK, GK, A> {
 
 #[derive(Constructor)]
 pub struct InstructionClientParameters {
-    registration: RegistrationData,
+    wallet_id: String,
+    pin_salt: Vec<u8>,
+    wallet_certificate: WalletCertificate,
     client_config: TlsPinningConfig,
     instruction_result_public_key: EcdsaDecodingKey,
 }
@@ -118,9 +120,8 @@ where
     where
         I: InstructionAndResult,
     {
-        let registration = &self.parameters.registration;
-        let wallet_id = registration.wallet_id.clone();
-        let wallet_certificate = registration.wallet_certificate.clone();
+        let wallet_id = self.parameters.wallet_id.clone();
+        let wallet_certificate = self.parameters.wallet_certificate.clone();
 
         let challenge_request = Self::with_sequence_number(storage, |seq_num| async move {
             match self.attested_key.as_ref() {
@@ -150,7 +151,7 @@ where
 
         let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
-        let wallet_certificate = self.parameters.registration.wallet_certificate.clone();
+        let wallet_certificate = self.parameters.wallet_certificate.clone();
 
         let instruction =
             HwSignedInstructionClient::<S, AK, GK, A>::with_sequence_number(&mut storage, |seq_num| async move {
@@ -210,17 +211,12 @@ where
 
         let pin_key = PinKey {
             pin: &self.pin,
-            salt: &self.hw_signed_instruction_client.parameters.registration.pin_salt,
+            salt: &self.hw_signed_instruction_client.parameters.pin_salt,
         };
 
         let instruction = construct(challenge.clone()).await?;
 
-        let wallet_certificate = self
-            .hw_signed_instruction_client
-            .parameters
-            .registration
-            .wallet_certificate
-            .clone();
+        let wallet_certificate = self.hw_signed_instruction_client.parameters.wallet_certificate.clone();
 
         let instruction =
             HwSignedInstructionClient::<S, AK, GK, A>::with_sequence_number(&mut storage, |seq_num| async move {

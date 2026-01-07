@@ -13,6 +13,7 @@ use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::digid::DigidClient;
+use crate::instruction::InstructionClientParameters;
 pub use crate::lock::LockCallback;
 pub use crate::storage::UnlockMethod;
 
@@ -178,9 +179,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 
