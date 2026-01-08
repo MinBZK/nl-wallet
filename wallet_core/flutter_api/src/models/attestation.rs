@@ -60,9 +60,9 @@ impl From<wallet::ValidityStatus> for ValidityStatus {
     fn from(value: wallet::ValidityStatus) -> Self {
         match value {
             wallet::ValidityStatus::NotYetValid => ValidityStatus::NotYetValid,
-            wallet::ValidityStatus::Valid => ValidityStatus::Valid,
+            wallet::ValidityStatus::Valid { .. } => ValidityStatus::Valid,
             wallet::ValidityStatus::Expired => ValidityStatus::Expired,
-            wallet::ValidityStatus::ExpiresSoon => ValidityStatus::ExpiresSoon,
+            wallet::ValidityStatus::ExpiresSoon { .. } => ValidityStatus::ExpiresSoon,
         }
     }
 }
