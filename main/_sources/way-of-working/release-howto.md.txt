@@ -176,12 +176,12 @@ We currently (2025-12-17) collect 6 artifacts from our GitLab CI/CD pipeline:
   release.
 - `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
   server for issuers with migrations binary, for glibc-based Linux systems
-  built with Debian bookworm.
+  built with Debian trixie.
 - `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
   server for issuers with migrations binary using statically linked musl.
 - `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
   verification server for relying parties  with migrations binary, for
-  glibc-based Linux systems built with Debian bookworm.
+  glibc-based Linux systems built with Debian trixie.
 - `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
   verification server for relying parties  with migrations binary using
   statically linked musl.
@@ -220,12 +220,12 @@ We have the following artifacts as a part of this release:
     release.
   * `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
     server for issuers with migrations binary, for glibc-based Linux systems
-    built with Debian bookworm.
+    built with Debian trixie.
   * `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
     server for issuers with migrations binary using statically linked musl.
   * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
     verification server for relying parties with migrations binary, for
-    glibc-based Linux systems built with Debian bookworm.
+    glibc-based Linux systems built with Debian trixie.
   * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
     verification server for relying parties with migrations binary using
     statically linked musl.
