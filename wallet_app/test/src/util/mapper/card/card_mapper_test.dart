@@ -24,6 +24,7 @@ const _kSampleCard = core.AttestationPresentation(
   displayMetadata: [CoreMockData.enDisplayMetadata],
   attributes: [_kSampleAttributeName, _kSampleAttributeCity],
   issuer: _kSampleIssuer,
+  validityStatus: core.ValidityStatus.Valid,
   validityWindow: core.ValidityWindow(validFrom: null, validUntil: null),
 );
 
@@ -62,6 +63,7 @@ void main() {
         displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
+        validityStatus: core.ValidityStatus.Valid,
         validityWindow: core.ValidityWindow(validFrom: null, validUntil: null),
       );
       expect(mapper.map(input).attestationId, 'id-987');

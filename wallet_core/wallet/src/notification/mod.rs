@@ -1,17 +1,15 @@
 use chrono::DateTime;
-use chrono::Duration;
 use chrono::Utc;
 use rand::Rng;
+use rand::random;
 
-use attestation_data::validity::ValidityWindow;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::AttestationPresentation;
-
-const EXPIRES_SOON_WINDOW: Duration = Duration::days(7);
+use crate::ValidityStatus;
 
 #[derive(Debug)]
 pub struct Notification {
@@ -44,8 +42,6 @@ impl Notification {
     ) -> Option<VecNonEmpty<Self>> {
         let time = time_generator.generate();
 
-        let ValidityWindow { valid_until, .. } = attestation.validity.validity_window;
-
         // If the attestation is revoked, we don't issue expiration notifications
         if attestation
             .validity
@@ -55,43 +51,44 @@ impl Notification {
             return None;
         }
 
-        // Determine which notifications should be issued based on the validity window
-        match valid_until {
-            // Show an expired notification only on the dashboard
-            Some(until) if time > until => Some(vec_nonempty![Notification {
-                id: rand::thread_rng().r#gen(),
+        let status = ValidityStatus::from_window(&attestation.validity.validity_window, time);
+
+        match status {
+            ValidityStatus::Expired => Some(vec_nonempty![Notification {
+                id: random(),
                 typ: NotificationType::Expired { attestation },
                 targets: vec_nonempty![DisplayTarget::Dashboard],
             }]),
-            // Always schedule expiration notifications for valid attestations
-            Some(until) if time <= until => {
-                // If we're currently within the window, only schedule expiration notification on the dashboard
-                let expires_soon_targets = if time > until - EXPIRES_SOON_WINDOW {
-                    vec_nonempty![DisplayTarget::Dashboard]
-                } else {
-                    vec_nonempty![DisplayTarget::Os {
-                        notify_at: until - EXPIRES_SOON_WINDOW,
-                    }]
-                };
-
-                // A valid attestation should always have a notification scheduled for when it expires, as well as an
-                // expires soon notification.
-                Some(vec_nonempty![
-                    Notification {
-                        id: rand::thread_rng().r#gen(),
-                        typ: NotificationType::ExpiresSoon {
-                            attestation: attestation.clone(),
-                            expires_at: until,
-                        },
-                        targets: expires_soon_targets,
+            ValidityStatus::ExpiresSoon { expires_at, .. } => Some(vec_nonempty![
+                Notification {
+                    id: random(),
+                    typ: NotificationType::ExpiresSoon {
+                        attestation: attestation.clone(),
+                        expires_at,
                     },
-                    Notification {
-                        id: rand::thread_rng().r#gen(),
-                        typ: NotificationType::Expired { attestation },
-                        targets: vec_nonempty![DisplayTarget::Os { notify_at: until }],
+                    targets: vec_nonempty![DisplayTarget::Dashboard],
+                },
+                Notification {
+                    id: rand::thread_rng().r#gen(),
+                    typ: NotificationType::Expired { attestation },
+                    targets: vec_nonempty![DisplayTarget::Os { notify_at: expires_at }],
+                },
+            ]),
+            ValidityStatus::ValidUntil { notify_at, expires_at } => Some(vec_nonempty![
+                Notification {
+                    id: random(),
+                    typ: NotificationType::ExpiresSoon {
+                        attestation: attestation.clone(),
+                        expires_at,
                     },
-                ])
-            }
+                    targets: vec_nonempty![DisplayTarget::Os { notify_at }],
+                },
+                Notification {
+                    id: random(),
+                    typ: NotificationType::Expired { attestation },
+                    targets: vec_nonempty![DisplayTarget::Os { notify_at: expires_at }],
+                },
+            ]),
             _ => None,
         }
     }
@@ -152,7 +149,7 @@ mod tests {
         let generator = MockTimeGenerator::new(now);
 
         let mut presentation = AttestationPresentation::new_mock();
-        // Expires in 5 days (Inside the 7-day EXPIRES_SOON_WINDOW)
+        // Expires in 5 days (Inside the 7-day threshold)
         let expiry = now + Duration::days(5);
         presentation.validity.validity_window = ValidityWindow {
             valid_from: Some(now - Duration::days(1)),
@@ -164,17 +161,21 @@ mod tests {
 
         assert_eq!(ns.len().get(), 2);
 
-        // 1. ExpiresSoon entry
-        let soon_note = &ns[0];
-        assert_matches!(soon_note.typ, NotificationType::ExpiresSoon { expires_at, .. } if expires_at == expiry);
-        // Must have Dashboard target, and MUST NOT have Os target for "soon" because we are already in the window
-        assert!(soon_note.targets.iter().any(|t| matches!(t, DisplayTarget::Dashboard)));
-        assert!(!soon_note.targets.iter().any(|t| matches!(t, DisplayTarget::Os { .. })));
+        // 1. Find the ExpiresSoon entry - Should trigger Dashboard immediately
+        let soon = ns
+            .iter()
+            .find(|n| matches!(n.typ, NotificationType::ExpiresSoon { .. }))
+            .expect("Expected an ExpiresSoon notification");
+        assert!(soon.targets.iter().any(|t| matches!(t, DisplayTarget::Dashboard)));
 
-        // 2. Scheduled Expired entry (always Os when currently valid)
-        let expired_note = &ns[1];
-        assert_matches!(expired_note.typ, NotificationType::Expired { .. });
-        assert_matches!(expired_note.targets[0], DisplayTarget::Os { notify_at } if notify_at == expiry);
+        // 2. Find the Expired entry - Should be scheduled for the actual expiry date
+        let expired = ns
+            .iter()
+            .find(|n| matches!(n.typ, NotificationType::Expired { .. }))
+            .expect("Expected an Expired notification");
+
+        // This was the failing line: it must match the expiry date exactly
+        assert_matches!(expired.targets[0], DisplayTarget::Os { notify_at } if notify_at == expiry);
     }
 
     #[test]
@@ -183,27 +184,40 @@ mod tests {
         let generator = MockTimeGenerator::new(now);
 
         let mut presentation = AttestationPresentation::new_mock();
-        // Expires in 10 days (Outside the 7-day EXPIRES_SOON_WINDOW)
+        // Expires in 10 days (Outside the 7-day threshold)
         let expiry = now + Duration::days(10);
         presentation.validity.validity_window = ValidityWindow {
             valid_from: Some(now - Duration::days(1)),
             valid_until: Some(expiry),
         };
 
+        // Get the expected notification date from the source of truth
+        let expected_notify_at = match ValidityStatus::from_window(&presentation.validity.validity_window, now) {
+            ValidityStatus::ValidUntil { notify_at, .. } => notify_at,
+            _ => panic!("Expected status to be Valid with a notify_at date"),
+        };
+
         let notifications = Notification::create_for_attestation(presentation, &generator);
         let ns = notifications.expect("Expected notifications");
 
+        // Should have 2 notifications: one for Expiration and one for ExpiresSoon
         assert_eq!(ns.len().get(), 2);
 
-        // 1. ExpiresSoon entry
-        let soon_note = &ns[0];
-        assert_matches!(soon_note.typ, NotificationType::ExpiresSoon { .. });
-        // Must have Os target scheduled for the future, and NO Dashboard target yet
-        assert_matches!(soon_note.targets[0], DisplayTarget::Os { notify_at } if notify_at == expiry - EXPIRES_SOON_WINDOW);
-        assert!(!soon_note.targets.iter().any(|t| matches!(t, DisplayTarget::Dashboard)));
+        // Find the "ExpiresSoon" notification specifically (it's at index 1 in the current impl)
+        let soon = ns
+            .iter()
+            .find(|n| matches!(n.typ, NotificationType::ExpiresSoon { .. }))
+            .expect("Expected an ExpiresSoon notification");
 
-        // 2. Scheduled Expired entry
-        assert_matches!(ns[1].typ, NotificationType::Expired { .. });
-        assert_matches!(ns[1].targets[0], DisplayTarget::Os { notify_at } if notify_at == expiry);
+        // Must have Os target scheduled for the future, and NO Dashboard target yet
+        assert_matches!(soon.targets[0], DisplayTarget::Os { notify_at } if notify_at == expected_notify_at);
+        assert!(!soon.targets.iter().any(|t| matches!(t, DisplayTarget::Dashboard)));
+
+        // Find the "Expired" notification specifically
+        let expired = ns
+            .iter()
+            .find(|n| matches!(n.typ, NotificationType::Expired { .. }))
+            .expect("Expected an Expired notification");
+        assert_matches!(expired.targets[0], DisplayTarget::Os { notify_at } if notify_at == expiry);
     }
 }

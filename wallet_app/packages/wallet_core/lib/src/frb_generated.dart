@@ -1650,15 +1650,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   AttestationPresentation dco_decode_attestation_presentation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return AttestationPresentation(
       identity: dco_decode_attestation_identity(arr[0]),
       attestationType: dco_decode_String(arr[1]),
       displayMetadata: dco_decode_list_display_metadata(arr[2]),
       issuer: dco_decode_organization(arr[3]),
       revocationStatus: dco_decode_opt_box_autoadd_revocation_status(arr[4]),
-      validityWindow: dco_decode_validity_window(arr[5]),
-      attributes: dco_decode_list_attestation_attribute(arr[6]),
+      validityStatus: dco_decode_validity_status(arr[5]),
+      validityWindow: dco_decode_validity_window(arr[6]),
+      attributes: dco_decode_list_attestation_attribute(arr[7]),
     );
   }
 
@@ -2281,6 +2282,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  ValidityStatus dco_decode_validity_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ValidityStatus.values[raw as int];
+  }
+
+  @protected
   ValidityWindow dco_decode_validity_window(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2502,6 +2509,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_displayMetadata = sse_decode_list_display_metadata(deserializer);
     var var_issuer = sse_decode_organization(deserializer);
     var var_revocationStatus = sse_decode_opt_box_autoadd_revocation_status(deserializer);
+    var var_validityStatus = sse_decode_validity_status(deserializer);
     var var_validityWindow = sse_decode_validity_window(deserializer);
     var var_attributes = sse_decode_list_attestation_attribute(deserializer);
     return AttestationPresentation(
@@ -2510,6 +2518,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       displayMetadata: var_displayMetadata,
       issuer: var_issuer,
       revocationStatus: var_revocationStatus,
+      validityStatus: var_validityStatus,
       validityWindow: var_validityWindow,
       attributes: var_attributes,
     );
@@ -3275,6 +3284,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  ValidityStatus sse_decode_validity_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return ValidityStatus.values[inner];
+  }
+
+  @protected
   ValidityWindow sse_decode_validity_window(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_validFrom = sse_decode_opt_String(deserializer);
@@ -3483,6 +3499,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int cst_encode_validity_status(ValidityStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
@@ -3640,6 +3662,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_list_display_metadata(self.displayMetadata, serializer);
     sse_encode_organization(self.issuer, serializer);
     sse_encode_opt_box_autoadd_revocation_status(self.revocationStatus, serializer);
+    sse_encode_validity_status(self.validityStatus, serializer);
     sse_encode_validity_window(self.validityWindow, serializer);
     sse_encode_list_attestation_attribute(self.attributes, serializer);
   }
@@ -4272,6 +4295,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  void sse_encode_validity_status(ValidityStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

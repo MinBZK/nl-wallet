@@ -8,6 +8,7 @@ abstract class CoreMockData {
     displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
     issuer: organization,
     attributes: [attestationAttributeName],
+    validityStatus: ValidityStatus.Valid,
     validityWindow: ValidityWindow(validFrom: null, validUntil: null),
   );
 
