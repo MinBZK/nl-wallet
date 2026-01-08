@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::sync::Arc;
 
 use futures::future;
 use p256::ecdsa::Signature;
@@ -29,16 +28,16 @@ pub trait WalletUserHsm: Pkcs11Client {
         .await
     }
 
-    async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error>;
+    async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error>;
 
     async fn sign_multiple(
         &self,
         wallet_id: &WalletId,
         identifiers: &[&str],
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Vec<(String, Signature)>, Self::Error> {
         future::try_join_all(identifiers.iter().map(|identifier| async {
-            WalletUserHsm::sign(self, wallet_id, identifier, Arc::clone(&data))
+            WalletUserHsm::sign(self, wallet_id, identifier, data)
                 .await
                 .map(|signature| (String::from(*identifier), signature))
         }))
@@ -59,7 +58,7 @@ impl WalletUserHsm for Pkcs11Hsm {
         Pkcs11Client::get_verifying_key(self, public_handle).await
     }
 
-    async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error> {
+    async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error> {
         let key_identifier = key_identifier(wallet_id, identifier);
         let handle = self.get_private_key_handle(&key_identifier).await?;
         let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
@@ -70,7 +69,6 @@ impl WalletUserHsm for Pkcs11Hsm {
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::error::Error;
-    use std::sync::Arc;
 
     use hmac::digest::MacError;
     use p256::ecdsa::Signature;
@@ -99,12 +97,7 @@ pub mod mock {
             Ok(verifying_key)
         }
 
-        async fn sign(
-            &self,
-            wallet_id: &WalletId,
-            identifier: &str,
-            data: Arc<Vec<u8>>,
-        ) -> Result<Signature, Self::Error> {
+        async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error> {
             let key_identifier = key_identifier(wallet_id, identifier);
             Hsm::sign_ecdsa(self, &key_identifier, data).await
         }
