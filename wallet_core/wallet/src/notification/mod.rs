@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 use rand::Rng;
+use rand::random;
 
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::generator::Generator;
@@ -54,13 +55,13 @@ impl Notification {
 
         match status {
             ValidityStatus::Expired => Some(vec_nonempty![Notification {
-                id: rand::thread_rng().r#gen(),
+                id: random(),
                 typ: NotificationType::Expired { attestation },
                 targets: vec_nonempty![DisplayTarget::Dashboard],
             }]),
             ValidityStatus::ExpiresSoon { expires_at, .. } => Some(vec_nonempty![
                 Notification {
-                    id: rand::thread_rng().r#gen(),
+                    id: random(),
                     typ: NotificationType::ExpiresSoon {
                         attestation: attestation.clone(),
                         expires_at,
@@ -75,7 +76,7 @@ impl Notification {
             ]),
             ValidityStatus::ValidUntil { notify_at, expires_at } => Some(vec_nonempty![
                 Notification {
-                    id: rand::thread_rng().r#gen(),
+                    id: random(),
                     typ: NotificationType::ExpiresSoon {
                         attestation: attestation.clone(),
                         expires_at,
@@ -83,7 +84,7 @@ impl Notification {
                     targets: vec_nonempty![DisplayTarget::Os { notify_at }],
                 },
                 Notification {
-                    id: rand::thread_rng().r#gen(),
+                    id: random(),
                     typ: NotificationType::Expired { attestation },
                     targets: vec_nonempty![DisplayTarget::Os { notify_at: expires_at }],
                 },
