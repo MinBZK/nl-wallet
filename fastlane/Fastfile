@@ -208,7 +208,7 @@ platform :ios do
 
     # Parse API key values and convert to a Fastlane API key object
     asc_secrets_base64_json = ENV["APP_STORE_CONNECT_SECRETS_BASE64_JSON"]
-    UI.user_error!("No APP_STORE_CONNECT_API_KEY_SECRETS_BASE64 environment variable given") if asc_secrets_base64_json.blank?
+    UI.user_error!("No APP_STORE_CONNECT_SECRETS_BASE64_JSON environment variable given") if asc_secrets_base64_json.blank?
 
     asc_secrets = begin
       JSON.parse(asc_secrets_base64_json).map{ |k, v| [k, Base64.strict_decode64(v)] }.to_h
