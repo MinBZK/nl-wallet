@@ -99,7 +99,7 @@ sonar-ios:
       -Dsonar.coverageReportPaths=../../../../fastlane/test_output/sonarqube-generic-coverage.xml
   allow_failure: true
 
-sonar-android:
+.sonar-android:
   extends: .default-sonar
   needs:
     - job: test-android

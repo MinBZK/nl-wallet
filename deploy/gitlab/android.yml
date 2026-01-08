@@ -1,4 +1,4 @@
-test-android:
+.test-android:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android-emulator:${BUILD_TAG}"
   tags:
     - linux
