@@ -199,22 +199,34 @@ mod tests {
     use super::*;
 
     #[rstest]
-    #[case::not_yet_valid(Some(1), Some(10), ValidityStatus::NotYetValid)]
-    #[case::expired(Some(-10), Some(-1), ValidityStatus::Expired)]
-    #[case::expires_soon(Some(-1), Some(5), ValidityStatus::ExpiresSoon { notify_at: Utc::now() })]
-    #[case::valid_on_threshold(Some(-1), Some(7), ValidityStatus::Valid { expires: None, notify_at: None })]
-    #[case::valid_outside_threshold(Some(-1), Some(10), ValidityStatus::Valid { expires: None, notify_at: None })]
-    #[case::not_yet_valid_priority(Some(1), Some(2), ValidityStatus::NotYetValid)]
-    #[case::open_ended_valid(Some(-1), None, ValidityStatus::Valid { expires: None, notify_at: None })]
+    #[case::not_yet_valid(Some(Duration::days(1)), Some(Duration::days(10)), ValidityStatus::NotYetValid)]
+    #[case::expired(Some(Duration::days(-10)), Some(Duration::days(-1)), ValidityStatus::Expired)]
+    #[case::expires_soon(
+        Some(Duration::days(-1)),
+        Some(EXPIRES_SOON_WINDOW - Duration::hours(1)),
+        ValidityStatus::ExpiresSoon { notify_at: Utc::now() }
+    )]
+    #[case::valid_on_threshold(
+        Some(Duration::days(-1)),
+        Some(EXPIRES_SOON_WINDOW),
+        ValidityStatus::Valid { expires: None, notify_at: None }
+    )]
+    #[case::valid_outside_threshold(
+        Some(Duration::days(-1)),
+        Some(EXPIRES_SOON_WINDOW + Duration::days(3)),
+        ValidityStatus::Valid { expires: None, notify_at: None }
+    )]
+    #[case::not_yet_valid_priority(Some(Duration::hours(1)), Some(Duration::hours(2)), ValidityStatus::NotYetValid)]
+    #[case::open_ended_valid(Some(Duration::days(-1)), None, ValidityStatus::Valid { expires: None, notify_at: None })]
     fn test_validity_status_logic(
-        #[case] from_offset_days: Option<i64>,
-        #[case] until_offset_days: Option<i64>,
+        #[case] from_offset: Option<Duration>,
+        #[case] until_offset: Option<Duration>,
         #[case] expected: ValidityStatus,
     ) {
         let now = Utc::now();
         let window = ValidityWindow {
-            valid_from: from_offset_days.map(|d| now + Duration::days(d)),
-            valid_until: until_offset_days.map(|d| now + Duration::days(d)),
+            valid_from: from_offset.map(|d| now + d),
+            valid_until: until_offset.map(|d| now + d),
         };
 
         let actual = ValidityStatus::from_window(&window, now);
