@@ -9,11 +9,11 @@
   script:
     - >
       buildah build
-      --build-arg "BUILD_TAG"=${BUILD_TAG}"
+      --build-arg "BUILD_TAG=${BUILD_TAG}"
       --build-arg "HSM_CLIENT_TAG=${HSM_CLIENT_TAG}"
       --build-arg "HARBOR_REGISTRY=${HARBOR_REGISTRY}"
       --build-arg "HARBOR_PROJECT=${HARBOR_PROJECT}"
-      --build-arg "GCR_IO_PROXY"=${GCR_IO_PROXY}"
+      --build-arg "GCR_IO_PROXY=${GCR_IO_PROXY}"
       --file "${DOCKER_FILE_TO_BUILD}"
       --tag "${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
       wallet_core
