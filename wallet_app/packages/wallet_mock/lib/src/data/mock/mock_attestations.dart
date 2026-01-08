@@ -11,6 +11,7 @@ const _kEducationSummary = '{{mock_education}}';
 const _kDrivingLicenseSummary = '{{mock_drivingLicenseCategories}}';
 
 final kValidityWindow = const ValidityWindow(validFrom: null, validUntil: null);
+final kValidityStatus = ValidityStatus.Valid;
 
 final kPidAttestations = [
   AttestationPresentation(
@@ -25,6 +26,7 @@ final kPidAttestations = [
       textColor: _kDarkBlue,
     ),
     issuer: kOrganizations[kRvigId]!,
+    validityStatus: kValidityStatus,
     validityWindow: kValidityWindow,
     attributes: kMockPidAttestationAttributes,
   ),
@@ -40,6 +42,7 @@ final kPidAttestations = [
       textColor: _kWhite,
     ),
     issuer: kOrganizations[kRvigId]!,
+    validityStatus: kValidityStatus,
     validityWindow: kValidityWindow,
     attributes: kMockAddressAttestationAttributes,
   ),
@@ -56,6 +59,7 @@ final kDiplomaAttestation = AttestationPresentation(
     logoAsset: _kRijksLogoAsset,
     textColor: _kWhite,
   ),
+  validityStatus: kValidityStatus,
   validityWindow: kValidityWindow,
   attributes: kMockDiplomaAttestationAttributes,
   issuer: kOrganizations[kDuoId]!,
@@ -72,6 +76,7 @@ final kMockMasterDiplomaWalletCard = AttestationPresentation(
     logoAsset: _kRijksLogoAsset,
     textColor: _kWhite,
   ),
+  validityStatus: kValidityStatus,
   validityWindow: kValidityWindow,
   attributes: kMockMasterDiplomaDataAttributes,
   issuer: kOrganizations[kDuoId]!,
@@ -88,6 +93,7 @@ final kMockDrivingLicenseWalletCard = AttestationPresentation(
     logoAsset: 'assets/non-free/logos/nl_driving_license.png',
     textColor: _kDarkBlue,
   ),
+  validityStatus: kValidityStatus,
   validityWindow: kValidityWindow,
   attributes: kMockDrivingLicenseDataAttributes,
   issuer: kOrganizations[kRdwId]!,
@@ -104,6 +110,7 @@ final kMockDrivingLicenseRenewedWalletCard = AttestationPresentation(
     logoAsset: 'assets/non-free/logos/nl_driving_license.png',
     textColor: _kDarkBlue,
   ),
+  validityStatus: kValidityStatus,
   validityWindow: kValidityWindow,
   attributes: kMockDrivingLicenseRenewedDataAttributes,
   issuer: kOrganizations[kRdwId]!,
@@ -120,6 +127,7 @@ final kMockHealthInsuranceWalletCard = AttestationPresentation(
     logoAsset: 'assets/non-free/logos/nl_health_insurance.png',
     textColor: _kWhite,
   ),
+  validityStatus: kValidityStatus,
   validityWindow: kValidityWindow,
   attributes: kMockHealthInsuranceDataAttributes,
   issuer: kOrganizations[kHealthInsuranceId]!,
@@ -136,6 +144,7 @@ final kMockVOGWalletCard = AttestationPresentation(
     logoAsset: _kRijksLogoAsset,
     textColor: _kWhite,
   ),
+  validityStatus: kValidityStatus,
   validityWindow: kValidityWindow,
   attributes: kMockVOGDataAttributes,
   issuer: kOrganizations[kRvigId]!,

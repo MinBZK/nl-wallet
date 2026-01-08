@@ -56,6 +56,7 @@ class AttestationPresentation {
   final List<DisplayMetadata> displayMetadata;
   final Organization issuer;
   final RevocationStatus? revocationStatus;
+  final ValidityStatus validityStatus;
   final ValidityWindow validityWindow;
   final List<AttestationAttribute> attributes;
 
@@ -65,6 +66,7 @@ class AttestationPresentation {
     required this.displayMetadata,
     required this.issuer,
     this.revocationStatus,
+    required this.validityStatus,
     required this.validityWindow,
     required this.attributes,
   });
@@ -76,6 +78,7 @@ class AttestationPresentation {
       displayMetadata.hashCode ^
       issuer.hashCode ^
       revocationStatus.hashCode ^
+      validityStatus.hashCode ^
       validityWindow.hashCode ^
       attributes.hashCode;
 
@@ -89,6 +92,7 @@ class AttestationPresentation {
           displayMetadata == other.displayMetadata &&
           issuer == other.issuer &&
           revocationStatus == other.revocationStatus &&
+          validityStatus == other.validityStatus &&
           validityWindow == other.validityWindow &&
           attributes == other.attributes;
 }
@@ -179,4 +183,11 @@ sealed class RenderingMetadata with _$RenderingMetadata {
     String? textColor,
   }) = RenderingMetadata_Simple;
   const factory RenderingMetadata.svgTemplates() = RenderingMetadata_SvgTemplates;
+}
+
+enum ValidityStatus {
+  NotYetValid,
+  Valid,
+  Expired,
+  ExpiresSoon,
 }

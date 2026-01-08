@@ -163,6 +163,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
         const AttestationPresentation(
@@ -171,6 +172,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
@@ -190,6 +192,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
@@ -200,6 +203,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
         const AttestationPresentation(
@@ -208,6 +212,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
@@ -229,6 +234,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];
@@ -239,6 +245,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
         const AttestationPresentation(
@@ -247,6 +254,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
+          validityStatus: ValidityStatus.Valid,
           validityWindow: ValidityWindow(validFrom: null, validUntil: null),
         ),
       ];

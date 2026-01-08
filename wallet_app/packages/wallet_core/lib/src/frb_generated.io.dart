@@ -277,6 +277,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  ValidityStatus dco_decode_validity_status(dynamic raw);
+
+  @protected
   ValidityWindow dco_decode_validity_window(dynamic raw);
 
   @protected
@@ -535,6 +538,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
+
+  @protected
+  ValidityStatus sse_decode_validity_status(SseDeserializer deserializer);
 
   @protected
   ValidityWindow sse_decode_validity_window(SseDeserializer deserializer);
@@ -1001,6 +1007,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
     cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
     wireObj.revocation_status = cst_encode_opt_box_autoadd_revocation_status(apiObj.revocationStatus);
+    wireObj.validity_status = cst_encode_validity_status(apiObj.validityStatus);
     cst_api_fill_to_wire_validity_window(apiObj.validityWindow, wireObj.validity_window);
     wireObj.attributes = cst_encode_list_attestation_attribute(apiObj.attributes);
   }
@@ -1556,6 +1563,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_encode_unit(void raw);
 
   @protected
+  int cst_encode_validity_status(ValidityStatus raw);
+
+  @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
   @protected
@@ -1809,6 +1819,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_validity_status(ValidityStatus self, SseSerializer serializer);
 
   @protected
   void sse_encode_validity_window(ValidityWindow self, SseSerializer serializer);
@@ -3353,6 +3366,9 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
   external wire_cst_organization issuer;
 
   external ffi.Pointer<ffi.Int32> revocation_status;
+
+  @ffi.Int32()
+  external int validity_status;
 
   external wire_cst_validity_window validity_window;
 

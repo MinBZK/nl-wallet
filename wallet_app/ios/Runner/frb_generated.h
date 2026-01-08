@@ -194,6 +194,7 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_display_metadata *display_metadata;
   struct wire_cst_organization issuer;
   int32_t *revocation_status;
+  int32_t validity_status;
   struct wire_cst_validity_window validity_window;
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;

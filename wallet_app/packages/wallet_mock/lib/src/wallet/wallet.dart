@@ -41,6 +41,7 @@ class Wallet {
             identity: e.key.identity,
             attestationType: e.key.attestationType,
             displayMetadata: e.key.displayMetadata,
+            validityStatus: e.key.validityStatus,
             validityWindow: e.key.validityWindow,
             issuer: e.key.issuer,
             attributes: e.value,

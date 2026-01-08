@@ -19,6 +19,7 @@ pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationAttributeValue;
 pub use crate::attestation::AttestationIdentity;
 pub use crate::attestation::AttestationPresentation;
+pub use crate::attestation::ValidityStatus;
 pub use crate::notification::DisplayTarget;
 pub use crate::notification::Notification;
 pub use crate::notification::NotificationType;
