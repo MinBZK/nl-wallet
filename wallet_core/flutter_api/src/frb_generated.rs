@@ -1436,8 +1436,8 @@ impl CstDecode<crate::models::attestation::ValidityStatus> for i32 {
         match self {
             0 => crate::models::attestation::ValidityStatus::NotYetValid,
             1 => crate::models::attestation::ValidityStatus::Valid,
-            2 => crate::models::attestation::ValidityStatus::Expired,
-            3 => crate::models::attestation::ValidityStatus::ExpiresSoon,
+            2 => crate::models::attestation::ValidityStatus::ExpiresSoon,
+            3 => crate::models::attestation::ValidityStatus::Expired,
             _ => unreachable!("Invalid variant for ValidityStatus: {}", self),
         }
     }
@@ -2485,8 +2485,8 @@ impl SseDecode for crate::models::attestation::ValidityStatus {
         return match inner {
             0 => crate::models::attestation::ValidityStatus::NotYetValid,
             1 => crate::models::attestation::ValidityStatus::Valid,
-            2 => crate::models::attestation::ValidityStatus::Expired,
-            3 => crate::models::attestation::ValidityStatus::ExpiresSoon,
+            2 => crate::models::attestation::ValidityStatus::ExpiresSoon,
+            3 => crate::models::attestation::ValidityStatus::Expired,
             _ => unreachable!("Invalid variant for ValidityStatus: {}", inner),
         };
     }
@@ -3436,8 +3436,8 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::ValidityStatu
         match self {
             Self::NotYetValid => 0.into_dart(),
             Self::Valid => 1.into_dart(),
-            Self::Expired => 2.into_dart(),
-            Self::ExpiresSoon => 3.into_dart(),
+            Self::ExpiresSoon => 2.into_dart(),
+            Self::Expired => 3.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -4537,8 +4537,8 @@ impl SseEncode for crate::models::attestation::ValidityStatus {
             match self {
                 crate::models::attestation::ValidityStatus::NotYetValid => 0,
                 crate::models::attestation::ValidityStatus::Valid => 1,
-                crate::models::attestation::ValidityStatus::Expired => 2,
-                crate::models::attestation::ValidityStatus::ExpiresSoon => 3,
+                crate::models::attestation::ValidityStatus::ExpiresSoon => 2,
+                crate::models::attestation::ValidityStatus::Expired => 3,
                 _ => {
                     unimplemented!("");
                 }

@@ -52,17 +52,17 @@ impl From<wallet::AttestationIdentity> for AttestationIdentity {
 pub enum ValidityStatus {
     NotYetValid,
     Valid,
-    Expired,
     ExpiresSoon,
+    Expired,
 }
 
 impl From<wallet::ValidityStatus> for ValidityStatus {
     fn from(value: wallet::ValidityStatus) -> Self {
         match value {
             wallet::ValidityStatus::NotYetValid => ValidityStatus::NotYetValid,
-            wallet::ValidityStatus::Valid { .. } => ValidityStatus::Valid,
-            wallet::ValidityStatus::Expired => ValidityStatus::Expired,
+            wallet::ValidityStatus::ValidUntil { .. } | wallet::ValidityStatus::AlwaysValid => ValidityStatus::Valid,
             wallet::ValidityStatus::ExpiresSoon { .. } => ValidityStatus::ExpiresSoon,
+            wallet::ValidityStatus::Expired => ValidityStatus::Expired,
         }
     }
 }

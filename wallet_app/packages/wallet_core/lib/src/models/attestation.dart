@@ -188,6 +188,6 @@ sealed class RenderingMetadata with _$RenderingMetadata {
 enum ValidityStatus {
   NotYetValid,
   Valid,
-  Expired,
   ExpiresSoon,
+  Expired,
 }

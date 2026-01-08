@@ -102,14 +102,16 @@ pub struct AttestationValidity {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValidityStatus {
     NotYetValid,
-    Valid {
-        expires: Option<DateTime<Utc>>,
-        notify_at: Option<DateTime<Utc>>,
-    },
-    Expired,
-    ExpiresSoon {
+    AlwaysValid,
+    ValidUntil {
+        expires_at: DateTime<Utc>,
         notify_at: DateTime<Utc>,
     },
+    ExpiresSoon {
+        expires_at: DateTime<Utc>,
+        notify_at: DateTime<Utc>,
+    },
+    Expired,
 }
 
 const EXPIRES_SOON_WINDOW: Duration = Duration::days(7);
@@ -130,19 +132,19 @@ impl ValidityStatus {
         if let Some(until) = window.valid_until {
             let notify_at = until - EXPIRES_SOON_WINDOW;
             if now > notify_at {
-                return ValidityStatus::ExpiresSoon { notify_at };
+                return ValidityStatus::ExpiresSoon {
+                    expires_at: until,
+                    notify_at,
+                };
             }
-            return ValidityStatus::Valid {
-                expires: Some(until),
-                notify_at: Some(notify_at),
+            return ValidityStatus::ValidUntil {
+                expires_at: until,
+                notify_at,
             };
         }
 
         // 4. Fallback for open-ended valid
-        ValidityStatus::Valid {
-            expires: None,
-            notify_at: None,
-        }
+        ValidityStatus::AlwaysValid
     }
 }
 
@@ -204,20 +206,29 @@ mod tests {
     #[case::expires_soon(
         Some(Duration::days(-1)),
         Some(EXPIRES_SOON_WINDOW - Duration::hours(1)),
-        ValidityStatus::ExpiresSoon { notify_at: Utc::now() }
+        ValidityStatus::ExpiresSoon {
+                expires_at: Utc::now(),
+                notify_at: Utc::now()
+            }
+    )]
+    #[case::valid_until(
+        Some(Duration::days(-1)),
+        Some(EXPIRES_SOON_WINDOW + Duration::days(3)),
+        ValidityStatus::ValidUntil {
+                expires_at: Utc::now(),
+                notify_at: Utc::now()
+            }
     )]
     #[case::valid_on_threshold(
         Some(Duration::days(-1)),
         Some(EXPIRES_SOON_WINDOW),
-        ValidityStatus::Valid { expires: None, notify_at: None }
-    )]
-    #[case::valid_outside_threshold(
-        Some(Duration::days(-1)),
-        Some(EXPIRES_SOON_WINDOW + Duration::days(3)),
-        ValidityStatus::Valid { expires: None, notify_at: None }
+        ValidityStatus::ValidUntil {
+                expires_at: Utc::now(),
+                notify_at: Utc::now()
+            }
     )]
     #[case::not_yet_valid_priority(Some(Duration::hours(1)), Some(Duration::hours(2)), ValidityStatus::NotYetValid)]
-    #[case::open_ended_valid(Some(Duration::days(-1)), None, ValidityStatus::Valid { expires: None, notify_at: None })]
+    #[case::always_valid(Some(Duration::days(-1)), None, ValidityStatus::AlwaysValid)]
     fn test_validity_status_logic(
         #[case] from_offset: Option<Duration>,
         #[case] until_offset: Option<Duration>,
@@ -232,7 +243,7 @@ mod tests {
         let actual = ValidityStatus::from_window(&window, now);
 
         match (actual, expected) {
-            (ValidityStatus::Valid { .. }, ValidityStatus::Valid { .. }) => {}
+            (ValidityStatus::ValidUntil { .. }, ValidityStatus::ValidUntil { .. }) => {}
             (ValidityStatus::ExpiresSoon { .. }, ValidityStatus::ExpiresSoon { .. }) => {}
             (a, b) => assert_eq!(a, b),
         }
