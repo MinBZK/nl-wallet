@@ -34,14 +34,14 @@ impl From<wallet::Notification> for AppNotification {
 impl From<wallet::NotificationType> for NotificationType {
     fn from(value: wallet::NotificationType) -> Self {
         match value {
-            wallet::NotificationType::Expired { attestation: card } => {
-                NotificationType::CardExpired { card: card.into() }
-            }
+            wallet::NotificationType::Expired { attestation } => NotificationType::CardExpired {
+                card: attestation.into(),
+            },
             wallet::NotificationType::ExpiresSoon {
-                attestation: card,
+                attestation,
                 expires_at,
             } => NotificationType::CardExpiresSoon {
-                card: card.into(),
+                card: attestation.into(),
                 expires_at: expires_at.to_rfc3339(),
             },
         }

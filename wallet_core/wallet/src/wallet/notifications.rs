@@ -9,7 +9,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::AttestationPresentation;
 use crate::Wallet;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
@@ -41,15 +40,11 @@ where
         let storage = self.storage.read().await;
 
         if let Some(notifications_callback) = &mut self.notifications_callback {
-            let attestations: Vec<AttestationPresentation> = storage
+            let notifications: Vec<Notification> = storage
                 .fetch_unique_attestations()
                 .await?
                 .into_iter()
                 .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
-                .collect();
-
-            let notifications = attestations
-                .into_iter()
                 .filter_map(|attestation| Notification::create_for_attestation(attestation, &TimeGenerator))
                 .flatten()
                 .collect();
