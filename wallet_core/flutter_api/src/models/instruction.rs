@@ -43,7 +43,7 @@ pub enum WalletInstructionError {
 }
 
 /// This converts the [`InstructionError`] to the corresponding [`WalletInstructionResult`].
-/// If no matching [WalletInstructionResult] is available the [`InstructionError`] will be returned
+/// If no matching [`WalletInstructionResult`] is available the [`InstructionError`] will be returned
 /// unchanged.
 impl TryFrom<InstructionError> for WalletInstructionError {
     type Error = InstructionError;
