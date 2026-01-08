@@ -1,6 +1,7 @@
 pub mod issuer_auth;
 pub mod reader_auth;
 
+use derive_more::Debug;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -48,6 +49,7 @@ pub struct Organization {
     pub legal_name: LocalizedStrings,
     pub description: LocalizedStrings,
     pub category: LocalizedStrings,
+    #[debug(skip)]
     pub logo: Option<Image>,
     pub web_url: Option<Url>,
     pub kvk: Option<String>,

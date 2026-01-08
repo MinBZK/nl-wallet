@@ -58,6 +58,7 @@ use crate::digid::DigidClient;
 use crate::digid::DigidError;
 use crate::digid::DigidSession;
 use crate::errors::ChangePinError;
+use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
 use crate::instruction::InstructionError;
@@ -72,6 +73,7 @@ use crate::storage::TransferData;
 use crate::transfer::TransferSessionId;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::notifications::NotificationsError;
 use crate::wallet::recovery_code::RecoveryCodeError;
 
 use super::Wallet;
@@ -141,15 +143,18 @@ pub enum IssuanceError {
     #[error("could not query attestations in database: {0}")]
     AttestationQuery(#[source] StorageError),
 
-    #[error("could not store event in history database: {0}")]
-    EventStorage(#[source] StorageError),
-
     #[error("key '{0}' not found in Wallet Provider")]
     #[category(pd)]
     KeyNotFound(String),
 
-    #[error("could not read attestations from storage: {0}")]
-    Attestations(#[source] AttestationsError),
+    #[error("error emitting attestations: {0}")]
+    Attestations(#[from] AttestationsError),
+
+    #[error("error emitting notifications: {0}")]
+    Notifications(#[from] NotificationsError),
+
+    #[error("error emtting history event: {0}")]
+    Events(#[from] HistoryError),
 
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
@@ -613,8 +618,9 @@ where
                 .map_err(IssuanceError::AttestationStorage)?;
         }
 
-        self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
-        self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
+        self.emit_attestations().await?;
+        self.emit_notifications().await?;
+        self.emit_recent_history().await?;
 
         Ok(IssuanceResult { transfer_session_id })
     }
@@ -1426,16 +1432,16 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations()
-            .return_once(move || {
+            .returning(move || {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
                     StoredAttestation::SdJwt {
                         key_identifier: "sd_jwt_key_identifier".to_string(),
-                        sd_jwt,
+                        sd_jwt: sd_jwt.clone(),
                     },
-                    metadata,
+                    metadata.clone(),
                     None,
                 )])
             });
