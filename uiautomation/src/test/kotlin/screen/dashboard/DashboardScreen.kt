@@ -36,4 +36,12 @@ class DashboardScreen : MobileActions() {
         scrollToElementContainingText(cardDisplayContent)
         return elementContainingTextsVisible(listOf(cardDisplayContent, revokedLabel))
     }
+
+    fun checkCardSorting(topCardDisplayName: String, bottomCardDisplayName: String): Boolean {
+        scrollToElementContainingText(topCardDisplayName)
+        val (_, pidY) = getTopLeftOfElementContainingText(topCardDisplayName)!!
+        scrollToElementContainingText(bottomCardDisplayName)
+        val (_, addressY) = getTopLeftOfElementContainingText(bottomCardDisplayName)!!
+        return pidY < addressY
+    }
 }

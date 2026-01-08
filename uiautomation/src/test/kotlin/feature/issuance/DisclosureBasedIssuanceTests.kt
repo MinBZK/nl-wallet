@@ -168,7 +168,10 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton();
         dashboardScreen.scrollToEndOfScreen()
-        assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "insurance card not visible on dashboard")
+        assertAll(
+            { assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "insurance card not visible on dashboard") },
+            { assertTrue(dashboardScreen.checkCardSorting(tasData.getPidDisplayName(), tasData.getInsuranceDisplayName()), "Card sorting is incorrect") },
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

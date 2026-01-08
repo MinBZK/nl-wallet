@@ -47,6 +47,7 @@ class LocalMobileDriver : WebDriverProvider {
         return when (testConfig.platformName) {
             "android" -> {
                 options.setCapability("appium:autoGrantPermissions", true)
+                options.setCapability("appium:fullReset", true);
                 AndroidDriver(AppiumServiceProvider.service?.url, options)
             }
             "ios" -> {
