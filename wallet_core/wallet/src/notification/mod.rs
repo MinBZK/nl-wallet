@@ -44,16 +44,7 @@ impl Notification {
     ) -> Option<VecNonEmpty<Self>> {
         let time = time_generator.generate();
 
-        let ValidityWindow {
-            valid_from,
-            valid_until,
-        } = attestation.validity.validity_window;
-
-        // If the attestation is not yet valid, we don't issue expiration notifications and assume this will be
-        // scheduled later.
-        if valid_from.is_some_and(|from| time < from) {
-            return None;
-        }
+        let ValidityWindow { valid_until, .. } = attestation.validity.validity_window;
 
         // If the attestation is revoked, we don't issue expiration notifications
         if attestation
@@ -116,21 +107,6 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
-
-    #[test]
-    fn test_notification_not_yet_valid() {
-        let now = Utc::now();
-        let generator = MockTimeGenerator::new(now);
-
-        let mut presentation = AttestationPresentation::new_mock();
-        presentation.validity.validity_window = ValidityWindow {
-            valid_from: Some(now + Duration::days(1)),
-            valid_until: Some(now + Duration::days(365)),
-        };
-
-        let notifications = Notification::create_for_attestation(presentation, &generator);
-        assert!(notifications.is_none());
-    }
 
     #[test]
     fn test_notification_expired() {
