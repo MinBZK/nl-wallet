@@ -1,7 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroUsize;
-use std::sync::Arc;
 
 use base64::prelude::*;
 use chrono::DateTime;
@@ -690,8 +689,7 @@ impl HandleInstruction for Sign {
             .await?;
         tx.commit().await?;
 
-        let signatures = future::try_join_all(identifiers.iter().zip(data).map(|(identifiers, data)| async {
-            let data = Arc::new(data);
+        let signatures = future::try_join_all(identifiers.iter().zip(&data).map(|(identifiers, data)| async {
             future::try_join_all(identifiers.iter().map(|identifier| async {
                 let wrapped_key = found_keys
                     .get(identifier)
@@ -700,7 +698,7 @@ impl HandleInstruction for Sign {
 
                 user_state
                     .wallet_user_hsm
-                    .sign_wrapped(&user_state.wrapping_key_identifier, wrapped_key, Arc::clone(&data))
+                    .sign_wrapped(&user_state.wrapping_key_identifier, wrapped_key, data)
                     .await
                     .map(DerSignature::from)
                     .map_err(InstructionError::HsmError)
@@ -1296,11 +1294,7 @@ where
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         self.hsm
-            .sign_wrapped(
-                self.wrapping_key_identifier,
-                self.wrapped_key.clone(),
-                Arc::new(msg.to_vec()),
-            )
+            .sign_wrapped(self.wrapping_key_identifier, self.wrapped_key.clone(), msg)
             .await
     }
 }

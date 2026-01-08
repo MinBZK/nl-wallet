@@ -58,11 +58,11 @@ where
     H: Hsm,
 {
     let (hsm, identifier) = test_case.test_params();
-    let data = Arc::new(random_bytes(32));
+    let data = random_bytes(32);
 
     Hsm::generate_generic_secret_key(hsm, identifier).await.unwrap();
-    let signature = hsm.sign_hmac(identifier, Arc::clone(&data)).await.unwrap();
-    hsm.verify_hmac(identifier, Arc::clone(&data), signature).await.unwrap();
+    let signature = hsm.sign_hmac(identifier, &data).await.unwrap();
+    hsm.verify_hmac(identifier, &data, signature).await.unwrap();
 
     test_case
 }
@@ -76,7 +76,7 @@ where
 
     Hsm::generate_signing_key_pair(hsm, identifier).await.unwrap();
 
-    let signature = hsm.sign_ecdsa(identifier, Arc::clone(&data)).await.unwrap();
+    let signature = hsm.sign_ecdsa(identifier, &data).await.unwrap();
     let verifying_key = Hsm::get_verifying_key(hsm, identifier).await.unwrap();
     verifying_key.verify(&data, &signature).unwrap();
 
@@ -132,8 +132,8 @@ where
     let wrapped = hsm.generate_wrapped_key(identifier).await.unwrap();
     let public_key = *wrapped.public_key();
 
-    let data = Arc::new(random_bytes(32));
-    let signature = Pkcs11Client::sign_wrapped(hsm, identifier, wrapped, Arc::clone(&data))
+    let data = random_bytes(32);
+    let signature = Pkcs11Client::sign_wrapped(hsm, identifier, wrapped, &data)
         .await
         .unwrap();
 
