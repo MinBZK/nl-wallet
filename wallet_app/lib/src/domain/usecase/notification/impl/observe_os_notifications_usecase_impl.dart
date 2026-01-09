@@ -29,12 +29,13 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
         // Map them to simple [OsNotification], ready to be scheduled
         return osNotifications.map(
           (osNotification) {
+            final notifyAt = osNotification.displayTargets.whereType<Os>().first.notifyAt;
             return OsNotification(
               id: osNotification.id,
               channel: _resolveChannel(osNotification.type),
               title: _resolveTitle(osNotification.type),
-              body: _resolveBody(osNotification.type),
-              notifyAt: osNotification.displayTargets.whereType<Os>().first.notifyAt,
+              body: _resolveBody(osNotification.type, notifyAt),
+              notifyAt: notifyAt,
             );
           },
         ).toList();
@@ -62,12 +63,12 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
     };
   }
 
-  String _resolveBody(NotificationType type) {
+  String _resolveBody(NotificationType type, DateTime notifyAt) {
     final l10n = _activeLocaleProvider.activeLocale.l10n;
     return switch (type) {
       CardExpiresSoon() => l10n.cardExpiresSoonNotificationDescription(
         type.card.title.l10nValueForLocale(_activeLocaleProvider.activeLocale),
-        math.max(type.expiresAt.difference(DateTime.now()).inDays, 0 /* fallback value */),
+        math.max(type.expiresAt.difference(notifyAt).inDays, 0 /* fallback value */),
       ),
       CardExpired() => l10n.cardExpiredNotificationDescription(
         type.card.title.l10nValueForLocale(_activeLocaleProvider.activeLocale),
