@@ -39,10 +39,12 @@ class CardExpiryBanner extends StatelessWidget {
       title: _buildTitle(context),
       subtitle: context.l10n.cardExpiryBannerSubtitle,
       onTap: () {
+        // Animate solely by attestation id to disable SharedElementTransition in this navigation path. //PVW-5438
+        final cardDetailScreenArgument = CardDetailScreenArgument.fromId(card.attestationId!, card.title);
         Navigator.restorablePushNamed(
           context,
           WalletRoutes.cardDetailRoute,
-          arguments: CardDetailScreenArgument.forCard(card).toJson(),
+          arguments: cardDetailScreenArgument.toJson(),
         );
       },
     );
