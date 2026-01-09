@@ -2,7 +2,10 @@ mod attribute;
 
 use std::collections::HashSet;
 
+use chrono::DateTime;
+use chrono::Duration;
 use chrono::NaiveDate;
+use chrono::Utc;
 use derive_more::Display;
 use serde::Deserialize;
 use serde::Serialize;
@@ -96,6 +99,55 @@ pub struct AttestationValidity {
     pub validity_window: ValidityWindow,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValidityStatus {
+    NotYetValid,
+    AlwaysValid,
+    ValidUntil {
+        expires_at: DateTime<Utc>,
+        notify_at: DateTime<Utc>,
+    },
+    ExpiresSoon {
+        expires_at: DateTime<Utc>,
+        notify_at: DateTime<Utc>,
+    },
+    Expired,
+}
+
+const EXPIRES_SOON_WINDOW: Duration = Duration::days(7);
+
+impl ValidityStatus {
+    pub fn from_window(window: &ValidityWindow, now: DateTime<Utc>) -> Self {
+        // 1. Check if the start date is in the future
+        if window.valid_from.is_some_and(|from| now < from) {
+            return ValidityStatus::NotYetValid;
+        }
+
+        // 2. Check if the end date has passed
+        if window.valid_until.is_some_and(|until| now > until) {
+            return ValidityStatus::Expired;
+        }
+
+        // 3. Check if we are within the "soon" threshold
+        if let Some(until) = window.valid_until {
+            let notify_at = until - EXPIRES_SOON_WINDOW;
+            if now > notify_at {
+                return ValidityStatus::ExpiresSoon {
+                    expires_at: until,
+                    notify_at,
+                };
+            }
+            return ValidityStatus::ValidUntil {
+                expires_at: until,
+                notify_at,
+            };
+        }
+
+        // 4. Fallback for open-ended valid
+        ValidityStatus::AlwaysValid
+    }
+}
+
 #[cfg(test)]
 pub mod mock {
     use attestation_data::auth::Organization;
@@ -136,6 +188,64 @@ pub mod mock {
                 },
                 attributes: vec![],
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::Duration;
+    use chrono::Utc;
+    use rstest::rstest;
+
+    use super::*;
+
+    #[rstest]
+    #[case::not_yet_valid(Some(Duration::days(1)), Some(Duration::days(10)), ValidityStatus::NotYetValid)]
+    #[case::expired(Some(Duration::days(-10)), Some(Duration::days(-1)), ValidityStatus::Expired)]
+    #[case::expires_soon(
+        Some(Duration::days(-1)),
+        Some(EXPIRES_SOON_WINDOW - Duration::hours(1)),
+        ValidityStatus::ExpiresSoon {
+                expires_at: Utc::now(),
+                notify_at: Utc::now()
+            }
+    )]
+    #[case::valid_until(
+        Some(Duration::days(-1)),
+        Some(EXPIRES_SOON_WINDOW + Duration::days(3)),
+        ValidityStatus::ValidUntil {
+                expires_at: Utc::now(),
+                notify_at: Utc::now()
+            }
+    )]
+    #[case::valid_on_threshold(
+        Some(Duration::days(-1)),
+        Some(EXPIRES_SOON_WINDOW),
+        ValidityStatus::ValidUntil {
+                expires_at: Utc::now(),
+                notify_at: Utc::now()
+            }
+    )]
+    #[case::not_yet_valid_priority(Some(Duration::hours(1)), Some(Duration::hours(2)), ValidityStatus::NotYetValid)]
+    #[case::always_valid(Some(Duration::days(-1)), None, ValidityStatus::AlwaysValid)]
+    fn test_validity_status_logic(
+        #[case] from_offset: Option<Duration>,
+        #[case] until_offset: Option<Duration>,
+        #[case] expected: ValidityStatus,
+    ) {
+        let now = Utc::now();
+        let window = ValidityWindow {
+            valid_from: from_offset.map(|d| now + d),
+            valid_until: until_offset.map(|d| now + d),
+        };
+
+        let actual = ValidityStatus::from_window(&window, now);
+
+        match (actual, expected) {
+            (ValidityStatus::ValidUntil { .. }, ValidityStatus::ValidUntil { .. }) => {}
+            (ValidityStatus::ExpiresSoon { .. }, ValidityStatus::ExpiresSoon { .. }) => {}
+            (a, b) => assert_eq!(a, b),
         }
     }
 }

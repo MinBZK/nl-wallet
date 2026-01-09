@@ -36,6 +36,11 @@ where
     pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
         info!("Emit attestations from storage");
 
+        let has_callback = self.attestations_callback.lock().is_some();
+        if !has_callback {
+            return Ok(());
+        }
+
         let wallet_config = self.config_repository.get();
         let storage = self.storage.read().await;
 

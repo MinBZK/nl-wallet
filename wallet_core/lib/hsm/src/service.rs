@@ -1,6 +1,5 @@
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 use cryptoki::context::CInitializeArgs;
@@ -97,13 +96,13 @@ pub trait Pkcs11Client {
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Vec<u8>>;
     async fn verify(
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
         signature: Vec<u8>,
     ) -> Result<()>;
     async fn random_bytes(&self, length: u32) -> Result<Vec<u8>>;
@@ -150,7 +149,7 @@ pub trait Pkcs11Client {
         &self,
         wrapping_key_identifier: &str,
         wrapped_key: WrappedKey,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Signature>;
 }
 
@@ -252,13 +251,13 @@ impl Hsm for Pkcs11Hsm {
         Ok(())
     }
 
-    async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Signature, Self::Error> {
+    async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> std::result::Result<Signature, Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
         let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
         Ok(Signature::from_slice(&signature)?)
     }
 
-    async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Vec<u8>, Self::Error> {
+    async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> std::result::Result<Vec<u8>, Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
         Pkcs11Client::sign(self, handle, SigningMechanism::Sha256Hmac, data).await
     }
@@ -266,7 +265,7 @@ impl Hsm for Pkcs11Hsm {
     async fn verify_hmac(
         &self,
         identifier: &str,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
         signature: Vec<u8>,
     ) -> std::result::Result<(), Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
@@ -452,9 +451,10 @@ impl Pkcs11Client for Pkcs11Hsm {
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
+        let data_hash = sha256(data);
 
         spawn::blocking(move || {
             let mechanism = match mechanism {
@@ -463,7 +463,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             };
 
             let session = pool.get()?;
-            let signature = session.sign(&mechanism, private_key_handle.0, &sha256(&data))?;
+            let signature = session.sign(&mechanism, private_key_handle.0, &data_hash)?;
             Ok(signature)
         })
         .await
@@ -474,10 +474,11 @@ impl Pkcs11Client for Pkcs11Hsm {
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
         signature: Vec<u8>,
     ) -> Result<()> {
         let pool = self.pool.clone();
+        let data_hash = sha256(data);
 
         spawn::blocking(move || {
             let mechanism = match mechanism {
@@ -486,7 +487,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             };
 
             let session = pool.get()?;
-            session.verify(&mechanism, private_key_handle.0, &sha256(&data), &signature)?;
+            session.verify(&mechanism, private_key_handle.0, &data_hash, &signature)?;
 
             Ok(())
         })
@@ -604,7 +605,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         &self,
         wrapping_key_identifier: &str,
         wrapped_key: WrappedKey,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Signature> {
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let private_handle = self.unwrap_signing_key(private_wrapping_handle, wrapped_key).await?;

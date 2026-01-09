@@ -91,19 +91,19 @@ pub enum SecretKeyVariant {
 }
 
 impl SecretKeyVariant {
-    pub async fn sign_hmac(&self, data: Cow<'_, [u8]>) -> Result<Vec<u8>, HsmError> {
+    pub async fn sign_hmac(&self, data: &[u8]) -> Result<Vec<u8>, HsmError> {
         match self {
-            SecretKeyVariant::Software(key) => Ok(hmac::sign(key, &data).as_ref().to_vec()),
-            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(data.into_owned()).await?),
+            SecretKeyVariant::Software(key) => Ok(hmac::sign(key, data).as_ref().to_vec()),
+            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(data).await?),
         }
     }
 
-    pub async fn verify_hmac(&self, data: Cow<'_, [u8]>, tag: Cow<'_, [u8]>) -> Result<(), SecretKeyVariantError> {
+    pub async fn verify_hmac(&self, data: &[u8], tag: Cow<'_, [u8]>) -> Result<(), SecretKeyVariantError> {
         match self {
             SecretKeyVariant::Software(key) => {
-                hmac::verify(key, &data, &tag).map_err(|_| SecretKeyVariantError::SoftwareVerification)?
+                hmac::verify(key, data, &tag).map_err(|_| SecretKeyVariantError::SoftwareVerification)?
             }
-            SecretKeyVariant::Hsm(key) => key.verify_hmac(data.into_owned(), tag.into_owned()).await?,
+            SecretKeyVariant::Hsm(key) => key.verify_hmac(data, tag.into_owned()).await?,
         };
 
         Ok(())

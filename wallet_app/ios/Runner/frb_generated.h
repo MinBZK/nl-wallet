@@ -194,6 +194,7 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_display_metadata *display_metadata;
   struct wire_cst_organization issuer;
   int32_t *revocation_status;
+  int32_t validity_status;
   struct wire_cst_validity_window validity_window;
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;
@@ -290,7 +291,7 @@ typedef struct wire_cst_list_display_target {
 } wire_cst_list_display_target;
 
 typedef struct wire_cst_app_notification {
-  uint32_t id;
+  int32_t id;
   struct wire_cst_notification_type typ;
   struct wire_cst_list_display_target *targets;
 } wire_cst_app_notification;

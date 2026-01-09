@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use derive_more::Constructor;
 use derive_more::Debug;
 use p256::ecdsa::Signature;
@@ -27,7 +25,7 @@ impl EcdsaKey for HsmEcdsaKey {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        Hsm::sign_ecdsa(&self.hsm, &self.identifier, Arc::new(msg.into())).await
+        Hsm::sign_ecdsa(&self.hsm, &self.identifier, msg).await
     }
 }
 
@@ -40,11 +38,11 @@ pub struct HsmHmacKey {
 }
 
 impl HsmHmacKey {
-    pub async fn sign_hmac(&self, msg: Vec<u8>) -> Result<Vec<u8>, HsmError> {
-        Hsm::sign_hmac(&self.hsm, &self.identifier, Arc::new(msg)).await
+    pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, HsmError> {
+        Hsm::sign_hmac(&self.hsm, &self.identifier, msg).await
     }
 
-    pub async fn verify_hmac(&self, msg: Vec<u8>, tag: Vec<u8>) -> Result<(), HsmError> {
-        Hsm::verify_hmac(&self.hsm, &self.identifier, Arc::new(msg), tag).await
+    pub async fn verify_hmac(&self, msg: &[u8], tag: Vec<u8>) -> Result<(), HsmError> {
+        Hsm::verify_hmac(&self.hsm, &self.identifier, msg, tag).await
     }
 }

@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 backtrace.workspace = true
+chrono.workspace = true
 flutter_rust_bridge = "=2.11.1"
 itertools.workspace = true
 parking_lot.workspace = true

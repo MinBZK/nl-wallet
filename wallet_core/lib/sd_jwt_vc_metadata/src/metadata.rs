@@ -399,7 +399,7 @@ pub enum JsonSchemaPropertyFormat {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisplayMetadata {
     ///  A language tag as defined in Section 2 of [RFC5646].
     pub lang: String,
@@ -414,6 +414,7 @@ pub struct DisplayMetadata {
     pub summary: Option<String>,
 
     /// An object containing rendering information for the type
+    #[debug(skip)]
     pub rendering: Option<RenderingMetadata>,
 }
 
@@ -480,9 +481,10 @@ impl From<Image> for DataUri {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
     /// Explicitly reject non-embedded images and unsupported mime types
+    #[debug(skip)]
     #[serde(rename = "uri")]
     #[serde_as(as = "TryFromInto<DataUri>")]
     pub image: Image,

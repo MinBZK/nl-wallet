@@ -137,17 +137,20 @@ pub async fn clear_attestations_stream() {
     wallet().write().await.clear_attestations_callback();
 }
 
-#[expect(clippy::unused_async)]
 pub async fn set_notifications_stream(sink: StreamSink<Vec<AppNotification>>) -> anyhow::Result<()> {
-    // TODO: Store the sink for later use
-    sink.add(vec![]).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    wallet()
+        .write()
+        .await
+        .set_notifications_callback(Box::new(move |notifications| {
+            let _ = sink.add(notifications.into_iter().map(AppNotification::from).collect());
+        }))
+        .await?;
+
     Ok(())
 }
 
-#[expect(clippy::unused_async)]
 pub async fn clear_notifications_stream() {
-    // TODO: clear the notifications stream
-    println!("Notifications stream cleared");
+    wallet().write().await.clear_notifications_callback();
 }
 
 #[flutter_api_error]

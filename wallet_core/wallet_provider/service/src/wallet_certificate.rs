@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
@@ -236,12 +234,11 @@ async fn sign_pin_pubkey<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_bts = pubkey
+    let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?
-        .to_vec();
+        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
 
-    let signature = hsm.sign_hmac(key_identifier, Arc::new(pin_pubkey_bts)).await?;
+    let signature = hsm.sign_hmac(key_identifier, pin_pubkey.as_bytes()).await?;
 
     Ok(signature)
 }
@@ -255,12 +252,11 @@ async fn verify_pin_pubkey<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_bts = pubkey
+    let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?
-        .to_vec();
+        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
 
-    hsm.verify_hmac(key_identifier, Arc::new(pin_pubkey_bts), pin_pubkey_hash)
+    hsm.verify_hmac(key_identifier, pin_pubkey.as_bytes(), pin_pubkey_hash)
         .await?;
 
     Ok(())

@@ -70,7 +70,7 @@ where
         r#type: DisclosureType,
         status: DisclosureStatus,
         data_status: DataDisclosed,
-    ) -> Result<(), StorageError> {
+    ) -> HistoryResult<()> {
         info!("Storing history event");
 
         let attestations = match data_status {
@@ -145,7 +145,7 @@ where
         Ok(events)
     }
 
-    pub async fn emit_recent_history(&mut self) -> Result<(), StorageError> {
+    pub async fn emit_recent_history(&mut self) -> HistoryResult<()> {
         info!("Emit recent history from storage");
 
         if let Some(recent_history_callback) = &mut self.recent_history_callback {

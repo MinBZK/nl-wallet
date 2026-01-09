@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
-use std::sync::Arc;
 use std::time::Duration;
 
 use base64::prelude::*;
@@ -743,7 +742,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 .wallet_user_hsm
                 .sign_hmac(
                     &self.keys.revocation_code_key_identifier,
-                    Arc::new(revocation_code.as_ref().as_bytes().to_vec())
+                    revocation_code.as_ref().as_bytes()
                 )
                 .map_err(RegistrationError::from),
         )?;
@@ -2370,7 +2369,7 @@ mod tests {
             .wallet_user_hsm
             .verify_hmac(
                 wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER,
-                Arc::new(String::from(revocation_code).into_bytes()),
+                revocation_code.as_ref().as_bytes(),
                 wallet_user.revocation_code_hmac,
             )
             .await
