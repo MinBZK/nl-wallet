@@ -1,5 +1,2 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          xmlns:tools="http://schemas.android.com/tools">
-  <application tools:replace="android:extractNativeLibs"
-               android:extractNativeLibs="true"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 </manifest>
