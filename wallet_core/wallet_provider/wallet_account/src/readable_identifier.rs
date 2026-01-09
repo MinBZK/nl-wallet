@@ -64,11 +64,11 @@ impl<const LEN: usize> ReadableIdentifier<LEN> {
                 char => return Err(ReadableIdentifierParseError::InvalidCharacter(char)),
             };
 
-            if output_char.is_some() && identifier_string.len() >= LEN {
-                return Err(ReadableIdentifierParseError::ExcessCharacters);
-            }
-
             if let Some(output_char) = output_char {
+                if identifier_string.len() >= LEN {
+                    return Err(ReadableIdentifierParseError::ExcessCharacters);
+                }
+
                 identifier_string.push(output_char);
             }
         }
