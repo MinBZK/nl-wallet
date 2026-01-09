@@ -5,6 +5,8 @@ use derive_more::Into;
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 
+const CROCKFORD_ALPHABET: &[u8] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
 #[derive(Debug, thiserror::Error)]
 pub enum ReadableIdentifierParseError {
     #[error("provided string does not contain enough base32 characters")]
@@ -20,34 +22,13 @@ pub struct ReadableIdentifier<const LEN: usize>(String);
 
 impl<const LEN: usize> ReadableIdentifier<LEN> {
     pub fn new_random() -> Self {
-        // Generate LEN u32 values from 0 to 32.
+        // Generate LEN usize values from 0 to 32.
         let distribution = Uniform::from(0..32);
         let mut rng = rand::thread_rng();
 
-        let mut identifier_string = String::with_capacity(LEN);
-
-        for _index in 0..LEN {
-            // Do some simple arithmetic to convert this number to the corresponding
-            // Unicode codepoint according to Crockford base32.
-            let codepoint = match distribution.sample(&mut rng) {
-                // Numbers 0 through 9.
-                value if (0..=9).contains(&value) => value + 48,
-                // Letters A through H.
-                value if (10..=17).contains(&value) => value + 55,
-                // Letters J and K.
-                value if (18..=19).contains(&value) => value + 56,
-                // Letters M and N.
-                value if (20..=21).contains(&value) => value + 57,
-                // Letters P through T.
-                value if (22..=26).contains(&value) => value + 58,
-                // Letters V through Z.
-                value if (27..=31).contains(&value) => value + 59,
-                _ => unreachable!("random number should be between 0 and 31"),
-            };
-
-            identifier_string
-                .push(char::from_u32(codepoint).expect("random number should result in a valid Unicode codepoint"));
-        }
+        let identifier_string = (0..LEN)
+            .map(|_| char::from(CROCKFORD_ALPHABET[distribution.sample(&mut rng)]))
+            .collect();
 
         Self(identifier_string)
     }
