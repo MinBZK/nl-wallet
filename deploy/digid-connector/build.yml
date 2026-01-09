@@ -48,15 +48,14 @@ build-rdo-max-image:
     - echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
   script:
     - cd nl-rdo-max
-    - |
-      buildah build \
-        --build-arg APP_GROUP=app \
-        --build-arg APP_USER=app \
-        --build-arg LOCAL_SOURCE_DIR=. \
-        --build-arg PROJECT_DIR=/app \
-        --file docker/Dockerfile \
-        --tag nl-rdo-max:$RDO_MAX_VERSION"
+    - buildah build
+        --build-arg APP_GROUP=app
+        --build-arg APP_USER=app
+        --build-arg LOCAL_SOURCE_DIR=.
+        --build-arg PROJECT_DIR=/app
+        --file docker/Dockerfile
+        --tag "nl-rdo-max:$RDO_MAX_VERSION"
     - |
       for HARBOR_REGISTRY in $HARBOR_REGISTRIES; do
-        buildah push "$HARBOR_REGISTRY/$HARBOR_PROJECT/nl-rdo-max:$RDO_MAX_VERSION"
+        buildah push nl-rdo-max:$RDO_MAX_VERSION "$HARBOR_REGISTRY/$HARBOR_PROJECT/nl-rdo-max:$RDO_MAX_VERSION"
       done
