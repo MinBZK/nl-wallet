@@ -23,6 +23,8 @@ mock = ["dep:der", "dep:rand", "dep:time", "dep:x509-cert", "encode", "rcgen/aws
 network_test = []
 # Derive Serialize for KeyAttestation and related types, to use in JSON APIs.
 serialize_key_attestation = ["bytes/serde", "dep:cfg_eval", "dep:serde_repr"]
+# Skip checking root key of the chain. This allows for generated root keys of emulators.
+skip_root_key_check = ["dep:tracing"]
 
 [dependencies]
 bitflags.workspace = true

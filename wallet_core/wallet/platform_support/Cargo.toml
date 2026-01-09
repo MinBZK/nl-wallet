@@ -57,6 +57,7 @@ mock = ["mock_attested_key", "mock_hw_keystore", "mock_utils"]
 # Enable helper code for iOS and Android integration tests
 hardware_integration_test = [
     "android_attest/allow_emulator_keys",
+    "android_attest/skip_root_key_check",
     "apple_app_attest/xcode_env",
     "dep:android_attest",
     "dep:android_logger",

@@ -14,20 +14,8 @@ const GOOGLE_ROOT_PUBKEY_DER: &[u8] = &decode!(
     include_bytes!("../assets/google_hardware_attestation_root_pubkey.pem")
 );
 
-const EMULATOR_ROOT_RSA_PUBKEY_DER: &[u8] =
-    &decode!(Pem, include_bytes!("../assets/android_emulator_rsa_root_pubkey.pem"));
-const EMULATOR_ROOT_ECDSA_PUBKEY_DER: &[u8] =
-    &decode!(Pem, include_bytes!("../assets/android_emulator_ec_root_pubkey.pem"));
-
 pub static GOOGLE_ROOT_PUBKEYS: LazyLock<Vec<RootPublicKey>> =
     LazyLock::new(|| vec![RootPublicKey::rsa_from_der(GOOGLE_ROOT_PUBKEY_DER).unwrap()]);
-
-pub static EMULATOR_PUBKEYS: LazyLock<Vec<RootPublicKey>> = LazyLock::new(|| {
-    vec![
-        RootPublicKey::rsa_from_der(EMULATOR_ROOT_RSA_PUBKEY_DER).unwrap(),
-        RootPublicKey::ecdsa_from_der(EMULATOR_ROOT_ECDSA_PUBKEY_DER).unwrap(),
-    ]
-});
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RootPublicKey {

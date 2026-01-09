@@ -191,13 +191,21 @@ fn verify_google_attestation_certificate_chain<'a>(
         .map_err(GoogleKeyAttestationError::RootPublicKey)?;
 
     // Verify that the root public certificate is trustworthy.
-    if !root_public_keys.iter().any(|public_key| root_public_key == *public_key) {
-        return Err(GoogleKeyAttestationError::RootPublicKeyMismatch);
+    let root_public_key_is_trusted = root_public_keys.iter().any(|public_key| root_public_key == *public_key);
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "skip_root_key_check")] {
+            // Allow any security level on the emulator.
+            tracing::warn!("Assume root key of chain is trusted [actual: {}]", root_public_key_is_trusted);
+        } else {
+            if !root_public_key_is_trusted {
+                return Err(GoogleKeyAttestationError::RootPublicKeyMismatch);
+            }
+        }
     }
 
     // Take the root certificate in the list as trust anchor. This is a hack which allows us to use
     // `EndEntityCert::verify_for_usage` to verify the certificate chain. This hack is safe, because we have verified
-    // the public key of the root certificate to be trustworthy.
+    // (or assumed) the public key of the root certificate to be trustworthy.
     let trust_anchor = webpki::anchor_from_trusted_cert(root_certificate_der)
         .map_err(GoogleKeyAttestationError::InvalidTrustAnchor)?;
     let trust_anchors = vec![trust_anchor];
