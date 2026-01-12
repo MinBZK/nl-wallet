@@ -218,7 +218,7 @@ impl Bits {
 
     #[inline]
     fn mask(self) -> u8 {
-        ((1 << (self.size() as u16)) - 1) as u8
+        ((1 << u16::from(self.size())) - 1) as u8
     }
 
     #[inline]
@@ -367,7 +367,7 @@ pub mod test {
     fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: Bits) {
         let packed = list.pack();
         let compressed = serde_json::to_value(packed).unwrap();
-        assert_eq!(compressed["bits"].as_u64().unwrap(), expected.size() as u64);
+        assert_eq!(compressed["bits"].as_u64().unwrap(), u64::from(expected.size()));
     }
 
     #[rstest]

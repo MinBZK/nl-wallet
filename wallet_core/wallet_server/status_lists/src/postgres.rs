@@ -511,7 +511,7 @@ where
     ) -> Result<Vec<(status_list::Model, Vec<status_list_item::Model>)>, StatusListServiceError> {
         let start_sequence_no = lists
             .iter()
-            .map(|list| list.next_sequence_no - list.available as i64)
+            .map(|list| list.next_sequence_no - i64::from(list.available))
             .min();
 
         let items = status_list_item::Entity::find()
@@ -621,7 +621,7 @@ where
         // Create new list
         let external_id = crypto::utils::random_string(EXTERNAL_ID_SIZE);
         let list_size = self.config.list_size.into_inner();
-        let new_next_sequence_no = attestation_type.next_sequence_no + list_size as i64;
+        let new_next_sequence_no = attestation_type.next_sequence_no + i64::from(list_size);
         let list = status_list::ActiveModel {
             id: NotSet,
             attestation_type_id: Set(self.attestation_type_id),
