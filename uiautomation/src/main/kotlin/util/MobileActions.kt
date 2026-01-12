@@ -361,6 +361,25 @@ open class MobileActions {
         }
     }
 
+    fun getTextFromAllChildElementsFromElementWithText(parentText: String): String {
+        val parentElement = try {
+            findElementByText(parentText)
+        } catch (e: Exception) {
+            println("Failed to find parent element: ${e.message}")
+            return ""
+        }
+
+        val childElements = parentElement.findElements(By.xpath(".//*"))
+
+        return childElements.joinToString("") { element ->
+            when (val platform = platformName()) {
+                "ANDROID" -> element.getAttribute("contentDescription") ?: ""
+                "IOS" -> element.getAttribute("name") ?: ""
+                else -> ""
+            }
+        }
+    }
+
     private fun findElementByPartialText(partialText: String, timeoutInSeconds: Long = 5): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
         return when (val platform = platformName()) {

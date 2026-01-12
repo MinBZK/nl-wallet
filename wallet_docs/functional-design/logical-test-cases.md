@@ -868,3 +868,13 @@ instructs user to choose a new PIN
 **When** EAA card is revoked
 **Then** EAA card is displayed as revoked
 **And** EAA card cannot be presented anymore
+
+---
+
+### LTC70
+
+#### Receive revocation code
+
+**Given** user has completed remote PIN setup  
+**Then** system display a revocation code  
+**And** user has to confirm the revocation code is written to continue  

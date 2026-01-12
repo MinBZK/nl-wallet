@@ -5,7 +5,7 @@ import org.junit.platform.suite.api.Suite
 import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
-    feature.security.SetupRemotePinTests::class,
+    feature.security.SetupSecurityTests::class,
     feature.security.UserEntersPinTests::class,
     feature.security.UserLocksWalletTests::class,
     feature.security.RecoverPinTests::class,
