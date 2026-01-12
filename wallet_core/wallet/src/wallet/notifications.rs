@@ -24,7 +24,7 @@ pub enum NotificationsError {
     Storage(#[from] StorageError),
 }
 
-pub type ScheduledNotificationsCallback = Box<dyn FnMut(Vec<Notification>) + Send + Sync>;
+pub type ScheduledNotificationsCallback = Box<dyn Fn(Vec<Notification>) + Send + Sync>;
 
 pub type DirectNotificationsCallback =
     Box<dyn Fn(Vec<Notification>) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> + Send + Sync>;
@@ -37,13 +37,13 @@ where
     DC: DigidClient,
     DCC: DisclosureClient,
 {
-    pub async fn emit_notifications(&mut self) -> Result<(), NotificationsError> {
+    pub async fn emit_notifications(&self) -> Result<(), NotificationsError> {
         info!("Emit notifications");
 
         let wallet_config = self.config_repository.get();
         let storage = self.storage.read().await;
 
-        if let Some(notifications_callback) = &mut self.scheduled_notifications_callback {
+        if let Some(notifications_callback) = &self.scheduled_notifications_callback {
             let notifications: Vec<Notification> = storage
                 .fetch_unique_attestations()
                 .await?
@@ -88,7 +88,7 @@ where
     pub fn clear_scheduled_notifications_callback(&mut self) {
         let callback = self.scheduled_notifications_callback.take();
         // Unschedule any existing notifications
-        if let Some(mut callback) = callback {
+        if let Some(callback) = callback {
             callback(Vec::new());
         }
     }
