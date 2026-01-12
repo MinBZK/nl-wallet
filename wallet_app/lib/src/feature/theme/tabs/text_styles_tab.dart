@@ -10,6 +10,7 @@ import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/spacer/paragraph_spacer.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../notification/debug/scheduled_notifications_screen.dart';
 import '../theme_screen.dart';
 
 class TextStylesTab extends StatelessWidget {
@@ -44,7 +45,23 @@ class TextStylesTab extends StatelessWidget {
         const TitleText('Title Text'),
         const ParagraphSpacer(),
         const BodyText('Body Text'),
+        _buildDebugPages(context),
         _buildScenarios(context),
+      ],
+    );
+  }
+
+  Widget _buildDebugPages(BuildContext context) {
+    return Column(
+      children: [
+        const ThemeSectionHeader(title: 'Debug Pages'),
+        const SizedBox(height: 12),
+        SecondaryButton(
+          onPressed: () => ScheduledNotificationsScreen.show(context),
+          icon: const Icon(Icons.notifications_outlined),
+          text: const Text('Notifications'),
+        ),
+        const SizedBox(height: 12),
       ],
     );
   }
