@@ -80,9 +80,10 @@ jwt.path = "../../lib/jwt"
 http_utils.path = "../../lib/http_utils"
 hsm.path = "../../lib/hsm"
 measure.path = "../../lib/measure"
-server_utils.path = "../server_utils"
 token_status_list = { path = "../../lib/token_status_list" }
 utils.path = "../../lib/utils"
+
+server_utils = { path = "../server_utils", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

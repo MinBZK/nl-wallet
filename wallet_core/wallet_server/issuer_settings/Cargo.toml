@@ -15,6 +15,7 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into_iterator"] }
 futures.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
+itertools.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

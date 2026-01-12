@@ -3558,6 +3558,7 @@ dependencies = [
  "hsm",
  "http_utils",
  "indexmap 2.12.1",
+ "itertools 0.14.0",
  "openid4vc",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",

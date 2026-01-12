@@ -11,13 +11,13 @@ use http_utils::health::create_health_router;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::server;
 use issuance_server::settings::IssuanceServerSettings;
+use issuer_settings::settings::StatusListAttestationSettings;
 use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 use server_utils::store::postgres::new_connection;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::serve::create_serve_router;
-use status_lists::settings::StatusListAttestationSettings;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 
 #[tokio::main]
