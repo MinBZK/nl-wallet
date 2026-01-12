@@ -85,7 +85,12 @@ async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, pub
         .unwrap()
         .1
         .status_list
-        .single_unpack(claim.idx as usize)
+        .single_unpack(
+            claim
+                .idx
+                .try_into()
+                .expect("should always work on 32- or higher bit systems"),
+        )
 }
 
 async fn verify_revocation(
