@@ -4,13 +4,8 @@
 
 - The Wallet Provider generates a Revocation Key during registration and sends
   this to the Wallet, while it stores an HMAC of the key in its database.
-
-## Wallet app improvements
-
-- Add 'manage notifications' screen to the settings menu.
-
-## New features
-
+- Add 'manage notifications' screen to the app's settings menu.
+- Display revocation code in the onboarding process.
 - Show the build environment alongside the app version in the app.
 - The wallet now shows notifications on the dashboard as well as in the mobile
   Operating System whenever an attestation is about to expire or has expired.
