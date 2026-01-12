@@ -54,6 +54,7 @@ use crate::attestation::AttestationPresentationConfig;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -63,6 +64,7 @@ use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::storage::StorageError;
+use crate::wallet::HistoryError;
 use crate::wallet::Session;
 
 use super::UriType;
@@ -91,23 +93,30 @@ pub enum DisclosureError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
+
     #[error("wallet is locked")]
     #[category(expected)]
     Locked,
+
     #[error("disclosure session is not in the correct state")]
     #[category(expected)]
     SessionState,
+
     #[error("did not recognize disclosure URI: {0}")]
     #[category(pd)]
     DisclosureUri(Url),
+
     #[error("disclosure URI is missing query parameter(s): {0}")]
     #[category(pd)]
     DisclosureUriQuery(Url),
+
     #[error("error in OpenID4VP disclosure session: {0}")]
     VpClient(#[source] VpClientError),
+
     #[error("error in OpenID4VP disclosure session: {error}")]
     VpVerifierServer {
         organization: Option<Box<Organization>>,
@@ -115,10 +124,13 @@ pub enum DisclosureError {
         #[source]
         error: VpVerifierError,
     },
+
     #[error("could not fetch if attributes were shared before: {0}")]
     HistoryRetrieval(#[source] StorageError),
+
     #[error("could not fetch candidate attestations from database: {0}")]
     AttestationRetrieval(#[source] StorageError),
+
     #[error("not all requested attributes are available, requested: {requested_attributes:?}")]
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable {
@@ -127,29 +139,38 @@ pub enum DisclosureError {
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
+
     #[error("cannot request recovery code")]
     #[category(critical)]
     RecoveryCodeRequested,
+
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
+
     #[error("could not increment usage count of mdoc copies in database: {0}")]
     IncrementUsageCount(#[source] StorageError),
+
     // TODO (PVW-5113): Have this specific error cause a warning screen instead of a generic error screen in Flutter.
     #[error("could not store event in history database: {0}")]
-    EventStorage(#[source] StorageError),
+    EventStorage(#[from] HistoryError),
+
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
+
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
+
     #[error("unexpected redirect URI purpose: expected {expected:?}, found {found:?}")]
     #[category(critical)]
     UnexpectedRedirectUriPurpose {
         expected: RedirectUriPurpose,
         found: RedirectUriPurpose,
     },
+
     #[error("non-selectively-disclosable claims: {1:?} not requested for requested vct values: {2:?}")]
     #[category(critical)]
     NonSelectivelyDisclosableClaimsNotRequested(Box<Organization>, Vec<VecNonEmpty<ClaimPath>>, Vec<String>),
+
     #[error("non-selectively-disclosable claim error: {1}")]
     #[category(critical)]
     NonSelectivelyDisclosableClaim(Box<Organization>, #[source] NonSelectivelyDisclosableClaimsError),
@@ -627,8 +648,7 @@ where
             EventStatus::Cancelled,
             DataDisclosed::NotDisclosed,
         )
-        .await
-        .map_err(DisclosureError::EventStorage)?;
+        .await?;
 
         Ok(return_url)
     }
@@ -748,9 +768,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 

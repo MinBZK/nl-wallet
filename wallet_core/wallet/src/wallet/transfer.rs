@@ -35,6 +35,7 @@ use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClientParameters;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -44,8 +45,10 @@ use crate::transfer::database_payload::DatabasePayloadError;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
+use crate::wallet::HistoryError;
 use crate::wallet::WalletRegistration;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::notifications::NotificationsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -67,6 +70,9 @@ pub enum TransferError {
 
     #[error("error fetching transfer data from storage: {0}")]
     Storage(#[from] StorageError),
+
+    #[error("error emitting history events: {0}")]
+    Events(#[from] HistoryError),
 
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
@@ -101,6 +107,10 @@ pub enum TransferError {
     #[error("error emitting attestations: {0}")]
     #[category(pd)]
     EmitAttestations(#[from] AttestationsError),
+
+    #[error("error emitting notifications: {0}")]
+    #[category(pd)]
+    EmitNotifications(#[from] NotificationsError),
 
     #[error("error creating a temp file: {0}")]
     #[category(critical)]
@@ -272,9 +282,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 
@@ -353,14 +367,13 @@ where
         }
 
         self.emit_attestations().await?;
+        self.emit_notifications().await?;
         self.emit_recent_history().await?;
 
         Ok(())
     }
 
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
-    pub async fn complete_transfer(&mut self, transfer_session_id: Uuid) -> Result<(), TransferError> {
+    async fn complete_transfer(&mut self, transfer_session_id: Uuid) -> Result<(), TransferError> {
         self.send_transfer_instruction(CompleteTransfer { transfer_session_id })
             .await?;
 
@@ -434,9 +447,13 @@ where
 
         let instruction_client = self.new_hw_signed_instruction_client(
             Arc::clone(attested_key),
-            registration_data.clone(),
-            config.account_server.http_config.clone(),
-            instruction_result_public_key,
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                instruction_result_public_key,
+            ),
         );
 
         let result = instruction_client

@@ -14,6 +14,7 @@ use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::reqwest::parse_content_type;
 use http_utils::tls::pinning::TlsPinningConfig;
+use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::HwSignedInstruction;
@@ -181,12 +182,15 @@ impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
         &self,
         client_config: &TlsPinningConfig,
         registration_message: ChallengeResponse<Registration>,
-    ) -> Result<WalletCertificate, AccountProviderError> {
-        let cert: Certificate = self
+    ) -> Result<(WalletCertificate, RevocationCode), AccountProviderError> {
+        let Certificate {
+            certificate,
+            revocation_code,
+        } = self
             .send_json_post_request(client_config, "createwallet", &registration_message, false)
             .await?;
 
-        Ok(cert.certificate)
+        Ok((certificate, revocation_code))
     }
 
     async fn instruction_challenge(

@@ -227,6 +227,7 @@ where
             lock: WalletLock::new(true),
             attestations_callback: Arc::new(Mutex::new(None)),
             recent_history_callback: None,
+            notifications_callback: None,
             revocation_status_job_handle: None,
         }
     }
@@ -302,6 +303,8 @@ where
 mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+
+    use wallet_account::RevocationCode;
 
     use crate::pin::key as pin_key;
     use crate::storage::MockStorage;
@@ -390,6 +393,7 @@ mod tests {
                 pin_salt: expected_pin_salt.clone(),
                 wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "this.isa.jwt".parse().unwrap(),
+                revocation_code: RevocationCode::new_random(),
             }))
         });
         storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));

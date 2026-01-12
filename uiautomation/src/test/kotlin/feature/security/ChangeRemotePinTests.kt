@@ -40,7 +40,7 @@ class ChangeRemotePinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC45 Change PIN")
-    @Tags(Tag("a11yBatch1"))
+    @Tags(Tag("a11yBatch3"))
     fun verifyChoosePinScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         menuScreen.clickSettingsButton()

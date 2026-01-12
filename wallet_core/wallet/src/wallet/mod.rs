@@ -8,11 +8,13 @@ mod init;
 mod instruction_client;
 mod issuance;
 mod lock;
+mod notifications;
 mod pin_recovery;
 mod recovery_code;
 mod registration;
 mod reset;
 mod revocation;
+mod revocation_code;
 mod state;
 mod transfer;
 mod uri;
@@ -65,10 +67,12 @@ pub use self::issuance::PidIssuancePurpose;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
+pub use self::notifications::NotificationsCallback;
 pub use self::pin_recovery::PinRecoveryError;
 pub use self::recovery_code::RecoveryCodeError;
 pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
+pub use self::revocation_code::RevocationCodeError;
 pub use self::state::BlockedReason;
 pub use self::state::TransferRole;
 pub use self::state::WalletState;
@@ -153,5 +157,6 @@ pub struct Wallet<
     lock: WalletLock,
     attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,
+    notifications_callback: Option<NotificationsCallback>,
     revocation_status_job_handle: Option<AbortHandle>,
 }

@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 916980055;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 509254084;
 
 // Section: executor
 
@@ -630,6 +630,52 @@ fn wire__crate__api__full__get_history_for_card_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::get_history_for_card(api_attestation_id).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__get_registration_revocation_code_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_registration_revocation_code",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::get_registration_revocation_code().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__get_revocation_code_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    pin: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_revocation_code",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::get_revocation_code(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1375,12 +1421,6 @@ impl CstDecode<u16> for u16 {
         self
     }
 }
-impl CstDecode<u32> for u32 {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    fn cst_decode(self) -> u32 {
-        self
-    }
-}
 impl CstDecode<u64> for u64 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> u64 {
@@ -1391,6 +1431,18 @@ impl CstDecode<u8> for u8 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> u8 {
         self
+    }
+}
+impl CstDecode<crate::models::attestation::ValidityStatus> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::attestation::ValidityStatus {
+        match self {
+            0 => crate::models::attestation::ValidityStatus::NotYetValid,
+            1 => crate::models::attestation::ValidityStatus::Valid,
+            2 => crate::models::attestation::ValidityStatus::ExpiresSoon,
+            3 => crate::models::attestation::ValidityStatus::Expired,
+            _ => unreachable!("Invalid variant for ValidityStatus: {}", self),
+        }
     }
 }
 impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
@@ -1495,7 +1547,7 @@ impl SseDecode for crate::models::disclosure::AcceptDisclosureResult {
 impl SseDecode for crate::models::notification::AppNotification {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_id = <u32>::sse_decode(deserializer);
+        let mut var_id = <i32>::sse_decode(deserializer);
         let mut var_typ = <crate::models::notification::NotificationType>::sse_decode(deserializer);
         let mut var_targets = <Vec<crate::models::notification::DisplayTarget>>::sse_decode(deserializer);
         return crate::models::notification::AppNotification {
@@ -1549,6 +1601,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
         let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
         let mut var_revocationStatus = <Option<crate::models::revocation::RevocationStatus>>::sse_decode(deserializer);
+        let mut var_validityStatus = <crate::models::attestation::ValidityStatus>::sse_decode(deserializer);
         let mut var_validityWindow = <crate::models::validity::ValidityWindow>::sse_decode(deserializer);
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationPresentation {
@@ -1557,6 +1610,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
             display_metadata: var_displayMetadata,
             issuer: var_issuer,
             revocation_status: var_revocationStatus,
+            validity_status: var_validityStatus,
             validity_window: var_validityWindow,
             attributes: var_attributes,
         };
@@ -2286,6 +2340,28 @@ impl SseDecode for crate::models::disclosure::RequestPolicy {
     }
 }
 
+impl SseDecode for crate::models::instruction::RevocationCodeResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_revocationCode = <String>::sse_decode(deserializer);
+                return crate::models::instruction::RevocationCodeResult::Ok {
+                    revocation_code: var_revocationCode,
+                };
+            }
+            1 => {
+                let mut var_error = <crate::models::instruction::WalletInstructionError>::sse_decode(deserializer);
+                return crate::models::instruction::RevocationCodeResult::InstructionError { error: var_error };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseDecode for crate::models::revocation::RevocationStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2386,13 +2462,6 @@ impl SseDecode for u16 {
     }
 }
 
-impl SseDecode for u32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_u32::<NativeEndian>().unwrap()
-    }
-}
-
 impl SseDecode for u64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2410,6 +2479,20 @@ impl SseDecode for u8 {
 impl SseDecode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
+}
+
+impl SseDecode for crate::models::attestation::ValidityStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::models::attestation::ValidityStatus::NotYetValid,
+            1 => crate::models::attestation::ValidityStatus::Valid,
+            2 => crate::models::attestation::ValidityStatus::ExpiresSoon,
+            3 => crate::models::attestation::ValidityStatus::Expired,
+            _ => unreachable!("Invalid variant for ValidityStatus: {}", inner),
+        };
+    }
 }
 
 impl SseDecode for crate::models::validity::ValidityWindow {
@@ -2689,6 +2772,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPr
             self.display_metadata.into_into_dart().into_dart(),
             self.issuer.into_into_dart().into_dart(),
             self.revocation_status.into_into_dart().into_dart(),
+            self.validity_status.into_into_dart().into_dart(),
             self.validity_window.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),
         ]
@@ -3209,6 +3293,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::RequestPolicy>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::instruction::RevocationCodeResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::instruction::RevocationCodeResult::Ok { revocation_code } => {
+                [0.into_dart(), revocation_code.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::instruction::RevocationCodeResult::InstructionError { error } => {
+                [1.into_dart(), error.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::instruction::RevocationCodeResult {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::RevocationCodeResult>
+    for crate::models::instruction::RevocationCodeResult
+{
+    fn into_into_dart(self) -> crate::models::instruction::RevocationCodeResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::revocation::RevocationStatus {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3322,6 +3430,26 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::transfer::TransferSessionS
     for crate::models::transfer::TransferSessionState
 {
     fn into_into_dart(self) -> crate::models::transfer::TransferSessionState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::attestation::ValidityStatus {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::NotYetValid => 0.into_dart(),
+            Self::Valid => 1.into_dart(),
+            Self::ExpiresSoon => 2.into_dart(),
+            Self::Expired => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::ValidityStatus {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::ValidityStatus>
+    for crate::models::attestation::ValidityStatus
+{
+    fn into_into_dart(self) -> crate::models::attestation::ValidityStatus {
         self
     }
 }
@@ -3581,7 +3709,7 @@ impl SseEncode for crate::models::disclosure::AcceptDisclosureResult {
 impl SseEncode for crate::models::notification::AppNotification {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <u32>::sse_encode(self.id, serializer);
+        <i32>::sse_encode(self.id, serializer);
         <crate::models::notification::NotificationType>::sse_encode(self.typ, serializer);
         <Vec<crate::models::notification::DisplayTarget>>::sse_encode(self.targets, serializer);
     }
@@ -3623,6 +3751,7 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
         <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
         <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
         <Option<crate::models::revocation::RevocationStatus>>::sse_encode(self.revocation_status, serializer);
+        <crate::models::attestation::ValidityStatus>::sse_encode(self.validity_status, serializer);
         <crate::models::validity::ValidityWindow>::sse_encode(self.validity_window, serializer);
         <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
     }
@@ -4257,6 +4386,25 @@ impl SseEncode for crate::models::disclosure::RequestPolicy {
     }
 }
 
+impl SseEncode for crate::models::instruction::RevocationCodeResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::instruction::RevocationCodeResult::Ok { revocation_code } => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(revocation_code, serializer);
+            }
+            crate::models::instruction::RevocationCodeResult::InstructionError { error } => {
+                <i32>::sse_encode(1, serializer);
+                <crate::models::instruction::WalletInstructionError>::sse_encode(error, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseEncode for crate::models::revocation::RevocationStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4366,13 +4514,6 @@ impl SseEncode for u16 {
     }
 }
 
-impl SseEncode for u32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
-    }
-}
-
 impl SseEncode for u64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4390,6 +4531,24 @@ impl SseEncode for u8 {
 impl SseEncode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
+}
+
+impl SseEncode for crate::models::attestation::ValidityStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::models::attestation::ValidityStatus::NotYetValid => 0,
+                crate::models::attestation::ValidityStatus::Valid => 1,
+                crate::models::attestation::ValidityStatus::ExpiresSoon => 2,
+                crate::models::attestation::ValidityStatus::Expired => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
 }
 
 impl SseEncode for crate::models::validity::ValidityWindow {
@@ -4714,6 +4873,7 @@ mod io {
                 display_metadata: self.display_metadata.cst_decode(),
                 issuer: self.issuer.cst_decode(),
                 revocation_status: self.revocation_status.cst_decode(),
+                validity_status: self.validity_status.cst_decode(),
                 validity_window: self.validity_window.cst_decode(),
                 attributes: self.attributes.cst_decode(),
             }
@@ -5216,6 +5376,26 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::instruction::RevocationCodeResult> for wire_cst_revocation_code_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::instruction::RevocationCodeResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Ok };
+                    crate::models::instruction::RevocationCodeResult::Ok {
+                        revocation_code: ans.revocation_code.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.InstructionError };
+                    crate::models::instruction::RevocationCodeResult::InstructionError {
+                        error: ans.error.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
     impl CstDecode<crate::models::disclosure::StartDisclosureResult> for wire_cst_start_disclosure_result {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::disclosure::StartDisclosureResult {
@@ -5421,6 +5601,7 @@ mod io {
                 display_metadata: core::ptr::null_mut(),
                 issuer: Default::default(),
                 revocation_status: core::ptr::null_mut(),
+                validity_status: Default::default(),
                 validity_window: Default::default(),
                 attributes: core::ptr::null_mut(),
             }
@@ -5666,6 +5847,19 @@ mod io {
         }
     }
     impl Default for wire_cst_request_policy {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_revocation_code_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: RevocationCodeResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_revocation_code_result {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -5916,6 +6110,19 @@ mod io {
         attestation_id: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__get_history_for_card_impl(port_, attestation_id)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_registration_revocation_code(port_: i64) {
+        wire__crate__api__full__get_registration_revocation_code_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_revocation_code(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__get_revocation_code_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]
@@ -6358,7 +6565,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_app_notification {
-        id: u32,
+        id: i32,
         typ: wire_cst_notification_type,
         targets: *mut wire_cst_list_display_target,
     }
@@ -6395,6 +6602,7 @@ mod io {
         display_metadata: *mut wire_cst_list_display_metadata,
         issuer: wire_cst_organization,
         revocation_status: *mut i32,
+        validity_status: i32,
         validity_window: wire_cst_validity_window,
         attributes: *mut wire_cst_list_attestation_attribute,
     }
@@ -6758,6 +6966,29 @@ mod io {
         data_shared_with_third_parties: bool,
         data_deletion_possible: bool,
         policy_url: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_revocation_code_result {
+        tag: i32,
+        kind: RevocationCodeResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union RevocationCodeResultKind {
+        Ok: wire_cst_RevocationCodeResult_Ok,
+        InstructionError: wire_cst_RevocationCodeResult_InstructionError,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_RevocationCodeResult_Ok {
+        revocation_code: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_RevocationCodeResult_InstructionError {
+        error: *mut wire_cst_wallet_instruction_error,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

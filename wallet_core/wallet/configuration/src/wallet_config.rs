@@ -111,13 +111,12 @@ pub enum PidAttributesConfigurationError {
 }
 
 impl PidAttributesConfiguration {
-    pub fn pid_attestation_types(&self) -> Vec<String> {
+    pub fn pid_attestation_types(&self) -> impl Iterator<Item = &str> {
         [&self.mso_mdoc, &self.sd_jwt]
             .into_iter()
             .flat_map(HashMap::keys)
             .unique()
-            .map(String::to_string)
-            .collect()
+            .map(String::as_str)
     }
 
     pub fn recovery_code_path(

@@ -241,7 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.restorablePushNamed(
       context,
       WalletRoutes.cardDetailRoute,
-      arguments: CardDetailScreenArgument.forCard(walletCard).toJson(),
+      arguments: CardDetailScreenArgument.fromCard(walletCard).toJson(),
     );
   }
 

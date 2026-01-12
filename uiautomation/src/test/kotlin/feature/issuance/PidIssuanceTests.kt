@@ -130,7 +130,7 @@ class PidIssuanceTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC3 Authentication with auth server fails")
-    @Tags(Tag("a11yBatch1"))
+    @Tags(Tag("a11yBatch3"))
     fun verifySessionCanceledScreen(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()

@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../environment.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/list_extension.dart';
+import '../../util/extension/object_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
+import '../common/widget/menu_item.dart';
 import '../common/widget/setting/switch_setting_row.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import 'bloc/manage_notifications_bloc.dart';
+import 'debug/scheduled_notifications_screen.dart';
 
 class ManageNotificationsScreen extends StatelessWidget {
   const ManageNotificationsScreen({super.key});
@@ -63,8 +68,14 @@ class ManageNotificationsScreen extends StatelessWidget {
                         : null,
                     dividerSide: .both,
                   ),
+                  MenuItem(
+                    label: Text(context.l10n.manageNotificationsScreenDebugTitle),
+                    subtitle: Text(context.l10n.manageNotificationsScreenDebugSubtitle),
+                    dividerSide: .bottom,
+                    onPressed: () => ScheduledNotificationsScreen.show(context),
+                  ).takeIf((_) => Environment.showDebugOptions),
                   const SizedBox(height: 16),
-                ],
+                ].nonNullsList,
               ),
             ],
           ),

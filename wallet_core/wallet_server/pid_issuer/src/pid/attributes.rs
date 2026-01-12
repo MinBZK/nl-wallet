@@ -1,4 +1,4 @@
-use std::num::NonZero;
+use std::num::NonZeroUsize;
 
 use futures::future::try_join_all;
 
@@ -44,7 +44,7 @@ pub enum Error {
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
     #[error("unexpected number of SAN DNS names or URIs in issuer certificate; expected: 0, found {0}")]
-    UnexpectedIssuerSanDnsNameOrUrisCount(NonZero<usize>),
+    UnexpectedIssuerSanDnsNameOrUrisCount(NonZeroUsize),
     #[error("could not find BSN attribute")]
     NoBsnFound,
     #[error("could not find PID attestation")]

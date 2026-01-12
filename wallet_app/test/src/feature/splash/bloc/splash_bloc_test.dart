@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/wallet_state.dart';
 import 'package:wallet/src/feature/splash/bloc/splash_bloc.dart';
 
@@ -8,14 +9,16 @@ import '../../../mocks/wallet_mocks.dart';
 
 void main() {
   late MockGetWalletStateUseCase mockGetWalletStateUseCase;
+  late MockGetRevocationCodeSavedUseCase mockGetRevocationCodeSavedUseCase;
 
   setUp(() {
     mockGetWalletStateUseCase = MockGetWalletStateUseCase();
+    mockGetRevocationCodeSavedUseCase = MockGetRevocationCodeSavedUseCase();
   });
 
   blocTest(
     'verify initial state',
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     verify: (bloc) => expect(bloc.state, SplashInitial()),
   );
 
@@ -23,7 +26,7 @@ void main() {
     'if mockGetWalletStateUseCase throws, app initialization should fail',
     setUp: () => when(mockGetWalletStateUseCase.invoke()).thenThrow(StateError('error')),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     errors: () => [isA<StateError>()],
   );
 
@@ -33,17 +36,29 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateUnregistered()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.onboarding)],
   );
 
   blocTest(
-    'verify user is redirected to pidRetrieval when wallet state is WalletStateEmpty',
-    setUp: () => when(
-      mockGetWalletStateUseCase.invoke(),
-    ).thenAnswer((_) async => const WalletStateEmpty()),
+    'verify user is redirected to revocationCode when wallet state is WalletStateEmpty and revocation code is not yet saved',
+    setUp: () {
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateEmpty());
+      when(mockGetRevocationCodeSavedUseCase.invoke()).thenAnswer((_) async => const Result.success(false));
+    },
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
+    expect: () => [const SplashLoaded(.revocationCode)],
+  );
+
+  blocTest(
+    'verify user is redirected to pidRetrieval when wallet state is WalletStateEmpty and revocation code is saved',
+    setUp: () {
+      when(mockGetWalletStateUseCase.invoke()).thenAnswer((_) async => const WalletStateEmpty());
+      when(mockGetRevocationCodeSavedUseCase.invoke()).thenAnswer((_) async => const Result.success(true));
+    },
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.pidRetrieval)],
   );
 
@@ -53,7 +68,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateLocked(WalletStateEmpty())),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.pidRetrieval)],
   );
 
@@ -63,7 +78,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateReady()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.dashboard)],
   );
 
@@ -73,7 +88,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateLocked(WalletStateReady())),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.dashboard)],
   );
 
@@ -83,7 +98,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateTransferPossible()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.transfer)],
   );
 
@@ -93,7 +108,7 @@ void main() {
       (_) async => const WalletStateTransferring(TransferRole.target),
     ),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.transfer)],
   );
 
@@ -103,7 +118,7 @@ void main() {
       (_) async => const WalletStateTransferring(TransferRole.source),
     ),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.dashboard)],
   );
 
@@ -113,7 +128,7 @@ void main() {
       (_) async => const WalletStateBlocked(BlockedReason.requiresAppUpdate),
     ),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.blocked)],
   );
 
@@ -123,7 +138,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInDisclosureFlow()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.dashboard)],
   );
 
@@ -133,7 +148,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInIssuanceFlow()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.dashboard)],
   );
 
@@ -143,7 +158,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInPinChangeFlow()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.dashboard)],
   );
 
@@ -153,7 +168,7 @@ void main() {
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInPinRecoveryFlow()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
-    build: () => SplashBloc(mockGetWalletStateUseCase),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
     expect: () => [const SplashLoaded(.pinRecovery)],
   );
 }

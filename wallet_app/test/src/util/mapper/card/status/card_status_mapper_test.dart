@@ -132,6 +132,7 @@ core.AttestationPresentation _createMockAttestationPresentation({
     issuer: CoreMockData.organization,
     attributes: [CoreMockData.attestationAttributeName],
     revocationStatus: revocationStatus,
+    validityStatus: core.ValidityStatus.Valid,
     validityWindow: core.ValidityWindow(
       validFrom: validFrom,
       validUntil: validUntil,

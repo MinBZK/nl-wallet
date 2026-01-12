@@ -13,7 +13,6 @@ use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
 use crate::credential_payload::PreviewableCredentialPayload;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet, i.e. mdoc and sd-jwt.
 /// ```json
@@ -25,6 +24,8 @@ use crate::credential_payload::PreviewableCredentialPayload;
 ///         "lastname": "Doe"
 ///     }
 /// }
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[cfg_attr(feature = "mock", derive(derive_more::Into))]
 pub struct IssuableDocument {
     attestation_type: String,
     #[validate(custom = IssuableDocument::validate_attributes)]
@@ -102,10 +103,6 @@ pub mod mock {
     use crate::attributes::AttributeValue;
 
     impl IssuableDocument {
-        pub fn into_parts(self) -> (String, Attributes, Uuid) {
-            (self.attestation_type, self.attributes, self.id)
-        }
-
         pub fn new_mock_degree(education: String) -> Self {
             IssuableDocument::try_new_with_random_id(
                 "com.example.degree".to_string(),

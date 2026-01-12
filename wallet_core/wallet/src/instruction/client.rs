@@ -14,11 +14,11 @@ use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
+use wallet_account::messages::registration::WalletCertificate;
 
 use crate::account_provider::AccountProviderClient;
 use crate::pin::key::PinKey;
 use crate::storage::InstructionData;
-use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
 use super::InstructionError;
@@ -28,6 +28,7 @@ pub struct InstructionClient<S, AK, GK, A> {
     hw_signed_instruction_client: HwSignedInstructionClient<S, AK, GK, A>,
 }
 
+#[derive(Constructor)]
 pub struct HwSignedInstructionClient<S, AK, GK, A> {
     storage: Arc<RwLock<S>>,
     attested_key: Arc<AttestedKey<AK, GK>>,
@@ -37,7 +38,9 @@ pub struct HwSignedInstructionClient<S, AK, GK, A> {
 
 #[derive(Constructor)]
 pub struct InstructionClientParameters {
-    registration: RegistrationData,
+    wallet_id: String,
+    pin_salt: Vec<u8>,
+    wallet_certificate: WalletCertificate,
     client_config: TlsPinningConfig,
     instruction_result_public_key: EcdsaDecodingKey,
 }
@@ -89,20 +92,6 @@ impl<S, AK, GK, A> InstructionClient<S, AK, GK, A> {
 }
 
 impl<S, AK, GK, A> HwSignedInstructionClient<S, AK, GK, A> {
-    pub fn new(
-        storage: Arc<RwLock<S>>,
-        attested_key: Arc<AttestedKey<AK, GK>>,
-        account_provider_client: Arc<A>,
-        parameters: Arc<InstructionClientParameters>,
-    ) -> Self {
-        Self {
-            storage,
-            attested_key,
-            account_provider_client,
-            parameters,
-        }
-    }
-
     async fn with_sequence_number<F, O, R>(storage: &mut RwLockWriteGuard<'_, S>, f: F) -> Result<R, InstructionError>
     where
         S: Storage,
@@ -131,9 +120,8 @@ where
     where
         I: InstructionAndResult,
     {
-        let registration = &self.parameters.registration;
-        let wallet_id = registration.wallet_id.clone();
-        let wallet_certificate = registration.wallet_certificate.clone();
+        let wallet_id = self.parameters.wallet_id.clone();
+        let wallet_certificate = self.parameters.wallet_certificate.clone();
 
         let challenge_request = Self::with_sequence_number(storage, |seq_num| async move {
             match self.attested_key.as_ref() {
@@ -163,7 +151,7 @@ where
 
         let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
-        let wallet_certificate = self.parameters.registration.wallet_certificate.clone();
+        let wallet_certificate = self.parameters.wallet_certificate.clone();
 
         let instruction =
             HwSignedInstructionClient::<S, AK, GK, A>::with_sequence_number(&mut storage, |seq_num| async move {
@@ -223,17 +211,12 @@ where
 
         let pin_key = PinKey {
             pin: &self.pin,
-            salt: &self.hw_signed_instruction_client.parameters.registration.pin_salt,
+            salt: &self.hw_signed_instruction_client.parameters.pin_salt,
         };
 
         let instruction = construct(challenge.clone()).await?;
 
-        let wallet_certificate = self
-            .hw_signed_instruction_client
-            .parameters
-            .registration
-            .wallet_certificate
-            .clone();
+        let wallet_certificate = self.hw_signed_instruction_client.parameters.wallet_certificate.clone();
 
         let instruction =
             HwSignedInstructionClient::<S, AK, GK, A>::with_sequence_number(&mut storage, |seq_num| async move {
@@ -271,12 +254,7 @@ where
     }
 }
 
-pub struct InstructionClientFactory<S, AK, GK, A> {
-    storage: Arc<RwLock<S>>,
-    attested_key: Arc<AttestedKey<AK, GK>>,
-    account_provider_client: Arc<A>,
-    parameters: Arc<InstructionClientParameters>,
-}
+pub struct InstructionClientFactory<S, AK, GK, A>(HwSignedInstructionClient<S, AK, GK, A>);
 
 impl<S, AK, GK, A> InstructionClientFactory<S, AK, GK, A> {
     pub fn new(
@@ -285,25 +263,20 @@ impl<S, AK, GK, A> InstructionClientFactory<S, AK, GK, A> {
         account_provider_client: Arc<A>,
         parameters: InstructionClientParameters,
     ) -> Self {
-        Self {
-            storage,
-            attested_key,
-            account_provider_client,
-            parameters: Arc::new(parameters),
-        }
+        let hw_signed_instruction_client =
+            HwSignedInstructionClient::new(storage, attested_key, account_provider_client, Arc::new(parameters));
+
+        Self(hw_signed_instruction_client)
     }
 
     /// Creates an [`InstructionClient`].
     /// See [`InstructionClient::new`].
     pub fn create(&self, pin: String) -> InstructionClient<S, AK, GK, A> {
+        let Self(hw_signed_instruction_client) = self;
+
         InstructionClient {
             pin,
-            hw_signed_instruction_client: HwSignedInstructionClient::<S, AK, GK, A>::new(
-                Arc::clone(&self.storage),
-                Arc::clone(&self.attested_key),
-                Arc::clone(&self.account_provider_client),
-                Arc::clone(&self.parameters),
-            ),
+            hw_signed_instruction_client: hw_signed_instruction_client.clone(),
         }
     }
 }

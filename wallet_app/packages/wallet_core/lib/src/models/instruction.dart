@@ -39,6 +39,18 @@ sealed class PidIssuanceResult with _$PidIssuanceResult {
 }
 
 @freezed
+sealed class RevocationCodeResult with _$RevocationCodeResult {
+  const RevocationCodeResult._();
+
+  const factory RevocationCodeResult.ok({
+    required String revocationCode,
+  }) = RevocationCodeResult_Ok;
+  const factory RevocationCodeResult.instructionError({
+    required WalletInstructionError error,
+  }) = RevocationCodeResult_InstructionError;
+}
+
+@freezed
 sealed class WalletInstructionError with _$WalletInstructionError {
   const WalletInstructionError._();
 

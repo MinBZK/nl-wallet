@@ -1,0 +1,45 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+minReadySeconds: 2
+
+image:
+  repository: "redis"
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  port: 6379
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "400m"
+    memory: "256Mi"
+
+securityContext:
+  runAsUser: null
+
+redisConfig:
+  appendonly: "yes"
+  save: ""
+  loglevel: "warning"
+  initialKeys: []
+
+persistence:
+  enabled: true
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+
+networkPolicy:
+  enabled: false
+  ingressFromSelector: {}
+
+tierLabel: ""

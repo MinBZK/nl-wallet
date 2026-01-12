@@ -21,6 +21,7 @@ use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
+use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::notification::AppNotification;
 use crate::models::pin::PinValidationResult;
@@ -136,17 +137,20 @@ pub async fn clear_attestations_stream() {
     wallet().write().await.clear_attestations_callback();
 }
 
-#[expect(clippy::unused_async)]
 pub async fn set_notifications_stream(sink: StreamSink<Vec<AppNotification>>) -> anyhow::Result<()> {
-    // TODO: Store the sink for later use
-    sink.add(vec![]).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    wallet()
+        .write()
+        .await
+        .set_notifications_callback(Box::new(move |notifications| {
+            let _ = sink.add(notifications.into_iter().map(AppNotification::from).collect());
+        }))
+        .await?;
+
     Ok(())
 }
 
-#[expect(clippy::unused_async)]
 pub async fn clear_notifications_stream() {
-    // TODO: clear the notifications stream
-    println!("Notifications stream cleared");
+    wallet().write().await.clear_notifications_callback();
 }
 
 #[flutter_api_error]
@@ -512,6 +516,24 @@ pub async fn get_history_for_card(attestation_id: String) -> anyhow::Result<Vec<
     let history = wallet.get_history_for_card(&attestation_id).await?;
     let history = history.into_iter().map(WalletEvent::from).collect();
     Ok(history)
+}
+
+#[flutter_api_error]
+pub async fn get_registration_revocation_code() -> anyhow::Result<String> {
+    let wallet = wallet().read().await;
+
+    let revocation_code = wallet.get_revocation_code_before_pid().await?;
+
+    Ok(revocation_code.clone().into())
+}
+
+#[flutter_api_error]
+pub async fn get_revocation_code(pin: String) -> anyhow::Result<RevocationCodeResult> {
+    let wallet = wallet().read().await;
+
+    let result = wallet.get_revocation_code_with_pin(pin).await.try_into()?;
+
+    Ok(result)
 }
 
 #[flutter_api_error]

@@ -25,9 +25,9 @@ TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 [[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"
 
 # Path and repository of the nl-rdo-max repository
-export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}"/nl-rdo-max}
-DIGID_CONNECTOR_REPOSITORY="https://github.com/minvws/nl-rdo-max.git"
-DIGID_CONNECTOR_VERSION="v4.0.3"
+export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}/nl-rdo-max"}
+export DIGID_CONNECTOR_REPOSITORY=${DIGID_CONNECTOR_REPOSITORY:-"https://github.com/minvws/nl-rdo-max.git"}
+export DIGID_CONNECTOR_VERSION=${DIGID_CONNECTOR_VERSION:-"v4.0.3"}
 
 # Set to `10.0.2.2` for android or to `localhost` for ios
 # export SERVICES_HOST=10.0.2.2

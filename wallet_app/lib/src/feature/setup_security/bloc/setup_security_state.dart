@@ -102,7 +102,7 @@ class SetupSecurityCompleted extends SetupSecurityState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: OnboardingHelper.totalSteps - 4, totalSteps: OnboardingHelper.totalSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 5, totalSteps: OnboardingHelper.totalSteps);
 
   @override
   List<Object?> get props => [enabledBiometrics, ...super.props];

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
@@ -236,12 +234,11 @@ async fn sign_pin_pubkey<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_bts = pubkey
+    let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?
-        .to_vec();
+        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
 
-    let signature = hsm.sign_hmac(key_identifier, Arc::new(pin_pubkey_bts)).await?;
+    let signature = hsm.sign_hmac(key_identifier, pin_pubkey.as_bytes()).await?;
 
     Ok(signature)
 }
@@ -255,12 +252,11 @@ async fn verify_pin_pubkey<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_bts = pubkey
+    let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?
-        .to_vec();
+        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
 
-    hsm.verify_hmac(key_identifier, Arc::new(pin_pubkey_bts), pin_pubkey_hash)
+    hsm.verify_hmac(key_identifier, pin_pubkey.as_bytes(), pin_pubkey_hash)
         .await?;
 
     Ok(())
@@ -282,11 +278,15 @@ pub mod mock {
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
         "pin_public_disclosure_protection_key_identifier_1";
     pub const ENCRYPTION_KEY_IDENTIFIER: &str = "encryption_key_1";
+    pub const REVOCATION_CODE_KEY_IDENTIFIER: &str = "revocation_code_key_identifier_1";
 
     pub async fn setup_hsm() -> MockPkcs11Client<HsmError> {
         let hsm = MockPkcs11Client::default();
         hsm.generate_generic_secret_key(SIGNING_KEY_IDENTIFIER).await.unwrap();
         hsm.generate_generic_secret_key(PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER)
+            .await
+            .unwrap();
+        hsm.generate_generic_secret_key(REVOCATION_CODE_KEY_IDENTIFIER)
             .await
             .unwrap();
         hsm
@@ -334,6 +334,7 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
 
+    use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
@@ -372,7 +373,7 @@ mod tests {
                 instruction_sequence_number: 42,
                 apple_assertion_counter: None,
                 state: WalletUserState::Active,
-                transfer_session: None,
+                revocation_code_hmac: random_bytes(32),
             },
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),

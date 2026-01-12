@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "redis.fullname" . }}
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+    app: redis
+spec:
+  minReadySeconds: {{ .Values.minReadySeconds }}
+  serviceName: "redis"
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        {{- if .Values.tierLabel }}
+        tier: {{ .Values.tierLabel | quote }}
+        {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: redis
+          image: "{{ default .Chart.Name .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - redis-server
+            - --appendonly
+            - {{ .Values.redisConfig.appendonly | quote }}
+            - --save
+            - {{ .Values.redisConfig.save | quote }}
+            - --loglevel
+            - {{ .Values.redisConfig.loglevel | quote }}
+          {{- if .Values.redisConfig.initialKeys }}
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - >-
+                    sleep 1;
+                    {{- range $pair := .Values.redisConfig.initialKeys }}
+                    redis-cli set {{ $pair }};
+                    {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.securityContext.runAsUser }}
+          securityContext:
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+              name: redis
+          volumeMounts:
+            - mountPath: /data
+              name: data
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "redis.labels" . | nindent 10 }}
+          app: redis
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.accessModes | nindent 10 }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+        {{- if .Values.persistence.storageClassName }}
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        {{- end }}
+  {{- end }}

@@ -59,6 +59,7 @@ use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
+use wallet_account::RevocationCode;
 use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
@@ -213,7 +214,7 @@ pub fn create_example_preview_data(
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
-            copies_per_format: IndexMap::from([(format, NonZeroU8::new(1).unwrap())]),
+            copies_per_format: IndexMap::from([(format, NonZeroU8::MIN)]),
             credential_payload: credential_payload.previewable_payload,
             issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
         },
@@ -437,6 +438,7 @@ where
             pin_salt: pin_key::new_pin_salt(),
             wallet_id,
             wallet_certificate,
+            revocation_code: RevocationCode::new_random(),
         };
 
         (registration_data, attested_key)

@@ -1,24 +1,32 @@
-.kaniko:
-  before_script:
-    - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
-  image:
-    name: "$HARBOR_REGISTRY/gcr-io-proxy/kaniko-project/executor:debug"
-    entrypoint: [""]
-
 .build-docker-image:
-  extends: .kaniko
+  image: "$HARBOR_REGISTRY/quay-proxy/buildah/stable:v1.42.2"
+  tags:
+    - linux
   rules: !reference [.default-or-merge-request-manual, rules]
+  before_script:
+    - mkdir -p ~/.docker
+    - echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
   script:
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile $DOCKER_FILE_TO_BUILD
-      --build-arg BUILD_TAG=$BUILD_TAG
-      --build-arg HSM_CLIENT_TAG=$HSM_CLIENT_TAG
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_PROJECT=$HARBOR_PROJECT
-      --build-arg GCR_IO_PROXY=$GCR_IO_PROXY
-      --destination $HARBOR_REGISTRY/$HARBOR_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
-      --destination $HARBOR_REGISTRY/$HARBOR_PROJECT/$DOCKER_IMAGE_NAME:latest
+    - buildah build
+        --build-arg "BUILD_TAG=${BUILD_TAG}"
+        --build-arg "HSM_CLIENT_TAG=${HSM_CLIENT_TAG}"
+        --build-arg "HARBOR_REGISTRY=${HARBOR_REGISTRY}"
+        --build-arg "HARBOR_PROJECT=${HARBOR_PROJECT}"
+        --build-arg "GCR_IO_PROXY=${GCR_IO_PROXY}"
+        --file "${DOCKER_FILE_TO_BUILD}"
+        --tag "${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+        wallet_core
+    - |
+      for HARBOR_REGISTRY in $HARBOR_REGISTRIES; do
+        buildah push "${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+        if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
+          buildah push "${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${DOCKER_IMAGE_NAME}:latest"
+        fi
+      done
+  variables:
+    STORAGE_DRIVER: vfs
+    BUILDAH_FORMAT: docker
+    BUILDAH_ISOLATION: chroot
 
 build-update-policy-server-image:
   extends: .build-docker-image

@@ -14,7 +14,14 @@ doctest = false
 examples = ["attestation_types/pid_constants"]
 example_credential_payloads = ["dep:rand_core"]
 generate = ["crypto/generate", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
-mock = ["attestation_types/pid_constants", "crypto/mock", "dep:rand_core", "example_credential_payloads", "mdoc/test"]
+mock = [
+    "attestation_types/pid_constants",
+    "crypto/mock",
+    "dep:rand_core",
+    "derive_more/into",
+    "example_credential_payloads",
+    "mdoc/test",
+]
 test_credential = ["dep:futures", "mock"]
 
 [dependencies]

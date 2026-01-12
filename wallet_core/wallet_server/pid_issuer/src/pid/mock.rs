@@ -37,7 +37,7 @@ impl AttributeService for MockAttributeService {
         let documents = documents
             .nonempty_iter()
             .map(|document| {
-                let (attestation_id, attributes, _) = document.clone().into_parts();
+                let (attestation_id, attributes, _) = document.clone().into();
                 IssuableDocument::try_new_with_random_id(attestation_id, attributes).unwrap()
             })
             .collect();

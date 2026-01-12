@@ -7,3 +7,8 @@ reason = "The vulnerability pertains to the use of RSA private keys in the rsa c
 id = "RUSTSEC-2024-0436"
 ignoreUntil = 2026-07-01
 reason = "This is a transitive dependency that is no longer maintained but used by a couple dependencies. Waiting for dependencies to find alternatives."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0141"
+ignoreUntil = 2026-07-01
+reason = "`bincode` is a transitive dependency that is no longer maintained but considered complete and used by `http-cache`. Waiting for `http-cache` to find alternatives."

@@ -1,3 +1,5 @@
+use chrono::Utc;
+
 use wallet::attestation_data;
 use wallet::sd_jwt_vc_metadata::LogoMetadata;
 
@@ -13,6 +15,7 @@ pub struct AttestationPresentation {
     pub display_metadata: Vec<DisplayMetadata>,
     pub issuer: Organization,
     pub revocation_status: Option<RevocationStatus>,
+    pub validity_status: ValidityStatus,
     pub validity_window: ValidityWindow,
     pub attributes: Vec<AttestationAttribute>,
 }
@@ -25,6 +28,7 @@ impl From<wallet::AttestationPresentation> for AttestationPresentation {
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
             issuer: value.issuer.into(),
             revocation_status: value.validity.revocation_status.map(Into::into),
+            validity_status: wallet::ValidityStatus::from_window(&value.validity.validity_window, Utc::now()).into(),
             validity_window: value.validity.validity_window.into(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
@@ -41,6 +45,24 @@ impl From<wallet::AttestationIdentity> for AttestationIdentity {
         match value {
             wallet::AttestationIdentity::Ephemeral => AttestationIdentity::Ephemeral,
             wallet::AttestationIdentity::Fixed { id } => AttestationIdentity::Fixed { id: id.to_string() },
+        }
+    }
+}
+
+pub enum ValidityStatus {
+    NotYetValid,
+    Valid,
+    ExpiresSoon,
+    Expired,
+}
+
+impl From<wallet::ValidityStatus> for ValidityStatus {
+    fn from(value: wallet::ValidityStatus) -> Self {
+        match value {
+            wallet::ValidityStatus::NotYetValid => ValidityStatus::NotYetValid,
+            wallet::ValidityStatus::ValidUntil { .. } | wallet::ValidityStatus::AlwaysValid => ValidityStatus::Valid,
+            wallet::ValidityStatus::ExpiresSoon { .. } => ValidityStatus::ExpiresSoon,
+            wallet::ValidityStatus::Expired => ValidityStatus::Expired,
         }
     }
 }

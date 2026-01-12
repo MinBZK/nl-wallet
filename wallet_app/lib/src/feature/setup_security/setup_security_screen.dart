@@ -206,7 +206,7 @@ class SetupSecurityScreen extends StatelessWidget {
       key: const Key('setupSecurityCompletedPage'),
       enabledBiometrics: state.enabledBiometrics,
       onSetupWalletPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
-        WalletRoutes.walletPersonalizeRoute,
+        WalletRoutes.revocationCodeRoute,
         ModalRoute.withName(WalletRoutes.splashRoute),
       ),
     );

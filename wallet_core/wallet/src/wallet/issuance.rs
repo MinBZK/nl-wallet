@@ -58,8 +58,10 @@ use crate::digid::DigidClient;
 use crate::digid::DigidError;
 use crate::digid::DigidSession;
 use crate::errors::ChangePinError;
+use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -72,6 +74,7 @@ use crate::storage::TransferData;
 use crate::transfer::TransferSessionId;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::notifications::NotificationsError;
 use crate::wallet::recovery_code::RecoveryCodeError;
 
 use super::Wallet;
@@ -141,15 +144,18 @@ pub enum IssuanceError {
     #[error("could not query attestations in database: {0}")]
     AttestationQuery(#[source] StorageError),
 
-    #[error("could not store event in history database: {0}")]
-    EventStorage(#[source] StorageError),
-
     #[error("key '{0}' not found in Wallet Provider")]
     #[category(pd)]
     KeyNotFound(String),
 
-    #[error("could not read attestations from storage: {0}")]
-    Attestations(#[source] AttestationsError),
+    #[error("error emitting attestations: {0}")]
+    Attestations(#[from] AttestationsError),
+
+    #[error("error emitting notifications: {0}")]
+    Notifications(#[from] NotificationsError),
+
+    #[error("error emtting history event: {0}")]
+    Events(#[from] HistoryError),
 
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
@@ -217,6 +223,37 @@ pub enum PidIssuancePurpose {
     Renewal,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum PidAttestationFormat {
+    SdJwt,
+    Either,
+}
+
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+where
+    S: Storage,
+    AKH: AttestedKeyHolder,
+    DC: DigidClient,
+    DCC: DisclosureClient,
+{
+    pub(super) async fn has_pid(
+        &self,
+        config: &PidAttributesConfiguration,
+        format: PidAttestationFormat,
+    ) -> Result<bool, StorageError> {
+        let pid_attestation_types = match format {
+            PidAttestationFormat::Either => config.pid_attestation_types().collect_vec(),
+            PidAttestationFormat::SdJwt => config.sd_jwt.keys().map(String::as_str).collect_vec(),
+        };
+
+        self.storage
+            .read()
+            .await
+            .has_any_attestations_with_types(&pid_attestation_types)
+            .await
+    }
+}
+
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -254,14 +291,15 @@ where
         }
 
         info!("Checking if a pid is already present");
-        let pid_attributes = &self.config_repository.get().pid_attributes;
+
         let has_pid = self
-            .storage
-            .write()
-            .await
-            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types())
+            .has_pid(
+                &self.config_repository.get().pid_attributes,
+                PidAttestationFormat::Either,
+            )
             .await
             .map_err(IssuanceError::AttestationQuery)?;
+
         if purpose == PidIssuancePurpose::Enrollment && has_pid {
             return Err(IssuanceError::PidAlreadyPresent);
         }
@@ -519,9 +557,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 
@@ -613,8 +655,9 @@ where
                 .map_err(IssuanceError::AttestationStorage)?;
         }
 
-        self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
-        self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
+        self.emit_attestations().await?;
+        self.emit_notifications().await?;
+        self.emit_recent_history().await?;
 
         Ok(IssuanceResult { transfer_session_id })
     }
@@ -712,9 +755,10 @@ fn match_preview_and_stored_attestations<'a>(
                         // If this is PID issuance, and the two cards are both PIDs, then they match.
                         // If not, fall back to contents comparison.
                         |pid_config| {
-                            let pid_types = pid_config.pid_attestation_types();
-                            let both_pid = pid_types.contains(&preview.content.credential_payload.attestation_type)
-                                && pid_types.contains(&stored_preview.attestation_type);
+                            let pid_types = pid_config.pid_attestation_types().collect_vec();
+                            let both_pid = pid_types
+                                .contains(&preview.content.credential_payload.attestation_type.as_str())
+                                && pid_types.contains(&stored_preview.attestation_type.as_str());
                             both_pid || compare_contents(preview, stored_preview, time_generator)
                         },
                     )
@@ -1426,16 +1470,16 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations()
-            .return_once(move || {
+            .returning(move || {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
                     StoredAttestation::SdJwt {
                         key_identifier: "sd_jwt_key_identifier".to_string(),
-                        sd_jwt,
+                        sd_jwt: sd_jwt.clone(),
                     },
-                    metadata,
+                    metadata.clone(),
                     None,
                 )])
             });
