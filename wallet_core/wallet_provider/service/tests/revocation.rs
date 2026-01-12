@@ -134,7 +134,9 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
                     .obtain_status_claims(wua_id, None, NonZeroUsize::MIN)
                     .await
                     .unwrap()
-                    .into_first(); // only one claim per WUA ID
+                    .into_iter()
+                    .exactly_one() // only one claim per WUA ID
+                    .unwrap();
                 wallet_user_wua::create(&tx, user_uuid, wua_id).await.unwrap();
 
                 wuas.push((wua_id, claim));
