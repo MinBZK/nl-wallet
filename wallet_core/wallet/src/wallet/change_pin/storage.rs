@@ -51,6 +51,8 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
+    use wallet_account::RevocationCode;
+
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
     use crate::storage::MockHardwareDatabaseStorage;
@@ -82,6 +84,7 @@ mod tests {
             pin_salt: b"pin_salt_1234_old".to_vec(),
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
         };
         let new_pin_salt = b"pin_salt_1234_new".to_vec();
         let new_wallet_certificate = "this.isa.jwt_new".parse().unwrap();

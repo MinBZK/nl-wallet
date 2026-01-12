@@ -54,6 +54,7 @@ where
                 data: random_bytes(64),
                 assertion_counter: AssertionCounter::default(),
             },
+            revocation_code_hmac: random_bytes(32),
         },
     )
     .await

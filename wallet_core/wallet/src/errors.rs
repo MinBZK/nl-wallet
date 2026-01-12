@@ -34,6 +34,7 @@ pub use crate::wallet::IssuanceError;
 pub use crate::wallet::PinRecoveryError;
 pub use crate::wallet::RecoveryCodeError;
 pub use crate::wallet::ResetError;
+pub use crate::wallet::RevocationCodeError;
 pub use crate::wallet::TransferError;
 pub use crate::wallet::UriIdentificationError;
 pub use crate::wallet::WalletInitError;

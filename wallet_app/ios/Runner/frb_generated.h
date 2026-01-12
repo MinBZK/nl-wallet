@@ -570,7 +570,7 @@ void frbgen_wallet_core_wire__crate__api__full__get_history_for_card(int64_t por
 void frbgen_wallet_core_wire__crate__api__full__get_registration_revocation_code(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__get_revocation_code(int64_t port_,
-                                                                    struct wire_cst_list_prim_u_8_strict *_pin);
+                                                                    struct wire_cst_list_prim_u_8_strict *pin);
 
 void frbgen_wallet_core_wire__crate__api__full__get_version_string(int64_t port_);
 

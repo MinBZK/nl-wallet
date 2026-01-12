@@ -43,12 +43,13 @@ use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
-use crate::wallet::recovery_code::RecoveryCodeError;
 
 use super::IssuanceError;
 use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
+use super::issuance::PidAttestationFormat;
+use super::recovery_code::RecoveryCodeError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -149,14 +150,11 @@ where
 
         info!("Checking if a pid is present");
         let config = &self.config_repository.get();
-        let pid_config = config.pid_attributes.clone();
-        let pid_attestation_types = pid_config.sd_jwt.keys().map(String::clone).collect_vec();
+
         let has_pid = self
-            .storage
-            .read()
-            .await
-            .has_any_attestations_with_types(pid_attestation_types.as_slice())
+            .has_pid(&config.pid_attributes, PidAttestationFormat::SdJwt)
             .await?;
+
         if !has_pid {
             return Err(PinRecoveryError::NoPidPresent);
         }
@@ -183,7 +181,7 @@ where
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = session.auth_url().clone();
         self.session.replace(Session::PinRecovery {
-            pid_config,
+            pid_config: config.pid_attributes.clone(),
             session: PinRecoverySession::Digid(session),
         });
 
@@ -351,9 +349,13 @@ where
             .new_instruction_client(
                 new_pin.clone(),
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    config.account_server.instruction_result_public_key.as_inner().into(),
+                ),
             )
             .await
             .map_err(IssuanceError::from)?;
@@ -424,7 +426,9 @@ where
             attested_key,
             Arc::clone(&self.account_provider_client),
             Arc::new(InstructionClientParameters::new(
-                registration_data,
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
                 config.account_server.instruction_result_public_key.as_inner().into(),
             )),

@@ -280,9 +280,9 @@ impl<K> DatabaseStorage<K> {
         Ok(attestations)
     }
 
-    async fn query_unique_attestations_with_parameters<'a>(
-        &'a self,
-        attestation_types: &HashSet<&'a str>,
+    async fn query_unique_attestations_with_parameters(
+        &self,
+        attestation_types: &HashSet<&str>,
         format: Option<CredentialFormat>,
         condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
@@ -799,11 +799,11 @@ where
         Ok(())
     }
 
-    async fn has_any_attestations_with_types(&self, attestation_types: &[String]) -> StorageResult<bool> {
+    async fn has_any_attestations_with_types<'a>(&self, attestation_types: &[&'a str]) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column((attestation::Entity, attestation::Column::Id))
             .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).is_in(attestation_types))
+            .and_where(Expr::col(attestation::Column::AttestationType).is_in(attestation_types.iter().copied()))
             .take();
 
         let exists_query = Query::select()
@@ -835,7 +835,7 @@ where
     }
 
     async fn fetch_unique_attestations_by_types<'a>(
-        &'a self,
+        &self,
         attestation_types: &HashSet<&'a str>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_with_parameters(attestation_types, None, None)
@@ -1350,6 +1350,7 @@ pub(crate) mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use test_storage::MockHardwareDatabaseStorage;
     use utils::generator::mock::MockTimeGenerator;
+    use wallet_account::RevocationCode;
 
     use crate::attestation::AttestationValidity;
     use crate::attestation::mock::EmptyPresentationConfig;
@@ -1461,6 +1462,7 @@ pub(crate) mod tests {
             pin_salt: random_bytes(8),
             wallet_id: String::from("wallet123"),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
         };
 
         let exported_registration = RegistrationData {
@@ -1468,6 +1470,7 @@ pub(crate) mod tests {
             pin_salt: random_bytes(8),
             wallet_id: String::from("wallet456"),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
         };
 
         // Export via block to have everything dropped
@@ -1503,6 +1506,7 @@ pub(crate) mod tests {
             pin_salt: vec![1, 2, 3, 4],
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
         };
 
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
@@ -1546,6 +1550,7 @@ pub(crate) mod tests {
             pin_salt: new_salt,
             wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),
+            revocation_code: RevocationCode::new_random(),
         };
         storage
             .upsert_data(&updated_registration)
@@ -1603,7 +1608,7 @@ pub(crate) mod tests {
 
     async fn has_any_pid_attestation_types(storage: &MockHardwareDatabaseStorage) -> bool {
         storage
-            .has_any_attestations_with_types(&[PID_ATTESTATION_TYPE.to_string()])
+            .has_any_attestations_with_types(&[PID_ATTESTATION_TYPE])
             .await
             .unwrap()
     }

@@ -12,6 +12,7 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use derive_more::Constructor;
 use derive_more::From;
+use futures::TryFutureExt;
 use futures::try_join;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -76,6 +77,7 @@ use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use wallet_account::RevocationCode;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -450,6 +452,7 @@ pub struct AndroidAttestationConfiguration {
 pub struct AccountServerKeys {
     pub wallet_certificate_signing_pubkey: EcdsaDecodingKey,
     pub pin_keys: AccountServerPinKeys,
+    pub revocation_code_key_identifier: String,
 }
 
 pub struct AccountServerPinKeys {
@@ -541,7 +544,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         certificate_signing_key: &impl WalletCertificateSigningKey,
         registration_message: ChallengeResponse<Registration>,
         user_state: &UserState<R, H, W, S>,
-    ) -> Result<WalletCertificate, RegistrationError>
+    ) -> Result<(WalletCertificate, RevocationCode), RegistrationError>
     where
         GRC: GoogleCrlProvider,
         PIC: IntegrityTokenDecoder,
@@ -722,14 +725,27 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Starting database transaction");
 
-        let encrypted_pin_pubkey = Encrypter::encrypt(
-            &user_state.wallet_user_hsm,
-            &self.keys.pin_keys.encryption_key_identifier,
-            pin_pubkey,
-        )
-        .await?;
+        let revocation_code = RevocationCode::new_random();
 
-        let tx = user_state.repositories.begin_transaction().await?;
+        let (tx, encrypted_pin_pubkey, revocation_code_hmac) = try_join!(
+            user_state
+                .repositories
+                .begin_transaction()
+                .map_err(RegistrationError::from),
+            Encrypter::encrypt(
+                &user_state.wallet_user_hsm,
+                &self.keys.pin_keys.encryption_key_identifier,
+                pin_pubkey,
+            )
+            .map_err(RegistrationError::from),
+            user_state
+                .wallet_user_hsm
+                .sign_hmac(
+                    &self.keys.revocation_code_key_identifier,
+                    revocation_code.as_ref().as_bytes()
+                )
+                .map_err(RegistrationError::from),
+        )?;
 
         debug!("Creating new wallet user");
 
@@ -743,6 +759,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     encrypted_pin_pubkey,
                     attestation_date_time: attestation_timestamp,
                     attestation,
+                    revocation_code_hmac,
                 },
             )
             .await?;
@@ -762,7 +779,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         tx.commit().await?;
 
-        Ok(wallet_certificate)
+        Ok((wallet_certificate, revocation_code))
     }
 
     pub async fn instruction_challenge<T, R, H, W, S>(
@@ -1656,6 +1673,7 @@ pub mod mock {
                     public_disclosure_protection_key_identifier:
                         wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 },
+                revocation_code_key_identifier: wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER.to_string(),
             },
             RECOVERY_CODE_CONFIG.clone(),
             AppleAttestationConfiguration {
@@ -1833,6 +1851,8 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use std::num::NonZeroUsize;
+    use std::sync::Arc;
+    use std::sync::Mutex;
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
@@ -1862,6 +1882,7 @@ mod tests {
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
+    use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
@@ -1873,6 +1894,7 @@ mod tests {
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use wallet_account::RevocationCode;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
@@ -1886,14 +1908,12 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
-    use wallet_account::messages::transfer::TransferSessionState;
     use wallet_account::signed::ChallengeResponse;
     use wallet_provider_domain::EpochGenerator;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-    use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
@@ -1987,7 +2007,16 @@ mod tests {
         pin_privkey: &SigningKey,
         attestation_ca: AttestationCa<'_>,
         wrapping_key_identifier: &str,
-    ) -> Result<(WalletCertificate, MockHardwareKey, MockPkcs11Client<HsmError>), RegistrationError> {
+    ) -> Result<
+        (
+            WalletCertificate,
+            RevocationCode,
+            Vec<u8>,
+            MockHardwareKey,
+            MockPkcs11Client<HsmError>,
+        ),
+        RegistrationError,
+    > {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
             .await
@@ -2029,13 +2058,22 @@ mod tests {
             }
         };
 
+        let revocation_code_hmac = Arc::new(Mutex::new(None));
+        let repo_revocation_code_hmac = Arc::clone(&revocation_code_hmac);
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
             .expect_create_wallet_user()
-            .returning(|_, _| Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")));
+            .returning(move |_, wallet_user_create| {
+                repo_revocation_code_hmac
+                    .lock()
+                    .unwrap()
+                    .replace(wallet_user_create.revocation_code_hmac);
+
+                Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))
+            });
 
         let hsm = setup_hsm().await;
         let user_state = UserState {
@@ -2051,7 +2089,29 @@ mod tests {
         account_server
             .register(certificate_signing_key, registration_message, &user_state)
             .await
-            .map(|wallet_certificate| (wallet_certificate, hw_privkey, user_state.wallet_user_hsm))
+            .map(|(wallet_certificate, revocation_code)| {
+                let UserState {
+                    wallet_user_hsm,
+                    repositories,
+                    ..
+                } = user_state;
+
+                // Extract the revocation code HMAC as stored in the mock database.
+                std::mem::drop(repositories);
+                let revocation_code_hmac = Arc::into_inner(revocation_code_hmac)
+                    .unwrap()
+                    .into_inner()
+                    .unwrap()
+                    .unwrap();
+
+                (
+                    wallet_certificate,
+                    revocation_code,
+                    revocation_code_hmac,
+                    hw_privkey,
+                    wallet_user_hsm,
+                )
+            })
     }
 
     async fn setup_and_do_registration(
@@ -2061,6 +2121,7 @@ mod tests {
         MockAccountServer,
         MockHardwareKey,
         WalletCertificate,
+        RevocationCode,
         MockUserState,
     ) {
         let wrapping_key_identifier = "my_wrapping_key_identifier".to_string();
@@ -2073,7 +2134,7 @@ mod tests {
             AttestationType::Google => AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
         };
 
-        let (cert, hw_privkey, hsm) = do_registration(
+        let (cert, revocation_code, revocation_code_hmac, hw_privkey, hsm) = do_registration(
             &account_server,
             &setup.signing_key,
             &setup.pin_privkey,
@@ -2096,7 +2157,7 @@ mod tests {
             instruction_sequence_number: 0,
             apple_assertion_counter,
             state: WalletUserState::Active,
-            transfer_session: None,
+            revocation_code_hmac,
         };
 
         let user_state = mock::user_state(
@@ -2107,7 +2168,7 @@ mod tests {
             MockStatusListService::default(),
         );
 
-        (setup, account_server, hw_privkey, cert, user_state)
+        (setup, account_server, hw_privkey, cert, revocation_code, user_state)
     }
 
     async fn do_instruction_challenge<I>(
@@ -2279,7 +2340,8 @@ mod tests {
     async fn test_register(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
+        let (setup, account_server, hw_privkey, cert, revocation_code, user_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let (_, cert_data) = cert
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
@@ -2287,7 +2349,7 @@ mod tests {
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.as_inner(), hw_privkey.verifying_key());
 
-        verify_wallet_certificate(
+        let (wallet_user, _pin_pubkey) = verify_wallet_certificate(
             &cert,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
@@ -2301,6 +2363,17 @@ mod tests {
         )
         .await
         .unwrap();
+
+        // Check that the revocation code HMAC stored in the datbase matches the returned revocation code.
+        user_state
+            .wallet_user_hsm
+            .verify_hmac(
+                wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER,
+                revocation_code.as_ref().as_bytes(),
+                wallet_user.revocation_code_hmac,
+            )
+            .await
+            .expect("stored revocation code hmac should match revocation code");
     }
 
     #[tokio::test]
@@ -2417,7 +2490,8 @@ mod tests {
     async fn test_challenge_request_error_signature_type_mismatch(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (_setup, account_server, _hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
+        let (_setup, account_server, _hw_privkey, cert, _revocation_code, user_state) =
+            setup_and_do_registration(attestation_type).await;
 
         // Create a hardware key that is the opposite type of the one used during registration.
         let wrong_hw_privkey = match attestation_type {
@@ -2442,7 +2516,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_challenge_request_error_apple_assertion_counter() {
-        let (_setup, account_server, hw_privkey, cert, mut user_state) =
+        let (_setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Apple).await;
         user_state.repositories.apple_assertion_counter = Some(AssertionCounter::from(200));
 
@@ -2465,7 +2539,7 @@ mod tests {
     async fn valid_instruction_challenge_should_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
@@ -2515,7 +2589,7 @@ mod tests {
     async fn wrong_instruction_challenge_should_not_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
@@ -2592,7 +2666,8 @@ mod tests {
     async fn expired_instruction_challenge_should_not_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
+        let (setup, account_server, hw_privkey, cert, _revocation_code, user_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
@@ -2645,7 +2720,8 @@ mod tests {
     async fn valid_hw_signed_instruction_challenge_should_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (_, account_server, hw_privkey, cert, mut user_state) = setup_and_do_registration(attestation_type).await;
+        let (_, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<PairTransfer>(
@@ -2688,7 +2764,8 @@ mod tests {
     async fn wrong_hw_signed_instruction_challenge_should_not_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (_, account_server, hw_privkey, cert, mut user_state) = setup_and_do_registration(attestation_type).await;
+        let (_, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
@@ -2750,7 +2827,8 @@ mod tests {
     async fn expired_hw_signed_instruction_challenge_should_not_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (_, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
+        let (_, account_server, hw_privkey, cert, _revocation_code, user_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<PairTransfer>(
@@ -2807,7 +2885,7 @@ mod tests {
     async fn test_check_pin(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(attestation_type).await;
         user_state.repositories.instruction_sequence_number = 42;
 
@@ -2841,7 +2919,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_commit() {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
@@ -2986,7 +3064,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_invalid_pop() {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
@@ -3038,7 +3116,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_rollback() {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
@@ -3173,7 +3251,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_no_other_instructions_allowed() {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
@@ -3211,7 +3289,7 @@ mod tests {
         #[values(WalletUserState::Active, WalletUserState::Blocked, WalletUserState::RecoveringPin)]
         account_state: WalletUserState,
     ) {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
@@ -3300,7 +3378,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_start_pin_recovery_repository_changes() {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
@@ -3395,7 +3473,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_transfer_in_progress_no_other_instructions_allowed() {
-        let (setup, account_server, hw_privkey, cert, mut user_state) =
+        let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
 
         let challenge = do_instruction_challenge::<Sign>(&account_server, &hw_privkey, cert.clone(), 45, &user_state)
@@ -3404,16 +3482,6 @@ mod tests {
 
         user_state.repositories = WalletUserTestRepo {
             challenge: Some(challenge.clone()),
-            transfer_session: Some(TransferSession {
-                id: Uuid::new_v4(),
-                source_wallet_user_id: Some(Uuid::new_v4()),
-                destination_wallet_user_id: Uuid::new_v4(),
-                destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
-                destination_wallet_recovery_code: String::from("12345678"),
-                transfer_session_id: Uuid::new_v4(),
-                state: TransferSessionState::Confirmed,
-                encrypted_wallet_data: None,
-            }),
             instruction_sequence_number: 43,
             apple_assertion_counter: match &hw_privkey {
                 MockHardwareKey::Apple(attested_key) => Some(AssertionCounter::from(*attested_key.next_counter() - 1)),

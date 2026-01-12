@@ -7,6 +7,7 @@ use url::ParseError;
 
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
+use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::HwSignedInstruction;
@@ -64,7 +65,7 @@ pub trait AccountProviderClient {
         &self,
         client_config: &TlsPinningConfig,
         registration_message: ChallengeResponse<Registration>,
-    ) -> Result<WalletCertificate, AccountProviderError>;
+    ) -> Result<(WalletCertificate, RevocationCode), AccountProviderError>;
 
     async fn instruction_challenge(
         &self,

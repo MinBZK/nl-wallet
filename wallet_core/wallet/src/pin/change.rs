@@ -317,6 +317,7 @@ mod test {
     use rand_core::OsRng;
 
     use jwt::SignedJwt;
+    use wallet_account::RevocationCode;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
     use super::*;
@@ -330,7 +331,7 @@ mod test {
 
     const CHANGE_PIN_RETRIES: u8 = 2;
 
-    async fn create_wallet_certificate() -> (RegistrationData, VerifyingKey, VerifyingKey) {
+    async fn create_registration_data() -> (RegistrationData, VerifyingKey, VerifyingKey) {
         let certificate_signing_key = SigningKey::random(&mut OsRng);
         let hw_privkey = SigningKey::random(&mut OsRng);
         let certificate_public_key = *certificate_signing_key.verifying_key();
@@ -355,11 +356,14 @@ mod test {
             .unwrap()
             .into();
 
+        let revocation_code = RevocationCode::new_random();
+
         let registration_data = RegistrationData {
             attested_key_identifier,
             pin_salt,
             wallet_id,
             wallet_certificate,
+            revocation_code,
         };
 
         (registration_data, certificate_public_key, hw_pubkey)
@@ -367,7 +371,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_success() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_wallet_certificate().await;
+        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
         let returned_certificate = registration_data.wallet_certificate.clone();
 
         let mut change_pin_client = MockChangePinClient::new();
@@ -408,7 +412,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_network_error() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_wallet_certificate().await;
+        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
 
         let mut change_pin_client = MockChangePinClient::new();
         // return a network error
@@ -452,7 +456,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_instruction_error() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_wallet_certificate().await;
+        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
 
         let mut change_pin_client = MockChangePinClient::new();
         change_pin_client
@@ -493,7 +497,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_error_already_in_progress() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_wallet_certificate().await;
+        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
 
         let change_pin_client = MockChangePinClient::new();
 
@@ -525,7 +529,7 @@ mod test {
         VerifyingKey,
         VerifyingKey,
     ) {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_wallet_certificate().await;
+        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
         let returned_certificate = registration_data.wallet_certificate.clone();
 
         let mut change_pin_client = MockChangePinClient::new();

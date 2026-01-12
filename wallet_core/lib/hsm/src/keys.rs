@@ -41,4 +41,8 @@ impl HsmHmacKey {
     pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, HsmError> {
         Hsm::sign_hmac(&self.hsm, &self.identifier, msg).await
     }
+
+    pub async fn verify_hmac(&self, msg: &[u8], tag: Vec<u8>) -> Result<(), HsmError> {
+        Hsm::verify_hmac(&self.hsm, &self.identifier, msg, tag).await
+    }
 }

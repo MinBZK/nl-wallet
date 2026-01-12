@@ -104,6 +104,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                     public_disclosure_protection_key_identifier: settings
                         .pin_public_disclosure_protection_key_identifier,
                 },
+                revocation_code_key_identifier: settings.revocation_code_key_identifier,
             },
             settings.recovery_code_paths.into(),
             apple_config,

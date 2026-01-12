@@ -3,6 +3,7 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DisplayFromStr;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
@@ -11,6 +12,8 @@ use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use utils::vec_at_least::VecAtLeastTwo;
+
+use crate::RevocationCode;
 
 /// Registration challenge, sent by account server to wallet after the latter requests enrollment.
 #[serde_as]
@@ -46,9 +49,12 @@ pub enum RegistrationAttestation {
 }
 
 /// Wallet certificate provisioning message, sent by account server to wallet after successful registration.
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Certificate {
     pub certificate: WalletCertificate,
+    #[serde_as(as = "DisplayFromStr")]
+    pub revocation_code: RevocationCode,
 }
 
 pub type WalletCertificate = UnverifiedJwt<WalletCertificateClaims>;
