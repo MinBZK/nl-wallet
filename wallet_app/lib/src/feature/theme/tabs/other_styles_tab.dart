@@ -64,6 +64,7 @@ import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
+import '../../revocation/widget/revocation_code_text.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../theme_screen.dart';
 
@@ -697,6 +698,8 @@ class OtherStylesTab extends StatelessWidget {
         ),
         const ThemeSectionSubHeader(title: 'TourBanner'),
         const TourBanner(),
+        const ThemeSectionSubHeader(title: 'RevocationCodeText'),
+        const RevocationCodeText(revocationCode: 'AB12CD34EF56GH78IJ'),
       ],
     );
   }

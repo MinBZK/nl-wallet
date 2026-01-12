@@ -1,9 +1,11 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-01-09T12:20:02+01:00",
+    "@@last_modified": "2026-01-12T09:49:40+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
+    "activeIssuanceSessionDialogDescription": "You already started adding card(s). Finish it, then open the link again.",
+    "activeIssuanceSessionDialogTitle": "Je bent al begonnen met het toevoegen van kaart(en). Maak het eerst af en open daarna de link opnieuw.",
     "activeSessionDialogDescription": "Je bent al begonnen met delen. Maak het af en open daarna de link opnieuw.",
     "activeSessionDialogTitle": "Rond delen af",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd} other {{count} kaarten toegevoegd}}",
