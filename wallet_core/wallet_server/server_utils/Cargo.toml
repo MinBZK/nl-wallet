@@ -11,13 +11,12 @@ workspace = true
 doctest = false
 
 [[test]]
-name = "checkers"
-path = "tests/checkers.rs"
+name = "database_checker"
+path = "tests/database_checker.rs"
 required-features = ["db_test"]
 
 [features]
-checkers = ["dep:async-trait", "dep:r2d2-cryptoki"]
-db_test = ["checkers", "dep:rstest", "postgres", "test"]
+db_test = ["postgres", "test", "dep:rstest", "dep:health_checkers"]
 parsed_key_pair_conversion = []
 # Include session storage in PostgreSQL
 postgres = [
@@ -51,8 +50,6 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 url = { workspace = true, features = ["serde"] }
 
-async-trait = { workspace = true, optional = true }
-r2d2-cryptoki = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
@@ -65,6 +62,8 @@ http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils = { path = "../../lib/utils" }
+
+health_checkers = { path = "../../lib/health_checkers", optional = true }
 
 [dev-dependencies]
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }

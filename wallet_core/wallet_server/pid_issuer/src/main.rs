@@ -3,15 +3,15 @@ use std::sync::Arc;
 use anyhow::Result;
 use anyhow::anyhow;
 
+use health_checkers::boxed;
+use health_checkers::hsm::HsmChecker;
+use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
-use server_utils::checkers::DatabaseChecker;
-use server_utils::checkers::HsmChecker;
-use server_utils::checkers::boxed;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;

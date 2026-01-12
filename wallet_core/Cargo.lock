@@ -2945,6 +2945,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "health_checkers"
+version = "0.5.0-dev"
+dependencies = [
+ "async-trait",
+ "hsm",
+ "http_utils",
+ "r2d2-cryptoki",
+ "sea-orm",
+]
+
+[[package]]
 name = "heck"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3499,6 +3510,7 @@ dependencies = [
  "dcql",
  "derive_more",
  "futures",
+ "health_checkers",
  "hsm",
  "http_utils",
  "indexmap 2.12.1",
@@ -4830,6 +4842,7 @@ dependencies = [
  "crypto",
  "derive_more",
  "futures",
+ "health_checkers",
  "hex",
  "hsm",
  "http_utils",
@@ -6445,20 +6458,19 @@ name = "server_utils"
 version = "0.5.0-dev"
 dependencies = [
  "anyhow",
- "async-trait",
  "attestation_data",
  "axum",
  "base64 0.22.1",
  "chrono",
  "config",
  "crypto",
+ "health_checkers",
  "hsm",
  "http",
  "http_utils",
  "nutype",
  "openid4vc",
  "p256",
- "r2d2-cryptoki",
  "ring",
  "rstest",
  "rustls-pki-types",
@@ -8411,6 +8423,7 @@ dependencies = [
  "crypto",
  "derive_more",
  "futures",
+ "health_checkers",
  "hsm",
  "http",
  "http_utils",
@@ -8426,7 +8439,6 @@ dependencies = [
  "serde",
  "serde_with",
  "serial_test",
- "server_utils",
  "spki",
  "status_lists",
  "strum 0.27.2",

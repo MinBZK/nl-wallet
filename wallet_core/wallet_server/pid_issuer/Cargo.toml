@@ -58,12 +58,13 @@ attestation_data = { path = "../../lib/attestation_data" }
 attestation_types = { path = "../../lib/attestation_types", features = ["pid_constants"] }
 crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
+health_checkers.path = "../../lib/health_checkers"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
 utils = { path = "../../lib/utils" }
-server_utils = { path = "../server_utils", features = ["checkers"] }
+server_utils.path = "../server_utils"
 status_lists = { path = "../status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 

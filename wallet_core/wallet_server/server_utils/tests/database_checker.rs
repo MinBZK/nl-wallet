@@ -13,9 +13,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::task::JoinHandle;
 
+use health_checkers::postgres::DatabaseChecker;
 use http_utils::health::HealthChecker;
 use http_utils::health::HealthStatus;
-use server_utils::checkers::DatabaseChecker;
 use server_utils::test_settings::connection_from_settings;
 use server_utils::test_settings::default_connection_options;
 use server_utils::test_settings::test_settings;

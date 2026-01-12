@@ -15,6 +15,7 @@ members = [
     "lib/dcql",
     "lib/error_category",
     "lib/error_category/error_category_derive",
+    "lib/health_checkers",
     "lib/hsm",
     "lib/http_utils",
     "lib/jwt",

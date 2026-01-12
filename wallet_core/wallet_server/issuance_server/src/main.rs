@@ -3,14 +3,14 @@ use std::sync::Arc;
 use anyhow::Result;
 use anyhow::anyhow;
 
+use health_checkers::boxed;
+use health_checkers::hsm::HsmChecker;
+use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::server;
 use issuance_server::settings::IssuanceServerSettings;
-use server_utils::checkers::DatabaseChecker;
-use server_utils::checkers::HsmChecker;
-use server_utils::checkers::boxed;
 use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
