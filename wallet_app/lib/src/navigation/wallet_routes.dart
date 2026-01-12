@@ -62,6 +62,8 @@ import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
 import '../feature/recover_pin/recover_pin_screen.dart';
 import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
 import '../feature/renew_pid/renew_pid_screen.dart';
+import '../feature/revocation/bloc/revocation_code_bloc.dart';
+import '../feature/revocation/revocation_code_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
 import '../feature/sign/bloc/sign_bloc.dart';
@@ -134,6 +136,7 @@ class WalletRoutes {
   static const privacyPolicyRoute = '/privacy_policy';
   static const qrRoute = '/qr';
   static const renewPidRoute = '/pid/renew';
+  static const revocationCodeRoute = '/revocation_code';
   static const settingsRoute = '/menu/settings';
   static const setupSecurityRoute = '/security/setup';
   static const signRoute = '/sign';
@@ -188,6 +191,7 @@ class WalletRoutes {
     WalletRoutes.tourOverviewRoute: (_) => _createTourOverviewScreenBuilder,
     WalletRoutes.tourVideoRoute: _createTourVideoScreenBuilder,
     WalletRoutes.renewPidRoute: _createRenewPidScreenBuilder,
+    WalletRoutes.revocationCodeRoute: (_) => _createRevocationCodeScreenBuilder,
     WalletRoutes.walletTransferSourceRoute: _createWalletTransferSourceRoute,
     WalletRoutes.walletTransferTargetRoute: _createWalletTransferTargetRoute,
     WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
@@ -222,7 +226,7 @@ class WalletRoutes {
 }
 
 Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(
-  create: (BuildContext context) => SplashBloc(context.read())..add(const InitSplashEvent()),
+  create: (BuildContext context) => SplashBloc(context.read(), context.read())..add(const InitSplashEvent()),
   child: const SplashScreen(),
 );
 
@@ -601,6 +605,14 @@ WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
 }
 
 Widget _createWalletTransferFaqScreenBuilder(BuildContext context) => const WalletTransferFaqScreen();
+
+Widget _createRevocationCodeScreenBuilder(BuildContext context) => BlocProvider<RevocationCodeBloc>(
+  create: (BuildContext context) => RevocationCodeBloc(
+    context.read(),
+    context.read(),
+  )..add(const RevocationCodeLoadTriggered()),
+  child: const RevocationCodeScreen(),
+);
 
 Widget _createManageNotificationsScreenBuilder(BuildContext context) => BlocProvider<ManageNotificationsBloc>(
   create: (BuildContext context) => ManageNotificationsBloc(

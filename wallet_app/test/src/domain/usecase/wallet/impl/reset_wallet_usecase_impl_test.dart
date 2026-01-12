@@ -1,27 +1,37 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wallet/src/domain/usecase/wallet/impl/reset_wallet_usecase_impl.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
 void main() {
   late MockWalletRepository mockWalletRepository;
-  late MockTourRepository mockTourRepository;
   late ResetWalletUseCaseImpl resetWalletUseCase;
 
-  setUp(() {
+  setUp(() async {
     mockWalletRepository = MockWalletRepository();
-    mockTourRepository = MockTourRepository();
-    resetWalletUseCase = ResetWalletUseCaseImpl(mockWalletRepository, mockTourRepository);
+    resetWalletUseCase = ResetWalletUseCaseImpl(mockWalletRepository, SharedPreferences.getInstance);
+  });
+
+  tearDown(() async {
+    SharedPreferences.resetStatic();
   });
 
   test('invoke calls walletRepository.reset', () async {
+    // Setup
+    SharedPreferences.setMockInitialValues({'test': true});
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('test'), isTrue); // Verify setup succeeded
+
     // Act
     await resetWalletUseCase.invoke();
 
-    // Verify that the reset method on the repositories was called exactly once.
+    // Verify
+    // Reset method on the repositories was called exactly once.
     verify(mockWalletRepository.resetWallet()).called(1);
-    verify(mockTourRepository.setShowTourBanner(showTourBanner: true)).called(1);
+    // Shared preferences are reset
+    expect(prefs.containsKey('test'), isFalse);
   });
 
   test('invoke completes successfully when walletRepository.reset completes', () async {
