@@ -5,6 +5,7 @@ use std::vec;
 use futures::future::join_all;
 use futures::future::try_join_all;
 use itertools::Itertools;
+use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use utils::num::NonZeroU31;
 use utils::num::U31;
@@ -14,7 +15,6 @@ use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
-use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
@@ -36,11 +36,11 @@ use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
 
 async fn setup_state(
     publish_dir: PublishDir,
-) -> UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService> {
+) -> UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>> {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db: Db = db_from_env().await.unwrap();
 
-    let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
+    let key_pair = ca.generate_status_list_mock().unwrap();
 
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(100).unwrap(),
@@ -50,7 +50,7 @@ async fn setup_state(
         ttl: None,
         base_url: "https://example.com/".parse().unwrap(),
         publish_dir,
-        key_pair: private_key.clone(),
+        key_pair,
     };
 
     let service = PostgresStatusListService::try_new(db.connection().clone(), &random_string(20), config)

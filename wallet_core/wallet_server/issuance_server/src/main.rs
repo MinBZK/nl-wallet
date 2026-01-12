@@ -15,9 +15,9 @@ use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 use server_utils::store::postgres::new_connection;
-use status_lists::config::StatusListConfigs;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::serve::create_serve_router;
+use status_lists::settings::StatusListAttestationSettings;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 
 #[tokio::main]
@@ -74,13 +74,16 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             "No database connection configured for status list in issuance server"
         )),
     }?;
-    let status_list_configs = StatusListConfigs::from_settings(
-        &settings.issuer_settings.server_settings.public_url,
+    let status_list_configs = StatusListAttestationSettings::settings_into_configs(
+        settings
+            .issuer_settings
+            .attestation_settings
+            .as_ref()
+            .iter()
+            .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
         &settings.status_lists,
-        (&settings.issuer_settings.attestation_settings)
-            .into_iter()
-            .map(|(id, settings)| (id.to_owned(), settings.status_list.clone())),
-        &hsm,
+        &settings.issuer_settings.server_settings.public_url,
+        hsm.clone(),
     )
     .await?;
     let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;

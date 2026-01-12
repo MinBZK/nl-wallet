@@ -8557,7 +8557,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "server_utils",
  "status_lists",
  "strum 0.27.2",
  "tempfile",

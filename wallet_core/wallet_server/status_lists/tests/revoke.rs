@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use futures::future::join_all;
 use futures::future::try_join_all;
+use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
@@ -15,7 +16,6 @@ use uuid::Uuid;
 
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
-use server_utils::keys::test::private_key_variant;
 use server_utils::test_settings::connection_from_settings;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
@@ -49,11 +49,13 @@ pub async fn fetch_attestation_batch(
         .unwrap()
 }
 
-async fn setup_revocation_test(publish_dir: PublishDir) -> (Arc<PostgresStatusListService>, Url, DatabaseConnection) {
+async fn setup_revocation_test(
+    publish_dir: PublishDir,
+) -> (Arc<PostgresStatusListService<SigningKey>>, Url, DatabaseConnection) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await;
 
-    let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
+    let key_pair = ca.generate_status_list_mock().unwrap();
 
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(100).unwrap(),
@@ -63,7 +65,7 @@ async fn setup_revocation_test(publish_dir: PublishDir) -> (Arc<PostgresStatusLi
         ttl: None,
         base_url: "https://example.com/".parse().unwrap(),
         publish_dir,
-        key_pair: private_key.clone(),
+        key_pair,
     };
 
     let service = PostgresStatusListService::try_new(connection.clone(), &random_string(20), config)

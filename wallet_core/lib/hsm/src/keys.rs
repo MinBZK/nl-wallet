@@ -1,9 +1,9 @@
+use crypto::EcdsaKeySend;
 use derive_more::Constructor;
 use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
-use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 
 use crate::model::Hsm;
@@ -17,7 +17,7 @@ pub struct HsmEcdsaKey {
     hsm: Pkcs11Hsm,
 }
 
-impl EcdsaKey for HsmEcdsaKey {
+impl EcdsaKeySend for HsmEcdsaKey {
     type Error = HsmError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {

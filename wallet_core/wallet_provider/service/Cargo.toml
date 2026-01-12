@@ -121,7 +121,6 @@ crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 jwt = { path = "../../lib/jwt", features = ["test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
-server_utils = { path = "../../wallet_server/server_utils", features = ["test"] }
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
