@@ -75,19 +75,14 @@ impl StatusListConfig {
         attestation: StatusListAttestationSettings,
         hsm: Option<Pkcs11Hsm>,
     ) -> Result<Self, StatusListConfigError> {
-        let (expiry, ttl) = settings.expiry_ttl()?;
-        Ok(StatusListConfig {
-            list_size: settings.list_size,
-            create_threshold: settings.create_threshold_ratio.of_nonzero_u31(settings.list_size),
-            expiry,
-            refresh_threshold: settings.refresh_threshold_ratio.of_duration(expiry),
-            ttl,
-            base_url: attestation
-                .base_url
-                .unwrap_or_else(|| public_url.clone())
-                .join_base_url(&attestation.context_path),
-            publish_dir: attestation.publish_dir,
-            key_pair: attestation.keypair.parse(hsm).await?,
-        })
+        let base_url = attestation
+            .base_url
+            .unwrap_or_else(|| public_url.clone())
+            .join_base_url(&attestation.context_path);
+        let key_pair = attestation.keypair.parse(hsm).await?;
+
+        let config = settings.to_config(base_url, attestation.publish_dir, key_pair)?;
+
+        Ok(config)
     }
 }

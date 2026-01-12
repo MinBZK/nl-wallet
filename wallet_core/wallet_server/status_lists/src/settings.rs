@@ -10,6 +10,7 @@ use server_utils::settings::KeyPair;
 use utils::num::NonZeroU31;
 use utils::num::Ratio;
 
+use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -39,6 +40,28 @@ pub struct ExpiryLessThanTtl {
 }
 
 impl StatusListsSettings {
+    pub fn to_config<K>(
+        &self,
+        base_url: BaseUrl,
+        publish_dir: PublishDir,
+        key_pair: crypto::server_keys::KeyPair<K>,
+    ) -> Result<StatusListConfig<K>, ExpiryLessThanTtl> {
+        let (expiry, ttl) = self.expiry_ttl()?;
+
+        let config = StatusListConfig {
+            list_size: self.list_size,
+            create_threshold: self.create_threshold_ratio.of_nonzero_u31(self.list_size),
+            expiry,
+            refresh_threshold: self.refresh_threshold_ratio.of_duration(expiry),
+            ttl,
+            base_url,
+            publish_dir,
+            key_pair,
+        };
+
+        Ok(config)
+    }
+
     pub fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTtl> {
         let expiry = Duration::from_secs(self.expiry_in_hours.get() as u64 * 3600);
         let ttl = self

@@ -224,7 +224,6 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
 
 impl WuaStatusListsSettings {
     pub async fn into_config(self, hsm: Pkcs11Hsm) -> Result<StatusListConfig, StatusListConfigError> {
-        let (expiry, ttl) = self.list_settings.expiry_ttl()?;
         let key_pair = KeyPair {
             certificate: self.key_certificate,
             private_key: PrivateKey::Hsm {
@@ -234,18 +233,10 @@ impl WuaStatusListsSettings {
         .parse(Some(hsm))
         .await?;
 
-        Ok(StatusListConfig {
-            list_size: self.list_settings.list_size,
-            create_threshold: self
-                .list_settings
-                .create_threshold_ratio
-                .of_nonzero_u31(self.list_settings.list_size),
-            expiry,
-            refresh_threshold: self.list_settings.refresh_threshold_ratio.of_duration(expiry),
-            ttl,
-            base_url: self.base_url,
-            publish_dir: self.publish_dir,
-            key_pair,
-        })
+        let config = self
+            .list_settings
+            .to_config(self.base_url, self.publish_dir, key_pair)?;
+
+        Ok(config)
     }
 }
