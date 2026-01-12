@@ -13,6 +13,9 @@ pub enum NotificationType {
         card: AttestationPresentation,
         expires_at: String, // ISO8601
     },
+    Revoked {
+        card: AttestationPresentation,
+    },
 }
 
 pub struct AppNotification {
@@ -43,6 +46,9 @@ impl From<wallet::NotificationType> for NotificationType {
             } => NotificationType::CardExpiresSoon {
                 card: attestation.into(),
                 expires_at: expires_at.to_rfc3339(),
+            },
+            wallet::NotificationType::Revoked { attestation } => NotificationType::Revoked {
+                card: attestation.into(),
             },
         }
     }

@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 509254084;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -476389463;
 
 // Section: executor
 
@@ -293,6 +293,30 @@ fn wire__crate__api__full__clear_configuration_stream_impl(port_: flutter_rust_b
         },
     )
 }
+fn wire__crate__api__full__clear_direct_notifications_callback_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "clear_direct_notifications_callback",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok({
+                            crate::api::full::clear_direct_notifications_callback().await;
+                        })?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__clear_lock_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -315,28 +339,6 @@ fn wire__crate__api__full__clear_lock_stream_impl(port_: flutter_rust_bridge::fo
         },
     )
 }
-fn wire__crate__api__full__clear_notifications_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "clear_notifications_stream",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            move |context| async move {
-                transform_result_dco::<_, _, ()>(
-                    (move || async move {
-                        let output_ok = Result::<_, ()>::Ok({
-                            crate::api::full::clear_notifications_stream().await;
-                        })?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
 fn wire__crate__api__full__clear_recent_history_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -350,6 +352,30 @@ fn wire__crate__api__full__clear_recent_history_stream_impl(port_: flutter_rust_
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_recent_history_stream().await;
+                        })?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__clear_scheduled_notifications_stream_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "clear_scheduled_notifications_stream",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok({
+                            crate::api::full::clear_scheduled_notifications_stream().await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -1074,6 +1100,31 @@ fn wire__crate__api__full__set_configuration_stream_impl(
         },
     )
 }
+fn wire__crate__api__full__set_direct_notifications_callback_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    dart_callback: impl CstDecode<flutter_rust_bridge::DartOpaque>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_direct_notifications_callback",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_dart_callback =
+                decode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(dart_callback.cst_decode());
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::set_direct_notifications_callback(api_dart_callback).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__set_lock_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     sink: impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>>,
@@ -1100,32 +1151,6 @@ fn wire__crate__api__full__set_lock_stream_impl(
         },
     )
 }
-fn wire__crate__api__full__set_notifications_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    sink: impl CstDecode<
-        StreamSink<Vec<crate::models::notification::AppNotification>, flutter_rust_bridge::for_generated::DcoCodec>,
-    >,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "set_notifications_stream",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let api_sink = sink.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::set_notifications_stream(api_sink).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
 fn wire__crate__api__full__set_recent_history_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     sink: impl CstDecode<
@@ -1144,6 +1169,32 @@ fn wire__crate__api__full__set_recent_history_stream_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::set_recent_history_stream(api_sink).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__set_scheduled_notifications_stream_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    sink: impl CstDecode<
+        StreamSink<Vec<crate::models::notification::AppNotification>, flutter_rust_bridge::for_generated::DcoCodec>,
+    >,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_scheduled_notifications_stream",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_sink = sink.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::set_scheduled_notifications_stream(api_sink).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1291,6 +1342,39 @@ fn wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_: flutter_rus
     )
 }
 
+// Section: related_funcs
+
+fn decode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(
+    dart_opaque: flutter_rust_bridge::DartOpaque,
+) -> impl Fn(Vec<crate::models::notification::AppNotification>) -> flutter_rust_bridge::DartFnFuture<()> {
+    use flutter_rust_bridge::IntoDart;
+
+    async fn body(
+        dart_opaque: flutter_rust_bridge::DartOpaque,
+        arg0: Vec<crate::models::notification::AppNotification>,
+    ) -> () {
+        let args = vec![arg0.into_into_dart().into_dart()];
+        let message = FLUTTER_RUST_BRIDGE_HANDLER.dart_fn_invoke(dart_opaque, args).await;
+
+        let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+        let action = deserializer.cursor.read_u8().unwrap();
+        let ans = match action {
+            0 => std::result::Result::Ok(<()>::sse_decode(&mut deserializer)),
+            1 => std::result::Result::Err(<flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(
+                &mut deserializer,
+            )),
+            _ => unreachable!(),
+        };
+        deserializer.end();
+        let ans = ans.expect("Dart throws exception but Rust side assume it is not failable");
+        ans
+    }
+
+    move |arg0: Vec<crate::models::notification::AppNotification>| {
+        flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(dart_opaque.clone(), arg0))
+    }
+}
+
 // Section: dart2rust
 
 impl CstDecode<crate::models::wallet_state::BlockedReason> for i32 {
@@ -1366,6 +1450,12 @@ impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
         }
     }
 }
+impl CstDecode<isize> for isize {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> isize {
+        self
+    }
+}
 impl CstDecode<crate::models::pin::PinValidationResult> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::pin::PinValidationResult {
@@ -1433,6 +1523,12 @@ impl CstDecode<u8> for u8 {
         self
     }
 }
+impl CstDecode<usize> for usize {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> usize {
+        self
+    }
+}
 impl CstDecode<crate::models::attestation::ValidityStatus> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::attestation::ValidityStatus {
@@ -1450,6 +1546,14 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <String>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::anyhow::anyhow!("{}", inner);
+    }
+}
+
+impl SseDecode for flutter_rust_bridge::DartOpaque {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <usize>::sse_decode(deserializer);
+        return unsafe { flutter_rust_bridge::for_generated::sse_decode_dart_opaque(inner) };
     }
 }
 
@@ -1921,6 +2025,13 @@ impl SseDecode for crate::models::image::ImageWithMetadata {
     }
 }
 
+impl SseDecode for isize {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i64::<NativeEndian>().unwrap() as _
+    }
+}
+
 impl SseDecode for Vec<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2131,6 +2242,10 @@ impl SseDecode for crate::models::notification::NotificationType {
                     card: var_card,
                     expires_at: var_expiresAt,
                 };
+            }
+            2 => {
+                let mut var_card = <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
+                return crate::models::notification::NotificationType::Revoked { card: var_card };
             }
             _ => {
                 unimplemented!("");
@@ -2479,6 +2594,13 @@ impl SseDecode for u8 {
 impl SseDecode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
+}
+
+impl SseDecode for usize {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u64::<NativeEndian>().unwrap() as _
+    }
 }
 
 impl SseDecode for crate::models::attestation::ValidityStatus {
@@ -3157,6 +3279,9 @@ impl flutter_rust_bridge::IntoDart for crate::models::notification::Notification
                 expires_at.into_into_dart().into_dart(),
             ]
             .into_dart(),
+            crate::models::notification::NotificationType::Revoked { card } => {
+                [2.into_dart(), card.into_into_dart().into_dart()].into_dart()
+            }
             _ => {
                 unimplemented!("");
             }
@@ -3625,6 +3750,13 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
+impl SseEncode for flutter_rust_bridge::DartOpaque {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <usize>::sse_encode(self.encode(), serializer);
+    }
+}
+
 impl SseEncode for StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4043,6 +4175,13 @@ impl SseEncode for crate::models::image::ImageWithMetadata {
     }
 }
 
+impl SseEncode for isize {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i64::<NativeEndian>(self as _).unwrap();
+    }
+}
+
 impl SseEncode for Vec<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4210,6 +4349,10 @@ impl SseEncode for crate::models::notification::NotificationType {
                 <i32>::sse_encode(1, serializer);
                 <crate::models::attestation::AttestationPresentation>::sse_encode(card, serializer);
                 <String>::sse_encode(expires_at, serializer);
+            }
+            crate::models::notification::NotificationType::Revoked { card } => {
+                <i32>::sse_encode(2, serializer);
+                <crate::models::attestation::AttestationPresentation>::sse_encode(card, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -4533,6 +4676,13 @@ impl SseEncode for () {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
 }
 
+impl SseEncode for usize {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u64::<NativeEndian>(self as _).unwrap();
+    }
+}
+
 impl SseEncode for crate::models::attestation::ValidityStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4718,6 +4868,12 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> flutter_rust_bridge::for_generated::anyhow::Error {
             unimplemented!()
+        }
+    }
+    impl CstDecode<flutter_rust_bridge::DartOpaque> for *const std::ffi::c_void {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> flutter_rust_bridge::DartOpaque {
+            unsafe { flutter_rust_bridge::for_generated::cst_decode_dart_opaque(self as _) }
         }
     }
     impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>> for *mut wire_cst_list_prim_u_8_strict {
@@ -5304,6 +5460,12 @@ mod io {
                     crate::models::notification::NotificationType::CardExpiresSoon {
                         card: ans.card.cst_decode(),
                         expires_at: ans.expires_at.cst_decode(),
+                    }
+                }
+                2 => {
+                    let ans = unsafe { self.kind.Revoked };
+                    crate::models::notification::NotificationType::Revoked {
+                        card: ans.card.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -6016,18 +6178,23 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_direct_notifications_callback(port_: i64) {
+        wire__crate__api__full__clear_direct_notifications_callback_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_lock_stream(port_: i64) {
         wire__crate__api__full__clear_lock_stream_impl(port_)
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_notifications_stream(port_: i64) {
-        wire__crate__api__full__clear_notifications_stream_impl(port_)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_recent_history_stream(port_: i64) {
+        wire__crate__api__full__clear_recent_history_stream_impl(port_)
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_recent_history_stream(port_: i64) {
-        wire__crate__api__full__clear_recent_history_stream_impl(port_)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_scheduled_notifications_stream(port_: i64) {
+        wire__crate__api__full__clear_scheduled_notifications_stream_impl(port_)
     }
 
     #[unsafe(no_mangle)]
@@ -6234,6 +6401,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_direct_notifications_callback(
+        port_: i64,
+        dart_callback: *const std::ffi::c_void,
+    ) {
+        wire__crate__api__full__set_direct_notifications_callback_impl(port_, dart_callback)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_lock_stream(
         port_: i64,
         sink: *mut wire_cst_list_prim_u_8_strict,
@@ -6242,19 +6417,19 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_notifications_stream(
-        port_: i64,
-        sink: *mut wire_cst_list_prim_u_8_strict,
-    ) {
-        wire__crate__api__full__set_notifications_stream_impl(port_, sink)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream(
         port_: i64,
         sink: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__set_recent_history_stream_impl(port_, sink)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_scheduled_notifications_stream(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__set_scheduled_notifications_stream_impl(port_, sink)
     }
 
     #[unsafe(no_mangle)]
@@ -6889,6 +7064,7 @@ mod io {
     pub union NotificationTypeKind {
         CardExpired: wire_cst_NotificationType_CardExpired,
         CardExpiresSoon: wire_cst_NotificationType_CardExpiresSoon,
+        Revoked: wire_cst_NotificationType_Revoked,
         nil__: (),
     }
     #[repr(C)]
@@ -6901,6 +7077,11 @@ mod io {
     pub struct wire_cst_NotificationType_CardExpiresSoon {
         card: *mut wire_cst_attestation_presentation,
         expires_at: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_NotificationType_Revoked {
+        card: *mut wire_cst_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

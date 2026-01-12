@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -352,10 +353,15 @@ class WalletCoreMock implements WalletCoreApi {
   Future<void> crateApiFullReceiveWalletTransfer() => Future.delayed(const Duration(seconds: 2));
 
   @override
-  Future<void> crateApiFullClearNotificationsStream() async {}
+  Future<void> crateApiFullClearScheduledNotificationsStream() async {}
 
   @override
-  Stream<List<AppNotification>> crateApiFullSetNotificationsStream() => PublishSubject();
+  Stream<List<AppNotification>> crateApiFullSetScheduledNotificationsStream() => PublishSubject();
+
+  @override
+  Future<void> crateApiFullSetDirectNotificationsCallback({
+    required FutureOr<void> Function(List<AppNotification>) dartCallback,
+  }) async {}
 
   @override
   Future<String> crateApiFullGetRegistrationRevocationCode() async => 'AB12CD34EF56GH78IJ';

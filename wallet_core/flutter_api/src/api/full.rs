@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use flutter_rust_bridge::DartFnFuture;
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::setup_default_user_utils;
 use itertools::Itertools;
@@ -137,11 +140,11 @@ pub async fn clear_attestations_stream() {
     wallet().write().await.clear_attestations_callback();
 }
 
-pub async fn set_notifications_stream(sink: StreamSink<Vec<AppNotification>>) -> anyhow::Result<()> {
+pub async fn set_scheduled_notifications_stream(sink: StreamSink<Vec<AppNotification>>) -> anyhow::Result<()> {
     wallet()
         .write()
         .await
-        .set_notifications_callback(Box::new(move |notifications| {
+        .set_scheduled_notifications_callback(Box::new(move |notifications| {
             let _ = sink.add(notifications.into_iter().map(AppNotification::from).collect());
         }))
         .await?;
@@ -149,8 +152,27 @@ pub async fn set_notifications_stream(sink: StreamSink<Vec<AppNotification>>) ->
     Ok(())
 }
 
-pub async fn clear_notifications_stream() {
-    wallet().write().await.clear_notifications_callback();
+pub async fn clear_scheduled_notifications_stream() {
+    wallet().write().await.clear_scheduled_notifications_callback();
+}
+
+pub async fn clear_direct_notifications_callback() {
+    wallet().write().await.clear_direct_notifications_callback();
+}
+
+pub async fn set_direct_notifications_callback(
+    dart_callback: impl Fn(Vec<AppNotification>) -> DartFnFuture<()> + Send + Sync + 'static,
+) -> anyhow::Result<()> {
+    let dart_callback = Arc::new(dart_callback);
+    let _ = wallet()
+        .write()
+        .await
+        .set_direct_notifications_callback(Box::new(move |notifications| {
+            let dart_callback = Arc::clone(&dart_callback);
+            Box::pin(async move { dart_callback(notifications.into_iter().map(Into::into).collect()).await })
+        }))?;
+
+    Ok(())
 }
 
 #[flutter_api_error]

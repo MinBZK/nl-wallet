@@ -227,7 +227,8 @@ where
             lock: WalletLock::new(true),
             attestations_callback: Arc::new(Mutex::new(None)),
             recent_history_callback: None,
-            notifications_callback: None,
+            scheduled_notifications_callback: None,
+            direct_notifications_callback: None,
             revocation_status_job_handle: None,
         }
     }

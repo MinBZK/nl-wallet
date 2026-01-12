@@ -46,6 +46,7 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
 use self::attestations::AttestationsCallback;
@@ -67,7 +68,7 @@ pub use self::issuance::PidIssuancePurpose;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
-pub use self::notifications::NotificationsCallback;
+pub use self::notifications::ScheduledNotificationsCallback;
 pub use self::pin_recovery::PinRecoveryError;
 pub use self::recovery_code::RecoveryCodeError;
 pub use self::registration::WalletRegistrationError;
@@ -157,6 +158,7 @@ pub struct Wallet<
     lock: WalletLock,
     attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,
-    notifications_callback: Option<NotificationsCallback>,
+    scheduled_notifications_callback: Option<ScheduledNotificationsCallback>,
+    direct_notifications_callback: Option<DirectNotificationsCallback>,
     revocation_status_job_handle: Option<AbortHandle>,
 }

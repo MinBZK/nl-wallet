@@ -59,4 +59,7 @@ sealed class NotificationType with _$NotificationType {
     required AttestationPresentation card,
     required String expiresAt,
   }) = NotificationType_CardExpiresSoon;
+  const factory NotificationType.revoked({
+    required AttestationPresentation card,
+  }) = NotificationType_Revoked;
 }

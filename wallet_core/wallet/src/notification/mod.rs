@@ -27,6 +27,9 @@ pub enum NotificationType {
         attestation: AttestationPresentation,
         expires_at: DateTime<Utc>,
     },
+    Revoked {
+        attestation: AttestationPresentation,
+    },
 }
 
 #[derive(Debug)]

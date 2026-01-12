@@ -37,6 +37,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
+  FutureOr<void> Function(List<AppNotification>)
+  dco_decode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(dynamic raw);
+
+  @protected
+  Object dco_decode_DartOpaque(dynamic raw);
+
+  @protected
   RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(dynamic raw);
 
   @protected
@@ -155,6 +162,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ImageWithMetadata dco_decode_image_with_metadata(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_isize(dynamic raw);
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
@@ -277,6 +287,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  BigInt dco_decode_usize(dynamic raw);
+
+  @protected
   ValidityStatus dco_decode_validity_status(dynamic raw);
 
   @protected
@@ -296,6 +309,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+
+  @protected
+  Object sse_decode_DartOpaque(SseDeserializer deserializer);
 
   @protected
   RustStreamSink<bool> sse_decode_StreamSink_bool_Dco(SseDeserializer deserializer);
@@ -420,6 +436,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata sse_decode_image_with_metadata(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
+
+  @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
@@ -538,6 +557,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
+
+  @protected
+  BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
   ValidityStatus sse_decode_validity_status(SseDeserializer deserializer);
@@ -744,6 +766,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  int cst_encode_isize(PlatformInt64 raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.toInt();
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_String> cst_encode_list_String(List<String> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_String(raw.length);
@@ -945,6 +973,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int cst_encode_u_64(BigInt raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.toSigned(64).toInt();
+  }
+
+  @protected
+  int cst_encode_usize(BigInt raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toSigned(64).toInt();
   }
@@ -1260,6 +1294,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.CardExpiresSoon.expires_at = pre_expires_at;
       return;
     }
+    if (apiObj is NotificationType_Revoked) {
+      var pre_card = cst_encode_box_autoadd_attestation_presentation(apiObj.card);
+      wireObj.tag = 2;
+      wireObj.kind.Revoked.card = pre_card;
+      return;
+    }
   }
 
   @protected
@@ -1521,6 +1561,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  PlatformPointer cst_encode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(
+    FutureOr<void> Function(List<AppNotification>) raw,
+  );
+
+  @protected
+  PlatformPointer cst_encode_DartOpaque(Object raw);
+
+  @protected
   int cst_encode_blocked_reason(BlockedReason raw);
 
   @protected
@@ -1567,6 +1615,15 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(
+    FutureOr<void> Function(List<AppNotification>) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartOpaque(Object self, SseSerializer serializer);
 
   @protected
   void sse_encode_StreamSink_bool_Dco(RustStreamSink<bool> self, SseSerializer serializer);
@@ -1701,6 +1758,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_image_with_metadata(ImageWithMetadata self, SseSerializer serializer);
 
   @protected
+  void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
@@ -1819,6 +1879,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_usize(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_validity_status(ValidityStatus self, SseSerializer serializer);
@@ -2067,6 +2130,21 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__clear_configuration_stream =
       _wire__crate__api__full__clear_configuration_streamPtr.asFunction<void Function(int)>();
 
+  void wire__crate__api__full__clear_direct_notifications_callback(
+    int port_,
+  ) {
+    return _wire__crate__api__full__clear_direct_notifications_callback(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__clear_direct_notifications_callbackPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__clear_direct_notifications_callback',
+      );
+  late final _wire__crate__api__full__clear_direct_notifications_callback =
+      _wire__crate__api__full__clear_direct_notifications_callbackPtr.asFunction<void Function(int)>();
+
   void wire__crate__api__full__clear_lock_stream(
     int port_,
   ) {
@@ -2080,21 +2158,6 @@ class WalletCoreWire implements BaseWire {
   );
   late final _wire__crate__api__full__clear_lock_stream = _wire__crate__api__full__clear_lock_streamPtr
       .asFunction<void Function(int)>();
-
-  void wire__crate__api__full__clear_notifications_stream(
-    int port_,
-  ) {
-    return _wire__crate__api__full__clear_notifications_stream(
-      port_,
-    );
-  }
-
-  late final _wire__crate__api__full__clear_notifications_streamPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__clear_notifications_stream',
-      );
-  late final _wire__crate__api__full__clear_notifications_stream =
-      _wire__crate__api__full__clear_notifications_streamPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__clear_recent_history_stream(
     int port_,
@@ -2110,6 +2173,21 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__clear_recent_history_stream =
       _wire__crate__api__full__clear_recent_history_streamPtr.asFunction<void Function(int)>();
+
+  void wire__crate__api__full__clear_scheduled_notifications_stream(
+    int port_,
+  ) {
+    return _wire__crate__api__full__clear_scheduled_notifications_stream(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__clear_scheduled_notifications_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__clear_scheduled_notifications_stream',
+      );
+  late final _wire__crate__api__full__clear_scheduled_notifications_stream =
+      _wire__crate__api__full__clear_scheduled_notifications_streamPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__clear_version_state_stream(
     int port_,
@@ -2623,6 +2701,24 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__set_configuration_stream = _wire__crate__api__full__set_configuration_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
+  void wire__crate__api__full__set_direct_notifications_callback(
+    int port_,
+    ffi.Pointer<ffi.Void> dart_callback,
+  ) {
+    return _wire__crate__api__full__set_direct_notifications_callback(
+      port_,
+      dart_callback,
+    );
+  }
+
+  late final _wire__crate__api__full__set_direct_notifications_callbackPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<ffi.Void>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__set_direct_notifications_callback',
+      );
+  late final _wire__crate__api__full__set_direct_notifications_callback =
+      _wire__crate__api__full__set_direct_notifications_callbackPtr
+          .asFunction<void Function(int, ffi.Pointer<ffi.Void>)>();
+
   void wire__crate__api__full__set_lock_stream(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
@@ -2638,23 +2734,6 @@ class WalletCoreWire implements BaseWire {
         'frbgen_wallet_core_wire__crate__api__full__set_lock_stream',
       );
   late final _wire__crate__api__full__set_lock_stream = _wire__crate__api__full__set_lock_streamPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
-
-  void wire__crate__api__full__set_notifications_stream(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
-  ) {
-    return _wire__crate__api__full__set_notifications_stream(
-      port_,
-      sink,
-    );
-  }
-
-  late final _wire__crate__api__full__set_notifications_streamPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_notifications_stream',
-      );
-  late final _wire__crate__api__full__set_notifications_stream = _wire__crate__api__full__set_notifications_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__set_recent_history_stream(
@@ -2673,6 +2752,24 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__set_recent_history_stream = _wire__crate__api__full__set_recent_history_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__full__set_scheduled_notifications_stream(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
+  ) {
+    return _wire__crate__api__full__set_scheduled_notifications_stream(
+      port_,
+      sink,
+    );
+  }
+
+  late final _wire__crate__api__full__set_scheduled_notifications_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__set_scheduled_notifications_stream',
+      );
+  late final _wire__crate__api__full__set_scheduled_notifications_stream =
+      _wire__crate__api__full__set_scheduled_notifications_streamPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__set_version_state_stream(
     int port_,
@@ -3459,10 +3556,16 @@ final class wire_cst_NotificationType_CardExpiresSoon extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> expires_at;
 }
 
+final class wire_cst_NotificationType_Revoked extends ffi.Struct {
+  external ffi.Pointer<wire_cst_attestation_presentation> card;
+}
+
 final class NotificationTypeKind extends ffi.Union {
   external wire_cst_NotificationType_CardExpired CardExpired;
 
   external wire_cst_NotificationType_CardExpiresSoon CardExpiresSoon;
+
+  external wire_cst_NotificationType_Revoked Revoked;
 }
 
 final class wire_cst_notification_type extends ffi.Struct {

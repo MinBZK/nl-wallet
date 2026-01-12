@@ -16,6 +16,8 @@ class NotificationTypeMapper extends Mapper<core.NotificationType, NotificationT
         return CardExpired(card: _cardMapper.map(input.card));
       case core.NotificationType_CardExpiresSoon():
         return CardExpiresSoon(card: _cardMapper.map(input.card), expiresAt: DateTime.parse(input.expiresAt).toLocal());
+      case core.NotificationType_Revoked():
+        return CardExpired(card: _cardMapper.map(input.card));
     }
   }
 }
