@@ -110,13 +110,13 @@ tasks.register<JacocoReport>("jacocoReport") {
         xml.required = true
         xml.outputLocation = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
     }
-    finalizedBy("coberturaReport")
 }
 tasks.register<JacocoToCoberturaTask>("coberturaReport").configure {
     // Connect via jacocoReport does not work: https://github.com/gradle/gradle/issues/6619
     inputFile = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
     outputFile = file("${inputFile.get()}/../cobertura.xml")
     splitByPackage = false
+    finalizedBy("coberturaReport")
 }
 
 tasks.named<JacocoToCoberturaTask>(JacocoToCoberturaPlugin.TASK_NAME) {
