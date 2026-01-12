@@ -190,16 +190,16 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Summary</strong></p></td>
-<td><p>The user chooses and confirms a secure 6-digit remote Personal Identification Number (PIN) for the app, and enables biometric unlock if supported and desired.</p></td>
+<td><p>The user chooses and confirms a secure 6-digit remote Personal Identification Number (PIN) for the app, enables biometric unlock if supported and desired, and receives a notification code.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Goal</strong></p></td>
-<td><p>Securing the App with PIN and optionally biometrics.</p></td>
+<td><p>Securing the App with PIN and optionally biometrics and receive a revocation code.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Preconditions</strong></p></td>
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Postconditions</strong></p></td>
-<td><p><ul><li>Remote PIN is configured.</li><li>If selected, biometric unlock is configured.</ul></li></p></td>
+<td><p><ul><li>Remote PIN is configured.</li><li>If selected, biometric unlock is configured.</li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Triggered by</strong></p></td>
 <td><p><ul><li>User completes <a class="reference internal" href="UC1.1_IntroduceTheApp.html"><span class="std std-doc">UC1.1 Introduce the app</span></a></li></ul></p></td>
@@ -211,7 +211,7 @@
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical Test Cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc51"><span class="std std-ref">LTC51 Setup PIN</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc52"><span class="std std-ref">LTC52 Setup PIN fails device does not pass app and key attestation</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc58"><span class="std std-ref">LTC58 Skip setting up biometrics</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc59"><span class="std std-ref">LTC59 Device does not support biometrics</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc51"><span class="std std-ref">LTC51 Setup PIN</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc52"><span class="std std-ref">LTC52 Setup PIN fails device does not pass app and key attestation</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc58"><span class="std std-ref">LTC58 Skip setting up biometrics</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc59"><span class="std std-ref">LTC59 Device does not support biometrics</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc70"><span class="std std-ref">LTC70 Receive revocation code</span></a></li>/ul&gt;</p></td>
 </tr>
 </tbody>
 </table>
@@ -289,7 +289,19 @@
 </tr>
 <tr class="row-odd"><td><p>1.5a</p></td>
 <td><p>User selects Next</p></td>
+<td><p>1.6</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.6</strong></p></td>
+<td><p><strong>System displays screen ‘Write down deletion code’</strong><ul><li>Message: You use this code to delete your NL Wallet from a distance.</li><li>Actions: I have written it down, Help</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.6a</p></td>
+<td><p>User selects I have written it down</p></td>
 <td><p>Go to: <a class="reference internal" href="UC3.1_ObtainPidFromProvider.html"><span class="std std-doc">UC3.1 Obtain PID</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.6b</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
 </tr>
 </tbody>
 </table>

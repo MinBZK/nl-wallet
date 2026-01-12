@@ -203,15 +203,16 @@ OPEN[&quot;&lt;a href='use-cases/UC1.2_OpenTheApp.html'&gt;1.2 Open the app&lt;/
 
 SETUP_PIN[&quot;&lt;a href='use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html'&gt;2.1 Setup PIN &amp; biometrics&lt;/a&gt;&quot;]
 UNLOCK[&quot;&lt;a href='use-cases/UC2.3_UnlockTheApp.html'&gt;2.3 Unlock the app&lt;/a&gt;&quot;]
+RECOVER_PIN[&quot;&lt;a href='use-cases/UC2.3.2_RecoverPIN.html'&gt;2.3.2 Recover PIN&lt;/a&gt;&quot;]
 
 OBTAIN_PID[&quot;&lt;a href='use-cases/UC3.1_ObtainPidFromProvider.html'&gt;3.1 Obtain PID&lt;/a&gt;&quot;]
+WIPE[&quot;&lt;a href='use-cases/UC9.4_WipeAllAppData.html'&gt;9.4 Wipe app data&lt;/a&gt;&quot;]
 
 ALL_CARDS[&quot;&lt;a href='use-cases/UC7.1_ShowAllAvailableCards.html'&gt;7.1 Show all cards&lt;/a&gt;&quot;]
 TRANSFER[&quot;&lt;a href='use-cases/UC9.10_TransferWallet.html'&gt;9.10 Transfer wallet&lt;/a&gt;&quot;]
 END((&quot; &quot;))
 
 APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
-WIPE[&quot;&lt;a href='use-cases/UC9.4_WipeAllAppData.html'&gt;9.4 Wipe app data&lt;/a&gt;&quot;]
 
 OPEN --&gt; UNLOCK
 OPEN --&gt; INTRODUCE
@@ -219,16 +220,19 @@ OPEN --&gt; INTRODUCE
 UNLOCK --&gt; ALL_CARDS
 UNLOCK --&gt; OBTAIN_PID
 UNLOCK --&gt; APP_INFO
-UNLOCK --&gt; WIPE
+UNLOCK --&gt; RECOVER_PIN
 
 INTRODUCE --&gt; SETUP_PIN
 
 OBTAIN_PID --&gt; ALL_CARDS
 OBTAIN_PID --&gt; TRANSFER
+OBTAIN_PID --&gt; WIPE
+
+WIPE --&gt; INTRODUCE
 
 TRANSFER --&gt; END
 
-WIPE --&gt; INTRODUCE
+RECOVER_PIN --&gt; ALL_CARDS
 
 SETUP_PIN --&gt; OBTAIN_PID
 SETUP_PIN --&gt; APP_INFO
@@ -261,6 +265,9 @@ MENU[&quot;&lt;a href='use-cases/UC9.1_ShowAppMenu.html'&gt;9.1 View app menu&lt
 APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
 QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;]
 
+RECOVER_PIN[&quot;&lt;a href='use-cases/UC2.3.2_RecoverPIN.html'&gt;2.3.2 Recover PIN&lt;/a&gt;&quot;]
+RENEW_PID[&quot;&lt;a href='use-cases/UC3.2_RenewPid.html'&gt;3.3 Renew PID&lt;/a&gt;&quot;]
+
 START --&gt; ALL_CARDS
 
 ALL_CARDS --&gt; APP_TOUR
@@ -271,10 +278,15 @@ ALL_CARDS --&gt; CARD
 ALL_CARDS --&gt; APP_INFO
 
 OBTAIN_CARDS --&gt; END
+OBTAIN_CARDS --&gt; RECOVER_PIN
 
 SHARE --&gt; END
+SHARE --&gt; RECOVER_PIN
 
 LOGIN --&gt; END
+LOGIN --&gt; RECOVER_PIN
+
+RECOVER_PIN --&gt; END
 
 QR --&gt; OBTAIN_CARDS
 QR --&gt; SHARE
@@ -285,6 +297,10 @@ ALL_HISTORY --&gt; HISTORY_EVENT
 CARD_HISTORY --&gt; HISTORY_EVENT
 
 CARD --&gt; CARD_HISTORY
+CARD --&gt; RENEW_PID
+
+RENEW_PID --&gt; END
+RENEW_PID --&gt; RECOVER_PIN
 
     </pre><p><br><br><br></p>
 </section>
