@@ -181,6 +181,8 @@ pub struct AuthorizationList {
     pub device_unique_attestation: Option<()>,
     #[rasn(tag(explicit(723)))]
     pub attestation_id_second_imei: Option<OctetString>,
+    #[rasn(tag(explicit(724)))]
+    pub module_hash: Option<OctetString>,
 }
 
 // RootOfTrust ::= SEQUENCE {

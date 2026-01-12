@@ -84,6 +84,7 @@ pub enum AttestationVersion {
     V100 = 100,
     V200 = 200,
     V300 = 300,
+    V400 = 400,
 }
 
 integer_int_enum_conversion!(
@@ -104,6 +105,7 @@ pub enum KeyMintVersion {
     V100 = 100,
     V200 = 200,
     V300 = 300,
+    V400 = 400,
 }
 
 integer_int_enum_conversion!(KeyMintVersion, i32, KeyMintVersionError, InvalidKeyMintVersion);
@@ -516,6 +518,7 @@ pub struct AuthorizationList {
     pub boot_patch_level: Option<PatchLevel>,
     pub device_unique_attestation: bool,
     pub attestation_id_second_imei: Option<OctetString>,
+    pub module_hash: Option<OctetString>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -662,6 +665,7 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map_err(AuthorizationListFieldError::BootPatchLevel)?,
             device_unique_attestation: source.device_unique_attestation.is_some(),
             attestation_id_second_imei: source.attestation_id_second_imei,
+            module_hash: source.module_hash,
         };
 
         Ok(result)
@@ -687,12 +691,9 @@ mod test {
     #[case(100.into(), Ok(AttestationVersion::V100))]
     #[case(200.into(), Ok(AttestationVersion::V200))]
     #[case(300.into(), Ok(AttestationVersion::V300))]
+    #[case(400.into(), Ok(AttestationVersion::V400))]
     #[case(0.into(), Err(AttestationVersionError::InvalidAttestationVersion(0)))]
     #[case(5.into(), Err(AttestationVersionError::InvalidAttestationVersion(5)))]
-    #[case(
-        400.into(),
-        Err(AttestationVersionError::InvalidAttestationVersion(400))
-    )]
     fn attestation_version(
         #[case] input: Integer,
         #[case] expected: Result<AttestationVersion, AttestationVersionError>,
@@ -708,10 +709,10 @@ mod test {
     #[case(100.into(), Ok(KeyMintVersion::V100))]
     #[case(200.into(), Ok(KeyMintVersion::V200))]
     #[case(300.into(), Ok(KeyMintVersion::V300))]
+    #[case(400.into(), Ok(KeyMintVersion::V400))]
     #[case(0.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(0)))]
     #[case(1.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(1)))]
     #[case(5.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(5)))]
-    #[case(400.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(400)))]
     fn key_mint_version(#[case] input: Integer, #[case] expected: Result<KeyMintVersion, KeyMintVersionError>) {
         assert_eq!(KeyMintVersion::try_from(&input), expected);
     }
@@ -938,6 +939,7 @@ mod test {
                 boot_patch_level: Integer::from(20240301).into(),
                 device_unique_attestation: ().into(),
                 attestation_id_second_imei: OctetString::copy_from_slice(b"attestation_id_second_imei").into(),
+                module_hash: OctetString::copy_from_slice(b"module_hash").into(),
             },
             hardware_enforced: super::key_description::AuthorizationList {
                 ..Default::default()
@@ -1036,6 +1038,7 @@ mod test {
                 boot_patch_level: Some(PatchLevel::new(2024, 3, Some(1))),
                 device_unique_attestation: true,
                 attestation_id_second_imei: Some(OctetString::copy_from_slice(b"attestation_id_second_imei")),
+                module_hash: Some(OctetString::copy_from_slice(b"module_hash")),
             },
             hardware_enforced: AuthorizationList::default(),
         };
