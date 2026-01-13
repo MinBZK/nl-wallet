@@ -10,10 +10,38 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "database_checker"
+path = "tests/database_checker.rs"
+required-features = ["db_test"]
+
+[features]
+test_settings = ["dep:tracing", "dep:url", "dep:utils", "config/toml", "serde/derive"]
+db_test = [
+    "test_settings",
+    "dep:anyhow",
+    "dep:rstest",
+    "sea-orm/runtime-tokio-rustls",
+    "tokio/macros",
+    "tokio/net",
+    "tokio/sync",
+    "tokio/rt",
+]
+
 [dependencies]
 async-trait.workspace = true
 r2d2-cryptoki.workspace = true
 sea-orm = { workspace = true, features = ["sqlx-postgres"] }
 
+anyhow = { workspace = true, optional = true }
+config = { workspace = true, optional = true }
+rstest = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
+
 hsm.path = "../hsm"
 http_utils = { path = "../http_utils", features = ["server"] }
+
+utils = { path = "../utils", optional = true }

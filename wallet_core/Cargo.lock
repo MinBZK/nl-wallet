@@ -2948,11 +2948,19 @@ dependencies = [
 name = "health_checkers"
 version = "0.5.0-dev"
 dependencies = [
+ "anyhow",
  "async-trait",
+ "config",
  "hsm",
  "http_utils",
  "r2d2-cryptoki",
+ "rstest",
  "sea-orm",
+ "serde",
+ "tokio",
+ "tracing",
+ "url",
+ "utils",
 ]
 
 [[package]]
@@ -6465,7 +6473,6 @@ dependencies = [
  "chrono",
  "config",
  "crypto",
- "health_checkers",
  "hsm",
  "http",
  "http_utils",
@@ -6473,7 +6480,6 @@ dependencies = [
  "openid4vc",
  "p256",
  "ring",
- "rstest",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",
@@ -6917,6 +6923,7 @@ dependencies = [
  "derive_more",
  "etag",
  "futures",
+ "health_checkers",
  "hsm",
  "http_utils",
  "itertools 0.14.0",
@@ -6932,7 +6939,6 @@ dependencies = [
  "rustix",
  "sea-orm",
  "serde",
- "server_utils",
  "tempfile",
  "thiserror 2.0.17",
  "token_status_list",
@@ -7132,6 +7138,7 @@ dependencies = [
  "dotenvy",
  "futures",
  "gba_hc_converter",
+ "health_checkers",
  "hsm",
  "http",
  "http_utils",

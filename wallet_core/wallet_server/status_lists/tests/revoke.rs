@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
-use server_utils::test_settings::connection_from_settings;
+use health_checkers::test_settings::connection_from_settings;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
 use status_lists::postgres::PostgresStatusListService;

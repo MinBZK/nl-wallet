@@ -38,7 +38,7 @@ axum = [
     "utoipa-swagger-ui/vendored",
     "token_status_list/axum",
 ]
-db_test = ["axum", "dep:reqwest", "server_utils/postgres", "server_utils/test"]
+db_test = ["axum", "dep:reqwest", "health_checkers/test_settings"]
 admin-ui = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
 
 [dependencies]
@@ -83,7 +83,7 @@ measure.path = "../../lib/measure"
 token_status_list = { path = "../../lib/token_status_list" }
 utils.path = "../../lib/utils"
 
-server_utils = { path = "../server_utils", optional = true }
+health_checkers = { path = "../../lib/health_checkers", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
