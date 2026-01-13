@@ -162,7 +162,13 @@ tasks.register<Exec>("determineEmulator") {
     doLast {
         if (Regex("^emulator", RegexOption.MULTILINE).find(standardOutput.toString()) != null) {
             logger.warn("Using emulator integration test features")
+            logger.info("This will allow Software security level")
+            logger.info("and skip the root certificate public key check")
             integrationTestFeature = "emulator_integration_test"
+        } else {
+            logger.info("Using hardware integration test feature")
+            logger.info("Only allow TEE or Strongbox keys")
+            logger.info("and check against the configured root public keys")
         }
     }
 }
