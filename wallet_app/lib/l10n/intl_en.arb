@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-01-12T09:49:40+01:00",
+    "@@last_modified": "2026-01-13T10:34:54+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -8,8 +8,8 @@
     },
     "aboutScreenPrivacyCta": "Privacy statement",
     "aboutScreenTitle": "About the NL Wallet",
-    "activeIssuanceSessionDialogDescription": "Finish adding your card(s)",
-    "activeIssuanceSessionDialogTitle": "Maak het toevoegen van je kaart(en) af",
+    "activeIssuanceSessionDialogDescription": "You already started adding card(s). Finish it, then open the link again.",
+    "activeIssuanceSessionDialogTitle": "Finish adding your card(s)",
     "activeSessionDialogDescription": "You already started sharing. Finish it, then open the link again.",
     "activeSessionDialogTitle": "Finish sharing",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {added {count} card} other {added {count} cards}}",
@@ -222,7 +222,7 @@
     "cardStatusMetadataCardDataScreenUndetermined": "Some organisations may not accept a card without validity.",
     "cardStatusMetadataCardDataScreenValidSoon": "These details will be valid from {notBeforeTime}.",
     "cardStatusMetadataCardDetailScreenCorrupted": "Not working due to a problem at {organisation}. Contact {organisation} for help.",
-    "cardStatusMetadataCardDetailScreenCorruptedPid": "Invalid. That is why your NL Wallet is not working now. Contact the helpdesk. ",
+    "cardStatusMetadataCardDetailScreenCorruptedPid": "Invalid. That is why your NL Wallet is not working now. Contact the helpdesk.",
     "cardStatusMetadataCardDetailScreenExpired": "No longer valid since {expiryTime}. Replace the card via {organisation}.",
     "cardStatusMetadataCardDetailScreenExpiredPid": "No longer valid since {expiryTime}. That is why your NL Wallet is not working now. Replace this card with the DigiD app to keep using the wallet.",
     "cardStatusMetadataCardDetailScreenExpiresSoon": "Expires in {timeUntilExpiryTime}. Valid until {expiryTime}. Replace the card via {organisation}.",
