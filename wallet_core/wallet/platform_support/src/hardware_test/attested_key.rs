@@ -4,7 +4,7 @@ use crate::attested_key::hardware::HardwareAttestedKeyHolder;
 use crate::attested_key::test::TestData;
 use crate::attested_key::test::create_and_verify_attested_key;
 
-fn attested_key_test(test_data: TestData) {
+fn attested_key_test(test_data: TestData, google_cloud_project_number: u64) {
     let challenge = b"this_is_a_challenge_string";
     let payload = b"This is a message that will be signed.";
 
@@ -16,6 +16,7 @@ fn attested_key_test(test_data: TestData) {
             test_data,
             challenge.to_vec(),
             payload.to_vec(),
+            google_cloud_project_number,
         ));
     })
 }
@@ -36,6 +37,7 @@ mod android {
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_attested_1key_AttestedKeyBridgeInstrumentedTest_attested_1key_1test(
         _env: JNIEnv,
         _: JClass,
+        google_cloud_project_number: u64,
     ) {
         android_logger::init_once(Config::default().with_max_level(LevelFilter::Trace));
         log::info!("Begin attested key test");
@@ -43,7 +45,7 @@ mod android {
         let test_data = TestData::Android(AndroidTestData {
             root_public_keys: GOOGLE_ROOT_PUBKEYS.clone(),
         });
-        super::attested_key_test(test_data);
+        super::attested_key_test(test_data, google_cloud_project_number);
     }
 }
 
@@ -61,6 +63,6 @@ mod ios {
             app_identifier: &AppIdentifier::default(),
             trust_anchors: APPLE_TRUST_ANCHORS.clone(),
         });
-        super::attested_key_test(test_data);
+        super::attested_key_test(test_data, 0);
     }
 }

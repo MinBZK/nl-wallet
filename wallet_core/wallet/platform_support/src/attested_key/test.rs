@@ -68,6 +68,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
     test_data: TestData<'a>,
     challenge: Vec<u8>,
     payload: Vec<u8>,
+    google_cloud_project_number: u64,
 ) where
     H: AttestedKeyHolder,
     H::AppleKey: Debug,
@@ -81,7 +82,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
 
     // Perform key / app attestation. Note that this requires a network connection.
     let key_with_attestation = holder
-        .attest(identifier.clone(), challenge.clone(), 1234567890)
+        .attest(identifier.clone(), challenge.clone(), google_cloud_project_number)
         .await
         .expect("could not perform key/app attestation");
 

@@ -35,7 +35,8 @@ class AttestedKeyBridgeInstrumentedTest {
         const val GOOGLE_CLOUD_PROJECT_NUMBER: ULong = 1234567890u
 
         @JvmStatic
-        external fun attested_key_test()
+        @JvmName("attested_key_test")
+        external fun attested_key_test(googleCloudProjectNumber: ULong)
     }
 
     private lateinit var attestedKeyBridge: AttestedKeyBridge
@@ -199,7 +200,7 @@ class AttestedKeyBridgeInstrumentedTest {
        System.loadLibrary("platform_support")
 
        // The Rust code will panic if this test fails.
-       attested_key_test()
+       attested_key_test(GOOGLE_CLOUD_PROJECT_NUMBER)
    }
 
     private fun parseCertificate(certificateBytes: List<UByte>): X509Certificate {
