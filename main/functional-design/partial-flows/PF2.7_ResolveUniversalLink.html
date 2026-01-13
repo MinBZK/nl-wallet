@@ -208,7 +208,7 @@
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible Results</strong></p></td>
-<td><p><ul><li>No (valid) universal link</li></ul><i>In case of a valid UL, the system continues with the corresponding use case</i></p></td>
+<td><p><ul><li>No (valid) universal link</li><li>Wallet rejects universal link</li></ul><li>In case of a valid UL, the system continues with the corresponding use case</li></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
 <td><p><em>None</em></p></td>
@@ -217,7 +217,7 @@
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc33"><span class="std std-ref">LTC33 Open app via universal link</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc35"><span class="std std-ref">LTC35 Invoke universal link when app is not installed</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc36"><span class="std std-ref">LTC36 Open universal link via external QR scanner</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc44"><span class="std std-ref">LTC44 Wallet not created when universal link is invoked</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc55"><span class="std std-ref">LTC55 Invalid universal link</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc33"><span class="std std-ref">LTC33 Open app via universal link</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc35"><span class="std std-ref">LTC35 Invoke universal link when app is not installed</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc36"><span class="std std-ref">LTC36 Open universal link via external QR scanner</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc44"><span class="std std-ref">LTC44 Wallet not created when universal link is invoked</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc55"><span class="std std-ref">LTC55 Invalid universal link</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc33"><span class="std std-ref">LTC69 Universal link is invoked while wallet is not personalized</span></a></li></ul></p></td>
 </tr>
 </tbody>
 </table>
@@ -265,37 +265,117 @@
 <td><p>Case: universal link is invalid</p></td>
 <td><p>Result: No (valid) universal link</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>1.3</strong></p></td>
+<tr class="row-even"><td><p>1.2d</p></td>
+<td><p>Case: wallet is not personalized</p></td>
+<td><p>3</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.2e</p></td>
+<td><p>Case: wallet is in a transfer session</p></td>
+<td><p>4</p></td>
+</tr>
+<tr class="row-even"><td><p>1.2f</p></td>
+<td><p>Case: wallet is in a PIN recovery session</p></td>
+<td><p>5</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.2g</p></td>
+<td><p>Case: wallet is in a disclosure session</p></td>
+<td><p>6</p></td>
+</tr>
+<tr class="row-even"><td><p>1.2h</p></td>
+<td><p>Case: wallet is in an issuance session</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.3</strong></p></td>
 <td><p><strong>System resolves universal link</strong><ul><li>Contacts the URL provided in the UL</li><li>Duration: 0.0 - 0.1 seconds</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3a</p></td>
+<tr class="row-even"><td><p>1.3a</p></td>
 <td><p>Case: UL resolves to issuance flow</p></td>
 <td><p>Go to: <a class="reference internal" href="../use-cases/UC4.1_ObtainCardsFromEAAIssuer.html"><span class="std std-doc">UC4.1 Obtain cards</span></a></p></td>
 </tr>
-<tr class="row-even"><td><p>1.3b</p></td>
+<tr class="row-odd"><td><p>1.3b</p></td>
 <td><p>Case: UL resolves to sharing flow</p></td>
 <td><p>Go to: <a class="reference internal" href="../use-cases/UC5.1_ShareDataWithRP.html"><span class="std std-doc">UC5.1 Share data</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3c</p></td>
+<tr class="row-even"><td><p>1.3c</p></td>
 <td><p>Case: UL resolves to login flow</p></td>
 <td><p>Go to: <a class="reference internal" href="../use-cases/UC5.2_LoginToApplicationOfRP.html"><span class="std std-doc">UC5.2 Log in to Relying Party application</span></a></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>2</strong></p></td>
+<tr class="row-odd"><td><p><strong>2</strong></p></td>
 <td><p><strong>WHEN EXTERNAL QR SCANNER WAS USED</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
+<tr class="row-even"><td><p><strong>2.1</strong></p></td>
 <td><p><strong>System displays prompt ‘Scan QR code with NL Wallet’</strong><ul><li>Actions: Close, Scan QR code</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>2.1a</p></td>
+<tr class="row-odd"><td><p>2.1a</p></td>
 <td><p>User selects Close</p></td>
 <td><p>Result: No (valid) universal link</p></td>
 </tr>
-<tr class="row-odd"><td><p>2.1b</p></td>
+<tr class="row-even"><td><p>2.1b</p></td>
 <td><p>User selects Scan QR code</p></td>
 <td><p>Go to: <a class="reference internal" href="../use-cases/UC9.9_ScanQR.html"><span class="std std-doc">UC9.9 Scan QR</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>3</strong></p></td>
+<td><p><strong>WHEN WALLET IS NOT PERSONALIZED</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>3.1</strong></p></td>
+<td><p><strong>System displays prompt ‘Your NL Wallet is not ready’</strong><ul><li>Actions: OK</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>3.1a</p></td>
+<td><p>User selects OK</p></td>
+<td><p>Result: Wallet rejects universal link</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>4</strong></p></td>
+<td><p><strong>WWHEN WALLET IS IN A TRANSFER SESSION</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>4.1</strong></p></td>
+<td><p><strong>System displays prompt ‘Finish moving your NL Wallet’</strong><ul><li>Actions: OK</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>4.1a</p></td>
+<td><p>User selects OK</p></td>
+<td><p>Result: Wallet rejects universal link</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>5</strong></p></td>
+<td><p><strong>WWHEN WALLET IS IN A PIN RECOVERY SESSION</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>5.1</strong></p></td>
+<td><p><strong>System displays prompt ‘Finish your new PIN’</strong><ul><li>Actions: OK</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>5.1a</p></td>
+<td><p>User selects OK</p></td>
+<td><p>Result: Wallet rejects universal link</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>6</strong></p></td>
+<td><p><strong>WWHEN WALLET IS IN A DISCLOSURE SESSION</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>6.1</strong></p></td>
+<td><p><strong>System displays prompt ‘Finish sharing’</strong><ul><li>Actions: OK</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>6.1a</p></td>
+<td><p>User selects OK</p></td>
+<td><p>Result: Wallet rejects universal link</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>7</strong></p></td>
+<td><p><strong>WWHEN WALLET IS IN AN ISSUANCE SESSION</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>7.1</strong></p></td>
+<td><p><strong>System displays prompt ‘Finish adding your card’</strong><ul><li>Actions: OK</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>7.1a</p></td>
+<td><p>User selects OK</p></td>
+<td><p>Result: Wallet rejects universal link</p></td>
 </tr>
 </tbody>
 </table>
