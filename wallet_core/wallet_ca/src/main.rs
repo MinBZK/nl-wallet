@@ -197,7 +197,7 @@ impl Command {
     fn get_certificate_configuration(days: u32) -> CertificateConfiguration {
         let not_before = Utc::now();
         let not_after = not_before
-            .checked_add_signed(Duration::days(days as i64))
+            .checked_add_signed(Duration::days(i64::from(days)))
             .expect("`valid_for` does not result in a valid time stamp, try decreasing the value");
         if not_after <= not_before {
             panic!("`valid_for` must be a positive duration");

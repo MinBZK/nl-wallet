@@ -132,6 +132,7 @@ test_common = [
     "platform_support/mock",
     "sea-orm/debug-print",
     "status_lists/axum",
+    "token_status_list/axum",
     "tokio/rt",
     "tokio/time",
     "wallet/test",

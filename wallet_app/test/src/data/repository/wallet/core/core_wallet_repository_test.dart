@@ -143,8 +143,7 @@ void main() {
         displayMetadata: [DisplayMetadata(lang: 'nl', name: 'card name')],
         attributes: [],
         issuer: CoreMockData.organization,
-        validityStatus: ValidityStatus.Valid,
-        validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+        validityStatus: ValidityStatus_Valid(validUntil: null),
       );
       when(core.observeCards()).thenAnswer((_) => Stream.value([samplePidCard]));
       final result = await repo.containsPid();

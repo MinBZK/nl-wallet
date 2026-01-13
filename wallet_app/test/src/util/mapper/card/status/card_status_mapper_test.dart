@@ -14,116 +14,93 @@ void main() {
   });
 
   group('map', () {
-    test('Valid should return CardStatus.validSoon when validFrom is in the future', () {
-      withClock(Clock.fixed(DateTime(2025, 1, 1)), () {
-        final validFrom = DateTime(2025, 1, 5);
-        final input = _createMockAttestationPresentation(
-          revocationStatus: core.RevocationStatus.Valid,
-          validFrom: validFrom.toIso8601String(),
-        );
+    test('ValidityStatus.NotYetValid maps to CardStatusValidSoon', () {
+      final validFrom = DateTime(2025, 1, 5);
 
-        expect(mapper.map(input), CardStatusValidSoon(validFrom: validFrom));
-      });
+      final input = _createMockAttestationPresentation(
+        revocationStatus: core.RevocationStatus.Valid,
+        validityStatus: core.ValidityStatus_NotYetValid(validFrom: validFrom.toIso8601String()),
+      );
+
+      expect(mapper.map(input), CardStatusValidSoon(validFrom: validFrom));
     });
 
-    test('Valid should return CardStatus.valid when no validUntil is provided', () {
-      withClock(Clock.fixed(DateTime(2025, 1, 1)), () {
-        final input = _createMockAttestationPresentation(
-          revocationStatus: core.RevocationStatus.Valid,
-          validFrom: DateTime(2024, 12, 1).toIso8601String(),
-          validUntil: null,
-        );
+    test('ValidityStatus.Valid maps to CardStatusValid', () {
+      final validUntil = DateTime(2025, 2, 1);
 
-        expect(mapper.map(input), const CardStatusValid(validUntil: null));
-      });
+      final input = _createMockAttestationPresentation(
+        revocationStatus: core.RevocationStatus.Valid,
+        validityStatus: core.ValidityStatus_Valid(validUntil: validUntil.toIso8601String()),
+      );
+
+      expect(mapper.map(input), CardStatusValid(validUntil: validUntil));
     });
 
-    test('Valid should return CardStatus.valid when validUntil is far in the future', () {
-      withClock(Clock.fixed(DateTime(2025, 1, 1)), () {
-        final validUntil = DateTime(2025, 2, 1);
-        final input = _createMockAttestationPresentation(
-          revocationStatus: core.RevocationStatus.Valid,
-          validFrom: DateTime(2024, 12, 1).toIso8601String(),
-          validUntil: validUntil.toIso8601String(),
-        );
+    test('ValidityStatus.ExpiresSoon maps to CardStatusExpiresSoon', () {
+      final validUntil = DateTime(2025, 1, 5);
 
-        final CardStatus actual = mapper.map(input);
+      final input = _createMockAttestationPresentation(
+        revocationStatus: core.RevocationStatus.Valid,
+        validityStatus: core.ValidityStatus_ExpiresSoon(validUntil: validUntil.toIso8601String()),
+      );
 
-        expect(actual, CardStatusValid(validUntil: validUntil));
-      });
+      expect(mapper.map(input), CardStatusExpiresSoon(validUntil: validUntil));
     });
 
-    test('Valid should return CardStatus.expiresSoon when validUntil is within threshold', () {
-      withClock(Clock.fixed(DateTime(2025, 1, 1)), () {
-        final validUntil = DateTime(2025, 1, 5); // 4 days from now
-        final input = _createMockAttestationPresentation(
-          revocationStatus: core.RevocationStatus.Valid,
-          validFrom: DateTime(2024, 12, 1).toIso8601String(),
-          validUntil: validUntil.toIso8601String(),
-        );
+    test('ValidityStatus.Expired maps to CardStatusExpired', () {
+      final validUntil = DateTime(2024, 12, 25);
 
-        final CardStatus actual = mapper.map(input);
+      final input = _createMockAttestationPresentation(
+        revocationStatus: core.RevocationStatus.Valid,
+        validityStatus: core.ValidityStatus_Expired(validUntil: validUntil.toIso8601String()),
+      );
 
-        expect(actual, CardStatusExpiresSoon(validUntil: validUntil));
-      });
-    });
-
-    test('Valid should return CardStatus.expired when validUntil is in the past', () {
-      withClock(Clock.fixed(DateTime(2025, 1, 1)), () {
-        final validUntil = DateTime(2024, 12, 25); // Past date
-        final input = _createMockAttestationPresentation(
-          revocationStatus: core.RevocationStatus.Valid,
-          validFrom: DateTime(2024, 12, 1).toIso8601String(),
-          validUntil: validUntil.toIso8601String(),
-        );
-
-        expect(mapper.map(input), CardStatusExpired(validUntil: validUntil));
-      });
-    });
-
-    test('Valid should return CardStatus.expiresSoon when validUntil is exactly at threshold', () {
-      withClock(Clock.fixed(DateTime(2025, 1, 1)), () {
-        final validUntil = DateTime(2025, 1, kCardExpiresSoonThresholdInDays);
-        final input = _createMockAttestationPresentation(
-          revocationStatus: core.RevocationStatus.Valid,
-          validFrom: DateTime(2024, 12, 1).toIso8601String(),
-          validUntil: validUntil.toIso8601String(),
-        );
-
-        expect(mapper.map(input), CardStatusExpiresSoon(validUntil: validUntil));
-      });
+      expect(mapper.map(input), CardStatusExpired(validUntil: validUntil));
     });
 
     test('Revoked revocationStatus should return CardStatusRevoked', () {
-      final input = _createMockAttestationPresentation(revocationStatus: core.RevocationStatus.Revoked);
+      final input = _createMockAttestationPresentation(
+        revocationStatus: core.RevocationStatus.Revoked,
+        validityStatus: const core.ValidityStatus_Valid(validUntil: null),
+      );
 
       expect(mapper.map(input), const CardStatusRevoked());
     });
 
     test('Corrupted revocationStatus should return CardStatusCorrupted', () {
-      final input = _createMockAttestationPresentation(revocationStatus: core.RevocationStatus.Corrupted);
+      final input = _createMockAttestationPresentation(
+        revocationStatus: core.RevocationStatus.Corrupted,
+        validityStatus: const core.ValidityStatus_Valid(validUntil: null),
+      );
 
       expect(mapper.map(input), const CardStatusCorrupted());
     });
 
     test('Undetermined revocationStatus should return CardStatusUndetermined', () {
-      final input = _createMockAttestationPresentation(revocationStatus: core.RevocationStatus.Undetermined);
+      final input = _createMockAttestationPresentation(
+        revocationStatus: core.RevocationStatus.Undetermined,
+        validityStatus: const core.ValidityStatus_Valid(validUntil: null),
+      );
 
       expect(mapper.map(input), const CardStatusUndetermined());
     });
 
     test('Null revocationStatus should return CardStatusValid', () {
-      final input = _createMockAttestationPresentation(revocationStatus: null);
+      withClock(Clock.fixed(DateTime(2025, 1, 1)), () {
+        final input = _createMockAttestationPresentation(
+          revocationStatus: null,
+          validityStatus: core.ValidityStatus_Valid(validUntil: DateTime(2025, 1, 1).toIso8601String()),
+        );
 
-      expect(mapper.map(input), const CardStatusValid(validUntil: null));
+        expect(mapper.map(input), CardStatusValid(validUntil: DateTime(2025, 1, 1)));
+      });
     });
   });
 }
 
 core.AttestationPresentation _createMockAttestationPresentation({
   core.RevocationStatus? revocationStatus,
-  String? validFrom,
-  String? validUntil,
+  required core.ValidityStatus validityStatus,
 }) {
   return core.AttestationPresentation(
     identity: const core.AttestationIdentity_Fixed(id: 'id'),
@@ -132,10 +109,6 @@ core.AttestationPresentation _createMockAttestationPresentation({
     issuer: CoreMockData.organization,
     attributes: [CoreMockData.attestationAttributeName],
     revocationStatus: revocationStatus,
-    validityStatus: core.ValidityStatus.Valid,
-    validityWindow: core.ValidityWindow(
-      validFrom: validFrom,
-      validUntil: validUntil,
-    ),
+    validityStatus: validityStatus,
   );
 }

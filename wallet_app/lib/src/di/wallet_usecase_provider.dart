@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
@@ -89,6 +90,14 @@ import '../domain/usecase/pin/impl/unlock_wallet_with_pin_usecase_impl.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/qr/decode_qr_usecase.dart';
 import '../domain/usecase/qr/impl/decode_qr_usecase_impl.dart';
+import '../domain/usecase/revocation/get_registration_revocation_code_usecase.dart';
+import '../domain/usecase/revocation/get_revocation_code_saved_usecase.dart';
+import '../domain/usecase/revocation/get_revocation_code_usecase.dart';
+import '../domain/usecase/revocation/impl/get_registration_revocation_code_usecase_impl.dart';
+import '../domain/usecase/revocation/impl/get_revocation_code_saved_usecase_impl.dart';
+import '../domain/usecase/revocation/impl/get_revocation_code_usecase_impl.dart';
+import '../domain/usecase/revocation/impl/set_revocation_code_saved_usecase_impl.dart';
+import '../domain/usecase/revocation/set_revocation_code_saved_usecase.dart';
 import '../domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import '../domain/usecase/sign/impl/accept_sign_agreement_usecase_impl.dart';
 import '../domain/usecase/sign/impl/reject_sign_agreement_usecase_impl.dart';
@@ -232,7 +241,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => AcceptOfferedPidUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ResetWalletUseCase>(
-          create: (context) => ResetWalletUseCaseImpl(context.read(), context.read()),
+          create: (context) => ResetWalletUseCaseImpl(context.read(), SharedPreferences.getInstance),
         ),
         RepositoryProvider<CheckNavigationPrerequisitesUseCase>(
           create: (context) => CheckNavigationPrerequisitesUseCaseImpl(context.read()),
@@ -399,6 +408,18 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
             context.read(),
           ),
+        ),
+        RepositoryProvider<GetRevocationCodeSavedUseCase>(
+          create: (context) => GetRevocationCodeSavedUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<SetRevocationCodeSavedUseCase>(
+          create: (context) => SetRevocationCodeSavedUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetRegistrationRevocationCodeUseCase>(
+          create: (context) => GetRegistrationRevocationCodeUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetRevocationCodeUseCase>(
+          create: (context) => GetRevocationCodeUseCaseImpl(context.read()),
         ),
       ],
       child: child,

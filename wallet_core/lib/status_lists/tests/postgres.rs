@@ -153,7 +153,7 @@ async fn assert_status_list_items(
     assert_eq!(items.len(), size as usize);
     assert_eq!(
         items.iter().map(|item| item.sequence_no).collect::<Vec<_>>(),
-        ((next_sequence_no - size as i64)..next_sequence_no).collect::<Vec<_>>(),
+        ((next_sequence_no - i64::from(size))..next_sequence_no).collect::<Vec<_>>(),
     );
 
     let mut indices = items.iter().map(|item| item.index).collect::<Vec<_>>();

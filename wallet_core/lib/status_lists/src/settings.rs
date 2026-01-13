@@ -62,7 +62,7 @@ impl StatusListsSettings {
     }
 
     fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTtl> {
-        let expiry = Duration::from_secs(self.expiry_in_hours.get() as u64 * 3600);
+        let expiry = Duration::from_secs(u64::from(self.expiry_in_hours.get()) * 3600);
         let ttl = self
             .ttl()
             .map(|ttl| {
@@ -77,7 +77,7 @@ impl StatusListsSettings {
 
     pub fn ttl(&self) -> Option<Duration> {
         self.ttl_in_minutes
-            .map(|ttl| Duration::from_secs(ttl.get() as u64 * 60))
+            .map(|ttl| Duration::from_secs(u64::from(ttl.get()) * 60))
     }
 }
 

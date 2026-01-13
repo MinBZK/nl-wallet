@@ -101,7 +101,9 @@ pub struct AttestationValidity {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ValidityStatus {
-    NotYetValid,
+    NotYetValid {
+        valid_from: DateTime<Utc>,
+    },
     AlwaysValid,
     ValidUntil {
         expires_at: DateTime<Utc>,
@@ -111,7 +113,9 @@ pub enum ValidityStatus {
         expires_at: DateTime<Utc>,
         notify_at: DateTime<Utc>,
     },
-    Expired,
+    Expired {
+        expired_at: DateTime<Utc>,
+    },
 }
 
 const EXPIRES_SOON_WINDOW: Duration = Duration::days(7);
@@ -119,13 +123,17 @@ const EXPIRES_SOON_WINDOW: Duration = Duration::days(7);
 impl ValidityStatus {
     pub fn from_window(window: &ValidityWindow, now: DateTime<Utc>) -> Self {
         // 1. Check if the start date is in the future
-        if window.valid_from.is_some_and(|from| now < from) {
-            return ValidityStatus::NotYetValid;
+        if let Some(from) = window.valid_from
+            && now < from
+        {
+            return ValidityStatus::NotYetValid { valid_from: from };
         }
 
         // 2. Check if the end date has passed
-        if window.valid_until.is_some_and(|until| now > until) {
-            return ValidityStatus::Expired;
+        if let Some(until) = window.valid_until
+            && now > until
+        {
+            return ValidityStatus::Expired { expired_at: until };
         }
 
         // 3. Check if we are within the "soon" threshold
@@ -195,19 +203,29 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use chrono::Duration;
+    use chrono::DurationRound;
+    use chrono::TimeDelta;
     use chrono::Utc;
     use rstest::rstest;
 
     use super::*;
 
     #[rstest]
-    #[case::not_yet_valid(Some(Duration::days(1)), Some(Duration::days(10)), ValidityStatus::NotYetValid)]
-    #[case::expired(Some(Duration::days(-10)), Some(Duration::days(-1)), ValidityStatus::Expired)]
+    #[case::not_yet_valid(
+        Some(Duration::days(1)),
+        Some(Duration::days(10)),
+        ValidityStatus::NotYetValid { valid_from: Utc::now() + Duration::days(1) }
+    )]
+    #[case::expired(
+        Some(Duration::days(-10)),
+        Some(Duration::days(-1)),
+        ValidityStatus::Expired { expired_at: Utc::now() - Duration::days(1) }
+    )]
     #[case::expires_soon(
         Some(Duration::days(-1)),
         Some(EXPIRES_SOON_WINDOW - Duration::hours(1)),
         ValidityStatus::ExpiresSoon {
-                expires_at: Utc::now(),
+                expires_at: Utc::now() + EXPIRES_SOON_WINDOW - Duration::hours(1),
                 notify_at: Utc::now()
             }
     )]
@@ -215,7 +233,7 @@ mod tests {
         Some(Duration::days(-1)),
         Some(EXPIRES_SOON_WINDOW + Duration::days(3)),
         ValidityStatus::ValidUntil {
-                expires_at: Utc::now(),
+                expires_at: Utc::now() + EXPIRES_SOON_WINDOW + Duration::days(3),
                 notify_at: Utc::now()
             }
     )]
@@ -223,11 +241,15 @@ mod tests {
         Some(Duration::days(-1)),
         Some(EXPIRES_SOON_WINDOW),
         ValidityStatus::ValidUntil {
-                expires_at: Utc::now(),
+                expires_at: Utc::now() + EXPIRES_SOON_WINDOW,
                 notify_at: Utc::now()
             }
     )]
-    #[case::not_yet_valid_priority(Some(Duration::hours(1)), Some(Duration::hours(2)), ValidityStatus::NotYetValid)]
+    #[case::not_yet_valid_priority(
+        Some(Duration::hours(1)),
+        Some(Duration::hours(2)),
+        ValidityStatus::NotYetValid { valid_from: Utc::now() + Duration::hours(1) }
+    )]
     #[case::always_valid(Some(Duration::days(-1)), None, ValidityStatus::AlwaysValid)]
     fn test_validity_status_logic(
         #[case] from_offset: Option<Duration>,
@@ -243,8 +265,54 @@ mod tests {
         let actual = ValidityStatus::from_window(&window, now);
 
         match (actual, expected) {
-            (ValidityStatus::ValidUntil { .. }, ValidityStatus::ValidUntil { .. }) => {}
-            (ValidityStatus::ExpiresSoon { .. }, ValidityStatus::ExpiresSoon { .. }) => {}
+            (
+                ValidityStatus::ValidUntil {
+                    expires_at: actual_expires_at,
+                    ..
+                },
+                ValidityStatus::ValidUntil {
+                    expires_at: expected_expires_at,
+                    ..
+                },
+            ) => assert_eq!(
+                actual_expires_at.duration_round(TimeDelta::hours(1)),
+                expected_expires_at.duration_round(TimeDelta::hours(1))
+            ),
+            (
+                ValidityStatus::ExpiresSoon {
+                    expires_at: actual_expires_at,
+                    ..
+                },
+                ValidityStatus::ExpiresSoon {
+                    expires_at: expected_expires_at,
+                    ..
+                },
+            ) => assert_eq!(
+                actual_expires_at.duration_round(TimeDelta::hours(1)),
+                expected_expires_at.duration_round(TimeDelta::hours(1))
+            ),
+            (
+                ValidityStatus::Expired {
+                    expired_at: actual_expired_at,
+                },
+                ValidityStatus::Expired {
+                    expired_at: expected_expired_at,
+                },
+            ) => assert_eq!(
+                actual_expired_at.duration_round(TimeDelta::hours(1)),
+                expected_expired_at.duration_round(TimeDelta::hours(1))
+            ),
+            (
+                ValidityStatus::NotYetValid {
+                    valid_from: actual_valid_from,
+                },
+                ValidityStatus::NotYetValid {
+                    valid_from: expected_valid_from,
+                },
+            ) => assert_eq!(
+                actual_valid_from.duration_round(TimeDelta::hours(1)),
+                expected_valid_from.duration_round(TimeDelta::hours(1))
+            ),
             (a, b) => assert_eq!(a, b),
         }
     }

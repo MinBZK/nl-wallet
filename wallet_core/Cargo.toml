@@ -71,6 +71,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 
 [workspace.lints.clippy]
 allow_attributes = "deny"
+cast_lossless = "warn"
 cloned_instead_of_copied = "warn"
 expl_impl_clone_on_copy = "warn"
 explicit_into_iter_loop = "warn"

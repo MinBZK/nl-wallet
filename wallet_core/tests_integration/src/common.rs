@@ -1008,11 +1008,11 @@ pub async fn do_degree_issuance(
         .unwrap();
 
     let attestation_previews = wallet
-        .continue_disclosure_based_issuance(&[0], pin.to_owned())
+        .continue_disclosure_based_issuance(&[0], pin.clone())
         .await
         .unwrap();
 
-    wallet.accept_issuance(pin.to_owned()).await.unwrap();
+    wallet.accept_issuance(pin).await.unwrap();
 
     attestation_previews
 }

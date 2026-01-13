@@ -163,6 +163,10 @@ class TypedWalletCore {
 
   Future<core.WalletState> getWalletState() => call(core.getWalletState);
 
+  Future<String> getRegistrationRevocationCode() => call(core.getRegistrationRevocationCode);
+
+  Future<core.RevocationCodeResult> getRevocationCode(String pin) => call(() => core.getRevocationCode(pin: pin));
+
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
   Future<T> call<T>(Future<T> Function() runnable) async {

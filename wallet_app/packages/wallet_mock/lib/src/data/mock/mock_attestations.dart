@@ -10,8 +10,7 @@ const _kDarkBlue = '#152A62';
 const _kEducationSummary = '{{mock_education}}';
 const _kDrivingLicenseSummary = '{{mock_drivingLicenseCategories}}';
 
-final kValidityWindow = const ValidityWindow(validFrom: null, validUntil: null);
-final kValidityStatus = ValidityStatus.Valid;
+const kValidityStatus = ValidityStatus_Valid(validUntil: null);
 
 final kPidAttestations = [
   AttestationPresentation(
@@ -27,7 +26,6 @@ final kPidAttestations = [
     ),
     issuer: kOrganizations[kRvigId]!,
     validityStatus: kValidityStatus,
-    validityWindow: kValidityWindow,
     attributes: kMockPidAttestationAttributes,
   ),
   AttestationPresentation(
@@ -43,7 +41,6 @@ final kPidAttestations = [
     ),
     issuer: kOrganizations[kRvigId]!,
     validityStatus: kValidityStatus,
-    validityWindow: kValidityWindow,
     attributes: kMockAddressAttestationAttributes,
   ),
 ];
@@ -60,7 +57,6 @@ final kDiplomaAttestation = AttestationPresentation(
     textColor: _kWhite,
   ),
   validityStatus: kValidityStatus,
-  validityWindow: kValidityWindow,
   attributes: kMockDiplomaAttestationAttributes,
   issuer: kOrganizations[kDuoId]!,
 );
@@ -77,7 +73,6 @@ final kMockMasterDiplomaWalletCard = AttestationPresentation(
     textColor: _kWhite,
   ),
   validityStatus: kValidityStatus,
-  validityWindow: kValidityWindow,
   attributes: kMockMasterDiplomaDataAttributes,
   issuer: kOrganizations[kDuoId]!,
 );
@@ -94,7 +89,6 @@ final kMockDrivingLicenseWalletCard = AttestationPresentation(
     textColor: _kDarkBlue,
   ),
   validityStatus: kValidityStatus,
-  validityWindow: kValidityWindow,
   attributes: kMockDrivingLicenseDataAttributes,
   issuer: kOrganizations[kRdwId]!,
 );
@@ -111,7 +105,6 @@ final kMockDrivingLicenseRenewedWalletCard = AttestationPresentation(
     textColor: _kDarkBlue,
   ),
   validityStatus: kValidityStatus,
-  validityWindow: kValidityWindow,
   attributes: kMockDrivingLicenseRenewedDataAttributes,
   issuer: kOrganizations[kRdwId]!,
 );
@@ -128,7 +121,6 @@ final kMockHealthInsuranceWalletCard = AttestationPresentation(
     textColor: _kWhite,
   ),
   validityStatus: kValidityStatus,
-  validityWindow: kValidityWindow,
   attributes: kMockHealthInsuranceDataAttributes,
   issuer: kOrganizations[kHealthInsuranceId]!,
 );
@@ -145,7 +137,6 @@ final kMockVOGWalletCard = AttestationPresentation(
     textColor: _kWhite,
   ),
   validityStatus: kValidityStatus,
-  validityWindow: kValidityWindow,
   attributes: kMockVOGDataAttributes,
   issuer: kOrganizations[kRvigId]!,
 );
