@@ -31,7 +31,7 @@ openid4vc.path = "../../lib/openid4vc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils.path = "../../lib/utils"
 server_utils.path = "../server_utils"
-status_lists.path = "../status_lists"
+status_lists.path = "../../lib/status_lists"
 
 [dev-dependencies]
 assert_matches.workspace = true

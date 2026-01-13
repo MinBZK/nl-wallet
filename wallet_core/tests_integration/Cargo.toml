@@ -269,7 +269,7 @@ pid_issuer = { path = "../wallet_server/pid_issuer", optional = true }
 platform_support = { path = "../wallet/platform_support", optional = true }
 server_utils = { path = "../wallet_server/server_utils", optional = true }
 static_server = { path = "../static_server", optional = true }
-status_lists = { path = "../wallet_server/status_lists", optional = true }
+status_lists = { path = "../lib/status_lists", optional = true }
 token_status_list = { path = "../lib/token_status_list", features = ["mock"] }
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true }

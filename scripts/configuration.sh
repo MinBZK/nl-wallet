@@ -6,7 +6,7 @@ WALLET_CORE_DIR="${BASE_DIR}/wallet_core"
 export WALLET_CORE_DIR
 WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
 HEALTH_CHECKERS_DIR="${WALLET_CORE_DIR}/lib/health_checkers"
-STATUS_LISTS_DIR="${WALLET_CORE_DIR}/wallet_server/status_lists"
+STATUS_LISTS_DIR="${WALLET_CORE_DIR}/lib/status_lists"
 PID_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/pid_issuer"
 ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/issuance_server"
 VERIFICATION_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/verification_server"

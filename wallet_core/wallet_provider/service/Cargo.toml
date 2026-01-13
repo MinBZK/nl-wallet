@@ -99,7 +99,7 @@ utils.path = "../../lib/utils"
 wscd.path = "../../lib/wscd"
 
 platform_support = { path = "../../wallet/platform_support", optional = true }
-status_lists = { path = "../../wallet_server/status_lists", optional = true }
+status_lists = { path = "../../lib/status_lists", optional = true }
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_persistence = { path = "../persistence", optional = true }
 
