@@ -122,10 +122,33 @@ typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *country_code;
 } wire_cst_organization;
 
-typedef struct wire_cst_validity_window {
+typedef struct wire_cst_ValidityStatus_NotYetValid {
   struct wire_cst_list_prim_u_8_strict *valid_from;
+} wire_cst_ValidityStatus_NotYetValid;
+
+typedef struct wire_cst_ValidityStatus_Valid {
   struct wire_cst_list_prim_u_8_strict *valid_until;
-} wire_cst_validity_window;
+} wire_cst_ValidityStatus_Valid;
+
+typedef struct wire_cst_ValidityStatus_ExpiresSoon {
+  struct wire_cst_list_prim_u_8_strict *valid_until;
+} wire_cst_ValidityStatus_ExpiresSoon;
+
+typedef struct wire_cst_ValidityStatus_Expired {
+  struct wire_cst_list_prim_u_8_strict *valid_until;
+} wire_cst_ValidityStatus_Expired;
+
+typedef union ValidityStatusKind {
+  struct wire_cst_ValidityStatus_NotYetValid NotYetValid;
+  struct wire_cst_ValidityStatus_Valid Valid;
+  struct wire_cst_ValidityStatus_ExpiresSoon ExpiresSoon;
+  struct wire_cst_ValidityStatus_Expired Expired;
+} ValidityStatusKind;
+
+typedef struct wire_cst_validity_status {
+  int32_t tag;
+  union ValidityStatusKind kind;
+} wire_cst_validity_status;
 
 typedef struct wire_cst_claim_display_metadata {
   struct wire_cst_list_prim_u_8_strict *lang;
@@ -194,8 +217,7 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_display_metadata *display_metadata;
   struct wire_cst_organization issuer;
   int32_t *revocation_status;
-  int32_t validity_status;
-  struct wire_cst_validity_window validity_window;
+  struct wire_cst_validity_status validity_status;
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;
 

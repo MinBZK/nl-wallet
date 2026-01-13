@@ -1433,18 +1433,6 @@ impl CstDecode<u8> for u8 {
         self
     }
 }
-impl CstDecode<crate::models::attestation::ValidityStatus> for i32 {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    fn cst_decode(self) -> crate::models::attestation::ValidityStatus {
-        match self {
-            0 => crate::models::attestation::ValidityStatus::NotYetValid,
-            1 => crate::models::attestation::ValidityStatus::Valid,
-            2 => crate::models::attestation::ValidityStatus::ExpiresSoon,
-            3 => crate::models::attestation::ValidityStatus::Expired,
-            _ => unreachable!("Invalid variant for ValidityStatus: {}", self),
-        }
-    }
-}
 impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1602,7 +1590,6 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
         let mut var_revocationStatus = <Option<crate::models::revocation::RevocationStatus>>::sse_decode(deserializer);
         let mut var_validityStatus = <crate::models::attestation::ValidityStatus>::sse_decode(deserializer);
-        let mut var_validityWindow = <crate::models::validity::ValidityWindow>::sse_decode(deserializer);
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationPresentation {
             identity: var_identity,
@@ -1611,7 +1598,6 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
             issuer: var_issuer,
             revocation_status: var_revocationStatus,
             validity_status: var_validityStatus,
-            validity_window: var_validityWindow,
             attributes: var_attributes,
         };
     }
@@ -2484,26 +2470,36 @@ impl SseDecode for () {
 impl SseDecode for crate::models::attestation::ValidityStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <i32>::sse_decode(deserializer);
-        return match inner {
-            0 => crate::models::attestation::ValidityStatus::NotYetValid,
-            1 => crate::models::attestation::ValidityStatus::Valid,
-            2 => crate::models::attestation::ValidityStatus::ExpiresSoon,
-            3 => crate::models::attestation::ValidityStatus::Expired,
-            _ => unreachable!("Invalid variant for ValidityStatus: {}", inner),
-        };
-    }
-}
-
-impl SseDecode for crate::models::validity::ValidityWindow {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_validFrom = <Option<String>>::sse_decode(deserializer);
-        let mut var_validUntil = <Option<String>>::sse_decode(deserializer);
-        return crate::models::validity::ValidityWindow {
-            valid_from: var_validFrom,
-            valid_until: var_validUntil,
-        };
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_validFrom = <String>::sse_decode(deserializer);
+                return crate::models::attestation::ValidityStatus::NotYetValid {
+                    valid_from: var_validFrom,
+                };
+            }
+            1 => {
+                let mut var_validUntil = <Option<String>>::sse_decode(deserializer);
+                return crate::models::attestation::ValidityStatus::Valid {
+                    valid_until: var_validUntil,
+                };
+            }
+            2 => {
+                let mut var_validUntil = <String>::sse_decode(deserializer);
+                return crate::models::attestation::ValidityStatus::ExpiresSoon {
+                    valid_until: var_validUntil,
+                };
+            }
+            3 => {
+                let mut var_validUntil = <String>::sse_decode(deserializer);
+                return crate::models::attestation::ValidityStatus::Expired {
+                    valid_until: var_validUntil,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -2773,7 +2769,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPr
             self.issuer.into_into_dart().into_dart(),
             self.revocation_status.into_into_dart().into_dart(),
             self.validity_status.into_into_dart().into_dart(),
-            self.validity_window.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -3437,11 +3432,21 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::transfer::TransferSessionS
 impl flutter_rust_bridge::IntoDart for crate::models::attestation::ValidityStatus {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            Self::NotYetValid => 0.into_dart(),
-            Self::Valid => 1.into_dart(),
-            Self::ExpiresSoon => 2.into_dart(),
-            Self::Expired => 3.into_dart(),
-            _ => unreachable!(),
+            crate::models::attestation::ValidityStatus::NotYetValid { valid_from } => {
+                [0.into_dart(), valid_from.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::attestation::ValidityStatus::Valid { valid_until } => {
+                [1.into_dart(), valid_until.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::attestation::ValidityStatus::ExpiresSoon { valid_until } => {
+                [2.into_dart(), valid_until.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::attestation::ValidityStatus::Expired { valid_until } => {
+                [3.into_dart(), valid_until.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
         }
     }
 }
@@ -3450,24 +3455,6 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::ValidityStatu
     for crate::models::attestation::ValidityStatus
 {
     fn into_into_dart(self) -> crate::models::attestation::ValidityStatus {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::validity::ValidityWindow {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.valid_from.into_into_dart().into_dart(),
-            self.valid_until.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::validity::ValidityWindow {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::validity::ValidityWindow>
-    for crate::models::validity::ValidityWindow
-{
-    fn into_into_dart(self) -> crate::models::validity::ValidityWindow {
         self
     }
 }
@@ -3752,7 +3739,6 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
         <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
         <Option<crate::models::revocation::RevocationStatus>>::sse_encode(self.revocation_status, serializer);
         <crate::models::attestation::ValidityStatus>::sse_encode(self.validity_status, serializer);
-        <crate::models::validity::ValidityWindow>::sse_encode(self.validity_window, serializer);
         <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
     }
 }
@@ -4536,26 +4522,27 @@ impl SseEncode for () {
 impl SseEncode for crate::models::attestation::ValidityStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(
-            match self {
-                crate::models::attestation::ValidityStatus::NotYetValid => 0,
-                crate::models::attestation::ValidityStatus::Valid => 1,
-                crate::models::attestation::ValidityStatus::ExpiresSoon => 2,
-                crate::models::attestation::ValidityStatus::Expired => 3,
-                _ => {
-                    unimplemented!("");
-                }
-            },
-            serializer,
-        );
-    }
-}
-
-impl SseEncode for crate::models::validity::ValidityWindow {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<String>>::sse_encode(self.valid_from, serializer);
-        <Option<String>>::sse_encode(self.valid_until, serializer);
+        match self {
+            crate::models::attestation::ValidityStatus::NotYetValid { valid_from } => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(valid_from, serializer);
+            }
+            crate::models::attestation::ValidityStatus::Valid { valid_until } => {
+                <i32>::sse_encode(1, serializer);
+                <Option<String>>::sse_encode(valid_until, serializer);
+            }
+            crate::models::attestation::ValidityStatus::ExpiresSoon { valid_until } => {
+                <i32>::sse_encode(2, serializer);
+                <String>::sse_encode(valid_until, serializer);
+            }
+            crate::models::attestation::ValidityStatus::Expired { valid_until } => {
+                <i32>::sse_encode(3, serializer);
+                <String>::sse_encode(valid_until, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -4874,7 +4861,6 @@ mod io {
                 issuer: self.issuer.cst_decode(),
                 revocation_status: self.revocation_status.cst_decode(),
                 validity_status: self.validity_status.cst_decode(),
-                validity_window: self.validity_window.cst_decode(),
                 attributes: self.attributes.cst_decode(),
             }
         }
@@ -5428,12 +5414,35 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::validity::ValidityWindow> for wire_cst_validity_window {
+    impl CstDecode<crate::models::attestation::ValidityStatus> for wire_cst_validity_status {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::validity::ValidityWindow {
-            crate::models::validity::ValidityWindow {
-                valid_from: self.valid_from.cst_decode(),
-                valid_until: self.valid_until.cst_decode(),
+        fn cst_decode(self) -> crate::models::attestation::ValidityStatus {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.NotYetValid };
+                    crate::models::attestation::ValidityStatus::NotYetValid {
+                        valid_from: ans.valid_from.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.Valid };
+                    crate::models::attestation::ValidityStatus::Valid {
+                        valid_until: ans.valid_until.cst_decode(),
+                    }
+                }
+                2 => {
+                    let ans = unsafe { self.kind.ExpiresSoon };
+                    crate::models::attestation::ValidityStatus::ExpiresSoon {
+                        valid_until: ans.valid_until.cst_decode(),
+                    }
+                }
+                3 => {
+                    let ans = unsafe { self.kind.Expired };
+                    crate::models::attestation::ValidityStatus::Expired {
+                        valid_until: ans.valid_until.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
             }
         }
     }
@@ -5602,7 +5611,6 @@ mod io {
                 issuer: Default::default(),
                 revocation_status: core::ptr::null_mut(),
                 validity_status: Default::default(),
-                validity_window: Default::default(),
                 attributes: core::ptr::null_mut(),
             }
         }
@@ -5877,15 +5885,15 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
-    impl NewWithNullPtr for wire_cst_validity_window {
+    impl NewWithNullPtr for wire_cst_validity_status {
         fn new_with_null_ptr() -> Self {
             Self {
-                valid_from: core::ptr::null_mut(),
-                valid_until: core::ptr::null_mut(),
+                tag: -1,
+                kind: ValidityStatusKind { nil__: () },
             }
         }
     }
-    impl Default for wire_cst_validity_window {
+    impl Default for wire_cst_validity_status {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -6602,8 +6610,7 @@ mod io {
         display_metadata: *mut wire_cst_list_display_metadata,
         issuer: wire_cst_organization,
         revocation_status: *mut i32,
-        validity_status: i32,
-        validity_window: wire_cst_validity_window,
+        validity_status: wire_cst_validity_status,
         attributes: *mut wire_cst_list_attestation_attribute,
     }
     #[repr(C)]
@@ -7027,8 +7034,37 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_validity_window {
+    pub struct wire_cst_validity_status {
+        tag: i32,
+        kind: ValidityStatusKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union ValidityStatusKind {
+        NotYetValid: wire_cst_ValidityStatus_NotYetValid,
+        Valid: wire_cst_ValidityStatus_Valid,
+        ExpiresSoon: wire_cst_ValidityStatus_ExpiresSoon,
+        Expired: wire_cst_ValidityStatus_Expired,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_ValidityStatus_NotYetValid {
         valid_from: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_ValidityStatus_Valid {
+        valid_until: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_ValidityStatus_ExpiresSoon {
+        valid_until: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_ValidityStatus_Expired {
         valid_until: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]

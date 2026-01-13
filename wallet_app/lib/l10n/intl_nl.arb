@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-01-13T10:34:54+01:00",
+    "@@last_modified": "2026-01-13T10:35:18+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1341,7 +1341,7 @@
     "revocationCodeScreenCodeFooter": "Je vindt de code later terug in Menu > Instellingen en beveiliging > Bekijk je verwijder-code.",
     "revocationCodeScreenCodeHeader": "Je 18-tekens verwijder-code is:",
     "revocationCodeScreenContinueCta": "Ik heb het opgeschreven",
-    "revocationCodeScreenDescription": "Je gebruikt deze code om je NL Wallet op afstand te verwijderen. Bijvoorbeeld als je dit apparaat kwijtraakt of als het wordt gestolen. Zo stopt je dat iemand deze wallet gebruikt. ",
+    "revocationCodeScreenDescription": "Je gebruikt deze code om je NL Wallet op afstand te verwijderen. Bijvoorbeeld als je dit apparaat kwijtraakt of als het wordt gestolen. Zo stop je dat iemand deze wallet gebruikt. ",
     "revocationCodeScreenTitle": "Schrijf nu je verwijder-code op",
     "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je de NL Wallet niet op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig. Bekijk de hulppagina voor meer informatie.",
     "rootDetectedScreenTitle": "Je apparaat is niet veilig",

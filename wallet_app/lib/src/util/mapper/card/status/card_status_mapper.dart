@@ -1,13 +1,7 @@
-import 'package:clock/clock.dart';
-import 'package:flutter/foundation.dart';
 import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/card/status/card_status.dart';
 import '../../mapper.dart';
-
-/// Threshold in days to consider a card as "expires soon".
-@visibleForTesting
-const kCardExpiresSoonThresholdInDays = 14;
 
 /// Maps a [core.AttestationPresentation] to a [CardStatus].
 class CardStatusMapper extends Mapper<core.AttestationPresentation, CardStatus> {
@@ -33,25 +27,20 @@ class CardStatusMapper extends Mapper<core.AttestationPresentation, CardStatus> 
       'Invalid revocation status, expecting: "null" or "Valid" but found: "$revocationStatus".',
     );
 
-    final validFromString = input.validityWindow.validFrom;
-    final validUntilString = input.validityWindow.validUntil;
-    final validFrom = validFromString != null ? DateTime.parse(validFromString).toLocal() : null;
-    final validUntil = validUntilString != null ? DateTime.parse(validUntilString).toLocal() : null;
-    final now = clock.now();
-
-    // Check if card is not yet valid but will be valid soon
-    if (validFrom?.isAfter(now) ?? false) {
-      return CardStatusValidSoon(validFrom: validFrom!);
-    }
-    // Check if card is expired
-    if (validUntil?.isBefore(now) ?? false) {
-      return CardStatusExpired(validUntil: validUntil!);
-    }
-    // Check if card expires soon
-    if (validUntil != null && validUntil.difference(now).inDays <= kCardExpiresSoonThresholdInDays) {
-      return CardStatusExpiresSoon(validUntil: validUntil);
-    }
-    // All checks passed
-    return CardStatusValid(validUntil: validUntil);
+    final validityStatus = input.validityStatus;
+    return switch (validityStatus) {
+      core.ValidityStatus_NotYetValid() => CardStatusValidSoon(
+        validFrom: DateTime.parse(validityStatus.validFrom).toLocal(),
+      ),
+      core.ValidityStatus_Valid() => CardStatusValid(
+        validUntil: validityStatus.validUntil == null ? null : DateTime.parse(validityStatus.validUntil!).toLocal(),
+      ),
+      core.ValidityStatus_ExpiresSoon() => CardStatusExpiresSoon(
+        validUntil: DateTime.parse(validityStatus.validUntil).toLocal(),
+      ),
+      core.ValidityStatus_Expired() => CardStatusExpired(
+        validUntil: DateTime.parse(validityStatus.validUntil).toLocal(),
+      ),
+    };
   }
 }

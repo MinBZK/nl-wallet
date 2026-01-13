@@ -163,8 +163,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -172,8 +171,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
       ];
       when(core.crateApiFullSetAttestationsStream()).thenAnswer((realInvocation) => Stream.value(mockAttestations));
@@ -192,8 +190,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
       ];
       final List<AttestationPresentation> updatedCards = [
@@ -203,8 +200,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -212,8 +208,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
       ];
       when(
@@ -234,8 +229,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
       ];
       final List<AttestationPresentation> updatedCards = [
@@ -245,8 +239,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -254,8 +247,7 @@ void main() {
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
-          validityStatus: ValidityStatus.Valid,
-          validityWindow: ValidityWindow(validFrom: null, validUntil: null),
+          validityStatus: ValidityStatus_Valid(validUntil: null),
         ),
       ];
       when(

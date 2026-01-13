@@ -21,13 +21,14 @@ import '../../../test_util/test_utils.dart';
 class MockCardSummaryBloc extends MockBloc<CardDetailEvent, CardDetailState> implements CardDetailBloc {}
 
 void main() {
-  CardDetailLoadSuccess cardDetailLoadSuccessMock({CardStatus? status}) {
+  CardDetailLoadSuccess cardDetailLoadSuccessMock({CardStatus? status, bool isPidCard = false}) {
     return CardDetailLoadSuccess(
       WalletCardDetail(
         card: WalletMockData.cardWithStatus(status ?? WalletMockData.status),
         mostRecentIssuance: WalletMockData.issuanceEvent,
         mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
       ),
+      isPidCard: isPidCard,
     );
   }
 
@@ -69,7 +70,7 @@ void main() {
               mostRecentIssuance: WalletMockData.issuanceEvent,
               mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
             ),
-            showRenewOption: true,
+            isPidCard: true,
           ),
         ),
       );
@@ -124,7 +125,35 @@ void main() {
       await screenMatchesGolden('status.valid');
     });
 
-    testGoldens('ltc25 CardDetailLoadSuccess status - valid', (tester) async {
+    testGoldens('ltc25 CardDetailLoadSuccess status - valid - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        brightness: Brightness.dark,
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: const CardStatusValid(validUntil: null)),
+        ),
+      );
+      await screenMatchesGolden('status.valid.dark');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - valid - PID', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(
+            status: const CardStatusValid(validUntil: null),
+            isPidCard: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('status.valid.pid');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - valid until', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
           cardTitle: WalletMockData.card.title.testValue,
@@ -134,6 +163,21 @@ void main() {
         ),
       );
       await screenMatchesGolden('status.valid.until');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - valid until - PID', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(
+            status: CardStatusValid(validUntil: WalletMockData.validUntil),
+            isPidCard: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('status.valid.until.pid');
     });
 
     testGoldens('ltc25 CardDetailLoadSuccess status - expiresSoon', (tester) async {
@@ -150,6 +194,23 @@ void main() {
       });
     });
 
+    testGoldens('ltc25 CardDetailLoadSuccess status - expiresSoon - PID', (tester) async {
+      await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+        await tester.pumpWidgetWithAppWrapper(
+          CardDetailScreen(
+            cardTitle: WalletMockData.card.title.testValue,
+          ).withState<CardDetailBloc, CardDetailState>(
+            MockCardSummaryBloc(),
+            cardDetailLoadSuccessMock(
+              status: CardStatusExpiresSoon(validUntil: WalletMockData.validUntil),
+              isPidCard: true,
+            ),
+          ),
+        );
+        await screenMatchesGolden('status.expires.soon.pid');
+      });
+    });
+
     testGoldens('ltc25 CardDetailLoadSuccess status - expired', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
@@ -160,6 +221,47 @@ void main() {
         ),
       );
       await screenMatchesGolden('status.expired');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - expired - scaled', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        textScaleSize: 2,
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatusExpired(validUntil: WalletMockData.validUntil)),
+        ),
+      );
+      await screenMatchesGolden('status.expired.scaled');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - expired - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        brightness: Brightness.dark,
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatusExpired(validUntil: WalletMockData.validUntil)),
+        ),
+      );
+      await screenMatchesGolden('status.expired.dark');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - expired - PID', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(
+            status: CardStatusExpired(validUntil: WalletMockData.validUntil),
+            isPidCard: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('status.expired.pid');
     });
 
     testGoldens('ltc25 CardDetailLoadSuccess status - revoked', (tester) async {
@@ -174,6 +276,21 @@ void main() {
       await screenMatchesGolden('status.revoked');
     });
 
+    testGoldens('ltc25 CardDetailLoadSuccess status - revoked - PID', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(
+            status: const CardStatusRevoked(),
+            isPidCard: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('status.revoked.pid');
+    });
+
     testGoldens('ltc25 CardDetailLoadSuccess status - corrupted', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
@@ -186,6 +303,21 @@ void main() {
       await screenMatchesGolden('status.corrupted');
     });
 
+    testGoldens('ltc25 CardDetailLoadSuccess status - corrupted - PID', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(
+            status: const CardStatusCorrupted(),
+            isPidCard: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('status.corrupted.pid');
+    });
+
     testGoldens('ltc25 CardDetailLoadSuccess status - undetermined', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
@@ -195,7 +327,35 @@ void main() {
           cardDetailLoadSuccessMock(status: const CardStatusUndetermined()),
         ),
       );
-      await screenMatchesGolden('status.unknown');
+      await screenMatchesGolden('status.undetermined');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - undetermined - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        brightness: Brightness.dark,
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: const CardStatusUndetermined()),
+        ),
+      );
+      await screenMatchesGolden('status.undetermined.dark');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess status - undetermined - PID', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(
+            status: const CardStatusUndetermined(),
+            isPidCard: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('status.undetermined.pid');
     });
   });
 
