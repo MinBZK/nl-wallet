@@ -42,6 +42,6 @@ tracing = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 
 hsm.path = "../hsm"
-http_utils = { path = "../http_utils", features = ["server"] }
+http_utils.path = "../http_utils"
 
 utils = { path = "../utils", optional = true }

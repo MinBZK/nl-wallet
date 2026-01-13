@@ -21,7 +21,6 @@ insecure_http_client = ["client"]
 server = [
     "axum/json",
     "axum-server/tls-rustls-no-provider",
-    "dep:async-trait",
     "dep:tracing",
     "dep:futures",
     "serde_with/base64",
@@ -29,6 +28,7 @@ server = [
 ]
 
 [dependencies]
+async-trait.workspace = true
 cfg-if.workspace = true
 base64.workspace = true
 data-url.workspace = true
@@ -45,7 +45,6 @@ strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
 
-async-trait = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
