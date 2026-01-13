@@ -9,13 +9,22 @@ use rsa::traits::PublicKeyParts;
 use spki::DecodePublicKey;
 use x509_parser::public_key::PublicKey;
 
-const GOOGLE_ROOT_PUBKEY_DER: &[u8] = &decode!(
+const GOOGLE_ROOT_RSA_PUBKEY_DER: &[u8] = &decode!(
     Pem,
-    include_bytes!("../assets/google_hardware_attestation_root_pubkey.pem")
+    include_bytes!("../assets/google_hardware_attestation_root_rsa_pubkey.pem")
 );
 
-pub static GOOGLE_ROOT_PUBKEYS: LazyLock<Vec<RootPublicKey>> =
-    LazyLock::new(|| vec![RootPublicKey::rsa_from_der(GOOGLE_ROOT_PUBKEY_DER).unwrap()]);
+const GOOGLE_ROOT_EC_PUBKEY_DER: &[u8] = &decode!(
+    Pem,
+    include_bytes!("../assets/google_hardware_attestation_root_ec_pubkey.pem")
+);
+
+pub static GOOGLE_ROOT_PUBKEYS: LazyLock<Vec<RootPublicKey>> = LazyLock::new(|| {
+    vec![
+        RootPublicKey::rsa_from_der(GOOGLE_ROOT_RSA_PUBKEY_DER).unwrap(),
+        RootPublicKey::ecdsa_from_der(GOOGLE_ROOT_EC_PUBKEY_DER).unwrap(),
+    ]
+});
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RootPublicKey {
