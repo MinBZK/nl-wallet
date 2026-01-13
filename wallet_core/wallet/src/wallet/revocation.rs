@@ -28,6 +28,7 @@ use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::NotificationType;
+use crate::ScheduledNotificationsCallback;
 use crate::Wallet;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
@@ -38,6 +39,7 @@ use crate::storage::StorageState;
 use crate::wallet::attestations::AttestationsCallback;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::DirectNotificationsCallback;
+use crate::wallet::notifications::emit_scheduled_notifications;
 
 const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
 const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(180);
@@ -86,6 +88,7 @@ where
             Arc::clone(&self.storage),
             Arc::clone(&self.attestations_callback),
             Arc::clone(&self.direct_notifications_callback),
+            Arc::clone(&self.scheduled_notifications_callback),
             TimeGenerator,
             check_frequency,
         );
@@ -107,7 +110,8 @@ where
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
         attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
-        notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
+        direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
+        scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
         time_generator: T,
         check_interval: Duration,
     ) -> AbortHandle
@@ -140,7 +144,8 @@ where
                     Arc::clone(&status_list_client),
                     Arc::clone(&storage),
                     Arc::clone(&attestations_callback),
-                    Arc::clone(&notifications_callback),
+                    Arc::clone(&direct_notifications_callback),
+                    Arc::clone(&scheduled_notifications_callback),
                     time_generator.clone(),
                 )
                 .await
@@ -154,12 +159,14 @@ where
     }
 
     /// Perform revocation checks where all revocation info is fetched from storage
+    #[expect(clippy::too_many_arguments)]
     async fn check_revocations<T>(
         config: Arc<WalletConfiguration>,
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
         attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
-        notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
+        direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
+        scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
         time_generator: T,
     ) -> Result<(), RevocationError>
     where
@@ -203,10 +210,9 @@ where
 
         let attestations = storage.read().await.fetch_unique_attestations().await?;
 
-        // Send notifications for all attestations that have been revoked. Since we don't want to hold the lock across
-        // await boundaries, clone the callback Arc.
-        let maybe_notifications_callback = { notifications_callback.lock().clone() };
-
+        // Send direct notifications for all attestations that have been revoked. Since we don't want to hold the lock
+        // across await boundaries, clone the callback Arc.
+        let maybe_notifications_callback = { direct_notifications_callback.lock().clone() };
         if let Some(callback) = maybe_notifications_callback {
             let revocation_status_by_attestation_id: HashMap<Uuid, RevocationStatus> = updates.into_iter().collect();
 
@@ -232,8 +238,11 @@ where
             }
         }
 
+        // Schedule revocation notifications for the dashboard
+        let _ = emit_scheduled_notifications(scheduled_notifications_callback, storage, &config).await;
+
         // Callback with the updated attestations
-        if let Some(ref mut callback) = attestations_callback.lock().as_deref_mut() {
+        if let Some(callback) = attestations_callback.lock().as_ref() {
             callback(
                 attestations
                     .into_iter()
@@ -328,33 +337,47 @@ mod tests {
             attestations_callback_counter.fetch_add(1, Ordering::SeqCst);
         });
 
-        let notifications_callback = Arc::new(Mutex::new(None));
-        let notifications_counter = Arc::new(AtomicU64::new(0));
-        let notifications_callback_counter = Arc::clone(&notifications_counter);
-        let notifications_callback_fn: DirectNotificationsCallback = Arc::new(move |_| {
-            let counter = Arc::clone(&notifications_callback_counter);
+        let direct_notifications_callback = Arc::new(Mutex::new(None));
+        let direct_notifications_counter = Arc::new(AtomicU64::new(0));
+        let direct_notifications_callback_counter = Arc::clone(&direct_notifications_counter);
+        let direct_notifications_callback_fn: DirectNotificationsCallback = Arc::new(move |_| {
+            let counter = Arc::clone(&direct_notifications_callback_counter);
             Box::pin(async move {
                 counter.fetch_add(1, Ordering::SeqCst);
             })
         });
 
+        let scheduled_notifications_callback = Arc::new(Mutex::new(None));
+        let scheduled_notifications_counter = Arc::new(AtomicU64::new(0));
+        let scheduled_notifications_callback_counter = Arc::clone(&scheduled_notifications_counter);
+        let scheduled_notifications_callback_fn: ScheduledNotificationsCallback = Box::new(move |_| {
+            scheduled_notifications_callback_counter.fetch_add(1, Ordering::SeqCst);
+        });
+
         // Register callbacks to track updates
         attestations_callback.lock().replace(attestations_callback_fn);
-        notifications_callback.lock().replace(notifications_callback_fn);
+        direct_notifications_callback
+            .lock()
+            .replace(direct_notifications_callback_fn);
+        scheduled_notifications_callback
+            .lock()
+            .replace(scheduled_notifications_callback_fn);
 
         let abort_handle = TestWalletMockStorage::<TestConfigRepo>::spawn_revocation_checks(
             config_repo,
             status_list_client,
             storage,
             attestations_callback,
-            notifications_callback,
+            direct_notifications_callback,
+            scheduled_notifications_callback,
             time_generator,
             check_interval,
         );
 
         // Initially no checks should have occurred
         assert_eq!(0, attestations_counter.load(Ordering::SeqCst));
-        assert_eq!(0, notifications_counter.load(Ordering::SeqCst));
+        assert_eq!(0, direct_notifications_counter.load(Ordering::SeqCst));
+        assert_eq!(0, scheduled_notifications_counter.load(Ordering::SeqCst));
 
         // Advance time 10 times by 10 ms - should trigger first check
         for _ in 0..10 {
@@ -373,7 +396,10 @@ mod tests {
         assert!(final_count >= 3, "Expected at least 3 checks, got {}", final_count);
 
         // Since nothing is revoked, no notifications should have been emitted
-        assert_eq!(0, notifications_counter.load(Ordering::SeqCst));
+        assert_eq!(0, direct_notifications_counter.load(Ordering::SeqCst));
+
+        // Scheduled notifications should have been emitted
+        assert!(scheduled_notifications_counter.load(Ordering::SeqCst) >= 3);
 
         abort_handle.abort();
     }
@@ -417,6 +443,7 @@ mod tests {
             storage,
             callback,
             notifications_callback,
+            Arc::new(Mutex::new(None)),
             time_generator,
             check_interval,
         );
@@ -551,6 +578,7 @@ mod tests {
             storage,
             attestations_callback,
             notifications_callback,
+            Arc::new(Mutex::new(None)),
             time_generator,
             check_interval,
         );

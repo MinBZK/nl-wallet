@@ -1,6 +1,8 @@
 use std::pin::Pin;
 use std::sync::Arc;
-use tokio::sync::RwLockReadGuard;
+
+use parking_lot::Mutex;
+use tokio::sync::RwLock;
 use tracing::info;
 
 use error_category::ErrorCategory;
@@ -44,11 +46,13 @@ where
         info!("Emit notifications");
 
         let wallet_config = self.config_repository.get();
-        let storage = self.storage.read().await;
 
-        if let Some(notifications_callback) = &self.scheduled_notifications_callback {
-            emit_notifications(notifications_callback, &storage, &wallet_config).await?;
-        }
+        emit_scheduled_notifications(
+            self.scheduled_notifications_callback.clone(),
+            self.storage.clone(),
+            &wallet_config,
+        )
+        .await?;
 
         Ok(())
     }
@@ -58,7 +62,7 @@ where
         &mut self,
         callback: ScheduledNotificationsCallback,
     ) -> Result<Option<ScheduledNotificationsCallback>, NotificationsError> {
-        let previous_callback = self.scheduled_notifications_callback.replace(callback);
+        let previous_callback = self.scheduled_notifications_callback.lock().replace(callback);
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case don't emit anything.
@@ -80,7 +84,7 @@ where
     }
 
     pub fn clear_scheduled_notifications_callback(&mut self) {
-        let callback = self.scheduled_notifications_callback.take();
+        let callback = self.scheduled_notifications_callback.lock().take();
         // Unschedule any existing notifications
         if let Some(callback) = callback {
             callback(Vec::new());
@@ -92,12 +96,18 @@ where
     }
 }
 
-pub async fn emit_notifications<S: Storage>(
-    notifications_callback: &ScheduledNotificationsCallback,
-    storage: &RwLockReadGuard<'_, S>,
+pub async fn emit_scheduled_notifications<S: Storage>(
+    notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
+    storage: Arc<RwLock<S>>,
     wallet_config: &WalletConfiguration,
 ) -> Result<(), NotificationsError> {
+    if notifications_callback.lock().is_none() {
+        return Ok(());
+    }
+
     let notifications = storage
+        .read()
+        .await
         .fetch_unique_attestations()
         .await?
         .into_iter()
@@ -106,7 +116,9 @@ pub async fn emit_notifications<S: Storage>(
         .flatten()
         .collect();
 
-    notifications_callback(notifications);
+    if let Some(callback) = notifications_callback.lock().as_ref() {
+        callback(notifications);
+    }
 
     Ok(())
 }
