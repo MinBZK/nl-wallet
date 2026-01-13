@@ -198,10 +198,9 @@ Cargo feature, which bypasses the Google API. See the description below.
 For the Android emulator to work, the following requirements will need to be
 met:
 
-- The emulator should be running the Android 34 system images with Play Store
-  support. This is currently the only known version to work, as it includes
-  known pre-generated root CAs. The setup script configures the Wallet Provider
-  with the public keys of these known CAs.
+- The emulator should be running the Android system images with Play Store
+  support. Some system images have fixed expired intermediate cerfiticate. These
+  will not work as the wallet provider always require valid certificates.
 - The Wallet Provider should have the `allow_android_emulator_keys` Cargo
   feature enabled, which lowers the attested key requirements to allow keys
   generated in software. Note that this feature should **NEVER** be used in any
@@ -210,7 +209,11 @@ met:
   feature enabled, which prevents it from requesting integrity verdicts from
   Google and replaces them with fake verdicts that will pass validation. Note
   that this feature should **NEVER** be used in any production environment.
-- Both of the above features have conveniently been combined in the
+- The Wallet Provider should have the `skip_android_root_key_check` Cargo
+  feature enabled, which allows all generated emulator keys as it will skip the
+  test if the public key of the root certificate is within the configured keys.
+  Note that this feature should **NEVER** be used in any production environment.
+- All of the above features have conveniently been combined in the
   `android_emulator` Cargo feature for the Wallet Provider.
 
 ## File Structure
