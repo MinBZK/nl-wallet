@@ -228,7 +228,7 @@ where
             attestations_callback: Arc::new(Mutex::new(None)),
             recent_history_callback: None,
             scheduled_notifications_callback: None,
-            direct_notifications_callback: None,
+            direct_notifications_callback: Arc::new(Mutex::new(None)),
             revocation_status_job_handle: None,
         }
     }

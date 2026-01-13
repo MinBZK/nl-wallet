@@ -54,8 +54,8 @@ Future<void> clearScheduledNotificationsStream() =>
 Future<void> clearDirectNotificationsCallback() =>
     WalletCore.instance.api.crateApiFullClearDirectNotificationsCallback();
 
-Future<void> setDirectNotificationsCallback({required FutureOr<void> Function(List<AppNotification>) dartCallback}) =>
-    WalletCore.instance.api.crateApiFullSetDirectNotificationsCallback(dartCallback: dartCallback);
+Future<void> setDirectNotificationsCallback({required FutureOr<void> Function(List<AppNotification>) callback}) =>
+    WalletCore.instance.api.crateApiFullSetDirectNotificationsCallback(callback: callback);
 
 Stream<List<WalletEvent>> setRecentHistoryStream() => WalletCore.instance.api.crateApiFullSetRecentHistoryStream();
 

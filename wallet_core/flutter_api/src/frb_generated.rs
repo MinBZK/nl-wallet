@@ -1102,7 +1102,7 @@ fn wire__crate__api__full__set_configuration_stream_impl(
 }
 fn wire__crate__api__full__set_direct_notifications_callback_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    dart_callback: impl CstDecode<flutter_rust_bridge::DartOpaque>,
+    callback: impl CstDecode<flutter_rust_bridge::DartOpaque>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -1111,12 +1111,12 @@ fn wire__crate__api__full__set_direct_notifications_callback_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api_dart_callback =
-                decode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(dart_callback.cst_decode());
+            let api_callback =
+                decode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(callback.cst_decode());
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::set_direct_notifications_callback(api_dart_callback).await?;
+                        let output_ok = crate::api::full::set_direct_notifications_callback(api_callback).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1888,7 +1888,7 @@ impl SseDecode for crate::models::notification::DisplayTarget {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_notifyAt = <String>::sse_decode(deserializer);
+                let mut var_notifyAt = <crate::models::notification::NotifyAt>::sse_decode(deserializer);
                 return crate::models::notification::DisplayTarget::Os {
                     notify_at: var_notifyAt,
                 };
@@ -2246,6 +2246,25 @@ impl SseDecode for crate::models::notification::NotificationType {
             2 => {
                 let mut var_card = <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
                 return crate::models::notification::NotificationType::Revoked { card: var_card };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::models::notification::NotifyAt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::models::notification::NotifyAt::Now;
+            }
+            1 => {
+                let mut var_field0 = <String>::sse_decode(deserializer);
+                return crate::models::notification::NotifyAt::At(var_field0);
             }
             _ => {
                 unimplemented!("");
@@ -3297,6 +3316,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::notification::Notification
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::notification::NotifyAt {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::notification::NotifyAt::Now => [0.into_dart()].into_dart(),
+            crate::models::notification::NotifyAt::At(field0) => {
+                [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::notification::NotifyAt {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::notification::NotifyAt>
+    for crate::models::notification::NotifyAt
+{
+    fn into_into_dart(self) -> crate::models::notification::NotifyAt {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::Organization {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -4054,7 +4095,7 @@ impl SseEncode for crate::models::notification::DisplayTarget {
         match self {
             crate::models::notification::DisplayTarget::Os { notify_at } => {
                 <i32>::sse_encode(0, serializer);
-                <String>::sse_encode(notify_at, serializer);
+                <crate::models::notification::NotifyAt>::sse_encode(notify_at, serializer);
             }
             crate::models::notification::DisplayTarget::Dashboard => {
                 <i32>::sse_encode(1, serializer);
@@ -4353,6 +4394,24 @@ impl SseEncode for crate::models::notification::NotificationType {
             crate::models::notification::NotificationType::Revoked { card } => {
                 <i32>::sse_encode(2, serializer);
                 <crate::models::attestation::AttestationPresentation>::sse_encode(card, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::models::notification::NotifyAt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::notification::NotifyAt::Now => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::models::notification::NotifyAt::At(field0) => {
+                <i32>::sse_encode(1, serializer);
+                <String>::sse_encode(field0, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -5095,6 +5154,13 @@ mod io {
             CstDecode::<crate::models::image::ImageWithMetadata>::cst_decode(*wrap).into()
         }
     }
+    impl CstDecode<crate::models::notification::NotifyAt> for *mut wire_cst_notify_at {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::notification::NotifyAt {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::notification::NotifyAt>::cst_decode(*wrap).into()
+        }
+    }
     impl CstDecode<crate::models::disclosure::Organization> for *mut wire_cst_organization {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::disclosure::Organization {
@@ -5467,6 +5533,19 @@ mod io {
                     crate::models::notification::NotificationType::Revoked {
                         card: ans.card.cst_decode(),
                     }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::notification::NotifyAt> for wire_cst_notify_at {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::notification::NotifyAt {
+            match self.tag {
+                0 => crate::models::notification::NotifyAt::Now,
+                1 => {
+                    let ans = unsafe { self.kind.At };
+                    crate::models::notification::NotifyAt::At(ans.field0.cst_decode())
                 }
                 _ => unreachable!(),
             }
@@ -5950,6 +6029,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_notify_at {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: NotifyAtKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_notify_at {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_organization {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -6403,9 +6495,9 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_direct_notifications_callback(
         port_: i64,
-        dart_callback: *const std::ffi::c_void,
+        callback: *const std::ffi::c_void,
     ) {
-        wire__crate__api__full__set_direct_notifications_callback_impl(port_, dart_callback)
+        wire__crate__api__full__set_direct_notifications_callback_impl(port_, callback)
     }
 
     #[unsafe(no_mangle)]
@@ -6487,6 +6579,11 @@ mod io {
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata() -> *mut wire_cst_image_with_metadata
     {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_image_with_metadata::new_with_null_ptr())
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_notify_at() -> *mut wire_cst_notify_at {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_notify_at::new_with_null_ptr())
     }
 
     #[unsafe(no_mangle)]
@@ -6881,7 +6978,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_DisplayTarget_Os {
-        notify_at: *mut wire_cst_list_prim_u_8_strict,
+        notify_at: *mut wire_cst_notify_at,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -7082,6 +7179,23 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_NotificationType_Revoked {
         card: *mut wire_cst_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_notify_at {
+        tag: i32,
+        kind: NotifyAtKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union NotifyAtKind {
+        At: wire_cst_NotifyAt_At,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_NotifyAt_At {
+        field0: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

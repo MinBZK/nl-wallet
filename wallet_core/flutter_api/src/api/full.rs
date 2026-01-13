@@ -161,15 +161,16 @@ pub async fn clear_direct_notifications_callback() {
 }
 
 pub async fn set_direct_notifications_callback(
-    dart_callback: impl Fn(Vec<AppNotification>) -> DartFnFuture<()> + Send + Sync + 'static,
+    callback: impl Fn(Vec<AppNotification>) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
-    let dart_callback = Arc::new(dart_callback);
+    let callback = Arc::new(callback);
     let _ = wallet()
         .write()
         .await
-        .set_direct_notifications_callback(Box::new(move |notifications| {
-            let dart_callback = Arc::clone(&dart_callback);
-            Box::pin(async move { dart_callback(notifications.into_iter().map(Into::into).collect()).await })
+        .set_direct_notifications_callback(Arc::new(move |notifications| {
+            let callback = Arc::clone(&callback);
+            let notifications = notifications.into_iter().map(Into::into).collect();
+            Box::pin(async move { callback(notifications).await })
         }))?;
 
     Ok(())

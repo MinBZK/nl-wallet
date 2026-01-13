@@ -23,6 +23,7 @@ pub use crate::attestation::ValidityStatus;
 pub use crate::notification::DisplayTarget;
 pub use crate::notification::Notification;
 pub use crate::notification::NotificationType;
+pub use crate::notification::NotifyAt;
 pub use crate::pin::validation::validate_pin;
 pub use crate::storage::DisclosureStatus;
 pub use crate::storage::WalletEvent;

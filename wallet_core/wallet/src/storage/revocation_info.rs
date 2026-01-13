@@ -46,7 +46,7 @@ impl RevocationInfo {
 impl From<revocation_info::RevocationInfo> for RevocationInfo {
     fn from(value: revocation_info::RevocationInfo) -> Self {
         RevocationInfo {
-            attestation_copy_id: value.id,
+            attestation_copy_id: value.attestation_copy_id,
             status_claim: StatusClaim::StatusList(StatusListClaim {
                 uri: value.status_list_url.parse().expect("URL has been parsed before"),
                 idx: value.status_list_index,

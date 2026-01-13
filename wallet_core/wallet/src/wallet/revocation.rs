@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -5,6 +6,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::StreamExt;
 use parking_lot::Mutex;
+use rand::random;
 use rustls_pki_types::TrustAnchor;
 use tokio::sync::RwLock;
 use tokio::task::AbortHandle;
@@ -23,17 +25,23 @@ use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_nonempty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::DisplayTarget;
+use crate::Notification;
+use crate::NotificationType;
 use crate::Wallet;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
+use crate::notification::NotifyAt;
 use crate::repository::Repository;
 use crate::storage::RevocationInfo;
 use crate::storage::Storage;
 use crate::storage::StorageState;
 use crate::wallet::attestations::AttestationsCallback;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::notifications::DirectNotificationsCallback;
 
 const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
 const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(180);
@@ -81,6 +89,7 @@ where
             Arc::clone(&self.status_list_client),
             Arc::clone(&self.storage),
             Arc::clone(&self.attestations_callback),
+            Arc::clone(&self.direct_notifications_callback),
             TimeGenerator,
             check_frequency,
         );
@@ -96,11 +105,13 @@ where
         }
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn spawn_revocation_checks<T>(
         config_repo: Arc<CR>,
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
-        callback: Arc<Mutex<Option<AttestationsCallback>>>,
+        attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
+        notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
         time_generator: T,
         check_interval: Duration,
     ) -> AbortHandle
@@ -132,7 +143,8 @@ where
                     Arc::clone(&config),
                     Arc::clone(&status_list_client),
                     Arc::clone(&storage),
-                    Arc::clone(&callback),
+                    Arc::clone(&attestations_callback),
+                    Arc::clone(&notifications_callback),
                     time_generator.clone(),
                 )
                 .await
@@ -150,7 +162,8 @@ where
         config: Arc<WalletConfiguration>,
         status_list_client: Arc<SLC>,
         storage: Arc<RwLock<S>>,
-        callback: Arc<Mutex<Option<AttestationsCallback>>>,
+        attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
+        notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
         time_generator: T,
     ) -> Result<(), RevocationError>
     where
@@ -186,20 +199,55 @@ where
             .await;
 
         // Write all updates in one storage lock
-        storage.write().await.update_revocation_statuses(updates).await?;
+        storage
+            .write()
+            .await
+            .update_revocation_statuses(updates.clone())
+            .await?;
+
+        let attestations = storage.read().await.fetch_unique_attestations().await?;
+
+        // Send notifications for all attestations that have been revoked. Since we don't want to hold the lock across
+        // await boundaries, clone the callback Arc.
+        let maybe_notifications_callback = { notifications_callback.lock().clone() };
+
+        if let Some(callback) = maybe_notifications_callback {
+            let revocation_status_by_attestation_id: HashMap<Uuid, RevocationStatus> = updates.into_iter().collect();
+
+            let notifications: Vec<Notification> = attestations
+                .iter()
+                .filter(|attestation| {
+                    revocation_status_by_attestation_id.contains_key(&attestation.attestation_copy_id())
+                })
+                .map(|attestation| Notification {
+                    id: random(),
+                    typ: NotificationType::Revoked {
+                        attestation: attestation
+                            .clone()
+                            .into_attestation_presentation(&config.pid_attributes),
+                    },
+                    targets: vec_nonempty![
+                        DisplayTarget::Dashboard,
+                        DisplayTarget::Os {
+                            notify_at: NotifyAt::Now
+                        }
+                    ],
+                })
+                .collect();
+
+            if !notifications.is_empty() {
+                callback(notifications).await;
+            }
+        }
 
         // Callback with the updated attestations
-        if callback.lock().is_some() {
-            let attestations = storage.read().await.fetch_unique_attestations().await?;
-
-            if let Some(ref mut callback) = callback.lock().as_deref_mut() {
-                callback(
-                    attestations
-                        .into_iter()
-                        .map(|copy| copy.into_attestation_presentation(&config.pid_attributes))
-                        .collect(),
-                )
-            }
+        if let Some(ref mut callback) = attestations_callback.lock().as_deref_mut() {
+            callback(
+                attestations
+                    .into_iter()
+                    .map(|copy| copy.into_attestation_presentation(&config.pid_attributes))
+                    .collect(),
+            )
         }
 
         Ok(())
@@ -234,8 +282,11 @@ mod tests {
     use parking_lot::Mutex;
     use tokio::time;
 
+    use attestation_data::validity::ValidityWindow;
     use attestation_types::status_claim::StatusClaim;
+    use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
+    use crypto::utils::random_string;
     use token_status_list::status_list_token::mock::create_status_list_token;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use token_status_list::verification::verifier::RevocationStatus;
@@ -243,7 +294,10 @@ mod tests {
 
     use crate::config::default_wallet_config;
     use crate::storage::MockStorage;
+    use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::create_example_pid_sd_jwt;
 
     use super::*;
 
@@ -272,31 +326,43 @@ mod tests {
         storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
         let storage = Arc::new(RwLock::new(storage));
 
-        let callback = Arc::new(Mutex::new(None));
+        let attestations_callback = Arc::new(Mutex::new(None));
         let time_generator = MockTimeGenerator::new(Utc::now());
         let check_interval = Duration::from_millis(100);
 
-        let counter = Arc::new(AtomicU64::new(0));
-        let callback_counter = Arc::clone(&counter);
-
-        let callback_fn: AttestationsCallback = Box::new(move |_| {
-            callback_counter.fetch_add(1, Ordering::SeqCst);
+        let attestations_counter = Arc::new(AtomicU64::new(0));
+        let attestations_callback_counter = Arc::clone(&attestations_counter);
+        let attestations_callback_fn: AttestationsCallback = Box::new(move |_| {
+            attestations_callback_counter.fetch_add(1, Ordering::SeqCst);
         });
 
-        // Register callback to track updates
-        callback.lock().replace(callback_fn);
+        let notifications_callback = Arc::new(Mutex::new(None));
+        let notifications_counter = Arc::new(AtomicU64::new(0));
+        let notifications_callback_counter = Arc::clone(&notifications_counter);
+        let notifications_callback_fn: DirectNotificationsCallback = Arc::new(move |_| {
+            let counter = Arc::clone(&notifications_callback_counter);
+            Box::pin(async move {
+                counter.fetch_add(1, Ordering::SeqCst);
+            })
+        });
+
+        // Register callbacks to track updates
+        attestations_callback.lock().replace(attestations_callback_fn);
+        notifications_callback.lock().replace(notifications_callback_fn);
 
         let abort_handle = TestWalletMockStorage::<TestConfigRepo>::spawn_revocation_checks(
             config_repo,
             status_list_client,
             storage,
-            callback,
+            attestations_callback,
+            notifications_callback,
             time_generator,
             check_interval,
         );
 
         // Initially no checks should have occurred
-        assert_eq!(0, counter.load(Ordering::SeqCst));
+        assert_eq!(0, attestations_counter.load(Ordering::SeqCst));
+        assert_eq!(0, notifications_counter.load(Ordering::SeqCst));
 
         // Advance time 10 times by 10 ms - should trigger first check
         for _ in 0..10 {
@@ -304,15 +370,18 @@ mod tests {
         }
 
         // Should have performed at least one check
-        assert!(counter.load(Ordering::SeqCst) >= 1);
+        assert!(attestations_counter.load(Ordering::SeqCst) >= 1);
 
         // Advance time 20 times by 10 ms - should trigger 2 more checks
         for _ in 0..20 {
             time::advance(Duration::from_millis(10)).await;
         }
 
-        let final_count = counter.load(Ordering::SeqCst);
+        let final_count = attestations_counter.load(Ordering::SeqCst);
         assert!(final_count >= 3, "Expected at least 3 checks, got {}", final_count);
+
+        // Since nothing is revoked, no notifications should have been emitted
+        assert_eq!(0, notifications_counter.load(Ordering::SeqCst));
 
         abort_handle.abort();
     }
@@ -345,6 +414,8 @@ mod tests {
             callback_counter.fetch_add(1, Ordering::SeqCst);
         });
 
+        let notifications_callback = Arc::new(Mutex::new(None));
+
         // Register callback to track updates
         callback.lock().replace(callback_fn);
 
@@ -353,6 +424,7 @@ mod tests {
             status_list_client,
             storage,
             callback,
+            notifications_callback,
             time_generator,
             check_interval,
         );
@@ -406,15 +478,20 @@ mod tests {
         let mut storage = MockStorage::new();
         storage.expect_state().returning(|| Ok(StorageState::Opened));
 
+        let revocation_info_id_1 = Uuid::new_v4();
+        let revocation_info_id_2 = Uuid::new_v4();
         let test_revocation_info = vec![
             RevocationInfo::new(
-                Uuid::new_v4(),
+                revocation_info_id_1,
                 StatusClaim::new_mock(),
                 keypair.certificate().distinguished_name_canonical().unwrap(),
             ),
             RevocationInfo::new(
-                Uuid::new_v4(),
-                StatusClaim::new_mock(),
+                revocation_info_id_2,
+                StatusClaim::StatusList(StatusListClaim {
+                    idx: 3,
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                }),
                 keypair.certificate().distinguished_name_canonical().unwrap(),
             ),
         ];
@@ -425,23 +502,63 @@ mod tests {
         storage.expect_update_revocation_statuses().returning(move |updates| {
             update_counter.fetch_add(1, Ordering::SeqCst);
             assert_eq!(
-                vec![RevocationStatus::Valid, RevocationStatus::Valid],
+                vec![RevocationStatus::Valid, RevocationStatus::Revoked],
                 updates.into_iter().map(|(_, status)| status).collect_vec()
             );
             Ok(())
         });
-        storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
+
+        let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
+        let attestations = vec![
+            StoredAttestationCopy::new(
+                Uuid::new_v4(),
+                revocation_info_id_1,
+                ValidityWindow::new_valid_mock(),
+                StoredAttestation::SdJwt {
+                    key_identifier: random_string(16),
+                    sd_jwt: sd_jwt.clone(),
+                },
+                sd_jwt_metadata.clone(),
+                Some(RevocationStatus::Valid),
+            ),
+            StoredAttestationCopy::new(
+                Uuid::new_v4(),
+                revocation_info_id_2,
+                ValidityWindow::new_valid_mock(),
+                StoredAttestation::SdJwt {
+                    key_identifier: random_string(16),
+                    sd_jwt,
+                },
+                sd_jwt_metadata,
+                Some(RevocationStatus::Revoked),
+            ),
+        ];
+        storage
+            .expect_fetch_unique_attestations()
+            .returning(move || Ok(attestations.clone()));
         let storage = Arc::new(RwLock::new(storage));
 
         let time_generator = MockTimeGenerator::new(Utc::now());
         let check_interval = Duration::from_millis(100);
-        let callback = Arc::new(Mutex::new(None));
+
+        let attestations_callback = Arc::new(Mutex::new(None));
+
+        let notifications_counter = Arc::new(AtomicU64::new(0));
+        let notifications_callback_counter = Arc::clone(&notifications_counter);
+        let notifications_callback_fn: DirectNotificationsCallback = Arc::new(move |_| {
+            let counter = Arc::clone(&notifications_callback_counter);
+            Box::pin(async move {
+                counter.fetch_add(1, Ordering::SeqCst);
+            })
+        });
+        let notifications_callback = Arc::new(Mutex::new(Some(notifications_callback_fn)));
 
         let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
             config_repo,
             status_list_client,
             storage,
-            callback,
+            attestations_callback,
+            notifications_callback,
             time_generator,
             check_interval,
         );
@@ -455,6 +572,11 @@ mod tests {
         assert!(
             update_count.load(Ordering::SeqCst) > 0,
             "Should have updated revocation statuses"
+        );
+
+        assert!(
+            notifications_counter.load(Ordering::SeqCst) >= 1,
+            "Should have sent revocation notifications"
         );
 
         abort_handle.abort();

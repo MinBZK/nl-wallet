@@ -1071,6 +1071,7 @@ where
             .inner_join(attestation::Entity)
             .select_only()
             .column(attestation_copy::Column::Id)
+            .column_as(attestation::Column::Id, "attestation_id")
             .column(attestation_copy::Column::StatusListUrl)
             .column(attestation_copy::Column::StatusListIndex)
             .column(attestation_copy::Column::IssuerCertificateDn)

@@ -26,8 +26,9 @@ pub enum NotificationsError {
 
 pub type ScheduledNotificationsCallback = Box<dyn Fn(Vec<Notification>) + Send + Sync>;
 
-pub type DirectNotificationsCallback =
-    Box<dyn Fn(Vec<Notification>) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> + Send + Sync>;
+type DirectNotificationFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
+
+pub type DirectNotificationsCallback = Arc<dyn Fn(Vec<Notification>) -> DirectNotificationFuture + Send + Sync>;
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
@@ -64,7 +65,7 @@ where
         &mut self,
         callback: ScheduledNotificationsCallback,
     ) -> Result<Option<ScheduledNotificationsCallback>, NotificationsError> {
-        let previous_callback = self.scheduled_notifications_callback.replace(Box::new(callback));
+        let previous_callback = self.scheduled_notifications_callback.replace(callback);
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case don't emit anything.
@@ -80,7 +81,7 @@ where
         &mut self,
         callback: DirectNotificationsCallback,
     ) -> Result<Option<DirectNotificationsCallback>, NotificationsError> {
-        let previous_callback = self.direct_notifications_callback.replace(Box::new(callback));
+        let previous_callback = self.direct_notifications_callback.lock().replace(callback);
 
         Ok(previous_callback)
     }
@@ -94,7 +95,7 @@ where
     }
 
     pub fn clear_direct_notifications_callback(&mut self) {
-        self.direct_notifications_callback.take();
+        self.direct_notifications_callback.lock().take();
     }
 }
 

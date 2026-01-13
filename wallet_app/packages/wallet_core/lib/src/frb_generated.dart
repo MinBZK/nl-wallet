@@ -192,7 +192,7 @@ abstract class WalletCoreApi extends BaseApi {
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream();
 
   Future<void> crateApiFullSetDirectNotificationsCallback({
-    required FutureOr<void> Function(List<AppNotification>) dartCallback,
+    required FutureOr<void> Function(List<AppNotification>) callback,
   });
 
   Stream<bool> crateApiFullSetLockStream();
@@ -1342,12 +1342,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @override
   Future<void> crateApiFullSetDirectNotificationsCallback({
-    required FutureOr<void> Function(List<AppNotification>) dartCallback,
+    required FutureOr<void> Function(List<AppNotification>) callback,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(dartCallback);
+          var arg0 = cst_encode_DartFn_Inputs_list_app_notification_Output_unit_AnyhowException(callback);
           return wire.wire__crate__api__full__set_direct_notifications_callback(port_, arg0);
         },
         codec: DcoCodec(
@@ -1355,7 +1355,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullSetDirectNotificationsCallbackConstMeta,
-        argValues: [dartCallback],
+        argValues: [callback],
         apiImpl: this,
       ),
     );
@@ -1363,7 +1363,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullSetDirectNotificationsCallbackConstMeta => const TaskConstMeta(
     debugName: "set_direct_notifications_callback",
-    argNames: ["dartCallback"],
+    argNames: ["callback"],
   );
 
   @override
@@ -1827,6 +1827,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  NotifyAt dco_decode_box_autoadd_notify_at(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_notify_at(raw);
+  }
+
+  @protected
   Organization dco_decode_box_autoadd_organization(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_organization(raw);
@@ -1945,7 +1951,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (raw[0]) {
       case 0:
         return DisplayTarget_Os(
-          notifyAt: dco_decode_String(raw[1]),
+          notifyAt: dco_decode_box_autoadd_notify_at(raw[1]),
         );
       case 1:
         return DisplayTarget_Dashboard();
@@ -2178,6 +2184,21 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 2:
         return NotificationType_Revoked(
           card: dco_decode_box_autoadd_attestation_presentation(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  NotifyAt dco_decode_notify_at(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return NotifyAt_Now();
+      case 1:
+        return NotifyAt_At(
+          dco_decode_String(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -2709,6 +2730,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  NotifyAt sse_decode_box_autoadd_notify_at(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_notify_at(deserializer));
+  }
+
+  @protected
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_organization(deserializer));
@@ -2828,7 +2855,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_notifyAt = sse_decode_String(deserializer);
+        var var_notifyAt = sse_decode_box_autoadd_notify_at(deserializer);
         return DisplayTarget_Os(notifyAt: var_notifyAt);
       case 1:
         return DisplayTarget_Dashboard();
@@ -3132,6 +3159,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 2:
         var var_card = sse_decode_box_autoadd_attestation_presentation(deserializer);
         return NotificationType_Revoked(card: var_card);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  NotifyAt sse_decode_notify_at(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return NotifyAt_Now();
+      case 1:
+        var var_field0 = sse_decode_String(deserializer);
+        return NotifyAt_At(var_field0);
       default:
         throw UnimplementedError('');
     }
@@ -3896,6 +3939,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_box_autoadd_notify_at(NotifyAt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_notify_at(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_organization(Organization self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_organization(self, serializer);
@@ -3998,7 +4047,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case DisplayTarget_Os(notifyAt: final notifyAt):
         sse_encode_i_32(0, serializer);
-        sse_encode_String(notifyAt, serializer);
+        sse_encode_box_autoadd_notify_at(notifyAt, serializer);
       case DisplayTarget_Dashboard():
         sse_encode_i_32(1, serializer);
     }
@@ -4240,6 +4289,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case NotificationType_Revoked(card: final card):
         sse_encode_i_32(2, serializer);
         sse_encode_box_autoadd_attestation_presentation(card, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_notify_at(NotifyAt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case NotifyAt_Now():
+        sse_encode_i_32(0, serializer);
+      case NotifyAt_At(field0: final field0):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(field0, serializer);
     }
   }
 

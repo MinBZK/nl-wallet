@@ -199,6 +199,19 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;
 
+typedef struct wire_cst_NotifyAt_At {
+  struct wire_cst_list_prim_u_8_strict *field0;
+} wire_cst_NotifyAt_At;
+
+typedef union NotifyAtKind {
+  struct wire_cst_NotifyAt_At At;
+} NotifyAtKind;
+
+typedef struct wire_cst_notify_at {
+  int32_t tag;
+  union NotifyAtKind kind;
+} wire_cst_notify_at;
+
 typedef struct wire_cst_request_policy {
   uint64_t *data_storage_duration_in_minutes;
   bool data_shared_with_third_parties;
@@ -278,7 +291,7 @@ typedef struct wire_cst_notification_type {
 } wire_cst_notification_type;
 
 typedef struct wire_cst_DisplayTarget_Os {
-  struct wire_cst_list_prim_u_8_strict *notify_at;
+  struct wire_cst_notify_at *notify_at;
 } wire_cst_DisplayTarget_Os;
 
 typedef union DisplayTargetKind {
@@ -622,7 +635,7 @@ void frbgen_wallet_core_wire__crate__api__full__set_configuration_stream(int64_t
                                                                          struct wire_cst_list_prim_u_8_strict *sink);
 
 void frbgen_wallet_core_wire__crate__api__full__set_direct_notifications_callback(int64_t port_,
-                                                                                  const void *dart_callback);
+                                                                                  const void *callback);
 
 void frbgen_wallet_core_wire__crate__api__full__set_lock_stream(int64_t port_,
                                                                 struct wire_cst_list_prim_u_8_strict *sink);
@@ -654,6 +667,8 @@ struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
 
 struct wire_cst_image_with_metadata *frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata(void);
+
+struct wire_cst_notify_at *frbgen_wallet_core_cst_new_box_autoadd_notify_at(void);
 
 struct wire_cst_organization *frbgen_wallet_core_cst_new_box_autoadd_organization(void);
 
@@ -703,6 +718,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_notify_at);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_organization);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);

@@ -98,6 +98,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata dco_decode_box_autoadd_image_with_metadata(dynamic raw);
 
   @protected
+  NotifyAt dco_decode_box_autoadd_notify_at(dynamic raw);
+
+  @protected
   Organization dco_decode_box_autoadd_organization(dynamic raw);
 
   @protected
@@ -219,6 +222,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   NotificationType dco_decode_notification_type(dynamic raw);
+
+  @protected
+  NotifyAt dco_decode_notify_at(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -370,6 +376,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata sse_decode_box_autoadd_image_with_metadata(SseDeserializer deserializer);
 
   @protected
+  NotifyAt sse_decode_box_autoadd_notify_at(SseDeserializer deserializer);
+
+  @protected
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer);
 
   @protected
@@ -491,6 +500,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   NotificationType sse_decode_notification_type(SseDeserializer deserializer);
+
+  @protected
+  NotifyAt sse_decode_notify_at(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -702,6 +714,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_image_with_metadata();
     cst_api_fill_to_wire_image_with_metadata(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_notify_at> cst_encode_box_autoadd_notify_at(NotifyAt raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_notify_at();
+    cst_api_fill_to_wire_notify_at(raw, ptr.ref);
     return ptr;
   }
 
@@ -1106,6 +1126,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_box_autoadd_notify_at(NotifyAt apiObj, ffi.Pointer<wire_cst_notify_at> wireObj) {
+    cst_api_fill_to_wire_notify_at(apiObj, wireObj.ref);
+  }
+
+  @protected
   void cst_api_fill_to_wire_box_autoadd_organization(Organization apiObj, ffi.Pointer<wire_cst_organization> wireObj) {
     cst_api_fill_to_wire_organization(apiObj, wireObj.ref);
   }
@@ -1185,7 +1210,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_display_target(DisplayTarget apiObj, wire_cst_display_target wireObj) {
     if (apiObj is DisplayTarget_Os) {
-      var pre_notify_at = cst_encode_String(apiObj.notifyAt);
+      var pre_notify_at = cst_encode_box_autoadd_notify_at(apiObj.notifyAt);
       wireObj.tag = 0;
       wireObj.kind.Os.notify_at = pre_notify_at;
       return;
@@ -1298,6 +1323,20 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       var pre_card = cst_encode_box_autoadd_attestation_presentation(apiObj.card);
       wireObj.tag = 2;
       wireObj.kind.Revoked.card = pre_card;
+      return;
+    }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_notify_at(NotifyAt apiObj, wire_cst_notify_at wireObj) {
+    if (apiObj is NotifyAt_Now) {
+      wireObj.tag = 0;
+      return;
+    }
+    if (apiObj is NotifyAt_At) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 1;
+      wireObj.kind.At.field0 = pre_field0;
       return;
     }
   }
@@ -1692,6 +1731,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_image_with_metadata(ImageWithMetadata self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_notify_at(NotifyAt self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_organization(Organization self, SseSerializer serializer);
 
   @protected
@@ -1813,6 +1855,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_notification_type(NotificationType self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_notify_at(NotifyAt self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
@@ -2703,11 +2748,11 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__set_direct_notifications_callback(
     int port_,
-    ffi.Pointer<ffi.Void> dart_callback,
+    ffi.Pointer<ffi.Void> callback,
   ) {
     return _wire__crate__api__full__set_direct_notifications_callback(
       port_,
-      dart_callback,
+      callback,
     );
   }
 
@@ -2899,6 +2944,17 @@ class WalletCoreWire implements BaseWire {
       );
   late final _cst_new_box_autoadd_image_with_metadata = _cst_new_box_autoadd_image_with_metadataPtr
       .asFunction<ffi.Pointer<wire_cst_image_with_metadata> Function()>();
+
+  ffi.Pointer<wire_cst_notify_at> cst_new_box_autoadd_notify_at() {
+    return _cst_new_box_autoadd_notify_at();
+  }
+
+  late final _cst_new_box_autoadd_notify_atPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_notify_at> Function()>>(
+        'frbgen_wallet_core_cst_new_box_autoadd_notify_at',
+      );
+  late final _cst_new_box_autoadd_notify_at = _cst_new_box_autoadd_notify_atPtr
+      .asFunction<ffi.Pointer<wire_cst_notify_at> Function()>();
 
   ffi.Pointer<wire_cst_organization> cst_new_box_autoadd_organization() {
     return _cst_new_box_autoadd_organization();
@@ -3472,6 +3528,21 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
 }
 
+final class wire_cst_NotifyAt_At extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class NotifyAtKind extends ffi.Union {
+  external wire_cst_NotifyAt_At At;
+}
+
+final class wire_cst_notify_at extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external NotifyAtKind kind;
+}
+
 final class wire_cst_request_policy extends ffi.Struct {
   external ffi.Pointer<ffi.Uint64> data_storage_duration_in_minutes;
 
@@ -3576,7 +3647,7 @@ final class wire_cst_notification_type extends ffi.Struct {
 }
 
 final class wire_cst_DisplayTarget_Os extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> notify_at;
+  external ffi.Pointer<wire_cst_notify_at> notify_at;
 }
 
 final class DisplayTargetKind extends ffi.Union {
