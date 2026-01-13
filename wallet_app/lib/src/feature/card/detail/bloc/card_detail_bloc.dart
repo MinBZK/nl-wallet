@@ -54,7 +54,7 @@ class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
           .invoke(event.attestationId)
           .asyncMap((cardDetail) async {
             final isPidResult = await _checkIsPidUseCase.invoke(cardDetail.card);
-            return CardDetailLoadSuccess(cardDetail, showRenewOption: isPidResult.value ?? false);
+            return CardDetailLoadSuccess(cardDetail, isPidCard: isPidResult.value ?? false);
           })
           .debounce((_) => Stream.fromFuture(_entryTransitionCompleted.future.timeout(_kMaxEntryTransitionDuration))),
       onData: (state) => state as CardDetailLoadSuccess,

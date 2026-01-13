@@ -2,9 +2,11 @@ use josekit::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_with::DisplayFromStr;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use wallet_account::RevocationCode;
 use wallet_account::messages::registration::WalletCertificate;
 
 use crate::pin::change::State;
@@ -27,6 +29,8 @@ pub struct RegistrationData {
     #[serde_as(as = "Base64")]
     pub pin_salt: Vec<u8>,
     pub wallet_id: String,
+    #[serde_as(as = "DisplayFromStr")]
+    pub revocation_code: RevocationCode,
     pub wallet_certificate: WalletCertificate,
 }
 

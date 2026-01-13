@@ -116,6 +116,7 @@ where
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),
+        revocation_code_hmac: Set(user.revocation_code_hmac),
         recovery_code: Set(None),
     }
     .insert(connection)
@@ -141,6 +142,7 @@ struct WalletUserJoinedModel {
     instruction_challenge_expiration_date_time: Option<DateTimeWithTimeZone>,
     instruction_sequence_number: i32,
     apple_assertion_counter: Option<i64>,
+    revocation_code_hmac: Vec<u8>,
     recovery_code: Option<String>,
 }
 
@@ -163,6 +165,7 @@ where
         .column(wallet_user::Column::PreviousPinPubkeyIv)
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
+        .column(wallet_user::Column::RevocationCodeHmac)
         .column(wallet_user::Column::RecoveryCode)
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
@@ -236,6 +239,7 @@ where
         instruction_sequence_number: u64::try_from(model.instruction_sequence_number).unwrap(),
         attestation,
         state,
+        revocation_code_hmac: model.revocation_code_hmac,
         recovery_code: model.recovery_code.clone(),
     };
 

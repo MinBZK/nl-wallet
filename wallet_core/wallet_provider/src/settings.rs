@@ -44,6 +44,7 @@ pub struct Settings {
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
     pub pin_public_disclosure_protection_key_identifier: String,
+    pub revocation_code_key_identifier: String,
     pub wua_signing_key_identifier: String,
     pub wua_issuer_identifier: String,
     pub wua_valid_days: u64,
@@ -154,6 +155,7 @@ impl Settings {
                 "pin_public_disclosure_protection_key_identifier",
                 "pin_public_disclosure_protection_key",
             )?
+            .set_default("revocation_code_key_identifier", "revocation_code_key")?
             .set_default("wua_status_list.list_size", 100_000)?
             .set_default("wua_status_list.create_threshold_ratio", 0.01)?
             .set_default("wua_status_list.expiry_in_hours", 24)?

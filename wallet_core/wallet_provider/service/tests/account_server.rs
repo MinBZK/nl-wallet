@@ -129,7 +129,7 @@ async fn do_registration(
         status_list_service,
     );
 
-    let certificate = account_server
+    let (certificate, _recovery_code) = account_server
         .register(certificate_signing_key, registration_message, &user_state)
         .await
         .expect("Could not process registration message at account server");

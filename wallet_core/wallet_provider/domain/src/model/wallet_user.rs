@@ -31,6 +31,7 @@ pub struct WalletUser {
     pub instruction_sequence_number: u64,
     pub attestation: WalletUserAttestation,
     pub state: WalletUserState,
+    pub revocation_code_hmac: Vec<u8>,
     pub recovery_code: Option<String>,
 }
 
@@ -88,6 +89,7 @@ pub struct WalletUserCreate {
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     pub attestation_date_time: DateTime<Utc>,
     pub attestation: WalletUserAttestationCreate,
+    pub revocation_code_hmac: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
@@ -180,6 +182,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_sequence_number: 0,
             attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
+            revocation_code_hmac: random_bytes(32),
             recovery_code: None,
         }
     }

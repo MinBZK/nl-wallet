@@ -13,6 +13,7 @@ use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::digid::DigidClient;
+use crate::instruction::InstructionClientParameters;
 pub use crate::lock::LockCallback;
 pub use crate::storage::UnlockMethod;
 
@@ -147,7 +148,7 @@ where
         };
     }
 
-    async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
+    pub(super) async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -178,9 +179,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 
@@ -295,12 +300,12 @@ mod tests {
     use crate::pin::key::PinKey;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
-    use crate::wallet::test::TestWalletInMemoryStorage;
 
     use super::super::WalletRegistration;
-    use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::super::test::TestWalletInMemoryStorage;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
+    use super::super::test::create_wp_result;
     use super::*;
 
     const PIN: &str = "051097";
@@ -395,15 +400,7 @@ mod tests {
         };
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
-        let result_claims = InstructionResultClaims {
-            result: (),
-            iss: "wallet_unit_test".to_string(),
-            iat: Utc::now(),
-        };
-        let result = SignedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
-            .await
-            .unwrap()
-            .into();
+        let result = create_wp_result(());
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()

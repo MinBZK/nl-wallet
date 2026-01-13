@@ -85,7 +85,9 @@ where
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
             InstructionClientParameters::new(
-                registration_data.clone(),
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
                 config.http_config.clone(),
                 instruction_result_public_key,
             ),
@@ -132,7 +134,9 @@ where
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
             InstructionClientParameters::new(
-                registration_data.clone(),
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
                 config.http_config.clone(),
                 instruction_result_public_key,
             ),

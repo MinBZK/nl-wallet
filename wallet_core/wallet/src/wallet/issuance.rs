@@ -61,6 +61,7 @@ use crate::errors::ChangePinError;
 use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -222,6 +223,37 @@ pub enum PidIssuancePurpose {
     Renewal,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum PidAttestationFormat {
+    SdJwt,
+    Either,
+}
+
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+where
+    S: Storage,
+    AKH: AttestedKeyHolder,
+    DC: DigidClient,
+    DCC: DisclosureClient,
+{
+    pub(super) async fn has_pid(
+        &self,
+        config: &PidAttributesConfiguration,
+        format: PidAttestationFormat,
+    ) -> Result<bool, StorageError> {
+        let pid_attestation_types = match format {
+            PidAttestationFormat::Either => config.pid_attestation_types().collect_vec(),
+            PidAttestationFormat::SdJwt => config.sd_jwt.keys().map(String::as_str).collect_vec(),
+        };
+
+        self.storage
+            .read()
+            .await
+            .has_any_attestations_with_types(&pid_attestation_types)
+            .await
+    }
+}
+
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -259,14 +291,15 @@ where
         }
 
         info!("Checking if a pid is already present");
-        let pid_attributes = &self.config_repository.get().pid_attributes;
+
         let has_pid = self
-            .storage
-            .write()
-            .await
-            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types())
+            .has_pid(
+                &self.config_repository.get().pid_attributes,
+                PidAttestationFormat::Either,
+            )
             .await
             .map_err(IssuanceError::AttestationQuery)?;
+
         if purpose == PidIssuancePurpose::Enrollment && has_pid {
             return Err(IssuanceError::PidAlreadyPresent);
         }
@@ -524,9 +557,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 
@@ -718,9 +755,10 @@ fn match_preview_and_stored_attestations<'a>(
                         // If this is PID issuance, and the two cards are both PIDs, then they match.
                         // If not, fall back to contents comparison.
                         |pid_config| {
-                            let pid_types = pid_config.pid_attestation_types();
-                            let both_pid = pid_types.contains(&preview.content.credential_payload.attestation_type)
-                                && pid_types.contains(&stored_preview.attestation_type);
+                            let pid_types = pid_config.pid_attestation_types().collect_vec();
+                            let both_pid = pid_types
+                                .contains(&preview.content.credential_payload.attestation_type.as_str())
+                                && pid_types.contains(&stored_preview.attestation_type.as_str());
                             both_pid || compare_contents(preview, stored_preview, time_generator)
                         },
                     )

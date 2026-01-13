@@ -9,7 +9,6 @@ extension AttestationPresentationExtension on AttestationPresentation {
       issuer: issuer,
       attributes: attributes,
       validityStatus: validityStatus,
-      validityWindow: validityWindow,
     );
   }
 }

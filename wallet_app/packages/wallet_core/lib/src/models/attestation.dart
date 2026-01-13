@@ -10,7 +10,6 @@ import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 import 'revocation.dart';
-import 'validity.dart';
 part 'attestation.freezed.dart';
 
 class AttestationAttribute {
@@ -57,7 +56,6 @@ class AttestationPresentation {
   final Organization issuer;
   final RevocationStatus? revocationStatus;
   final ValidityStatus validityStatus;
-  final ValidityWindow validityWindow;
   final List<AttestationAttribute> attributes;
 
   const AttestationPresentation({
@@ -67,7 +65,6 @@ class AttestationPresentation {
     required this.issuer,
     this.revocationStatus,
     required this.validityStatus,
-    required this.validityWindow,
     required this.attributes,
   });
 
@@ -79,7 +76,6 @@ class AttestationPresentation {
       issuer.hashCode ^
       revocationStatus.hashCode ^
       validityStatus.hashCode ^
-      validityWindow.hashCode ^
       attributes.hashCode;
 
   @override
@@ -93,7 +89,6 @@ class AttestationPresentation {
           issuer == other.issuer &&
           revocationStatus == other.revocationStatus &&
           validityStatus == other.validityStatus &&
-          validityWindow == other.validityWindow &&
           attributes == other.attributes;
 }
 
@@ -185,9 +180,20 @@ sealed class RenderingMetadata with _$RenderingMetadata {
   const factory RenderingMetadata.svgTemplates() = RenderingMetadata_SvgTemplates;
 }
 
-enum ValidityStatus {
-  NotYetValid,
-  Valid,
-  ExpiresSoon,
-  Expired,
+@freezed
+sealed class ValidityStatus with _$ValidityStatus {
+  const ValidityStatus._();
+
+  const factory ValidityStatus.notYetValid({
+    required String validFrom,
+  }) = ValidityStatus_NotYetValid;
+  const factory ValidityStatus.valid({
+    String? validUntil,
+  }) = ValidityStatus_Valid;
+  const factory ValidityStatus.expiresSoon({
+    required String validUntil,
+  }) = ValidityStatus_ExpiresSoon;
+  const factory ValidityStatus.expired({
+    required String validUntil,
+  }) = ValidityStatus_Expired;
 }

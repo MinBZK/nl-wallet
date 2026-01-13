@@ -519,15 +519,21 @@ pub async fn get_history_for_card(attestation_id: String) -> anyhow::Result<Vec<
 }
 
 #[flutter_api_error]
-pub fn get_registration_revocation_code() -> anyhow::Result<String> {
-    Ok("AB12CD34EF56GH78IJ".to_string())
+pub async fn get_registration_revocation_code() -> anyhow::Result<String> {
+    let wallet = wallet().read().await;
+
+    let revocation_code = wallet.get_revocation_code_before_pid().await?;
+
+    Ok(revocation_code.clone().into())
 }
 
 #[flutter_api_error]
-pub async fn get_revocation_code(_pin: String) -> anyhow::Result<RevocationCodeResult> {
-    Ok(RevocationCodeResult::Ok {
-        revocation_code: "AB12CD34EF56GH78IJ".to_string(),
-    })
+pub async fn get_revocation_code(pin: String) -> anyhow::Result<RevocationCodeResult> {
+    let wallet = wallet().read().await;
+
+    let result = wallet.get_revocation_code_with_pin(pin).await.try_into()?;
+
+    Ok(result)
 }
 
 #[flutter_api_error]

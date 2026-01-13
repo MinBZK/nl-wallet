@@ -19,6 +19,7 @@ use wallet::errors::IssuanceError;
 use wallet::errors::PinRecoveryError;
 use wallet::errors::RecoveryCodeError;
 use wallet::errors::ResetError;
+use wallet::errors::RevocationCodeError;
 use wallet::errors::TransferError;
 use wallet::errors::UpdatePolicyError;
 use wallet::errors::UriIdentificationError;
@@ -145,6 +146,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<ChangePinError>().map(Self::from))
             .or_else(|e| e.downcast::<PinRecoveryError>().map(Self::from))
             .or_else(|e| e.downcast::<TransferError>().map(Self::from))
+            .or_else(|e| e.downcast::<RevocationCodeError>().map(Self::from))
     }
 }
 
@@ -549,6 +551,17 @@ impl FlutterApiErrorFields for TransferError {
             TransferError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             TransferError::ChangePin(e) => e.typ(),
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for RevocationCodeError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            Self::NotRegistered | Self::PidPresent => FlutterApiErrorType::WalletState,
+            Self::PidRetrieval(_) => FlutterApiErrorType::Generic,
+            Self::Unlock(error) => error.typ(),
         }
     }
 }

@@ -117,7 +117,7 @@ where
     let router = {
         let (router, openapi) = router.split_for_parts();
 
-        router.route("/openapi.json", axum::routing::get(Json(openapi))).into()
+        router.route("/openapi.json", axum::routing::get(Json(openapi)))
     };
 
     router

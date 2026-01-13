@@ -82,6 +82,7 @@ void _setupMockitoDummies() {
   );
   provideDummy<DisclosureType>(DisclosureType.login);
   provideDummy<DisclosureSessionType>(DisclosureSessionType.crossDevice);
+  provideDummy<core.RevocationCodeResult>(const core.RevocationCodeResult_Ok(revocationCode: '123456'));
   provideDummy<core.AcceptDisclosureResult>(const core.AcceptDisclosureResult_Ok());
   provideDummy<core.StartDisclosureResult>(
     const core.StartDisclosureResult.requestAttributesMissing(
