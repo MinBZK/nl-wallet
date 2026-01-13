@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import net.razvan.JacocoToCoberturaPlugin
 import net.razvan.JacocoToCoberturaTask
+import java.io.ByteArrayOutputStream
 
 plugins {
     id("com.android.library")
@@ -151,6 +152,20 @@ dependencies {
 val jniTargetDir = android.sourceSets.getByName("main").jniLibs.srcDirs.first()
 val moduleWorkingDir = file("${project.projectDir}/../")
 val bindingsTargetDir = "$moduleWorkingDir/kotlin"
+var integrationTestFeature = "hardware_integration_test"
+
+// Register a task to determine emulator or real device
+tasks.register<Exec>("determineEmulator") {
+    executable = "adb"
+    args("devices")
+    standardOutput = ByteArrayOutputStream()
+    doLast {
+        if (Regex("^emulator", RegexOption.MULTILINE).find(standardOutput.toString()) != null) {
+            logger.warn("Using emulator integration test features")
+            integrationTestFeature = "emulator_integration_test"
+        }
+    }
+}
 
 // Register a task to generate Kotlin bindings
 tasks.register<Exec>("cargoBuildNativeBindings") {
@@ -165,7 +180,7 @@ tasks.register<Exec>("cargoBuildNativeBindings") {
 enum class BuildMode { Debug, Profile, Release }
 data class BuildOptions(val args: List<String> = emptyList())
 mapOf(
-    BuildMode.Debug to BuildOptions(args=listOf("--features", "hardware_integration_test")),
+    BuildMode.Debug to BuildOptions(),
     BuildMode.Profile to BuildOptions(args=listOf("--locked", "--release")),
     BuildMode.Release to BuildOptions(args=listOf("--locked", "--release")),
 ).forEach { (buildMode, options) ->
@@ -181,6 +196,14 @@ mapOf(
         args("-o", jniTargetDir)
         args("build")
         args(options.args)
+        if (buildMode == BuildMode.Debug) {
+            dependsOn("determineEmulator")
+        }
+        doFirst {
+            if (buildMode == BuildMode.Debug) {
+                args("--features", integrationTestFeature)
+            }
+        }
     }
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
         dependsOn("cargoBuildNativeLibrary${buildMode}")
