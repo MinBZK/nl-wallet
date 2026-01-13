@@ -3289,15 +3289,6 @@ class MockNavigationService extends _i1.Mock implements _i46.NavigationService {
             returnValueForMissingStub: _i10.Future<void>.value(),
           )
           as _i10.Future<void>);
-
-  @override
-  _i10.Stream<bool> observeUpdateNotificationDialogVisible() =>
-      (super.noSuchMethod(
-            Invocation.method(#observeUpdateNotificationDialogVisible, []),
-            returnValue: _i10.Stream<bool>.empty(),
-            returnValueForMissingStub: _i10.Stream<bool>.empty(),
-          )
-          as _i10.Stream<bool>);
 }
 
 /// A class which mocks [LocalAuthentication].
