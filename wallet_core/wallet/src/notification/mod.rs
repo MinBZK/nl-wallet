@@ -34,14 +34,8 @@ pub enum NotificationType {
 
 #[derive(Debug)]
 pub enum DisplayTarget {
-    Os { notify_at: NotifyAt },
+    Os { notify_at: DateTime<Utc> },
     Dashboard,
-}
-
-#[derive(Debug)]
-pub enum NotifyAt {
-    Now,
-    At(DateTime<Utc>),
 }
 
 impl Notification {
@@ -80,9 +74,7 @@ impl Notification {
                 Notification {
                     id: rand::thread_rng().r#gen(),
                     typ: NotificationType::Expired { attestation },
-                    targets: vec_nonempty![DisplayTarget::Os {
-                        notify_at: NotifyAt::At(expires_at)
-                    }],
+                    targets: vec_nonempty![DisplayTarget::Os { notify_at: expires_at }],
                 },
             ]),
             ValidityStatus::ValidUntil { notify_at, expires_at } => Some(vec_nonempty![
@@ -92,16 +84,12 @@ impl Notification {
                         attestation: attestation.clone(),
                         expires_at,
                     },
-                    targets: vec_nonempty![DisplayTarget::Os {
-                        notify_at: NotifyAt::At(notify_at)
-                    }],
+                    targets: vec_nonempty![DisplayTarget::Os { notify_at }],
                 },
                 Notification {
                     id: random(),
                     typ: NotificationType::Expired { attestation },
-                    targets: vec_nonempty![DisplayTarget::Os {
-                        notify_at: NotifyAt::At(expires_at)
-                    }],
+                    targets: vec_nonempty![DisplayTarget::Os { notify_at: expires_at }],
                 },
             ]),
             _ => None,
@@ -190,7 +178,7 @@ mod tests {
             .expect("Expected an Expired notification");
 
         // This was the failing line: it must match the expiry date exactly
-        assert_matches!(expired.targets[0], DisplayTarget::Os { notify_at: NotifyAt::At(notify_at) } if notify_at == expiry);
+        assert_matches!(expired.targets[0], DisplayTarget::Os { notify_at } if notify_at == expiry);
     }
 
     #[test]
@@ -225,7 +213,7 @@ mod tests {
             .expect("Expected an ExpiresSoon notification");
 
         // Must have Os target scheduled for the future, and NO Dashboard target yet
-        assert_matches!(soon.targets[0], DisplayTarget::Os { notify_at: NotifyAt::At(notify_at) } if notify_at == expected_notify_at);
+        assert_matches!(soon.targets[0], DisplayTarget::Os { notify_at } if notify_at == expected_notify_at);
         assert!(!soon.targets.iter().any(|t| matches!(t, DisplayTarget::Dashboard)));
 
         // Find the "Expired" notification specifically
@@ -233,6 +221,6 @@ mod tests {
             .iter()
             .find(|n| matches!(n.typ, NotificationType::Expired { .. }))
             .expect("Expected an Expired notification");
-        assert_matches!(expired.targets[0], DisplayTarget::Os { notify_at: NotifyAt::At(notify_at) } if notify_at == expiry);
+        assert_matches!(expired.targets[0], DisplayTarget::Os { notify_at } if notify_at == expiry);
     }
 }

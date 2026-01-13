@@ -1,13 +1,8 @@
 use crate::models::attestation::AttestationPresentation;
 
 pub enum DisplayTarget {
-    Os { notify_at: NotifyAt },
+    Os { notify_at: String }, // ISO8601
     Dashboard,
-}
-
-pub enum NotifyAt {
-    Now,
-    At(String), // ISO8601
 }
 
 pub enum NotificationType {
@@ -63,18 +58,9 @@ impl From<wallet::DisplayTarget> for DisplayTarget {
     fn from(value: wallet::DisplayTarget) -> Self {
         match value {
             wallet::DisplayTarget::Os { notify_at } => DisplayTarget::Os {
-                notify_at: notify_at.into(),
+                notify_at: notify_at.to_rfc3339(),
             },
             wallet::DisplayTarget::Dashboard => DisplayTarget::Dashboard,
-        }
-    }
-}
-
-impl From<wallet::NotifyAt> for NotifyAt {
-    fn from(value: wallet::NotifyAt) -> Self {
-        match value {
-            wallet::NotifyAt::Now => NotifyAt::Now,
-            wallet::NotifyAt::At(at) => NotifyAt::At(at.to_rfc3339()),
         }
     }
 }

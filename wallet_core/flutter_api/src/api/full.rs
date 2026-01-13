@@ -27,6 +27,7 @@ use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::notification::AppNotification;
+use crate::models::notification::NotificationType;
 use crate::models::pin::PinValidationResult;
 use crate::models::transfer::TransferSessionState;
 use crate::models::uri::IdentifyUriResult;
@@ -161,7 +162,7 @@ pub async fn clear_direct_notifications_callback() {
 }
 
 pub async fn set_direct_notifications_callback(
-    callback: impl Fn(Vec<AppNotification>) -> DartFnFuture<()> + Send + Sync + 'static,
+    callback: impl Fn(Vec<(i32, NotificationType)>) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     let callback = Arc::new(callback);
     let _ = wallet()
@@ -169,7 +170,10 @@ pub async fn set_direct_notifications_callback(
         .await
         .set_direct_notifications_callback(Arc::new(move |notifications| {
             let callback = Arc::clone(&callback);
-            let notifications = notifications.into_iter().map(Into::into).collect();
+            let notifications = notifications
+                .into_iter()
+                .map(|(id, notification_type)| (id, notification_type.into()))
+                .collect();
             Box::pin(async move { callback(notifications).await })
         }))?;
 

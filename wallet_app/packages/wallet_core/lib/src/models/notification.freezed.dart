@@ -119,7 +119,7 @@ return dashboard(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( NotifyAt notifyAt)?  os,TResult Function()?  dashboard,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String notifyAt)?  os,TResult Function()?  dashboard,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case DisplayTarget_Os() when os != null:
 return os(_that.notifyAt);case DisplayTarget_Dashboard() when dashboard != null:
@@ -141,7 +141,7 @@ return dashboard();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( NotifyAt notifyAt)  os,required TResult Function()  dashboard,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String notifyAt)  os,required TResult Function()  dashboard,}) {final _that = this;
 switch (_that) {
 case DisplayTarget_Os():
 return os(_that.notifyAt);case DisplayTarget_Dashboard():
@@ -159,7 +159,7 @@ return dashboard();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( NotifyAt notifyAt)?  os,TResult? Function()?  dashboard,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String notifyAt)?  os,TResult? Function()?  dashboard,}) {final _that = this;
 switch (_that) {
 case DisplayTarget_Os() when os != null:
 return os(_that.notifyAt);case DisplayTarget_Dashboard() when dashboard != null:
@@ -178,7 +178,7 @@ class DisplayTarget_Os extends DisplayTarget {
   const DisplayTarget_Os({required this.notifyAt}): super._();
   
 
- final  NotifyAt notifyAt;
+ final  String notifyAt;
 
 /// Create a copy of DisplayTarget
 /// with the given fields replaced by the non-null parameter values.
@@ -210,11 +210,11 @@ abstract mixin class $DisplayTarget_OsCopyWith<$Res> implements $DisplayTargetCo
   factory $DisplayTarget_OsCopyWith(DisplayTarget_Os value, $Res Function(DisplayTarget_Os) _then) = _$DisplayTarget_OsCopyWithImpl;
 @useResult
 $Res call({
- NotifyAt notifyAt
+ String notifyAt
 });
 
 
-$NotifyAtCopyWith<$Res> get notifyAt;
+
 
 }
 /// @nodoc
@@ -230,20 +230,11 @@ class _$DisplayTarget_OsCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? notifyAt = null,}) {
   return _then(DisplayTarget_Os(
 notifyAt: null == notifyAt ? _self.notifyAt : notifyAt // ignore: cast_nullable_to_non_nullable
-as NotifyAt,
+as String,
   ));
 }
 
-/// Create a copy of DisplayTarget
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$NotifyAtCopyWith<$Res> get notifyAt {
-  
-  return $NotifyAtCopyWith<$Res>(_self.notifyAt, (value) {
-    return _then(_self.copyWith(notifyAt: value));
-  });
-}
+
 }
 
 /// @nodoc
@@ -669,264 +660,6 @@ class _$NotificationType_RevokedCopyWithImpl<$Res>
   return _then(NotificationType_Revoked(
 card: null == card ? _self.card : card // ignore: cast_nullable_to_non_nullable
 as AttestationPresentation,
-  ));
-}
-
-
-}
-
-/// @nodoc
-mixin _$NotifyAt {
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotifyAt);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'NotifyAt()';
-}
-
-
-}
-
-/// @nodoc
-class $NotifyAtCopyWith<$Res>  {
-$NotifyAtCopyWith(NotifyAt _, $Res Function(NotifyAt) __);
-}
-
-
-/// Adds pattern-matching-related methods to [NotifyAt].
-extension NotifyAtPatterns on NotifyAt {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( NotifyAt_Now value)?  now,TResult Function( NotifyAt_At value)?  at,required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case NotifyAt_Now() when now != null:
-return now(_that);case NotifyAt_At() when at != null:
-return at(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( NotifyAt_Now value)  now,required TResult Function( NotifyAt_At value)  at,}){
-final _that = this;
-switch (_that) {
-case NotifyAt_Now():
-return now(_that);case NotifyAt_At():
-return at(_that);}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( NotifyAt_Now value)?  now,TResult? Function( NotifyAt_At value)?  at,}){
-final _that = this;
-switch (_that) {
-case NotifyAt_Now() when now != null:
-return now(_that);case NotifyAt_At() when at != null:
-return at(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  now,TResult Function( String field0)?  at,required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case NotifyAt_Now() when now != null:
-return now();case NotifyAt_At() when at != null:
-return at(_that.field0);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  now,required TResult Function( String field0)  at,}) {final _that = this;
-switch (_that) {
-case NotifyAt_Now():
-return now();case NotifyAt_At():
-return at(_that.field0);}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  now,TResult? Function( String field0)?  at,}) {final _that = this;
-switch (_that) {
-case NotifyAt_Now() when now != null:
-return now();case NotifyAt_At() when at != null:
-return at(_that.field0);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-
-
-class NotifyAt_Now extends NotifyAt {
-  const NotifyAt_Now(): super._();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotifyAt_Now);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'NotifyAt.now()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class NotifyAt_At extends NotifyAt {
-  const NotifyAt_At(this.field0): super._();
-  
-
- final  String field0;
-
-/// Create a copy of NotifyAt
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$NotifyAt_AtCopyWith<NotifyAt_At> get copyWith => _$NotifyAt_AtCopyWithImpl<NotifyAt_At>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotifyAt_At&&(identical(other.field0, field0) || other.field0 == field0));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,field0);
-
-@override
-String toString() {
-  return 'NotifyAt.at(field0: $field0)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $NotifyAt_AtCopyWith<$Res> implements $NotifyAtCopyWith<$Res> {
-  factory $NotifyAt_AtCopyWith(NotifyAt_At value, $Res Function(NotifyAt_At) _then) = _$NotifyAt_AtCopyWithImpl;
-@useResult
-$Res call({
- String field0
-});
-
-
-
-
-}
-/// @nodoc
-class _$NotifyAt_AtCopyWithImpl<$Res>
-    implements $NotifyAt_AtCopyWith<$Res> {
-  _$NotifyAt_AtCopyWithImpl(this._self, this._then);
-
-  final NotifyAt_At _self;
-  final $Res Function(NotifyAt_At) _then;
-
-/// Create a copy of NotifyAt
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? field0 = null,}) {
-  return _then(NotifyAt_At(
-null == field0 ? _self.field0 : field0 // ignore: cast_nullable_to_non_nullable
-as String,
   ));
 }
 

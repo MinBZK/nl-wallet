@@ -10,6 +10,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::NotificationType;
 use crate::Wallet;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
@@ -28,7 +29,8 @@ pub type ScheduledNotificationsCallback = Box<dyn Fn(Vec<Notification>) + Send +
 
 type DirectNotificationFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 
-pub type DirectNotificationsCallback = Arc<dyn Fn(Vec<Notification>) -> DirectNotificationFuture + Send + Sync>;
+pub type DirectNotificationsCallback =
+    Arc<dyn Fn(Vec<(i32, NotificationType)>) -> DirectNotificationFuture + Send + Sync>;
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where

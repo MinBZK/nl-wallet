@@ -199,19 +199,6 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;
 
-typedef struct wire_cst_NotifyAt_At {
-  struct wire_cst_list_prim_u_8_strict *field0;
-} wire_cst_NotifyAt_At;
-
-typedef union NotifyAtKind {
-  struct wire_cst_NotifyAt_At At;
-} NotifyAtKind;
-
-typedef struct wire_cst_notify_at {
-  int32_t tag;
-  union NotifyAtKind kind;
-} wire_cst_notify_at;
-
 typedef struct wire_cst_request_policy {
   uint64_t *data_storage_duration_in_minutes;
   bool data_shared_with_third_parties;
@@ -291,7 +278,7 @@ typedef struct wire_cst_notification_type {
 } wire_cst_notification_type;
 
 typedef struct wire_cst_DisplayTarget_Os {
-  struct wire_cst_notify_at *notify_at;
+  struct wire_cst_list_prim_u_8_strict *notify_at;
 } wire_cst_DisplayTarget_Os;
 
 typedef union DisplayTargetKind {
@@ -346,6 +333,16 @@ typedef struct wire_cst_list_prim_u_16_strict {
   uint16_t *ptr;
   int32_t len;
 } wire_cst_list_prim_u_16_strict;
+
+typedef struct wire_cst_record_i_32_notification_type {
+  int32_t field0;
+  struct wire_cst_notification_type field1;
+} wire_cst_record_i_32_notification_type;
+
+typedef struct wire_cst_list_record_i_32_notification_type {
+  struct wire_cst_record_i_32_notification_type *ptr;
+  int32_t len;
+} wire_cst_list_record_i_32_notification_type;
 
 typedef struct wire_cst_WalletEvent_Disclosure {
   struct wire_cst_list_prim_u_8_strict *id;
@@ -668,8 +665,6 @@ struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
 
 struct wire_cst_image_with_metadata *frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata(void);
 
-struct wire_cst_notify_at *frbgen_wallet_core_cst_new_box_autoadd_notify_at(void);
-
 struct wire_cst_organization *frbgen_wallet_core_cst_new_box_autoadd_organization(void);
 
 struct wire_cst_rendering_metadata *frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata(void);
@@ -712,13 +707,14 @@ struct wire_cst_list_prim_u_16_strict *frbgen_wallet_core_cst_new_list_prim_u_16
 
 struct wire_cst_list_prim_u_8_strict *frbgen_wallet_core_cst_new_list_prim_u_8_strict(int32_t len);
 
+struct wire_cst_list_record_i_32_notification_type *frbgen_wallet_core_cst_new_list_record_i_32_notification_type(int32_t len);
+
 struct wire_cst_list_wallet_event *frbgen_wallet_core_cst_new_list_wallet_event(int32_t len);
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_notify_at);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_organization);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);
@@ -740,6 +736,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_16_loose);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_16_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_issuance);

@@ -7371,7 +7371,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
 
   @override
   _i10.Future<void> crateApiFullSetDirectNotificationsCallback({
-    required _i10.FutureOr<void> Function(List<_i26.AppNotification>)? callback,
+    required _i10.FutureOr<void> Function(List<(int, _i26.NotificationType)>)? callback,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullSetDirectNotificationsCallback, [], {

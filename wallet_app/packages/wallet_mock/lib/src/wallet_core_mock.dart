@@ -360,7 +360,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<void> crateApiFullSetDirectNotificationsCallback({
-    required FutureOr<void> Function(List<AppNotification>) callback,
+    required FutureOr<void> Function(List<(int, NotificationType)>) callback,
   }) async {}
 
   @override

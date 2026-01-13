@@ -25,16 +25,12 @@ use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
-use utils::vec_nonempty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::DisplayTarget;
-use crate::Notification;
 use crate::NotificationType;
 use crate::Wallet;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
-use crate::notification::NotifyAt;
 use crate::repository::Repository;
 use crate::storage::RevocationInfo;
 use crate::storage::Storage;
@@ -214,24 +210,20 @@ where
         if let Some(callback) = maybe_notifications_callback {
             let revocation_status_by_attestation_id: HashMap<Uuid, RevocationStatus> = updates.into_iter().collect();
 
-            let notifications: Vec<Notification> = attestations
+            let notifications: Vec<(i32, NotificationType)> = attestations
                 .iter()
                 .filter(|attestation| {
                     revocation_status_by_attestation_id.contains_key(&attestation.attestation_copy_id())
                 })
-                .map(|attestation| Notification {
-                    id: random(),
-                    typ: NotificationType::Revoked {
-                        attestation: attestation
-                            .clone()
-                            .into_attestation_presentation(&config.pid_attributes),
-                    },
-                    targets: vec_nonempty![
-                        DisplayTarget::Dashboard,
-                        DisplayTarget::Os {
-                            notify_at: NotifyAt::Now
-                        }
-                    ],
+                .map(|attestation| {
+                    (
+                        random(),
+                        NotificationType::Revoked {
+                            attestation: attestation
+                                .clone()
+                                .into_attestation_presentation(&config.pid_attributes),
+                        },
+                    )
                 })
                 .collect();
 

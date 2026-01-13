@@ -43,7 +43,7 @@ sealed class DisplayTarget with _$DisplayTarget {
   const DisplayTarget._();
 
   const factory DisplayTarget.os({
-    required NotifyAt notifyAt,
+    required String notifyAt,
   }) = DisplayTarget_Os;
   const factory DisplayTarget.dashboard() = DisplayTarget_Dashboard;
 }
@@ -62,14 +62,4 @@ sealed class NotificationType with _$NotificationType {
   const factory NotificationType.revoked({
     required AttestationPresentation card,
   }) = NotificationType_Revoked;
-}
-
-@freezed
-sealed class NotifyAt with _$NotifyAt {
-  const NotifyAt._();
-
-  const factory NotifyAt.now() = NotifyAt_Now;
-  const factory NotifyAt.at(
-    String field0,
-  ) = NotifyAt_At;
 }
