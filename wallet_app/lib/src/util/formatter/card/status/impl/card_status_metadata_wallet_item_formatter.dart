@@ -22,7 +22,7 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
   }
 
   @override
-  String text(BuildContext context, WalletCard card) {
+  String text(BuildContext context, WalletCard card, {bool isPidCard = false}) {
     final status = card.status;
     return switch (status) {
       CardStatusValidSoon() => context.l10n.cardStatusMetadataWalletItemValidSoon,
@@ -88,7 +88,7 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
       CardStatusExpired() => colorScheme.error,
       CardStatusRevoked() => colorScheme.error,
       CardStatusCorrupted() => colorScheme.error,
-      CardStatusUndetermined() => kStatusWarningColor,
+      CardStatusUndetermined() => kStatusWarningColorLight,
     };
   }
 }

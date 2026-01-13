@@ -20,7 +20,7 @@ class CardStatusMetadataSharedAttributesCardFormatter implements CardStatusMetad
   }
 
   @override
-  String text(BuildContext context, WalletCard card) {
+  String text(BuildContext context, WalletCard card, {bool isPidCard = false}) {
     return switch (card.status) {
       CardStatusValidSoon() => '',
       CardStatusValid() => '',

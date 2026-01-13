@@ -21,7 +21,7 @@ class CardStatusMetadataCardDataScreenFormatter implements CardStatusMetadataFor
   }
 
   @override
-  String text(BuildContext context, WalletCard card) {
+  String text(BuildContext context, WalletCard card, {bool isPidCard = false}) {
     final status = card.status;
     return switch (status) {
       CardStatusValidSoon() => context.l10n.cardStatusMetadataCardDataScreenValidSoon(

@@ -7,7 +7,6 @@ use crate::models::disclosure::Organization;
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
 use crate::models::revocation::RevocationStatus;
-use crate::models::validity::ValidityWindow;
 
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
@@ -16,7 +15,6 @@ pub struct AttestationPresentation {
     pub issuer: Organization,
     pub revocation_status: Option<RevocationStatus>,
     pub validity_status: ValidityStatus,
-    pub validity_window: ValidityWindow,
     pub attributes: Vec<AttestationAttribute>,
 }
 
@@ -29,7 +27,6 @@ impl From<wallet::AttestationPresentation> for AttestationPresentation {
             issuer: value.issuer.into(),
             revocation_status: value.validity.revocation_status.map(Into::into),
             validity_status: wallet::ValidityStatus::from_window(&value.validity.validity_window, Utc::now()).into(),
-            validity_window: value.validity.validity_window.into(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
     }
@@ -50,19 +47,28 @@ impl From<wallet::AttestationIdentity> for AttestationIdentity {
 }
 
 pub enum ValidityStatus {
-    NotYetValid,
-    Valid,
-    ExpiresSoon,
-    Expired,
+    NotYetValid { valid_from: String },    // ISO8601
+    Valid { valid_until: Option<String> }, // ISO8601
+    ExpiresSoon { valid_until: String },   // ISO8601
+    Expired { valid_until: String },       // ISO8601
 }
 
 impl From<wallet::ValidityStatus> for ValidityStatus {
     fn from(value: wallet::ValidityStatus) -> Self {
         match value {
-            wallet::ValidityStatus::NotYetValid => ValidityStatus::NotYetValid,
-            wallet::ValidityStatus::ValidUntil { .. } | wallet::ValidityStatus::AlwaysValid => ValidityStatus::Valid,
-            wallet::ValidityStatus::ExpiresSoon { .. } => ValidityStatus::ExpiresSoon,
-            wallet::ValidityStatus::Expired => ValidityStatus::Expired,
+            wallet::ValidityStatus::NotYetValid { valid_from } => ValidityStatus::NotYetValid {
+                valid_from: valid_from.to_rfc3339(),
+            },
+            wallet::ValidityStatus::AlwaysValid => ValidityStatus::Valid { valid_until: None },
+            wallet::ValidityStatus::ValidUntil { expires_at, .. } => ValidityStatus::Valid {
+                valid_until: Some(expires_at.to_rfc3339()),
+            },
+            wallet::ValidityStatus::ExpiresSoon { expires_at, .. } => ValidityStatus::ExpiresSoon {
+                valid_until: expires_at.to_rfc3339(),
+            },
+            wallet::ValidityStatus::Expired { expired_at } => ValidityStatus::Expired {
+                valid_until: expired_at.to_rfc3339(),
+            },
         }
     }
 }
