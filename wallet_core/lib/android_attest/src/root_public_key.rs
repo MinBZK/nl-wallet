@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use const_decoder::Pem;
 use const_decoder::decode;
-use p256::ecdsa::VerifyingKey;
+use p384::ecdsa::VerifyingKey;
 use rsa::BigUint;
 use rsa::RsaPublicKey;
 use rsa::traits::PublicKeyParts;
@@ -79,7 +79,7 @@ impl TryFrom<&[u8]> for RootPublicKey {
 
 #[cfg(test)]
 mod test {
-    use p256::ecdsa::SigningKey;
+    use p384::ecdsa::SigningKey;
     use rsa::RsaPrivateKey;
     use rsa::RsaPublicKey;
     use spki::EncodePublicKey;
