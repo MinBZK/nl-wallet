@@ -1,6 +1,6 @@
 use std::pin::Pin;
 use std::sync::Arc;
-
+use tokio::sync::RwLockReadGuard;
 use tracing::info;
 
 use error_category::ErrorCategory;
@@ -47,16 +47,7 @@ where
         let storage = self.storage.read().await;
 
         if let Some(notifications_callback) = &self.scheduled_notifications_callback {
-            let notifications: Vec<Notification> = storage
-                .fetch_unique_attestations()
-                .await?
-                .into_iter()
-                .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
-                .filter_map(|attestation| Notification::create_for_attestation(attestation, &TimeGenerator))
-                .flatten()
-                .collect();
-
-            notifications_callback(notifications);
+            emit_notifications(notifications_callback, &storage, &wallet_config).await?;
         }
 
         Ok(())
@@ -99,6 +90,25 @@ where
     pub fn clear_direct_notifications_callback(&mut self) {
         self.direct_notifications_callback.lock().take();
     }
+}
+
+pub async fn emit_notifications<S: Storage>(
+    notifications_callback: &ScheduledNotificationsCallback,
+    storage: &RwLockReadGuard<'_, S>,
+    wallet_config: &WalletConfiguration,
+) -> Result<(), NotificationsError> {
+    let notifications = storage
+        .fetch_unique_attestations()
+        .await?
+        .into_iter()
+        .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
+        .filter_map(|attestation| Notification::create_for_attestation(attestation, &TimeGenerator))
+        .flatten()
+        .collect();
+
+    notifications_callback(notifications);
+
+    Ok(())
 }
 
 #[cfg(test)]
