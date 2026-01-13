@@ -13,7 +13,7 @@ pub enum HealthStatus {
 }
 
 #[async_trait]
-pub trait HealthChecker: Send + Sync {
+pub trait HealthChecker {
     fn name(&self) -> &'static str;
     async fn status(&self) -> Result<HealthStatus, Box<dyn std::error::Error + Send + Sync>>;
 }
@@ -53,14 +53,14 @@ mod router {
 
     #[derive(Clone)]
     struct HealthState {
-        checkers: Arc<Vec<Box<dyn HealthChecker>>>,
+        checkers: Arc<Vec<Box<dyn HealthChecker + Send + Sync>>>,
     }
 
     /// Create MicroProfile health router.
     ///
     /// # Panics
     /// The function panics if multiple checkers are passed with the same name.
-    pub fn create_health_router(checkers: impl IntoIterator<Item = Box<dyn HealthChecker>>) -> Router {
+    pub fn create_health_router(checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>) -> Router {
         let checkers = checkers.into_iter().collect_vec();
 
         let duplicates = checkers
@@ -189,8 +189,8 @@ mod router {
         #[test]
         fn test_create_health_router_checks_duplicates() {
             let result = catch_unwind(|| {
-                let a1 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<dyn HealthChecker>;
-                let a2 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<dyn HealthChecker>;
+                let a1 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<dyn HealthChecker + Send + Sync>;
+                let a2 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<dyn HealthChecker + Send + Sync>;
                 _ = create_health_router([a1, a2])
             });
             assert_eq!(
