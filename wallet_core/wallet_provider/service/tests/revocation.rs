@@ -41,7 +41,7 @@ use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
 use wallet_provider_service::revocation::RevocationError;
 use wallet_provider_service::revocation::revoke_all_wallets;
-use wallet_provider_service::revocation::revoke_wallets;
+use wallet_provider_service::revocation::revoke_wallets_by_wallet_id;
 use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
 
 async fn setup_state(
@@ -264,7 +264,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     .await;
 
     // verify idempotency
-    revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
+    revoke_wallets_by_wallet_id(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
         .await
         .unwrap();
     verify_revocation(

@@ -33,7 +33,7 @@ impl IntoResponse for RevocationError {
 
 #[utoipa::path(
     post,
-    path = "/revoke/",
+    path = "/revoke-wallets-by-id/",
     request_body(
         content = Vec<String>,
         example = json!([
@@ -44,7 +44,7 @@ impl IntoResponse for RevocationError {
         (status = OK, description = "Successfully revoked the provided wallet IDs."),
     )
 )]
-async fn revoke_wallets<GRC, PIC>(
+async fn revoke_wallets_by_id<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
     Json(wallet_ids): Json<HashSet<String>>,
 ) -> Result<(), RevocationError>
@@ -53,7 +53,7 @@ where
     PIC: Send + Sync + 'static,
 {
     Ok(
-        wallet_provider_service::revocation::revoke_wallets(&wallet_ids, &router_state.user_state, &TimeGenerator)
+        wallet_provider_service::revocation::revoke_wallets_by_wallet_id(&wallet_ids, &router_state.user_state, &TimeGenerator)
             .await?,
     )
 }
@@ -104,7 +104,7 @@ where
     GRC: Send + Sync + 'static,
 {
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .routes(routes!(revoke_wallets))
+        .routes(routes!(revoke_wallets_by_id))
         .routes(routes!(nuke));
 
     #[cfg(feature = "test_admin_ui")]

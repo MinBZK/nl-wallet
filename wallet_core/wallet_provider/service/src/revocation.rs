@@ -27,7 +27,7 @@ pub enum RevocationError {
     WalletIdsNotFound(HashSet<String>),
 }
 
-pub async fn revoke_wallets<T, R, H>(
+pub async fn revoke_wallets_by_wallet_id<T, R, H>(
     wallet_ids: &HashSet<String>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
