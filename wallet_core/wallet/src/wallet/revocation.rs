@@ -57,6 +57,16 @@ pub enum RevocationError {
     Storage(#[from] StorageError),
 }
 
+/// Groups dependencies for revocation checks
+struct RevocationTaskContext<S, SLC, CR> {
+    config_repo: Arc<CR>,
+    status_list_client: Arc<SLC>,
+    storage: Arc<RwLock<S>>,
+    attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
+    direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
+    scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
+}
+
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -82,16 +92,16 @@ where
             return;
         }
 
-        let abort_handle = Self::spawn_revocation_checks(
-            Arc::clone(&self.config_repository),
-            Arc::clone(&self.status_list_client),
-            Arc::clone(&self.storage),
-            Arc::clone(&self.attestations_callback),
-            Arc::clone(&self.direct_notifications_callback),
-            Arc::clone(&self.scheduled_notifications_callback),
-            TimeGenerator,
-            check_frequency,
-        );
+        let context = RevocationTaskContext {
+            config_repo: Arc::clone(&self.config_repository),
+            status_list_client: Arc::clone(&self.status_list_client),
+            storage: Arc::clone(&self.storage),
+            attestations_callback: Arc::clone(&self.attestations_callback),
+            direct_notifications_callback: Arc::clone(&self.direct_notifications_callback),
+            scheduled_notifications_callback: Arc::clone(&self.scheduled_notifications_callback),
+        };
+
+        let abort_handle = Self::spawn_revocation_checks(context, TimeGenerator, check_frequency);
 
         self.revocation_status_job_handle = Some(abort_handle);
     }
@@ -104,14 +114,8 @@ where
         }
     }
 
-    #[expect(clippy::too_many_arguments)]
     fn spawn_revocation_checks<T>(
-        config_repo: Arc<CR>,
-        status_list_client: Arc<SLC>,
-        storage: Arc<RwLock<S>>,
-        attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
-        direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
-        scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
+        ctx: RevocationTaskContext<S, SLC, CR>,
         time_generator: T,
         check_interval: Duration,
     ) -> AbortHandle
@@ -130,26 +134,16 @@ where
             loop {
                 interval.tick().await;
 
-                let config = config_repo.get();
+                let config = ctx.config_repo.get();
 
-                if !matches!(storage.read().await.state().await, Ok(StorageState::Opened)) {
+                if !matches!(ctx.storage.read().await.state().await, Ok(StorageState::Opened)) {
                     info!("database is not opened, skipping wallet revocation status check");
                     continue;
                 }
 
                 info!("wallet revocation status update timer expired, performing revocation check...");
 
-                if let Err(e) = Self::check_revocations(
-                    Arc::clone(&config),
-                    Arc::clone(&status_list_client),
-                    Arc::clone(&storage),
-                    Arc::clone(&attestations_callback),
-                    Arc::clone(&direct_notifications_callback),
-                    Arc::clone(&scheduled_notifications_callback),
-                    time_generator.clone(),
-                )
-                .await
-                {
+                if let Err(e) = Self::check_revocations(&ctx, Arc::clone(&config), time_generator.clone()).await {
                     error!("background revocation check failed: {}", e);
                 }
             }
@@ -159,14 +153,9 @@ where
     }
 
     /// Perform revocation checks where all revocation info is fetched from storage
-    #[expect(clippy::too_many_arguments)]
     async fn check_revocations<T>(
+        ctx: &RevocationTaskContext<S, SLC, CR>,
         config: Arc<WalletConfiguration>,
-        status_list_client: Arc<SLC>,
-        storage: Arc<RwLock<S>>,
-        attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
-        direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
-        scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
         time_generator: T,
     ) -> Result<(), RevocationError>
     where
@@ -175,7 +164,7 @@ where
         T: Generator<DateTime<Utc>> + Clone + Send + Sync + 'static,
     {
         let revocation_verifier = RevocationVerifier::new(
-            Arc::clone(&status_list_client),
+            Arc::clone(&ctx.status_list_client),
             STATUS_LIST_TOKEN_CACHE_CAPACITY,
             STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
             STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
@@ -183,7 +172,12 @@ where
         );
 
         // Fetch revocation info in one storage lock
-        let revocation_info = storage.read().await.fetch_all_revocation_info(&time_generator).await?;
+        let revocation_info = ctx
+            .storage
+            .read()
+            .await
+            .fetch_all_revocation_info(&time_generator)
+            .await?;
 
         let issuer_trust_anchors = config.issuer_trust_anchors();
 
@@ -202,17 +196,17 @@ where
             .await;
 
         // Write all updates in one storage lock
-        storage
+        ctx.storage
             .write()
             .await
             .update_revocation_statuses(updates.clone())
             .await?;
 
-        let attestations = storage.read().await.fetch_unique_attestations().await?;
+        let attestations = ctx.storage.read().await.fetch_unique_attestations().await?;
 
         // Send direct notifications for all attestations that have been revoked. Since we don't want to hold the lock
         // across await boundaries, clone the callback Arc.
-        let maybe_notifications_callback = { direct_notifications_callback.lock().clone() };
+        let maybe_notifications_callback = { ctx.direct_notifications_callback.lock().clone() };
         if let Some(callback) = maybe_notifications_callback {
             let revocation_status_by_attestation_id: HashMap<Uuid, RevocationStatus> = updates.into_iter().collect();
 
@@ -239,10 +233,15 @@ where
         }
 
         // Schedule revocation notifications for the dashboard
-        let _ = emit_scheduled_notifications(scheduled_notifications_callback, storage, &config).await;
+        let _ = emit_scheduled_notifications(
+            ctx.scheduled_notifications_callback.clone(),
+            ctx.storage.clone(),
+            &config,
+        )
+        .await;
 
         // Callback with the updated attestations
-        if let Some(callback) = attestations_callback.lock().as_ref() {
+        if let Some(callback) = ctx.attestations_callback.lock().as_ref() {
             callback(
                 attestations
                     .into_iter()
@@ -363,16 +362,17 @@ mod tests {
             .lock()
             .replace(scheduled_notifications_callback_fn);
 
-        let abort_handle = TestWalletMockStorage::<TestConfigRepo>::spawn_revocation_checks(
+        let context = RevocationTaskContext {
             config_repo,
-            status_list_client,
-            storage,
-            attestations_callback,
-            direct_notifications_callback,
-            scheduled_notifications_callback,
-            time_generator,
-            check_interval,
-        );
+            status_list_client: Arc::clone(&status_list_client),
+            storage: Arc::clone(&storage),
+            attestations_callback: Arc::clone(&attestations_callback),
+            direct_notifications_callback: Arc::clone(&direct_notifications_callback),
+            scheduled_notifications_callback: Arc::clone(&scheduled_notifications_callback),
+        };
+
+        let abort_handle =
+            TestWalletMockStorage::<TestConfigRepo>::spawn_revocation_checks(context, time_generator, check_interval);
 
         // Initially no checks should have occurred
         assert_eq!(0, attestations_counter.load(Ordering::SeqCst));
@@ -437,16 +437,16 @@ mod tests {
         // Register callback to track updates
         callback.lock().replace(callback_fn);
 
-        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
+        let context = RevocationTaskContext {
             config_repo,
-            status_list_client,
-            storage,
-            callback,
-            notifications_callback,
-            Arc::default(),
-            time_generator,
-            check_interval,
-        );
+            status_list_client: Arc::clone(&status_list_client),
+            storage: Arc::clone(&storage),
+            attestations_callback: Arc::clone(&callback),
+            direct_notifications_callback: Arc::clone(&notifications_callback),
+            scheduled_notifications_callback: Arc::default(),
+        };
+
+        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(context, time_generator, check_interval);
 
         // Advance time to trigger multiple checks
         for _ in 0..30 {
@@ -572,16 +572,16 @@ mod tests {
         });
         let notifications_callback = Arc::new(Mutex::new(Some(notifications_callback_fn)));
 
-        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
+        let context = RevocationTaskContext {
             config_repo,
-            status_list_client,
-            storage,
-            attestations_callback,
-            notifications_callback,
-            Arc::default(),
-            time_generator,
-            check_interval,
-        );
+            status_list_client: Arc::clone(&status_list_client),
+            storage: Arc::clone(&storage),
+            attestations_callback: Arc::clone(&attestations_callback),
+            direct_notifications_callback: Arc::clone(&notifications_callback),
+            scheduled_notifications_callback: Arc::default(),
+        };
+
+        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(context, time_generator, check_interval);
 
         // Advance time to trigger checks
         for _ in 0..30 {
