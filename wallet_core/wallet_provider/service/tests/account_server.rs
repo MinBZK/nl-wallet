@@ -33,6 +33,7 @@ use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::db_from_env;
 use wallet_provider_persistence::wallet_user;
+use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
@@ -282,16 +283,19 @@ async fn test_wua_status() {
 
     // fetch all WUA IDs for this wallet directly from the database
     let tx = user_state.repositories.begin_transaction().await.unwrap();
-    let QueryResult::Found(found) = wallet_user::find_wallet_user_id_and_wuas_by_wallet_id(&tx, &cert_data.wallet_id)
+    let QueryResult::Found(wallet_user_id) = wallet_user::find_wallet_user_id_by_wallet_id(&tx, &cert_data.wallet_id)
         .await
         .unwrap()
     else {
-        panic!("User should have been found")
+        panic!("Wallet user should have been found");
     };
+    let wua_ids = wallet_user_wua::find_wua_ids_for_wallet_user(&tx, *wallet_user_id)
+        .await
+        .unwrap();
     tx.commit().await.unwrap();
 
     // assert that one WUA has been stored in the database, linked to this wallet
-    assert!((*found).1.len() == 1);
+    assert!(wua_ids.len() == 1);
 
     assert!(matches!(
         result

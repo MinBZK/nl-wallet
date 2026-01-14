@@ -1,7 +1,10 @@
 use sea_orm::ActiveModelTrait;
 use sea_orm::ActiveValue::Set;
+use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
+use sea_orm::QueryFilter;
+use sea_orm::QuerySelect;
 use uuid::Uuid;
 
 use wallet_provider_domain::repository::PersistenceError;
@@ -30,11 +33,26 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    Ok(wallet_user_wua::Entity::find()
+    wallet_user_wua::Entity::find()
+        .select_only()
+        .column(wallet_user_wua::Column::WuaId)
+        .into_tuple()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
-        .iter()
-        .map(|model| model.wua_id)
-        .collect())
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+pub async fn find_wua_ids_for_wallet_user<S, T>(db: &T, wallet_user_id: Uuid) -> Result<Vec<Uuid>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_wua::Entity::find()
+        .select_only()
+        .column(wallet_user_wua::Column::WuaId)
+        .filter(wallet_user_wua::Column::WalletUserId.eq(wallet_user_id))
+        .into_tuple()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
 }
