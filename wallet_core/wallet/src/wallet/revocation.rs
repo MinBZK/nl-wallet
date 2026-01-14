@@ -232,7 +232,7 @@ where
             }
         }
 
-        // Schedule revocation notifications for the dashboard
+        // Schedule revocation notifications for the dashboard and to cancel existing expiration notifications
         let _ = emit_scheduled_notifications(
             ctx.scheduled_notifications_callback.clone(),
             ctx.storage.clone(),
