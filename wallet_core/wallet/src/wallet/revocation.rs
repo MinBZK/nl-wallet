@@ -432,7 +432,7 @@ mod tests {
             callback_counter.fetch_add(1, Ordering::SeqCst);
         });
 
-        let notifications_callback = Arc::new(Mutex::new(None));
+        let notifications_callback = Arc::default();
 
         // Register callback to track updates
         callback.lock().replace(callback_fn);
@@ -443,7 +443,7 @@ mod tests {
             storage,
             callback,
             notifications_callback,
-            Arc::new(Mutex::new(None)),
+            Arc::default(),
             time_generator,
             check_interval,
         );
@@ -560,7 +560,7 @@ mod tests {
         let time_generator = MockTimeGenerator::new(Utc::now());
         let check_interval = Duration::from_millis(100);
 
-        let attestations_callback = Arc::new(Mutex::new(None));
+        let attestations_callback = Arc::default();
 
         let notifications_counter = Arc::new(AtomicU64::new(0));
         let notifications_callback_counter = Arc::clone(&notifications_counter);
@@ -578,7 +578,7 @@ mod tests {
             storage,
             attestations_callback,
             notifications_callback,
-            Arc::new(Mutex::new(None)),
+            Arc::default(),
             time_generator,
             check_interval,
         );
