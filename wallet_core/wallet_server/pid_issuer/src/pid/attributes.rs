@@ -1,7 +1,3 @@
-use std::num::NonZeroUsize;
-
-use futures::future::try_join_all;
-
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
@@ -18,6 +14,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
@@ -35,20 +32,14 @@ pub enum Error {
     Digid(#[from] digid::Error),
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
-    #[error("could not find issuer URI for doctype: {0}")]
-    NoIssuerUriFound(String),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
-    #[error("unexpected number of SAN DNS names or URIs in issuer certificate; expected: 0, found {0}")]
-    UnexpectedIssuerSanDnsNameOrUrisCount(NonZeroUsize),
     #[error("could not find BSN attribute")]
     NoBsnFound,
-    #[error("could not find PID attestation")]
-    NoPidAttestationFound,
     #[error("error retrieving BSN: {0}")]
     RetrievingBsn(#[source] AttributesHandlingError),
     #[error("BSN attribute had unexpected type (expected string)")]
@@ -100,29 +91,12 @@ impl AttributeService for BrpPidAttributeService {
 
         let person = persons.persons.remove(0);
 
-        let attestations = person.into_issuable().into_inner();
-        if !attestations
-            .iter()
-            .any(|(attestation_type, _)| attestation_type == PID_ATTESTATION_TYPE)
-        {
-            return Err(Error::NoPidAttestationFound);
-        }
+        let attributes = Self::insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
-        let issuable_documents = try_join_all(attestations.into_iter().map(|(attestation_type, attributes)| async {
-            let mut attributes = Attributes::from(attributes);
+        let issuable_document = IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), attributes)
+            .map_err(|_| Error::InvalidIssuableDocuments)?;
 
-            if attestation_type == PID_ATTESTATION_TYPE {
-                Self::insert_recovery_code(&mut attributes, &self.recovery_code_secret_key).await?;
-            }
-
-            IssuableDocument::try_new_with_random_id(attestation_type, attributes)
-                .map_err(|_| Error::InvalidIssuableDocuments)
-        }))
-        .await?
-        .try_into()
-        .unwrap(); // Safe because we iterated over a VecNonEmpty;
-
-        Ok(issuable_documents)
+        Ok(vec_nonempty![issuable_document])
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {
@@ -133,9 +107,12 @@ impl AttributeService for BrpPidAttributeService {
 }
 
 impl BrpPidAttributeService {
-    async fn insert_recovery_code(attributes: &mut Attributes, secret_key: &SecretKeyVariant) -> Result<(), Error> {
+    async fn insert_recovery_code(
+        mut attributes: Attributes,
+        secret_key: &SecretKeyVariant,
+    ) -> Result<Attributes, Error> {
         let bsn = match attributes
-            .get(&vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap())
+            .get(&vec_nonempty![ClaimPath::SelectByKey(PID_BSN.to_string())])
             .map_err(Error::RetrievingBsn)?
             .ok_or(Error::NoBsnFound)?
         {
@@ -147,14 +124,12 @@ impl BrpPidAttributeService {
 
         attributes
             .insert(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())]
-                    .try_into()
-                    .unwrap(),
+                &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
                 Attribute::Single(recovery_code),
             )
             .map_err(Error::InsertingRecoveryCode)?;
 
-        Ok(())
+        Ok(attributes)
     }
 }
 
@@ -185,7 +160,7 @@ mod tests {
         let bsn = "123";
         let key: Vec<_> = (0..32).collect();
 
-        let mut attrs = attributes(bsn);
+        let attrs = attributes(bsn);
 
         let recovery_code_secret_key = SecretKeyVariant::from_settings(
             SecretKey::Software {
@@ -195,7 +170,7 @@ mod tests {
         )
         .unwrap();
 
-        BrpPidAttributeService::insert_recovery_code(&mut attrs, &recovery_code_secret_key)
+        let attrs = BrpPidAttributeService::insert_recovery_code(attrs, &recovery_code_secret_key)
             .await
             .unwrap();
 
