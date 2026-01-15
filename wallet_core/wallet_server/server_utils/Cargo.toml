@@ -17,6 +17,7 @@ postgres = [
     "dep:serde_json",
     "dep:strum",
     "sea-orm/macros",
+    "sea-orm/runtime-tokio-rustls",
     "sea-orm/sqlx-postgres",
     "sea-orm/with-chrono",
     "sea-orm/with-json",
