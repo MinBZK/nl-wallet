@@ -1,0 +1,15 @@
+{% block scripts %}
+<script integrity="sha256-{{ base.language_js_sha256 }}" src="../language.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<header><!-- just the logo --></header>
+<main>
+    <section>
+        <h1>{{ base.trans.index_title }}</h1>
+    </section>
+    <nav>
+
+    </nav>
+</main>
+{% endblock %}

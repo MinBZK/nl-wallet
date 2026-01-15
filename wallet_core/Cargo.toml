@@ -31,6 +31,7 @@ members = [
     "lib/utils",
     "lib/web_utils",
     "lib/wscd",
+    "revocation_portal",
     "static_server",
     "tests_integration",
     "update_policy/model",
