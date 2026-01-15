@@ -44,9 +44,18 @@ Stream<List<AttestationPresentation>> setAttestationsStream() =>
 
 Future<void> clearAttestationsStream() => WalletCore.instance.api.crateApiFullClearAttestationsStream();
 
-Stream<List<AppNotification>> setNotificationsStream() => WalletCore.instance.api.crateApiFullSetNotificationsStream();
+Stream<List<AppNotification>> setScheduledNotificationsStream() =>
+    WalletCore.instance.api.crateApiFullSetScheduledNotificationsStream();
 
-Future<void> clearNotificationsStream() => WalletCore.instance.api.crateApiFullClearNotificationsStream();
+Future<void> clearScheduledNotificationsStream() =>
+    WalletCore.instance.api.crateApiFullClearScheduledNotificationsStream();
+
+Future<void> clearDirectNotificationsCallback() =>
+    WalletCore.instance.api.crateApiFullClearDirectNotificationsCallback();
+
+Future<void> setDirectNotificationsCallback({
+  required FutureOr<void> Function(List<(int, NotificationType)>) callback,
+}) => WalletCore.instance.api.crateApiFullSetDirectNotificationsCallback(callback: callback);
 
 Stream<List<WalletEvent>> setRecentHistoryStream() => WalletCore.instance.api.crateApiFullSetRecentHistoryStream();
 

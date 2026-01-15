@@ -9,8 +9,8 @@ use super::attestation_copy;
 #[derive(Clone, Debug, Eq, PartialEq, FromQueryResult, DerivePartialModel)]
 #[sea_orm(entity = "attestation_copy::Entity")]
 pub struct RevocationInfo {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
+    #[sea_orm(primary_key, auto_increment = false, from_col = "id")]
+    pub attestation_copy_id: Uuid,
     pub status_list_url: String,
     pub status_list_index: u32,
     pub issuer_certificate_dn: DistinguishedName,

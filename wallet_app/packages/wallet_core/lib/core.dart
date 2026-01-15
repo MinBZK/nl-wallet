@@ -32,7 +32,7 @@ Future<void> postInit() async {
     await core.clearVersionStateStream();
     await core.clearAttestationsStream();
     await core.clearRecentHistoryStream();
-    await core.clearNotificationsStream();
+    await core.clearScheduledNotificationsStream();
     // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
     await core.lockWallet();
   }

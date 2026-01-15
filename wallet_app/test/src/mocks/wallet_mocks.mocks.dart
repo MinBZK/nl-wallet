@@ -7144,6 +7144,18 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
+  _i10.Future<void> crateApiFullClearDirectNotificationsCallback() =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #crateApiFullClearDirectNotificationsCallback,
+              [],
+            ),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
   _i10.Future<void> crateApiFullClearLockStream() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullClearLockStream, []),
@@ -7153,18 +7165,21 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
-  _i10.Future<void> crateApiFullClearNotificationsStream() =>
+  _i10.Future<void> crateApiFullClearRecentHistoryStream() =>
       (super.noSuchMethod(
-            Invocation.method(#crateApiFullClearNotificationsStream, []),
+            Invocation.method(#crateApiFullClearRecentHistoryStream, []),
             returnValue: _i10.Future<void>.value(),
             returnValueForMissingStub: _i10.Future<void>.value(),
           )
           as _i10.Future<void>);
 
   @override
-  _i10.Future<void> crateApiFullClearRecentHistoryStream() =>
+  _i10.Future<void> crateApiFullClearScheduledNotificationsStream() =>
       (super.noSuchMethod(
-            Invocation.method(#crateApiFullClearRecentHistoryStream, []),
+            Invocation.method(
+              #crateApiFullClearScheduledNotificationsStream,
+              [],
+            ),
             returnValue: _i10.Future<void>.value(),
             returnValueForMissingStub: _i10.Future<void>.value(),
           )
@@ -7658,6 +7673,19 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Stream<_i26.FlutterConfiguration>);
 
   @override
+  _i10.Future<void> crateApiFullSetDirectNotificationsCallback({
+    required _i10.FutureOr<void> Function(List<(int, _i26.NotificationType)>)? callback,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullSetDirectNotificationsCallback, [], {
+              #callback: callback,
+            }),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
   _i10.Stream<bool> crateApiFullSetLockStream() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullSetLockStream, []),
@@ -7667,15 +7695,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Stream<bool>);
 
   @override
-  _i10.Stream<List<_i26.AppNotification>> crateApiFullSetNotificationsStream() =>
-      (super.noSuchMethod(
-            Invocation.method(#crateApiFullSetNotificationsStream, []),
-            returnValue: _i10.Stream<List<_i26.AppNotification>>.empty(),
-            returnValueForMissingStub: _i10.Stream<List<_i26.AppNotification>>.empty(),
-          )
-          as _i10.Stream<List<_i26.AppNotification>>);
-
-  @override
   _i10.Stream<List<_i26.WalletEvent>> crateApiFullSetRecentHistoryStream() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullSetRecentHistoryStream, []),
@@ -7683,6 +7702,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
             returnValueForMissingStub: _i10.Stream<List<_i26.WalletEvent>>.empty(),
           )
           as _i10.Stream<List<_i26.WalletEvent>>);
+
+  @override
+  _i10.Stream<List<_i26.AppNotification>> crateApiFullSetScheduledNotificationsStream() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullSetScheduledNotificationsStream, []),
+            returnValue: _i10.Stream<List<_i26.AppNotification>>.empty(),
+            returnValueForMissingStub: _i10.Stream<List<_i26.AppNotification>>.empty(),
+          )
+          as _i10.Stream<List<_i26.AppNotification>>);
 
   @override
   _i10.Stream<_i26.FlutterVersionState> crateApiFullSetVersionStateStream() =>

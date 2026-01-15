@@ -1,6 +1,5 @@
 use chrono::DateTime;
 use chrono::Utc;
-use rand::Rng;
 use rand::random;
 
 use token_status_list::verification::verifier::RevocationStatus;
@@ -27,6 +26,9 @@ pub enum NotificationType {
         attestation: AttestationPresentation,
         expires_at: DateTime<Utc>,
     },
+    Revoked {
+        attestation: AttestationPresentation,
+    },
 }
 
 #[derive(Debug)]
@@ -42,13 +44,17 @@ impl Notification {
     ) -> Option<VecNonEmpty<Self>> {
         let time = time_generator.generate();
 
-        // If the attestation is revoked, we don't issue expiration notifications
+        // If the attestation is revoked, only issue a revocation notification to the dashboard
         if attestation
             .validity
             .revocation_status
             .is_some_and(|revocation_status| revocation_status == RevocationStatus::Revoked)
         {
-            return None;
+            return Some(vec_nonempty![Notification {
+                id: random(),
+                typ: NotificationType::Revoked { attestation },
+                targets: vec_nonempty![DisplayTarget::Dashboard]
+            }]);
         }
 
         let status = ValidityStatus::from_window(&attestation.validity.validity_window, time);
@@ -69,7 +75,7 @@ impl Notification {
                     targets: vec_nonempty![DisplayTarget::Dashboard],
                 },
                 Notification {
-                    id: rand::thread_rng().r#gen(),
+                    id: random(),
                     typ: NotificationType::Expired { attestation },
                     targets: vec_nonempty![DisplayTarget::Os { notify_at: expires_at }],
                 },
@@ -137,10 +143,14 @@ mod tests {
             valid_until: Some(now + Duration::days(1)),
         };
 
-        let notification = Notification::create_for_attestation(presentation, &generator);
+        let notifications = Notification::create_for_attestation(presentation, &generator);
+        let ns = notifications.expect("Expected notifications");
 
-        // Should be None because revoked cards don't get expiration notifications
-        assert!(notification.is_none());
+        let revoked = ns
+            .iter()
+            .find(|n| matches!(n.typ, NotificationType::Revoked { .. }))
+            .expect("Expected a Revoked notification");
+        assert!(revoked.targets.iter().all(|t| matches!(t, DisplayTarget::Dashboard)));
     }
 
     #[test]

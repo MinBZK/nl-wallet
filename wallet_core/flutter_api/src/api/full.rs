@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use flutter_rust_bridge::DartFnFuture;
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::setup_default_user_utils;
 use itertools::Itertools;
@@ -24,6 +27,7 @@ use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::notification::AppNotification;
+use crate::models::notification::NotificationType;
 use crate::models::pin::PinValidationResult;
 use crate::models::transfer::TransferSessionState;
 use crate::models::uri::IdentifyUriResult;
@@ -137,11 +141,11 @@ pub async fn clear_attestations_stream() {
     wallet().write().await.clear_attestations_callback();
 }
 
-pub async fn set_notifications_stream(sink: StreamSink<Vec<AppNotification>>) -> anyhow::Result<()> {
+pub async fn set_scheduled_notifications_stream(sink: StreamSink<Vec<AppNotification>>) -> anyhow::Result<()> {
     wallet()
         .write()
         .await
-        .set_notifications_callback(Box::new(move |notifications| {
+        .set_scheduled_notifications_callback(Box::new(move |notifications| {
             let _ = sink.add(notifications.into_iter().map(AppNotification::from).collect());
         }))
         .await?;
@@ -149,8 +153,31 @@ pub async fn set_notifications_stream(sink: StreamSink<Vec<AppNotification>>) ->
     Ok(())
 }
 
-pub async fn clear_notifications_stream() {
-    wallet().write().await.clear_notifications_callback();
+pub async fn clear_scheduled_notifications_stream() {
+    wallet().write().await.clear_scheduled_notifications_callback();
+}
+
+pub async fn clear_direct_notifications_callback() {
+    wallet().write().await.clear_direct_notifications_callback();
+}
+
+pub async fn set_direct_notifications_callback(
+    callback: impl Fn(Vec<(i32, NotificationType)>) -> DartFnFuture<()> + Send + Sync + 'static,
+) -> anyhow::Result<()> {
+    let callback = Arc::new(callback);
+    let _ = wallet()
+        .write()
+        .await
+        .set_direct_notifications_callback(Arc::new(move |notifications| {
+            let callback = Arc::clone(&callback);
+            let notifications = notifications
+                .into_iter()
+                .map(|(id, notification_type)| (id, notification_type.into()))
+                .collect();
+            Box::pin(async move { callback(notifications).await })
+        }))?;
+
+    Ok(())
 }
 
 #[flutter_api_error]
