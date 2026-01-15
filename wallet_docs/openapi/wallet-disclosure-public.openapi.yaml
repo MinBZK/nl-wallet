@@ -31,13 +31,13 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
       - name: session_type
         description: The type of the session
         in: query
         required: false
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_type'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionType'
     get:
       summary: Check the status of an existing session
       responses:
@@ -46,13 +46,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/session_status'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionStatus'
         404:
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
     delete:
       summary: Cancel a session
       responses:
@@ -70,45 +70,45 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
       - name: session_type
         description: The type of the session
         in: query
         required: false
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_type'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionType'
       - name: ephemeral_id
         description: The ephemeral id
         in: query
         required: true
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/ephemeral_id'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/EphemeralId'
       - name: time
         description: The time
         in: query
         required: true
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/time'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/Time'
     post:
       summary: Do something with a request uri
       requestBody:
         content:
             application/x-www-form-urlencoded:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/wallet_nonce'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/WalletNonce'
       responses:
         200:
           description: An oauth authz response
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/oauth_authz_data'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/OauthAuthzData'
         404:
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
 
   /disclosure/sessions/{session_token}/response_uri:
     parameters:
@@ -117,24 +117,24 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
     post:
       summary: Do something with a response uri
       requestBody:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: 'wallet-components.openapi.yaml#/components/schemas/vp_token'
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/VpToken'
       responses:
         200:
           description: A redirect object
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/redirect_object'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/RedirectObject'
         404:
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'

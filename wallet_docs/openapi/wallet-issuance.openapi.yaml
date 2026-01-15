@@ -502,7 +502,7 @@ paths:
           required: true
           description: A unique identifier for the session
           schema:
-            $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
+            $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
         - name: nonce
           in: query
           required: false

@@ -43,14 +43,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: 'wallet-components.openapi.yaml#/components/schemas/session_request'
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionRequest'
       responses:
         '200':
           description: Session created
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/token_response'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionResponse'
 
   /disclosure/sessions/{session_token}/disclosed_attributes:
     parameters:
@@ -59,7 +59,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
       - name: nonce
         in: query
         required: false
@@ -74,16 +74,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/disclosed_attributes'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/DisclosedAttestations'
         400:
           description: Session is not in the required state
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
         404:
           description: Unknown session
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
