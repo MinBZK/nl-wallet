@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use demo_utils::language::Language;
+use web_utils::language::Language;
 
 // TODO extract duplicate code by using generics
 pub struct Translations<'a> {

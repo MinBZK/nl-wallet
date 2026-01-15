@@ -1788,6 +1788,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "utils",
+ "web_utils",
 ]
 
 [[package]]
@@ -1818,6 +1819,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "utils",
+ "web_utils",
 ]
 
 [[package]]
@@ -1854,6 +1856,7 @@ dependencies = [
  "ts-rs",
  "url",
  "utils",
+ "web_utils",
 ]
 
 [[package]]
@@ -8705,6 +8708,28 @@ checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "web_utils"
+version = "0.5.0-dev"
+dependencies = [
+ "accept-language",
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "crypto",
+ "derive_more",
+ "http_utils",
+ "indexmap 2.12.1",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.27.2",
+ "tower-http",
+ "tracing",
 ]
 
 [[package]]

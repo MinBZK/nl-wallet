@@ -29,6 +29,7 @@ members = [
     "lib/status_lists/migrations",
     "lib/token_status_list",
     "lib/utils",
+    "lib/web_utils",
     "lib/wscd",
     "static_server",
     "tests_integration",
