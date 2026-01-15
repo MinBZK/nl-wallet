@@ -228,7 +228,7 @@ pub enum WuaStatusListsSettingsError {
     #[error("incorrectly configured WUA expiration: {0}")]
     ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
-    #[error("incorrectly configured WUA status list key or certificate: {0}")]
+    #[error("incorrectly configured WUA status list key identifier or certificate: {0}")]
     PrivateKey(#[from] CertificateError),
 }
 
