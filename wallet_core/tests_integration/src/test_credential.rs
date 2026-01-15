@@ -1,4 +1,3 @@
-use attestation_data::attributes::Attributes;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::test_credential::TestCredential;
 use attestation_data::test_credential::TestCredentials;
@@ -16,6 +15,7 @@ use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
 use pid_issuer::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
 use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use pid_issuer::pid::constants::PID_RESIDENT_STREET;
+use pid_issuer::pid::mock::eudi_nl_pid_example;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 
@@ -30,7 +30,7 @@ fn new_nl_pid<'a>(
     TestCredential::new(
         PreviewableCredentialPayload::example_with_attributes(
             PID_ATTESTATION_TYPE,
-            Attributes::unified_nl_pid_example(),
+            eudi_nl_pid_example(),
             &MockTimeGenerator::default(),
         ),
         metadata_documents,
