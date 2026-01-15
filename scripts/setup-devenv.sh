@@ -452,8 +452,8 @@ render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANC
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
 # And the storage config for crate level integration test
+render_template "${DEVENV}/test_settings.toml.template" "${HEALTH_CHECKERS_DIR}/test_settings.toml"
 render_template "${DEVENV}/test_settings.toml.template" "${STATUS_LISTS_DIR}/test_settings.toml"
-render_template "${DEVENV}/test_settings.toml.template" "${SERVER_UTILS_DIR}/test_settings.toml"
 
 # Ensure the status_lists dirs exists
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"

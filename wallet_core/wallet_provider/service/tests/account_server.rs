@@ -12,7 +12,6 @@ use crypto::server_keys::generate::Ca;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
-use server_utils::keys::test::private_key_variant;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
 use wallet_account::messages::instructions::CheckPin;
@@ -58,7 +57,7 @@ async fn do_registration(
     WalletCertificate,
     MockHardwareKey,
     WalletCertificateClaims,
-    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService>,
+    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>>,
 ) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
@@ -101,7 +100,7 @@ async fn do_registration(
     };
 
     let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let key_pair = private_key_variant(wua_issuer_ca.generate_status_list_mock().unwrap()).await;
+    let key_pair = wua_issuer_ca.generate_status_list_mock().unwrap();
 
     let db_connection = db.connection().to_owned();
     let wua_status_list_config = StatusListConfig {

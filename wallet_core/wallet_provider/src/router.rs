@@ -28,10 +28,10 @@ use tracing::warn;
 
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
+use health_checkers::hsm::HsmChecker;
+use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
-use server_utils::checkers::DatabaseChecker;
-use server_utils::checkers::HsmChecker;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;

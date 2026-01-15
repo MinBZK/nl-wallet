@@ -10,21 +10,13 @@ workspace = true
 [lib]
 doctest = false
 
-[[test]]
-name = "checkers"
-path = "tests/checkers.rs"
-required-features = ["db_test"]
-
 [features]
-checkers = ["dep:async-trait", "dep:r2d2-cryptoki"]
-db_test = ["checkers", "dep:rstest", "postgres", "test"]
 parsed_key_pair_conversion = []
 # Include session storage in PostgreSQL
 postgres = [
     "dep:serde_json",
     "dep:strum",
     "sea-orm/macros",
-    "sea-orm/runtime-tokio-rustls",
     "sea-orm/sqlx-postgres",
     "sea-orm/with-chrono",
     "sea-orm/with-json",
@@ -51,9 +43,6 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 url = { workspace = true, features = ["serde"] }
 
-async-trait = { workspace = true, optional = true }
-r2d2-cryptoki = { workspace = true, optional = true }
-rstest = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 strum = { workspace = true, optional = true }

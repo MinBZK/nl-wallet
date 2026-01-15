@@ -11,6 +11,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::future::try_join_all;
 use itertools::Itertools;
+use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
@@ -28,12 +29,10 @@ use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
+use health_checkers::test_settings::connection_from_settings;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
 use jwt::SignedJwt;
-use server_utils::keys::PrivateKeyVariant;
-use server_utils::keys::test::private_key_variant;
-use server_utils::test_settings::connection_from_settings;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigs;
 use status_lists::entity::attestation_batch;
@@ -62,7 +61,11 @@ async fn create_status_list_service(
     create_threshold: i32,
     ttl: Option<Duration>,
     publish_dir: &TempDir,
-) -> anyhow::Result<(String, StatusListConfig, PostgresStatusListService)> {
+) -> anyhow::Result<(
+    String,
+    StatusListConfig<SigningKey>,
+    PostgresStatusListService<SigningKey>,
+)> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
@@ -74,7 +77,7 @@ async fn create_status_list_service(
             .as_str()
             .parse()?,
         publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
-        key_pair: private_key_variant(ca.generate_status_list_mock()?).await,
+        key_pair: ca.generate_status_list_mock()?,
     };
     let service = PostgresStatusListService::try_new(connection.clone(), &attestation_type, config.clone()).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
@@ -85,8 +88,8 @@ async fn create_status_list_service(
 async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     attestation_type: &str,
-    config: StatusListConfig,
-) -> anyhow::Result<PostgresStatusListService> {
+    config: StatusListConfig<SigningKey>,
+) -> anyhow::Result<PostgresStatusListService<SigningKey>> {
     let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
@@ -160,12 +163,12 @@ async fn assert_status_list_items(
     items
 }
 
-async fn assert_empty_published_list(config: &StatusListConfig, list: &status_list::Model) {
+async fn assert_empty_published_list(config: &StatusListConfig<SigningKey>, list: &status_list::Model) {
     assert_published_list(config, list, vec![]).await
 }
 
 async fn assert_published_list(
-    config: &StatusListConfig,
+    config: &StatusListConfig<SigningKey>,
     list: &status_list::Model,
     revoked: impl IntoIterator<Item = usize>,
 ) {
@@ -276,10 +279,11 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let connection = connection_from_settings().await;
 
-    let private_key = private_key_variant(ca.generate_status_list_mock().unwrap()).await;
+    let key_pair = ca.generate_status_list_mock().unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let configs: StatusListConfigs<PrivateKeyVariant> = (0..2)
-        .map(|_| {
+    let configs: StatusListConfigs<SigningKey> = (0..2)
+        .zip_eq(itertools::repeat_n(key_pair, 2))
+        .map(|(_, key_pair)| {
             let attestation_type = random_string(20);
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
@@ -289,7 +293,7 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
                 ttl: None,
                 base_url: "https://example.com/tsl".parse().unwrap(),
                 publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
-                key_pair: private_key.clone(),
+                key_pair,
             };
             (attestation_type, config)
         })
@@ -684,7 +688,7 @@ async fn republish_list_with_expiry(path: &Path, key_pair: &KeyPair<impl EcdsaKe
     tokio::fs::write(&lock_path, []).await.unwrap();
 }
 
-async fn wait_for_refresh(service: &PostgresStatusListService, path: &Path) -> anyhow::Result<()> {
+async fn wait_for_refresh(service: &PostgresStatusListService<SigningKey>, path: &Path) -> anyhow::Result<()> {
     let before = tokio::fs::metadata(path).await?.modified()?;
     let handle = service.start_refresh_job();
     for _ in 0..10 {

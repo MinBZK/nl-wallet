@@ -9,7 +9,9 @@ use derive_more::Debug;
 use derive_more::From;
 use derive_more::IntoIterator;
 use futures::future::join_all;
+use futures::future::try_join_all;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Deserializer;
@@ -20,6 +22,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
+use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use openid4vc::Format;
 use openid4vc::issuer::AttestationTypeConfig;
@@ -32,7 +35,11 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
-use status_lists::settings::StatusListAttestationSettings;
+use status_lists::config::StatusListConfig;
+use status_lists::config::StatusListConfigs;
+use status_lists::publish::PublishDir;
+use status_lists::settings::ExpiryLessThanTtl;
+use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 
@@ -249,6 +256,74 @@ impl IssuerSettings {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum StatusListAttestationSettingsError {
+    #[error("incorrectly configured asttestation status list expiration: {0}")]
+    ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
+
+    #[error("incorrectly configured asttestation status list private key or certificate: {0}")]
+    PrivateKey(#[from] PrivateKeySettingsError),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct StatusListAttestationSettings {
+    /// Base url for the status list if different from public url of the server
+    pub base_url: Option<BaseUrl>,
+
+    /// Context path for the status list joined with base_url, also used for serving
+    pub context_path: String,
+
+    /// Path to directory for the published status list
+    pub publish_dir: PublishDir,
+
+    /// Key pair to sign status list
+    #[serde(flatten)]
+    #[debug(skip)]
+    pub keypair: KeyPair,
+}
+
+impl StatusListAttestationSettings {
+    pub async fn settings_into_configs(
+        attestation_settings_pairs: impl IntoIterator<Item = (String, StatusListAttestationSettings)>,
+        status_list_settings: &StatusListsSettings,
+        public_url: &BaseUrl,
+        hsm: Option<Pkcs11Hsm>,
+    ) -> Result<StatusListConfigs<PrivateKeyVariant>, StatusListAttestationSettingsError> {
+        let (types, attestation_settings): (Vec<_>, Vec<_>) = attestation_settings_pairs.into_iter().unzip();
+
+        let attestation_count = attestation_settings.len();
+        let configs = try_join_all(
+            attestation_settings
+                .into_iter()
+                .zip_eq(itertools::repeat_n(hsm, attestation_count))
+                .map(|(attestation, hsm)| attestation.into_config(status_list_settings, public_url, hsm)),
+        )
+        .await?;
+
+        let map = types.into_iter().zip_eq(configs.into_iter()).collect::<HashMap<_, _>>();
+
+        Ok(map.into())
+    }
+
+    async fn into_config(
+        self,
+        status_list_settings: &StatusListsSettings,
+        public_url: &BaseUrl,
+        hsm: Option<Pkcs11Hsm>,
+    ) -> Result<StatusListConfig<PrivateKeyVariant>, StatusListAttestationSettingsError> {
+        let base_url = self
+            .base_url
+            .as_ref()
+            .unwrap_or(public_url)
+            .join_base_url(&self.context_path);
+        let key_pair = self.keypair.parse(hsm).await?;
+
+        let config = status_list_settings.to_config(base_url, self.publish_dir, key_pair)?;
+
+        Ok(config)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -275,12 +350,12 @@ mod tests {
     use server_utils::settings::Settings;
     use server_utils::settings::Storage;
     use status_lists::publish::PublishDir;
-    use status_lists::settings::StatusListAttestationSettings;
 
     use crate::settings::IssuerSettingsError;
 
     use super::AttestationTypeConfigSettings;
     use super::IssuerSettings;
+    use super::StatusListAttestationSettings;
 
     fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
         let keypair = generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock())

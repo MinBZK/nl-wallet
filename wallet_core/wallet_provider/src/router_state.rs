@@ -45,7 +45,7 @@ pub struct RouterState<GRC, PIC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>, PostgresStatusListService>,
+    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>, PostgresStatusListService<HsmEcdsaKey>>,
     pub max_transfer_upload_size_in_bytes: usize,
 }
 

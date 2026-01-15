@@ -41,7 +41,6 @@ use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
 use jwt::error::JwtError;
 use measure::measure;
-use server_utils::keys::PrivateKeyVariant;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::BatchIsRevoked;
@@ -77,7 +76,7 @@ const IN_FLIGHT_CREATE_TRIES: usize = 5;
 ///
 /// See [PostgresStatusListService] for more.
 #[derive(Debug)]
-pub struct PostgresStatusListServices<K = PrivateKeyVariant>(HashMap<String, PostgresStatusListService<K>>);
+pub struct PostgresStatusListServices<K>(HashMap<String, PostgresStatusListService<K>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -96,7 +95,7 @@ pub struct PostgresStatusListServices<K = PrivateKeyVariant>(HashMap<String, Pos
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug)]
-pub struct PostgresStatusListService<K = PrivateKeyVariant> {
+pub struct PostgresStatusListService<K> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
@@ -214,10 +213,10 @@ where
     }
 }
 
-impl PostgresStatusListServices {
+impl<K> PostgresStatusListServices<K> {
     pub async fn try_new(
         connection: DatabaseConnection,
-        configs: StatusListConfigs,
+        configs: StatusListConfigs<K>,
     ) -> Result<Self, StatusListServiceError> {
         if configs.as_ref().is_empty() {
             return Err(StatusListServiceError::NoStatusLists);
@@ -362,11 +361,11 @@ where
     }
 }
 
-impl PostgresStatusListService {
+impl<K> PostgresStatusListService<K> {
     pub async fn try_new(
         connection: DatabaseConnection,
         attestation_type: &str,
-        config: StatusListConfig,
+        config: StatusListConfig<K>,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_types = vec![attestation_type];
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types).await?;
