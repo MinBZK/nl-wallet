@@ -40,51 +40,12 @@ pub enum ConfigurationError {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use std::collections::HashMap;
-
-    use utils::vec_at_least::NonEmptyIterator;
-    use wallet_configuration::wallet_config::PidAttributePaths;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
-    use crate::config::default_wallet_config;
-
-    fn as_example_urn(input: &str) -> String {
-        input.replace("urn:eudi:pid", "urn:example:pid")
-    }
-
-    fn to_example_attributes((key, value): (String, PidAttributePaths)) -> (String, PidAttributePaths) {
-        let key = as_example_urn(&key);
-        let login = value.login.nonempty_iter().map(|attr| as_example_urn(attr)).collect();
-        let recovery_code = value
-            .recovery_code
-            .nonempty_iter()
-            .map(|attr| as_example_urn(attr))
-            .collect();
-
-        (key, PidAttributePaths { login, recovery_code })
-    }
+    const TEST_WALLET_CONFIG_JSON: &str = include_str!("../../test-wallet-config.json");
 
     pub fn test_wallet_config() -> WalletConfiguration {
-        let mut wallet_configuration: WalletConfiguration = default_wallet_config();
-
-        let mso_mdoc = &wallet_configuration
-            .pid_attributes
-            .mso_mdoc
-            .into_iter()
-            .map(to_example_attributes)
-            .collect::<HashMap<_, _>>();
-
-        wallet_configuration.pid_attributes.mso_mdoc = mso_mdoc.clone();
-
-        let sd_jwt = &wallet_configuration
-            .pid_attributes
-            .sd_jwt
-            .into_iter()
-            .map(to_example_attributes)
-            .collect::<HashMap<_, _>>();
-
-        wallet_configuration.pid_attributes.sd_jwt = sd_jwt.clone();
-
-        wallet_configuration
+        // The JSON has already been parsed in build.rs, so unwrap is safe here
+        serde_json::from_str(TEST_WALLET_CONFIG_JSON).unwrap()
     }
 }

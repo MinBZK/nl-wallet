@@ -80,7 +80,7 @@ fn android_x86_64_workaround() {
     }
 }
 
-fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, fallback: &str) {
+fn parse_and_verify_json_with_fallback<T: DeserializeOwned + EnvironmentSpecific>(file: &str, fallback: &str) {
     let file_path = prefix_local_path(Path::new(file));
     // If the config file doesn't exist, copy the fallback to the config file and use that
     if !file_path.exists() {
@@ -91,6 +91,11 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
         os::unix::fs::symlink(fallback, &file_path).unwrap();
     }
 
+    parse_and_verify_json::<T>(file);
+}
+
+fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str) {
+    let file_path = prefix_local_path(Path::new(file));
     let config: T = serde_json::from_slice(&fs::read(&file_path).unwrap()).expect("Could not parse config json");
 
     verify_environment(config.environment(), file);
@@ -120,11 +125,13 @@ fn verify_environment(config_env: &str, file: &str) {
 }
 
 fn verify_configurations() {
-    parse_and_verify_json::<WalletConfiguration>("wallet-config.json", "default-wallet-config.json");
-    parse_and_verify_json::<ConfigServerConfiguration>(
+    parse_and_verify_json_with_fallback::<WalletConfiguration>("wallet-config.json", "default-wallet-config.json");
+    parse_and_verify_json_with_fallback::<ConfigServerConfiguration>(
         "config-server-config.json",
         "default-config-server-config.json",
     );
+    parse_and_verify_json::<WalletConfiguration>("test-wallet-config.json");
+
     println!("cargo::rerun-if-env-changed=CONFIG_ENV");
     println!("cargo::rerun-if-env-changed=PROFILE");
 }
