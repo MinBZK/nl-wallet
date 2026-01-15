@@ -281,9 +281,6 @@ wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true }
 
-[build-dependencies]
-dotenvy = { workspace = true, optional = true }
-
 [dev-dependencies]
 itertools.workspace = true
 
@@ -300,3 +297,11 @@ platform_support = { path = "../wallet/platform_support", features = ["persisten
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }
 token_status_list = { path = "../lib/token_status_list", features = ["verification"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["test"] }
+
+[build-dependencies]
+dotenvy = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+
+sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
+utils.path = "../lib/utils"
