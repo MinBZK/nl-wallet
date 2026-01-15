@@ -888,9 +888,9 @@ mod test {
     #[expect(clippy::octal_escapes)]
     fn convert_key_description() {
         let input = KeyDescription {
-            attestation_version: 200.into(),
+            attestation_version: 400.into(),
             attestation_security_level: SecurityLevel::Software,
-            key_mint_version: 200
+            key_mint_version: 400
                 .into(),
             key_mint_security_level: SecurityLevel::Software,
             attestation_challenge: OctetString::copy_from_slice(&[116, 104, 105, 115, 95, 105, 115, 95, 97, 95, 99, 104, 97, 108, 108, 101, 110, 103, 101, 95, 115, 116, 114, 105, 110, 103]),
@@ -950,9 +950,9 @@ mod test {
         let actual = KeyAttestation::try_from(input).expect("test case is valid");
 
         let expected = KeyAttestation {
-            attestation_version: AttestationVersion::V200,
+            attestation_version: AttestationVersion::V400,
             attestation_security_level: SecurityLevel::Software,
-            key_mint_version: KeyMintVersion::V200,
+            key_mint_version: KeyMintVersion::V400,
             key_mint_security_level: SecurityLevel::Software,
             attestation_challenge: OctetString::copy_from_slice(b"this_is_a_challenge_string"),
             unique_id: OctetString::copy_from_slice(b""),
