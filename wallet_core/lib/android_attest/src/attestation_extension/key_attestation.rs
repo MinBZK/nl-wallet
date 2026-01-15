@@ -694,6 +694,7 @@ mod test {
     #[case(400.into(), Ok(AttestationVersion::V400))]
     #[case(0.into(), Err(AttestationVersionError::InvalidAttestationVersion(0)))]
     #[case(5.into(), Err(AttestationVersionError::InvalidAttestationVersion(5)))]
+    #[case(500.into(), Err(AttestationVersionError::InvalidAttestationVersion(500)))]
     fn attestation_version(
         #[case] input: Integer,
         #[case] expected: Result<AttestationVersion, AttestationVersionError>,
@@ -710,6 +711,7 @@ mod test {
     #[case(200.into(), Ok(KeyMintVersion::V200))]
     #[case(300.into(), Ok(KeyMintVersion::V300))]
     #[case(400.into(), Ok(KeyMintVersion::V400))]
+    #[case(500.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(500)))]
     #[case(0.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(0)))]
     #[case(1.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(1)))]
     #[case(5.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(5)))]
