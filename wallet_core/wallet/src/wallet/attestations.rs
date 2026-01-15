@@ -23,7 +23,7 @@ pub enum AttestationsError {
     Storage(#[from] StorageError),
 }
 
-pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
+pub type AttestationsCallback = Box<dyn Fn(Vec<AttestationPresentation>) + Send + Sync>;
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
@@ -33,7 +33,7 @@ where
     DC: DigidClient,
     DCC: DisclosureClient,
 {
-    pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
+    pub(super) async fn emit_attestations(&self) -> Result<(), AttestationsError> {
         info!("Emit attestations from storage");
 
         let has_callback = self.attestations_callback.lock().is_some();
@@ -51,7 +51,7 @@ where
             .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
             .collect();
 
-        if let Some(ref mut callback) = self.attestations_callback.lock().as_deref_mut() {
+        if let Some(ref callback) = self.attestations_callback.lock().as_deref() {
             callback(attestations);
         }
 

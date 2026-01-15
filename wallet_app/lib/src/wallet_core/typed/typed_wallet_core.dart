@@ -47,8 +47,8 @@ class TypedWalletCore {
   }
 
   void _setupNotificationStream() {
-    _notifications.onListen = () => core.setNotificationsStream().listen(_notifications.add);
-    _notifications.onCancel = core.clearNotificationsStream;
+    _notifications.onListen = () => core.setScheduledNotificationsStream().listen(_notifications.add);
+    _notifications.onCancel = core.clearScheduledNotificationsStream;
   }
 
   void _setupAttestationsStream() {

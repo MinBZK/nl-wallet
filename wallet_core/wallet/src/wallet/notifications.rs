@@ -1,5 +1,8 @@
+use std::pin::Pin;
 use std::sync::Arc;
 
+use parking_lot::Mutex;
+use tokio::sync::RwLock;
 use tracing::info;
 
 use error_category::ErrorCategory;
@@ -9,6 +12,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::NotificationType;
 use crate::Wallet;
 use crate::digid::DigidClient;
 use crate::errors::StorageError;
@@ -23,7 +27,12 @@ pub enum NotificationsError {
     Storage(#[from] StorageError),
 }
 
-pub type NotificationsCallback = Box<dyn FnMut(Vec<Notification>) + Send + Sync>;
+pub type ScheduledNotificationsCallback = Box<dyn Fn(Vec<Notification>) + Send + Sync>;
+
+type DirectNotificationFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
+
+pub type DirectNotificationsCallback =
+    Arc<dyn Fn(Vec<(i32, NotificationType)>) -> DirectNotificationFuture + Send + Sync>;
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
@@ -33,34 +42,27 @@ where
     DC: DigidClient,
     DCC: DisclosureClient,
 {
-    pub async fn emit_notifications(&mut self) -> Result<(), NotificationsError> {
+    pub async fn emit_notifications(&self) -> Result<(), NotificationsError> {
         info!("Emit notifications");
 
         let wallet_config = self.config_repository.get();
-        let storage = self.storage.read().await;
 
-        if let Some(notifications_callback) = &mut self.notifications_callback {
-            let notifications: Vec<Notification> = storage
-                .fetch_unique_attestations()
-                .await?
-                .into_iter()
-                .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
-                .filter_map(|attestation| Notification::create_for_attestation(attestation, &TimeGenerator))
-                .flatten()
-                .collect();
-
-            notifications_callback(notifications);
-        }
+        emit_scheduled_notifications(
+            self.scheduled_notifications_callback.clone(),
+            self.storage.clone(),
+            &wallet_config,
+        )
+        .await?;
 
         Ok(())
     }
 
     #[sentry_capture_error]
-    pub async fn set_notifications_callback(
+    pub async fn set_scheduled_notifications_callback(
         &mut self,
-        callback: NotificationsCallback,
-    ) -> Result<Option<NotificationsCallback>, NotificationsError> {
-        let previous_callback = self.notifications_callback.replace(Box::new(callback));
+        callback: ScheduledNotificationsCallback,
+    ) -> Result<Option<ScheduledNotificationsCallback>, NotificationsError> {
+        let previous_callback = self.scheduled_notifications_callback.lock().replace(callback);
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case don't emit anything.
@@ -71,13 +73,54 @@ where
         Ok(previous_callback)
     }
 
-    pub fn clear_notifications_callback(&mut self) {
-        let callback = self.notifications_callback.take();
+    #[sentry_capture_error]
+    pub fn set_direct_notifications_callback(
+        &mut self,
+        callback: DirectNotificationsCallback,
+    ) -> Result<Option<DirectNotificationsCallback>, NotificationsError> {
+        let previous_callback = self.direct_notifications_callback.lock().replace(callback);
+
+        Ok(previous_callback)
+    }
+
+    pub fn clear_scheduled_notifications_callback(&mut self) {
+        let callback = self.scheduled_notifications_callback.lock().take();
         // Unschedule any existing notifications
-        if let Some(mut callback) = callback {
+        if let Some(callback) = callback {
             callback(Vec::new());
         }
     }
+
+    pub fn clear_direct_notifications_callback(&mut self) {
+        self.direct_notifications_callback.lock().take();
+    }
+}
+
+pub async fn emit_scheduled_notifications<S: Storage>(
+    notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
+    storage: Arc<RwLock<S>>,
+    wallet_config: &WalletConfiguration,
+) -> Result<(), NotificationsError> {
+    if notifications_callback.lock().is_none() {
+        return Ok(());
+    }
+
+    let notifications = storage
+        .read()
+        .await
+        .fetch_unique_attestations()
+        .await?
+        .into_iter()
+        .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
+        .filter_map(|attestation| Notification::create_for_attestation(attestation, &TimeGenerator))
+        .flatten()
+        .collect();
+
+    if let Some(callback) = notifications_callback.lock().as_ref() {
+        callback(notifications);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -121,7 +164,7 @@ mod tests {
         let all_notifications: Arc<Mutex<Vec<Notification>>> = Arc::new(Mutex::new(Vec::with_capacity(2)));
         let callback_notifications = Arc::clone(&all_notifications);
         wallet
-            .set_notifications_callback(Box::new(move |notifications| {
+            .set_scheduled_notifications_callback(Box::new(move |notifications| {
                 *callback_notifications.lock() = notifications;
             }))
             .await
@@ -130,7 +173,7 @@ mod tests {
         assert_eq!(all_notifications.lock().len(), 2);
 
         // Clear the notifications callback on the `Wallet` which also unschedules any existing notifications
-        wallet.clear_notifications_callback();
+        wallet.clear_scheduled_notifications_callback();
         assert!(all_notifications.lock().is_empty());
     }
 }

@@ -1,7 +1,7 @@
 use crate::models::attestation::AttestationPresentation;
 
 pub enum DisplayTarget {
-    Os { notify_at: String /* ISO8601 */ },
+    Os { notify_at: String }, // ISO8601
     Dashboard,
 }
 
@@ -12,6 +12,9 @@ pub enum NotificationType {
     CardExpiresSoon {
         card: AttestationPresentation,
         expires_at: String, // ISO8601
+    },
+    Revoked {
+        card: AttestationPresentation,
     },
 }
 
@@ -43,6 +46,9 @@ impl From<wallet::NotificationType> for NotificationType {
             } => NotificationType::CardExpiresSoon {
                 card: attestation.into(),
                 expires_at: expires_at.to_rfc3339(),
+            },
+            wallet::NotificationType::Revoked { attestation } => NotificationType::Revoked {
+                card: attestation.into(),
             },
         }
     }

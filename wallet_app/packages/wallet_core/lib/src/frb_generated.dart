@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 509254084;
+  int get rustContentHash => -476389463;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -115,11 +115,13 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullClearConfigurationStream();
 
+  Future<void> crateApiFullClearDirectNotificationsCallback();
+
   Future<void> crateApiFullClearLockStream();
 
-  Future<void> crateApiFullClearNotificationsStream();
-
   Future<void> crateApiFullClearRecentHistoryStream();
+
+  Future<void> crateApiFullClearScheduledNotificationsStream();
 
   Future<void> crateApiFullClearVersionStateStream();
 
@@ -188,11 +190,15 @@ abstract class WalletCoreApi extends BaseApi {
 
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream();
 
+  Future<void> crateApiFullSetDirectNotificationsCallback({
+    required FutureOr<void> Function(List<(int, NotificationType)>) callback,
+  });
+
   Stream<bool> crateApiFullSetLockStream();
 
-  Stream<List<AppNotification>> crateApiFullSetNotificationsStream();
-
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream();
+
+  Stream<List<AppNotification>> crateApiFullSetScheduledNotificationsStream();
 
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream();
 
@@ -479,6 +485,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
+  Future<void> crateApiFullClearDirectNotificationsCallback() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__clear_direct_notifications_callback(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiFullClearDirectNotificationsCallbackConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullClearDirectNotificationsCallbackConstMeta => const TaskConstMeta(
+    debugName: "clear_direct_notifications_callback",
+    argNames: [],
+  );
+
+  @override
   Future<void> crateApiFullClearLockStream() {
     return handler.executeNormal(
       NormalTask(
@@ -502,29 +531,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<void> crateApiFullClearNotificationsStream() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__full__clear_notifications_stream(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullClearNotificationsStreamConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiFullClearNotificationsStreamConstMeta => const TaskConstMeta(
-    debugName: "clear_notifications_stream",
-    argNames: [],
-  );
-
-  @override
   Future<void> crateApiFullClearRecentHistoryStream() {
     return handler.executeNormal(
       NormalTask(
@@ -544,6 +550,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullClearRecentHistoryStreamConstMeta => const TaskConstMeta(
     debugName: "clear_recent_history_stream",
+    argNames: [],
+  );
+
+  @override
+  Future<void> crateApiFullClearScheduledNotificationsStream() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__clear_scheduled_notifications_stream(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiFullClearScheduledNotificationsStreamConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullClearScheduledNotificationsStreamConstMeta => const TaskConstMeta(
+    debugName: "clear_scheduled_notifications_stream",
     argNames: [],
   );
 
@@ -1311,6 +1340,32 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
+  Future<void> crateApiFullSetDirectNotificationsCallback({
+    required FutureOr<void> Function(List<(int, NotificationType)>) callback,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(callback);
+          return wire.wire__crate__api__full__set_direct_notifications_callback(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullSetDirectNotificationsCallbackConstMeta,
+        argValues: [callback],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullSetDirectNotificationsCallbackConstMeta => const TaskConstMeta(
+    debugName: "set_direct_notifications_callback",
+    argNames: ["callback"],
+  );
+
+  @override
   Stream<bool> crateApiFullSetLockStream() {
     final sink = RustStreamSink<bool>();
     unawaited(
@@ -1339,34 +1394,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Stream<List<AppNotification>> crateApiFullSetNotificationsStream() {
-    final sink = RustStreamSink<List<AppNotification>>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            var arg0 = cst_encode_StreamSink_list_app_notification_Dco(sink);
-            return wire.wire__crate__api__full__set_notifications_stream(port_, arg0);
-          },
-          codec: DcoCodec(
-            decodeSuccessData: dco_decode_unit,
-            decodeErrorData: dco_decode_AnyhowException,
-          ),
-          constMeta: kCrateApiFullSetNotificationsStreamConstMeta,
-          argValues: [sink],
-          apiImpl: this,
-        ),
-      ),
-    );
-    return sink.stream;
-  }
-
-  TaskConstMeta get kCrateApiFullSetNotificationsStreamConstMeta => const TaskConstMeta(
-    debugName: "set_notifications_stream",
-    argNames: ["sink"],
-  );
-
-  @override
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream() {
     final sink = RustStreamSink<List<WalletEvent>>();
     unawaited(
@@ -1391,6 +1418,34 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullSetRecentHistoryStreamConstMeta => const TaskConstMeta(
     debugName: "set_recent_history_stream",
+    argNames: ["sink"],
+  );
+
+  @override
+  Stream<List<AppNotification>> crateApiFullSetScheduledNotificationsStream() {
+    final sink = RustStreamSink<List<AppNotification>>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            var arg0 = cst_encode_StreamSink_list_app_notification_Dco(sink);
+            return wire.wire__crate__api__full__set_scheduled_notifications_stream(port_, arg0);
+          },
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_unit,
+            decodeErrorData: dco_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiFullSetScheduledNotificationsStreamConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiFullSetScheduledNotificationsStreamConstMeta => const TaskConstMeta(
+    debugName: "set_scheduled_notifications_stream",
     argNames: ["sink"],
   );
 
@@ -1540,10 +1595,58 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     argNames: [],
   );
 
+  Future<void> Function(int, dynamic)
+  encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
+    FutureOr<void> Function(List<(int, NotificationType)>) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 = dco_decode_list_record_i_32_notification_type(rawArg0);
+
+      Box<void>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_unit(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
+  }
+
+  @protected
+  FutureOr<void> Function(List<(int, NotificationType)>)
+  dco_decode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
+  }
+
+  @protected
+  Object dco_decode_DartOpaque(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return decodeDartOpaque(raw, generalizedFrbRustBinding);
   }
 
   @protected
@@ -1942,6 +2045,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  PlatformInt64 dco_decode_isize(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
+  }
+
+  @protected
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
@@ -2026,6 +2135,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<(int, NotificationType)> dco_decode_list_record_i_32_notification_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_record_i_32_notification_type).toList();
+  }
+
+  @protected
   List<WalletEvent> dco_decode_list_wallet_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_wallet_event).toList();
@@ -2064,6 +2179,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return NotificationType_CardExpiresSoon(
           card: dco_decode_box_autoadd_attestation_presentation(raw[1]),
           expiresAt: dco_decode_String(raw[2]),
+        );
+      case 2:
+        return NotificationType_Revoked(
+          card: dco_decode_box_autoadd_attestation_presentation(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -2159,6 +2278,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PinValidationResult dco_decode_pin_validation_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return PinValidationResult.values[raw as int];
+  }
+
+  @protected
+  (int, NotificationType) dco_decode_record_i_32_notification_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (
+      dco_decode_i_32(arr[0]),
+      dco_decode_notification_type(arr[1]),
+    );
   }
 
   @protected
@@ -2277,6 +2409,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void dco_decode_unit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return;
+  }
+
+  @protected
+  BigInt dco_decode_usize(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeU64(raw);
   }
 
   @protected
@@ -2408,6 +2546,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_String(deserializer);
     return AnyhowException(inner);
+  }
+
+  @protected
+  Object sse_decode_DartOpaque(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_isize(deserializer);
+    return decodeDartOpaque(inner, generalizedFrbRustBinding);
   }
 
   @protected
@@ -2810,6 +2955,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  PlatformInt64 sse_decode_isize(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2963,6 +3114,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<(int, NotificationType)> sse_decode_list_record_i_32_notification_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <(int, NotificationType)>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_record_i_32_notification_type(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<WalletEvent> sse_decode_list_wallet_event(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3002,6 +3165,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_card = sse_decode_box_autoadd_attestation_presentation(deserializer);
         var var_expiresAt = sse_decode_String(deserializer);
         return NotificationType_CardExpiresSoon(card: var_card, expiresAt: var_expiresAt);
+      case 2:
+        var var_card = sse_decode_box_autoadd_attestation_presentation(deserializer);
+        return NotificationType_Revoked(card: var_card);
       default:
         throw UnimplementedError('');
     }
@@ -3149,6 +3315,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  (int, NotificationType) sse_decode_record_i_32_notification_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_i_32(deserializer);
+    var var_field1 = sse_decode_notification_type(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
   RenderingMetadata sse_decode_rendering_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3285,6 +3459,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_decode_unit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  BigInt sse_decode_usize(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getBigUint64();
   }
 
   @protected
@@ -3427,6 +3607,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  PlatformPointer cst_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
+    FutureOr<void> Function(List<(int, NotificationType)>) raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_DartOpaque(
+      encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(raw),
+    );
+  }
+
+  @protected
+  PlatformPointer cst_encode_DartOpaque(Object raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return encodeDartOpaque(raw, portManager.dartHandlerPort, generalizedFrbRustBinding);
+  }
+
+  @protected
   int cst_encode_blocked_reason(BlockedReason raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
@@ -3514,6 +3710,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
+    FutureOr<void> Function(List<(int, NotificationType)>) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(
+      encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(self),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_DartOpaque(Object self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_isize(
+      PlatformPointerUtil.ptrToPlatformInt64(
+        encodeDartOpaque(self, portManager.dartHandlerPort, generalizedFrbRustBinding),
+      ),
+      serializer,
+    );
   }
 
   @protected
@@ -3910,6 +4129,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_isize(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -4030,6 +4255,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_list_record_i_32_notification_type(List<(int, NotificationType)> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_record_i_32_notification_type(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_wallet_event(List<WalletEvent> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -4062,6 +4296,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(1, serializer);
         sse_encode_box_autoadd_attestation_presentation(card, serializer);
         sse_encode_String(expiresAt, serializer);
+      case NotificationType_Revoked(card: final card):
+        sse_encode_i_32(2, serializer);
+        sse_encode_box_autoadd_attestation_presentation(card, serializer);
     }
   }
 
@@ -4178,6 +4415,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_pin_validation_result(PinValidationResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_record_i_32_notification_type((int, NotificationType) self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.$1, serializer);
+    sse_encode_notification_type(self.$2, serializer);
   }
 
   @protected
@@ -4300,6 +4544,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  void sse_encode_usize(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putBigUint64(self);
   }
 
   @protected
