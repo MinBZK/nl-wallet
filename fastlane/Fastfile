@@ -318,6 +318,13 @@ platform :ios do
     UI.message("Going to build iOS name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}")
     UI.message("Using UL hostname \"#{universal_link_base}\", #{fake_attestation ? "fake" : "real"} key/app attestation and #{mock_repositories ? "mock repositories" : "Rust core"}")
 
+    # Although installing pods is part of the "flutter build" command below,
+    # preload them now in order to ensure the "--deployment" flag is used
+    # and an error occurs if "Podfile.lock" needs to be modified.
+    Dir.chdir("../wallet_app/ios") do
+      sh("bundle", "exec", "pod", "install", "--allow-root", "--deployment")
+    end
+
     # Set the app name and have Flutter build it
     Dir.chdir("../wallet_app") do
       sh(*flutter, "pub", "get", "--enforce-lockfile")
