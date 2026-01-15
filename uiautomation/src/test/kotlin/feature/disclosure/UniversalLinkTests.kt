@@ -86,6 +86,7 @@ class UniversalLinkTests : TestBase() {
     fun verifyWhenAppNotActivated(testInfo: TestInfo) {
         setUp(testInfo)
         demoScreen.openUniversalLink(expiredDisclosureUniversalLinkFromCameraApp)
+        finishWalletDialog.clickOkButton()
         assertTrue(demoScreen.visible(), "demo screen is not visible")
     }
 
