@@ -286,10 +286,10 @@ pub mod generate {
         fn from(source: CertificateConfiguration) -> Self {
             let mut result = CertificateParams::default();
             if let Some(not_before) = source.not_before.and_then(|ts| ts.timestamp_nanos_opt()) {
-                result.not_before = OffsetDateTime::from_unix_timestamp_nanos(not_before as i128).unwrap();
+                result.not_before = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_before)).unwrap();
             }
             if let Some(not_after) = source.not_after.and_then(|ts| ts.timestamp_nanos_opt()) {
-                result.not_after = OffsetDateTime::from_unix_timestamp_nanos(not_after as i128).unwrap();
+                result.not_after = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_after)).unwrap();
             }
             result
         }

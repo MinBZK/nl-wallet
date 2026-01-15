@@ -15,7 +15,6 @@ import '../models/pin.dart';
 import '../models/revocation.dart';
 import '../models/transfer.dart';
 import '../models/uri.dart';
-import '../models/validity.dart';
 import '../models/version_state.dart';
 import '../models/wallet_event.dart';
 import '../models/wallet_state.dart';

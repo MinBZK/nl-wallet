@@ -14,16 +14,18 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.issuance.PersonalizeInformScreen
 import screen.security.PinScreen
+import screen.security.RevocationCodeScreen
 import screen.security.SecuritySetupCompletedScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("UC2.1 User chooses PIN")
-class SetupRemotePinTests : TestBase() {
+@DisplayName("User configures PIN and confirms receival of confirmation code")
+class SetupSecurityTests : TestBase() {
 
     private lateinit var pinScreen: PinScreen
     private lateinit var aboutScreen: AboutScreen
     private lateinit var securitySetupCompletedScreen: SecuritySetupCompletedScreen
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
+    private lateinit var revocationCodeScreen: RevocationCodeScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -33,11 +35,12 @@ class SetupRemotePinTests : TestBase() {
         aboutScreen = AboutScreen()
         securitySetupCompletedScreen = SecuritySetupCompletedScreen()
         personalizeInformScreen = PersonalizeInformScreen()
+        revocationCodeScreen = RevocationCodeScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC51 Setup PIN")
-    fun verifyChoosePinScreenVisible(testInfo: TestInfo) {
+    @DisplayName("LTC51 Setup PIN, LTC70 Receive revocation code")
+    fun verifyChoosePinAndRevocationCodeScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
@@ -59,7 +62,11 @@ class SetupRemotePinTests : TestBase() {
         assertTrue(securitySetupCompletedScreen.visible(), "setup security completed screen is not visible")
 
         securitySetupCompletedScreen.clickNextButton()
-        assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not absent")
+        assertTrue(revocationCodeScreen.visible(), "Revocation code screen is not visible")
+        assertTrue(revocationCodeScreen.getRevocationCode().length == 18, "Revocation code is not displayed correctly")
+
+        revocationCodeScreen.confirmReceival()
+        assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

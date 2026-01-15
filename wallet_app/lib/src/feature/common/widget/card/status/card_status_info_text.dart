@@ -27,10 +27,14 @@ class CardStatusInfoText extends StatelessWidget {
     if (leadingIcon == null) return bodyText;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          leadingIcon,
-          color: data.iconColor,
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Icon(
+            leadingIcon,
+            color: data.iconColor,
+          ),
         ),
         const SizedBox(width: 8),
         Flexible(

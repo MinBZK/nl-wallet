@@ -17,24 +17,24 @@ void main() {
     // Reset value for each test
     setUp(() => OnboardingHelper.initWithValue(0));
 
-    testWidgets('init sets totalSetupSteps to 9 when biometrics available', (tester) async {
+    testWidgets('init sets totalSetupSteps to 10 when biometrics available', (tester) async {
       final usecaseFace = await buildBiometricsUseCase(Biometrics.face);
       await OnboardingHelper.init(usecaseFace);
-      expect(OnboardingHelper.totalSteps, 9);
+      expect(OnboardingHelper.totalSteps, 10);
 
       final usecaseFingerprint = await buildBiometricsUseCase(Biometrics.fingerprint);
       await OnboardingHelper.init(usecaseFingerprint);
-      expect(OnboardingHelper.totalSteps, 9);
+      expect(OnboardingHelper.totalSteps, 10);
 
       final usecaseSome = await buildBiometricsUseCase(Biometrics.some);
       await OnboardingHelper.init(usecaseSome);
-      expect(OnboardingHelper.totalSteps, 9);
+      expect(OnboardingHelper.totalSteps, 10);
     });
 
-    testWidgets('init sets totalSetupSteps to 8 when biometrics not available', (tester) async {
+    testWidgets('init sets totalSetupSteps to 9 when biometrics not available', (tester) async {
       final context = await buildBiometricsUseCase(Biometrics.none);
       await OnboardingHelper.init(context);
-      expect(OnboardingHelper.totalSteps, 8);
+      expect(OnboardingHelper.totalSteps, 9);
     });
 
     test('initWithValue sets totalSetupSteps to test value', () {

@@ -52,7 +52,7 @@ pub struct Ratio(f64);
 
 impl Ratio {
     pub fn of_nonzero_u31(self, size: NonZeroU31) -> U31 {
-        let size = ((i32::from(size) as f64) * self.into_inner()).round() as i32;
+        let size = (f64::from(i32::from(size)) * self.into_inner()).round() as i32;
         U31::try_new(size).unwrap()
     }
 

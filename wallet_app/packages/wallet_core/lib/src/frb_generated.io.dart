@@ -19,7 +19,6 @@ import 'models/pin.dart';
 import 'models/revocation.dart';
 import 'models/transfer.dart';
 import 'models/uri.dart';
-import 'models/validity.dart';
 import 'models/version_state.dart';
 import 'models/wallet_event.dart';
 import 'models/wallet_state.dart';
@@ -299,9 +298,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ValidityStatus dco_decode_validity_status(dynamic raw);
 
   @protected
-  ValidityWindow dco_decode_validity_window(dynamic raw);
-
-  @protected
   WalletEvent dco_decode_wallet_event(dynamic raw);
 
   @protected
@@ -575,9 +571,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ValidityStatus sse_decode_validity_status(SseDeserializer deserializer);
-
-  @protected
-  ValidityWindow sse_decode_validity_window(SseDeserializer deserializer);
 
   @protected
   WalletEvent sse_decode_wallet_event(SseDeserializer deserializer);
@@ -1065,8 +1058,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
     cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
     wireObj.revocation_status = cst_encode_opt_box_autoadd_revocation_status(apiObj.revocationStatus);
-    wireObj.validity_status = cst_encode_validity_status(apiObj.validityStatus);
-    cst_api_fill_to_wire_validity_window(apiObj.validityWindow, wireObj.validity_window);
+    cst_api_fill_to_wire_validity_status(apiObj.validityStatus, wireObj.validity_status);
     wireObj.attributes = cst_encode_list_attestation_attribute(apiObj.attributes);
   }
 
@@ -1456,9 +1448,31 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_validity_window(ValidityWindow apiObj, wire_cst_validity_window wireObj) {
-    wireObj.valid_from = cst_encode_opt_String(apiObj.validFrom);
-    wireObj.valid_until = cst_encode_opt_String(apiObj.validUntil);
+  void cst_api_fill_to_wire_validity_status(ValidityStatus apiObj, wire_cst_validity_status wireObj) {
+    if (apiObj is ValidityStatus_NotYetValid) {
+      var pre_valid_from = cst_encode_String(apiObj.validFrom);
+      wireObj.tag = 0;
+      wireObj.kind.NotYetValid.valid_from = pre_valid_from;
+      return;
+    }
+    if (apiObj is ValidityStatus_Valid) {
+      var pre_valid_until = cst_encode_opt_String(apiObj.validUntil);
+      wireObj.tag = 1;
+      wireObj.kind.Valid.valid_until = pre_valid_until;
+      return;
+    }
+    if (apiObj is ValidityStatus_ExpiresSoon) {
+      var pre_valid_until = cst_encode_String(apiObj.validUntil);
+      wireObj.tag = 2;
+      wireObj.kind.ExpiresSoon.valid_until = pre_valid_until;
+      return;
+    }
+    if (apiObj is ValidityStatus_Expired) {
+      var pre_valid_until = cst_encode_String(apiObj.validUntil);
+      wireObj.tag = 3;
+      wireObj.kind.Expired.valid_until = pre_valid_until;
+      return;
+    }
   }
 
   @protected
@@ -1642,9 +1656,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_encode_unit(void raw);
-
-  @protected
-  int cst_encode_validity_status(ValidityStatus raw);
 
   @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
@@ -1924,9 +1935,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_validity_status(ValidityStatus self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_validity_window(ValidityWindow self, SseSerializer serializer);
 
   @protected
   void sse_encode_wallet_event(WalletEvent self, SseSerializer serializer);
@@ -3421,10 +3429,37 @@ final class wire_cst_organization extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
 }
 
-final class wire_cst_validity_window extends ffi.Struct {
+final class wire_cst_ValidityStatus_NotYetValid extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> valid_from;
+}
 
+final class wire_cst_ValidityStatus_Valid extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> valid_until;
+}
+
+final class wire_cst_ValidityStatus_ExpiresSoon extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> valid_until;
+}
+
+final class wire_cst_ValidityStatus_Expired extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> valid_until;
+}
+
+final class ValidityStatusKind extends ffi.Union {
+  external wire_cst_ValidityStatus_NotYetValid NotYetValid;
+
+  external wire_cst_ValidityStatus_Valid Valid;
+
+  external wire_cst_ValidityStatus_ExpiresSoon ExpiresSoon;
+
+  external wire_cst_ValidityStatus_Expired Expired;
+}
+
+final class wire_cst_validity_status extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external ValidityStatusKind kind;
 }
 
 final class wire_cst_claim_display_metadata extends ffi.Struct {
@@ -3518,10 +3553,7 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
 
   external ffi.Pointer<ffi.Int32> revocation_status;
 
-  @ffi.Int32()
-  external int validity_status;
-
-  external wire_cst_validity_window validity_window;
+  external wire_cst_validity_status validity_status;
 
   external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
 }

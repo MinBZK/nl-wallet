@@ -31,6 +31,8 @@ import '../data/repository/pin/core/core_pin_repository.dart';
 import '../data/repository/pin/pin_repository.dart';
 import '../data/repository/qr/core/core_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
+import '../data/repository/revocation/impl/revocation_code_repository_impl.dart';
+import '../data/repository/revocation/revocation_code_repository.dart';
 import '../data/repository/sign/core/core_sign_repository.dart';
 import '../data/repository/sign/sign_repository.dart';
 import '../data/repository/tour/impl/tour_repository_impl.dart';
@@ -130,6 +132,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<VersionStringRepository>(
           create: (context) => CoreVersionStringRepository(context.read()),
+        ),
+        RepositoryProvider<RevocationRepository>(
+          create: (context) => RevocationRepositoryImpl(context.read(), context.read()),
         ),
         RepositoryProvider<NotificationRepository>(
           create: (context) => NotificationRepositoryImpl(

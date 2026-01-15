@@ -8,6 +8,7 @@ enum class OnboardingNavigatorScreen {
     SecurityConfirmPin,
     SetupSecurityConfigureBiometrics,
     SecuritySetupCompleted,
+    RevocationCode,
     PersonalizeInform,
     DigidLoginStartWebPage,
     DigidLoginMockWebPage,

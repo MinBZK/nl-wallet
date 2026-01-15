@@ -4,19 +4,22 @@ import helper.OrganizationAuthMetadataHelper
 import helper.OrganizationAuthMetadataHelper.Organization.INSURANCE
 import helper.TestBase
 import navigator.MenuNavigator
+import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
-import org.junit.jupiter.api.Assertions.assertAll
+import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.demo.DemoScreen
 import screen.disclosure.ScanWithWalletDialog
 import screen.error.InvalidIssuanceULErrorScreen
 import screen.issuance.DisclosureIssuanceScreen
+import screen.issuance.FinishWalletDialog
 import screen.security.PinScreen
 import java.net.URLEncoder
 
@@ -32,6 +35,7 @@ class UniversalLinkTests : TestBase() {
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
     private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
     private lateinit var pinScreen: PinScreen
+    private lateinit var finishWalletDialog: FinishWalletDialog
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -47,6 +51,7 @@ class UniversalLinkTests : TestBase() {
         organizationAuthMetadata = OrganizationAuthMetadataHelper()
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         pinScreen = PinScreen()
+        finishWalletDialog = FinishWalletDialog()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -104,5 +109,14 @@ class UniversalLinkTests : TestBase() {
             { assertTrue(invalidIssuanceULErrorScreen.errorDetails.osVersionVisible(), "OS version is not visible") },
             { assertTrue(invalidIssuanceULErrorScreen.errorDetails.appConfigVisible(), "App config is not visible") }
         )
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC69 universal link is invoked while wallet is being personalized")
+    fun verifyWhenAppIsBeingPersonalized(testInfo: TestInfo) {
+        setUp(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecurityChoosePin)
+        pinScreen.openUniversalLink(expiredDisclosureUniversalLinkFromCameraApp)
+        assertTrue(finishWalletDialog.visible(), "Finish wallet dialog is not visible")
     }
 }

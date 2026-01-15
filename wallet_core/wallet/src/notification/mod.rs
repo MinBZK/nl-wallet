@@ -60,7 +60,7 @@ impl Notification {
         let status = ValidityStatus::from_window(&attestation.validity.validity_window, time);
 
         match status {
-            ValidityStatus::Expired => Some(vec_nonempty![Notification {
+            ValidityStatus::Expired { .. } => Some(vec_nonempty![Notification {
                 id: random(),
                 typ: NotificationType::Expired { attestation },
                 targets: vec_nonempty![DisplayTarget::Dashboard],

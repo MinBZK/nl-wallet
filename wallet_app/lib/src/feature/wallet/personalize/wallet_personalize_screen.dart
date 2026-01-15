@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:fimber/fimber.dart';
@@ -19,6 +20,7 @@ import '../../../util/launch_util.dart';
 import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
 import '../../common/dialog/stop_digid_login_dialog.dart';
+import '../../common/mixin/lock_state_mixin.dart';
 import '../../common/page/generic_loading_page.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
@@ -40,9 +42,14 @@ import 'page/wallet_personalize_confirm_pin_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
 import 'page/wallet_personalize_success_page.dart';
 
-class WalletPersonalizeScreen extends StatelessWidget {
+class WalletPersonalizeScreen extends StatefulWidget {
   const WalletPersonalizeScreen({super.key});
 
+  @override
+  State<WalletPersonalizeScreen> createState() => _WalletPersonalizeScreenState();
+}
+
+class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with LockStateMixin {
   @override
   Widget build(BuildContext context) {
     return ScrollOffsetProvider(
@@ -405,6 +412,17 @@ class WalletPersonalizeScreen extends StatelessWidget {
         if (showHelpButton) const HelpIconButton(),
       ],
     );
+  }
+
+  @override
+  FutureOr<void> onLock() {}
+
+  @override
+  FutureOr<void> onUnlock() {
+    // PVW-5387: If the app was killed while in the background, this makes sure we pick up the DigiD login uri
+    // which might have been queued while the app started in the locked state. (normally those uris are handled
+    // through [NavigationService.onDashboardShown], however in this flow the user does not reach the dashboard).
+    return context.read<NavigationService>().processQueue();
   }
 }
 

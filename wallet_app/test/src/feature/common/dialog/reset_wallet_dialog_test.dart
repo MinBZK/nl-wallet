@@ -7,6 +7,7 @@ import 'package:wallet/src/feature/common/dialog/reset_wallet_dialog.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.mocks.dart';
+import '../../../test_util/dialog_utils.dart';
 import '../../../test_util/golden_utils.dart';
 import '../../../test_util/test_utils.dart';
 
@@ -71,23 +72,7 @@ void main() {
     testGoldens(
       'Reset Wallet Dialog',
       (tester) async {
-        final Key showDialogButton = const Key('showDialogButton');
-        await tester.pumpWidgetWithAppWrapper(
-          Scaffold(
-            body: Builder(
-              builder: (context) {
-                return Center(
-                  child: TextButton(
-                    onPressed: () => ResetWalletDialog.show(context),
-                    child: Text('Show Dialog', key: showDialogButton),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-        await tester.tap(find.byKey(showDialogButton));
-        await tester.pumpAndSettle();
+        await DialogUtils.pumpDialog(tester, ResetWalletDialog.show);
         await screenMatchesGolden('reset_dialog');
       },
     );
