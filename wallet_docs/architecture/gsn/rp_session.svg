@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg class="gsndiagram" viewBox="0 0 1504 744" xmlns="http://www.w3.org/2000/svg">
+<svg class="gsndiagram" viewBox="0 0 1420 914" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <marker id="supportedby_arrow" markerHeight="9" markerUnits="userSpaceOnUse" markerWidth="10" orient="auto-start-reverse" refX="0" refY="4.5">
 <polyline fill="black" points="0 0, 10 4.5, 0 9"/>
@@ -21,144 +21,141 @@ svg { background-color: white;}
 }
 
 </style>
-<g class="gsn_module_rp_session_attribute gsnelem gsngoal" id="node_g1">
-<title>G1</title>
-<path class="border" d="M715,20 L875,20 L875,104 L715,104 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="722" y="40">G1</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="722" y="58">RP establishes that the</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="722" y="71">attribute is a factually</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="722" y="84">correct statement about the</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="722" y="97">user at LoA High.</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsngoal" id="node_g_establishattributecorrectnessatloahigh">
+<title>G_EstablishAttributeCorrectnessAtLoAHigh</title>
+<path class="border" d="M609,88 L873,88 L873,158 L609,158 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="616" y="108">G_EstablishAttributeCorrectnessAtLoAHigh</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="616" y="126">RP establishes that the attribute is a</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="616" y="139">factually correct statement about the</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="616" y="152">user at LoA High.</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsnstgy" id="node_s1">
-<title>S1</title>
-<path class="border" d="M712,144 L892,144 L878,228 L698,228 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="719" y="164">S1</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="717" y="182">Decompose into issuer trust,</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="715" y="195">cryptographic integrity,</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="713" y="208">verifier validations, replay</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="711" y="221">attack preventions</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn_checkattributestatus">
+<title>Sn_CheckAttributeStatus</title>
+<path class="border" d="M913,123 a103,103,0,1,0,206,0 a103,103,0,1,0,-206,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="934" y="95">Sn_CheckAttributeStatus</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="934" y="113">RP confirms that the attribute</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="934" y="126">has not expired and is not</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="934" y="139">revoked using the issuer status</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="934" y="152">endpoint</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsngoal" id="node_g1_1">
-<title>G1.1</title>
-<path class="border" d="M126,313 L298,313 L298,435 L126,435 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="133" y="333">G1.1</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="351">RP trusts the PID issuer to (1)</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="364">issue only to wallets that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="377">implement Sole Control, (2)</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="390">issue only attributes that it</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="403">has checked to be factually</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="416">correct, (3) issue the PID at</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="429">LoA High</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsnstgy" id="node_s_decomposeattributeverification">
+<title>S_DecomposeAttributeVerification</title>
+<path class="border" d="M635,266 L861,266 L847,350 L621,350 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="643" y="286">S_DecomposeAttributeVerification</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="641" y="304">Decompose into issuer trust,</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="639" y="317">cryptographic integrity, verifier</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="637" y="330">validations, replay attack</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="635" y="343">prevention</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsnasmp" id="node_a1_1">
-<title>A1.1</title>
-<path class="border" d="M338,374 a107,59,0,1,0,214,0 a107,59,0,1,0,-214,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="376" y="346">A1.1</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="376" y="364">Sole control by the user is</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="376" y="377">necessary for factual</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="376" y="390">correctness and prevent</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="376" y="403">unauthorized use.</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="547" y="428">A</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsngoal" id="node_g_trustpidissuer">
+<title>G_TrustPidIssuer</title>
+<path class="border" d="M126,458 L298,458 L298,580 L126,580 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="133" y="478">G_TrustPidIssuer</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="496">RP trusts the PID issuer to (1)</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="509">issue only to wallets that</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="522">implement Sole Control, (2)</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="535">issue only attributes that it</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="548">has checked to be factually</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="561">correct, (3) issue the PID at</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="133" y="574">LoA High</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsngoal" id="node_g1_2">
-<title>G1.2</title>
-<path class="border" d="M592,326 L762,326 L762,422 L592,422 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="599" y="346">G1.2</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="599" y="364">RP enforces that the attribute</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="599" y="377">is contained in a PID that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="599" y="390">originates from a trusted</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="599" y="403">issuer and maintains</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="599" y="416">cryptographic integrity.</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsnasmp" id="node_a_solecontrolisrequired">
+<title>A_SoleControlIsRequired</title>
+<path class="border" d="M338,519 a112,59,0,1,0,224,0 a112,59,0,1,0,-224,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="378" y="491">A_SoleControlIsRequired</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="378" y="509">Sole control by the user is</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="378" y="522">necessary for factual</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="378" y="535">correctness and to prevent</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="378" y="548">unauthorized use.</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="557" y="573">A</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn1_2_1">
-<title>Sn1.2.1</title>
-<path class="border" d="M802,374 a96,96,0,1,0,192,0 a96,96,0,1,0,-192,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="823" y="346">Sn1.2.1</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="823" y="364">RP checks that the attribute</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="823" y="377">satisfies policy requirements</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="823" y="390">(PID doctype/vct, required</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="823" y="403">claims, no over-disclosure).</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsngoal" id="node_g_verifypidcryptographicintegrity">
+<title>G_VerifyPidCryptographicIntegrity</title>
+<path class="border" d="M602,477 L812,477 L812,561 L602,561 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="609" y="497">G_VerifyPidCryptographicIntegrity</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="609" y="515">RP enforces that the attribute is</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="609" y="528">contained in a PID that originates</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="609" y="541">from a trusted issuer and</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="609" y="554">maintains cryptographic integrity.</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn1_2_2">
-<title>Sn1.2.2</title>
-<path class="border" d="M1034,374 a99,99,0,1,0,198,0 a99,99,0,1,0,-198,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1056" y="346">Sn1.2.2</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1056" y="364">RP confirms that the attribute</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1056" y="377">has not expired and is not</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1056" y="390">revoked using the issuer's</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1056" y="403">status endpoint.</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn_checkattributepolicycompliance">
+<title>Sn_CheckAttributePolicyCompliance</title>
+<path class="border" d="M852,519 a125,125,0,1,0,250,0 a125,125,0,1,0,-250,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="872" y="491">Sn_CheckAttributePolicyCompliance</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="872" y="509">RP checks that the attribute</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="872" y="522">satisfies policy requirements (PID</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="872" y="535">doctype or VCT, required claims,</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="872" y="548">no over-disclosure)</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn1_2_3">
-<title>Sn1.2.3</title>
-<path class="border" d="M1272,374 a106,106,0,1,0,212,0 a106,106,0,1,0,-212,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1299" y="333">Sn1.2.3</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="351">RP checks that the wallet that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="364">presents the attribute is the</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="377">wallet it was issued to using</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="390">liveness check</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="403">(challenge/response) from</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1299" y="416">OpenID4VP or ISO 18013-5</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn_preventreplayandimpersonation">
+<title>Sn_PreventReplayAndImpersonation</title>
+<path class="border" d="M1142,519 a129,129,0,1,0,258,0 a129,129,0,1,0,-258,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1166" y="478">Sn_PreventReplayAndImpersonation</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1166" y="496">RP verifies that the presenting</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1166" y="509">wallet is the wallet the</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1166" y="522">attribute was issued to using a</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1166" y="535">liveness challenge-response</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1166" y="548">mechanism (OpenID4VP or ISO</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1166" y="561">18013-5)</text>
 </g>
-<a href="PID_issuer.gsn.svg#node_g_pid_issuer">
-<g class="gsn_module_pid_issuer gsnelem gsnawaygoal" id="node_g_pid_issuer">
-<title>G_PID_issuer</title>
-<path class="border" d="M20,654 V563 H192 V654" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="27" y="583">G_PID_issuer</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="601">PID issuer issues at LoA High</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="614">and issues only attributes that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="627">it knows to be factually</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="640">correct</text>
-<a href="PID_issuer.gsn.svg#node_g_pid_issuer">
-<path class="border" d="M20,654 H192 v27 H20 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="54" y="674">pid_issuer</text>
+<a href="PID_issuer.gsn.svg#node_g_issuepidatloahigh">
+<g class="gsn_module_pid_issuer gsnelem gsnawaygoal" id="node_g_issuepidatloahigh">
+<title>G_IssuePidAtLoAHigh</title>
+<path class="border" d="M20,823 V732 H192 V823" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="27" y="752">G_IssuePidAtLoAHigh</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="770">PID issuer issues at LoA High</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="783">and issues only attributes that</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="796">it knows to be factually</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="27" y="809">correct</text>
+<a href="PID_issuer.gsn.svg#node_g_issuepidatloahigh">
+<path class="border" d="M20,823 H192 v27 H20 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="54" y="843">pid_issuer</text>
 </a>
-<use href="#module_icon" x="27" y="661"/>
+<use href="#module_icon" x="27" y="830"/>
 </g>
 </a>
 <a href="sole-control.gsn.svg#node_g_solecontrol">
 <g class="gsn_module_sole_control_main gsnelem gsnawaygoal" id="node_g_solecontrol">
 <title>G_SoleControl</title>
-<path class="border" d="M232,647 V570 H406 V647" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="239" y="590">G_SoleControl</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="239" y="608">PID issuer has assurance that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="239" y="621">User will have sole control</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="239" y="634">over the PID</text>
+<path class="border" d="M232,816 V739 H406 V816" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="239" y="759">G_SoleControl</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="239" y="777">PID issuer has assurance that</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="239" y="790">User will have sole control</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="239" y="803">over the PID</text>
 <a href="sole-control.gsn.svg#node_g_solecontrol">
-<path class="border" d="M232,647 H406 v27 H232 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="266" y="667">sole_control_main</text>
+<path class="border" d="M232,816 H406 v27 H232 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="266" y="836">sole_control_main</text>
 </a>
-<use href="#module_icon" x="239" y="654"/>
+<use href="#module_icon" x="239" y="823"/>
 </g>
 </a>
-<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn1_1">
-<title>Sn1.1</title>
-<path class="border" d="M456,622 a102,102,0,1,0,204,0 a102,102,0,1,0,-204,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="480" y="588">Sn1.1</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="480" y="606">RP parses the the issuer's</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="480" y="619">certificate out of the</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="480" y="632">attestation and verifies it</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="480" y="645">against its CA store of trusted</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="480" y="658">PID issuers</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn_verifyissuercertificate">
+<title>Sn_VerifyIssuerCertificate</title>
+<path class="border" d="M483,791 a102,102,0,1,0,204,0 a102,102,0,1,0,-204,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="507" y="757">Sn_VerifyIssuerCertificate</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="507" y="775">RP parses the issuer</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="507" y="788">certificate from the</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="507" y="801">attestation and verifies it</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="507" y="814">against its trusted CA store of</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="507" y="827">PID issuers</text>
 </g>
-<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn1_2">
-<title>Sn1.2</title>
-<path class="border" d="M700,622 a97,97,0,1,0,194,0 a97,97,0,1,0,-194,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="721" y="594">Sn1.2</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="721" y="612">RP verifies the issuer</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="721" y="625">signature over the attributes</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="721" y="638">against the PID issuer public</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="721" y="651">key from its certificate</text>
+<g class="gsn_module_rp_session_attribute gsnelem gsnsltn" id="node_sn_verifyissuersignature">
+<title>Sn_VerifyIssuerSignature</title>
+<path class="border" d="M727,791 a103,103,0,1,0,206,0 a103,103,0,1,0,-206,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="748" y="763">Sn_VerifyIssuerSignature</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="748" y="781">RP verifies the issuer</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="748" y="794">signature over the attributes</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="748" y="807">using the PID issuer public key</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="748" y="820">from its certificate</text>
 </g>
-<path class="gsnedge gsninspby" d="M795,104 C795,134,795,114,795,134" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninctxt" d="M298,374 C328,374,308,374,328,374" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M212,435 C212,465,106,533,106,553" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M212,435 C212,465,319,540,319,560" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M677,422 C677,452,558,490,558,510" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M677,422 C677,452,797,495,797,515" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M795,228 C795,258,212,283,212,303" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M795,228 C795,258,677,296,677,316" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M795,228 C795,258,898,248,898,268" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M795,228 C795,258,1133,245,1133,265" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M795,228 C795,258,1378,238,1378,258" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M741,158 C741,188,741,236,741,256" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M298,519 C328,519,308,519,328,519" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M212,580 C212,610,106,702,106,722" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M212,580 C212,610,319,709,319,729" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M707,561 C707,591,585,659,585,679" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M707,561 C707,591,830,658,830,678" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M741,350 C741,380,212,428,212,448" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M741,350 C741,380,707,447,707,467" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M741,350 C741,380,977,364,977,384" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M741,350 C741,380,1271,360,1271,380" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 </svg>

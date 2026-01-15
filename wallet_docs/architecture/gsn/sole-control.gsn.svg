@@ -21,11 +21,11 @@ svg { background-color: white;}
 }
 
 </style>
-<a href="rp_session.svg#node_g1_1">
-<g class="gsn_module_rp_session_attribute gsnelem gsnawaygoal" id="node_g1_1">
-<title>G1.1</title>
+<a href="rp_session.svg#node_g_trustpidissuer">
+<g class="gsn_module_rp_session_attribute gsnelem gsnawaygoal" id="node_g_trustpidissuer">
+<title>G_TrustPidIssuer</title>
 <path class="border" d="M666,149 V20 H838 V149" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="673" y="40">G1.1</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="673" y="40">G_TrustPidIssuer</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="673" y="58">RP trusts the PID issuer to (1)</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="673" y="71">issue only to wallets that</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="673" y="84">implement Sole Control, (2)</text>
@@ -33,7 +33,7 @@ svg { background-color: white;}
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="673" y="110">has checked to be factually</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="673" y="123">correct, (3) issue the PID at</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="673" y="136">LoA High</text>
-<a href="rp_session.svg#node_g1_1">
+<a href="rp_session.svg#node_g_trustpidissuer">
 <path class="border" d="M666,149 H838 v27 H666 z" fill-opacity="0" stroke="black" stroke-width="1"/>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="700" y="169">rp_session_attribute</text>
 </a>
@@ -194,7 +194,6 @@ svg { background-color: white;}
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="279" y="1212">WB uses certified HSM to</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="279" y="1225">generate &amp; protect PrivKey</text>
 </g>
-<path class="gsnedge gsninspby" d="M752,176 C752,206,752,201,752,221" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M121,1068 C121,1098,121,1078,121,1098" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninctxt" d="M442,518 C472,518,452,518,472,518" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninctxt" d="M254,518 C224,518,244,518,224,518" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
@@ -203,6 +202,7 @@ svg { background-color: white;}
 <path class="gsnedge gsninctxt" d="M839,266 C869,266,849,266,869,266" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M752,301 C752,331,474,326,474,346" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M752,301 C752,331,1030,466,1030,486" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M752,176 C752,206,752,201,752,221" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M474,426 C474,456,348,453,348,473" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M474,426 C474,456,820,436,820,456" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M474,426 C474,456,234,423,234,518 S129,590,129,610" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>

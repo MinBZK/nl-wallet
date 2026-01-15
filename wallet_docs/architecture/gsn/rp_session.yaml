@@ -1,38 +1,43 @@
 module:
   name: rp_session_attribute
 
-G1:
+G_EstablishAttributeCorrectnessAtLoAHigh:
   text: RP establishes that the attribute is a factually correct statement about the user at LoA High.
-  supportedBy: [S1]
+  supportedBy: [S_DecomposeAttributeVerification]
 
-S1:
-  text: Decompose into issuer trust, cryptographic integrity, verifier validations, replay attack preventions
-  supportedBy: [G1.1, G1.2, Sn1.2.1, Sn1.2.2, Sn1.2.3]
+S_DecomposeAttributeVerification:
+  text: Decompose into issuer trust, cryptographic integrity, verifier validations, replay attack prevention
+  supportedBy:
+    - G_TrustPidIssuer
+    - G_VerifyPidCryptographicIntegrity
+    - Sn_CheckAttributePolicyCompliance
+    - Sn_PreventReplayAndImpersonation
 
-G1.2:
-  text: RP enforces that the attribute is contained in a PID that originates from a trusted issuer and maintains cryptographic integrity.
-  supportedBy: [Sn1.1, Sn1.2]
-
-G1.1:
+G_TrustPidIssuer:
   text: RP trusts the PID issuer to (1) issue only to wallets that implement Sole Control, (2) issue only attributes that it has checked to be factually correct, (3) issue the PID at LoA High
-  supportedBy: [G_SoleControl, G_PID_issuer]
-  inContextOf: [A1.1]
+  supportedBy: [G_SoleControl, G_IssuePidAtLoAHigh]
+  inContextOf: [A_SoleControlIsRequired]
 
-A1.1:
-  text: Sole control by the user is necessary for factual correctness and prevent unauthorized use.
+A_SoleControlIsRequired:
+  text: Sole control by the user is necessary for factual correctness and to prevent unauthorized use.
 
-Sn1.1:
-  text: RP parses the the issuer's certificate out of the attestation and verifies it against its CA store of trusted PID issuers
-  
+G_VerifyPidCryptographicIntegrity:
+  text: RP enforces that the attribute is contained in a PID that originates from a trusted issuer and maintains cryptographic integrity.
+  supportedBy:
+    - Sn_VerifyIssuerCertificate
+    - Sn_VerifyIssuerSignature
 
-Sn1.2:
-  text: RP verifies the issuer signature over the attributes against the PID issuer public key from its certificate
+Sn_VerifyIssuerCertificate:
+  text: RP parses the issuer certificate from the attestation and verifies it against its trusted CA store of PID issuers
 
-Sn1.2.1:
-  text: RP checks that the attribute satisfies policy requirements (PID doctype/vct, required claims, no over-disclosure).
+Sn_VerifyIssuerSignature:
+  text: RP verifies the issuer signature over the attributes using the PID issuer public key from its certificate
 
-Sn1.2.2:
-  text: RP confirms that the attribute has not expired and is not revoked using the issuer's status endpoint.
+Sn_CheckAttributePolicyCompliance:
+  text: RP checks that the attribute satisfies policy requirements (PID doctype or VCT, required claims, no over-disclosure)
 
-Sn1.2.3:
-  text: RP checks that the wallet that presents the attribute is the wallet it was issued to using liveness check (challenge/response) from OpenID4VP or ISO 18013-5
+Sn_CheckAttributeStatus:
+  text: RP confirms that the attribute has not expired and is not revoked using the issuer status endpoint
+
+Sn_PreventReplayAndImpersonation:
+  text: RP verifies that the presenting wallet is the wallet the attribute was issued to using a liveness challenge-response mechanism (OpenID4VP or ISO 18013-5)

@@ -1,58 +1,86 @@
 module:
   name: pid_issuer
 
-G_PID_issuer:
+G_IssuePidAtLoAHigh:
   text: PID issuer issues at LoA High and issues only attributes that it knows to be factually correct
-  supportedBy: [S2, S3]
+  supportedBy:
+    - S_IdpAuthenticationAtLoAHigh
+    - S_AssureAttributeCorrectness
+    - S_AssureIssuanceToCorrectWallet
 
-S2:
-  text: Trust IdP authentication for LoA High subject authentication
-  supportedBy: [G2.2]
+S_IdpAuthenticationAtLoAHigh:
+  text: PID issuer identifies and authenticates at LoA high
+  undeveloped: true
+  inContextOf: [C_IdpAuthAtLoAHighExpl]
+  horizontalIndex:
+    relative: -2
 
-G2.2:
-  text: PID issuer relies on authentication assertion from the IdP at LoA High
-  inContextOf: [A2.1, A2.2]
-  supportedBy: [Sn2.1]
-
-A2.1:
-  text: IdP performs secure identity proofing and authentication at LoA High
-
-A2.2:
-  text: Wallet owner is the same natural person identified by the IdP token
-
-Sn2.1:
-  text: PID issuer verifies IdP token signature, issuer, audience, nonce, and subject
+C_IdpAuthAtLoAHighExpl:
+  text: Method not in scope of this GSN
 
 
-S3:
+S_AssureAttributeCorrectness:
   text: Assure factual correctness of all issued attributes
-  supportedBy: [G3.1, G3.2, G3.3]
+  supportedBy:
+    - G_DetermineAttributesFromAuthoritativeSources
+    - G_BindAttributesToAuthenticatedSubject
+    - G_MaintainAttributeLifecycleValidity
 
-G3.1:
+G_DetermineAttributesFromAuthoritativeSources:
   text: PID issuer determines attribute values using authoritative and governed sources
-  inContextOf: [A3.1]
-  supportedBy: [Sn3.1]
+  inContextOf: [A_AuthoritativeRegistersAreGoverned]
+  supportedBy: [Sn_UseApprovedAuthoritativeRegisters]
+  horizontalIndex:
+    relative: -1
 
-A3.1:
+A_AuthoritativeRegistersAreGoverned:
   text: Authoritative source registers are governed, accurate, and audited within the applicable trust framework
 
-Sn3.1:
+Sn_UseApprovedAuthoritativeRegisters:
   text: PID issuer uses approved authoritative registers and has evidence of governance, audits and data origin
 
-G3.2:
-  text: PID issuer binds each attribute value to the authenticated subject before issuance
-  supportedBy: [Sn3.2]
-  inContextOf: [A3.2]
+G_BindAttributesToAuthenticatedSubject:
+  text: PID issuer makes sure that the attributes belong to the authenticated subject before issuance
+  supportedBy: [Sn_PerformSubjectMatching]
 
-A3.2:
-  text: A unique identifier exists to link authoritative records to the IdP-authenticated subject
+Sn_PerformSubjectMatching:
+  text: PID issuer performs subject matching
 
-Sn3.2:
-  text: PID issuer performs subject matching and logs the binding
+G_MaintainAttributeLifecycleValidity:
+  text: PID issuer ensures attribute validity
+  supportedBy: [Sn_ManageAttributeValidity]
 
-G3.3:
-  text: PID issuer ensures attribute validity throughout the attribute lifecycle
-  supportedBy: [Sn3.3]
+Sn_ManageAttributeValidity:
+  text: PID issuer revokes attributes in case of non validity
 
-Sn3.3:
-  text: PID issuer applies validity rules, includes issuance timestamps and supports update processes for changed attributes
+
+
+S_AssureIssuanceToCorrectWallet:
+  text: Assure that the PID is issued to the same wallet instance that authenticated and proved association with the user
+  supportedBy:
+    - G_ProveWalletAssociation
+    - G_ProveWalletAuthenticatedForAttributeReception
+
+G_ProveWalletAuthenticatedForAttributeReception:
+  text: PID issuer ensures that the authenticated wallet is the same wallet that receives the attribute.
+  supportedBy: [Sn_DpopPkce]
+
+Sn_DpopPkce:
+  text: PID issuer enforces PKCE and DPoP proofs to ensure that only the authenticating wallet can complete issuance
+
+
+G_ProveWalletAssociation:
+  text: PID issuer ensures that public key from the WUA disclosure and the public key for in the PID to be issued come from a single wallet
+  supportedBy: [Sn_VerifyProofOfAssociationBetweenKeys]
+  inContextOf: [A_WalletCanProveKeyLinkage]
+
+
+A_WalletCanProveKeyLinkage:
+  text: The wallet can produce evidence that two keys are under common control and bound to the same wallet instance
+
+Sn_VerifyProofOfAssociationBetweenKeys:
+  text: PID issuer verifies a Proof of Association (PoA) linking the WUA disclosure public key and the fresh PID public key
+
+
+
+
