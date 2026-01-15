@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 mock = []
-pid_constants = []
+test_pid_constants = []
 
 [dependencies]
 url = { workspace = true, features = ["serde"] }

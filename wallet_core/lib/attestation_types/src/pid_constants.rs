@@ -1,5 +1,3 @@
-//! these constants should only be used in tests
-
 pub const ROOT_PID_ATTESTATION_TYPE: &str = "urn:example:pid:1";
 
 pub const PID_ATTESTATION_TYPE: &str = "urn:example:pid:nl:1";

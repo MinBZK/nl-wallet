@@ -38,4 +38,4 @@ indexmap.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
 
-attestation_types = { path = "../../lib/attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
