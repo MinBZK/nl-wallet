@@ -1,4 +1,4 @@
-.test-android:
+test-android:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android-emulator:${BUILD_TAG}"
   tags:
     - linux
@@ -19,8 +19,7 @@
   script:
     - adb devices # to prevent device unauthorized
     - emulator @phone -show-kernel -log-detailed -no-window -no-snapshot -no-metrics -no-boot-anim -cores 2 -memory 2048 -audio none -camera-back none -camera-front none < /dev/null > emulator.out 2> emulator.err &
-    - EMULATOR_PID="$!"
-    - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+    - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done' || true
     - cd wallet_core/wallet/platform_support/android
     - ANDROID_NDK_TARGETS=x86_64 ./gradlew --no-daemon testDebugUnitTest connectedAndroidTest
   after_script: >
