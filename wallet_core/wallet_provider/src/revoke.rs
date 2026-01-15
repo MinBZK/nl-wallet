@@ -53,7 +53,7 @@ where
 {
     // TODO since this method takes an array and simply revokes all WUAs associated with all provided wallet IDs, a 404
     // never occurs (PVW-5297)
-    Ok(wallet_provider_service::revocation::revoke_wallets(wallet_ids, &router_state.user_state).await?)
+    Ok(wallet_provider_service::revocation::revoke_wallets(&wallet_ids, &router_state.user_state).await?)
 }
 
 #[utoipa::path(

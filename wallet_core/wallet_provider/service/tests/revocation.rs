@@ -24,6 +24,8 @@ use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
+use wallet_provider_domain::model::wallet_user::QueryResult;
+use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_persistence::PersistenceConnection;
@@ -31,6 +33,7 @@ use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
 use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
@@ -85,10 +88,10 @@ async fn register_wallets_to_revoke(
     let (wallets, wuas): (Vec<String>, Vec<Vec<(Uuid, StatusClaim)>>) =
         join_all(wuas_per_wallet.into_iter().map(async |wua_count| {
             let tx = user_state.repositories.begin_transaction().await.unwrap();
-            let wallet_user_id = random_string(10);
+            let wallet_id = random_string(10);
 
             // manually create a user and some WUA IDs, bypassing registration logic
-            let user_uuid = create_wallet_user_with_random_keys(&tx, wallet_user_id.clone()).await;
+            let user_uuid = create_wallet_user_with_random_keys(&tx, wallet_id.clone()).await;
 
             let mut wuas: Vec<(Uuid, StatusClaim)> = vec![];
             for _ in 0..wua_count {
@@ -107,7 +110,7 @@ async fn register_wallets_to_revoke(
             }
 
             tx.commit().await.unwrap();
-            (wallet_user_id, wuas)
+            (wallet_id, wuas)
         }))
         .await
         .into_iter()
@@ -138,6 +141,8 @@ async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, pub
 }
 
 async fn verify_revocation(
+    wallet_ids: impl IntoIterator<Item = &String>,
+    expected_revocation_reason: Option<RevocationReason>,
     wua_id_and_claim: impl IntoIterator<Item = &(Uuid, StatusClaim)>,
     publish_dir: &PublishDir,
     user_state: &UserState<
@@ -148,6 +153,25 @@ async fn verify_revocation(
     >,
     expected_status_type: StatusType,
 ) {
+    // verify wallet revocation
+    join_all(wallet_ids.into_iter().map(async |wallet_id| {
+        let tx = user_state.repositories.begin_transaction().await.unwrap();
+        let QueryResult::Found(wallet_user) = wallet_user::find_wallet_user_by_wallet_id(&tx, wallet_id)
+            .await
+            .unwrap()
+        else {
+            panic!("Wallet user should have been found");
+        };
+        assert_eq!(wallet_user.revocation_reason, expected_revocation_reason);
+        assert_eq!(
+            wallet_user.revocation_date_time.is_some(),
+            expected_revocation_reason.is_some()
+        );
+        tx.commit().await.unwrap();
+    }))
+    .await;
+
+    // verify wua revocation
     join_all(wua_id_and_claim.into_iter().map(async |(wua_id, wua_claim)| {
         let batch = user_state
             .status_list_service
@@ -178,14 +202,25 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     let (wallets, wuas) = register_wallets_to_revoke(wuas_per_wallet, &user_state).await;
 
     // all wuas should not be revoked
-    verify_revocation(wuas.iter().flatten(), &publish_dir, &user_state, StatusType::Valid).await;
+    verify_revocation(
+        wallets.iter(),
+        None,
+        wuas.iter().flatten(),
+        &publish_dir,
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
 
-    let wallet_ids_to_revoke = indices_to_revoke
-        .iter()
-        .filter_map(|i| wallets.get(*i))
-        .cloned()
-        .collect_vec();
-    revoke_wallets(wallet_ids_to_revoke.clone(), &user_state).await.unwrap();
+    let (wallet_ids_to_revoke, wallet_ids_not_to_revoke): (Vec<_>, Vec<_>) =
+        wallets.into_iter().enumerate().partition_map(|(i, val)| {
+            if indices_to_revoke.contains(&i) {
+                Either::Left(val)
+            } else {
+                Either::Right(val)
+            }
+        });
+    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state).await.unwrap();
 
     let (revoked_wua_ids, non_revoked_wua_ids): (Vec<_>, Vec<_>) =
         wuas.into_iter().enumerate().partition_map(|(i, val)| {
@@ -200,13 +235,45 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     let non_revoked_wua_ids = non_revoked_wua_ids.into_iter().flatten().collect_vec();
 
     // check revoked wuas
-    verify_revocation(revoked_wua_ids.iter(), &publish_dir, &user_state, StatusType::Invalid).await;
-    verify_revocation(non_revoked_wua_ids.iter(), &publish_dir, &user_state, StatusType::Valid).await;
+    verify_revocation(
+        wallet_ids_to_revoke.iter(),
+        Some(RevocationReason::AdminRequest),
+        revoked_wua_ids.iter(),
+        &publish_dir,
+        &user_state,
+        StatusType::Invalid,
+    )
+    .await;
+    verify_revocation(
+        wallet_ids_not_to_revoke.iter(),
+        None,
+        non_revoked_wua_ids.iter(),
+        &publish_dir,
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
 
     // verify idempotency
-    revoke_wallets(wallet_ids_to_revoke, &user_state).await.unwrap();
-    verify_revocation(revoked_wua_ids.iter(), &publish_dir, &user_state, StatusType::Invalid).await;
-    verify_revocation(non_revoked_wua_ids.iter(), &publish_dir, &user_state, StatusType::Valid).await;
+    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state).await.unwrap();
+    verify_revocation(
+        wallet_ids_to_revoke.iter(),
+        Some(RevocationReason::AdminRequest),
+        revoked_wua_ids.iter(),
+        &publish_dir,
+        &user_state,
+        StatusType::Invalid,
+    )
+    .await;
+    verify_revocation(
+        wallet_ids_not_to_revoke.iter(),
+        None,
+        non_revoked_wua_ids.iter(),
+        &publish_dir,
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
 }
 
 #[tokio::test]
@@ -220,18 +287,42 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
     let user_state = setup_state(publish_dir.clone()).await;
 
-    let (_, wuas) = register_wallets_to_revoke(wuas_per_wallet, &user_state).await;
+    let (wallet_ids, wuas) = register_wallets_to_revoke(wuas_per_wallet, &user_state).await;
     let wuas: Vec<(Uuid, StatusClaim)> = wuas.into_iter().flatten().collect();
 
     // all wuas should not be revoked
-    verify_revocation(wuas.iter(), &publish_dir, &user_state, StatusType::Valid).await;
+    verify_revocation(
+        wallet_ids.iter(),
+        None,
+        wuas.iter(),
+        &publish_dir,
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
 
     revoke_all_wallets(&user_state).await.unwrap();
 
     // all wuas should be revoked
-    verify_revocation(wuas.iter(), &publish_dir, &user_state, StatusType::Invalid).await;
+    verify_revocation(
+        wallet_ids.iter(),
+        Some(RevocationReason::WalletSolutionCompromised),
+        wuas.iter(),
+        &publish_dir,
+        &user_state,
+        StatusType::Invalid,
+    )
+    .await;
 
     // verify idempotency
     revoke_all_wallets(&user_state).await.unwrap();
-    verify_revocation(wuas.iter(), &publish_dir, &user_state, StatusType::Invalid).await;
+    verify_revocation(
+        wallet_ids.iter(),
+        Some(RevocationReason::WalletSolutionCompromised),
+        wuas.iter(),
+        &publish_dir,
+        &user_state,
+        StatusType::Invalid,
+    )
+    .await;
 }

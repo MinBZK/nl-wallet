@@ -26,7 +26,7 @@ pub enum RevocationError {
 }
 
 pub async fn revoke_wallets<T, R, H>(
-    wallet_ids: Vec<String>,
+    wallet_ids: impl IntoIterator<Item = &String>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
 ) -> Result<(), RevocationError>
 where
@@ -35,7 +35,7 @@ where
 {
     let revocation_reason = RevocationReason::AdminRequest;
     let revocation_date_time = Utc::now();
-    let wua_ids: Vec<Uuid> = try_join_all(wallet_ids.iter().map(async |wallet_id| {
+    let wua_ids: Vec<Uuid> = try_join_all(wallet_ids.into_iter().map(async |wallet_id| {
         let tx = user_state.repositories.begin_transaction().await?;
 
         let found = user_state

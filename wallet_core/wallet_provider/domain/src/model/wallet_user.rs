@@ -33,6 +33,8 @@ pub struct WalletUser {
     pub attestation: WalletUserAttestation,
     pub state: WalletUserState,
     pub revocation_code_hmac: Vec<u8>,
+    pub revocation_reason: Option<RevocationReason>,
+    pub revocation_date_time: Option<DateTime<Utc>>,
     pub recovery_code: Option<String>,
 }
 
@@ -136,7 +138,9 @@ impl WalletUserKey {
     }
 }
 
-#[derive(Debug, Clone, Copy, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
+)]
 #[strum(serialize_all = "snake_case")]
 pub enum RevocationReason {
     // upon the explicit request of the User
@@ -183,6 +187,8 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
             revocation_code_hmac: random_bytes(32),
+            revocation_reason: None,
+            revocation_date_time: None,
             recovery_code: None,
         }
     }

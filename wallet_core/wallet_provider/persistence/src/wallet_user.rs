@@ -160,6 +160,8 @@ struct WalletUserJoinedModel {
     instruction_sequence_number: i32,
     apple_assertion_counter: Option<i64>,
     revocation_code_hmac: Vec<u8>,
+    revocation_reason: Option<String>,
+    revocation_date_time: Option<DateTimeWithTimeZone>,
     recovery_code: Option<String>,
 }
 
@@ -183,6 +185,8 @@ where
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
         .column(wallet_user::Column::RevocationCodeHmac)
+        .column(wallet_user::Column::RevocationReason)
+        .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
@@ -257,6 +261,8 @@ where
         attestation,
         state,
         revocation_code_hmac: model.revocation_code_hmac,
+        revocation_reason: model.revocation_reason.map(|r| r.parse().unwrap()),
+        revocation_date_time: model.revocation_date_time.map(DateTime::<Utc>::from),
         recovery_code: model.recovery_code.clone(),
     };
 
