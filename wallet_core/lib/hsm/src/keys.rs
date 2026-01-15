@@ -1,9 +1,9 @@
-use crypto::EcdsaKeySend;
 use derive_more::Constructor;
 use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
+use crypto::EcdsaKeySend;
 use crypto::keys::SecureEcdsaKey;
 
 use crate::model::Hsm;
