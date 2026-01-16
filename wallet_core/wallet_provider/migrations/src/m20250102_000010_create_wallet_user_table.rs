@@ -26,12 +26,12 @@ impl MigrationTrait for Migration {
                     .col(small_unsigned(WalletUser::PinEntries).default(0))
                     .col(timestamp_with_time_zone_null(WalletUser::LastUnsuccessfulPin))
                     .col(string(WalletUser::State).default("active"))
-                    .col(string_null(WalletUser::RevocationReason))
-                    .col(timestamp_with_time_zone_null(WalletUser::RevocationDateTime))
                     .col(timestamp_with_time_zone(WalletUser::AttestationDateTime))
                     .col(uuid_null(WalletUser::AppleAttestationId))
                     .col(uuid_null(WalletUser::AndroidAttestationId))
                     .col(binary_uniq(WalletUser::RevocationCodeHmac))
+                    .col(string_null(WalletUser::RevocationReason))
+                    .col(timestamp_with_time_zone_null(WalletUser::RevocationDateTime))
                     .col(string_null(WalletUser::RecoveryCode))
                     .check(SimpleExpr::or(
                         // Both of these columns should be used or neither.
