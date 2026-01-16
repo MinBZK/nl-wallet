@@ -6,6 +6,7 @@ import '../../wallet_constants.dart';
 import 'cubit/banner_cubit.dart';
 import 'wallet_banner.dart';
 import 'widget/card_expiry_banner.dart';
+import 'widget/card_revocation_banner.dart';
 import 'widget/tour_banner.dart';
 import 'widget/update_banner.dart';
 
@@ -116,6 +117,8 @@ class _BannerListState extends State<BannerList> {
         );
       case CardExpiredBanner():
         bannerWidget = CardExpiryBanner(card: banner.card);
+      case CardRevokedBanner():
+        bannerWidget = CardRevocationBanner(card: banner.card);
     }
 
     return FadeTransition(

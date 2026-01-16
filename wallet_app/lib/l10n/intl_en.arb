@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-01-15T10:07:57+01:00",
+    "@@last_modified": "2026-01-16T11:04:25+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -217,6 +217,26 @@
             }
         }
     },
+    "cardRevocationBannerSubtitle": "Replace this card if you still need it.",
+    "cardRevocationBannerTitle": "{card} withdrawn by issuer",
+    "@cardRevocationBannerTitle": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardRevokedNotificationDescription": "{card} withdrawn by issuer. Replace this card if you still need it.",
+    "@cardRevokedNotificationDescription": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardRevokedNotificationTitle": "NL Wallet",
     "cardStatusMetadataCardDataScreenCorrupted": "These details can no longer be used because the card is invalid.",
     "cardStatusMetadataCardDataScreenExpired": "These details can no longer be used because the card has expired.",
     "cardStatusMetadataCardDataScreenRevoked": "These details can no longer be used because the card has been withdrawn by the issuer.",

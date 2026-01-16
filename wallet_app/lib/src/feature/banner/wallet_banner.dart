@@ -28,4 +28,9 @@ sealed class WalletBanner with _$WalletBanner {
   const factory WalletBanner.cardExpired({
     required WalletCard card,
   }) = CardExpiredBanner;
+
+  /// A banner warning the user that a card has been revoked.
+  const factory WalletBanner.cardRevoked({
+    required WalletCard card,
+  }) = CardRevokedBanner;
 }

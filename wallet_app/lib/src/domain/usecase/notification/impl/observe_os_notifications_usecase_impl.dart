@@ -52,6 +52,7 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
     return switch (type) {
       CardExpiresSoon() => .cardUpdates,
       CardExpired() => .cardUpdates,
+      CardRevoked() => .cardUpdates,
     };
   }
 
@@ -60,19 +61,20 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
     return switch (type) {
       CardExpiresSoon() => l10n.cardExpiresSoonNotificationTitle,
       CardExpired() => l10n.cardExpiredNotificationTitle,
+      CardRevoked() => l10n.cardRevokedNotificationTitle,
     };
   }
 
   String _resolveBody(NotificationType type, DateTime notifyAt) {
     final l10n = _activeLocaleProvider.activeLocale.l10n;
+    final localizedCardTitle = type.card.title.l10nValueForLocale(_activeLocaleProvider.activeLocale);
     return switch (type) {
       CardExpiresSoon() => l10n.cardExpiresSoonNotificationDescription(
-        type.card.title.l10nValueForLocale(_activeLocaleProvider.activeLocale),
+        localizedCardTitle,
         math.max(type.expiresAt.difference(notifyAt).inDays, 0 /* fallback value */),
       ),
-      CardExpired() => l10n.cardExpiredNotificationDescription(
-        type.card.title.l10nValueForLocale(_activeLocaleProvider.activeLocale),
-      ),
+      CardExpired() => l10n.cardExpiredNotificationDescription(localizedCardTitle),
+      CardRevoked() => l10n.cardRevokedNotificationDescription(localizedCardTitle),
     };
   }
 }

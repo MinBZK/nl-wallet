@@ -23,6 +23,7 @@ class ObserveDashboardNotificationsUseCaseImpl extends ObserveDashboardNotificat
             return switch (type) {
               CardExpiresSoon() => CardExpiresSoonBanner(card: type.card, expiresAt: type.expiresAt),
               CardExpired() => CardExpiredBanner(card: type.card),
+              CardRevoked() => CardRevokedBanner(card: type.card),
             };
           },
         ).toList();
