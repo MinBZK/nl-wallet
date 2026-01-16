@@ -14,4 +14,8 @@ sealed class NotificationType with _$NotificationType {
   const factory NotificationType.cardExpired({
     required WalletCard card,
   }) = CardExpired;
+
+  const factory NotificationType.cardRevoked({
+    required WalletCard card,
+  }) = CardRevoked;
 }

@@ -19,18 +19,18 @@ required-features = ["mock"]
 # Accept attested keys from the emulator. This allows software security level.
 allow_emulator_keys = ["dep:tracing"]
 encode = []
-mock = ["dep:der", "dep:rand", "dep:time", "dep:x509-cert", "encode", "rcgen/aws_lc_rs"]
+mock = ["dep:der", "dep:rand", "dep:time", "dep:x509-cert", "encode", "p256/pkcs8", "rcgen/aws_lc_rs"]
 network_test = []
 # Derive Serialize for KeyAttestation and related types, to use in JSON APIs.
 serialize_key_attestation = ["bytes/serde", "dep:cfg_eval", "dep:serde_repr"]
 # Skip checking root key of the chain. This allows for generated root keys of emulators.
 skip_root_key_check = ["dep:tracing"]
+test_root_keys = ["dep:const-decoder"]
 
 [dependencies]
 bitflags.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["now"] }
-const-decoder.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
 gcloud-auth.workspace = true
@@ -40,7 +40,7 @@ int-enum.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
-p256 = { workspace = true, features = ["pkcs8"] }
+p384 = { workspace = true }
 rasn.workspace = true
 regex.workspace = true
 reqwest.workspace = true
@@ -60,7 +60,9 @@ x509-parser.workspace = true
 
 bytes = { workspace = true, optional = true }
 cfg_eval = { workspace = true, optional = true }
+const-decoder = { workspace = true, optional = true }
 der = { workspace = true, optional = true }
+p256 = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true }
 serde_repr = { workspace = true, optional = true }
@@ -70,7 +72,6 @@ x509-cert = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
-p256 = { workspace = true, features = ["pem"] }
 rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

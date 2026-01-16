@@ -19,7 +19,6 @@ mod android {
     use jni::JNIEnv;
     use jni::objects::JClass;
 
-    #[rustfmt::skip]
     #[unsafe(no_mangle)]
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_utilities_UtilitiesBridgeInstrumentedTest_utilities_1test_1storage_1path(
         _env: JNIEnv,
