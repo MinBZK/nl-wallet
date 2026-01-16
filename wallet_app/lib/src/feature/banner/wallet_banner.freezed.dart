@@ -55,14 +55,15 @@ extension WalletBannerPatterns on WalletBanner {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( UpdateAvailableBanner value)?  updateAvailable,TResult Function( TourSuggestionBanner value)?  tourSuggestion,TResult Function( CardExpiresSoonBanner value)?  cardExpiresSoon,TResult Function( CardExpiredBanner value)?  cardExpired,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( UpdateAvailableBanner value)?  updateAvailable,TResult Function( TourSuggestionBanner value)?  tourSuggestion,TResult Function( CardExpiresSoonBanner value)?  cardExpiresSoon,TResult Function( CardExpiredBanner value)?  cardExpired,TResult Function( CardRevokedBanner value)?  cardRevoked,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case UpdateAvailableBanner() when updateAvailable != null:
 return updateAvailable(_that);case TourSuggestionBanner() when tourSuggestion != null:
 return tourSuggestion(_that);case CardExpiresSoonBanner() when cardExpiresSoon != null:
 return cardExpiresSoon(_that);case CardExpiredBanner() when cardExpired != null:
-return cardExpired(_that);case _:
+return cardExpired(_that);case CardRevokedBanner() when cardRevoked != null:
+return cardRevoked(_that);case _:
   return orElse();
 
 }
@@ -80,14 +81,15 @@ return cardExpired(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( UpdateAvailableBanner value)  updateAvailable,required TResult Function( TourSuggestionBanner value)  tourSuggestion,required TResult Function( CardExpiresSoonBanner value)  cardExpiresSoon,required TResult Function( CardExpiredBanner value)  cardExpired,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( UpdateAvailableBanner value)  updateAvailable,required TResult Function( TourSuggestionBanner value)  tourSuggestion,required TResult Function( CardExpiresSoonBanner value)  cardExpiresSoon,required TResult Function( CardExpiredBanner value)  cardExpired,required TResult Function( CardRevokedBanner value)  cardRevoked,}){
 final _that = this;
 switch (_that) {
 case UpdateAvailableBanner():
 return updateAvailable(_that);case TourSuggestionBanner():
 return tourSuggestion(_that);case CardExpiresSoonBanner():
 return cardExpiresSoon(_that);case CardExpiredBanner():
-return cardExpired(_that);}
+return cardExpired(_that);case CardRevokedBanner():
+return cardRevoked(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -101,14 +103,15 @@ return cardExpired(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( UpdateAvailableBanner value)?  updateAvailable,TResult? Function( TourSuggestionBanner value)?  tourSuggestion,TResult? Function( CardExpiresSoonBanner value)?  cardExpiresSoon,TResult? Function( CardExpiredBanner value)?  cardExpired,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( UpdateAvailableBanner value)?  updateAvailable,TResult? Function( TourSuggestionBanner value)?  tourSuggestion,TResult? Function( CardExpiresSoonBanner value)?  cardExpiresSoon,TResult? Function( CardExpiredBanner value)?  cardExpired,TResult? Function( CardRevokedBanner value)?  cardRevoked,}){
 final _that = this;
 switch (_that) {
 case UpdateAvailableBanner() when updateAvailable != null:
 return updateAvailable(_that);case TourSuggestionBanner() when tourSuggestion != null:
 return tourSuggestion(_that);case CardExpiresSoonBanner() when cardExpiresSoon != null:
 return cardExpiresSoon(_that);case CardExpiredBanner() when cardExpired != null:
-return cardExpired(_that);case _:
+return cardExpired(_that);case CardRevokedBanner() when cardRevoked != null:
+return cardRevoked(_that);case _:
   return null;
 
 }
@@ -125,13 +128,14 @@ return cardExpired(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( VersionState state)?  updateAvailable,TResult Function()?  tourSuggestion,TResult Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult Function( WalletCard card)?  cardExpired,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( VersionState state)?  updateAvailable,TResult Function()?  tourSuggestion,TResult Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult Function( WalletCard card)?  cardExpired,TResult Function( WalletCard card)?  cardRevoked,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case UpdateAvailableBanner() when updateAvailable != null:
 return updateAvailable(_that.state);case TourSuggestionBanner() when tourSuggestion != null:
 return tourSuggestion();case CardExpiresSoonBanner() when cardExpiresSoon != null:
 return cardExpiresSoon(_that.card,_that.expiresAt);case CardExpiredBanner() when cardExpired != null:
-return cardExpired(_that.card);case _:
+return cardExpired(_that.card);case CardRevokedBanner() when cardRevoked != null:
+return cardRevoked(_that.card);case _:
   return orElse();
 
 }
@@ -149,13 +153,14 @@ return cardExpired(_that.card);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( VersionState state)  updateAvailable,required TResult Function()  tourSuggestion,required TResult Function( WalletCard card,  DateTime expiresAt)  cardExpiresSoon,required TResult Function( WalletCard card)  cardExpired,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( VersionState state)  updateAvailable,required TResult Function()  tourSuggestion,required TResult Function( WalletCard card,  DateTime expiresAt)  cardExpiresSoon,required TResult Function( WalletCard card)  cardExpired,required TResult Function( WalletCard card)  cardRevoked,}) {final _that = this;
 switch (_that) {
 case UpdateAvailableBanner():
 return updateAvailable(_that.state);case TourSuggestionBanner():
 return tourSuggestion();case CardExpiresSoonBanner():
 return cardExpiresSoon(_that.card,_that.expiresAt);case CardExpiredBanner():
-return cardExpired(_that.card);}
+return cardExpired(_that.card);case CardRevokedBanner():
+return cardRevoked(_that.card);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -169,13 +174,14 @@ return cardExpired(_that.card);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( VersionState state)?  updateAvailable,TResult? Function()?  tourSuggestion,TResult? Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult? Function( WalletCard card)?  cardExpired,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( VersionState state)?  updateAvailable,TResult? Function()?  tourSuggestion,TResult? Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult? Function( WalletCard card)?  cardExpired,TResult? Function( WalletCard card)?  cardRevoked,}) {final _that = this;
 switch (_that) {
 case UpdateAvailableBanner() when updateAvailable != null:
 return updateAvailable(_that.state);case TourSuggestionBanner() when tourSuggestion != null:
 return tourSuggestion();case CardExpiresSoonBanner() when cardExpiresSoon != null:
 return cardExpiresSoon(_that.card,_that.expiresAt);case CardExpiredBanner() when cardExpired != null:
-return cardExpired(_that.card);case _:
+return cardExpired(_that.card);case CardRevokedBanner() when cardRevoked != null:
+return cardRevoked(_that.card);case _:
   return null;
 
 }
@@ -416,6 +422,81 @@ class _$CardExpiredBannerCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? card = null,}) {
   return _then(CardExpiredBanner(
+card: null == card ? _self.card : card // ignore: cast_nullable_to_non_nullable
+as WalletCard,
+  ));
+}
+
+/// Create a copy of WalletBanner
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WalletCardCopyWith<$Res> get card {
+  
+  return $WalletCardCopyWith<$Res>(_self.card, (value) {
+    return _then(_self.copyWith(card: value));
+  });
+}
+}
+
+/// @nodoc
+
+
+class CardRevokedBanner implements WalletBanner {
+  const CardRevokedBanner({required this.card});
+  
+
+ final  WalletCard card;
+
+/// Create a copy of WalletBanner
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CardRevokedBannerCopyWith<CardRevokedBanner> get copyWith => _$CardRevokedBannerCopyWithImpl<CardRevokedBanner>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardRevokedBanner&&(identical(other.card, card) || other.card == card));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,card);
+
+@override
+String toString() {
+  return 'WalletBanner.cardRevoked(card: $card)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CardRevokedBannerCopyWith<$Res> implements $WalletBannerCopyWith<$Res> {
+  factory $CardRevokedBannerCopyWith(CardRevokedBanner value, $Res Function(CardRevokedBanner) _then) = _$CardRevokedBannerCopyWithImpl;
+@useResult
+$Res call({
+ WalletCard card
+});
+
+
+$WalletCardCopyWith<$Res> get card;
+
+}
+/// @nodoc
+class _$CardRevokedBannerCopyWithImpl<$Res>
+    implements $CardRevokedBannerCopyWith<$Res> {
+  _$CardRevokedBannerCopyWithImpl(this._self, this._then);
+
+  final CardRevokedBanner _self;
+  final $Res Function(CardRevokedBanner) _then;
+
+/// Create a copy of WalletBanner
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? card = null,}) {
+  return _then(CardRevokedBanner(
 card: null == card ? _self.card : card // ignore: cast_nullable_to_non_nullable
 as WalletCard,
   ));

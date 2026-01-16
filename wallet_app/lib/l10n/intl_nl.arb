@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-01-15T10:07:57+01:00",
+    "@@last_modified": "2026-01-16T11:04:25+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -213,6 +213,26 @@
             }
         }
     },
+    "cardRevocationBannerSubtitle": "Vervang deze kaart als je hem nog nodig hebt.",
+    "cardRevocationBannerTitle": "{card} teruggenomen door uitgever",
+    "@cardRevocationBannerTitle": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardRevokedNotificationDescription": "{card} teruggenomen. Vervang deze kaart als je hem nog nodig hebt.",
+    "@cardRevokedNotificationDescription": {
+        "placeholders": {
+            "card": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
+    "cardRevokedNotificationTitle": "NL Wallet",
     "cardStatusMetadataCardDataScreenCorrupted": "Deze gegevens kunnen niet meer worden gebruikt omdat de kaart niet werkt.",
     "cardStatusMetadataCardDataScreenExpired": "Deze gegevens kunnen niet meer worden gebruikt omdat de kaart niet meer geldig is.",
     "cardStatusMetadataCardDataScreenRevoked": "Deze gegevens kunnen niet meer worden gebruikt omdat de kaart door de uitgever teruggenomen is.",

@@ -24,6 +24,7 @@ final cardExpiryWarningBanner = CardExpiresSoonBanner(
   expiresAt: DateTime.now().add(const Duration(days: 4, minutes: 1)),
 );
 final cardExpiredBanner = CardExpiredBanner(card: WalletMockData.card);
+final cardRevokedBanner = CardRevokedBanner(card: WalletMockData.card);
 
 void main() {
   // Common setup for widget pumping
@@ -86,27 +87,29 @@ void main() {
       await screenMatchesGolden('banner_list.multiple_banners_alt_order.light');
     });
 
-    testGoldens('multiple banners (expiry and expired) - light theme', (tester) async {
+    testGoldens('multiple banners (expiry, expired, revoked) - light theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [
           cardExpiredBanner,
-          CardExpiresSoonBanner(
-            card: WalletMockData.altCard,
-            expiresAt: DateTime.now().add(const Duration(days: 1, seconds: 1)),
-          ),
+          cardExpiryWarningBanner,
+          cardRevokedBanner,
         ],
-        surfaceSize: const Size(390, 200),
+        surfaceSize: const Size(390, 310),
       );
       await screenMatchesGolden('banner_list.multiple_expiry_banners.light');
     });
 
-    testGoldens('multiple banners (expiry and expired) - dark theme', (tester) async {
+    testGoldens('multiple banners (expiry, expired, revoked) - dark theme', (tester) async {
       await pumpBannerList(
         tester,
-        initialBanners: [cardExpiryWarningBanner, cardExpiredBanner],
+        initialBanners: [
+          cardExpiryWarningBanner,
+          cardExpiredBanner,
+          cardRevokedBanner,
+        ],
         brightness: Brightness.dark,
-        surfaceSize: const Size(390, 200),
+        surfaceSize: const Size(390, 310),
       );
       await screenMatchesGolden('banner_list.multiple_expiry_banners.dark');
     });

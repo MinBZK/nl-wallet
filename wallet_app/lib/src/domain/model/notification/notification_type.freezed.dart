@@ -95,12 +95,13 @@ extension NotificationTypePatterns on NotificationType {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( CardExpiresSoon value)?  cardExpiresSoon,TResult Function( CardExpired value)?  cardExpired,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( CardExpiresSoon value)?  cardExpiresSoon,TResult Function( CardExpired value)?  cardExpired,TResult Function( CardRevoked value)?  cardRevoked,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case CardExpiresSoon() when cardExpiresSoon != null:
 return cardExpiresSoon(_that);case CardExpired() when cardExpired != null:
-return cardExpired(_that);case _:
+return cardExpired(_that);case CardRevoked() when cardRevoked != null:
+return cardRevoked(_that);case _:
   return orElse();
 
 }
@@ -118,12 +119,13 @@ return cardExpired(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( CardExpiresSoon value)  cardExpiresSoon,required TResult Function( CardExpired value)  cardExpired,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( CardExpiresSoon value)  cardExpiresSoon,required TResult Function( CardExpired value)  cardExpired,required TResult Function( CardRevoked value)  cardRevoked,}){
 final _that = this;
 switch (_that) {
 case CardExpiresSoon():
 return cardExpiresSoon(_that);case CardExpired():
-return cardExpired(_that);}
+return cardExpired(_that);case CardRevoked():
+return cardRevoked(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -137,12 +139,13 @@ return cardExpired(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( CardExpiresSoon value)?  cardExpiresSoon,TResult? Function( CardExpired value)?  cardExpired,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( CardExpiresSoon value)?  cardExpiresSoon,TResult? Function( CardExpired value)?  cardExpired,TResult? Function( CardRevoked value)?  cardRevoked,}){
 final _that = this;
 switch (_that) {
 case CardExpiresSoon() when cardExpiresSoon != null:
 return cardExpiresSoon(_that);case CardExpired() when cardExpired != null:
-return cardExpired(_that);case _:
+return cardExpired(_that);case CardRevoked() when cardRevoked != null:
+return cardRevoked(_that);case _:
   return null;
 
 }
@@ -159,11 +162,12 @@ return cardExpired(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult Function( WalletCard card)?  cardExpired,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult Function( WalletCard card)?  cardExpired,TResult Function( WalletCard card)?  cardRevoked,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case CardExpiresSoon() when cardExpiresSoon != null:
 return cardExpiresSoon(_that.card,_that.expiresAt);case CardExpired() when cardExpired != null:
-return cardExpired(_that.card);case _:
+return cardExpired(_that.card);case CardRevoked() when cardRevoked != null:
+return cardRevoked(_that.card);case _:
   return orElse();
 
 }
@@ -181,11 +185,12 @@ return cardExpired(_that.card);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( WalletCard card,  DateTime expiresAt)  cardExpiresSoon,required TResult Function( WalletCard card)  cardExpired,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( WalletCard card,  DateTime expiresAt)  cardExpiresSoon,required TResult Function( WalletCard card)  cardExpired,required TResult Function( WalletCard card)  cardRevoked,}) {final _that = this;
 switch (_that) {
 case CardExpiresSoon():
 return cardExpiresSoon(_that.card,_that.expiresAt);case CardExpired():
-return cardExpired(_that.card);}
+return cardExpired(_that.card);case CardRevoked():
+return cardRevoked(_that.card);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -199,11 +204,12 @@ return cardExpired(_that.card);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult? Function( WalletCard card)?  cardExpired,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( WalletCard card,  DateTime expiresAt)?  cardExpiresSoon,TResult? Function( WalletCard card)?  cardExpired,TResult? Function( WalletCard card)?  cardRevoked,}) {final _that = this;
 switch (_that) {
 case CardExpiresSoon() when cardExpiresSoon != null:
 return cardExpiresSoon(_that.card,_that.expiresAt);case CardExpired() when cardExpired != null:
-return cardExpired(_that.card);case _:
+return cardExpired(_that.card);case CardRevoked() when cardRevoked != null:
+return cardRevoked(_that.card);case _:
   return null;
 
 }
@@ -346,6 +352,81 @@ class _$CardExpiredCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? card = null,}) {
   return _then(CardExpired(
+card: null == card ? _self.card : card // ignore: cast_nullable_to_non_nullable
+as WalletCard,
+  ));
+}
+
+/// Create a copy of NotificationType
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WalletCardCopyWith<$Res> get card {
+  
+  return $WalletCardCopyWith<$Res>(_self.card, (value) {
+    return _then(_self.copyWith(card: value));
+  });
+}
+}
+
+/// @nodoc
+
+
+class CardRevoked implements NotificationType {
+  const CardRevoked({required this.card});
+  
+
+@override final  WalletCard card;
+
+/// Create a copy of NotificationType
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CardRevokedCopyWith<CardRevoked> get copyWith => _$CardRevokedCopyWithImpl<CardRevoked>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardRevoked&&(identical(other.card, card) || other.card == card));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,card);
+
+@override
+String toString() {
+  return 'NotificationType.cardRevoked(card: $card)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CardRevokedCopyWith<$Res> implements $NotificationTypeCopyWith<$Res> {
+  factory $CardRevokedCopyWith(CardRevoked value, $Res Function(CardRevoked) _then) = _$CardRevokedCopyWithImpl;
+@override @useResult
+$Res call({
+ WalletCard card
+});
+
+
+@override $WalletCardCopyWith<$Res> get card;
+
+}
+/// @nodoc
+class _$CardRevokedCopyWithImpl<$Res>
+    implements $CardRevokedCopyWith<$Res> {
+  _$CardRevokedCopyWithImpl(this._self, this._then);
+
+  final CardRevoked _self;
+  final $Res Function(CardRevoked) _then;
+
+/// Create a copy of NotificationType
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? card = null,}) {
+  return _then(CardRevoked(
 card: null == card ? _self.card : card // ignore: cast_nullable_to_non_nullable
 as WalletCard,
   ));
