@@ -65,11 +65,18 @@ class GenericDialog extends StatelessWidget {
     description: context.l10n.finishSetupDialogDescription,
   );
 
-  /// Shows a dialog informing the user they must complete the current data transfer.
-  static Future<void> showFinishTransfer(BuildContext context) => show(
+  /// Shows a dialog informing the user they must complete the current data transfer. (source device)
+  static Future<void> showFinishTransferSource(BuildContext context) => show(
     context,
-    title: context.l10n.finishTransferDialogTitle,
-    description: context.l10n.finishTransferDialogDescription,
+    title: context.l10n.finishTransferSourceDialogTitle,
+    description: context.l10n.finishTransferSourceDialogDescription,
+  );
+
+  /// Shows a dialog informing the user they must complete the current data transfer. (destination device)
+  static Future<void> showFinishTransferDestination(BuildContext context) => show(
+    context,
+    title: context.l10n.finishTransferDestinationDialogTitle,
+    description: context.l10n.finishTransferDestinationDialogDescription,
   );
 
   /// Shows a dialog informing the user they must complete the PIN recovery flow.

@@ -73,11 +73,13 @@ class NavigationService extends AppEventListener {
   /// reason to block navigation.
   WalletDialogType? _getNavigationBlockedDialogType(WalletState state) {
     return switch (state) {
-      WalletStateUnregistered() || WalletStateEmpty() => WalletDialogType.finishSetup,
-      WalletStateTransferPossible() || WalletStateTransferring() => WalletDialogType.finishTransferring,
-      WalletStateInDisclosureFlow() => WalletDialogType.finishActiveDisclosureSession,
-      WalletStateInIssuanceFlow() => WalletDialogType.finishActiveIssuanceSession,
-      WalletStateInPinChangeFlow() || WalletStateInPinRecoveryFlow() => WalletDialogType.finishRecoverPin,
+      WalletStateUnregistered() || WalletStateEmpty() => .finishSetup,
+      WalletStateTransferPossible() => .finishTransferringDestination,
+      WalletStateTransferring(role: .source) => WalletDialogType.finishTransferringSource,
+      WalletStateTransferring(role: .target) => WalletDialogType.finishTransferringDestination,
+      WalletStateInDisclosureFlow() => .finishActiveDisclosureSession,
+      WalletStateInIssuanceFlow() => .finishActiveIssuanceSession,
+      WalletStateInPinChangeFlow() || WalletStateInPinRecoveryFlow() => .finishRecoverPin,
       WalletStateBlocked() || WalletStateLocked() || WalletStateReady() => null,
     };
   }
@@ -131,7 +133,8 @@ class NavigationService extends AppEventListener {
       WalletDialogType.finishActiveDisclosureSession => GenericDialog.showActiveDisclosureSession(context),
       WalletDialogType.finishActiveIssuanceSession => GenericDialog.showActiveIssuanceSession(context),
       WalletDialogType.finishSetup => GenericDialog.showFinishSetup(context),
-      WalletDialogType.finishTransferring => GenericDialog.showFinishTransfer(context),
+      WalletDialogType.finishTransferringSource => GenericDialog.showFinishTransferSource(context),
+      WalletDialogType.finishTransferringDestination => GenericDialog.showFinishTransferDestination(context),
       WalletDialogType.finishRecoverPin => GenericDialog.showFinishPin(context),
     };
   }
@@ -164,7 +167,8 @@ enum WalletDialogType {
   scanWithWallet,
   requestNotificationPermission,
   finishSetup,
-  finishTransferring,
+  finishTransferringSource,
+  finishTransferringDestination,
   finishActiveDisclosureSession,
   finishActiveIssuanceSession,
   finishRecoverPin,
