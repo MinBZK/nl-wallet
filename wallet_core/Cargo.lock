@@ -126,6 +126,7 @@ dependencies = [
  "num-traits",
  "nutype",
  "p256",
+ "p384",
  "rand 0.8.5",
  "rasn",
  "rcgen",

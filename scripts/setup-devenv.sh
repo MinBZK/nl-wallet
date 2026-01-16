@@ -534,8 +534,10 @@ MOCK_APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/lib/apple_a
 export MOCK_APPLE_ROOT_CA
 
 # Source: https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
-ANDROID_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_pubkey.pem" -outform DER | ${BASE64})
-export ANDROID_ROOT_PUBKEY
+ANDROID_ROOT_RSA_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_rsa_pubkey.pem" -outform DER | ${BASE64})
+export ANDROID_ROOT_RSA_PUBKEY
+ANDROID_ROOT_EC_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_ec_pubkey.pem" -outform DER | ${BASE64})
+export ANDROID_ROOT_EC_PUBKEY
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
