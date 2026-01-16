@@ -11,7 +11,7 @@ import org.junit.platform.suite.api.SuiteDisplayName
     feature.issuance.RenewCardTests::class,
     feature.issuance.DisclosureBasedIssuanceTests::class,
     feature.openapp.OpenAppTests::class,
-    feature.security.SetupRemotePinTests::class,
+    feature.security.SetupSecurityTests::class,
 )
 @Suite
 @SuiteDisplayName("Full test suite")

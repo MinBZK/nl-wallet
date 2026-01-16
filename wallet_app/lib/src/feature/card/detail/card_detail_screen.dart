@@ -106,7 +106,7 @@ class CardDetailScreen extends StatelessWidget {
     return switch (state) {
       CardDetailInitial() => _buildLoading(context),
       CardDetailLoadInProgress() => _buildLoading(context, card: state.card),
-      CardDetailLoadSuccess() => _buildDetail(context, state.detail),
+      CardDetailLoadSuccess() => _buildDetail(context, state),
       CardDetailLoadFailure() => _buildError(context, state),
     };
   }
@@ -165,9 +165,15 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetail(BuildContext context, WalletCardDetail detail) {
+  Widget _buildDetail(BuildContext context, CardDetailLoadSuccess state) {
+    final detail = state.detail;
     final card = detail.card;
-    final cardStatusMetadata = CardStatusMetadataMapper.map(context, card, CardStatusRenderType.cardDetailScreen);
+    final cardStatusMetadata = CardStatusMetadataMapper.map(
+      context,
+      card,
+      CardStatusRenderType.cardDetailScreen,
+      isPidCard: state.isPidCard,
+    );
     return SliverMainAxisGroup(
       slivers: [
         if (cardStatusMetadata != null) ...[
@@ -306,13 +312,13 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context, CardDetailState state) {
-    final showRefreshButton = tryCast<CardDetailLoadSuccess>(state)?.showRenewOption ?? false;
+    final showRenewPidButton = tryCast<CardDetailLoadSuccess>(state)?.isPidCard ?? false;
     return Column(
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         const Divider(),
-        if (showRefreshButton)
+        if (showRenewPidButton)
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 12),
             child: PrimaryButton(

@@ -450,8 +450,8 @@ render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANC
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
 # And the storage config for crate level integration test
+render_template "${DEVENV}/test_settings.toml.template" "${HEALTH_CHECKERS_DIR}/test_settings.toml"
 render_template "${DEVENV}/test_settings.toml.template" "${STATUS_LISTS_DIR}/test_settings.toml"
-render_template "${DEVENV}/test_settings.toml.template" "${SERVER_UTILS_DIR}/test_settings.toml"
 
 # Ensure the status_lists dirs exists
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
@@ -534,14 +534,6 @@ export MOCK_APPLE_ROOT_CA
 # Source: https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
 ANDROID_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_pubkey.pem" -outform DER | ${BASE64})
 export ANDROID_ROOT_PUBKEY
-
-# Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable EC_ATTEST_ROOT_CERT
-ANDROID_EMULATOR_EC_ROOT_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/android_emulator_ec_root_pubkey.pem" -outform DER | ${BASE64})
-export ANDROID_EMULATOR_EC_ROOT_PUBKEY
-
-# Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable RSA_ATTEST_ROOT_CERT
-ANDROID_EMULATOR_RSA_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/android_emulator_rsa_root_pubkey.pem" -outform DER | ${BASE64})
-export ANDROID_EMULATOR_RSA_ROOT_PUBKEY
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"

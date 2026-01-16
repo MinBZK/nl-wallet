@@ -149,6 +149,10 @@ impl StoredAttestationCopy {
         self.attestation_id
     }
 
+    pub fn attestation_copy_id(&self) -> Uuid {
+        self.attestation_copy_id
+    }
+
     /// Checks if the stored attestation matches a list of claim paths.
     pub fn matches_requested_attributes<'a, 'b>(
         &'a self,

@@ -344,12 +344,13 @@ extension NotificationTypePatterns on NotificationType {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( NotificationType_CardExpired value)?  cardExpired,TResult Function( NotificationType_CardExpiresSoon value)?  cardExpiresSoon,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( NotificationType_CardExpired value)?  cardExpired,TResult Function( NotificationType_CardExpiresSoon value)?  cardExpiresSoon,TResult Function( NotificationType_Revoked value)?  revoked,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case NotificationType_CardExpired() when cardExpired != null:
 return cardExpired(_that);case NotificationType_CardExpiresSoon() when cardExpiresSoon != null:
-return cardExpiresSoon(_that);case _:
+return cardExpiresSoon(_that);case NotificationType_Revoked() when revoked != null:
+return revoked(_that);case _:
   return orElse();
 
 }
@@ -367,12 +368,13 @@ return cardExpiresSoon(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( NotificationType_CardExpired value)  cardExpired,required TResult Function( NotificationType_CardExpiresSoon value)  cardExpiresSoon,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( NotificationType_CardExpired value)  cardExpired,required TResult Function( NotificationType_CardExpiresSoon value)  cardExpiresSoon,required TResult Function( NotificationType_Revoked value)  revoked,}){
 final _that = this;
 switch (_that) {
 case NotificationType_CardExpired():
 return cardExpired(_that);case NotificationType_CardExpiresSoon():
-return cardExpiresSoon(_that);}
+return cardExpiresSoon(_that);case NotificationType_Revoked():
+return revoked(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -386,12 +388,13 @@ return cardExpiresSoon(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( NotificationType_CardExpired value)?  cardExpired,TResult? Function( NotificationType_CardExpiresSoon value)?  cardExpiresSoon,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( NotificationType_CardExpired value)?  cardExpired,TResult? Function( NotificationType_CardExpiresSoon value)?  cardExpiresSoon,TResult? Function( NotificationType_Revoked value)?  revoked,}){
 final _that = this;
 switch (_that) {
 case NotificationType_CardExpired() when cardExpired != null:
 return cardExpired(_that);case NotificationType_CardExpiresSoon() when cardExpiresSoon != null:
-return cardExpiresSoon(_that);case _:
+return cardExpiresSoon(_that);case NotificationType_Revoked() when revoked != null:
+return revoked(_that);case _:
   return null;
 
 }
@@ -408,11 +411,12 @@ return cardExpiresSoon(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( AttestationPresentation card)?  cardExpired,TResult Function( AttestationPresentation card,  String expiresAt)?  cardExpiresSoon,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( AttestationPresentation card)?  cardExpired,TResult Function( AttestationPresentation card,  String expiresAt)?  cardExpiresSoon,TResult Function( AttestationPresentation card)?  revoked,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NotificationType_CardExpired() when cardExpired != null:
 return cardExpired(_that.card);case NotificationType_CardExpiresSoon() when cardExpiresSoon != null:
-return cardExpiresSoon(_that.card,_that.expiresAt);case _:
+return cardExpiresSoon(_that.card,_that.expiresAt);case NotificationType_Revoked() when revoked != null:
+return revoked(_that.card);case _:
   return orElse();
 
 }
@@ -430,11 +434,12 @@ return cardExpiresSoon(_that.card,_that.expiresAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( AttestationPresentation card)  cardExpired,required TResult Function( AttestationPresentation card,  String expiresAt)  cardExpiresSoon,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( AttestationPresentation card)  cardExpired,required TResult Function( AttestationPresentation card,  String expiresAt)  cardExpiresSoon,required TResult Function( AttestationPresentation card)  revoked,}) {final _that = this;
 switch (_that) {
 case NotificationType_CardExpired():
 return cardExpired(_that.card);case NotificationType_CardExpiresSoon():
-return cardExpiresSoon(_that.card,_that.expiresAt);}
+return cardExpiresSoon(_that.card,_that.expiresAt);case NotificationType_Revoked():
+return revoked(_that.card);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -448,11 +453,12 @@ return cardExpiresSoon(_that.card,_that.expiresAt);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( AttestationPresentation card)?  cardExpired,TResult? Function( AttestationPresentation card,  String expiresAt)?  cardExpiresSoon,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( AttestationPresentation card)?  cardExpired,TResult? Function( AttestationPresentation card,  String expiresAt)?  cardExpiresSoon,TResult? Function( AttestationPresentation card)?  revoked,}) {final _that = this;
 switch (_that) {
 case NotificationType_CardExpired() when cardExpired != null:
 return cardExpired(_that.card);case NotificationType_CardExpiresSoon() when cardExpiresSoon != null:
-return cardExpiresSoon(_that.card,_that.expiresAt);case _:
+return cardExpiresSoon(_that.card,_that.expiresAt);case NotificationType_Revoked() when revoked != null:
+return revoked(_that.card);case _:
   return null;
 
 }
@@ -588,6 +594,72 @@ class _$NotificationType_CardExpiresSoonCopyWithImpl<$Res>
 card: null == card ? _self.card : card // ignore: cast_nullable_to_non_nullable
 as AttestationPresentation,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class NotificationType_Revoked extends NotificationType {
+  const NotificationType_Revoked({required this.card}): super._();
+  
+
+@override final  AttestationPresentation card;
+
+/// Create a copy of NotificationType
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$NotificationType_RevokedCopyWith<NotificationType_Revoked> get copyWith => _$NotificationType_RevokedCopyWithImpl<NotificationType_Revoked>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType_Revoked&&(identical(other.card, card) || other.card == card));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,card);
+
+@override
+String toString() {
+  return 'NotificationType.revoked(card: $card)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $NotificationType_RevokedCopyWith<$Res> implements $NotificationTypeCopyWith<$Res> {
+  factory $NotificationType_RevokedCopyWith(NotificationType_Revoked value, $Res Function(NotificationType_Revoked) _then) = _$NotificationType_RevokedCopyWithImpl;
+@override @useResult
+$Res call({
+ AttestationPresentation card
+});
+
+
+
+
+}
+/// @nodoc
+class _$NotificationType_RevokedCopyWithImpl<$Res>
+    implements $NotificationType_RevokedCopyWith<$Res> {
+  _$NotificationType_RevokedCopyWithImpl(this._self, this._then);
+
+  final NotificationType_Revoked _self;
+  final $Res Function(NotificationType_Revoked) _then;
+
+/// Create a copy of NotificationType
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? card = null,}) {
+  return _then(NotificationType_Revoked(
+card: null == card ? _self.card : card // ignore: cast_nullable_to_non_nullable
+as AttestationPresentation,
   ));
 }
 

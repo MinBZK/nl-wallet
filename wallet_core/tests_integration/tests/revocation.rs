@@ -1,8 +1,6 @@
 use std::time::Duration;
 
 use assert_matches::assert_matches;
-use sea_orm::prelude::Uuid;
-use serde::Deserialize;
 use serial_test::serial;
 
 use attestation_data::issuable_document::IssuableDocument;
@@ -11,17 +9,12 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
+use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::verification::verifier::RevocationStatus;
 use wallet::AttestationPresentation;
 use wallet::errors::DisclosureError;
 
 use tests_integration::common::*;
-
-#[derive(Deserialize)]
-struct Batch {
-    batch_id: Uuid,
-    is_revoked: bool,
-}
 
 #[tokio::test]
 #[serial(hsm)]
@@ -140,7 +133,7 @@ async fn revoke_all_attestations(internal_url: BaseUrl) {
         .send()
         .await
         .unwrap()
-        .json::<Vec<Batch>>()
+        .json::<Vec<BatchIsRevoked>>()
         .await
         .unwrap();
 

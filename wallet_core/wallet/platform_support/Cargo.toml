@@ -56,7 +56,6 @@ mock_utils = ["dep:tokio"]
 mock = ["mock_attested_key", "mock_hw_keystore", "mock_utils"]
 # Enable helper code for iOS and Android integration tests
 hardware_integration_test = [
-    "android_attest/allow_emulator_keys",
     "apple_app_attest/xcode_env",
     "dep:android_attest",
     "dep:android_logger",
@@ -68,6 +67,12 @@ hardware_integration_test = [
     "tokio/fs",
     "tokio/io-util",
     "tokio/rt",
+]
+# Enable helper code to run hardware integration test against an Android emulator
+emulator_integration_test = [
+    "android_attest/allow_emulator_keys",
+    "android_attest/skip_root_key_check",
+    "hardware_integration_test"
 ]
 
 [dependencies]

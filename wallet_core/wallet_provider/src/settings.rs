@@ -9,6 +9,8 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use crypto::server_keys::KeyPair;
+use crypto::x509::CertificateError;
 use derive_more::From;
 use derive_more::Into;
 use serde::Deserialize;
@@ -22,15 +24,14 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificate;
+use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
-use server_utils::settings::KeyPair;
-use server_utils::settings::PrivateKey;
 use status_lists::config::StatusListConfig;
-use status_lists::config::StatusListConfigError;
 use status_lists::publish::PublishDir;
+use status_lists::settings::ExpiryLessThanTtl;
 use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -222,30 +223,26 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
     }
 }
 
-impl WuaStatusListsSettings {
-    pub async fn into_config(self, hsm: Pkcs11Hsm) -> Result<StatusListConfig, StatusListConfigError> {
-        let (expiry, ttl) = self.list_settings.expiry_ttl()?;
-        let key_pair = KeyPair {
-            certificate: self.key_certificate,
-            private_key: PrivateKey::Hsm {
-                private_key: self.key_identifier,
-            },
-        }
-        .parse(Some(hsm))
-        .await?;
+#[derive(Debug, thiserror::Error)]
+pub enum WuaStatusListsSettingsError {
+    #[error("incorrectly configured WUA expiration: {0}")]
+    ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
-        Ok(StatusListConfig {
-            list_size: self.list_settings.list_size,
-            create_threshold: self
-                .list_settings
-                .create_threshold_ratio
-                .of_nonzero_u31(self.list_settings.list_size),
-            expiry,
-            refresh_threshold: self.list_settings.refresh_threshold_ratio.of_duration(expiry),
-            ttl,
-            base_url: self.base_url,
-            publish_dir: self.publish_dir,
-            key_pair,
-        })
+    #[error("incorrectly configured WUA status list key identifier or certificate: {0}")]
+    PrivateKey(#[from] CertificateError),
+}
+
+impl WuaStatusListsSettings {
+    pub async fn into_config(
+        self,
+        hsm: Pkcs11Hsm,
+    ) -> Result<StatusListConfig<HsmEcdsaKey>, WuaStatusListsSettingsError> {
+        let key_pair = KeyPair::new(HsmEcdsaKey::new(self.key_identifier, hsm), self.key_certificate).await?;
+
+        let config = self
+            .list_settings
+            .to_config(self.base_url, self.publish_dir, key_pair)?;
+
+        Ok(config)
     }
 }

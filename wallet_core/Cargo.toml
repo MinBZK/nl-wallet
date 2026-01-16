@@ -15,6 +15,7 @@ members = [
     "lib/dcql",
     "lib/error_category",
     "lib/error_category/error_category_derive",
+    "lib/health_checkers",
     "lib/hsm",
     "lib/http_utils",
     "lib/jwt",
@@ -24,6 +25,8 @@ members = [
     "lib/openid4vc_server",
     "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
+    "lib/status_lists",
+    "lib/status_lists/migrations",
     "lib/token_status_list",
     "lib/utils",
     "lib/wscd",
@@ -51,8 +54,6 @@ members = [
     "wallet_server/pid_issuer/migrations",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
-    "wallet_server/status_lists",
-    "wallet_server/status_lists/migrations",
     "wallet_server/verification_server",
     "wallet_server/verification_server/migrations",
 ]
@@ -70,6 +71,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 
 [workspace.lints.clippy]
 allow_attributes = "deny"
+cast_lossless = "warn"
 cloned_instead_of_copied = "warn"
 expl_impl_clone_on_copy = "warn"
 explicit_into_iter_loop = "warn"

@@ -46,6 +46,8 @@
 | 3.3a    | Case: User has not obtained PID                                                                                   | Resume<sup>3</sup>                                          |
 | **3.4** | **System executes partial flow [PF2.7 Resolve a universal link](../partial-flows/PF2.7_ResolveUniversalLink.md)** |                                                             |
 | 3.4a    | Result: No (valid) universal link                                                                                 | Resume<sup>3</sup>                                          |
+| 3.4b    | Result: Wallet rejects universal link                                                                             | Resume<sup>3</sup>                                          |
+
 <div class="table-notes">1. We use the iOS terminology 'launch' to that no process was active when opening the app. In Android, this matches the 'cold startup' or 'warm startup' processes. Even without an active process, some resources may already be loaded into memory.</div>
 <div class="table-notes">2. We use the iOS terminology 'resume' to that the app process was already active when opening the app. In Android, this matches the 'hot startup' process.</div>
 <div class="table-notes">3. Resume the state when the app backgrounded/suspended.</div>

@@ -48,6 +48,7 @@ use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
 use issuer_settings::settings::IssuerSettings;
+use issuer_settings::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -62,6 +63,7 @@ use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::Server;
 use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
@@ -69,7 +71,6 @@ use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
-use status_lists::config::StatusListConfigs;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::serve::create_serve_router;
 use status_lists::settings::StatusListsSettings;
@@ -645,8 +646,8 @@ async fn get_status_list_service_and_router(
     storage_url: Url,
     issuer_settings: &IssuerSettings,
     status_lists_settings: &StatusListsSettings,
-    hsm: &Option<Pkcs11Hsm>,
-) -> (Router, PostgresStatusListServices) {
+    hsm: Option<Pkcs11Hsm>,
+) -> (Router, PostgresStatusListServices<PrivateKeyVariant>) {
     let db_connection = new_connection(storage_url).await.unwrap();
 
     let status_list_router = create_serve_router(
@@ -662,12 +663,14 @@ async fn get_status_list_service_and_router(
     )
     .unwrap();
 
-    let status_list_configs = StatusListConfigs::from_settings(
-        &issuer_settings.server_settings.public_url,
+    let status_list_configs = StatusListAttestationSettings::settings_into_configs(
+        issuer_settings
+            .attestation_settings
+            .as_ref()
+            .iter()
+            .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
         status_lists_settings,
-        (&issuer_settings.attestation_settings)
-            .into_iter()
-            .map(|(id, settings)| (id.to_owned(), settings.status_list.clone())),
+        &issuer_settings.server_settings.public_url,
         hsm,
     )
     .await
@@ -739,7 +742,7 @@ pub async fn start_issuance_server(
         storage_settings.url.clone(),
         &settings.issuer_settings,
         &settings.status_lists,
-        &hsm,
+        hsm.clone(),
     )
     .await;
     let status_list_client = HttpStatusListClient::new().unwrap();
@@ -805,7 +808,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         storage_settings.url.clone(),
         &settings.issuer_settings,
         &settings.status_lists,
-        &hsm,
+        hsm.clone(),
     )
     .await;
 
@@ -999,11 +1002,11 @@ pub async fn do_degree_issuance(
         .unwrap();
 
     let attestation_previews = wallet
-        .continue_disclosure_based_issuance(&[0], pin.to_owned())
+        .continue_disclosure_based_issuance(&[0], pin.clone())
         .await
         .unwrap();
 
-    wallet.accept_issuance(pin.to_owned()).await.unwrap();
+    wallet.accept_issuance(pin).await.unwrap();
 
     attestation_previews
 }

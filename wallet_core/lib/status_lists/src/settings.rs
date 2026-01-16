@@ -6,10 +6,10 @@ use serde::Deserialize;
 use url::Url;
 
 use http_utils::urls::BaseUrl;
-use server_utils::settings::KeyPair;
 use utils::num::NonZeroU31;
 use utils::num::Ratio;
 
+use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -39,12 +39,33 @@ pub struct ExpiryLessThanTtl {
 }
 
 impl StatusListsSettings {
-    pub fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTtl> {
-        let expiry = Duration::from_secs(self.expiry_in_hours.get() as u64 * 3600);
+    pub fn to_config<K>(
+        &self,
+        base_url: BaseUrl,
+        publish_dir: PublishDir,
+        key_pair: crypto::server_keys::KeyPair<K>,
+    ) -> Result<StatusListConfig<K>, ExpiryLessThanTtl> {
+        let (expiry, ttl) = self.expiry_ttl()?;
+
+        let config = StatusListConfig {
+            list_size: self.list_size,
+            create_threshold: self.create_threshold_ratio.of_nonzero_u31(self.list_size),
+            expiry,
+            refresh_threshold: self.refresh_threshold_ratio.of_duration(expiry),
+            ttl,
+            base_url,
+            publish_dir,
+            key_pair,
+        };
+
+        Ok(config)
+    }
+
+    fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTtl> {
+        let expiry = Duration::from_secs(u64::from(self.expiry_in_hours.get()) * 3600);
         let ttl = self
-            .ttl_in_minutes
+            .ttl()
             .map(|ttl| {
-                let ttl = Duration::from_secs(ttl.get() as u64 * 60);
                 if expiry < ttl {
                     return Err(ExpiryLessThanTtl { expiry, ttl });
                 }
@@ -56,27 +77,10 @@ impl StatusListsSettings {
 
     pub fn ttl(&self) -> Option<Duration> {
         self.ttl_in_minutes
-            .map(|ttl| Duration::from_secs(ttl.get() as u64 * 60))
+            .map(|ttl| Duration::from_secs(u64::from(ttl.get()) * 60))
     }
 }
 
 fn default_serve() -> bool {
     true
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct StatusListAttestationSettings {
-    /// Base url for the status list if different from public url of the server
-    pub base_url: Option<BaseUrl>,
-
-    /// Context path for the status list joined with base_url, also used for serving
-    pub context_path: String,
-
-    /// Path to directory for the published status list
-    pub publish_dir: PublishDir,
-
-    /// Key pair to sign status list
-    #[serde(flatten)]
-    #[debug(skip)]
-    pub keypair: KeyPair,
 }

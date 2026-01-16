@@ -1,8 +1,5 @@
-use std::sync::LazyLock;
-
 use tokio::runtime;
 
-use android_attest::root_public_key::EMULATOR_PUBKEYS;
 use android_attest::root_public_key::GOOGLE_ROOT_PUBKEYS;
 use apple_app_attest::APPLE_TRUST_ANCHORS;
 use apple_app_attest::AppIdentifier;
@@ -30,11 +27,7 @@ extern "C" fn attested_key_test(has_xcode_env: bool) {
                 })
             })
             .unwrap_or(TestData::Android(AndroidTestData {
-                root_public_keys: LazyLock::force(&GOOGLE_ROOT_PUBKEYS)
-                    .iter()
-                    .chain(LazyLock::force(&EMULATOR_PUBKEYS))
-                    .cloned()
-                    .collect(),
+                root_public_keys: GOOGLE_ROOT_PUBKEYS.clone(),
             }));
 
         let rt = runtime::Builder::new_current_thread().enable_all().build().unwrap();

@@ -7,7 +7,6 @@ use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use ring::hmac::HMAC_SHA256;
 
-use crypto::keys::EcdsaKey;
 use crypto::keys::EcdsaKeySend;
 use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
@@ -39,14 +38,14 @@ impl EcdsaKeySend for PrivateKeyVariant {
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         let verifying_key = match self {
             PrivateKeyVariant::Software(signing_key) => EcdsaKeySend::verifying_key(signing_key).await?,
-            PrivateKeyVariant::Hsm(hsm_key) => hsm_key.verifying_key().await?,
+            PrivateKeyVariant::Hsm(hsm_key) => EcdsaKeySend::verifying_key(hsm_key).await?,
         };
         Ok(verifying_key)
     }
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         let signature = match self {
             PrivateKeyVariant::Software(signing_key) => EcdsaKeySend::try_sign(signing_key, msg).await?,
-            PrivateKeyVariant::Hsm(hsm_key) => hsm_key.try_sign(msg).await?,
+            PrivateKeyVariant::Hsm(hsm_key) => EcdsaKeySend::try_sign(hsm_key, msg).await?,
         };
         Ok(signature)
     }
@@ -128,21 +127,5 @@ impl SecretKeyVariant {
             }
         };
         Ok(key)
-    }
-}
-
-#[cfg(feature = "test")]
-pub mod test {
-    use crypto::server_keys::KeyPair;
-
-    use super::*;
-
-    pub async fn private_key_variant(pair: KeyPair<SigningKey>) -> KeyPair<PrivateKeyVariant> {
-        KeyPair::new(
-            PrivateKeyVariant::Software(pair.private_key().clone()),
-            pair.certificate().clone(),
-        )
-        .await
-        .unwrap()
     }
 }

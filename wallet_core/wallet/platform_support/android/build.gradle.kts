@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import net.razvan.JacocoToCoberturaPlugin
 import net.razvan.JacocoToCoberturaTask
+import java.io.ByteArrayOutputStream
 
 plugins {
     id("com.android.library")
@@ -110,13 +111,13 @@ tasks.register<JacocoReport>("jacocoReport") {
         xml.required = true
         xml.outputLocation = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
     }
-    finalizedBy("coberturaReport")
 }
 tasks.register<JacocoToCoberturaTask>("coberturaReport").configure {
     // Connect via jacocoReport does not work: https://github.com/gradle/gradle/issues/6619
     inputFile = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
     outputFile = file("${inputFile.get()}/../cobertura.xml")
     splitByPackage = false
+    finalizedBy("coberturaReport")
 }
 
 tasks.named<JacocoToCoberturaTask>(JacocoToCoberturaPlugin.TASK_NAME) {
@@ -151,6 +152,26 @@ dependencies {
 val jniTargetDir = android.sourceSets.getByName("main").jniLibs.srcDirs.first()
 val moduleWorkingDir = file("${project.projectDir}/../")
 val bindingsTargetDir = "$moduleWorkingDir/kotlin"
+var integrationTestFeature = "hardware_integration_test"
+
+// Register a task to determine emulator or real device
+tasks.register<Exec>("determineEmulator") {
+    executable = "adb"
+    args("devices")
+    standardOutput = ByteArrayOutputStream()
+    doLast {
+        if (Regex("^emulator", RegexOption.MULTILINE).find(standardOutput.toString()) != null) {
+            logger.warn("Using emulator integration test features")
+            logger.info("This will allow Software security level")
+            logger.info("and skip the root certificate public key check")
+            integrationTestFeature = "emulator_integration_test"
+        } else {
+            logger.info("Using hardware integration test feature")
+            logger.info("Only allow TEE or Strongbox keys")
+            logger.info("and check against the configured root public keys")
+        }
+    }
+}
 
 // Register a task to generate Kotlin bindings
 tasks.register<Exec>("cargoBuildNativeBindings") {
@@ -165,7 +186,7 @@ tasks.register<Exec>("cargoBuildNativeBindings") {
 enum class BuildMode { Debug, Profile, Release }
 data class BuildOptions(val args: List<String> = emptyList())
 mapOf(
-    BuildMode.Debug to BuildOptions(args=listOf("--features", "hardware_integration_test")),
+    BuildMode.Debug to BuildOptions(),
     BuildMode.Profile to BuildOptions(args=listOf("--locked", "--release")),
     BuildMode.Release to BuildOptions(args=listOf("--locked", "--release")),
 ).forEach { (buildMode, options) ->
@@ -181,6 +202,14 @@ mapOf(
         args("-o", jniTargetDir)
         args("build")
         args(options.args)
+        if (buildMode == BuildMode.Debug) {
+            dependsOn("determineEmulator")
+        }
+        doFirst {
+            if (buildMode == BuildMode.Debug) {
+                args("--features", integrationTestFeature)
+            }
+        }
     }
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
         dependsOn("cargoBuildNativeLibrary${buildMode}")
