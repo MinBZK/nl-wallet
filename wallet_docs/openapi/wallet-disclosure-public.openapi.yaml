@@ -47,7 +47,7 @@ paths:
             application/json:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionStatus'
-        404:
+        '404':
           description: No session status object found with the provided session_token
           content:
             application/json:
@@ -56,11 +56,11 @@ paths:
     delete:
       summary: Cancel a session
       responses:
-        204:
+        '204':
           description: Succesfully cancelled session
-        400:
+        '400':
           description: Attempted to cancel an already cancelled or expired session
-        404:
+        '404':
           description: Attempted to cancel a non-existing session
 
   /disclosure/sessions/{session_token}/request_uri:
@@ -97,13 +97,13 @@ paths:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/WalletNonce'
       responses:
-        200:
+        '200':
           description: An oauth authz response
           content:
             application/oauth-authz-req+jwt:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/OauthAuthzData'
-        404:
+        '404':
           description: No session status object found with the provided session_token
           content:
             application/json:
@@ -126,13 +126,13 @@ paths:
             schema:
               $ref: 'wallet-components.openapi.yaml#/components/schemas/VpToken'
       responses:
-        200:
+        '200':
           description: A redirect object
           content:
             application/json:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/RedirectObject'
-        404:
+        '404':
           description: No session status object found with the provided session_token
           content:
             application/json:

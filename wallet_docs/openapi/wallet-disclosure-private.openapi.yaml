@@ -75,13 +75,13 @@ paths:
             application/json:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/DisclosedAttestations'
-        400:
+        '400':
           description: Session is not in the required state
           content:
             application/json:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
-        404:
+        '404':
           description: Unknown session
           content:
             application/json:
