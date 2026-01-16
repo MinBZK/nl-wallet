@@ -25,12 +25,12 @@ network_test = []
 serialize_key_attestation = ["bytes/serde", "dep:cfg_eval", "dep:serde_repr"]
 # Skip checking root key of the chain. This allows for generated root keys of emulators.
 skip_root_key_check = ["dep:tracing"]
+test_root_keys = ["dep:const-decoder"]
 
 [dependencies]
 bitflags.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["now"] }
-const-decoder.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
 gcloud-auth.workspace = true
@@ -60,6 +60,7 @@ x509-parser.workspace = true
 
 bytes = { workspace = true, optional = true }
 cfg_eval = { workspace = true, optional = true }
+const-decoder = { workspace = true, optional = true }
 der = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
