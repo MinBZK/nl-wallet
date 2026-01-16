@@ -26,6 +26,7 @@ use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use wallet_provider_domain::model::wallet_user::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_persistence::PersistenceConnection;
@@ -162,6 +163,10 @@ async fn verify_revocation(
         else {
             panic!("Wallet user should have been found");
         };
+        assert_eq!(
+            wallet_user.state == WalletUserState::Revoked,
+            expected_revocation_reason.is_some()
+        );
         assert_eq!(wallet_user.revocation_reason, expected_revocation_reason);
         assert_eq!(
             wallet_user.revocation_date_time.is_some(),

@@ -684,6 +684,10 @@ where
 {
     wallet_user::Entity::update_many()
         .col_expr(
+            wallet_user::Column::State,
+            Expr::value(WalletUserState::Revoked.to_string()),
+        )
+        .col_expr(
             wallet_user::Column::RevocationReason,
             Expr::value(revocation_reason.to_string()),
         )
