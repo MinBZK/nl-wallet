@@ -870,6 +870,7 @@ mod tests {
                 }),
                 KeyHolderType::Google { ca_chain } => TestData::Android(AndroidTestData {
                     root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone())],
+                    google_cloud_project_number: 0,
                 }),
             }
         }
