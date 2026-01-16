@@ -49,7 +49,6 @@ mod android {
     }
 }
 
-#[cfg(target_os = "ios")]
 mod ios {
     use apple_app_attest::APPLE_TRUST_ANCHORS;
     use apple_app_attest::AppIdentifier;

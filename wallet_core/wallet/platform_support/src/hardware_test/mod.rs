@@ -1,4 +1,3 @@
-#[cfg(any(target_os = "android", target_os = "ios"))]
 pub mod attested_key;
 pub mod hw_keystore;
 pub mod utils;
