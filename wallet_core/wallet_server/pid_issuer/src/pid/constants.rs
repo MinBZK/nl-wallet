@@ -1,7 +1,6 @@
-pub const ROOT_PID_ATTESTATION_TYPE: &str = "urn:example:pid:1";
+pub const EUDI_PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:1";
 
-pub const PID_ATTESTATION_TYPE: &str = "urn:example:pid:nl:1";
-pub const ADDRESS_ATTESTATION_TYPE: &str = "urn:example:pid-address:nl:1";
+pub const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
 
 pub const PID_FAMILY_NAME: &str = "family_name";
 pub const PID_GIVEN_NAME: &str = "given_name";

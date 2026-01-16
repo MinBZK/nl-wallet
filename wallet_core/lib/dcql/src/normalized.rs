@@ -329,8 +329,8 @@ impl From<SdJwtAttributeRequest> for ClaimsQuery {
 pub mod mock {
     use itertools::Itertools;
 
-    use attestation_types::pid_constants::EUDI_PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
@@ -464,7 +464,7 @@ pub mod mock {
         pub fn new_mock_sd_jwt_eu_pid_example() -> Self {
             Self::new_mock_sd_jwt(
                 "mock_sd_jwt_example",
-                &[EUDI_PID_ATTESTATION_TYPE],
+                &[ROOT_PID_ATTESTATION_TYPE],
                 &[&["given_name"], &["family_name"]],
             )
         }

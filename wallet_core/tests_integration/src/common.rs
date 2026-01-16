@@ -60,7 +60,6 @@ use openid4vc::token::TokenRequest;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use pid_issuer::pid::mock::MockAttributeService;
-use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
@@ -577,12 +576,7 @@ pub fn pid_issuer_settings() -> (PidIssuerSettings, VecNonEmpty<IssuableDocument
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (
-        settings,
-        vec![mock_issuable_document_pid(), mock_issuable_document_address()]
-            .try_into()
-            .unwrap(),
-    )
+    (settings, vec![mock_issuable_document_pid()].try_into().unwrap())
 }
 
 pub fn issuance_server_settings() -> (
@@ -920,7 +914,7 @@ pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl Iterator<Ite
         }
     })
     .await
-    .unwrap();
+    .expect("Server not up: {base_url}");
 }
 
 pub fn gba_hc_converter_settings() -> GbaSettings {

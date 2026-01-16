@@ -16,7 +16,7 @@ test = ["attestation_types/mock", "crypto/generate", "crypto/mock", "dep:regex",
 mock = []
 # Include example based constructors to several types for testing
 mock_example_constructors = [
-    "attestation_types/pid_constants",
+    "attestation_types/test_pid_constants",
     "crypto/examples",
     "examples",
     "sd_jwt_vc_metadata/example_constructors",
@@ -69,7 +69,7 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-attestation_types = { path = "../attestation_types", features = ["mock", "pid_constants"] }
+attestation_types = { path = "../attestation_types", features = ["mock", "test_pid_constants"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 token_status_list = { path = "../token_status_list", features = ["mock"] }

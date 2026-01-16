@@ -1,5 +1,5 @@
 {
-  "vct": "urn:eudi:pid:1",
+  "vct": "urn:example:pid:1",
   "name": "PID credential",
   "description": "Working version of the PID credential",
   "display": [

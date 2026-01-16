@@ -1,5 +1,5 @@
 {
-  "vct": "urn:eudi:pid:nl:1",
+  "vct": "urn:example:pid:nl:1",
   "name": "NL Wallet PID credential",
   "description": "Working version of the NL Wallet PID credential",
   "display": [

@@ -1987,7 +1987,7 @@ mod tests {
 
     #[test]
     fn extract_recovery_code_unknown_attestation_type() {
-        let attestation_type = "urn:eudi:pid:nl:0".to_string();
+        let attestation_type = "urn:example:pid:nl:0".to_string();
         let config = RecoveryCodeConfig(
             [(
                 attestation_type,

@@ -73,7 +73,7 @@ use crate::attestation::mock::EmptyPresentationConfig;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
-use crate::config::default_wallet_config;
+use crate::config::test::test_wallet_config;
 use crate::digid::MockDigidClient;
 use crate::pin::key as pin_key;
 use crate::storage::KeyData;
@@ -300,7 +300,7 @@ fn create_wallet_configuration() -> WalletConfiguration {
     // Override public key material in the `Configuration`.
     let keys = LazyLock::force(&ACCOUNT_SERVER_KEYS);
 
-    let mut config = default_wallet_config();
+    let mut config = test_wallet_config();
 
     config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
     config.account_server.instruction_result_public_key = (*keys.instruction_result_signing_key.verifying_key()).into();

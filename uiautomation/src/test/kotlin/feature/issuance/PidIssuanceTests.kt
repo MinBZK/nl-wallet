@@ -121,7 +121,7 @@ class PidIssuanceTests : TestBase() {
         assertAll(
             { assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible") },
             { assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible") },
-            { assertTrue(personalizeSuccessScreen.cardsVisible(), "cards not visible") }
+            { assertTrue(personalizeSuccessScreen.cardVisible(), "card not visible") }
         )
 
         personalizeSuccessScreen.clickNextButton()

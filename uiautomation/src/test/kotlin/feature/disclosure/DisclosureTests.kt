@@ -238,7 +238,7 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
         )
-        disclosureScreen.viewSharedData("4", tasData.getPidDisplayName())
+        disclosureScreen.viewSharedData("7", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
         disclosureScreen.goBack()
         disclosureScreen.readTerms()

@@ -19,6 +19,7 @@ async fn setup_wallet_provider() -> (Client, BaseUrl) {
     let url = format!("https://localhost:{}", port).parse().unwrap();
     (client, url)
 }
+
 #[tokio::test]
 async fn test_wallet_provider_health() {
     let (client, url) = setup_wallet_provider().await;

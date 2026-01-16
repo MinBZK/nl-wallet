@@ -118,7 +118,7 @@ attestation_data = { path = "../attestation_data", features = [
     "example_credential_payloads",
     "test_credential",
 ] }
-attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }
 crypto = { path = "../crypto", features = ["examples"] }
 dcql = { path = "../dcql", features = ["mock"] }
 http.workspace = true

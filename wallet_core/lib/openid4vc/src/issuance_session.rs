@@ -1298,7 +1298,7 @@ mod tests {
         assert_matches!(
             error,
             IssuanceSessionError::UnsupportedCredentialFormat(attestation_type, formats)
-                if attestation_type == "urn:eudi:pid:nl:1" && formats == HashSet::from([Format::JwtVc, Format::AcVc])
+                if attestation_type == PID_ATTESTATION_TYPE && formats == HashSet::from([Format::JwtVc, Format::AcVc])
         );
     }
 
@@ -1611,7 +1611,7 @@ mod tests {
     fn test_accept_issuance_credential_payload_error() {
         let (signer, preview_data) = MockCredentialSigner::from_metadata_and_payload_with_preview_data(
             TypeMetadata::example_with_claim_name(
-                "urn:eudi:pid:nl:1",
+                PID_ATTESTATION_TYPE,
                 "family_name",
                 JsonSchemaPropertyType::String,
                 None,

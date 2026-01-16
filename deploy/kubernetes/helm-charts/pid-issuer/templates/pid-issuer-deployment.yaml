@@ -57,12 +57,6 @@ spec:
             - name: metadata
               mountPath: /eudi:pid:nl:1.json
               subPath: eudi_pid_nl_1.json
-            - name: metadata
-              mountPath: /eudi:pid-address:1.json
-              subPath: eudi_pid-address_1.json
-            - name: metadata
-              mountPath: /eudi:pid-address:nl:1.json
-              subPath: eudi_pid-address_nl_1.json
             - name: status-lists
               mountPath: /status-lists
           env:
@@ -97,7 +91,7 @@ spec:
                   name: nl-wallet-pid-issuer-wua-issuer-pubkey
                   key: wua_issuer_pubkey
             - name: PID_ISSUER__METADATA
-              value: "eudi:pid:1.json,eudi:pid:nl:1.json,eudi:pid-address:1.json,eudi:pid-address:nl:1.json"
+              value: "eudi:pid:1.json,eudi:pid:nl:1.json"
             - name: PID_ISSUER__STORAGE__URL
               valueFrom:
                 secretKeyRef:

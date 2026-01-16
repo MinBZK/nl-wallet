@@ -55,7 +55,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 url = { workspace = true, features = ["serde"] }
 
 attestation_data = { path = "../../lib/attestation_data" }
-attestation_types = { path = "../../lib/attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../../lib/attestation_types" }
 crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
 health_checkers.path = "../../lib/health_checkers"

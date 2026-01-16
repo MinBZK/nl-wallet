@@ -4,11 +4,11 @@ use assert_matches::assert_matches;
 use serial_test::serial;
 
 use attestation_data::issuable_document::IssuableDocument;
-use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use dcql::CredentialFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
+use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::verification::verifier::RevocationStatus;
 use wallet::AttestationPresentation;

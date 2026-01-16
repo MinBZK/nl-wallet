@@ -11,11 +11,11 @@ workspace = true
 doctest = false
 
 [features]
-examples = ["attestation_types/pid_constants"]
+examples = ["attestation_types/test_pid_constants"]
 example_credential_payloads = ["dep:rand_core"]
 generate = ["crypto/generate", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 mock = [
-    "attestation_types/pid_constants",
+    "attestation_types/test_pid_constants",
     "crypto/mock",
     "dep:rand_core",
     "derive_more/into",
@@ -70,7 +70,7 @@ serde_valid.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
-attestation_types = { path = "../attestation_types", features = ["pid_constants"] }
+attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }
 crypto = { path = "../crypto", features = ["generate", "mock"] }
 dcql = { path = "../dcql", features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", features = ["examples"] }

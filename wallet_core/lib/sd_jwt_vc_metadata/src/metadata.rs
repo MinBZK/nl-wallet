@@ -574,14 +574,8 @@ mod example_constructors {
     use crypto::utils::random_string;
 
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
-    use crate::examples::EUDI_PID_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
-    use crate::examples::EXAMPLE_V2_METADATA_BYTES;
-    use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
-    use crate::examples::SD_JWT_VC_SPEC_METADATA_BYTES;
-    use crate::examples::SIMPLE_EMBEDDED_METADATA_BYTES;
-    use crate::examples::SIMPLE_REMOTE_METADATA_BYTES;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
@@ -661,41 +655,16 @@ mod example_constructors {
             }
         }
 
-        pub fn example() -> Self {
+        pub(crate) fn example() -> Self {
             serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
-        }
-
-        pub fn example_v2() -> Self {
-            serde_json::from_slice(EXAMPLE_V2_METADATA_BYTES).unwrap()
-        }
-
-        pub fn example_v3() -> Self {
-            serde_json::from_slice(EXAMPLE_V3_METADATA_BYTES).unwrap()
         }
 
         pub fn pid_example() -> Self {
             serde_json::from_slice(PID_METADATA_BYTES).unwrap()
         }
 
-        pub fn eudi_pid_example() -> Self {
-            serde_json::from_slice(EUDI_PID_METADATA_BYTES).unwrap()
-        }
-
-        pub fn sd_jwt_vc_spec_example() -> Self {
-            serde_json::from_slice(SD_JWT_VC_SPEC_METADATA_BYTES).unwrap()
-        }
-
         pub fn credential_payload_sd_jwt_metadata() -> Self {
             serde_json::from_slice(CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES).unwrap()
-        }
-
-        pub fn simple_embedded_example() -> Self {
-            serde_json::from_slice(SIMPLE_EMBEDDED_METADATA_BYTES).unwrap()
-        }
-
-        pub fn simple_remote_example() -> serde_json::Error {
-            // Explicitly unsupported at the moment, hence the error return
-            serde_json::from_slice::<Self>(SIMPLE_REMOTE_METADATA_BYTES).unwrap_err()
         }
     }
 
@@ -727,24 +696,8 @@ mod example_constructors {
             TypeMetadata::try_new(UncheckedTypeMetadata::example_with_claim_names(attestation_type, names)).unwrap()
         }
 
-        pub fn example() -> Self {
-            Self::try_new(UncheckedTypeMetadata::example()).unwrap()
-        }
-
-        pub fn example_v2() -> Self {
-            Self::try_new(UncheckedTypeMetadata::example_v2()).unwrap()
-        }
-
-        pub fn example_v3() -> Self {
-            Self::try_new(UncheckedTypeMetadata::example_v3()).unwrap()
-        }
-
         pub fn pid_example() -> Self {
             Self::try_new(UncheckedTypeMetadata::pid_example()).unwrap()
-        }
-
-        pub fn simple_embedded_example() -> Self {
-            Self::try_new(UncheckedTypeMetadata::simple_embedded_example()).unwrap()
         }
     }
 
@@ -791,10 +744,51 @@ mod test {
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
-    use crate::examples::RED_DOT_BYTES;
-    use crate::examples::VCT_EXAMPLE_CREDENTIAL;
+    use crate::examples::test::EXAMPLE_V2_METADATA_BYTES;
+    use crate::examples::test::EXAMPLE_V3_METADATA_BYTES;
+    use crate::examples::test::RED_DOT_BYTES;
+    use crate::examples::test::SIMPLE_EMBEDDED_METADATA_BYTES;
+    use crate::examples::test::SIMPLE_REMOTE_METADATA_BYTES;
+    use crate::examples::test::VCT_EXAMPLE_CREDENTIAL;
 
     use super::*;
+
+    impl UncheckedTypeMetadata {
+        pub(crate) fn example_v2() -> Self {
+            serde_json::from_slice(EXAMPLE_V2_METADATA_BYTES).unwrap()
+        }
+
+        pub(crate) fn example_v3() -> Self {
+            serde_json::from_slice(EXAMPLE_V3_METADATA_BYTES).unwrap()
+        }
+
+        pub(crate) fn simple_embedded_example() -> Self {
+            serde_json::from_slice(SIMPLE_EMBEDDED_METADATA_BYTES).unwrap()
+        }
+
+        pub(crate) fn simple_remote_example() -> serde_json::Error {
+            // Explicitly unsupported at the moment, hence the error return
+            serde_json::from_slice::<Self>(SIMPLE_REMOTE_METADATA_BYTES).unwrap_err()
+        }
+    }
+
+    impl TypeMetadata {
+        pub(crate) fn example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example()).unwrap()
+        }
+
+        pub(crate) fn example_v2() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v2()).unwrap()
+        }
+
+        pub(crate) fn example_v3() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v3()).unwrap()
+        }
+
+        pub(crate) fn simple_embedded_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::simple_embedded_example()).unwrap()
+        }
+    }
 
     #[test]
     fn test_path_to_string() {

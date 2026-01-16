@@ -42,7 +42,7 @@ test = [
     "chrono/now",
     "dcql/mock",
     "dep:assert_matches",
-    "dep:attestation_types",
+    "attestation_types/test_pid_constants",
     "dep:http",
     "dep:itertools",
     "dep:parking_lot",

@@ -58,7 +58,6 @@ class CardDetailTests : TestBase() {
         cardDetailScreen.clickCardDataButton()
         val nationalities = gbaData.getNationalities(DEFAULT_BSN)
         assertAll(
-            { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
@@ -67,6 +66,7 @@ class CardDetailTests : TestBase() {
             { assertTrue(cardDataScreen.dataAttributeVisible(nationalities[0]), "array attribute is not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(nationalities[1]), "array attribute is not visible") },
             { assertTrue(cardDataScreen.dataLabelAbsent(cardMetadata.getPidClaimLabel("recovery_code")), "recovery code is visible") },
+            { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
         )
 
         cardDataScreen.clickDataIncorrectButton()

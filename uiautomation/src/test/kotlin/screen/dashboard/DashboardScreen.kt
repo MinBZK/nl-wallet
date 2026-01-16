@@ -6,7 +6,6 @@ class DashboardScreen : MobileActions() {
 
     private val menuButton = l10n.getString("dashboardScreenMenuWCAGLabel")
     private val pidIdTitleText = cardMetadata.getPidDisplayName()
-    private val pidAddressTitleText = cardMetadata.getAddressDisplayName()
     private val showDetailsText = l10n.getString("showDetailsCta")
     private val scanQRButton = l10n.getString("menuScreenScanQrCta")
     private val appTourBannerTitle = l10n.getString("tourBannerTitle")
@@ -17,21 +16,13 @@ class DashboardScreen : MobileActions() {
     fun cardFaceTextsInActiveLanguage() =
         elementContainingTextVisible(pidIdTitleText) && elementContainingTextVisible(showDetailsText)
 
-    fun checkCardSorting(): Boolean {
-        scrollToElementContainingText(pidAddressTitleText)
-        val (_, pidY) = getTopLeftOfElementContainingText(pidIdTitleText)!!
-        scrollToElementContainingText(pidAddressTitleText)
-        val (_, addressY) = getTopLeftOfElementContainingText(pidAddressTitleText)!!
-        return pidY < addressY
-    }
-
     fun clickMenuButton() = clickElementContainingText(menuButton)
 
     fun clickCard(displayName: String) = clickElementContainingText(displayName)
 
     fun appTourBannerVisible() = elementContainingTextVisible(appTourBannerTitle.substringBefore("'"))
 
-    fun cardTitlesVisible() = elementContainingTextVisible(pidIdTitleText) && elementContainingTextVisible(pidAddressTitleText)
+    fun cardTitleVisible() = elementContainingTextVisible(pidIdTitleText)
 
     fun cardButtonsVisible() = elementContainingTextVisible(showDetailsText)
 
@@ -44,5 +35,13 @@ class DashboardScreen : MobileActions() {
     fun cardRevocationVisible(cardDisplayContent: String): Boolean {
         scrollToElementContainingText(cardDisplayContent)
         return elementContainingTextsVisible(listOf(cardDisplayContent, revokedLabel))
+    }
+
+    fun checkCardSorting(topCardDisplayName: String, bottomCardDisplayName: String): Boolean {
+        scrollToElementContainingText(topCardDisplayName)
+        val (_, pidY) = getTopLeftOfElementContainingText(topCardDisplayName)!!
+        scrollToElementContainingText(bottomCardDisplayName)
+        val (_, addressY) = getTopLeftOfElementContainingText(bottomCardDisplayName)!!
+        return pidY < addressY
     }
 }
