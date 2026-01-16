@@ -178,6 +178,14 @@
              
   <section id="v0-5-0-dev">
 <h1>v0.5.0 (dev)<a class="headerlink" href="#v0-5-0-dev" title="Link to this heading"></a></h1>
+<section id="upgrading">
+<h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>This release changes the PID issuer to issue a single card with both personal
+and address claims instead of two distinct cards. Any verifiers must be
+updated to reflect this change.</p></li>
+</ul>
+</section>
 <section id="new-features">
 <h2>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
 <ul class="simple">
@@ -188,6 +196,7 @@ this to the Wallet, while it stores an HMAC of the key in its database.</p></li>
 <li><p>Show the build environment alongside the app version in the app.</p></li>
 <li><p>The wallet now shows notifications on the dashboard as well as in the mobile
 Operating System whenever an attestation is about to expire or has expired.</p></li>
+<li><p>The PID issuer now issues a single card with both personal and address claims.</p></li>
 <li><p>Notify user about unhandled deeplinks. Previously the app silently
 queued or dismissed deeplinks if the user tried to open them while the
 app was not ‘ready’ (e.g. in initial setup, or in an active disclosure
