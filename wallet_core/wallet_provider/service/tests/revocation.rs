@@ -187,6 +187,16 @@ async fn verify_revocation(
     .await;
 }
 
+fn partition_vec_by_indices<T>(iterator: impl IntoIterator<Item = T>, indices_to_revoke: &[usize]) -> (Vec<T>, Vec<T>) {
+    iterator.into_iter().enumerate().partition_map(|(i, val)| {
+        if indices_to_revoke.contains(&i) {
+            Either::Left(val)
+        } else {
+            Either::Right(val)
+        }
+    })
+}
+
 #[tokio::test]
 #[rstest]
 #[case(vec![1], vec![0])]
@@ -212,24 +222,9 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     )
     .await;
 
-    let (wallet_ids_to_revoke, wallet_ids_not_to_revoke): (Vec<_>, Vec<_>) =
-        wallets.into_iter().enumerate().partition_map(|(i, val)| {
-            if indices_to_revoke.contains(&i) {
-                Either::Left(val)
-            } else {
-                Either::Right(val)
-            }
-        });
+    let (wallet_ids_to_revoke, wallet_ids_not_to_revoke) = partition_vec_by_indices(wallets, &indices_to_revoke);
     revoke_wallets(wallet_ids_to_revoke.iter(), &user_state).await.unwrap();
-
-    let (revoked_wua_ids, non_revoked_wua_ids): (Vec<_>, Vec<_>) =
-        wuas.into_iter().enumerate().partition_map(|(i, val)| {
-            if indices_to_revoke.contains(&i) {
-                Either::Left(val)
-            } else {
-                Either::Right(val)
-            }
-        });
+    let (revoked_wua_ids, non_revoked_wua_ids) = partition_vec_by_indices(wuas, &indices_to_revoke);
 
     let revoked_wua_ids = revoked_wua_ids.into_iter().flatten().collect_vec();
     let non_revoked_wua_ids = non_revoked_wua_ids.into_iter().flatten().collect_vec();
