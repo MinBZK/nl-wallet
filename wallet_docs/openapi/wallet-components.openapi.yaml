@@ -1,6 +1,44 @@
 # This component library YAML file is included
 # by the public and private OpenAP documents.
 components:
+  parameters:
+    session_token:
+      name: session_token
+      description: A unique identifier for the session
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/SessionToken'
+
+    session_type:
+      name: session_type
+      description: The type of the session
+      in: query
+      required: false
+      schema:
+        description: The type of the session
+        type: string
+        enum:
+          - cross_device
+          - same_device
+
+    dpop:
+      name: DPoP
+      in: header
+      required: true
+      description: DPoP proof JWT
+      schema:
+        type: string
+        format: jwt
+
+    nonce:
+      name: nonce
+      in: query
+      required: false
+      description: Optional nonce for verification
+      schema:
+        type: string
+
   schemas:
     SessionRequest:
       description: A session request post body
@@ -17,6 +55,13 @@ components:
         - usecase
         - dcql_query
         - return_url_template
+
+    SessionToken:
+      description: The unique identifier of a session
+      type: string
+      minLength: 32
+      maxLength: 32
+      pattern: '^[a-zA-Z0-9]{32}$'
 
     Query:
       type: object
@@ -92,20 +137,6 @@ components:
             type: string
       required:
         - vct_values
-
-    SessionToken:
-      description: The unique identifier of a session
-      type: string
-      minLength: 32
-      maxLength: 32
-      pattern: '^[a-zA-Z0-9]{32}$'
-
-    SessionType:
-      description: The type of the session
-      type: string
-      enum:
-        - cross_device
-        - same_device
 
     SessionStatus:
       type: object

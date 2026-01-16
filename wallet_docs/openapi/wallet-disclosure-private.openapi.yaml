@@ -54,18 +54,8 @@ paths:
 
   /disclosure/sessions/{session_token}/disclosed_attributes:
     parameters:
-      - name: session_token
-        description: A unique identifier for the session
-        in: path
-        required: true
-        schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
-      - name: nonce
-        in: query
-        required: false
-        description: Optional nonce for verification
-        schema:
-          type: string
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/nonce'
     get:
       summary: Retrieve disclosed attributes
       responses:

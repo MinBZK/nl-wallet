@@ -26,18 +26,8 @@ servers:
 paths:
   /disclosure/sessions/{session_token}:
     parameters:
-      - name: session_token
-        description: The unique identifier for the session
-        in: path
-        required: true
-        schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
-      - name: session_type
-        description: The type of the session
-        in: query
-        required: false
-        schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionType'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_type'
     get:
       summary: Check the status of an existing session
       responses:
@@ -65,18 +55,8 @@ paths:
 
   /disclosure/sessions/{session_token}/request_uri:
     parameters:
-      - name: session_token
-        description: The unique identifier for the session
-        in: path
-        required: true
-        schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
-      - name: session_type
-        description: The type of the session
-        in: query
-        required: false
-        schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionType'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_type'
       - name: ephemeral_id
         description: The ephemeral id
         in: query
@@ -112,12 +92,7 @@ paths:
 
   /disclosure/sessions/{session_token}/response_uri:
     parameters:
-      - name: session_token
-        description: The unique identifier for the session
-        in: path
-        required: true
-        schema:
-          $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionToken'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
     post:
       summary: Do something with a response uri
       requestBody:
