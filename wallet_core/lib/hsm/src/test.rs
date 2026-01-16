@@ -1,9 +1,7 @@
 use std::path::Path;
 
-// re-export for convenience
-pub use async_dropper::AsyncDropper;
-
 use async_dropper::AsyncDrop;
+use async_dropper::AsyncDropper;
 use async_trait::async_trait;
 use config::Config;
 use config::ConfigError;
@@ -71,6 +69,10 @@ impl TestCase<Pkcs11Hsm> {
             identifier: format!("{}-{}", identifier_prefix, crypto::utils::random_string(8)),
             hsm: Some(hsm),
         }
+    }
+
+    pub fn drop(self) {
+        drop(AsyncDropper::new(self));
     }
 }
 
