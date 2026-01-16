@@ -100,6 +100,7 @@ use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -337,6 +338,9 @@ pub enum InstructionValidationError {
 
     #[error("account is transferred")]
     AccountIsTransferred,
+
+    #[error("account is revoked with reason: {0}")]
+    AccountIsRevoked(RevocationReason),
 
     #[error("recovery code is missing")]
     MissingRecoveryCode,
