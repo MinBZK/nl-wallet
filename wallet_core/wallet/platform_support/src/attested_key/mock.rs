@@ -840,7 +840,6 @@ mod persistent {
                 mock_holder_inner.to_test_data(),
                 challenge.to_vec(),
                 payload.to_vec(),
-                0,
             )
             .await;
         }
@@ -871,6 +870,7 @@ mod tests {
                 }),
                 KeyHolderType::Google { ca_chain } => TestData::Android(AndroidTestData {
                     root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone())],
+                    google_cloud_project_number: 0,
                 }),
             }
         }
@@ -885,7 +885,6 @@ mod tests {
             mock_holder.to_test_data(),
             challenge.to_vec(),
             payload.to_vec(),
-            0,
         )
         .await;
     }

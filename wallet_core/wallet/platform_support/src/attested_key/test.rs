@@ -56,6 +56,7 @@ pub struct AppleTestData<'a> {
 
 pub struct AndroidTestData {
     pub root_public_keys: Vec<RootPublicKey>,
+    pub google_cloud_project_number: u64,
 }
 
 pub enum TestData<'a> {
@@ -68,7 +69,6 @@ pub async fn create_and_verify_attested_key<'a, H>(
     test_data: TestData<'a>,
     challenge: Vec<u8>,
     payload: Vec<u8>,
-    google_cloud_project_number: u64,
 ) where
     H: AttestedKeyHolder,
     H::AppleKey: Debug,
@@ -79,6 +79,14 @@ pub async fn create_and_verify_attested_key<'a, H>(
         .generate()
         .await
         .expect("could not generate attested key identifier");
+
+    let google_cloud_project_number = match test_data {
+        TestData::Android(AndroidTestData {
+            google_cloud_project_number,
+            ..
+        }) => google_cloud_project_number,
+        _ => 0,
+    };
 
     // Perform key / app attestation. Note that this requires a network connection.
     let key_with_attestation = holder

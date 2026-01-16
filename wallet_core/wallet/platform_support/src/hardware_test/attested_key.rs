@@ -4,7 +4,7 @@ use crate::attested_key::hardware::HardwareAttestedKeyHolder;
 use crate::attested_key::test::TestData;
 use crate::attested_key::test::create_and_verify_attested_key;
 
-fn attested_key_test(test_data: TestData, google_cloud_project_number: u64) {
+fn attested_key_test(test_data: TestData) {
     let challenge = b"this_is_a_challenge_string";
     let payload = b"This is a message that will be signed.";
 
@@ -16,7 +16,6 @@ fn attested_key_test(test_data: TestData, google_cloud_project_number: u64) {
             test_data,
             challenge.to_vec(),
             payload.to_vec(),
-            google_cloud_project_number,
         ));
     })
 }
@@ -44,8 +43,9 @@ mod android {
 
         let test_data = TestData::Android(AndroidTestData {
             root_public_keys: GOOGLE_ROOT_PUBKEYS.clone(),
+            google_cloud_project_number,
         });
-        super::attested_key_test(test_data, google_cloud_project_number);
+        super::attested_key_test(test_data);
     }
 }
 
@@ -62,6 +62,6 @@ mod ios {
             app_identifier: &AppIdentifier::default(),
             trust_anchors: APPLE_TRUST_ANCHORS.clone(),
         });
-        super::attested_key_test(test_data, 0);
+        super::attested_key_test(test_data);
     }
 }
