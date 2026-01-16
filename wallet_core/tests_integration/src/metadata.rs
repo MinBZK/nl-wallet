@@ -1,16 +1,23 @@
+use std::fs;
+
 use sd_jwt_vc_metadata::Integrity;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::vec_nonempty;
 
-pub(crate) const EUDI_PID_METADATA_BYTES: &[u8] = include_bytes!("../eudi:pid:1.json");
-pub(crate) const EUDI_NL_PID_METADATA_BYTES: &[u8] = include_bytes!("../eudi:pid:nl:1.json");
+/// This macro resolves a relative path to this crate's directory.
+macro_rules! crate_local_path {
+    ($relative:expr) => {{
+        let path = std::env::current_dir().unwrap().join($relative);
+        path.to_string_lossy().into_owned()
+    }};
+}
 
 pub fn eudi_nl_pid_type_metadata_documents() -> (Integrity, TypeMetadataDocuments) {
+    let pid_bytes = fs::read(crate_local_path!("eudi:pid:1.json")).unwrap();
+    let nl_pid_bytes = fs::read(crate_local_path!("eudi:pid:nl:1.json")).unwrap();
+
     (
-        Integrity::from(EUDI_NL_PID_METADATA_BYTES),
-        TypeMetadataDocuments::new(vec_nonempty![
-            EUDI_PID_METADATA_BYTES.to_vec(),
-            EUDI_NL_PID_METADATA_BYTES.to_vec()
-        ]),
+        Integrity::from(&nl_pid_bytes),
+        TypeMetadataDocuments::new(vec_nonempty![pid_bytes.to_vec(), nl_pid_bytes.to_vec()]),
     )
 }
