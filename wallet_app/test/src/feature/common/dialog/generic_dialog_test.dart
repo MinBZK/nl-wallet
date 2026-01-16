@@ -21,9 +21,14 @@ void main() {
       await screenMatchesGolden('generic/dialog_finish_setup');
     });
 
-    testGoldens('Finish Transfer Dialog', (tester) async {
-      await DialogUtils.pumpDialog(tester, GenericDialog.showFinishTransfer);
-      await screenMatchesGolden('generic/dialog_finish_transfer');
+    testGoldens('Finish Transfer Dialog (source)', (tester) async {
+      await DialogUtils.pumpDialog(tester, GenericDialog.showFinishTransferSource);
+      await screenMatchesGolden('generic/dialog_finish_transfer_source');
+    });
+
+    testGoldens('Finish Transfer Dialog (destination', (tester) async {
+      await DialogUtils.pumpDialog(tester, GenericDialog.showFinishTransferDestination);
+      await screenMatchesGolden('generic/dialog_finish_transfer_destination');
     });
 
     testGoldens('Finish Pin Dialog', (tester) async {
