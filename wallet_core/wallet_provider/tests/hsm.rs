@@ -3,7 +3,6 @@ use serial_test::serial;
 
 use crypto::utils::random_bytes;
 use hsm::model::Hsm;
-use hsm::test::AsyncDropper;
 use hsm::test::TestCase;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletId;
@@ -26,5 +25,5 @@ async fn generate_key_and_sign() {
         .unwrap();
 
     // Explicitly drop, to capture possible errors.
-    drop(AsyncDropper::new(test_case));
+    test_case.drop();
 }

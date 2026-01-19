@@ -14,7 +14,7 @@ doctest = false
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
 settings = ["serde/derive", "serde_with/base64"]
-test = ["async-dropper/simple", "async-dropper/tokio", "config/toml", "dep:async-trait", "dep:rand_core"]
+test = ["settings", "async-dropper/simple", "async-dropper/tokio", "config/toml", "dep:async-trait", "dep:rand_core"]
 integration = ["mock", "settings", "test"]
 
 [[test]]
