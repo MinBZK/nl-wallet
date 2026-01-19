@@ -100,6 +100,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Organization dco_decode_box_autoadd_organization(dynamic raw);
 
   @protected
+  (String, String) dco_decode_box_autoadd_record_string_string(dynamic raw);
+
+  @protected
   RenderingMetadata dco_decode_box_autoadd_rendering_metadata(dynamic raw);
 
   @protected
@@ -232,6 +235,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata? dco_decode_opt_box_autoadd_image_with_metadata(dynamic raw);
 
   @protected
+  (String, String)? dco_decode_opt_box_autoadd_record_string_string(dynamic raw);
+
+  @protected
   RenderingMetadata? dco_decode_opt_box_autoadd_rendering_metadata(dynamic raw);
 
   @protected
@@ -257,6 +263,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   (int, NotificationType) dco_decode_record_i_32_notification_type(dynamic raw);
+
+  @protected
+  (String, String) dco_decode_record_string_string(dynamic raw);
 
   @protected
   RenderingMetadata dco_decode_rendering_metadata(dynamic raw);
@@ -373,6 +382,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer);
+
+  @protected
+  (String, String) sse_decode_box_autoadd_record_string_string(SseDeserializer deserializer);
 
   @protected
   RenderingMetadata sse_decode_box_autoadd_rendering_metadata(SseDeserializer deserializer);
@@ -507,6 +519,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata? sse_decode_opt_box_autoadd_image_with_metadata(SseDeserializer deserializer);
 
   @protected
+  (String, String)? sse_decode_opt_box_autoadd_record_string_string(SseDeserializer deserializer);
+
+  @protected
   RenderingMetadata? sse_decode_opt_box_autoadd_rendering_metadata(SseDeserializer deserializer);
 
   @protected
@@ -532,6 +547,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   (int, NotificationType) sse_decode_record_i_32_notification_type(SseDeserializer deserializer);
+
+  @protected
+  (String, String) sse_decode_record_string_string(SseDeserializer deserializer);
 
   @protected
   RenderingMetadata sse_decode_rendering_metadata(SseDeserializer deserializer);
@@ -715,6 +733,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_organization();
     cst_api_fill_to_wire_organization(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_record_string_string> cst_encode_box_autoadd_record_string_string((String, String) raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_record_string_string();
+    cst_api_fill_to_wire_record_string_string(raw, ptr.ref);
     return ptr;
   }
 
@@ -957,6 +983,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_record_string_string> cst_encode_opt_box_autoadd_record_string_string((String, String)? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_record_string_string(raw);
+  }
+
+  @protected
   ffi.Pointer<wire_cst_rendering_metadata> cst_encode_opt_box_autoadd_rendering_metadata(RenderingMetadata? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_rendering_metadata(raw);
@@ -1127,6 +1159,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_box_autoadd_record_string_string(
+    (String, String) apiObj,
+    ffi.Pointer<wire_cst_record_string_string> wireObj,
+  ) {
+    cst_api_fill_to_wire_record_string_string(apiObj, wireObj.ref);
+  }
+
+  @protected
   void cst_api_fill_to_wire_box_autoadd_rendering_metadata(
     RenderingMetadata apiObj,
     ffi.Pointer<wire_cst_rendering_metadata> wireObj,
@@ -1219,6 +1259,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.background_lock_timeout = cst_encode_u_16(apiObj.backgroundLockTimeout);
     wireObj.pid_attestation_types = cst_encode_list_String(apiObj.pidAttestationTypes);
     wireObj.static_assets_base_url = cst_encode_String(apiObj.staticAssetsBaseUrl);
+    wireObj.maintenance_window = cst_encode_opt_box_autoadd_record_string_string(apiObj.maintenanceWindow);
     wireObj.version = cst_encode_String(apiObj.version);
     wireObj.environment = cst_encode_String(apiObj.environment);
   }
@@ -1356,6 +1397,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ) {
     wireObj.field0 = cst_encode_i_32(apiObj.$1);
     cst_api_fill_to_wire_notification_type(apiObj.$2, wireObj.field1);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_record_string_string((String, String) apiObj, wire_cst_record_string_string wireObj) {
+    wireObj.field0 = cst_encode_String(apiObj.$1);
+    wireObj.field1 = cst_encode_String(apiObj.$2);
   }
 
   @protected
@@ -1739,6 +1786,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_organization(Organization self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_record_string_string((String, String) self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_rendering_metadata(RenderingMetadata self, SseSerializer serializer);
 
   @protected
@@ -1871,6 +1921,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_record_string_string((String, String)? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_rendering_metadata(RenderingMetadata? self, SseSerializer serializer);
 
   @protected
@@ -1896,6 +1949,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_record_i_32_notification_type((int, NotificationType) self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_record_string_string((String, String) self, SseSerializer serializer);
 
   @protected
   void sse_encode_rendering_metadata(RenderingMetadata self, SseSerializer serializer);
@@ -2958,6 +3014,17 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_organization = _cst_new_box_autoadd_organizationPtr
       .asFunction<ffi.Pointer<wire_cst_organization> Function()>();
 
+  ffi.Pointer<wire_cst_record_string_string> cst_new_box_autoadd_record_string_string() {
+    return _cst_new_box_autoadd_record_string_string();
+  }
+
+  late final _cst_new_box_autoadd_record_string_stringPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_record_string_string> Function()>>(
+        'frbgen_wallet_core_cst_new_box_autoadd_record_string_string',
+      );
+  late final _cst_new_box_autoadd_record_string_string = _cst_new_box_autoadd_record_string_stringPtr
+      .asFunction<ffi.Pointer<wire_cst_record_string_string> Function()>();
+
   ffi.Pointer<wire_cst_rendering_metadata> cst_new_box_autoadd_rendering_metadata() {
     return _cst_new_box_autoadd_rendering_metadata();
   }
@@ -3558,6 +3625,12 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
 }
 
+final class wire_cst_record_string_string extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field1;
+}
+
 final class wire_cst_request_policy extends ffi.Struct {
   external ffi.Pointer<ffi.Uint64> data_storage_duration_in_minutes;
 
@@ -3855,6 +3928,8 @@ final class wire_cst_flutter_configuration extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_String> pid_attestation_types;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> static_assets_base_url;
+
+  external ffi.Pointer<wire_cst_record_string_string> maintenance_window;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> version;
 

@@ -12,6 +12,7 @@ class FlutterConfiguration {
   final int backgroundLockTimeout;
   final List<String> pidAttestationTypes;
   final String staticAssetsBaseUrl;
+  final (String, String)? maintenanceWindow;
   final String version;
   final String environment;
 
@@ -21,6 +22,7 @@ class FlutterConfiguration {
     required this.backgroundLockTimeout,
     required this.pidAttestationTypes,
     required this.staticAssetsBaseUrl,
+    this.maintenanceWindow,
     required this.version,
     required this.environment,
   });
@@ -32,6 +34,7 @@ class FlutterConfiguration {
       backgroundLockTimeout.hashCode ^
       pidAttestationTypes.hashCode ^
       staticAssetsBaseUrl.hashCode ^
+      maintenanceWindow.hashCode ^
       version.hashCode ^
       environment.hashCode;
 
@@ -45,6 +48,7 @@ class FlutterConfiguration {
           backgroundLockTimeout == other.backgroundLockTimeout &&
           pidAttestationTypes == other.pidAttestationTypes &&
           staticAssetsBaseUrl == other.staticAssetsBaseUrl &&
+          maintenanceWindow == other.maintenanceWindow &&
           version == other.version &&
           environment == other.environment;
 }
