@@ -76,7 +76,7 @@ where
     Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state, &TimeGenerator).await?)
 }
 
-#[cfg(feature = "admin_ui")]
+#[cfg(feature = "test_api")]
 #[utoipa::path(
     get,
     path = "/admin/wallet/",
@@ -110,23 +110,17 @@ where
         .routes(routes!(revoke_wallets))
         .routes(routes!(nuke));
 
-    #[cfg(feature = "admin_ui")]
-    let router = {
-        let (router, openapi) = router
-            // only expose these routes when swagger-ui feature is enabled
-            // TODO .routes(routes!(get_wallet)) (PVW-5297)
-            .routes(routes!(list_wallets))
-            .split_for_parts();
+    #[cfg(feature = "test_api")]
+    // TODO .routes(routes!(get_wallet)) (PVW-5297)
+    let router = router.routes(routes!(list_wallets));
 
-        router.merge(SwaggerUi::new("/admin/api-docs").url("/openapi.json", openapi))
-    };
+    let (router, openapi) = router.split_for_parts();
+
+    #[cfg(feature = "admin_ui")]
+    let router = router.merge(SwaggerUi::new("/admin/api-docs").url("/openapi.json", openapi));
 
     #[cfg(not(feature = "admin_ui"))]
-    let router = {
-        let (router, openapi) = router.split_for_parts();
-
-        router.route("/openapi.json", axum::routing::get(Json(openapi)))
-    };
+    let router = router.route("/openapi.json", axum::routing::get(Json(openapi)));
 
     router
 }

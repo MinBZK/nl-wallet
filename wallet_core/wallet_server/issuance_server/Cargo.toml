@@ -29,6 +29,8 @@ postgres = ["server_utils/postgres"]
 integration_test = []
 # Enable the Admin UI
 admin_ui = ["status_lists/admin_ui"]
+# Enable additional test API endpoints
+test_api = ["status_lists/test_api"]
 
 [dependencies]
 anyhow.workspace = true

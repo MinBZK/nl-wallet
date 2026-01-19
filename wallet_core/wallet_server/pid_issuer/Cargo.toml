@@ -33,6 +33,8 @@ mock = ["attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
 # Enable the Admin UI
 admin_ui = ["status_lists/admin_ui"]
+# Enable additional test API endpoints
+test_api = ["status_lists/test_api"]
 
 [dependencies]
 anyhow.workspace = true

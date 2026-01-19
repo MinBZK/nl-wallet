@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::Router;
-#[cfg(feature = "admin_ui")]
+#[cfg(feature = "test_api")]
 use axum::extract::Path;
 use axum::extract::State;
 use utoipa::OpenApi;
@@ -12,7 +12,7 @@ use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
-#[cfg(feature = "admin_ui")]
+#[cfg(feature = "test_api")]
 use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
@@ -42,7 +42,7 @@ where
     status_list_service.revoke_attestation_batches(batch_ids).await
 }
 
-#[cfg(feature = "admin_ui")]
+#[cfg(feature = "test_api")]
 #[utoipa::path(
     get,
     path = "/batch/",
@@ -57,7 +57,7 @@ where
     Ok(Json(status_list_service.list_attestation_batches().await?))
 }
 
-#[cfg(feature = "admin_ui")]
+#[cfg(feature = "test_api")]
 #[utoipa::path(
     get,
     path = "/batch/{batch_id}",
@@ -85,22 +85,16 @@ where
 {
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi()).routes(routes!(revoke_batch));
 
-    #[cfg(feature = "admin_ui")]
-    let router = {
-        let (router, openapi) = router
-            .routes(routes!(get_batch))
-            .routes(routes!(list_batch))
-            .split_for_parts();
+    #[cfg(feature = "test_api")]
+    let router = router.routes(routes!(get_batch)).routes(routes!(list_batch));
 
-        router.merge(SwaggerUi::new("/api-docs").url("/openapi.json", openapi))
-    };
+    let (router, openapi) = router.split_for_parts();
+
+    #[cfg(feature = "admin_ui")]
+    let router = router.merge(SwaggerUi::new("/api-docs").url("/openapi.json", openapi));
 
     #[cfg(not(feature = "admin_ui"))]
-    let router: Router<Arc<L>> = {
-        let (router, openapi) = router.split_for_parts();
-
-        router.route("/openapi.json", axum::routing::get(Json(openapi)))
-    };
+    let router = router.route("/openapi.json", axum::routing::get(Json(openapi)));
 
     router.with_state(status_list_service)
 }
