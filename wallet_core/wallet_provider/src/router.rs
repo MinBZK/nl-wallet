@@ -70,8 +70,8 @@ use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::wua_issuer::WuaIssuer;
 
+use crate::admin;
 use crate::errors::WalletProviderError;
-use crate::revoke;
 use crate::router_state::RouterState;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
@@ -190,7 +190,7 @@ where
         )
         // don't nest this as that won't work with utoipa
         .merge(
-            revoke::internal_router()
+            admin::internal_router()
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )

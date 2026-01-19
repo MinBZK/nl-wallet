@@ -19,7 +19,7 @@ use utils::generator::TimeGenerator;
 use crate::router_state::RouterState;
 
 #[derive(OpenApi)]
-#[openapi()]
+#[openapi(info(title = "Admin API"))]
 struct ApiDoc;
 
 #[derive(Debug, Display, thiserror::Error)]
