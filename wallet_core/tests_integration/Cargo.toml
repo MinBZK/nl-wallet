@@ -83,8 +83,11 @@ required-features = ["integration_test"]
 # Test credentials for integration tests
 test_credentials = [
     "attestation_data/test_credential",
-    "attestation_types",
-    "sd_jwt_vc_metadata",
+    "dcql/mock",
+    "dep:attestation_types",
+    "pid_issuer/mock",
+    "sd_jwt_vc_metadata/example_constructors",
+    "utils/mock_time",
 ]
 
 # Allow the disclosure return URL and its prefix to use http://
@@ -100,9 +103,8 @@ test_common = [
     "attestation_data/mock",
     "axum-server/tls-rustls-no-provider",
     "axum/json",
-    "crypto",
-    "dcql/mock",
     "dep:android_attest",
+    "dep:crypto",
     "dep:ctor",
     "dep:futures",
     "dep:gba_hc_converter",
@@ -133,7 +135,6 @@ test_common = [
     "openid4vc_server/disclosure",
     "openid4vc_server/issuance",
     "p256/pem",
-    "pid_issuer/mock",
     "pid_issuer/postgres",
     "platform_support/mock",
     "sea-orm/debug-print",
