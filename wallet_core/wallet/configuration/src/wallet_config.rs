@@ -1,5 +1,8 @@
 use std::collections::HashMap;
+use std::ops::Range;
 
+use chrono::DateTime;
+use chrono::Utc;
 use derive_more::Debug;
 use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
@@ -37,6 +40,8 @@ pub struct WalletConfiguration {
     pub update_policy_server: UpdatePolicyServerConfiguration,
     pub google_cloud_project_number: u64,
     pub static_assets_base_url: BaseUrl,
+    // Note that this should serialize to a "start" and "end" field.
+    pub maintenance_window: Option<Range<DateTime<Utc>>>,
     pub version: u64,
 }
 

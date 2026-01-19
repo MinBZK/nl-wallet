@@ -8395,6 +8395,7 @@ version = "0.5.0-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
+ "chrono",
  "crypto",
  "derive_more",
  "error_category",
