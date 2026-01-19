@@ -14,7 +14,7 @@ doctest = false
 anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
-axum = { workspace = true }
+axum = { workspace = true, features = ["form"] }
 config = { workspace = true, features = ["toml"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }

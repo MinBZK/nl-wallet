@@ -1,0 +1,238 @@
+:root {
+  font-family: "RO Sans", sans-serif;
+  font-feature-settings: "clig" off, "liga" off;
+  font-size: 16px;
+  line-height: 1.5;
+
+  --primary-color: #9d0069; /* Deep pink/magenta */
+  --secondary-color: #004cff; /* The blue from the design */
+  --text-color: #333;
+  --border-color: #ccc;
+  --bg-light: #f9f9fb;
+  --error-color: #d32f2f;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-color);
+  line-height: 1.5;
+  background-color: #fff;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.page-header {
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.logo-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(180deg, #f8f9ff 0%, #eaecf6 100%);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01); /* Softer shadow */
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+.logo {
+  margin: 0;
+}
+
+aside {
+  display: flex;
+  width: 100vw;
+  flex-direction: row;
+  justify-content: right;
+  align-items: center;
+  order: -1;
+  padding: 0 32px;
+  gap: 16px;
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.illustration-container {
+  border-radius: 12px;
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.illustration {
+  max-width: 100%;
+  height: auto;
+}
+
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 2rem 0;
+}
+
+.step-title {
+  font-weight: bold;
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.form-group {
+  margin-top: 1.5rem;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.required {
+  color: var(--primary-color);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1.1rem;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.05em;
+  transition: border-color 0.2s, box-shadow 0.1s;
+  outline: none; /* Remove default browser focus ring */
+}
+
+input[type="text"]:hover {
+  border-color: #8c9eff; /* Subtle blue hover from design */
+}
+
+input[type="text"]:focus {
+  border-color: var(--secondary-color);
+  box-shadow: inset 0 0 0 1px var(--secondary-color);
+}
+
+/* Ensure invalid state takes precedence and stays magenta when focused */
+input:invalid:not(:placeholder-shown),
+input.invalid {
+  border-color: var(--primary-color);
+}
+
+input:invalid:not(:placeholder-shown):focus,
+input.invalid:focus {
+  border-color: var(--primary-color);
+  box-shadow: inset 0 0 0 1px var(--primary-color);
+}
+
+.error-text {
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  margin-top: 6px;
+  font-weight: 500;
+  display: none;
+}
+
+.error-text.visible {
+  display: block;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 1rem;
+  border: 1px solid transparent;
+  transition: background-color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.btn-delete {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-delete:hover {
+  opacity: 0.9;
+}
+
+.btn-delete:active {
+  opacity: 0.8;
+}
+
+.btn-cancel {
+  background-color: white;
+  color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+.btn-cancel:hover {
+  background-color: #f0f4ff;
+}
+
+.btn-cancel:active {
+  background-color: #e0e8ff;
+}
+
+.icon {
+  margin-right: 8px;
+}
+
+.help-section {
+  margin-top: 2rem;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+  margin-bottom: 2rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+.help-link {
+  color: #004cff;
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.icon-arrow {
+  margin-right: 5px;
+  font-size: 0.9rem;
+}
