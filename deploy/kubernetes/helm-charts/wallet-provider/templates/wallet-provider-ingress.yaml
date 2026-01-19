@@ -85,6 +85,13 @@ spec:
                 name: {{ include "common.names.fullname" . }}
                 port:
                   name: http
+            path: /health
+            pathType: Prefix
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  name: http
             path: /openapi.json
             pathType: Prefix
   tls:
