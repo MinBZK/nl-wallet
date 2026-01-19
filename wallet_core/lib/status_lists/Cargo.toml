@@ -39,7 +39,7 @@ axum = [
     "token_status_list/axum",
 ]
 db_test = ["axum", "dep:reqwest", "health_checkers/test_settings"]
-admin-ui = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
+admin_ui = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
 
 [dependencies]
 anyhow.workspace = true

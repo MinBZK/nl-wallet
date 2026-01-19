@@ -11,7 +11,7 @@ use tracing::warn;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-#[cfg(feature = "admin-ui")]
+#[cfg(feature = "admin_ui")]
 use utoipa_swagger_ui::SwaggerUi;
 
 use utils::generator::TimeGenerator;
@@ -76,7 +76,7 @@ where
     Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state, &TimeGenerator).await?)
 }
 
-#[cfg(feature = "admin-ui")]
+#[cfg(feature = "admin_ui")]
 #[utoipa::path(
     get,
     path = "/admin/wallet/",
@@ -110,7 +110,7 @@ where
         .routes(routes!(revoke_wallets))
         .routes(routes!(nuke));
 
-    #[cfg(feature = "admin-ui")]
+    #[cfg(feature = "admin_ui")]
     let router = {
         let (router, openapi) = router
             // only expose these routes when swagger-ui feature is enabled
@@ -121,7 +121,7 @@ where
         router.merge(SwaggerUi::new("/admin/api-docs").url("/openapi.json", openapi))
     };
 
-    #[cfg(not(feature = "admin-ui"))]
+    #[cfg(not(feature = "admin_ui"))]
     let router = {
         let (router, openapi) = router.split_for_parts();
 

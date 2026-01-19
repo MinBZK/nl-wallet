@@ -28,7 +28,7 @@ postgres = ["server_utils/postgres"]
 # Enable integration tests
 integration_test = []
 # Enable the Admin UI
-admin-ui = ["status_lists/admin-ui"]
+admin_ui = ["status_lists/admin_ui"]
 
 [dependencies]
 anyhow.workspace = true
