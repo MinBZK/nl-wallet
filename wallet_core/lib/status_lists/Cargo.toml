@@ -34,12 +34,9 @@ axum = [
     "axum/json",
     "tower-http/compression-gzip",
     "utoipa/uuid",
-    "utoipa-swagger-ui/axum",
-    "utoipa-swagger-ui/vendored",
     "token_status_list/axum",
 ]
 db_test = ["axum", "dep:reqwest", "health_checkers/test_settings"]
-admin_ui = ["axum", "utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
 # Enable additional test API endpoints
 test_api = ["axum"]
 
@@ -74,7 +71,6 @@ reqwest = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
 utoipa-axum = { workspace = true, optional = true }
-utoipa-swagger-ui = { workspace = true, optional = true }
 
 attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"

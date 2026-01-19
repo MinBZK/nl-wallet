@@ -8,8 +8,6 @@ use axum::extract::State;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-#[cfg(feature = "admin_ui")]
-use utoipa_swagger_ui::SwaggerUi;
 use uuid::Uuid;
 
 #[cfg(feature = "test_api")]
@@ -18,7 +16,7 @@ use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
 
 #[derive(OpenApi)]
-#[openapi()]
+#[openapi(info(title = "Revocation API"))]
 struct ApiDoc;
 
 #[utoipa::path(
@@ -79,7 +77,7 @@ where
     Ok(Json(status_list_service.get_attestation_batch(batch_id).await?))
 }
 
-pub fn create_revocation_router<L>(status_list_service: Arc<L>) -> Router
+pub fn create_revocation_router<L>(status_list_service: Arc<L>) -> (Router, utoipa::openapi::OpenApi)
 where
     L: StatusListRevocationService + Send + Sync + 'static,
 {
@@ -90,11 +88,5 @@ where
 
     let (router, openapi) = router.split_for_parts();
 
-    #[cfg(feature = "admin_ui")]
-    let router = router.merge(SwaggerUi::new("/api-docs").url("/openapi.json", openapi));
-
-    #[cfg(not(feature = "admin_ui"))]
-    let router = router.route("/openapi.json", axum::routing::get(Json(openapi)));
-
-    router.with_state(status_list_service)
+    (router.with_state(status_list_service), openapi)
 }

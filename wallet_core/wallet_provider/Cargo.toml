@@ -26,7 +26,7 @@ required-features = ["hsm_test"]
 [features]
 default = []
 # Enable Swagger UI for the management API. This should not be used in production.
-admin_ui = ["dep:utoipa-swagger-ui", "token_status_list/axum"]
+admin_ui = ["utoipa-swagger-ui/axum", "token_status_list/axum"]
 # Enable additional test API endpoints
 test_api = []
 # Allow software key attestation_datas coming from the android emulator.

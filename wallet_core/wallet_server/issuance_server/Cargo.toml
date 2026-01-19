@@ -28,7 +28,7 @@ postgres = ["server_utils/postgres"]
 # Enable integration tests
 integration_test = []
 # Enable the Admin UI
-admin_ui = ["status_lists/admin_ui"]
+admin_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
 # Enable additional test API endpoints
 test_api = ["status_lists/test_api"]
 
@@ -50,6 +50,8 @@ serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 trait-variant.workspace = true
+
+utoipa-swagger-ui = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"

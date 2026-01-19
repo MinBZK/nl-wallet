@@ -2,9 +2,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::Result;
+#[cfg(not(feature = "admin_ui"))]
+use axum::Json;
 use axum::Router;
 use futures::future::try_join_all;
 use tokio::net::TcpListener;
+#[cfg(feature = "admin_ui")]
+use utoipa_swagger_ui::SwaggerUi;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
@@ -165,7 +169,14 @@ where
         wallet_router = wallet_router.merge(status_list_router);
     }
 
-    let mut internal_router = create_revocation_router(status_list_services);
+    let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
+
+    #[cfg(feature = "admin_ui")]
+    let mut internal_router = internal_router.merge(SwaggerUi::new("/api-docs").url("/openapi.json", internal_openapi));
+
+    #[cfg(not(feature = "admin_ui"))]
+    let mut internal_router = internal_router.route("/openapi.json", axum::routing::get(Json(internal_openapi)));
+
     internal_router = secure_internal_router(&issuer_settings.server_settings.internal_server, internal_router);
     internal_router = add_cache_control_no_store_layer(internal_router);
     listen(
