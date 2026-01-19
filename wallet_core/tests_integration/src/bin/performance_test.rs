@@ -3,7 +3,6 @@ use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
-use dcql::Query;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -17,6 +16,7 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
+use tests_integration::test_credential::new_mock_mdoc_pid_example;
 use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;
@@ -119,7 +119,7 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_mdoc".to_owned(),
-        dcql_query: Some(Query::new_mock_mdoc_pid_example()),
+        dcql_query: Some(new_mock_mdoc_pid_example()),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 
