@@ -1863,7 +1863,6 @@ dependencies = [
 name = "demo_utils"
 version = "0.5.0-dev"
 dependencies = [
- "accept-language",
  "anyhow",
  "attestation_data",
  "attestation_types",
@@ -5527,29 +5526,6 @@ dependencies = [
  "serde",
  "thiserror 1.0.69",
  "tower-service",
-]
-
-[[package]]
-name = "revocation_portal"
-version = "0.5.0-dev"
-dependencies = [
- "anyhow",
- "askama 0.14.0",
- "askama_web",
- "axum",
- "config",
- "http_utils",
- "itertools 0.14.0",
- "serde",
- "server_utils",
- "strum 0.27.2",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "utils",
- "web_utils",
 ]
 
 [[package]]

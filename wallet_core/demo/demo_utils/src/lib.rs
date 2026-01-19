@@ -9,8 +9,6 @@ use utils::path::prefix_local_path;
 
 pub mod disclosure;
 
-pub const OPTION_STR_NONE: Option<&str> = None;
-
 pub static WALLET_WEB_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(&read_wallet_web())));
 
