@@ -9,7 +9,6 @@ import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
@@ -90,7 +89,6 @@ class RevokeCardTests : TestBase() {
         assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Error screen is not visible")
     }
 
-    @Test
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC68 Revoke EEA Card")
     fun verifyEeaCardRevocation(testInfo: TestInfo) {
