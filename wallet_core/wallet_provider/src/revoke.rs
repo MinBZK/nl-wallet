@@ -38,7 +38,7 @@ impl IntoResponse for RevocationError {
     request_body(
         content = Vec<String>,
         example = json!([
-            "67e55044-10b1-426f-9247-bb680e5fe0c8",
+            "dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ",
         ]),
     ),
     responses(
@@ -81,7 +81,12 @@ where
     get,
     path = "/admin/wallet/",
     responses(
-        (status = OK, body = Vec<String>, description = "Successfully listed the registered wallet IDs."),
+        (
+            status = OK,
+            body = Vec<String>,
+            description = "Successfully listed the registered wallet IDs.",
+            example = json!([ "dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ" ])
+        ),
     )
 )]
 async fn list_wallets<GRC, PIC>(
