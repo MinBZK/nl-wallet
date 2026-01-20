@@ -1898,6 +1898,7 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_pidAttestationTypes = <Vec<String>>::sse_decode(deserializer);
         let mut var_staticAssetsBaseUrl = <String>::sse_decode(deserializer);
+        let mut var_maintenanceWindow = <Option<(String, String)>>::sse_decode(deserializer);
         let mut var_version = <String>::sse_decode(deserializer);
         let mut var_environment = <String>::sse_decode(deserializer);
         return crate::models::config::FlutterConfiguration {
@@ -1906,6 +1907,7 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
             background_lock_timeout: var_backgroundLockTimeout,
             pid_attestation_types: var_pidAttestationTypes,
             static_assets_base_url: var_staticAssetsBaseUrl,
+            maintenance_window: var_maintenanceWindow,
             version: var_version,
             environment: var_environment,
         };
@@ -2288,6 +2290,17 @@ impl SseDecode for Option<crate::models::image::ImageWithMetadata> {
     }
 }
 
+impl SseDecode for Option<(String, String)> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<(String, String)>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::models::attestation::RenderingMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2420,6 +2433,15 @@ impl SseDecode for (i32, crate::models::notification::NotificationType) {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_field0 = <i32>::sse_decode(deserializer);
         let mut var_field1 = <crate::models::notification::NotificationType>::sse_decode(deserializer);
+        return (var_field0, var_field1);
+    }
+}
+
+impl SseDecode for (String, String) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_field0 = <String>::sse_decode(deserializer);
+        let mut var_field1 = <String>::sse_decode(deserializer);
         return (var_field0, var_field1);
     }
 }
@@ -3150,6 +3172,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfigurati
             self.background_lock_timeout.into_into_dart().into_dart(),
             self.pid_attestation_types.into_into_dart().into_dart(),
             self.static_assets_base_url.into_into_dart().into_dart(),
+            self.maintenance_window.into_into_dart().into_dart(),
             self.version.into_into_dart().into_dart(),
             self.environment.into_into_dart().into_dart(),
         ]
@@ -4084,6 +4107,7 @@ impl SseEncode for crate::models::config::FlutterConfiguration {
         <u16>::sse_encode(self.background_lock_timeout, serializer);
         <Vec<String>>::sse_encode(self.pid_attestation_types, serializer);
         <String>::sse_encode(self.static_assets_base_url, serializer);
+        <Option<(String, String)>>::sse_encode(self.maintenance_window, serializer);
         <String>::sse_encode(self.version, serializer);
         <String>::sse_encode(self.environment, serializer);
     }
@@ -4411,6 +4435,16 @@ impl SseEncode for Option<crate::models::image::ImageWithMetadata> {
     }
 }
 
+impl SseEncode for Option<(String, String)> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <(String, String)>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::models::attestation::RenderingMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4520,6 +4554,14 @@ impl SseEncode for (i32, crate::models::notification::NotificationType) {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.0, serializer);
         <crate::models::notification::NotificationType>::sse_encode(self.1, serializer);
+    }
+}
+
+impl SseEncode for (String, String) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.0, serializer);
+        <String>::sse_encode(self.1, serializer);
     }
 }
 
@@ -5130,6 +5172,13 @@ mod io {
             CstDecode::<crate::models::disclosure::Organization>::cst_decode(*wrap).into()
         }
     }
+    impl CstDecode<(String, String)> for *mut wire_cst_record_string_string {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> (String, String) {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<(String, String)>::cst_decode(*wrap).into()
+        }
+    }
     impl CstDecode<crate::models::attestation::RenderingMetadata> for *mut wire_cst_rendering_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::RenderingMetadata {
@@ -5243,6 +5292,7 @@ mod io {
                 background_lock_timeout: self.background_lock_timeout.cst_decode(),
                 pid_attestation_types: self.pid_attestation_types.cst_decode(),
                 static_assets_base_url: self.static_assets_base_url.cst_decode(),
+                maintenance_window: self.maintenance_window.cst_decode(),
                 version: self.version.cst_decode(),
                 environment: self.environment.cst_decode(),
             }
@@ -5553,6 +5603,12 @@ mod io {
     impl CstDecode<(i32, crate::models::notification::NotificationType)> for wire_cst_record_i_32_notification_type {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> (i32, crate::models::notification::NotificationType) {
+            (self.field0.cst_decode(), self.field1.cst_decode())
+        }
+    }
+    impl CstDecode<(String, String)> for wire_cst_record_string_string {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> (String, String) {
             (self.field0.cst_decode(), self.field1.cst_decode())
         }
     }
@@ -5931,6 +5987,7 @@ mod io {
                 background_lock_timeout: Default::default(),
                 pid_attestation_types: core::ptr::null_mut(),
                 static_assets_base_url: core::ptr::null_mut(),
+                maintenance_window: core::ptr::null_mut(),
                 version: core::ptr::null_mut(),
                 environment: core::ptr::null_mut(),
             }
@@ -6062,6 +6119,19 @@ mod io {
         }
     }
     impl Default for wire_cst_record_i_32_notification_type {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_record_string_string {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                field0: core::ptr::null_mut(),
+                field1: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_record_string_string {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -6576,6 +6646,12 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_record_string_string() -> *mut wire_cst_record_string_string
+    {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_record_string_string::new_with_null_ptr())
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata() -> *mut wire_cst_rendering_metadata {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_rendering_metadata::new_with_null_ptr())
     }
@@ -6985,6 +7061,7 @@ mod io {
         background_lock_timeout: u16,
         pid_attestation_types: *mut wire_cst_list_String,
         static_assets_base_url: *mut wire_cst_list_prim_u_8_strict,
+        maintenance_window: *mut wire_cst_record_string_string,
         version: *mut wire_cst_list_prim_u_8_strict,
         environment: *mut wire_cst_list_prim_u_8_strict,
     }
@@ -7226,6 +7303,12 @@ mod io {
     pub struct wire_cst_record_i_32_notification_type {
         field0: i32,
         field1: wire_cst_notification_type,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_record_string_string {
+        field0: *mut wire_cst_list_prim_u_8_strict,
+        field1: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

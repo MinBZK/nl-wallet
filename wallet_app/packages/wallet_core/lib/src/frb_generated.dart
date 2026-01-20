@@ -1832,6 +1832,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  (String, String) dco_decode_box_autoadd_record_string_string(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as (String, String);
+  }
+
+  @protected
   RenderingMetadata dco_decode_box_autoadd_rendering_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_rendering_metadata(raw);
@@ -1957,15 +1963,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return FlutterConfiguration(
       inactiveWarningTimeout: dco_decode_u_16(arr[0]),
       inactiveLockTimeout: dco_decode_u_16(arr[1]),
       backgroundLockTimeout: dco_decode_u_16(arr[2]),
       pidAttestationTypes: dco_decode_list_String(arr[3]),
       staticAssetsBaseUrl: dco_decode_String(arr[4]),
-      version: dco_decode_String(arr[5]),
-      environment: dco_decode_String(arr[6]),
+      maintenanceWindow: dco_decode_opt_box_autoadd_record_string_string(arr[5]),
+      version: dco_decode_String(arr[6]),
+      environment: dco_decode_String(arr[7]),
     );
   }
 
@@ -2208,6 +2215,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  (String, String)? dco_decode_opt_box_autoadd_record_string_string(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_record_string_string(raw);
+  }
+
+  @protected
   RenderingMetadata? dco_decode_opt_box_autoadd_rendering_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_rendering_metadata(raw);
@@ -2290,6 +2303,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return (
       dco_decode_i_32(arr[0]),
       dco_decode_notification_type(arr[1]),
+    );
+  }
+
+  @protected
+  (String, String) dco_decode_record_string_string(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (
+      dco_decode_String(arr[0]),
+      dco_decode_String(arr[1]),
     );
   }
 
@@ -2739,6 +2765,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  (String, String) sse_decode_box_autoadd_record_string_string(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_record_string_string(deserializer));
+  }
+
+  @protected
   RenderingMetadata sse_decode_box_autoadd_rendering_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_rendering_metadata(deserializer));
@@ -2869,6 +2901,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_backgroundLockTimeout = sse_decode_u_16(deserializer);
     var var_pidAttestationTypes = sse_decode_list_String(deserializer);
     var var_staticAssetsBaseUrl = sse_decode_String(deserializer);
+    var var_maintenanceWindow = sse_decode_opt_box_autoadd_record_string_string(deserializer);
     var var_version = sse_decode_String(deserializer);
     var var_environment = sse_decode_String(deserializer);
     return FlutterConfiguration(
@@ -2877,6 +2910,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       backgroundLockTimeout: var_backgroundLockTimeout,
       pidAttestationTypes: var_pidAttestationTypes,
       staticAssetsBaseUrl: var_staticAssetsBaseUrl,
+      maintenanceWindow: var_maintenanceWindow,
       version: var_version,
       environment: var_environment,
     );
@@ -3207,6 +3241,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  (String, String)? sse_decode_opt_box_autoadd_record_string_string(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_record_string_string(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   RenderingMetadata? sse_decode_opt_box_autoadd_rendering_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3319,6 +3364,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_field0 = sse_decode_i_32(deserializer);
     var var_field1 = sse_decode_notification_type(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
+  (String, String) sse_decode_record_string_string(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    var var_field1 = sse_decode_String(deserializer);
     return (var_field0, var_field1);
   }
 
@@ -3952,6 +4005,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_box_autoadd_record_string_string((String, String) self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_record_string_string(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_rendering_metadata(RenderingMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_rendering_metadata(self, serializer);
@@ -4062,6 +4121,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_u_16(self.backgroundLockTimeout, serializer);
     sse_encode_list_String(self.pidAttestationTypes, serializer);
     sse_encode_String(self.staticAssetsBaseUrl, serializer);
+    sse_encode_opt_box_autoadd_record_string_string(self.maintenanceWindow, serializer);
     sse_encode_String(self.version, serializer);
     sse_encode_String(self.environment, serializer);
   }
@@ -4333,6 +4393,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_record_string_string((String, String)? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_record_string_string(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_rendering_metadata(RenderingMetadata? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4422,6 +4492,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.$1, serializer);
     sse_encode_notification_type(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_record_string_string((String, String) self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_String(self.$2, serializer);
   }
 
   @protected

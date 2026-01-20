@@ -11,6 +11,7 @@ workspace = true
 doctest = false
 
 [dependencies]
+chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["debug"] }
 itertools.workspace = true
 rustls-pki-types.workspace = true
