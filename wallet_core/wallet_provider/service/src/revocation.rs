@@ -1,8 +1,10 @@
+use chrono::DateTime;
 use chrono::Utc;
 use futures::future::try_join_all;
 use uuid::Uuid;
 
 use token_status_list::status_list_service::StatusListRevocationService;
+use utils::generator::Generator;
 use wallet_provider_domain::model::wallet_user::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::repository::Committable;
@@ -28,13 +30,14 @@ pub enum RevocationError {
 pub async fn revoke_wallets<T, R, H>(
     wallet_ids: impl IntoIterator<Item = &String>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+    time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     let revocation_reason = RevocationReason::AdminRequest;
-    let revocation_date_time = Utc::now();
+    let revocation_date_time = time.generate();
     let wua_ids: Vec<Uuid> = try_join_all(wallet_ids.into_iter().map(async |wallet_id| {
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -70,13 +73,14 @@ where
 
 pub async fn revoke_all_wallets<T, R, H>(
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+    time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     let revocation_reason = RevocationReason::WalletSolutionCompromised;
-    let revocation_date_time = Utc::now();
+    let revocation_date_time = time.generate();
 
     // TODO rewrite this method (PVW-5299)
     let tx = user_state.repositories.begin_transaction().await?;

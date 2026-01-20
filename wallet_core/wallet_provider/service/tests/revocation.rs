@@ -24,6 +24,7 @@ use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
+use utils::generator::mock::MockTimeGenerator;
 use wallet_provider_domain::model::wallet_user::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
@@ -228,7 +229,9 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     .await;
 
     let (wallet_ids_to_revoke, wallet_ids_not_to_revoke) = partition_vec_by_indices(wallets, &indices_to_revoke);
-    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state).await.unwrap();
+    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state, &MockTimeGenerator::default())
+        .await
+        .unwrap();
     let (revoked_wua_ids, non_revoked_wua_ids) = partition_vec_by_indices(wuas, &indices_to_revoke);
 
     let revoked_wua_ids = revoked_wua_ids.into_iter().flatten().collect_vec();
@@ -255,7 +258,9 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     .await;
 
     // verify idempotency
-    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state).await.unwrap();
+    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state, &MockTimeGenerator::default())
+        .await
+        .unwrap();
     verify_revocation(
         wallet_ids_to_revoke.iter(),
         Some(RevocationReason::AdminRequest),
@@ -301,7 +306,9 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     )
     .await;
 
-    revoke_all_wallets(&user_state).await.unwrap();
+    revoke_all_wallets(&user_state, &MockTimeGenerator::default())
+        .await
+        .unwrap();
 
     // all wuas should be revoked
     verify_revocation(
@@ -315,7 +322,9 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     .await;
 
     // verify idempotency
-    revoke_all_wallets(&user_state).await.unwrap();
+    revoke_all_wallets(&user_state, &MockTimeGenerator::default())
+        .await
+        .unwrap();
     verify_revocation(
         wallet_ids.iter(),
         Some(RevocationReason::WalletSolutionCompromised),
