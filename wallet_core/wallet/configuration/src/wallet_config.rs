@@ -40,7 +40,7 @@ pub struct WalletConfiguration {
     pub update_policy_server: UpdatePolicyServerConfiguration,
     pub google_cloud_project_number: u64,
     pub static_assets_base_url: BaseUrl,
-    // Note that this should serialize to a "start" and "end" field.
+    // Note that this serializes to a "start" and "end" field.
     pub maintenance_window: Option<Range<DateTime<Utc>>>,
     pub version: u64,
 }
