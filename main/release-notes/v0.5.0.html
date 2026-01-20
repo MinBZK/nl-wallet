@@ -184,6 +184,9 @@
 <li><p>This release changes the PID issuer to issue a single card with both personal
 and address claims instead of two distinct cards. Any verifiers must be
 updated to reflect this change.</p></li>
+<li><p>The Wallet configuration JSON now includes a <code class="docutils literal notranslate"><span class="pre">maintenance_window</span></code> field,
+which contains both a <code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">end</span></code> values encoded as RFC 3339 strings.
+Note that this field may also be <code class="docutils literal notranslate"><span class="pre">null</span></code> if no maintenance window is set.</p></li>
 </ul>
 </section>
 <section id="new-features">
