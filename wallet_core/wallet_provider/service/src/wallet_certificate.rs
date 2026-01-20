@@ -11,7 +11,7 @@ use jwt::EcdsaDecodingKey;
 use jwt::SignedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
-use wallet_provider_domain::model::wallet_user::QueryResult;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;

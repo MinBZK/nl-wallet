@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use token_status_list::status_list_service::StatusListRevocationService;
 use utils::generator::Generator;
-use wallet_provider_domain::model::wallet_user::QueryResult;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;

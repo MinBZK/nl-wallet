@@ -1,7 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
-use derive_more::Unwrap;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use serde::Serialize;
@@ -15,7 +14,10 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_account::messages::transfer::TransferSessionState;
 
+use crate::model::QueryResult;
+
 pub type WalletId = String;
+pub type WalletUserQueryResult = QueryResult<WalletUser>;
 
 #[derive(Debug)]
 pub struct WalletUser {
@@ -76,12 +78,6 @@ impl WalletUser {
 pub struct InstructionChallenge {
     pub bytes: Vec<u8>,
     pub expiration_date_time: DateTime<Utc>,
-}
-
-#[derive(Debug, Unwrap)]
-pub enum QueryResult<T = WalletUser> {
-    Found(Box<T>),
-    NotFound,
 }
 
 #[derive(Debug)]

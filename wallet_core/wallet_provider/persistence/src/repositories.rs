@@ -14,12 +14,13 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use measure::measure;
 use wallet_account::messages::transfer::TransferSessionState;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -71,7 +72,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-    ) -> Result<QueryResult, PersistenceError> {
+    ) -> Result<WalletUserQueryResult, PersistenceError> {
         wallet_user::find_wallet_user_by_wallet_id(transaction, wallet_id).await
     }
 
@@ -474,14 +475,15 @@ pub mod mock {
     use apple_app_attest::AssertionCounter;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::wrapped_key::WrappedKey;
+    use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-    use wallet_provider_domain::model::wallet_user::QueryResult;
     use wallet_provider_domain::model::wallet_user::RevocationReason;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+    use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
@@ -515,7 +517,7 @@ pub mod mock {
                 &self,
                 _transaction: &MockTransaction,
                 wallet_id: &str,
-            ) -> Result<QueryResult, PersistenceError>;
+            ) -> Result<WalletUserQueryResult, PersistenceError>;
 
             async fn find_wallet_user_id_by_wallet_id(
                 &self,
@@ -779,7 +781,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             wallet_id: &str,
-        ) -> Result<QueryResult, PersistenceError> {
+        ) -> Result<WalletUserQueryResult, PersistenceError> {
             Ok(QueryResult::Found(Box::new(WalletUser {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: wallet_id.to_string(),

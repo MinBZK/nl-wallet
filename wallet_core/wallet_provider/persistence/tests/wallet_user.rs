@@ -8,7 +8,7 @@ use crypto::utils::random_string;
 use hsm::model::encrypted::Encrypted;
 use utils::generator::Generator;
 use wallet_provider_domain::EpochGenerator;
-use wallet_provider_domain::model::wallet_user::QueryResult;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;

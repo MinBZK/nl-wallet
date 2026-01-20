@@ -25,7 +25,7 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use utils::generator::mock::MockTimeGenerator;
-use wallet_provider_domain::model::wallet_user::QueryResult;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;

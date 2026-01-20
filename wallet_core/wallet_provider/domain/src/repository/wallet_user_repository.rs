@@ -10,12 +10,13 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 
+use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
-use crate::model::wallet_user::QueryResult;
 use crate::model::wallet_user::RevocationReason;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
+use crate::model::wallet_user::WalletUserQueryResult;
 use crate::model::wallet_user::WalletUserState;
 
 use super::errors::PersistenceError;
@@ -36,7 +37,7 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-    ) -> Result<QueryResult>;
+    ) -> Result<WalletUserQueryResult>;
 
     async fn find_wallet_user_id_by_wallet_id(
         &self,
@@ -224,6 +225,7 @@ pub mod mock {
     use uuid::uuid;
 
     use crate::model::wallet_user;
+    use crate::model::wallet_user::WalletUserQueryResult;
 
     use super::super::transaction::mock::MockTransaction;
     use super::*;
@@ -256,7 +258,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
-        ) -> Result<QueryResult> {
+        ) -> Result<WalletUserQueryResult> {
             Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
         }
 

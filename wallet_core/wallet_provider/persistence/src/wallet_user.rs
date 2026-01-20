@@ -25,13 +25,14 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
@@ -167,7 +168,7 @@ struct WalletUserJoinedModel {
 
 /// Find a user by its `wallet_id` and return it, if it exists.
 /// Note that this function will also return blocked users.
-pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<QueryResult>
+pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
