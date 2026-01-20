@@ -1912,9 +1912,9 @@ mod tests {
     use wallet_provider_domain::EpochGenerator;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::FailingPinPolicy;
+    use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-    use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
     use wallet_provider_domain::repository::MockTransaction;
@@ -2565,7 +2565,7 @@ mod tests {
             .unwrap();
         tx.commit().await.unwrap();
 
-        if let WalletUserQueryResult::Found(user) = wallet_user {
+        if let QueryResult::Found(user) = wallet_user {
             let instruction = hw_privkey
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
@@ -2615,7 +2615,7 @@ mod tests {
             .unwrap();
         tx.commit().await.unwrap();
 
-        if let WalletUserQueryResult::Found(user) = wallet_user {
+        if let QueryResult::Found(user) = wallet_user {
             let instruction = hw_privkey
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
@@ -2689,7 +2689,7 @@ mod tests {
             .await
             .unwrap();
 
-        if let WalletUserQueryResult::Found(mut user) = wallet_user {
+        if let QueryResult::Found(mut user) = wallet_user {
             user.instruction_challenge = Some(InstructionChallenge {
                 bytes: challenge.clone(),
                 expiration_date_time: ExpiredAtEpochGeneretor.generate(),
@@ -2746,9 +2746,7 @@ mod tests {
             .unwrap();
         tx.commit().await.unwrap();
 
-        let WalletUserQueryResult::Found(user) = wallet_user else {
-            panic!("user should be found")
-        };
+        let user = wallet_user.unwrap_found();
 
         let instruction = hw_privkey
             .sign_hw_signed_instruction(CheckPin, challenge, 44, cert)
@@ -2790,9 +2788,7 @@ mod tests {
             .unwrap();
         tx.commit().await.unwrap();
 
-        let WalletUserQueryResult::Found(user) = wallet_user else {
-            panic!("user should be found")
-        };
+        let user = wallet_user.unwrap_found();
 
         let instruction = hw_privkey
             .sign_hw_signed_instruction(CheckPin, challenge, 44, cert)
@@ -2847,14 +2843,12 @@ mod tests {
         let app_version = Version::parse("1.0.0").unwrap();
 
         let tx = user_state.repositories.begin_transaction().await.unwrap();
-        let WalletUserQueryResult::Found(mut user) = user_state
+        let mut user = user_state
             .repositories
             .find_wallet_user_by_wallet_id(&tx, "0")
             .await
             .unwrap()
-        else {
-            panic!("user should be found")
-        };
+            .unwrap_found();
 
         user.instruction_challenge = Some(InstructionChallenge {
             bytes: challenge.clone(),

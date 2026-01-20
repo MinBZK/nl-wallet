@@ -8,8 +8,8 @@ use crypto::utils::random_string;
 use hsm::model::encrypted::Encrypted;
 use utils::generator::Generator;
 use wallet_provider_domain::EpochGenerator;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -55,11 +55,9 @@ async fn test_find_wallet_user_by_wallet_id() {
         .await
         .expect("finding wallet user by wallet id should succeed");
 
-    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+    assert_matches!(wallet_user_result, QueryResult::Found(_));
 
-    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
-        panic!();
-    };
+    let wallet_user = wallet_user_result.unwrap_found();
 
     assert_eq!(wallet_user.id, wallet_user_id);
     assert_eq!(wallet_user.wallet_id, wallet_id);
@@ -77,11 +75,9 @@ async fn test_find_wallet_user_by_wallet_id() {
         .await
         .expect("finding wallet user by wallet id should succeed");
 
-    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+    assert_matches!(wallet_user_result, QueryResult::Found(_));
 
-    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
-        panic!();
-    };
+    let wallet_user = wallet_user_result.unwrap_found();
 
     assert!(wallet_user.instruction_challenge.is_some());
 }
@@ -280,7 +276,7 @@ async fn test_update_apple_assertion_counter() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     match (wallet_user, other_wallet_user) {
-        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+        (QueryResult::Found(wallet_user), QueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
                 WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 0
@@ -303,7 +299,7 @@ async fn test_update_apple_assertion_counter() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     match (wallet_user, other_wallet_user) {
-        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+        (QueryResult::Found(wallet_user), QueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
                 WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 1337
@@ -332,9 +328,10 @@ async fn test_transition_wallet_user_state() {
     .await
     .unwrap();
 
-    let WalletUserQueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
-        panic!("Could not find wallet user");
-    };
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
 
     assert_eq!(user.state, WalletUserState::RecoveringPin);
 
@@ -367,18 +364,20 @@ async fn test_reset_wallet_user_state() {
 
     reset_wallet_user_state(&db, wallet_user_id).await.unwrap();
 
-    let WalletUserQueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
-        panic!("Could not find wallet user");
-    };
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
 
     assert_eq!(user.state, WalletUserState::Active);
 
     // Resetting should be idempotent
     reset_wallet_user_state(&db, wallet_user_id).await.unwrap();
 
-    let WalletUserQueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
-        panic!("Could not find wallet user");
-    };
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
 
     assert_eq!(user.state, WalletUserState::Active);
 }
@@ -393,10 +392,10 @@ async fn test_store_recovery_code() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     assert_matches!(
-        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+        wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
     assert_matches!(
-        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+        other_wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
 
     let recovery_code = "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string();
@@ -409,10 +408,10 @@ async fn test_store_recovery_code() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     assert_matches!(
-        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+        wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
     assert_matches!(
-        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+        other_wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
     );
 
     // After updating the recovery_code for the second user it should be changed as well
@@ -424,10 +423,10 @@ async fn test_store_recovery_code() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     assert_matches!(
-        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+        wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
     );
     assert_matches!(
-        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+        other_wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
     );
 
     // Updating the recovery_code for the first user again should give an error

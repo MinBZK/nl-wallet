@@ -30,6 +30,8 @@ impl MigrationTrait for Migration {
                     .col(uuid_null(WalletUser::AppleAttestationId))
                     .col(uuid_null(WalletUser::AndroidAttestationId))
                     .col(binary_uniq(WalletUser::RevocationCodeHmac))
+                    .col(string_null(WalletUser::RevocationReason))
+                    .col(timestamp_with_time_zone_null(WalletUser::RevocationDateTime))
                     .col(string_null(WalletUser::RecoveryCode))
                     .check(SimpleExpr::or(
                         // Both of these columns should be used or neither.
@@ -107,6 +109,8 @@ pub enum WalletUser {
     PinEntries,
     LastUnsuccessfulPin,
     State,
+    RevocationReason,
+    RevocationDateTime,
     AttestationDateTime,
     AppleAttestationId,
     AndroidAttestationId,

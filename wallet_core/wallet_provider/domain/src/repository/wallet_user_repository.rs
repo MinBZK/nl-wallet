@@ -10,7 +10,9 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 
+use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
+use crate::model::wallet_user::RevocationReason;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
@@ -25,6 +27,8 @@ type Result<T> = std::result::Result<T, PersistenceError>;
 pub trait WalletUserRepository {
     type TransactionType: Committable;
 
+    async fn list_wallet_user_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>>;
+
     async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>>;
 
     async fn create_wallet_user(&self, transaction: &Self::TransactionType, user: WalletUserCreate) -> Result<Uuid>;
@@ -34,6 +38,12 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_id: &str,
     ) -> Result<WalletUserQueryResult>;
+
+    async fn find_wallet_user_id_by_wallet_id(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+    ) -> Result<QueryResult<Uuid>>;
 
     async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
@@ -200,10 +210,12 @@ pub trait WalletUserRepository {
 
     async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>>;
 
-    async fn get_wua_ids_for_wallets(
+    async fn revoke_wallet_user(
         &self,
         transaction: &Self::TransactionType,
-        wallet_ids: Vec<String>,
+        wallet_user_id: Uuid,
+        revocation_reason: RevocationReason,
+        revocation_date_time: DateTime<Utc>,
     ) -> Result<Vec<Uuid>>;
 }
 
@@ -213,6 +225,7 @@ pub mod mock {
     use uuid::uuid;
 
     use crate::model::wallet_user;
+    use crate::model::wallet_user::WalletUserQueryResult;
 
     use super::super::transaction::mock::MockTransaction;
     use super::*;
@@ -224,6 +237,13 @@ pub mod mock {
 
         async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>> {
             Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
+        }
+
+        async fn list_wallet_user_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
         }
 
         async fn create_wallet_user(
@@ -239,9 +259,17 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
         ) -> Result<WalletUserQueryResult> {
-            Ok(WalletUserQueryResult::Found(Box::new(
-                wallet_user::mock::wallet_user_1(),
-            )))
+            Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
+        }
+
+        async fn find_wallet_user_id_by_wallet_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+        ) -> Result<QueryResult<Uuid>> {
+            Ok(QueryResult::Found(Box::new(uuid!(
+                "d944f36e-ffbd-402f-b6f3-418cf4c49e08"
+            ))))
         }
 
         async fn clear_instruction_challenge(
@@ -479,18 +507,20 @@ pub mod mock {
             Ok(())
         }
 
-        async fn get_wua_ids_for_wallets(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_ids: Vec<String>,
-        ) -> Result<Vec<Uuid>> {
+        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
             Ok(vec![
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
             ])
         }
 
-        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
+        async fn revoke_wallet_user(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _revocation_reason: RevocationReason,
+            _revocation_date_time: DateTime<Utc>,
+        ) -> Result<Vec<Uuid>> {
             Ok(vec![
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),

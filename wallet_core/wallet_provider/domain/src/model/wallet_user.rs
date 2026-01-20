@@ -14,7 +14,10 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_account::messages::transfer::TransferSessionState;
 
+use crate::model::QueryResult;
+
 pub type WalletId = String;
+pub type WalletUserQueryResult = QueryResult<WalletUser>;
 
 #[derive(Debug)]
 pub struct WalletUser {
@@ -32,7 +35,14 @@ pub struct WalletUser {
     pub attestation: WalletUserAttestation,
     pub state: WalletUserState,
     pub revocation_code_hmac: Vec<u8>,
+    pub revocation_registration: Option<RevocationRegistration>,
     pub recovery_code: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct RevocationRegistration {
+    pub reason: RevocationReason,
+    pub date_time: DateTime<Utc>,
 }
 
 #[derive(Debug)]
@@ -76,12 +86,6 @@ pub struct InstructionChallenge {
 }
 
 #[derive(Debug)]
-pub enum WalletUserQueryResult {
-    Found(Box<WalletUser>),
-    NotFound,
-}
-
-#[derive(Debug)]
 pub struct WalletUserCreate {
     pub wallet_id: String,
     pub hw_pubkey: VerifyingKey,
@@ -100,6 +104,7 @@ pub enum WalletUserState {
     RecoveringPin,
     Transferring,
     Transferred,
+    Revoked,
 }
 
 #[derive(Debug)]
@@ -134,14 +139,14 @@ impl WalletUserKey {
     }
 }
 
-#[derive(Debug, Clone, Copy, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
+)]
 #[strum(serialize_all = "snake_case")]
 pub enum RevocationReason {
     // upon the explicit request of the User
     UserRequest,
-    // can have several reasons, e.g.,
-    // * the security of the mobile device and OS on which the corresponding Wallet Instance is installed
-    // * ...
+    // can have several reasons
     AdminRequest,
     // the security of the Wallet Solution is breached or compromised
     WalletSolutionCompromised,
@@ -183,6 +188,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
             revocation_code_hmac: random_bytes(32),
+            revocation_registration: None,
             recovery_code: None,
         }
     }

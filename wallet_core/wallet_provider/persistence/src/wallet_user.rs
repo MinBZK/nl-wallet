@@ -25,7 +25,10 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::RevocationReason;
+use wallet_provider_domain::model::wallet_user::RevocationRegistration;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -50,6 +53,20 @@ where
     wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::WalletId)
+        .into_tuple()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+pub async fn list_wallet_user_ids<S, T>(db: &T) -> Result<Vec<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
         .into_tuple()
         .all(db.connection())
         .await
@@ -113,6 +130,8 @@ where
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
         state: Set(WalletUserState::Active.to_string()),
+        revocation_reason: Set(None),
+        revocation_date_time: Set(None),
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),
@@ -143,6 +162,8 @@ struct WalletUserJoinedModel {
     instruction_sequence_number: i32,
     apple_assertion_counter: Option<i64>,
     revocation_code_hmac: Vec<u8>,
+    revocation_reason: Option<String>,
+    revocation_date_time: Option<DateTimeWithTimeZone>,
     recovery_code: Option<String>,
 }
 
@@ -166,6 +187,8 @@ where
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
         .column(wallet_user::Column::RevocationCodeHmac)
+        .column(wallet_user::Column::RevocationReason)
+        .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
@@ -191,7 +214,7 @@ where
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?
     else {
-        return Ok(WalletUserQueryResult::NotFound);
+        return Ok(QueryResult::NotFound);
     };
 
     let state: WalletUserState = model
@@ -227,6 +250,15 @@ where
         None => WalletUserAttestation::Android,
     };
 
+    let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
+        (Some(reason), Some(date_time)) => Some(RevocationRegistration {
+            reason: reason.parse().unwrap(),
+            date_time: date_time.into(),
+        }),
+        (None, None) => None,
+        _ => panic!("every reason should have a registered datetime"),
+    };
+
     let wallet_user = WalletUser {
         id: model.id,
         wallet_id: model.wallet_id,
@@ -240,10 +272,30 @@ where
         attestation,
         state,
         revocation_code_hmac: model.revocation_code_hmac,
+        revocation_registration,
         recovery_code: model.recovery_code.clone(),
     };
 
-    Ok(WalletUserQueryResult::Found(Box::new(wallet_user)))
+    Ok(QueryResult::Found(Box::new(wallet_user)))
+}
+
+pub async fn find_wallet_user_id_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<QueryResult<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    match wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .into_tuple()
+        .one(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+    {
+        Some(wallet_user_id) => Ok(QueryResult::Found(Box::new(wallet_user_id))),
+        None => Ok(QueryResult::NotFound),
+    }
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -628,4 +680,40 @@ where
         .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
     Ok(count > 1)
+}
+
+pub async fn revoke_wallet<S, T>(
+    db: &T,
+    wallet_user_id: Uuid,
+    revocation_reason: RevocationReason,
+    revocation_date_time: DateTime<Utc>,
+) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::update_many()
+        .col_expr(
+            wallet_user::Column::State,
+            Expr::value(WalletUserState::Revoked.to_string()),
+        )
+        .col_expr(
+            wallet_user::Column::RevocationReason,
+            Expr::value(revocation_reason.to_string()),
+        )
+        .col_expr(
+            wallet_user::Column::RevocationDateTime,
+            Expr::value(revocation_date_time),
+        )
+        .filter(
+            wallet_user::Column::Id
+                .eq(wallet_user_id)
+                .and(wallet_user::Column::RevocationReason.is_null())
+                .and(wallet_user::Column::RevocationDateTime.is_null()),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+    Ok(())
 }

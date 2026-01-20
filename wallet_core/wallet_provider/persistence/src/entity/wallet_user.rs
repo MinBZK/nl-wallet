@@ -30,6 +30,8 @@ pub struct Model {
     pub android_attestation_id: Option<Uuid>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)", unique)]
     pub revocation_code_hmac: Vec<u8>,
+    pub revocation_reason: Option<String>,
+    pub revocation_date_time: Option<DateTimeWithTimeZone>,
     pub recovery_code: Option<String>,
 }
 

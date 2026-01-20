@@ -14,6 +14,8 @@ use utoipa_axum::routes;
 #[cfg(feature = "admin-ui")]
 use utoipa_swagger_ui::SwaggerUi;
 
+use utils::generator::TimeGenerator;
+
 use crate::router_state::RouterState;
 
 #[derive(OpenApi)]
@@ -51,10 +53,12 @@ where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
-    // TODO store [`RevocationReason::AdminRequest`] (PVW-5302)
     // TODO since this method takes an array and simply revokes all WUAs associated with all provided wallet IDs, a 404
     // never occurs (PVW-5297)
-    Ok(wallet_provider_service::revocation::revoke_wallets(wallet_ids, &router_state.user_state).await?)
+    Ok(
+        wallet_provider_service::revocation::revoke_wallets(&wallet_ids, &router_state.user_state, &TimeGenerator)
+            .await?,
+    )
 }
 
 #[utoipa::path(
@@ -69,8 +73,7 @@ where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
-    // TODO store [`RevocationReason::WalletSolutionCompromise`] (PVW-5302)
-    Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state).await?)
+    Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state, &TimeGenerator).await?)
 }
 
 #[cfg(feature = "admin-ui")]

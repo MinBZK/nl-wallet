@@ -11,8 +11,8 @@ use jwt::EcdsaDecodingKey;
 use jwt::SignedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUser;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -85,17 +85,15 @@ where
     tx.commit().await?;
 
     match user_result {
-        WalletUserQueryResult::NotFound => {
+        QueryResult::NotFound => {
             debug!("No user found for the provided certificate: {}", &claims.wallet_id);
             Err(WalletCertificateError::UserNotRegistered)
         }
-        WalletUserQueryResult::Found(user_boxed)
-            if !include_blocked && matches!(user_boxed.state, WalletUserState::Blocked) =>
-        {
+        QueryResult::Found(user_boxed) if !include_blocked && matches!(user_boxed.state, WalletUserState::Blocked) => {
             debug!("User found for the provided certificate is blocked");
             Err(WalletCertificateError::UserBlocked)
         }
-        WalletUserQueryResult::Found(user_boxed) => {
+        QueryResult::Found(user_boxed) => {
             let user = *user_boxed;
             Ok((user, claims))
         }
