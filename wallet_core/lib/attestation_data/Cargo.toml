@@ -22,7 +22,7 @@ mock = [
     "example_credential_payloads",
     "mdoc/test",
 ]
-test_credential = ["dep:futures", "mock"]
+test_credential = ["dep:futures", "mock", "sd_jwt_vc_metadata/example_constructors", "utils/mock_time" ]
 
 [dependencies]
 chrono.workspace = true
