@@ -33,7 +33,7 @@ class DashboardScreen : MobileActions() {
     fun cardVisible(cardDisplayContent: String) = elementContainingTextVisible(cardDisplayContent)
 
     fun cardRevocationVisible(cardDisplayContent: String): Boolean {
-        scrollToElementContainingText(cardDisplayContent)
+        scrollToElementContainingTexts(listOf(cardDisplayContent, revokedLabel))
         return elementContainingTextsVisible(listOf(cardDisplayContent, revokedLabel))
     }
 

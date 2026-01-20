@@ -133,6 +133,37 @@ open class MobileActions {
         }
     }
 
+    fun scrollToElementContainingTexts(partialTexts: List<String>) {
+        when (val platform = platformName()) {
+            "ANDROID" -> {
+                val regexPattern = ".*" + partialTexts.joinToString(".*") { Regex.escape(it) } + ".*"
+                val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
+                driver.findElement(
+                    AppiumBy.androidUIAutomator(
+                        "new UiScrollable(new UiSelector().scrollable(true))" +
+                            ".scrollIntoView(new UiSelector().descriptionMatches($quotedPattern))"
+                    )
+                ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
+            }
+            "IOS" -> {
+                val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
+                val predicate = partialTexts.joinToString(" AND ") { partialText ->
+                    val quotedText = quoteForIos(partialText)
+                    "name CONTAINS $quotedText"
+                }
+                (driver as JavascriptExecutor).executeScript(
+                    "mobile: scroll",
+                    mapOf(
+                        "element" to scroll.id,
+                        "predicateString" to predicate,
+                        "toVisible" to true
+                    )
+                ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
+            }
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
     fun scrollToEndOfScreen(durationMs: Int = 300) {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
@@ -307,19 +338,11 @@ open class MobileActions {
     }
 
     fun clickElementContainingText(partialText: String) {
-        return try {
-            findElementByPartialText(partialText).click()
-        } catch (e: Exception) {
-            println("Failed to get element: ${e.message}")
-        }
+        findElementByPartialText(partialText).click()
     }
 
     fun clickElementWithText(text: String) {
-        return try {
-            findElementByText(text).click()
-        } catch (e: Exception) {
-            println("Failed to get element: ${e.message}")
-        }
+        findElementByText(text).click()
     }
 
     fun elementContainingTextVisible(partialText: String): Boolean {
@@ -362,12 +385,7 @@ open class MobileActions {
     }
 
     fun getTextFromAllChildElementsFromElementWithText(parentText: String): String {
-        val parentElement = try {
-            findElementByText(parentText)
-        } catch (e: Exception) {
-            println("Failed to find parent element: ${e.message}")
-            return ""
-        }
+        val parentElement = findElementByText(parentText)
 
         val childElements = parentElement.findElements(By.xpath(".//*"))
 

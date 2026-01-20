@@ -14,9 +14,15 @@ class CardDataScreen : MobileActions() {
         return elementContainingTextVisible(cardPreviewScreenIncorrectCta)
     }
 
-    fun dataAttributeVisible(attribute: String) = elementContainingTextVisible(attribute)
+    fun dataAttributeVisible(attribute: String): Boolean {
+        scrollToElementContainingText(attribute)
+        return elementContainingTextVisible(attribute)
+    }
 
-    fun dataLabelVisible(label: String) = elementContainingTextVisible(label)
+    fun dataLabelVisible(label: String): Boolean {
+        scrollToElementContainingText(label)
+        return elementContainingTextVisible(label)
+    }
 
     fun dataLabelAbsent(attribute: String) = !elementContainingTextVisible(attribute)
 
