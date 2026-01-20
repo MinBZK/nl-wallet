@@ -2,12 +2,12 @@
 {%- import "../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block styles %}
-<link rel="stylesheet" href="./css/index.css" />
+<link rel="stylesheet" href="/css/index.css" />
 {% endblock %}
 
 {% block scripts %}
 <script integrity="sha256-{{ base.language_js_sha256 }}" src="../language.js" defer></script>
-<script src="./portal.js" defer></script>
+<script src="/portal.js" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -50,8 +50,10 @@
                   data-required-message="{{ base.trans.delete_code_required }}"
                   spellcheck="false"
                   autocomplete="off"
+                  class="{% if failed_reason is defined %}invalid{% endif %}"
                 >
-                <div id="error-message" class="error-text" aria-live="polite">
+                <div id="error-message"
+                     class="error-text {% if failed_reason is defined %}visible{% endif %}" aria-live="polite">
                   {% if let Some(reason) = failed_reason %}
                       {{ reason }}
                   {% endif %}

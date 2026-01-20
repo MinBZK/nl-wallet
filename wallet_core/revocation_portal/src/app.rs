@@ -46,15 +46,15 @@ static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
 
 #[derive(Deserialize)]
 struct DeleteForm {
-    _revocation_code: String,
+    deletion_code: String,
 }
 
 pub fn create_router(settings: &Settings) -> Router {
     let application_state = Arc::new(ApplicationState {});
 
     let mut app = Router::new()
-        .route("/", get(index))
-        .route("/", post(delete_wallet))
+        .route("/support/delete", get(index))
+        .route("/support/delete", post(delete_wallet))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -109,7 +109,7 @@ async fn index(State(_state): State<Arc<ApplicationState>>, language: Language) 
 async fn delete_wallet(
     State(_state): State<Arc<ApplicationState>>,
     language: Language,
-    Form(_delete_form): Form<DeleteForm>,
+    Form(delete_form): Form<DeleteForm>,
 ) -> Response {
     IndexTemplate {
         base: BaseTemplate {
@@ -118,7 +118,7 @@ async fn delete_wallet(
             available_languages: &Language::iter().collect_vec(),
             language_js_sha256: &LANGUAGE_JS_SHA256,
         },
-        failed_reason: Some("Wallet deletion is not supported yet."),
+        failed_reason: Some(TRANSLATIONS[language].delete_code_incorrect),
     }
     .into_response()
 }
