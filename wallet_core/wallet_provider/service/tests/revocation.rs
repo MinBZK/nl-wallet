@@ -165,10 +165,13 @@ async fn verify_revocation(
             wallet_user.state == WalletUserState::Revoked,
             expected_revocation_reason.is_some()
         );
-        assert_eq!(wallet_user.revocation_reason, expected_revocation_reason);
         assert_eq!(
-            wallet_user.revocation_date_time.is_some(),
+            wallet_user.revocation_registration.is_some(),
             expected_revocation_reason.is_some()
+        );
+        assert_eq!(
+            wallet_user.revocation_registration.map(|r| r.reason),
+            expected_revocation_reason
         );
         tx.commit().await.unwrap();
     }))

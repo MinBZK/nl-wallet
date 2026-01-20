@@ -801,8 +801,7 @@ pub mod mock {
                 },
                 state: self.state,
                 revocation_code_hmac: self.revocation_code_hmac.clone(),
-                revocation_reason: None,
-                revocation_date_time: None,
+                revocation_registration: None,
                 recovery_code: None,
             })))
         }

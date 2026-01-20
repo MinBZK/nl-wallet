@@ -28,6 +28,7 @@ use hsm::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
+use wallet_provider_domain::model::wallet_user::RevocationRegistration;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -249,6 +250,15 @@ where
         None => WalletUserAttestation::Android,
     };
 
+    let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
+        (Some(reason), Some(date_time)) => Some(RevocationRegistration {
+            reason: reason.parse().unwrap(),
+            date_time: date_time.into(),
+        }),
+        (None, None) => None,
+        _ => panic!("every reason should have a registered datetime"),
+    };
+
     let wallet_user = WalletUser {
         id: model.id,
         wallet_id: model.wallet_id,
@@ -262,8 +272,7 @@ where
         attestation,
         state,
         revocation_code_hmac: model.revocation_code_hmac,
-        revocation_reason: model.revocation_reason.map(|r| r.parse().unwrap()),
-        revocation_date_time: model.revocation_date_time.map(DateTime::<Utc>::from),
+        revocation_registration,
         recovery_code: model.recovery_code.clone(),
     };
 

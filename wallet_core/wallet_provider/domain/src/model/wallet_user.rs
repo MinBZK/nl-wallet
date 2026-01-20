@@ -35,9 +35,14 @@ pub struct WalletUser {
     pub attestation: WalletUserAttestation,
     pub state: WalletUserState,
     pub revocation_code_hmac: Vec<u8>,
-    pub revocation_reason: Option<RevocationReason>,
-    pub revocation_date_time: Option<DateTime<Utc>>,
+    pub revocation_registration: Option<RevocationRegistration>,
     pub recovery_code: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct RevocationRegistration {
+    pub reason: RevocationReason,
+    pub date_time: DateTime<Utc>,
 }
 
 #[derive(Debug)]
@@ -183,8 +188,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
             revocation_code_hmac: random_bytes(32),
-            revocation_reason: None,
-            revocation_date_time: None,
+            revocation_registration: None,
             recovery_code: None,
         }
     }
