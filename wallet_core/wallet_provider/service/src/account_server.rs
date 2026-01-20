@@ -2746,9 +2746,7 @@ mod tests {
             .unwrap();
         tx.commit().await.unwrap();
 
-        let QueryResult::Found(user) = wallet_user else {
-            panic!("user should be found")
-        };
+        let user = wallet_user.unwrap_found();
 
         let instruction = hw_privkey
             .sign_hw_signed_instruction(CheckPin, challenge, 44, cert)
@@ -2790,9 +2788,7 @@ mod tests {
             .unwrap();
         tx.commit().await.unwrap();
 
-        let QueryResult::Found(user) = wallet_user else {
-            panic!("user should be found")
-        };
+        let user = wallet_user.unwrap_found();
 
         let instruction = hw_privkey
             .sign_hw_signed_instruction(CheckPin, challenge, 44, cert)
@@ -2847,14 +2843,12 @@ mod tests {
         let app_version = Version::parse("1.0.0").unwrap();
 
         let tx = user_state.repositories.begin_transaction().await.unwrap();
-        let QueryResult::Found(mut user) = user_state
+        let mut user = user_state
             .repositories
             .find_wallet_user_by_wallet_id(&tx, "0")
             .await
             .unwrap()
-        else {
-            panic!("user should be found")
-        };
+            .unwrap_found();
 
         user.instruction_challenge = Some(InstructionChallenge {
             bytes: challenge.clone(),

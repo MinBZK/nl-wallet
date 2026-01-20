@@ -57,9 +57,7 @@ async fn test_find_wallet_user_by_wallet_id() {
 
     assert_matches!(wallet_user_result, QueryResult::Found(_));
 
-    let QueryResult::Found(wallet_user) = wallet_user_result else {
-        panic!();
-    };
+    let wallet_user = wallet_user_result.unwrap_found();
 
     assert_eq!(wallet_user.id, wallet_user_id);
     assert_eq!(wallet_user.wallet_id, wallet_id);
@@ -79,9 +77,7 @@ async fn test_find_wallet_user_by_wallet_id() {
 
     assert_matches!(wallet_user_result, QueryResult::Found(_));
 
-    let QueryResult::Found(wallet_user) = wallet_user_result else {
-        panic!();
-    };
+    let wallet_user = wallet_user_result.unwrap_found();
 
     assert!(wallet_user.instruction_challenge.is_some());
 }
@@ -332,9 +328,10 @@ async fn test_transition_wallet_user_state() {
     .await
     .unwrap();
 
-    let QueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
-        panic!("Could not find wallet user");
-    };
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
 
     assert_eq!(user.state, WalletUserState::RecoveringPin);
 
@@ -367,18 +364,20 @@ async fn test_reset_wallet_user_state() {
 
     reset_wallet_user_state(&db, wallet_user_id).await.unwrap();
 
-    let QueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
-        panic!("Could not find wallet user");
-    };
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
 
     assert_eq!(user.state, WalletUserState::Active);
 
     // Resetting should be idempotent
     reset_wallet_user_state(&db, wallet_user_id).await.unwrap();
 
-    let QueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
-        panic!("Could not find wallet user");
-    };
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
 
     assert_eq!(user.state, WalletUserState::Active);
 }

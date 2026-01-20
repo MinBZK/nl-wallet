@@ -283,12 +283,10 @@ async fn test_wua_status() {
 
     // fetch all WUA IDs for this wallet directly from the database
     let tx = user_state.repositories.begin_transaction().await.unwrap();
-    let QueryResult::Found(wallet_user_id) = wallet_user::find_wallet_user_id_by_wallet_id(&tx, &cert_data.wallet_id)
+    let wallet_user_id = wallet_user::find_wallet_user_id_by_wallet_id(&tx, &cert_data.wallet_id)
         .await
         .unwrap()
-    else {
-        panic!("Wallet user should have been found");
-    };
+        .unwrap_found();
     let wua_ids = wallet_user_wua::find_wua_ids_for_wallet_user(&tx, *wallet_user_id)
         .await
         .unwrap();

@@ -25,7 +25,6 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use utils::generator::mock::MockTimeGenerator;
-use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
@@ -158,12 +157,10 @@ async fn verify_revocation(
     // verify wallet revocation
     join_all(wallet_ids.into_iter().map(async |wallet_id| {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
-        let QueryResult::Found(wallet_user) = wallet_user::find_wallet_user_by_wallet_id(&tx, wallet_id)
+        let wallet_user = wallet_user::find_wallet_user_by_wallet_id(&tx, wallet_id)
             .await
             .unwrap()
-        else {
-            panic!("Wallet user should have been found");
-        };
+            .unwrap_found();
         assert_eq!(
             wallet_user.state == WalletUserState::Revoked,
             expected_revocation_reason.is_some()
