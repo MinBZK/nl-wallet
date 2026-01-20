@@ -85,9 +85,9 @@ test_credentials = [
     "attestation_data/test_credential",
     "dcql/mock",
     "dep:attestation_types",
+    "dep:sd_jwt_vc_metadata",
+    "dep:utils",
     "pid_issuer/mock",
-    "sd_jwt_vc_metadata/example_constructors",
-    "utils/mock_time",
 ]
 
 # Allow the disclosure return URL and its prefix to use http://
