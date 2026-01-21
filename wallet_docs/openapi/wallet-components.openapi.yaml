@@ -1,8 +1,46 @@
 # This component library YAML file is included
 # by the public and private OpenAP documents.
 components:
+  parameters:
+    session_token:
+      name: session_token
+      description: A unique identifier for the session
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/SessionToken'
+
+    session_type:
+      name: session_type
+      description: The type of the session
+      in: query
+      required: false
+      schema:
+        description: The type of the session
+        type: string
+        enum:
+          - cross_device
+          - same_device
+
+    dpop:
+      name: DPoP
+      in: header
+      required: true
+      description: DPoP proof JWT
+      schema:
+        type: string
+        format: jwt
+
+    nonce:
+      name: nonce
+      in: query
+      required: false
+      description: Optional nonce for verification
+      schema:
+        type: string
+
   schemas:
-    session_request:
+    SessionRequest:
       description: A session request post body
       type: object
       properties:
@@ -17,6 +55,13 @@ components:
         - usecase
         - dcql_query
         - return_url_template
+
+    SessionToken:
+      description: The unique identifier of a session
+      type: string
+      minLength: 32
+      maxLength: 32
+      pattern: '^[a-zA-Z0-9]{32}$'
 
     Query:
       type: object
@@ -93,21 +138,7 @@ components:
       required:
         - vct_values
 
-    session_token:
-      description: The unique identifier of a session
-      type: string
-      minLength: 32
-      maxLength: 32
-      pattern: '^[a-zA-Z0-9]{32}$'
-
-    session_type:
-      description: The type of the session
-      type: string
-      enum:
-        - cross_device
-        - same_device
-
-    session_status:
+    SessionStatus:
       type: object
       required:
         - status
@@ -125,78 +156,16 @@ components:
           type: string
           format: uri
 
-    token_response:
+    SessionResponse:
       description: An object containing a session token
       type: object
       required:
         - session_token
       properties:
         session_token:
-          $ref: '#/components/schemas/session_token'
+          $ref: '#/components/schemas/SessionToken'
 
-    disclosed_attributes:
-      description: An array with the resultant disclosed attributes
-      type: array
-      items:
-        type: object
-        properties:
-          id:
-            type: string
-          attestations:
-            type: array
-            items:
-              $ref: '#/components/schemas/disclosed_attestation'
-        required:
-          - id
-          - attestations
-
-    disclosed_attestation:
-      type: object
-      properties:
-        attestation_type: string
-        attributes:
-          $ref: '#/components/schemas/attributes'
-        issuer_uri:
-          type: string
-        attestation_qualification:
-          type: string
-          enum:
-            - QEAA
-            - PuB-EAA
-            - EAA
-        ca:
-          type: string
-        issuance_validity:
-          $ref: '#/components/schemas/issuance_validity'
-      required:
-        - attributes
-        - issuer
-        - issuance_validity
-
-    attributes:
-      type: object
-      additionalProperties: true
-      example:
-        attributeName: attributeValue
-
-    issuance_validity:
-      type: object
-      properties:
-        signed:
-          type: string
-          format: date-time
-        valid_from:
-          type: string
-          format: date-time
-        valid_until:
-          type: string
-          format: date-time
-      required:
-        - signed
-        - valid_from
-        - valid_until
-
-    error_message:
+    ErrorMessage:
       type: object
       required:
         - type
@@ -213,16 +182,16 @@ components:
         detail:
           type string
 
-    ephemeral_id:
+    EphemeralId:
       description: An ephemeral id
       type: string
 
-    time:
+    Time:
       description: Time in RFC 3339 format
       type: string
       format: date-time
 
-    wallet_nonce:
+    WalletNonce:
       description: A cryptographic nonce
       type: object
       required:
@@ -230,7 +199,7 @@ components:
       properties:
         wallet_nonce: string
 
-    vp_token:
+    VpToken:
       description: A verifiable presentation token
       type: object
       required:
@@ -238,7 +207,7 @@ components:
       properties:
         vp_token: string
 
-    redirect_object:
+    RedirectObject:
       description: A redirect object
       type: object
       required:
@@ -248,7 +217,7 @@ components:
           type: string
           format: uri
 
-    oauth_authz_data:
+    OauthAuthzData:
       description: Oauth authz data
       type: string
 
@@ -551,13 +520,6 @@ components:
           type: string
           description: Response code for the redirect
 
-    SessionType:
-      type: string
-      enum:
-        - same_device
-        - cross_device
-      description: Type of disclosure session
-
     StatusResponse:
       type: object
       properties:
@@ -634,12 +596,20 @@ components:
           description: URI of the issuer
         attestation_qualification:
           type: string
+          enum:
+            - QEAA
+            - PuB-EAA
+            - EAA
           description: Qualification level of the attestation
         ca:
           type: string
           description: Certificate authority
         issuance_validity:
           $ref: '#/components/schemas/IssuanceValidity'
+      required:
+        - attributes
+        - issuer
+        - issuance_validity
 
     IssuanceValidity:
       type: object

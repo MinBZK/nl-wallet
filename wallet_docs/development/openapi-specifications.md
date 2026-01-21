@@ -32,8 +32,8 @@ cd nl-wallet
 docker run --name swagger --detach --rm -p 8080:8080 \
 -e URLS='[ { url: "openapi/wallet-disclosure-private.openapi.yaml", name: "Disclosure Private (requester) API" }, { url: "openapi/wallet-disclosure-public.openapi.yaml", name: "Disclosure Public (wallet) API" },  { url: "openapi/wallet-issuance.openapi.yaml", name: "Issuer API" } ]' \
 -e URLS_PRIMARY_NAME='Disclosure Private (requester) API' \
--v "$(pwd)/wallet_docs/openapi":/usr/share/nginx/html/openapi \
-swaggerapi/swagger-ui
+-v "$PWD/wallet_docs/openapi":/usr/share/nginx/html/openapi \
+docker.swagger.io/swaggerapi/swagger-ui
 ```
 
 Then visit [http://localhost:8080](http://localhost:8080). The above docker
