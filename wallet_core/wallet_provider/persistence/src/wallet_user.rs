@@ -602,7 +602,11 @@ where
     T: PersistenceConnection<S>,
 {
     // revocation is irreversible
-    assert!(from_state != WalletUserState::Revoked);
+    assert!(
+        from_state != WalletUserState::Revoked,
+        "Wallet user is in a revoked state, cannot transition to: '{}'",
+        to_state
+    );
 
     let result = wallet_user::Entity::update_many()
         .col_expr(wallet_user::Column::State, Expr::value(to_state.to_string()))
