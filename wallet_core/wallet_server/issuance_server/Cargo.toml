@@ -27,10 +27,8 @@ allow_insecure_url = ["openid4vc/allow_insecure_url"]
 postgres = ["server_utils/postgres"]
 # Enable integration tests
 integration_test = []
-# Enable the Admin UI
-admin_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored"]
-# Enable additional test API endpoints
-test_api = ["status_lists/test_api"]
+# Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
+test_admin_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "status_lists/test_api"]
 
 [dependencies]
 anyhow.workspace = true
