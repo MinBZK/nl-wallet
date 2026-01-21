@@ -207,8 +207,8 @@ as a part of the OpenAPI (Swagger) Editor Plugin).</p>
 docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>swagger<span class="w"> </span>--detach<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
 -e<span class="w"> </span><span class="nv">URLS</span><span class="o">=</span><span class="s1">&#39;[ { url: &quot;openapi/wallet-disclosure-private.openapi.yaml&quot;, name: &quot;Disclosure Private (requester) API&quot; }, { url: &quot;openapi/wallet-disclosure-public.openapi.yaml&quot;, name: &quot;Disclosure Public (wallet) API&quot; },  { url: &quot;openapi/wallet-issuance.openapi.yaml&quot;, name: &quot;Issuer API&quot; } ]&#39;</span><span class="w"> </span><span class="se">\</span>
 -e<span class="w"> </span><span class="nv">URLS_PRIMARY_NAME</span><span class="o">=</span><span class="s1">&#39;Disclosure Private (requester) API&#39;</span><span class="w"> </span><span class="se">\</span>
--v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/wallet_docs/openapi&quot;</span>:/usr/share/nginx/html/openapi<span class="w"> </span><span class="se">\</span>
-swaggerapi/swagger-ui
+-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/wallet_docs/openapi&quot;</span>:/usr/share/nginx/html/openapi<span class="w"> </span><span class="se">\</span>
+docker.swagger.io/swaggerapi/swagger-ui
 </pre></div>
 </div>
 <p>Then visit <a class="reference external" href="http://localhost:8080">http://localhost:8080</a>. The above docker

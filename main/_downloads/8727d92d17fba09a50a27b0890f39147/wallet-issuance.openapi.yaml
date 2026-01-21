@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.1.1
 info:
   title: 'Wallet Server Issuance API'
   description:
@@ -86,13 +86,7 @@ paths:
         This endpoint implements the OAuth 2.0 token endpoint with DPoP support.
       operationId: requestToken
       parameters:
-        - name: DPoP
-          in: header
-          required: true
-          description: DPoP proof JWT
-          schema:
-            type: string
-            format: jwt
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
       requestBody:
         required: true
         content:
@@ -134,13 +128,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - name: DPoP
-          in: header
-          required: true
-          description: DPoP proof JWT
-          schema:
-            type: string
-            format: jwt
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
       requestBody:
         required: true
         content:
@@ -175,13 +163,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - name: DPoP
-          in: header
-          required: true
-          description: DPoP proof JWT
-          schema:
-            type: string
-            format: jwt
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
       responses:
         '204':
           description: Issuance rejected successfully
@@ -208,13 +190,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - name: DPoP
-          in: header
-          required: true
-          description: DPoP proof JWT
-          schema:
-            type: string
-            format: jwt
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
       requestBody:
         required: true
         content:
@@ -249,13 +225,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - name: DPoP
-          in: header
-          required: true
-          description: DPoP proof JWT
-          schema:
-            type: string
-            format: jwt
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
       responses:
         '204':
           description: Batch issuance rejected successfully
@@ -273,7 +243,7 @@ paths:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/CredentialError'
 
   # Disclosure Endpoints - Wallet-facing
-  /disclosure/{identifier}/request_uri:
+  /disclosure/{session_token}/request_uri:
     get:
       tags:
         - Disclosure
@@ -283,12 +253,7 @@ paths:
         This endpoint is called by the wallet to get the request object.
       operationId: getAuthorizationRequest
       parameters:
-        - name: identifier
-          in: path
-          required: true
-          description: Session identifier
-          schema:
-            type: string
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
         - name: wallet_nonce
           in: query
           required: false
@@ -325,12 +290,7 @@ paths:
         This is an OpenID4VP extension to the standard GET method.
       operationId: postAuthorizationRequest
       parameters:
-        - name: identifier
-          in: path
-          required: true
-          description: Session identifier
-          schema:
-            type: string
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
       requestBody:
         required: true
         content:
@@ -369,12 +329,7 @@ paths:
         This endpoint processes the disclosed attributes.
       operationId: submitPresentation
       parameters:
-        - name: session_token
-          in: path
-          required: true
-          description: Session token
-          schema:
-            type: string
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
       requestBody:
         required: true
         content:
@@ -409,18 +364,8 @@ paths:
       description: Query the status of a disclosure session
       operationId: getSessionStatus
       parameters:
-        - name: session_token
-          in: path
-          required: true
-          description: Session token
-          schema:
-            type: string
-        - name: session_type
-          in: query
-          required: false
-          description: Type of session
-          schema:
-            $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionType'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_type'
       responses:
         '200':
           description: Session status
@@ -441,12 +386,7 @@ paths:
       description: Cancel an active disclosure session
       operationId: cancelSession
       parameters:
-        - name: session_token
-          in: path
-          required: true
-          description: Session token
-          schema:
-            type: string
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
       responses:
         '204':
           description: Session cancelled successfully
@@ -497,18 +437,8 @@ paths:
         This endpoint is called by the relying party after successful disclosure.
       operationId: getDisclosedAttributes
       parameters:
-        - name: session_token
-          in: path
-          required: true
-          description: A unique identifier for the session
-          schema:
-            $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
-        - name: nonce
-          in: query
-          required: false
-          description: Optional nonce for verification
-          schema:
-            type: string
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/nonce'
       responses:
         '200':
           description: Disclosed attributes
