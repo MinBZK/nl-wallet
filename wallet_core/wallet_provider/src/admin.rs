@@ -11,8 +11,6 @@ use tracing::warn;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-#[cfg(feature = "test_admin_ui")]
-use utoipa_swagger_ui::SwaggerUi;
 
 use utils::generator::TimeGenerator;
 
@@ -34,7 +32,7 @@ impl IntoResponse for RevocationError {
 
 #[utoipa::path(
     post,
-    path = "/admin/revoke/",
+    path = "/revoke/",
     request_body(
         content = Vec<String>,
         example = json!([
@@ -63,7 +61,7 @@ where
 
 #[utoipa::path(
     post,
-    path = "/admin/nuke/",
+    path = "/nuke/",
     responses(
         (status = OK, description = "Successfully revoked all wallets."),
     )
@@ -79,7 +77,7 @@ where
 #[cfg(feature = "test_admin_ui")]
 #[utoipa::path(
     get,
-    path = "/admin/wallet/",
+    path = "/wallet/",
     responses(
         (
             status = OK,
@@ -101,7 +99,7 @@ where
     ))
 }
 
-pub fn internal_router<GRC, PIC>() -> Router<Arc<RouterState<GRC, PIC>>>
+pub fn internal_router<GRC, PIC>(state: Arc<RouterState<GRC, PIC>>) -> (Router, utoipa::openapi::OpenApi)
 where
     PIC: Send + Sync + 'static,
     GRC: Send + Sync + 'static,
@@ -114,13 +112,7 @@ where
     // TODO .routes(routes!(get_wallet)) (PVW-5297)
     let router = router.routes(routes!(list_wallets));
 
-    let (router, openapi) = router.split_for_parts();
+    let router = router.with_state(state);
 
-    #[cfg(feature = "test_admin_ui")]
-    let router = router.merge(SwaggerUi::new("/admin/api-docs").url("/openapi.json", openapi));
-
-    #[cfg(not(feature = "test_admin_ui"))]
-    let router = router.route("/openapi.json", axum::routing::get(Json(openapi)));
-
-    router
+    router.split_for_parts()
 }

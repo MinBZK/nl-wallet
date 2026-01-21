@@ -86,7 +86,7 @@ where
     #[cfg(feature = "test_api")]
     let router = router.routes(routes!(get_batch)).routes(routes!(list_batch));
 
-    let (router, openapi) = router.split_for_parts();
+    let router = router.with_state(status_list_service);
 
-    (router.with_state(status_list_service), openapi)
+    router.split_for_parts()
 }
