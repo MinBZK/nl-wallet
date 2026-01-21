@@ -74,10 +74,11 @@ use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
         Ok(())
     }
 }
@@ -85,6 +86,19 @@ pub trait ValidateInstruction {
 fn validate_wallet_user_not_transferred(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     match wallet_user.state {
         WalletUserState::Transferred => Err(InstructionValidationError::AccountIsTransferred),
+        _ => Ok(()),
+    }
+}
+
+fn validate_wallet_user_not_revoked(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    match wallet_user.state {
+        WalletUserState::Revoked => Err(InstructionValidationError::AccountIsRevoked(
+            wallet_user
+                .revocation_registration
+                .as_ref()
+                .expect("should be set when state is revoked")
+                .reason,
+        )),
         _ => Ok(()),
     }
 }
@@ -139,6 +153,7 @@ impl ValidateInstruction for DiscloseRecoveryCode {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
@@ -160,6 +175,7 @@ impl ValidateInstruction for Sign {
 
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
@@ -168,6 +184,7 @@ impl ValidateInstruction for ChangePinCommit {
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
@@ -176,6 +193,7 @@ impl ValidateInstruction for ChangePinRollback {
 
 impl ValidateInstruction for CheckPin {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)
@@ -184,6 +202,7 @@ impl ValidateInstruction for CheckPin {
 
 impl ValidateInstruction for StartPinRecovery {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
     }
@@ -191,6 +210,8 @@ impl ValidateInstruction for StartPinRecovery {
 
 impl ValidateInstruction for PairTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
+
         if wallet_user.recovery_code.is_none() {
             return Err(InstructionValidationError::MissingRecoveryCode);
         };
@@ -206,6 +227,7 @@ impl ValidateInstruction for PairTransfer {
 
 impl ValidateInstruction for CancelTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)
     }
@@ -213,6 +235,7 @@ impl ValidateInstruction for CancelTransfer {
 
 impl ValidateInstruction for ResetTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)
     }
@@ -220,12 +243,14 @@ impl ValidateInstruction for ResetTransfer {
 
 impl ValidateInstruction for GetTransferStatus {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_transfer_instruction(wallet_user)
     }
 }
 
 impl ValidateInstruction for ConfirmTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)?;
         validate_transfer_in_progress(wallet_user)
@@ -234,6 +259,7 @@ impl ValidateInstruction for ConfirmTransfer {
 
 impl ValidateInstruction for SendWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)?;
         validate_transfer_in_progress(wallet_user)
@@ -242,6 +268,7 @@ impl ValidateInstruction for SendWalletPayload {
 
 impl ValidateInstruction for ReceiveWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)?;
         validate_transfer_in_progress(wallet_user)
@@ -250,6 +277,7 @@ impl ValidateInstruction for ReceiveWalletPayload {
 
 impl ValidateInstruction for CompleteTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)?;
         validate_transfer_in_progress(wallet_user)
@@ -258,6 +286,7 @@ impl ValidateInstruction for CompleteTransfer {
 
 impl ValidateInstruction for DiscloseRecoveryCodePinRecovery {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
@@ -1351,6 +1380,7 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
+    use chrono::Utc;
     use itertools::Itertools;
     use mockall::predicate;
     use p256::ecdsa::Signature;
@@ -1360,6 +1390,7 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
     use semver::Version;
+    use strum::IntoEnumIterator;
     use uuid::Uuid;
 
     use crypto::server_keys::generate::Ca;
@@ -1373,7 +1404,6 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use token_status_list::status_list_service::mock::MockStatusListService;
-
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CancelTransfer;
     use wallet_account::messages::instructions::ChangePinCommit;
@@ -1396,6 +1426,8 @@ mod tests {
     use wallet_account::messages::transfer::TransferSessionState;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
+    use wallet_provider_domain::model::wallet_user::RevocationReason;
+    use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
@@ -2145,15 +2177,23 @@ mod tests {
         }
     }
 
+    fn mock_issuance_instruction() -> PerformIssuance {
+        PerformIssuance {
+            key_count: NonZeroUsize::MIN,
+            aud: "aud".to_string(),
+            nonce: None,
+        }
+    }
+
+    fn mock_issuance_with_wua_instruction() -> PerformIssuanceWithWua {
+        PerformIssuanceWithWua {
+            issuance_instruction: mock_issuance_instruction(),
+        }
+    }
+
     fn mock_start_pin_recovery_instruction() -> StartPinRecovery {
         StartPinRecovery {
-            issuance_with_wua_instruction: PerformIssuanceWithWua {
-                issuance_instruction: PerformIssuance {
-                    key_count: NonZeroUsize::MIN,
-                    aud: "aud".to_string(),
-                    nonce: None,
-                },
-            },
+            issuance_with_wua_instruction: mock_issuance_with_wua_instruction(),
             pin_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
         }
     }
@@ -2178,6 +2218,43 @@ mod tests {
             assert_matches!(result, Ok(()));
         } else {
             assert_matches!(result, Err(InstructionValidationError::PinRecoveryInProgress));
+        }
+    }
+
+    #[rstest]
+    #[case::perform_issuance(Box::new(mock_issuance_instruction()))]
+    #[case::perform_issuance_with_wua(Box::new(mock_issuance_with_wua_instruction()))]
+    #[case::disclose_recovery_code(Box::new(DiscloseRecoveryCode { recovery_code_disclosure: "this.isan.sdjwt~".parse().unwrap(), app_version: "0.0.1".parse().unwrap() }))]
+    #[case::sign_instruction(Box::new(mock_sign_instruction()))]
+    #[case::change_pin_commit(Box::new(ChangePinCommit {}))]
+    #[case::change_pin_rollback(Box::new(ChangePinRollback {}))]
+    #[case::change_pin_start(Box::new(mock_change_pin_start_instruction()))]
+    #[case::check_pin(Box::new(CheckPin))]
+    #[case::start_pin_recovery(Box::new(mock_start_pin_recovery_instruction()))]
+    #[case::pair_transfer(Box::new(PairTransfer { transfer_session_id: Uuid::new_v4(), app_version: "0.0.1".parse().unwrap() }))]
+    #[case::cancel_transfer(Box::new(CancelTransfer { transfer_session_id: Uuid::new_v4(), error: Default::default() }))]
+    #[case::reset_transfer(Box::new(ResetTransfer { transfer_session_id: Uuid::new_v4() }))]
+    #[case::get_transfer_status(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }))]
+    #[case::confirm_transfer(Box::new(ConfirmTransfer { transfer_session_id: Uuid::new_v4() }))]
+    #[case::send_wallet_payload(Box::new(SendWalletPayload { transfer_session_id: Uuid::new_v4(), payload: String::new() }))]
+    #[case::receive_wallet_payload(Box::new(ReceiveWalletPayload { transfer_session_id: Uuid::new_v4() }))]
+    #[case::complete_transfer(Box::new(CompleteTransfer { transfer_session_id: Uuid::new_v4() }))]
+    #[case::disclose_recovery_code_pin_recovery(Box::new(DiscloseRecoveryCodePinRecovery { recovery_code_disclosure: "this.isan.sdjwt~".parse().unwrap() }))]
+    fn test_instruction_validation_revoked_wallet(#[case] instruction: Box<dyn ValidateInstruction>) {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.state = WalletUserState::Revoked;
+
+        for reason in RevocationReason::iter() {
+            wallet_user.revocation_registration = Some(RevocationRegistration {
+                reason,
+                date_time: Utc::now(),
+            });
+            let result = instruction.validate_instruction(&wallet_user);
+
+            assert_matches!(
+                result,
+                Err(InstructionValidationError::AccountIsRevoked(revocation_reason)) if revocation_reason == reason
+            );
         }
     }
 

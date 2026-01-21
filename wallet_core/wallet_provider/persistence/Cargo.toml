@@ -21,7 +21,7 @@ path = "tests/wallet_user.rs"
 required-features = ["db_test"]
 
 [[test]]
-name = "wallet_user_keys"
+name = "wallet_user_key"
 path = "tests/wallet_user_key.rs"
 required-features = ["db_test"]
 

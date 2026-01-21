@@ -601,6 +601,13 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
+    // revocation is irreversible
+    assert!(
+        from_state != WalletUserState::Revoked,
+        "Wallet user is in a revoked state, cannot transition to: '{}'",
+        to_state
+    );
+
     let result = wallet_user::Entity::update_many()
         .col_expr(wallet_user::Column::State, Expr::value(to_state.to_string()))
         .filter(
@@ -629,7 +636,12 @@ where
             wallet_user::Column::State,
             Expr::value(WalletUserState::Active.to_string()),
         )
-        .filter(wallet_user::Column::Id.eq(wallet_user_id))
+        .filter(
+            wallet_user::Column::Id
+                .eq(wallet_user_id)
+                // revocation is irreversible
+                .and(wallet_user::Column::State.ne(WalletUserState::Revoked.to_string())),
+        )
         .exec(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
@@ -673,7 +685,10 @@ where
         .filter(
             wallet_user::Column::RecoveryCode
                 .eq(recovery_code)
-                .and(wallet_user::Column::State.ne(WalletUserState::Transferred.to_string())),
+                .and(wallet_user::Column::State.is_not_in([
+                    WalletUserState::Transferred.to_string(),
+                    WalletUserState::Revoked.to_string(),
+                ])),
         )
         .count(db.connection())
         .await
