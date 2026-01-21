@@ -1,16 +1,38 @@
 <!doctype html>
 <html lang="{{ base.selected_lang }}">
-    <head>
-        <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, minimum-scale=1"
-        />
-        {% block title %}<title>NL Wallet revocation portal</title>{% endblock %}
-        {% block styles %}{% endblock %}
-        {% block scripts %}{% endblock %}
-    </head>
-    <body>
-    {% block content %}{% endblock %}
-    </body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1"
+    />
+    <title>{{ base.trans.meta_title }}</title>
+
+    <link rel="stylesheet" href="/css/index.css" />
+
+    <script src="/portal.js" defer></script>
+    {% block script %}{% endblock %}
+  </head>
+  <body>
+    <aside>{% block aside %}{% endblock %}</aside>
+
+    <main class="container">
+      <header class="page-header">
+        <div class="logo-icon-wrapper">
+          <img src="/non-free/images/nl-wallet-trans.svg" alt="NL Wallet Logo" class="logo">
+        </div>
+        <h1>{% block title %}{% endblock %}</h1>
+      </header>
+
+      {% block content %}{% endblock %}
+
+      <footer class="help-section">
+        <hr>
+        <p>{{ base.trans.help_title }}</p>
+        <a href="/help" class="help-link">
+          <span class="icon-arrow">↗</span> {{ base.trans.need_help }}
+        </a>
+      </footer>
+    </main>
+  </body>
 </html>

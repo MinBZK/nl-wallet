@@ -21,19 +21,25 @@ use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
+use tracing::warn;
 
 use http_utils::health::create_health_router;
+use readable_identifier::ReadableIdentifierParseError;
 use utils::path::prefix_local_path;
 use web_utils::LANGUAGE_JS_SHA256;
 use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::Language;
 
+use crate::DeletionCode;
+use crate::revocation_client::RevocationClient;
 use crate::settings::Settings;
 use crate::translations::TRANSLATIONS;
 use crate::translations::Words;
 
-struct ApplicationState {}
+struct ApplicationState<C> {
+    revocation_client: C,
+}
 
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
     let script_src = format!("'sha256-{}'", *LANGUAGE_JS_SHA256);
@@ -49,12 +55,15 @@ struct DeleteForm {
     deletion_code: String,
 }
 
-pub fn create_router(settings: &Settings) -> Router {
-    let application_state = Arc::new(ApplicationState {});
+pub fn create_router<C>(settings: &Settings, revocation_client: C) -> Router
+where
+    C: RevocationClient + Clone + Sync + 'static,
+{
+    let application_state = Arc::new(ApplicationState { revocation_client });
 
     let mut app = Router::new()
-        .route("/support/delete", get(index))
-        .route("/support/delete", post(delete_wallet))
+        .route("/support/delete", get(index::<C>))
+        .route("/support/delete", post(delete_wallet::<C>))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -93,7 +102,19 @@ struct IndexTemplate<'a> {
     failed_reason: Option<&'a str>,
 }
 
-async fn index(State(_state): State<Arc<ApplicationState>>, language: Language) -> Response {
+#[derive(Template, WebTemplate)]
+#[template(path = "error.askama", escape = "html", ext = "html")]
+struct ErrorTemplate<'a> {
+    base: BaseTemplate<'a>,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "success.askama", escape = "html", ext = "html")]
+struct SuccessTemplate<'a> {
+    base: BaseTemplate<'a>,
+}
+
+async fn index<C: RevocationClient>(State(_state): State<Arc<ApplicationState<C>>>, language: Language) -> Response {
     IndexTemplate {
         base: BaseTemplate {
             selected_lang: language,
@@ -106,19 +127,37 @@ async fn index(State(_state): State<Arc<ApplicationState>>, language: Language) 
     .into_response()
 }
 
-async fn delete_wallet(
-    State(_state): State<Arc<ApplicationState>>,
+async fn delete_wallet<C: RevocationClient>(
+    State(state): State<Arc<ApplicationState<C>>>,
     language: Language,
     Form(delete_form): Form<DeleteForm>,
 ) -> Response {
-    IndexTemplate {
-        base: BaseTemplate {
-            selected_lang: language,
-            trans: &TRANSLATIONS[language],
-            available_languages: &Language::iter().collect_vec(),
-            language_js_sha256: &LANGUAGE_JS_SHA256,
+    let base = BaseTemplate {
+        selected_lang: language,
+        trans: &TRANSLATIONS[language],
+        available_languages: &Language::iter().collect_vec(),
+        language_js_sha256: &LANGUAGE_JS_SHA256,
+    };
+
+    let parse_result: Result<DeletionCode, ReadableIdentifierParseError> = delete_form.deletion_code.parse();
+
+    match parse_result {
+        Ok(deletion_code) => match state.revocation_client.revoke(deletion_code).await {
+            Ok(()) => SuccessTemplate { base }.into_response(),
+            Err(err) => {
+                warn!("Error revoking wallet: {}", err);
+
+                ErrorTemplate { base }.into_response()
+            }
         },
-        failed_reason: Some(TRANSLATIONS[language].delete_code_incorrect),
+        Err(err) => {
+            warn!("Error parsing deletion code: {}", err);
+
+            IndexTemplate {
+                base,
+                failed_reason: Some(TRANSLATIONS[language].delete_code_incorrect),
+            }
+            .into_response()
+        }
     }
-    .into_response()
 }

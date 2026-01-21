@@ -47,6 +47,7 @@ members = [
     "wallet_provider/domain",
     "wallet_provider/migrations",
     "wallet_provider/persistence",
+    "wallet_provider/readable_identifier",
     "wallet_provider/service",
     "wallet_provider/wallet_account",
     "wallet_server/issuance_server",

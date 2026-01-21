@@ -22,12 +22,9 @@ pub enum ReadableIdentifierParseError {
 /// [Crockford Base 32](https://www.crockford.com/base32.html) set of
 /// characters.
 ///
-/// - A new identifier can be generated using the
-///   [`ReadableIdentifier::new_random()`] constructor.
-/// - A [`ReadableIdentifier`] instance can also constructed using its
-///   [`FromStr`] implementation, which ignores `-` characters, converts
-///   certain similar characters to either `0` or `1` and convert all
-///   characters to uppercase.
+/// - A new identifier can be generated using the [`ReadableIdentifier::new_random()`] constructor.
+/// - A [`ReadableIdentifier`] instance can also constructed using its [`FromStr`] implementation, which ignores `-`
+///   characters, converts certain similar characters to either `0` or `1` and convert all characters to uppercase.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Into)]
 pub struct ReadableIdentifier<const LEN: usize>(String);
 

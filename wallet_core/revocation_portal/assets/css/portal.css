@@ -13,7 +13,6 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-color);
   line-height: 1.5;
   background-color: #fff;
@@ -45,7 +44,6 @@ body {
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01); /* Softer shadow */
   box-sizing: border-box;
-  padding: 12px;
 }
 
 .logo {
@@ -187,6 +185,19 @@ input.invalid:focus {
   opacity: 0.8;
 }
 
+.btn-retry {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-retry:hover {
+  opacity: 0.9;
+}
+
+.btn-retry:active {
+  opacity: 0.8;
+}
+
 .btn-cancel {
   background-color: white;
   color: var(--secondary-color);
@@ -224,15 +235,58 @@ p {
   margin-bottom: 1rem;
 }
 
-.help-link {
-  color: #004cff;
-  text-decoration: none;
-  font-weight: 500;
+.app-download-section {
+  margin-bottom: 2rem;
+}
+
+.download-text {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+}
+
+.store-links {
   display: flex;
+  gap: 12px;
   align-items: center;
+}
+
+.store-button {
+  display: inline-block;
+  transition: transform 0.1s ease;
+}
+
+.store-button:hover {
+  transform: scale(1.02);
+}
+
+.store-button img {
+  display: block;
+  width: auto;
+}
+
+.help-link {
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.back-link {
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.icon-arrow-left {
+  margin-right: 5px;
+  line-height: 1;
 }
 
 .icon-arrow {
   margin-right: 5px;
-  font-size: 0.9rem;
+  line-height: 1;
 }

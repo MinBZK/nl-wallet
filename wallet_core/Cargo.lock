@@ -5393,6 +5393,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "readable_identifier"
+version = "0.5.0-dev"
+dependencies = [
+ "assert_matches",
+ "derive_more",
+ "rand 0.8.5",
+ "rstest",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5539,14 +5550,17 @@ dependencies = [
  "config",
  "http_utils",
  "itertools 0.14.0",
+ "readable_identifier",
  "serde",
  "server_utils",
  "strum 0.27.2",
+ "thiserror 2.0.17",
  "tokio",
  "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "trait-variant",
  "utils",
  "web_utils",
 ]
@@ -8377,6 +8391,7 @@ dependencies = [
  "platform_support",
  "rand 0.8.5",
  "rand_core 0.6.4",
+ "readable_identifier",
  "rstest",
  "rustls-pki-types",
  "sd_jwt",
