@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<section class="intro">
+<section class="intro" data-test="error-container">
   <p>{{ base.trans.error_description }}</p>
 
   <div class="illustration-container" aria-hidden="true">

@@ -161,3 +161,169 @@ async fn delete_wallet<C: RevocationClient>(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str;
+
+    use axum::body::Body;
+    use axum::http::Request;
+    use axum::http::StatusCode;
+    use rstest::rstest;
+    use scraper::Html;
+    use scraper::Selector;
+    use tower::ServiceExt;
+
+    use web_utils::language::Language;
+
+    use crate::revocation_client::tests::MockRevocationClient;
+    use crate::settings::Settings;
+    use crate::translations::TRANSLATIONS;
+
+    use super::*;
+
+    #[rstest]
+    #[case(Language::En, "en")]
+    #[case(Language::Nl, "nl")]
+    #[tokio::test]
+    async fn test_index_with_language_param(#[case] language: Language, #[case] lang_param: &str) {
+        let settings = Settings::new().unwrap();
+        let client = MockRevocationClient::default();
+        let app = create_router(&settings, client);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/support/delete?lang={lang_param}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum_body_bytes(response.into_body()).await;
+        let html = Html::parse_document(str::from_utf8(&body).unwrap());
+
+        // Check the visible H1 tag for the localized title
+        let h1_selector = Selector::parse("h1").unwrap();
+        let h1_text = html.select(&h1_selector).next().unwrap().inner_html();
+
+        assert!(h1_text.trim().contains(TRANSLATIONS[language].delete_title));
+    }
+
+    #[tokio::test]
+    async fn test_delete_wallet_invalid_code_shows_error_on_index() {
+        let settings = Settings::new().unwrap();
+        let client = MockRevocationClient::default();
+        let app = create_router(&settings, client);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/support/delete")
+                    .header("content-type", "application/x-www-form-urlencoded")
+                    .body(Body::from("deletion_code=invalid"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum_body_bytes(response.into_body()).await;
+        let html = Html::parse_document(str::from_utf8(&body).unwrap());
+
+        let input_selector = Selector::parse("input[data-test='deletion-code-input'].invalid").unwrap();
+        assert!(html.select(&input_selector).next().is_some());
+
+        let error_selector = Selector::parse("[data-test='error-message'].visible").unwrap();
+        let error_text = html.select(&error_selector).next().unwrap().inner_html();
+
+        assert!(error_text.contains(TRANSLATIONS[Language::Nl].delete_code_incorrect));
+    }
+
+    #[tokio::test]
+    async fn test_delete_wallet_revocation_failure_shows_error_template() {
+        let settings = Settings::new().unwrap();
+        let client = MockRevocationClient::new_failing();
+        let app = create_router(&settings, client);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/support/delete")
+                    .header("content-type", "application/x-www-form-urlencoded")
+                    .body(Body::from("deletion_code=C20C-KF0R-D32B-A5E3-2X"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum_body_bytes(response.into_body()).await;
+        let html = Html::parse_document(str::from_utf8(&body).unwrap());
+
+        // Verify the ErrorTemplate section is present
+        let error_container_selector = Selector::parse("section[data-test='error-container']").unwrap();
+        html.select(&error_container_selector)
+            .next()
+            .expect("Error container missing");
+
+        // Verify the H1 within the error page contains the correct title
+        let h1_selector = Selector::parse("h1").unwrap();
+        let h1_text = html.select(&h1_selector).next().unwrap().inner_html();
+        assert!(h1_text.trim().contains(TRANSLATIONS[Language::Nl].error_title));
+
+        // Ensure the deletion form from IndexTemplate is NOT present
+        let form_selector = Selector::parse("form.delete-form").unwrap();
+        assert!(html.select(&form_selector).next().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_delete_wallet_success_shows_success_template() {
+        let settings = Settings::new().unwrap();
+        let client = MockRevocationClient::default();
+        let app = create_router(&settings, client);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/support/delete")
+                    .header("content-type", "application/x-www-form-urlencoded")
+                    .body(Body::from("deletion_code=C20C-KF0R-D32B-A5E3-2X"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum_body_bytes(response.into_body()).await;
+        let body_str = str::from_utf8(&body).unwrap();
+        let html = Html::parse_document(body_str);
+
+        let h1_selector = Selector::parse("h1").unwrap();
+        let h1_text = html.select(&h1_selector).next().unwrap().inner_html();
+        assert!(h1_text.trim().contains(TRANSLATIONS[Language::Nl].success_title));
+
+        assert!(body_str.contains(TRANSLATIONS[Language::Nl].success_wb_confirmation));
+
+        let back_link_selector = Selector::parse("a.back-link").unwrap();
+        let back_link = html.select(&back_link_selector).next().expect("Back link should exist");
+        assert!(
+            back_link
+                .inner_html()
+                .contains(TRANSLATIONS[Language::Nl].back_to_support)
+        );
+    }
+
+    async fn axum_body_bytes(body: axum::body::Body) -> Vec<u8> {
+        axum::body::to_bytes(body, usize::MAX).await.unwrap().to_vec()
+    }
+}

@@ -41,11 +41,13 @@
         aria-describedby="code-instruction"
         data-validation-message="{{ base.trans.delete_code_invalid_length }}"
         data-required-message="{{ base.trans.delete_code_required }}"
+        data-test="deletion-code-input"
         spellcheck="false"
         autocomplete="off"
         class="{% if failed_reason is defined %}invalid{% endif %}"
       >
       <div id="error-message"
+           data-test="error-message"
            class="error-text {% if failed_reason is defined %}visible{% endif %}" aria-live="polite">
         {% if let Some(reason) = failed_reason %}
             {{ reason }}
