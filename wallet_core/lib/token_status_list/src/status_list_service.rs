@@ -33,8 +33,8 @@ pub trait StatusListService {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RevocationError {
-    #[error("batch IDs not found: {0:?}")]
-    BatchIdsNotFound(VecNonEmpty<Uuid>),
+    #[error("batch ID not found: {0}")]
+    BatchIdNotFound(Uuid),
 
     #[error("internal error occurred: {0}")]
     InternalError(Box<dyn std::error::Error + Send + Sync>),
@@ -44,9 +44,9 @@ pub enum RevocationError {
 impl axum::response::IntoResponse for RevocationError {
     fn into_response(self) -> axum::response::Response {
         match self {
-            RevocationError::BatchIdsNotFound(batch_ids) => {
-                tracing::info!("revocation batch IDs not found: {:?}", batch_ids);
-                (axum::http::StatusCode::NOT_FOUND, axum::Json(batch_ids)).into_response()
+            RevocationError::BatchIdNotFound(batch_id) => {
+                tracing::info!("revocation batch ID not found: {}", batch_id);
+                (axum::http::StatusCode::NOT_FOUND, axum::Json(batch_id)).into_response()
             }
             _ => {
                 tracing::error!("revocation error: {:?}", self);

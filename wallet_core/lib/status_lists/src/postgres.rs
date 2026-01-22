@@ -343,7 +343,7 @@ where
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?
             .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .ok_or_else(|| RevocationError::BatchIdsNotFound(vec![batch_id].try_into().unwrap()))
+            .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
     }
 
     async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
