@@ -86,7 +86,7 @@ paths:
         This endpoint implements the OAuth 2.0 token endpoint with DPoP support.
       operationId: requestToken
       parameters:
-        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/dpop'
       requestBody:
         required: true
         content:
@@ -128,7 +128,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/dpop'
       requestBody:
         required: true
         content:
@@ -163,7 +163,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/dpop'
       responses:
         '204':
           description: Issuance rejected successfully
@@ -190,7 +190,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/dpop'
       requestBody:
         required: true
         content:
@@ -225,7 +225,7 @@ paths:
       security:
         - dpop_bearer: []
       parameters:
-        - $ref: 'wallet-components.openapi.yaml#/components/parameters/DPoP'
+        - $ref: 'wallet-components.openapi.yaml#/components/parameters/dpop'
       responses:
         '204':
           description: Batch issuance rejected successfully
