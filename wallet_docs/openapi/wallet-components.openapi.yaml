@@ -169,10 +169,8 @@ components:
       type: object
       required:
         - type
-        - title
-        - status
-        - detail
       properties:
+        # skipped if not set
         type:
           type: string
         title:
@@ -180,7 +178,11 @@ components:
         status:
           type: int
         detail:
-          type string
+          type: string
+        instance:
+          type: string
+        extra:
+          type: object
 
     EphemeralId:
       description: An ephemeral id
@@ -606,9 +608,15 @@ components:
           description: Certificate authority
         issuance_validity:
           $ref: '#/components/schemas/IssuanceValidity'
+        revocation_status:
+          type: ["string", "null"]
+          description: Revocation status
       required:
+        - attestation_type
         - attributes
-        - issuer
+        - issuer_uri
+        - attestation_qualification
+        - ca
         - issuance_validity
 
     IssuanceValidity:
@@ -619,11 +627,11 @@ components:
           format: date-time
           description: When the attestation was signed
         valid_from:
-          type: string
+          type: ["string", "null"]
           format: date-time
           description: Start of validity period
         valid_until:
-          type: string
+          type: ["string", "null"]
           format: date-time
           description: End of validity period
 
