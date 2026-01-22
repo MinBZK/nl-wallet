@@ -26,7 +26,7 @@ variables:
       namespace: ${K8S_NAMESPACE}
 
 .env-macos-runner:
-  image: sequoia-wallet:0.2.8
+  image: tahoe-wallet:0.3.0
   tags:
     - macos
 
