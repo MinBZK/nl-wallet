@@ -2708,7 +2708,6 @@ dependencies = [
  "clio",
  "config",
  "crypto",
- "crypto-common",
  "csv",
  "derive_more",
  "hex",
