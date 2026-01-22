@@ -7,11 +7,13 @@ use config::Environment;
 use config::File;
 use serde::Deserialize;
 
+use crypto::SymmetricKey;
 use utils::path::prefix_local_path;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     pub webserver: Server,
+    pub cookie_encryption_key: SymmetricKey,
     pub structured_logging: bool,
     pub log_requests: bool,
 }

@@ -15,6 +15,7 @@ anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["form"] }
+axum_csrf = { workspace = true, features = ["layer"] }
 config = { workspace = true, features = ["toml"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -27,6 +28,7 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 trait-variant.workspace = true
 
+crypto.path = "../lib/crypto"
 http_utils.path = "../lib/http_utils"
 readable_identifier.path = "../wallet_provider/readable_identifier"
 server_utils.path = "../wallet_server/server_utils"
@@ -36,3 +38,4 @@ web_utils.path = "../lib/web_utils"
 [dev-dependencies]
 rstest.workspace = true
 scraper.workspace = true
+serde_urlencoded.workspace = true

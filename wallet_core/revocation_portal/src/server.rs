@@ -16,7 +16,11 @@ pub async fn serve(settings: Settings) -> Result<()> {
 
     let revocation_client = HttpRevocationClient {};
 
-    let app = create_router(&settings, revocation_client);
+    let app = create_router(
+        &settings.cookie_encryption_key,
+        settings.log_requests,
+        revocation_client,
+    );
 
     axum::serve(listener, app).await?;
 

@@ -32,6 +32,7 @@
       <label for="deletion-code">
         {{ base.trans.delete_code_label }} <span class="required" aria-hidden="true">*</span>
       </label>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input
         type="text"
         id="deletion-code"
