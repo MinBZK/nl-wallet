@@ -27,8 +27,8 @@ allow_insecure_url = ["openid4vc/allow_insecure_url"]
 postgres = ["server_utils/postgres"]
 # Enable integration tests
 integration_test = []
-# Enable the Admin UI
-admin-ui = ["status_lists/admin-ui"]
+# Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
+test_admin_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "status_lists/test_api"]
 
 [dependencies]
 anyhow.workspace = true
@@ -48,6 +48,8 @@ serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 trait-variant.workspace = true
+
+utoipa-swagger-ui = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"

@@ -94,6 +94,13 @@ spec:
                   name: http
             path: /openapi.json
             pathType: Prefix
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  name: http
+            path: /api-docs
+            pathType: Prefix
   tls:
     - hosts:
         - {{ .Values.ingressInternal.hostname | quote }}

@@ -3541,6 +3541,7 @@ dependencies = [
  "tokio",
  "trait-variant",
  "utils",
+ "utoipa-swagger-ui",
 ]
 
 [[package]]
@@ -4875,6 +4876,7 @@ dependencies = [
  "tokio",
  "url",
  "utils",
+ "utoipa-swagger-ui",
 ]
 
 [[package]]
@@ -6950,7 +6952,6 @@ dependencies = [
  "utils",
  "utoipa",
  "utoipa-axum",
- "utoipa-swagger-ui",
  "uuid",
 ]
 

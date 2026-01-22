@@ -11,15 +11,13 @@ use tracing::warn;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-#[cfg(feature = "admin-ui")]
-use utoipa_swagger_ui::SwaggerUi;
 
 use utils::generator::TimeGenerator;
 
 use crate::router_state::RouterState;
 
 #[derive(OpenApi)]
-#[openapi()]
+#[openapi(info(title = "Admin API"))]
 struct ApiDoc;
 
 #[derive(Debug, Display, thiserror::Error)]
@@ -34,7 +32,7 @@ impl IntoResponse for RevocationError {
 
 #[utoipa::path(
     post,
-    path = "/admin/revoke/",
+    path = "/revoke/",
     request_body(
         content = Vec<String>,
         example = json!([
@@ -63,7 +61,7 @@ where
 
 #[utoipa::path(
     post,
-    path = "/admin/nuke/",
+    path = "/nuke/",
     responses(
         (status = OK, description = "Successfully revoked all wallets."),
     )
@@ -76,10 +74,10 @@ where
     Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state, &TimeGenerator).await?)
 }
 
-#[cfg(feature = "admin-ui")]
+#[cfg(feature = "test_admin_ui")]
 #[utoipa::path(
     get,
-    path = "/admin/wallet/",
+    path = "/wallet/",
     responses(
         (
             status = OK,
@@ -101,7 +99,7 @@ where
     ))
 }
 
-pub fn internal_router<GRC, PIC>() -> Router<Arc<RouterState<GRC, PIC>>>
+pub fn internal_router<GRC, PIC>(state: Arc<RouterState<GRC, PIC>>) -> (Router, utoipa::openapi::OpenApi)
 where
     PIC: Send + Sync + 'static,
     GRC: Send + Sync + 'static,
@@ -110,23 +108,11 @@ where
         .routes(routes!(revoke_wallets))
         .routes(routes!(nuke));
 
-    #[cfg(feature = "admin-ui")]
-    let router = {
-        let (router, openapi) = router
-            // only expose these routes when swagger-ui feature is enabled
-            // TODO .routes(routes!(get_wallet)) (PVW-5297)
-            .routes(routes!(list_wallets))
-            .split_for_parts();
+    #[cfg(feature = "test_admin_ui")]
+    // TODO .routes(routes!(get_wallet)) (PVW-5297)
+    let router = router.routes(routes!(list_wallets));
 
-        router.merge(SwaggerUi::new("/admin/api-docs").url("/openapi.json", openapi))
-    };
+    let router = router.with_state(state);
 
-    #[cfg(not(feature = "admin-ui"))]
-    let router = {
-        let (router, openapi) = router.split_for_parts();
-
-        router.route("/openapi.json", axum::routing::get(Json(openapi)))
-    };
-
-    router
+    router.split_for_parts()
 }

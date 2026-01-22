@@ -30,7 +30,7 @@ async fn setup_revocation_server<L>(service: Arc<L>) -> anyhow::Result<Url>
 where
     L: StatusListRevocationService + Send + Sync + 'static,
 {
-    let router = create_revocation_router(service);
+    let (router, _) = create_revocation_router(service);
     let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
     let port = listener.local_addr()?.port();
     tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });

@@ -150,7 +150,7 @@ build-wallet-provider-binary:
   extends: .build-binary
   script:
     # Use glibc binary because it needs to work with dynamically loaded PKCS11 library
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "wallet_provider" --bin wallet_provider --features admin-ui
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "wallet_provider" --bin wallet_provider --features test_admin_ui
   artifacts:
     name: wallet_provider
     paths:
@@ -169,7 +169,7 @@ build-pid-issuer-binary:
   extends: .build-binary
   script:
     # Use musl since we only use software keys on pid-issuer for our own environments (docker image is from scratch)
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres,admin-ui
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres,test_admin_ui
   artifacts:
     name: pid_issuer
     paths:
@@ -193,11 +193,11 @@ build-verification-server-binary:
 build-issuance-server-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package issuance_server --bin issuance_server --no-default-features --features postgres,admin-ui
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package issuance_server --bin issuance_server --no-default-features --features postgres,test_admin_ui
     # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
     - |
       if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
-        cargo build --locked --target x86_64-unknown-linux-gnu --release --package issuance_server --bin issuance_server --no-default-features --features postgres,admin-ui
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package issuance_server --bin issuance_server --no-default-features --features postgres,test_admin_ui
       fi
   artifacts:
     name: issuance_server
