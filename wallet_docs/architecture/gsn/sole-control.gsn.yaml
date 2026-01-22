@@ -2,7 +2,7 @@ module:
   name: sole_control_main
 
 G_SoleControl:
-  text: PID issuer has assurance that User will have sole control over the PID
+  text: WB offers PID issuer assurance that User will have sole control over the PID
   supportedBy: [G_WbIssuesWua, G_WbEnforcesSoleControl]
   inContextOf: A_PidIssuerTrustsWb
 
@@ -20,12 +20,13 @@ Sn_WalletStoresAttestationData:
   text: Wallet stores and maintains Attestation Data but not PrivKey
   horizontalIndex:
     relative: -1
-  rankIncrement: 1
 
 G_PrivKeyExclusiveCustody:
   text: PrivKey remains under exclusive custody of WB and is never exposed
   inContextOf: [C_AttestationDefinition, A_WbIsTrusted]
   supportedBy: S_EnsurePrivKeySecure
+  horizontalIndex:
+    relative: +1
 
 A_WbIsTrusted:
   text: WB is trusted by Issuers, Verifiers, Wallets to not obtain Attestation Data
@@ -59,25 +60,14 @@ A_WbTrustsHsmVendor:
 
 G_WbIssuesWua:
   text: WB issues WUA to Wallet
-  rankIncrement: 1
   supportedBy:
     - G_WbGeneratesAttestationPrivKey
-    - Sn_WbBuildsWuaPayload
-    - Sn_WuaSignedByDedicatedWbKey
-    - Sn_WuaReturnedToWallet
+    - Sn_WbIssuesWua
 
 G_WbGeneratesAttestationPrivKey:
   text: WB generates a fresh WUA private key
   supportedBy:
     - S_EnsurePrivKeySecure
 
-Sn_WbBuildsWuaPayload:
-  text: WB constructs the WUA payload containing the WUA public key and minimal metadata
-
-Sn_WuaSignedByDedicatedWbKey:
-  text: WB signs the WUA payload with a dedicated WUA signing private key maintained under WB control (in HSM)
-
-Sn_WuaReturnedToWallet:
-  text: WB returns the resulting signed WUA to the wallet as response to the authenticated instruction
-  horizontalIndex:
-    absolute: last
+Sn_WbIssuesWua:
+  text: WB constructs & signs WUA containing the corresponding public key and issues it to the wallet

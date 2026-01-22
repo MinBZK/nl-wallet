@@ -1,6 +1,11 @@
 module:
   name: sole_control_2fa_registration
 
+G_RegisterEnrollment:
+  text: Register possession & knowledge factors via enrollment message
+  supportedBy: [G_WbVerifiesApp, G_EnrollmentFreshness, G_WalletRegistersPossesionFactor, G_WalletRegistersKnowledgeFactor]
+  inContextOf: A_WbTrustsAppleGoogle
+
 G_EnrollmentFreshness:
   text: Enrollment proves message freshness
   supportedBy: [Sn_WbProvidesNonce]
@@ -41,6 +46,8 @@ Sn_WalletRegistersPinPubKey:
 G_WbVerifiesApp:
   text: WB verifies that NL Wallet app runs on a trustworthy device
   supportedBy: [S_UseAppAttestations]
+  horizontalIndex:
+    relative: -2
 
 S_UseAppAttestations:
   text: Use platform app attestations to verify app and device integrity

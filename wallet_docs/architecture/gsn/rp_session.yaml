@@ -12,13 +12,14 @@ S_DecomposeAttributeVerification:
     - G_VerifyPidCryptographicIntegrity
     - Sn_CheckAttributePolicyCompliance
     - Sn_PreventReplayAndImpersonation
+    - Sn_CheckAttributeStatus
 
 G_TrustPidIssuer:
   text: RP trusts the PID issuer to (1) issue only to wallets that implement Sole Control, (2) issue only attributes that it has checked to be factually correct, (3) issue the PID at LoA High
   supportedBy: [G_SoleControl, G_IssuePidAtLoAHigh]
-  inContextOf: [A_SoleControlIsRequired]
+  inContextOf: [C_SoleControlIsRequired]
 
-A_SoleControlIsRequired:
+C_SoleControlIsRequired:
   text: Sole control by the user is necessary for factual correctness and to prevent unauthorized use.
 
 G_VerifyPidCryptographicIntegrity:

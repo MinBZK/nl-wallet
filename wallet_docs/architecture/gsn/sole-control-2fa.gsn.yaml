@@ -22,12 +22,6 @@ Sn_WalletSignsInstructions:
 Sn_WbSignsResponses:
   text: WB signs all its responses with a special purpose private key
 
-G_RegisterEnrollment:
-  text: Register possession & knowledge factors via enrollment message
-  supportedBy: [G_WbVerifiesApp, G_EnrollmentFreshness, G_WalletRegistersPossesionFactor, G_WalletRegistersKnowledgeFactor]
-  inContextOf: A_WbTrustsAppleGoogle
-  rankIncrement: 1
-
 G_Use2fa:
   text: Require 2FA auth before allowing PrivKey usage
   supportedBy: [G_UserProvesHwKeyControl, G_UserProvesPin]
@@ -36,7 +30,6 @@ G_Maintain2faIntegrity:
   text: Maintain integrity of both 2FA factors
   supportedBy: [G_UserCanChangePin, G_UserCanBlockWallet, G_WbBlocksOnCompromise, G_WalletDoesNotStorePin]
   inContextOf: A_UserDoesNotSharePin
-  rankIncrement: 1
   horizontalIndex:
     absolute: last
 
