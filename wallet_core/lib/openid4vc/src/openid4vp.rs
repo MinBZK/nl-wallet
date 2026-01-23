@@ -341,7 +341,7 @@ impl VpAuthorizationRequest {
     ///   `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
     ///   which is used by the mentioned profile.
     ///
-    /// This method consumes `self` and turns it into an [`IsoVpAuthorizationRequest`], which
+    /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
     pub fn validate(
         self,
