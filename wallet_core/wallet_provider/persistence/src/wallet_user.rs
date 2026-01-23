@@ -279,23 +279,20 @@ where
     Ok(QueryResult::Found(Box::new(wallet_user)))
 }
 
-pub async fn find_wallet_user_id_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<QueryResult<Uuid>>
+pub async fn find_wallet_user_id_by_wallet_ids<S, T>(db: &T, wallet_ids: &[String]) -> Result<Vec<(Uuid, String)>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    match wallet_user::Entity::find()
+    wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::Id)
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
-        .into_tuple()
-        .one(db.connection())
+        .column(wallet_user::Column::WalletId)
+        .filter(wallet_user::Column::WalletId.is_in(wallet_ids))
+        .into_tuple::<(Uuid, String)>()
+        .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
-    {
-        Some(wallet_user_id) => Ok(QueryResult::Found(Box::new(wallet_user_id))),
-        None => Ok(QueryResult::NotFound),
-    }
+        .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -697,9 +694,9 @@ where
     Ok(count > 1)
 }
 
-pub async fn revoke_wallet<S, T>(
+pub async fn revoke_wallets<S, T>(
     db: &T,
-    wallet_user_id: Uuid,
+    wallet_user_ids: Vec<Uuid>,
     revocation_reason: RevocationReason,
     revocation_date_time: DateTime<Utc>,
 ) -> Result<()>
@@ -722,7 +719,8 @@ where
         )
         .filter(
             wallet_user::Column::Id
-                .eq(wallet_user_id)
+                .is_in(wallet_user_ids)
+                .and(wallet_user::Column::State.ne(WalletUserState::Revoked.to_string()))
                 .and(wallet_user::Column::RevocationReason.is_null())
                 .and(wallet_user::Column::RevocationDateTime.is_null()),
         )

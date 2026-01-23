@@ -142,13 +142,13 @@ where
     Ok(())
 }
 
-pub async fn delete_all_keys<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
+pub async fn delete_all_keys<S, T>(db: &T, wallet_user_ids: Vec<Uuid>) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     wallet_user_key::Entity::delete_many()
-        .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
+        .filter(wallet_user_key::Column::WalletUserId.is_in(wallet_user_ids))
         .exec(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;

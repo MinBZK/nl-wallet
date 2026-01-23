@@ -229,7 +229,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     .await;
 
     let (wallet_ids_to_revoke, wallet_ids_not_to_revoke) = partition_vec_by_indices(wallets, &indices_to_revoke);
-    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state, &MockTimeGenerator::default())
+    revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
         .await
         .unwrap();
     let (revoked_wua_ids, non_revoked_wua_ids) = partition_vec_by_indices(wuas, &indices_to_revoke);
@@ -258,7 +258,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     .await;
 
     // verify idempotency
-    revoke_wallets(wallet_ids_to_revoke.iter(), &user_state, &MockTimeGenerator::default())
+    revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
         .await
         .unwrap();
     verify_revocation(

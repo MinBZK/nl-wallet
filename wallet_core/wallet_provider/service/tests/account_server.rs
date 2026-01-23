@@ -5,6 +5,7 @@ use base64::prelude::*;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
+use uuid::Uuid;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
@@ -283,11 +284,13 @@ async fn test_wua_status() {
 
     // fetch all WUA IDs for this wallet directly from the database
     let tx = user_state.repositories.begin_transaction().await.unwrap();
-    let wallet_user_id = wallet_user::find_wallet_user_id_by_wallet_id(&tx, &cert_data.wallet_id)
+    let wallet_user_ids: Vec<Uuid> = wallet_user::find_wallet_user_id_by_wallet_ids(&tx, &[cert_data.wallet_id])
         .await
         .unwrap()
-        .unwrap_found();
-    let wua_ids = wallet_user_wua::find_wua_ids_for_wallet_user(&tx, *wallet_user_id)
+        .into_iter()
+        .unzip::<Uuid, String, Vec<Uuid>, Vec<String>>()
+        .0;
+    let wua_ids = wallet_user_wua::find_wua_ids_for_wallet_users(&tx, wallet_user_ids)
         .await
         .unwrap();
     tx.commit().await.unwrap();
