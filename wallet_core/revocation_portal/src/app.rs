@@ -18,6 +18,8 @@ use axum_csrf::CsrfConfig;
 use axum_csrf::CsrfLayer;
 use axum_csrf::CsrfToken;
 use axum_csrf::Key;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use itertools::Itertools;
 use serde::Deserialize;
 use strfmt::strfmt;
@@ -28,6 +30,7 @@ use tower_http::trace::TraceLayer;
 use tracing::warn;
 
 use crypto::SymmetricKey;
+use crypto::utils::sha256;
 use http_utils::health::create_health_router;
 use readable_identifier::ReadableIdentifierParseError;
 use server_utils::log_requests::log_request_response;
@@ -48,13 +51,22 @@ struct ApplicationState<C> {
 }
 
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
-    let script_src = format!("'sha256-{}'", *LANGUAGE_JS_SHA256);
+    let script_src = format!(
+        "'sha256-{}' 'sha256-{}' 'sha256-{}'",
+        *LANGUAGE_JS_SHA256, *PORTAL_JS_SHA256, *LOKALIZE_JS_SHA256
+    );
 
     format!(
-        "default-src 'self'; script-src 'self' {script_src}; img-src 'self' data:; font-src 'self' data:; form-action \
+        "default-src 'self'; script-src {script_src}; img-src 'self' data:; font-src 'self' data:; form-action \
          'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
     )
 });
+
+pub static PORTAL_JS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal.js"))));
+
+pub static LOKALIZE_JS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/lokalize.js"))));
 
 #[derive(Deserialize)]
 struct DeleteForm {
@@ -104,6 +116,8 @@ struct BaseTemplate<'a> {
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
     language_js_sha256: &'a str,
+    portal_js_sha256: &'a str,
+    lokalize_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -139,6 +153,8 @@ async fn index<C: RevocationClient>(
         trans: &TRANSLATIONS[language],
         available_languages: &Language::iter().collect_vec(),
         language_js_sha256: &LANGUAGE_JS_SHA256,
+        portal_js_sha256: &PORTAL_JS_SHA256,
+        lokalize_js_sha256: &LOKALIZE_JS_SHA256,
     };
 
     let csrf_token = match token.authenticity_token() {
@@ -172,6 +188,8 @@ async fn delete_wallet<C: RevocationClient>(
         trans: &TRANSLATIONS[language],
         available_languages: &Language::iter().collect_vec(),
         language_js_sha256: &LANGUAGE_JS_SHA256,
+        portal_js_sha256: &PORTAL_JS_SHA256,
+        lokalize_js_sha256: &LOKALIZE_JS_SHA256,
     };
 
     if let Err(err) = token.verify(&delete_form.csrf_token) {

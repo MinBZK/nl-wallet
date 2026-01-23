@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block script %}
-<script src="/lokalize.js" defer></script>
+<script integrity="sha256-{{ base.lokalize_js_sha256 }}" src="/lokalize.js" defer></script>
 {% endblock %}
 
 {% block content %}

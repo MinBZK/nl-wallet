@@ -10,7 +10,7 @@
 
     <link rel="stylesheet" href="/css/index.css" />
 
-    <script src="/portal.js" defer></script>
+    <script integrity="sha256-{{ base.portal_js_sha256 }}" src="/portal.js" defer></script>
     {% block script %}{% endblock %}
   </head>
   <body>

@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
-use base64::prelude::*;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 
 use crypto::utils::sha256;
 

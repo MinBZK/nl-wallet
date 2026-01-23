@@ -16,6 +16,7 @@ askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["form"] }
 axum_csrf = { workspace = true, features = ["layer"] }
+base64.workspace = true
 chrono = { workspace = true, features = ["unstable-locales"] }
 derive_more = { workspace = true, features = ["from"] }
 config = { workspace = true, features = ["toml"] }

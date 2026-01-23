@@ -5709,6 +5709,7 @@ dependencies = [
  "askama_web",
  "axum",
  "axum_csrf",
+ "base64 0.22.1",
  "chrono",
  "config",
  "crypto",
