@@ -1,6 +1,6 @@
+pub mod admin;
 pub mod errors;
 pub mod logging;
-pub mod revoke;
 pub mod router;
 pub mod router_state;
 pub mod server;

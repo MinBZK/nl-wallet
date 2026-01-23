@@ -396,7 +396,7 @@ then
         mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "admin-ui,postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "postgres,test_admin_ui" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
@@ -462,7 +462,7 @@ then
         mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
-        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "admin-ui,allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "allow_insecure_url,postgres,test_admin_ui" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
 
         echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
     fi
@@ -496,7 +496,7 @@ then
         mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
-        RUST_LOG=debug cargo run --package wallet_provider --bin wallet_provider --features=admin-ui,android_emulator > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
+        RUST_LOG=debug cargo run --package wallet_provider --bin wallet_provider --features=android_emulator,test_admin_ui > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 
         echo -e "wallet_provider logs can be found at ${CYAN}${TARGET_DIR}/wallet_provider.log${NC}"
     fi

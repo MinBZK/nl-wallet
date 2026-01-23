@@ -92,7 +92,15 @@ where
         router = router.merge(status_list_router);
     }
 
-    let mut internal_router = create_revocation_router(status_list_services);
+    let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
+
+    #[cfg(feature = "test_admin_ui")]
+    let mut internal_router =
+        internal_router.merge(utoipa_swagger_ui::SwaggerUi::new("/api-docs").url("/openapi.json", internal_openapi));
+
+    #[cfg(not(feature = "test_admin_ui"))]
+    let mut internal_router = internal_router.route("/openapi.json", axum::routing::get(axum::Json(internal_openapi)));
+
     internal_router = secure_internal_router(&settings.server_settings.internal_server, internal_router);
     internal_router = add_cache_control_no_store_layer(internal_router);
     listen(

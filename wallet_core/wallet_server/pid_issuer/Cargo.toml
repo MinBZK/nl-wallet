@@ -31,8 +31,8 @@ db_test = ["allow_insecure_url", "openid4vc/test", "postgres", "tokio/sync"]
 mock = ["attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
-# Enable the Admin UI
-admin-ui = ["status_lists/admin-ui"]
+# Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
+test_admin_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "status_lists/test_api"]
 
 [dependencies]
 anyhow.workspace = true
@@ -53,6 +53,8 @@ serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 url = { workspace = true, features = ["serde"] }
+
+utoipa-swagger-ui = { workspace = true, optional = true }
 
 attestation_data = { path = "../../lib/attestation_data" }
 attestation_types = { path = "../../lib/attestation_types" }

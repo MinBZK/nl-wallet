@@ -9,13 +9,13 @@ packer {
 
 variable "vm_base_name" {
   type = string
-  # macos-sequoia-xcode:16.4
-  default = "ghcr.io/cirruslabs/macos-sequoia-xcode@sha256:db7deaf20e58b08db63a3fc541923103a0bb715b55da751e140dc45c6df0ba62"
+  # macos-tahoe-xcode:26.2
+  default = "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:1f7b38002dcfc2927a2e33a405a44867e3d140d92fa295f9e89c018edfe4214a"
 }
 
 variable "vm_name" {
   type = string
-  default = "sequoia-wallet:0.2.8"
+  default = "tahoe-wallet:0.3.0"
 }
 
 source "tart-cli" "tart" {

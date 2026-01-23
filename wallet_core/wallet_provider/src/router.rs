@@ -25,6 +25,7 @@ use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
+use utoipa::OpenApi;
 
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
@@ -70,8 +71,8 @@ use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::wua_issuer::WuaIssuer;
 
+use crate::admin;
 use crate::errors::WalletProviderError;
-use crate::revoke;
 use crate::router_state::RouterState;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
@@ -87,14 +88,17 @@ use crate::router_state::RouterState;
 /// be able to handle these errors appropriately.
 type Result<T> = std::result::Result<T, WalletProviderError>;
 
+#[derive(OpenApi)]
+#[openapi(info(title = "Wallet provider API"))]
+struct ApiDocs;
+
 pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>) -> Router
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
     let state = Arc::new(router_state);
-
-    Router::new()
+    let router = Router::new()
         .merge(health_router(&state.user_state))
         .merge(metrics_router())
         .nest(
@@ -187,13 +191,19 @@ where
                 .route("/public-keys", get(public_keys))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
-        )
-        // don't nest this as that won't work with utoipa
-        .merge(
-            revoke::internal_router()
-                .layer(TraceLayer::new_for_http())
-                .with_state(Arc::clone(&state)),
-        )
+        );
+
+    let (admin_router, admin_openapi) = admin::internal_router(state);
+    let router = router.nest("/admin", admin_router.layer(TraceLayer::new_for_http()));
+    let openapi = ApiDocs::openapi().nest("/admin", admin_openapi);
+
+    #[cfg(feature = "test_admin_ui")]
+    let router = router.merge(utoipa_swagger_ui::SwaggerUi::new("/api-docs").url("/openapi.json", openapi));
+
+    #[cfg(not(feature = "test_admin_ui"))]
+    let router = router.route("/openapi.json", get(Json(openapi)));
+
+    router
 }
 
 fn health_router<W, S>(user_state: &UserState<Repositories, Pkcs11Hsm, W, S>) -> Router {
