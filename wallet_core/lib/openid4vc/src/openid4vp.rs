@@ -170,7 +170,7 @@ pub struct ClientMetadata {
     pub authorization_encryption_enc_values_supported: VpEncValues,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientIdScheme {
     #[serde(rename = "pre-registered")]
@@ -494,14 +494,14 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap(),
             });
         }
-        if *vp_auth_request.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
+        if vp_auth_request.oauth_request.response_mode.unwrap() != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
             });
         }
-        if *vp_auth_request.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
+        if vp_auth_request.client_id_scheme.unwrap() != ClientIdScheme::X509SanDns {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "client_id_scheme",
                 expected: "x509_san_dns",
