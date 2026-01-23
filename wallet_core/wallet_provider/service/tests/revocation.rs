@@ -38,6 +38,7 @@ use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
+use wallet_provider_service::revocation::RevocationError;
 use wallet_provider_service::revocation::revoke_all_wallets;
 use wallet_provider_service::revocation::revoke_wallets;
 use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
@@ -145,7 +146,7 @@ async fn verify_revocation(
     wallet_ids: impl IntoIterator<Item = &String>,
     expected_revocation_reason: Option<RevocationReason>,
     wua_id_and_claim: impl IntoIterator<Item = &(Uuid, StatusClaim)>,
-    publish_dir: &PublishDir,
+    publish_dir: Option<&PublishDir>,
     user_state: &UserState<
         Repositories,
         MockPkcs11Client<HsmError>,
@@ -186,9 +187,12 @@ async fn verify_revocation(
             .unwrap();
         assert_eq!(expected_status_type == StatusType::Invalid, batch.is_revoked);
 
-        // since the status list is not served in this test, we read it directly from disk
-        let status_type = status_type_for_claim(wua_claim, publish_dir).await;
-        assert_eq!(status_type, expected_status_type);
+        // only verify status list content if publish dir is provided
+        if let Some(publish_dir) = publish_dir {
+            // since the status list is not served in this test, we read it directly from disk
+            let status_type = status_type_for_claim(wua_claim, publish_dir).await;
+            assert_eq!(status_type, expected_status_type);
+        }
     }))
     .await;
 }
@@ -217,12 +221,12 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
 
     let (wallets, wuas) = register_wallets_to_revoke(wuas_per_wallet, &user_state).await;
 
-    // all wuas should not be revoked
+    // all wallets should not be revoked
     verify_revocation(
         wallets.iter(),
         None,
         wuas.iter().flatten(),
-        &publish_dir,
+        Some(&publish_dir),
         &user_state,
         StatusType::Valid,
     )
@@ -237,12 +241,12 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     let revoked_wua_ids = revoked_wua_ids.into_iter().flatten().collect_vec();
     let non_revoked_wua_ids = non_revoked_wua_ids.into_iter().flatten().collect_vec();
 
-    // check revoked wuas
+    // check revoked wallets
     verify_revocation(
         wallet_ids_to_revoke.iter(),
         Some(RevocationReason::AdminRequest),
         revoked_wua_ids.iter(),
-        &publish_dir,
+        Some(&publish_dir),
         &user_state,
         StatusType::Invalid,
     )
@@ -251,7 +255,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
         wallet_ids_not_to_revoke.iter(),
         None,
         non_revoked_wua_ids.iter(),
-        &publish_dir,
+        Some(&publish_dir),
         &user_state,
         StatusType::Valid,
     )
@@ -265,7 +269,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
         wallet_ids_to_revoke.iter(),
         Some(RevocationReason::AdminRequest),
         revoked_wua_ids.iter(),
-        &publish_dir,
+        Some(&publish_dir),
         &user_state,
         StatusType::Invalid,
     )
@@ -274,7 +278,7 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
         wallet_ids_not_to_revoke.iter(),
         None,
         non_revoked_wua_ids.iter(),
-        &publish_dir,
+        Some(&publish_dir),
         &user_state,
         StatusType::Valid,
     )
@@ -295,12 +299,12 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     let (wallet_ids, wuas) = register_wallets_to_revoke(wuas_per_wallet, &user_state).await;
     let wuas: Vec<(Uuid, StatusClaim)> = wuas.into_iter().flatten().collect();
 
-    // all wuas should not be revoked
+    // all wallets should not be revoked
     verify_revocation(
         wallet_ids.iter(),
         None,
         wuas.iter(),
-        &publish_dir,
+        Some(&publish_dir),
         &user_state,
         StatusType::Valid,
     )
@@ -310,12 +314,12 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
         .await
         .unwrap();
 
-    // all wuas should be revoked
+    // all wallets should be revoked
     verify_revocation(
         wallet_ids.iter(),
         Some(RevocationReason::WalletSolutionCompromised),
         wuas.iter(),
-        &publish_dir,
+        Some(&publish_dir),
         &user_state,
         StatusType::Invalid,
     )
@@ -329,7 +333,99 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
         wallet_ids.iter(),
         Some(RevocationReason::WalletSolutionCompromised),
         wuas.iter(),
-        &publish_dir,
+        Some(&publish_dir),
+        &user_state,
+        StatusType::Invalid,
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn test_revoke_wallet_not_found() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
+    let user_state = setup_state(publish_dir.clone()).await;
+
+    let (mut wallets, wuas) = register_wallets_to_revoke(vec![1], &user_state).await;
+
+    // all wallets should not be revoked
+    verify_revocation(
+        wallets.iter(),
+        None,
+        wuas.iter().flatten(),
+        Some(&publish_dir),
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
+
+    let non_existing_wallet_id = "non_existing_wallet_id".to_owned();
+    let mut wallet_ids_to_revoke = vec![non_existing_wallet_id.clone()];
+    let err = revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
+        .await
+        .unwrap_err();
+
+    assert!(matches!(err, RevocationError::WalletIdsNotFound(missing_ids) if missing_ids == wallet_ids_to_revoke));
+
+    wallet_ids_to_revoke.append(&mut wallets);
+    let err = revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
+        .await
+        .unwrap_err();
+
+    assert!(
+        matches!(err, RevocationError::WalletIdsNotFound(missing_ids) if missing_ids == vec![non_existing_wallet_id])
+    );
+
+    // all wallets should not be revoked
+    verify_revocation(
+        wallets.iter(),
+        None,
+        wuas.iter().flatten(),
+        Some(&publish_dir),
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn test_revoke_wallet_wua_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
+    let user_state = setup_state(publish_dir.clone()).await;
+
+    let (wallets, wuas) = register_wallets_to_revoke(vec![1], &user_state).await;
+
+    // all wallets should not be revoked
+    verify_revocation(
+        wallets.iter(),
+        None,
+        wuas.iter().flatten(),
+        Some(&publish_dir),
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
+
+    drop(temp_dir); // remove publish dir to cause error in WUA revocation
+
+    let err = revoke_wallets(&wallets, &user_state, &MockTimeGenerator::default())
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        err,
+        RevocationError::WuaRevocation(token_status_list::status_list_service::RevocationError::InternalError(
+            _
+        ))
+    ));
+
+    // all wallets should still be revoked, but the TSL is not published
+    verify_revocation(
+        wallets.iter(),
+        Some(RevocationReason::AdminRequest),
+        wuas.iter().flatten(),
+        None, // no publish dir available anymore
         &user_state,
         StatusType::Invalid,
     )
