@@ -4,9 +4,18 @@
 {{ base.trans.success_title }}
 {% endblock %}
 
+{% block script %}
+<script src="/lokalize.js" defer></script>
+{% endblock %}
+
 {% block content %}
 <section class="intro">
-  <p>{{ base.trans.success_wb_confirmation }}</p>
+  <p id="success_message"
+      data-template="{{ success_message_template }}"
+      data-revoked-at="{{ revoked_at_rfc3339 }}"
+      data-language="{{ base.selected_lang }}">
+    {{ success_message }}
+  </p>
   <p>{{ base.trans.success_wallet_confirmation }}</p>
 
   <div class="illustration-container" aria-hidden="true">
@@ -33,4 +42,5 @@
 
   </div>
 </section>
+
 {% endblock %}

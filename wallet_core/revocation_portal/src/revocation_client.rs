@@ -1,3 +1,7 @@
+use chrono::DateTime;
+use chrono::Utc;
+use derive_more::From;
+
 use crate::DeletionCode;
 
 #[derive(Debug, thiserror::Error)]
@@ -6,18 +10,23 @@ pub enum RevocationError {
     RevocationFailed,
 }
 
+#[derive(Debug, Clone, From)]
+pub struct RevocationResult {
+    pub revoked_at: DateTime<Utc>,
+}
+
 #[trait_variant::make(Send)]
 pub trait RevocationClient {
-    async fn revoke(&self, deletion_code: DeletionCode) -> Result<(), RevocationError>;
+    async fn revoke(&self, deletion_code: DeletionCode) -> Result<RevocationResult, RevocationError>;
 }
 
 #[derive(Debug, Clone)]
 pub struct HttpRevocationClient {}
 
 impl RevocationClient for HttpRevocationClient {
-    async fn revoke(&self, _deletion_code: DeletionCode) -> Result<(), RevocationError> {
+    async fn revoke(&self, _deletion_code: DeletionCode) -> Result<RevocationResult, RevocationError> {
         // TODO: implement in PVW-5306
-        Ok(())
+        Ok(Utc::now().into())
     }
 }
 
@@ -37,11 +46,11 @@ pub mod tests {
     }
 
     impl RevocationClient for MockRevocationClient {
-        async fn revoke(&self, _deletion_code: DeletionCode) -> Result<(), RevocationError> {
+        async fn revoke(&self, _deletion_code: DeletionCode) -> Result<RevocationResult, RevocationError> {
             if self.should_fail {
                 Err(RevocationError::RevocationFailed)
             } else {
-                Ok(())
+                Ok(Utc::now().into())
             }
         }
     }

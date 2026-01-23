@@ -16,9 +16,12 @@ askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["form"] }
 axum_csrf = { workspace = true, features = ["layer"] }
+chrono = { workspace = true, features = ["unstable-locales"] }
+derive_more = { workspace = true, features = ["from"] }
 config = { workspace = true, features = ["toml"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
+strfmt.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
