@@ -45,7 +45,6 @@ imagePullSecrets: []
 
 ## @section Ingress parameters
 ## Parameters for the ingress configuration
-## @param ingress.enabled Enable or disable the ingress
 ## @param ingress.className Ingress class name
 ## @param ingress.hostname Hostname for the ingress
 ## @param ingress.contextPath Optional context path for the ingress
@@ -54,7 +53,6 @@ imagePullSecrets: []
 ## @param ingress.annotations Additional annotations for the ingress
 ##
 ingress:
-  enabled: true
   className: "nginx"
   hostname: null
   contextPath: null

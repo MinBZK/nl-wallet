@@ -43,7 +43,6 @@
 
 | Name                    | Description                            | Value   |
 | ----------------------- | -------------------------------------- | ------- |
-| `ingress.enabled`       | Enable or disable the ingress          | `true`  |
 | `ingress.className`     | Ingress class name                     | `nginx` |
 | `ingress.hostname`      | Hostname for the ingress               | `nil`   |
 | `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
