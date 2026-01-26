@@ -752,7 +752,7 @@ mod test {
     fn mdoc_query_with_trusted_authorities() -> Query {
         mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.trusted_authorities
-                .push(TrustedAuthoritiesQuery::Other("placeholder".to_string()));
+                .push(TrustedAuthoritiesQuery::Other(vec_nonempty!["placeholder".to_string()]));
             c
         })
     }

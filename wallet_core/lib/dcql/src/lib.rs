@@ -7,6 +7,10 @@ use std::ops::Not;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use strum::EnumDiscriminants;
 
@@ -171,6 +175,7 @@ pub struct CredentialSetQuery {
 /// in one of the provided types.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#dcql_trusted_authorities>
+#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "values", rename_all = "snake_case")]
 pub enum TrustedAuthoritiesQuery {
@@ -179,11 +184,11 @@ pub enum TrustedAuthoritiesQuery {
     /// element of an X.509 certificate in the certificate chain present in the credential (e.g., in the header of an
     /// mdoc or SD-JWT). Note that the chain can consist of a single certificate and the credential can include the
     /// entire X.509 chain or parts of it.
-    Aki(VecNonEmpty<String>),
+    Aki(#[serde_as(as = "Vec<Base64<UrlSafe, Unpadded>>")] VecNonEmpty<Vec<u8>>),
 
     // Allow parsing of methods not supported by this implementation.
     #[serde(untagged)]
-    Other(String),
+    Other(VecNonEmpty<String>),
 }
 
 /// Specifies claims in the requested Credential.
