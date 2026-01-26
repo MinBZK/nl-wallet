@@ -84,7 +84,6 @@ class RevokeCardTests : TestBase() {
         indexWebPage.clickInsuranceButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
-        disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Error screen is not visible")
     }
@@ -123,7 +122,6 @@ class RevokeCardTests : TestBase() {
         indexWebPage.clickJobFinderButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
-        disclosureForIssuanceScreen.share()
         assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Error screen is not visible")
     }
 }

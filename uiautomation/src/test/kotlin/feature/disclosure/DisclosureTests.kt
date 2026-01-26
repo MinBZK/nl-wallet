@@ -333,7 +333,6 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickAmsterdamSdJwtButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
-        disclosureScreen.cancel()
         disclosureScreen.stop()
         disclosureScreen.bottomSheetConfirmStop()
         sharingStoppedScreen.close()
