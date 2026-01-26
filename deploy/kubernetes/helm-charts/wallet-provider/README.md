@@ -58,6 +58,17 @@
 | ----------------- | ----------------------------------- | ----- |
 | `securityContext` | Security context for the containers | `{}`  |
 
+### Ingress internal parameters
+
+| Name                            | Description                                     | Value   |
+| ------------------------------- | ----------------------------------------------- | ------- |
+| `ingressInternal.enabled`       | Enable or disable the internal ingress          | `false` |
+| `ingressInternal.className`     | Ingress class name                              | `nginx` |
+| `ingressInternal.hostname`      | Hostname for the internal ingress               | `nil`   |
+| `ingressInternal.tlsSecretName` | Name of the TLS secret for the internal ingress | `nil`   |
+| `ingressInternal.labels`        | Additional labels for the internal ingress      | `{}`    |
+| `ingressInternal.annotations`   | Additional annotations for the internal ingress | `{}`    |
+
 ### Ingress parameters
 
 | Name                    | Description                                              | Value   |
