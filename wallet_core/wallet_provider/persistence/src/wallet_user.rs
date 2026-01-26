@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -281,7 +282,10 @@ where
     Ok(QueryResult::Found(Box::new(wallet_user)))
 }
 
-pub async fn find_wallet_user_id_by_wallet_ids<S, T>(db: &T, wallet_ids: &[String]) -> Result<HashMap<String, Uuid>>
+pub async fn find_wallet_user_id_by_wallet_ids<S, T>(
+    db: &T,
+    wallet_ids: &HashSet<String>,
+) -> Result<HashMap<String, Uuid>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

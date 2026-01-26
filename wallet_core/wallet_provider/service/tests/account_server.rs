@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::time::Duration;
 
@@ -284,7 +285,7 @@ async fn test_wua_status() {
 
     // fetch all WUA IDs for this wallet directly from the database
     let tx = user_state.repositories.begin_transaction().await.unwrap();
-    let wallet_user_ids = wallet_user::find_wallet_user_id_by_wallet_ids(&tx, &[cert_data.wallet_id])
+    let wallet_user_ids = wallet_user::find_wallet_user_id_by_wallet_ids(&tx, &HashSet::from([cert_data.wallet_id]))
         .await
         .unwrap()
         .into_values()

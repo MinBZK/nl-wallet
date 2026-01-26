@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
@@ -22,11 +24,11 @@ pub enum RevocationError {
     WuaRevocation(#[from] token_status_list::status_list_service::RevocationError),
 
     #[error("wallet ID not found: {0:?}")]
-    WalletIdsNotFound(Vec<String>),
+    WalletIdsNotFound(HashSet<String>),
 }
 
 pub async fn revoke_wallets<T, R, H>(
-    wallet_ids: &[String],
+    wallet_ids: &HashSet<String>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), RevocationError>
@@ -45,9 +47,8 @@ where
         .await?;
 
     if found_wallets.len() != wallet_ids.len() {
-        let not_found_ids: Vec<String> = wallet_ids
-            .iter()
-            .filter(|id| !found_wallets.contains_key(*id))
+        let not_found_ids: HashSet<String> = wallet_ids
+            .difference(&found_wallets.into_keys().collect())
             .cloned()
             .collect();
         return Err(RevocationError::WalletIdsNotFound(not_found_ids));

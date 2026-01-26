@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use axum::Json;
@@ -45,7 +46,7 @@ impl IntoResponse for RevocationError {
 )]
 async fn revoke_wallets<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(wallet_ids): Json<Vec<String>>,
+    Json(wallet_ids): Json<HashSet<String>>,
 ) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,

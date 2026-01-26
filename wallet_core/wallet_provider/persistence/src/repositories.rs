@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -79,7 +80,7 @@ impl WalletUserRepository for Repositories {
     async fn find_wallet_user_id_by_wallet_ids(
         &self,
         transaction: &Self::TransactionType,
-        wallet_ids: &[String],
+        wallet_ids: &HashSet<String>,
     ) -> Result<HashMap<String, Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_id_by_wallet_ids(transaction, wallet_ids).await
     }
@@ -465,6 +466,7 @@ impl WalletUserRepository for Repositories {
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::time::Duration;
 
     use chrono::DateTime;
@@ -527,7 +529,7 @@ pub mod mock {
             async fn find_wallet_user_id_by_wallet_ids(
                 &self,
                 _transaction: &MockTransaction,
-                _wallet_ids: &[String],
+                _wallet_ids: &HashSet<String> ,
             ) -> Result<HashMap<String, Uuid>, PersistenceError>;
 
             async fn register_unsuccessful_pin_entry(
@@ -814,7 +816,7 @@ pub mod mock {
         async fn find_wallet_user_id_by_wallet_ids(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &[String],
+            _wallet_id: &HashSet<String>,
         ) -> Result<HashMap<String, Uuid>, PersistenceError> {
             Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
         }

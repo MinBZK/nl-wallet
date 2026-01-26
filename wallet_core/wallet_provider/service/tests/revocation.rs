@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::time::Duration;
 use std::vec;
@@ -197,7 +198,7 @@ async fn verify_revocation(
     .await;
 }
 
-fn partition_vec_by_indices<T>(iterator: impl IntoIterator<Item = T>, indices_to_revoke: &[usize]) -> (Vec<T>, Vec<T>) {
+fn partition_by_indices<T>(iterator: impl IntoIterator<Item = T>, indices_to_revoke: &[usize]) -> (Vec<T>, Vec<T>) {
     iterator.into_iter().enumerate().partition_map(|(i, val)| {
         if indices_to_revoke.contains(&i) {
             Either::Left(val)
@@ -232,11 +233,12 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     )
     .await;
 
-    let (wallet_ids_to_revoke, wallet_ids_not_to_revoke) = partition_vec_by_indices(wallets, &indices_to_revoke);
+    let (wallet_ids_to_revoke, wallet_ids_not_to_revoke) = partition_by_indices(wallets, &indices_to_revoke);
+    let wallet_ids_to_revoke = wallet_ids_to_revoke.into_iter().collect();
     revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
         .await
         .unwrap();
-    let (revoked_wua_ids, non_revoked_wua_ids) = partition_vec_by_indices(wuas, &indices_to_revoke);
+    let (revoked_wua_ids, non_revoked_wua_ids) = partition_by_indices(wuas, &indices_to_revoke);
 
     let revoked_wua_ids = revoked_wua_ids.into_iter().flatten().collect_vec();
     let non_revoked_wua_ids = non_revoked_wua_ids.into_iter().flatten().collect_vec();
@@ -346,7 +348,7 @@ async fn test_revoke_wallet_not_found() {
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
     let user_state = setup_state(publish_dir.clone()).await;
 
-    let (mut wallets, wuas) = register_wallets_to_revoke(vec![1], &user_state).await;
+    let (wallets, wuas) = register_wallets_to_revoke(vec![1], &user_state).await;
 
     // all wallets should not be revoked
     verify_revocation(
@@ -360,21 +362,25 @@ async fn test_revoke_wallet_not_found() {
     .await;
 
     let non_existing_wallet_id = "non_existing_wallet_id".to_owned();
-    let mut wallet_ids_to_revoke = vec![non_existing_wallet_id.clone()];
+    let wallet_ids_to_revoke = HashSet::from([non_existing_wallet_id.clone()]);
     let err = revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
         .await
         .unwrap_err();
 
     assert!(matches!(err, RevocationError::WalletIdsNotFound(missing_ids) if missing_ids == wallet_ids_to_revoke));
 
-    wallet_ids_to_revoke.append(&mut wallets);
-    let err = revoke_wallets(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
-        .await
-        .unwrap_err();
+    let err = revoke_wallets(
+        &wallet_ids_to_revoke
+            .union(&wallets.iter().cloned().collect())
+            .cloned()
+            .collect(),
+        &user_state,
+        &MockTimeGenerator::default(),
+    )
+    .await
+    .unwrap_err();
 
-    assert!(
-        matches!(err, RevocationError::WalletIdsNotFound(missing_ids) if missing_ids == vec![non_existing_wallet_id])
-    );
+    assert!(matches!(err, RevocationError::WalletIdsNotFound(missing_ids) if missing_ids == wallet_ids_to_revoke));
 
     // all wallets should not be revoked
     verify_revocation(
@@ -409,9 +415,13 @@ async fn test_revoke_wallet_wua_error() {
 
     drop(temp_dir); // remove publish dir to cause error in WUA revocation
 
-    let err = revoke_wallets(&wallets, &user_state, &MockTimeGenerator::default())
-        .await
-        .unwrap_err();
+    let err = revoke_wallets(
+        &wallets.iter().cloned().collect(),
+        &user_state,
+        &MockTimeGenerator::default(),
+    )
+    .await
+    .unwrap_err();
 
     assert!(matches!(
         err,

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -41,7 +42,7 @@ pub trait WalletUserRepository {
     async fn find_wallet_user_id_by_wallet_ids(
         &self,
         transaction: &Self::TransactionType,
-        wallet_ids: &[String],
+        wallet_ids: &HashSet<String>,
     ) -> Result<HashMap<String, Uuid>>;
 
     async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
@@ -265,7 +266,7 @@ pub mod mock {
         async fn find_wallet_user_id_by_wallet_ids(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_ids: &[String],
+            _wallet_ids: &HashSet<String>,
         ) -> Result<HashMap<String, Uuid>> {
             Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
         }
