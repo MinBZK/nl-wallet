@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  {{- with .Values.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- if .Values.extraPodLabels }}
+        {{- toYaml .Values.extraPodLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "common.names.fullname" . }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8001
+          env:
+            - name: REVOCATION_PORTAL__STRUCTURED_LOGGING
+              value: "true"
+            - name: REVOCATION_PORTAL__LOG_REQUESTS
+              value: {{ .Values.logRequests | quote }}
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+            - name: REVOCATION_PORTAL__COOKIE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-revocation-portal-secrets
+                  key: cookie_encryption_key

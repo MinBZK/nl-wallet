@@ -286,6 +286,15 @@ build-gba-fetch-frontend-binary:
     paths:
       - wallet_core/target/x86_64-unknown-linux-musl/release/gba_fetch_frontend
 
+build-revocation-portal-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "revocation_portal" --bin revocation_portal
+  artifacts:
+    name: revocation_portal
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-musl/release/revocation_portal
+
 build-performance-test:
   extends: .build-binary
   rules: !reference [.default-branch, rules]

@@ -174,3 +174,12 @@ build-gba-fetch-frontend-image:
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/gba_fetch_frontend.Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-gba-fetch-frontend
+
+build-revocation-portal-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-revocation-portal-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/revocation_portal/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-revocation-portal
