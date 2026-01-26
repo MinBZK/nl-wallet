@@ -661,6 +661,7 @@ mod test {
 
     use crate::ClaimPath;
     use crate::ClaimsQuery;
+    use crate::ClaimsQueryValue;
     use crate::ClaimsSelection;
     use crate::CredentialQuery;
     use crate::Query;
@@ -811,7 +812,7 @@ mod test {
     fn mdoc_query_with_values() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
-            claims_query.values = vec![serde_json::Value::Bool(true)];
+            claims_query.values = vec![ClaimsQueryValue::Boolean(true)];
             claims_query
         };
         mdoc_example_query_mutate_first_credential_query(move |mut c| {
@@ -865,7 +866,7 @@ mod test {
             claims: vec![ClaimsQuery {
                 id: None,
                 path: vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())],
-                values: vec![serde_json::Value::String("Name".to_string())],
+                values: vec![ClaimsQueryValue::String("Name".to_string())],
                 intent_to_retain: None,
             }]
             .try_into()
