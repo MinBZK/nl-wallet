@@ -10,20 +10,20 @@
     - echo "Using CURRENT_RELEASE = $CURRENT_RELEASE"
     - python3 -m venv venv
     - source venv/bin/activate
-    - pip3 install -r deploy/git-jira-check/requirements.txt
+    - pip3 install -r deploy/qa-util/requirements.txt
 
 nightly-git-jira-check:
   extends: .git-jira-check-base
   rules: !reference [ .on-schedule-scan, rules ]
   script:
-    - python3 deploy/git-jira-check/git_jira_sync.py sync-nightly
+    - python3 deploy/qa-util/git_jira_sync.py sync-nightly
 
 verify-release-check:
   extends: .git-jira-check-base
   rules: !reference [.default-branch, rules]
   when: manual
   script:
-    - python3 deploy/git-jira-check/git_jira_sync.py verify-release
+    - python3 deploy/qa-util/git_jira_sync.py verify-release
   artifacts:
     name: mrs-missing-jira-key
     when: always
