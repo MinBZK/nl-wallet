@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
 use sea_orm::ActiveModelTrait;
-use sea_orm::ActiveValue::Set;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
@@ -14,8 +15,9 @@ use sea_orm::PaginatorTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::RelationTrait;
+use sea_orm::Set;
 use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::sea_query::Expr;
+use sea_orm::prelude::Expr;
 use sea_orm::sea_query::IntoIden;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
@@ -279,12 +281,12 @@ where
     Ok(QueryResult::Found(Box::new(wallet_user)))
 }
 
-pub async fn find_wallet_user_id_by_wallet_ids<S, T>(db: &T, wallet_ids: &[String]) -> Result<Vec<(Uuid, String)>>
+pub async fn find_wallet_user_id_by_wallet_ids<S, T>(db: &T, wallet_ids: &[String]) -> Result<HashMap<String, Uuid>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user::Entity::find()
+    Ok(wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::Id)
         .column(wallet_user::Column::WalletId)
@@ -292,7 +294,10 @@ where
         .into_tuple::<(Uuid, String)>()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .into_iter()
+        .map(|(wallet_user_id, wallet_id)| (wallet_id, wallet_user_id))
+        .collect())
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>

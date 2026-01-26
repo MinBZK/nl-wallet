@@ -80,7 +80,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_ids: &[String],
-    ) -> Result<Vec<(Uuid, String)>, PersistenceError> {
+    ) -> Result<HashMap<String, Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_id_by_wallet_ids(transaction, wallet_ids).await
     }
 
@@ -528,7 +528,7 @@ pub mod mock {
                 &self,
                 _transaction: &MockTransaction,
                 _wallet_ids: &[String],
-            ) -> Result<Vec<(Uuid, String)>, PersistenceError>;
+            ) -> Result<HashMap<String, Uuid>, PersistenceError>;
 
             async fn register_unsuccessful_pin_entry(
                 &self,
@@ -815,11 +815,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &[String],
-        ) -> Result<Vec<(Uuid, String)>, PersistenceError> {
-            Ok(vec![(
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                "wallet-123".to_owned(),
-            )])
+        ) -> Result<HashMap<String, Uuid>, PersistenceError> {
+            Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
         }
 
         async fn clear_instruction_challenge(

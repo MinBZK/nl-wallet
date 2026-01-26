@@ -1,6 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
-use uuid::Uuid;
+use itertools::Itertools;
 
 use token_status_list::status_list_service::StatusListRevocationService;
 use utils::generator::Generator;
@@ -39,17 +39,15 @@ where
 
     let tx = user_state.repositories.begin_transaction().await?;
 
-    let (wallet_user_ids, found_wallet_ids): (Vec<Uuid>, Vec<String>) = user_state
+    let found_wallets = user_state
         .repositories
         .find_wallet_user_id_by_wallet_ids(&tx, wallet_ids)
-        .await?
-        .into_iter()
-        .unzip();
+        .await?;
 
-    if found_wallet_ids.len() != wallet_ids.len() {
+    if found_wallets.len() != wallet_ids.len() {
         let not_found_ids: Vec<String> = wallet_ids
             .iter()
-            .filter(|id| !found_wallet_ids.contains(id))
+            .filter(|id| !found_wallets.contains_key(*id))
             .cloned()
             .collect();
         return Err(RevocationError::WalletIdsNotFound(not_found_ids));
@@ -58,7 +56,12 @@ where
     // revoke all users
     let wua_ids = user_state
         .repositories
-        .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
+        .revoke_wallet_users(
+            &tx,
+            found_wallets.into_values().collect_vec(),
+            revocation_reason,
+            revocation_date_time,
+        )
         .await?;
 
     tx.commit().await?;

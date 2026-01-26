@@ -42,7 +42,7 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         wallet_ids: &[String],
-    ) -> Result<Vec<(Uuid, String)>>;
+    ) -> Result<HashMap<String, Uuid>>;
 
     async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
@@ -266,11 +266,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_ids: &[String],
-        ) -> Result<Vec<(Uuid, String)>> {
-            Ok(vec![(
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                "wallet-123".to_owned(),
-            )])
+        ) -> Result<HashMap<String, Uuid>> {
+            Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
         }
 
         async fn clear_instruction_challenge(
