@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg class="gsndiagram" viewBox="0 0 1684 1139" xmlns="http://www.w3.org/2000/svg">
+<svg class="gsndiagram" viewBox="0 0 1710 1139" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <marker id="supportedby_arrow" markerHeight="9" markerUnits="userSpaceOnUse" markerWidth="10" orient="auto-start-reverse" refX="0" refY="4.5">
 <polyline fill="black" points="0 0, 10 4.5, 0 9"/>
@@ -24,48 +24,48 @@ svg { background-color: white;}
 <a href="rp_session.svg#node_g_trustpidissuer">
 <g class="gsn_module_rp_session_attribute gsnelem gsnawaygoal" id="node_g_trustpidissuer">
 <title>G_TrustPidIssuer</title>
-<path class="border" d="M872,149 V20 H1044 V149" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="879" y="40">G_TrustPidIssuer</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="879" y="58">RP trusts the PID issuer to (1)</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="879" y="71">issue only to wallets that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="879" y="84">implement Sole Control, (2)</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="879" y="97">issue only attributes that it</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="879" y="110">has checked to be factually</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="879" y="123">correct, (3) issue the PID at</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="879" y="136">LoA High</text>
+<path class="border" d="M885,149 V20 H1057 V149" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="892" y="40">G_TrustPidIssuer</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="892" y="58">RP trusts the PID issuer to (1)</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="892" y="71">issue only to wallets that</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="892" y="84">implement Sole Control, (2)</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="892" y="97">issue only attributes that it</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="892" y="110">has checked to be factually</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="892" y="123">correct, (3) issue the PID at</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="892" y="136">LoA High</text>
 <a href="rp_session.svg#node_g_trustpidissuer">
-<path class="border" d="M872,149 H1044 v27 H872 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="906" y="169">rp_session_attribute</text>
+<path class="border" d="M885,149 H1057 v27 H885 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="919" y="169">rp_session_attribute</text>
 </a>
-<use href="#module_icon" x="879" y="156"/>
+<use href="#module_icon" x="892" y="156"/>
 </g>
 </a>
 <a href="PID_issuer.gsn.svg#node_s_assurancewalletsolecontrol">
 <g class="gsn_module_pid_issuer gsnelem gsnstgy" id="node_s_assurancewalletsolecontrol">
 <title>S_AssuranceWalletSoleControl</title>
-<path class="border" d="M1091,63 L1299,63 L1285,133 L1077,133 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1099" y="83">S_AssuranceWalletSoleControl</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1097" y="101">PID issuer enforces that the</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1095" y="114">PID is issued to a wallet</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1093" y="127">implementing Sole Control</text>
+<path class="border" d="M1104,63 L1312,63 L1298,133 L1090,133 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1112" y="83">S_AssuranceWalletSoleControl</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1110" y="101">PID issuer enforces that the</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1108" y="114">PID is issued to a wallet</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1106" y="127">implementing Sole Control</text>
 </g>
 </a>
 <g class="gsn_module_sole_control_main gsnelem gsnasmp" id="node_a_pidissuertrustswb">
 <title>A_PidIssuerTrustsWb</title>
-<path class="border" d="M1332,98 a119,50,0,1,0,238,0 a119,50,0,1,0,-238,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1374" y="77">A_PidIssuerTrustsWb</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1374" y="95">PID issuer trusts WB to issue</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1374" y="108">WUA only to wallets</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1374" y="121">implementing Sole Control</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1565" y="143">A</text>
+<path class="border" d="M1345,98 a119,50,0,1,0,238,0 a119,50,0,1,0,-238,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1387" y="77">A_PidIssuerTrustsWb</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1387" y="95">PID issuer trusts WB to issue</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1387" y="108">WUA only to wallets</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1387" y="121">implementing Sole Control</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1578" y="143">A</text>
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsngoal" id="node_g_solecontrol">
 <title>G_SoleControl</title>
-<path class="border" d="M866,216 L1050,216 L1050,286 L866,286 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="873" y="236">G_SoleControl</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="873" y="254">WB offers PID issuer assurance</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="873" y="267">that User will have sole</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="873" y="280">control over the PID</text>
+<path class="border" d="M879,216 L1063,216 L1063,286 L879,286 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="886" y="236">G_SoleControl</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="886" y="254">WB offers PID issuer assurance</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="886" y="267">that User will have sole</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="886" y="280">control over the PID</text>
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsngoal" id="node_g_wbenforcessolecontrol">
 <title>G_WbEnforcesSoleControl</title>
@@ -77,9 +77,9 @@ svg { background-color: white;}
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsngoal" id="node_g_wbissueswua">
 <title>G_WbIssuesWua</title>
-<path class="border" d="M1366,339 L1518,339 L1518,383 L1366,383 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1373" y="359">G_WbIssuesWua</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1373" y="377">WB issues WUA to Wallet</text>
+<path class="border" d="M1392,339 L1544,339 L1544,383 L1392,383 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1399" y="359">G_WbIssuesWua</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1399" y="377">WB issues WUA to Wallet</text>
 </g>
 <a href="sole-control-2fa.gsn.svg#node_g_privkeyrequires2fa">
 <g class="gsn_module_sole_control_2fa gsnelem gsnawaygoal" id="node_g_privkeyrequires2fa">
@@ -121,28 +121,28 @@ svg { background-color: white;}
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsnasmp" id="node_a_wbistrusted">
 <title>A_WbIsTrusted</title>
-<path class="border" d="M968,545 a102,50,0,1,0,205,0 a102,50,0,1,0,-205,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1004" y="524">A_WbIsTrusted</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1004" y="542">WB is trusted by Issuers,</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1004" y="555">Verifiers, Wallets to not</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1004" y="568">obtain Attestation Data</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1167" y="590">A</text>
+<path class="border" d="M968,545 a115,50,0,1,0,231,0 a115,50,0,1,0,-231,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1008" y="524">A_WbIsTrusted</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1008" y="542">WB is trusted by Issuers,</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1008" y="555">Verifiers, Wallets to not</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1008" y="568">obtain User Attestation Data</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1193" y="590">A</text>
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsngoal" id="node_g_wbgeneratesattestationprivkey">
 <title>G_WbGeneratesAttestationPrivKey</title>
-<path class="border" d="M1212,516 L1426,516 L1426,574 L1212,574 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1219" y="536">G_WbGeneratesAttestationPrivKey</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1219" y="554">WB generates a fresh WUA private</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1219" y="567">key</text>
+<path class="border" d="M1238,516 L1452,516 L1452,574 L1238,574 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1245" y="536">G_WbGeneratesAttestationPrivKey</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1245" y="554">WB generates a fresh WUA private</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1245" y="567">key</text>
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsnsltn" id="node_sn_wbissueswua">
 <title>Sn_WbIssuesWua</title>
-<path class="border" d="M1466,545 a99,99,0,1,0,198,0 a99,99,0,1,0,-198,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1487" y="517">Sn_WbIssuesWua</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1487" y="535">WB constructs &amp; signs WUA</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1487" y="548">containing the corresponding</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1487" y="561">public key and issues it to the</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1487" y="574">wallet</text>
+<path class="border" d="M1492,545 a99,99,0,1,0,198,0 a99,99,0,1,0,-198,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1513" y="517">Sn_WbIssuesWua</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1513" y="535">WB constructs &amp; signs WUA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1513" y="548">containing the corresponding</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1513" y="561">public key and issues it to the</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1513" y="574">wallet</text>
 </g>
 <g class="gsn_module_sole_control_main gsnelem gsnstgy" id="node_s_ensureprivkeysecure">
 <title>S_EnsurePrivKeySecure</title>
@@ -192,17 +192,17 @@ svg { background-color: white;}
 <path class="gsnedge gsninctxt" d="M740,545 C710,545,730,545,710,545" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M834,580 C834,610,239,676,239,696" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M358,874 C358,904,358,889,358,909" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninctxt" d="M958,216 C958,186,1451,178,1451,158" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M958,286 C958,316,474,296,474,316" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M958,286 C958,316,1442,309,1442,329" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M958,176 C958,206,958,186,958,206" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M971,216 C971,186,1464,178,1464,158" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M971,286 C971,316,474,296,474,316" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M971,286 C971,316,1468,309,1468,329" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M971,176 C971,206,971,186,971,206" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M474,396 C474,426,834,480,834,500" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M474,396 C474,426,114,463,114,483" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M474,396 C474,426,357,406,357,426" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1319,574 C1319,604,239,676,239,696" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1442,383 C1442,413,1319,486,1319,506" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninspby" d="M1442,383 C1442,413,1565,416,1565,436" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
-<path class="gsnedge gsninctxt" d="M1292,98 C1322,98,1302,98,1322,98" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1345,574 C1345,604,239,676,239,696" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1468,383 C1468,413,1345,486,1345,506" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M1468,383 C1468,413,1591,416,1591,436" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M1305,98 C1335,98,1315,98,1335,98" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninctxt" d="M333,735 C363,735,343,735,363,735" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M239,764 C239,794,121,786,121,806" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
 <path class="gsnedge gsninspby" d="M239,764 C239,794,358,786,358,806" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>

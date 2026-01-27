@@ -29,7 +29,7 @@ G_PrivKeyExclusiveCustody:
     relative: +1
 
 A_WbIsTrusted:
-  text: WB is trusted by Issuers, Verifiers, Wallets to not obtain Attestation Data
+  text: WB is trusted by Issuers, Verifiers, Wallets to not obtain User Attestation Data
 
 S_EnsurePrivKeySecure:
   text: Ensure secure generation, storage, and usage of PrivKey
