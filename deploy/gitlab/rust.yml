@@ -292,7 +292,7 @@ build-gba-fetch-frontend-binary:
 build-performance-test:
   extends: .build-binary
   rules:
-    - !reference [.on-schedule-scan, rules]
+    - !reference [.on-schedule-nightly-performance-test, rules]
     - !reference [.default-branch, rules]
   needs:
     - !reference [.build-binary, needs]
