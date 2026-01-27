@@ -417,7 +417,7 @@ retrieve-performance-test-results-ont:
     - echo "Using START_TIME=${START_TIME} and END_TIME=${END_TIME}"
     - |
       python3 deploy/qa-util/generate-k6-summary-from-grafana.py \
-        --grafana-url "SSSS" \
+        --grafana-url "${SP_GRAFANA_TEST_API_URL}" \
         --api-token "${SP_GRAFANA_TEST_API_KEY}" \
         --start-time "$START_TIME" \
         --end-time "$END_TIME" \
