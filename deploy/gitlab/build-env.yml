@@ -18,6 +18,7 @@ build-env-ont:
     - !reference [.on-schedule-scan, rules]
     - !reference [.on-schedule-automation, rules]
     - !reference [.on-schedule-trigger-scan, rules]
+    - !reference [.on-schedule-nightly-performance-test, rules]
     - !reference [.default-branch, rules]
 
 build-env-demo:

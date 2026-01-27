@@ -377,7 +377,7 @@ run-fallback-pages-browsertest-test-ont:
 run-performance-test-ont:
   extends: .env-k8s
   rules:
-    - !reference [.on-schedule-scan, rules]
+    - !reference [.on-schedule-nightly-performance-test, rules]
     - !reference [.default-branch, rules]
   needs:
     - job: build-performance-test
@@ -402,7 +402,7 @@ run-performance-test-ont:
 retrieve-performance-test-results-ont:
   extends: .env-k8s
   rules:
-    - !reference [.on-schedule-scan, rules]
+    - !reference [.on-schedule-nightly-performance-test, rules]
   needs:
     - job: run-performance-test-ont
       artifacts: true
