@@ -184,9 +184,9 @@
 <li><p>This release changes the PID issuer to issue a single card with both personal
 and address claims instead of two distinct cards. Any verifiers must be
 updated to reflect this change.</p></li>
-<li><p>The Wallet configuration JSON now includes a <code class="docutils literal notranslate"><span class="pre">maintenance_window</span></code> field,
-which contains both a <code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">end</span></code> values encoded as RFC 3339 strings.
-Note that this field may also be <code class="docutils literal notranslate"><span class="pre">null</span></code> if no maintenance window is set.</p></li>
+<li><p>The Wallet configuration JSON now includes a <code class="docutils literal notranslate"><span class="pre">maintenance_window</span></code> field, which
+contains both a <code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">end</span></code> values encoded as RFC 3339 strings. Note
+that this field may also be <code class="docutils literal notranslate"><span class="pre">null</span></code> if no maintenance window is set.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -200,11 +200,14 @@ this to the Wallet, while it stores an HMAC of the key in its database.</p></li>
 <li><p>The wallet now shows notifications on the dashboard as well as in the mobile
 Operating System whenever an attestation is about to expire or has expired.</p></li>
 <li><p>The PID issuer now issues a single card with both personal and address claims.</p></li>
-<li><p>Notify user about unhandled deeplinks. Previously the app silently
-queued or dismissed deeplinks if the user tried to open them while the
-app was not ‘ready’ (e.g. in initial setup, or in an active disclosure
-session). This is now handled more gracefully by notifying the user if
-a deepink can not be processed.</p></li>
+<li><p>Notify user about unhandled deeplinks. Previously the app silently queued or
+dismissed deeplinks if the user tried to open them while the app was not
+‘ready’ (e.g. in initial setup, or in an active disclosure session). This is
+now handled more gracefully by notifying the user if a deepink can not be
+processed.</p></li>
+<li><p>The Wallet Provider now has an endpoint to revoke a wallet based on its wallet
+ID. This will be used by the Wallet Provider’s admin interface to allow manual
+revocation of wallets.</p></li>
 </ul>
 </section>
 </section>
