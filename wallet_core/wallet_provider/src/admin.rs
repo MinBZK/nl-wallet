@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use axum::Json;
@@ -45,14 +46,12 @@ impl IntoResponse for RevocationError {
 )]
 async fn revoke_wallets<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(wallet_ids): Json<Vec<String>>,
+    Json(wallet_ids): Json<HashSet<String>>,
 ) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
-    // TODO since this method takes an array and simply revokes all WUAs associated with all provided wallet IDs, a 404
-    // never occurs (PVW-5297)
     Ok(
         wallet_provider_service::revocation::revoke_wallets(&wallet_ids, &router_state.user_state, &TimeGenerator)
             .await?,
@@ -109,7 +108,6 @@ where
         .routes(routes!(nuke));
 
     #[cfg(feature = "test_admin_ui")]
-    // TODO .routes(routes!(get_wallet)) (PVW-5297)
     let router = router.routes(routes!(list_wallets));
 
     let router = router.with_state(state);

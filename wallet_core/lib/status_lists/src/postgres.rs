@@ -298,7 +298,7 @@ where
             .inner_join(status_list::Entity)
             .filter(
                 attestation_batch::Column::BatchId
-                    .is_in(batch_ids.iter().copied())
+                    .is_in(batch_ids)
                     .and(status_list::Column::AttestationTypeId.eq(self.attestation_type_id)),
             )
             .into_tuple()
@@ -314,7 +314,7 @@ where
         // Update revocation for all batches
         attestation_batch::Entity::update_many()
             .col_expr(attestation_batch::Column::IsRevoked, Expr::value(true))
-            .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids.iter().copied()))
+            .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids))
             .exec(&self.connection)
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
@@ -343,7 +343,7 @@ where
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?
             .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .ok_or_else(|| RevocationError::BatchIdsNotFound(vec![batch_id].try_into().unwrap()))
+            .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
     }
 
     async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
