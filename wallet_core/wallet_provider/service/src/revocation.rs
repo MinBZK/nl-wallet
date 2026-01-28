@@ -3,9 +3,15 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
+use serde::Deserialize;
+use serde::Serialize;
 
+use hsm::model::Hsm;
+use hsm::service::HsmError;
 use token_status_list::status_list_service::StatusListRevocationService;
 use utils::generator::Generator;
+use wallet_account::RevocationCode;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -25,6 +31,65 @@ pub enum RevocationError {
 
     #[error("wallet ID not found: {0:?}")]
     WalletIdsNotFound(HashSet<String>),
+
+    #[error("error signing hmac for revocation code: {0}")]
+    RevocationCodeHmac(#[source] HsmError),
+
+    #[error("no wallet found with recovation code: {0}")]
+    RevocationCodeNotFound(String),
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RevocationResult {
+    revoked_at: DateTime<Utc>,
+}
+
+pub async fn revoke_wallet_by_revocation_code<T, R, H>(
+    revocation_code: RevocationCode,
+    revocation_code_key_identifier: &str,
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+    time: &impl Generator<DateTime<Utc>>,
+) -> Result<RevocationResult, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    H: Hsm<Error = HsmError>,
+{
+    let revocation_reason = RevocationReason::UserRequest;
+    let revocation_date_time = time.generate();
+
+    let revocation_code_hmac = user_state
+        .wallet_user_hsm
+        .sign_hmac(revocation_code_key_identifier, revocation_code.as_ref().as_bytes())
+        .await
+        .map_err(RevocationError::RevocationCodeHmac)?;
+
+    let tx = user_state.repositories.begin_transaction().await?;
+
+    let wallet_user_id_result = user_state
+        .repositories
+        .find_wallet_user_id_by_revocation_code(&tx, revocation_code_hmac.as_slice())
+        .await?;
+
+    let QueryResult::Found(wallet_user_id) = wallet_user_id_result else {
+        return Err(RevocationError::RevocationCodeNotFound(revocation_code.into()));
+    };
+
+    let wua_ids = user_state
+        .repositories
+        .revoke_wallet_users(&tx, vec![*wallet_user_id], revocation_reason, revocation_date_time)
+        .await?;
+
+    tx.commit().await?;
+
+    user_state
+        .status_list_service
+        .revoke_attestation_batches(wua_ids)
+        .await?;
+
+    Ok(RevocationResult {
+        revoked_at: revocation_date_time,
+    })
 }
 
 pub async fn revoke_wallets_by_wallet_id<T, R, H>(

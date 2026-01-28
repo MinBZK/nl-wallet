@@ -6,7 +6,6 @@ use axum::Router;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::response::Response;
-use derive_more::Display;
 use http::StatusCode;
 use tracing::warn;
 use utoipa::OpenApi;
@@ -14,6 +13,8 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
 use utils::generator::TimeGenerator;
+use wallet_account::readable_identifier::ReadableIdentifierParseError;
+use wallet_provider_service::revocation::RevocationResult;
 
 use crate::router_state::RouterState;
 
@@ -21,13 +22,22 @@ use crate::router_state::RouterState;
 #[openapi(info(title = "Admin API"))]
 struct ApiDoc;
 
-#[derive(Debug, Display, thiserror::Error)]
-pub struct RevocationError(#[from] wallet_provider_service::revocation::RevocationError);
+#[derive(Debug, thiserror::Error)]
+pub enum RevocationError {
+    #[error("revocation service error: {0}")]
+    RevocationService(#[from] wallet_provider_service::revocation::RevocationError),
+
+    #[error("error parsing revocation code: {0}")]
+    RevocationCodeParsing(#[from] ReadableIdentifierParseError),
+}
 
 impl IntoResponse for RevocationError {
     fn into_response(self) -> Response {
         warn!("error result: {:?}", self);
-        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        match self {
+            Self::RevocationService(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Self::RevocationCodeParsing(_) => StatusCode::BAD_REQUEST.into_response(),
+        }
     }
 }
 
@@ -52,10 +62,44 @@ where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
-    Ok(
-        wallet_provider_service::revocation::revoke_wallets_by_wallet_id(&wallet_ids, &router_state.user_state, &TimeGenerator)
-            .await?,
+    Ok(wallet_provider_service::revocation::revoke_wallets_by_wallet_id(
+        &wallet_ids,
+        &router_state.user_state,
+        &TimeGenerator,
     )
+    .await?)
+}
+
+#[utoipa::path(
+    post,
+    path = "/revoke-wallet-by-revocation-code/",
+    request_body(
+        content = String,
+        example = json!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
+    ),
+    responses(
+        (status = OK, description = "Successfully revoked the wallet."),
+    )
+)]
+async fn revoke_wallet_by_revocation_code<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(revocation_code): Json<String>,
+) -> Result<Json<RevocationResult>, RevocationError>
+where
+    GRC: Send + Sync + 'static,
+    PIC: Send + Sync + 'static,
+{
+    let revocation_code = revocation_code.parse()?;
+
+    let revocation_result = wallet_provider_service::revocation::revoke_wallet_by_revocation_code(
+        revocation_code,
+        &router_state.account_server.keys.revocation_code_key_identifier,
+        &router_state.user_state,
+        &TimeGenerator,
+    )
+    .await?;
+
+    Ok(revocation_result.into())
 }
 
 #[utoipa::path(
@@ -105,6 +149,7 @@ where
 {
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(revoke_wallets_by_id))
+        .routes(routes!(revoke_wallet_by_revocation_code))
         .routes(routes!(nuke));
 
     #[cfg(feature = "test_admin_ui")]
