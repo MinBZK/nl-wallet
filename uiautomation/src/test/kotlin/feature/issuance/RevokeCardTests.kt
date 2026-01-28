@@ -84,7 +84,6 @@ class RevokeCardTests : TestBase() {
         indexWebPage.clickInsuranceButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
-        pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Error screen is not visible")
     }
 
