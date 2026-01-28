@@ -18,6 +18,7 @@ cargo install cargo-expand --locked --version 1.0.118
 cargo install cargo-llvm-cov --locked --version 0.6.21
 cargo install cargo-audit --locked --version 0.22.0
 cargo install cargo-nextest --locked --version 0.9.114
+cargo install cargo-hack --locked --version 0.6.41
 cargo install flutter_rust_bridge_codegen --locked --version 2.11.1
 cargo install lcov2xml --locked --version 1.0.6
 cargo install sea-orm-cli --locked --version 1.1.19 --no-default-features \

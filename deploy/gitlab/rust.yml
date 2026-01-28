@@ -22,6 +22,17 @@ lint-rust:
     paths:
      - wallet_core/clippy.json
 
+check-all-rust-features:
+  extends: .rust
+  rules: !reference [.default-or-merge-request, rules]
+  when: manual
+  before_script:
+    - set -euxo pipefail
+    - cd wallet_core
+  script:
+    # Run cargo check for each feature which includes default features and --no-default-features of the package
+    - cargo hack check --each-feature --no-dev-deps
+
 .test-rust:
   extends: .rust
   variables:
