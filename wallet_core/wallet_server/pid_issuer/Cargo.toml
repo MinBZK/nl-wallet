@@ -13,6 +13,7 @@ doctest = false
 
 [[bin]]
 name = "pid_issuer"
+required-features = ["postgres"]
 
 [[test]]
 name = "settings"
