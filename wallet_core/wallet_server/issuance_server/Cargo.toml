@@ -13,6 +13,7 @@ doctest = false
 
 [[bin]]
 name = "issuance_server"
+required-features = ["postgres"]
 
 [[test]]
 name = "settings"
