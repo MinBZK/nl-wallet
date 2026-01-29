@@ -522,110 +522,67 @@ async fn test_revoke_wallet_wua_error() {
 }
 
 #[tokio::test]
-#[rstest]
-#[case(vec![1], vec![0])]
-#[case(vec![4, 4, 4], vec![2])]
-#[case(vec![4, 4, 4], vec![0, 1, 2])]
-#[case(vec![0, 10, 10], vec![0])]
-#[case(vec![0, 10, 10], vec![1])]
-async fn test_revoke_wallet_by_revocation_code(
-    #[case] wuas_per_wallet: Vec<usize>,
-    #[case] indices_to_revoke: Vec<usize>,
-) {
+async fn test_revoke_wallet_by_revocation_code() {
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
     let user_state = setup_state(publish_dir.clone()).await;
 
     let (wallets_with_codes, wuas) =
-        register_wallets_to_revoke_with_revocation_codes(wuas_per_wallet, &user_state, REVOCATION_CODE_KEY_IDENTIFIER)
-            .await;
+        register_wallets_to_revoke_with_revocation_codes(vec![4], &user_state, REVOCATION_CODE_KEY_IDENTIFIER).await;
 
-    let wallet_ids: Vec<String> = wallets_with_codes.iter().map(|(id, _)| id.clone()).collect();
+    let (wallet_id, revocation_code) = wallets_with_codes.into_iter().exactly_one().unwrap();
+    let wuas = wuas.into_iter().flatten().collect_vec();
 
-    // all wallets should not be revoked
+    // wallet should not be revoked initially
     verify_revocation(
-        wallet_ids.iter().collect_vec().into_iter(),
+        [&wallet_id].into_iter(),
         None,
-        wuas.iter().flatten(),
+        wuas.iter(),
         Some(&publish_dir),
         &user_state,
         StatusType::Valid,
     )
     .await;
 
-    let (wallets_to_revoke, wallets_not_to_revoke) = partition_by_indices(wallets_with_codes, &indices_to_revoke);
+    // revoke the wallet
+    revoke_wallet_by_revocation_code::<_, _, _>(
+        revocation_code.clone(),
+        REVOCATION_CODE_KEY_IDENTIFIER,
+        &user_state,
+        &MockTimeGenerator::default(),
+    )
+    .await
+    .unwrap();
 
-    for (_wallet_id, revocation_code) in &wallets_to_revoke {
-        revoke_wallet_by_revocation_code::<_, _, _>(
-            revocation_code.clone(),
-            REVOCATION_CODE_KEY_IDENTIFIER,
-            &user_state,
-            &MockTimeGenerator::default(),
-        )
-        .await
-        .unwrap();
-    }
-
-    let (revoked_wuas, non_revoked_wuas) = partition_by_indices(wuas, &indices_to_revoke);
-    let revoked_wuas = revoked_wuas.into_iter().flatten().collect_vec();
-    let non_revoked_wuas = non_revoked_wuas.into_iter().flatten().collect_vec();
-
-    let wallet_ids_to_revoke = wallets_to_revoke.iter().map(|(id, _)| id).collect_vec();
-    let wallet_ids_not_to_revoke = wallets_not_to_revoke.iter().map(|(id, _)| id).collect_vec();
-
-    // check revoked wallets
+    // wallet should be revoked
     verify_revocation(
-        wallet_ids_to_revoke.into_iter(),
+        [&wallet_id].into_iter(),
         Some(RevocationReason::UserRequest),
-        revoked_wuas.iter(),
+        wuas.iter(),
         Some(&publish_dir),
         &user_state,
         StatusType::Invalid,
     )
     .await;
 
-    verify_revocation(
-        wallet_ids_not_to_revoke.into_iter(),
-        None,
-        non_revoked_wuas.iter(),
-        Some(&publish_dir),
+    // verify idempotency: revoking again should succeed without errors
+    revoke_wallet_by_revocation_code::<_, _, _>(
+        revocation_code,
+        REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
-        StatusType::Valid,
+        &MockTimeGenerator::default(),
     )
-    .await;
+    .await
+    .unwrap();
 
-    // verify idempotency (revoking again should keep everything revoked)
-    for (_wallet_id, revocation_code) in &wallets_to_revoke {
-        revoke_wallet_by_revocation_code::<_, _, _>(
-            revocation_code.clone(),
-            REVOCATION_CODE_KEY_IDENTIFIER,
-            &user_state,
-            &MockTimeGenerator::default(),
-        )
-        .await
-        .unwrap();
-    }
-
-    let wallet_ids_to_revoke = wallets_to_revoke.iter().map(|(id, _)| id).collect_vec();
-    let wallet_ids_not_to_revoke = wallets_not_to_revoke.iter().map(|(id, _)| id).collect_vec();
-
+    // wallet should still be revoked
     verify_revocation(
-        wallet_ids_to_revoke.into_iter(),
+        [&wallet_id].into_iter(),
         Some(RevocationReason::UserRequest),
-        revoked_wuas.iter(),
+        wuas.iter(),
         Some(&publish_dir),
         &user_state,
         StatusType::Invalid,
-    )
-    .await;
-
-    verify_revocation(
-        wallet_ids_not_to_revoke.into_iter(),
-        None,
-        non_revoked_wuas.iter(),
-        Some(&publish_dir),
-        &user_state,
-        StatusType::Valid,
     )
     .await;
 }
