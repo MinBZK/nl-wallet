@@ -43,7 +43,7 @@ skip_android_root_key_check = ["android_attest/skip_root_key_check"]
 # This is DANGEROUS and should not be used in any production environment.
 android_emulator = ["allow_android_emulator_keys", "mock_android_integrity_verdict", "skip_android_root_key_check"]
 # Include and run test that depend on a configured HSM
-hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
+hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test_settings"]
 
 [dependencies]
 axum.workspace = true
