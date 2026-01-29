@@ -37,7 +37,8 @@ pub const TRANSLATIONS: Translations = Translations {
                              deletion code to delete your NL Wallet and all your data. This stops anyone from using \
                              it.",
         delete_warning: "This action cannot be undone.",
-        delete_step1_instruction: "Enter your 18-digit deletion code that you wrote down when creating the wallet.",
+        delete_step1_instruction: "Enter your 18 characters deletion code that you wrote down when creating the \
+                                   wallet.",
         delete_code_label: "Your deletion code",
         delete_confirm: "Delete wallet",
         delete_code_invalid_length: "The code must be exactly 18 characters long.",
@@ -62,22 +63,22 @@ pub const TRANSLATIONS: Translations = Translations {
     nl: Words {
         en: "English",
         nl: "Nederlands",
-        meta_title: "NL Wallet revocatie portaal",
+        meta_title: "NL Wallet verwijder portaal",
         delete_title: "Wil je je NL Wallet verwijderen?",
         success_title: "Je NL Wallet is stopgezet",
-        error_title: "Sorry, er is iets fout gegaan",
-        delete_description: "Is er iets mis met je telefoon gebeurd? Of wil je je NL Wallet verwijderen? Gebruik je \
-                             verwijderingscode om je NL Wallet en alle gegevens te verwijderen. Zo kan niemand deze \
+        error_title: "Sorry, er gaat iets mis",
+        delete_description: "Is er iets met je telefoon gebeurd? Of wil je je NL Wallet verwijderen? Gebruik je \
+                             verwijder-code om je NL Wallet en alle gegevens te verwijderen. Zo kan niemand deze \
                              gebruiken.",
-        delete_warning: "Deze actie kan niet ongedaan worden gemaakt.",
-        delete_step1_instruction: "Voer je 18-cijferige verwijderingscode in die je hebt opgeschreven bij het \
-                                   aanmaken van de wallet.",
-        delete_code_label: "Je verwijderingscode",
+        delete_warning: "Je kunt deze actie niet ongedaan maken.",
+        delete_step1_instruction: "Vul je verwijder-code van 18 tekens in die je hebt opgeschreven toen je de wallet \
+                                   aanmaakte.",
+        delete_code_label: "Je verwijder-code",
         delete_confirm: "Wallet verwijderen",
         delete_code_invalid_length: "De code moet precies 18 tekens lang zijn.",
-        delete_code_required: "Voer uw verwijderingscode in.",
-        delete_code_incorrect: "Verwijderingscode is incorrect. Probeer het opnieuw.",
-        success_wb_confirmation: "Je hebt je verwijderingscode gebruikt om je NL Wallet te verwijderen op {date} om \
+        delete_code_required: "Voer je verwijder-code in.",
+        delete_code_incorrect: "verwijder-code is incorrect. Probeer het opnieuw.",
+        success_wb_confirmation: "Je hebt je verwijder-code gebruikt om je NL Wallet te verwijderen op {date} om \
                                   {time}. Je wallet is stopgezet en niemand kan je wallet gebruiken",
         success_wallet_confirmation: "Als je wallet verbinding maakt met het internet, worden alle gegevens in je \
                                       wallet verwijderd.",
