@@ -55,9 +55,11 @@ class CardDetailScreen extends StatelessWidget {
     }
   }
 
-  final String cardTitle;
+  /// The fallback title used during the loading state; typically the name
+  /// of the card being fetched.
+  final String? cardTitle;
 
-  const CardDetailScreen({required this.cardTitle, super.key});
+  const CardDetailScreen({this.cardTitle, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +101,7 @@ class CardDetailScreen extends StatelessWidget {
   String _getTitle(BuildContext context) {
     final state = context.watch<CardDetailBloc>().state;
     final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.title.l10nValue(context);
-    return title ?? cardTitle;
+    return title ?? cardTitle ?? context.l10n.cardDetailScreenFallbackTitle;
   }
 
   Widget _buildBody(BuildContext context, CardDetailState state) {

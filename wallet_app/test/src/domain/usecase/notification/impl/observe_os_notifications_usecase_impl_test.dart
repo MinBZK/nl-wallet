@@ -50,6 +50,7 @@ void main() {
           title: 'NL Wallet',
           body: 'Sample Card #1 expires in 4 days. Replace this card if you still need it.',
           notifyAt: WalletMockData.defaultNotifyAt,
+          payload: 'nlwallet://app/card/detail?id=id',
         ),
         OsNotification(
           id: WalletMockData.osCardExpiredNotification.id,
@@ -57,6 +58,7 @@ void main() {
           title: 'NL Wallet',
           body: 'Sample Card #1 expired. Replace this card if you still need it.',
           notifyAt: WalletMockData.defaultNotifyAt,
+          payload: 'nlwallet://app/card/detail?id=id',
         ),
       ];
 

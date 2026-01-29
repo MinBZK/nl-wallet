@@ -10,7 +10,10 @@ import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/spacer/paragraph_spacer.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../disclosure/argument/disclosure_screen_argument.dart';
+import '../../issuance/argument/issuance_screen_argument.dart';
 import '../../notification/debug/scheduled_notifications_screen.dart';
+import '../../sign/argument/sign_screen_argument.dart';
 import '../theme_screen.dart';
 
 class TextStylesTab extends StatelessWidget {
@@ -74,8 +77,12 @@ class TextStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         SecondaryButton(
           onPressed: () {
-            final request = DisclosureNavigationRequest(
-              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D',
+            final request = NavigationRequest.disclosure(
+              argument: const DisclosureScreenArgument(
+                uri:
+                    'walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D',
+                isQrCode: false,
+              ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
@@ -85,8 +92,12 @@ class TextStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         SecondaryButton(
           onPressed: () {
-            final request = DisclosureNavigationRequest(
-              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22AMSTERDAM_LOGIN%22%2C%22type%22%3A%22verify%22%7D',
+            final request = NavigationRequest.disclosure(
+              argument: const DisclosureScreenArgument(
+                uri:
+                    'walletdebuginteraction://deeplink#%7B%22id%22%3A%22AMSTERDAM_LOGIN%22%2C%22type%22%3A%22verify%22%7D',
+                isQrCode: false,
+              ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
@@ -96,8 +107,11 @@ class TextStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         SecondaryButton(
           onPressed: () {
-            final request = DisclosureNavigationRequest(
-              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22CAR_RENTAL%22%2C%22type%22%3A%22verify%22%7D',
+            final request = NavigationRequest.disclosure(
+              argument: const DisclosureScreenArgument(
+                uri: 'walletdebuginteraction://deeplink#%7B%22id%22%3A%22CAR_RENTAL%22%2C%22type%22%3A%22verify%22%7D',
+                isQrCode: false,
+              ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
@@ -107,8 +121,12 @@ class TextStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         SecondaryButton(
           onPressed: () {
-            final request = IssuanceNavigationRequest(
-              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE%22%2C%22type%22%3A%22issue%22%7D',
+            final request = NavigationRequest.issuance(
+              argument: const IssuanceScreenArgument(
+                uri:
+                    'walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE%22%2C%22type%22%3A%22issue%22%7D',
+                isQrCode: false,
+              ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
@@ -118,8 +136,11 @@ class TextStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         SecondaryButton(
           onPressed: () {
-            final request = SignNavigationRequest(
-              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22RENTAL_AGREEMENT%22%2C%22type%22%3A%22sign%22%7D',
+            final request = NavigationRequest.sign(
+              argument: const SignScreenArgument(
+                uri:
+                    'walletdebuginteraction://deeplink#%7B%22id%22%3A%22RENTAL_AGREEMENT%22%2C%22type%22%3A%22sign%22%7D',
+              ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
           },

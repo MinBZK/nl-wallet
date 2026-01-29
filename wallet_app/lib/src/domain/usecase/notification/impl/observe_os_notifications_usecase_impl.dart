@@ -4,6 +4,7 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../../../data/repository/notification/notification_repository.dart';
 import '../../../../data/store/active_locale_provider.dart';
+import '../../../../util/builder/notification/notification_payload_builder.dart';
 import '../../../../util/extension/locale_extension.dart';
 import '../../../model/attribute/attribute.dart';
 import '../../../model/notification/app_notification.dart';
@@ -36,6 +37,7 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
               title: _resolveTitle(osNotification.type),
               body: _resolveBody(osNotification.type, notifyAt),
               notifyAt: notifyAt,
+              payload: NotificationPayloadBuilder.build(osNotification.type),
             );
           },
         ).toList();

@@ -25,3 +25,6 @@ const kDeeplinkHost = 'deeplink'; //Used in our custom deeplinks
 const kDeeplinkPath = '/deeplink'; //Used to support deeplinks with dedicated host
 const kDeepDiveHost = 'deepdive'; //Used in our custom deepdives
 const kDeepDivePath = '/deepdive'; //Used to support deepdives with dedicated host
+
+// Notification related
+const kNotificationPayloadScheme = 'nlwallet';
