@@ -179,17 +179,82 @@
              
   <section id="about">
 <h1>About<a class="headerlink" href="#about" title="Link to this heading"></a></h1>
-<p>The NL Wallet is a digital tool, an app on your phone. It allows you to securely
-identify yourself online and share personal information within the Netherlands
-and Europe. The NL Wallet can thus provide access to online services from both
-public and private organizations.</p>
-<p>You can store various personal data in the NL Wallet. This includes personal
-data from the Dutch personal records database (the BRP), such as your name and
-date of birth. You can also store documents like diplomas and permits in the
-NL Wallet. You can share specific data and see exactly what information you’ve
-shared, with whom, and for what purpose.</p>
-<p>The documentation you’ll find here explains how the NL Wallet works and how you
-can integrate applications with the NL Wallet platform.</p>
+<p>NL Wallet is a secure app on your phone that lets you keep important personal information in one place, such as your name, age, or official documents like your ID card or driving licence.
+With the wallet, you can easily prove who you are or show only the information a service needs.</p>
+<p>For example:</p>
+<ul class="simple">
+<li><p>Showing you are over 18 without sharing your full date of birth.</p></li>
+<li><p>Confirming your identity when dealing with the government.</p></li>
+<li><p>Sharing a digital version of a diploma when applying for a job.</p></li>
+</ul>
+<p>This is useful, because:</p>
+<ul class="simple">
+<li><p>You no longer need to upload scans of your passport.</p></li>
+<li><p>You share only what is needed, not your whole identity.</p></li>
+<li><p>Your documents are harder to fake, because they are digitally signed.</p></li>
+<li><p>It works across all EU countries.</p></li>
+</ul>
+<p>You stay in control: you choose what to share, with whom, and when.</p>
+<p>NL Wallet is intended for Dutch nationals. It offers convenience, stronger security, and protection against identity fraud — all while giving individuals greater control over their own information.</p>
+<p>The app is being developed by Rijksoverheid (Dutch Government), in particular the Ministry of the Interior and Kingdom Relations (MinBZK) and is expected to be available to the public in 2027.</p>
+<p>NL Wallet also makes things easier and safer for relying parties, which are organisations that need to check identity or personal information.</p>
+<p>For these organisations, this means:</p>
+<ul class="simple">
+<li><p>More trust – the information comes directly from trusted sources, so it is harder to fake.</p></li>
+<li><p>Less sensitive data to store – no need to keep copies of passports or other documents.</p></li>
+<li><p>Easier compliance with privacy rules – only the necessary information is shared.</p></li>
+<li><p>Faster and smoother processes – users can identify themselves quickly, with fewer steps.</p></li>
+<li><p>European coverage – the same approach can be used in all EU countries.</p></li>
+</ul>
+<p>This helps organisations to reduce fraud, protect personal data and offer a better experience to their users.</p>
+<section id="nl-wallet-within-the-edi-ecosystem">
+<h2>NL Wallet within the EDI ecosystem<a class="headerlink" href="#nl-wallet-within-the-edi-ecosystem" title="Link to this heading"></a></h2>
+<p>The NL Wallet is part of a broader ecosystem: the European Digital Identity (EUDI) Framework. This framework connects EU member states. Every member state also has their own national implementation of the framework. In the Netherlands this is called “EDI-Stelsel NL”.</p>
+<p>The EDI-stelsel defines the standards, roles and governance needed for issuance and use of identity-wallets, for both public and private organisations.</p>
+<p>Through this structure:</p>
+<ul class="simple">
+<li><p>Official issuers, like registry authorities or public agencies, provide verified identity- and other personal data, for instance from the national citizen registry.</p></li>
+<li><p>Wallet holders (citizens or legal persons) store this data in NL Wallet.</p></li>
+<li><p>Service providers (public or private) can, with the user’s explicit consent, request certain data for a service (login, signature, proof of qualification, etc.).</p></li>
+</ul>
+<p>The wallet acts as a universal, cross-sector tool: identification, authentication, data sharing, and digital signing, both within the Netherlands and across EU member states.</p>
+</section>
+<section id="guiding-public-values-and-how-they-are-ensured">
+<h2>Guiding public values and how they are ensured<a class="headerlink" href="#guiding-public-values-and-how-they-are-ensured" title="Link to this heading"></a></h2>
+<p>The design and development of NL Wallet and the EDI-stelsel are driven by a set of principal public values<a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> which have been translated into concrete safeguards and architectural choices.</p>
+<section id="user-control-over-personal-data-data-sovereignty">
+<h3>User control over personal data (data sovereignty)<a class="headerlink" href="#user-control-over-personal-data-data-sovereignty" title="Link to this heading"></a></h3>
+<p>Users decide which personal information they store, when and with whom they share it.</p>
+</section>
+<section id="data-minimisation-and-privacy">
+<h3>Data minimisation and privacy<a class="headerlink" href="#data-minimisation-and-privacy" title="Link to this heading"></a></h3>
+<p>By default, only necessary data is exchanged. Wallets store data locally in a way that protects user privacy, avoiding central profiling or tracking. NL Wallet enables selective disclosure. This means, for instance, that you can share your birth date without sharing your name, or submitting only the data strictly needed for a service.</p>
+</section>
+<section id="voluntary-use-and-inclusivity">
+<h3>Voluntary use and inclusivity<a class="headerlink" href="#voluntary-use-and-inclusivity" title="Link to this heading"></a></h3>
+<p>Use of NL Wallet is voluntary; existing login and identification methods remain available for those who prefer not to use it. This prevents exclusion of people who lack smartphone access or choose not to adopt a wallet.</p>
+</section>
+<section id="security">
+<h3>Security<a class="headerlink" href="#security" title="Link to this heading"></a></h3>
+<p>NL Wallet is built with safety measures to protect both the wallet and the data it contains. The system is designed to meet the requirements for the eIDAS “high” assurance level and will be independently assessed and certified against those requirements.</p>
+</section>
+<section id="trust-and-legitimacy">
+<h3>Trust and legitimacy<a class="headerlink" href="#trust-and-legitimacy" title="Link to this heading"></a></h3>
+<p>Because the wallet is issued under a common framework (EUDI / eIDAS), it provides a standardised, interoperable trust base for both public and private services. Furthermore, the issued data originates from authentic, authoritative sources (like national registries), which results in data reliability and legal recognition.</p>
+</section>
+<section id="transparency-open-design-and-governance">
+<h3>Transparency, open design and governance<a class="headerlink" href="#transparency-open-design-and-governance" title="Link to this heading"></a></h3>
+<p>The NL Wallet implementation is open source and the EDI-stelsel is being shaped with public-sector accountability. This means that there are defined roles for issuers, trust service providers, regulators and clear governance for what data can be issued, accepted, or revoked.</p>
+<p>This documentation reflects the current implementation and will be updated with every software update. More information about the project can be found on <a class="reference external" href="https://edi.pleio.nl">edi.pleio.nl</a></p>
+<hr class="footnotes docutils" />
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>Sources: <a class="reference external" href="https://www.tweedekamer.nl/kamerstukken/brieven_regering/detail?did=2022D32577&amp;amp;id=2022Z15589">Voortgangsrapportage Europese Digitale Identiteit</a> and <a class="reference external" href="https://www.tweedekamer.nl/downloads/document?id=2022D32578">Bijlage ‘Waarden, kansen en uitdagingen rond het Europese Digitale Identiteit raamwerk’</a> (PDF)</p>
+</aside>
+</aside>
+</section>
+</section>
 </section>
 
 
