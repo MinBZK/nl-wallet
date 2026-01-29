@@ -52,7 +52,7 @@ class IssuanceScreen extends StatelessWidget {
   static IssuanceScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return tryCast<IssuanceScreenArgument>(args) ?? IssuanceScreenArgument.fromMap(args! as Map<String, dynamic>);
+      return tryCast<IssuanceScreenArgument>(args) ?? IssuanceScreenArgument.fromJson(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [IssuanceScreenArgument] when opening the IssuanceScreen');

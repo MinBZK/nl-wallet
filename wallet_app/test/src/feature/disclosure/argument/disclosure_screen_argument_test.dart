@@ -9,8 +9,8 @@ void main() {
         uri: 'https://example.org',
         isQrCode: true,
       );
-      final serialized = expected.toMap();
-      final result = DisclosureScreenArgument.fromMap(serialized);
+      final serialized = expected.toJson();
+      final result = DisclosureScreenArgument.fromJson(serialized);
       expect(result, expected);
     },
   );

@@ -29,7 +29,7 @@ class SignScreen extends StatelessWidget {
   static SignScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return tryCast<SignScreenArgument>(args) ?? SignScreenArgument.fromMap(args! as Map<String, dynamic>);
+      return tryCast<SignScreenArgument>(args) ?? SignScreenArgument.fromJson(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [SignScreenArgument] when opening the SignScreen');

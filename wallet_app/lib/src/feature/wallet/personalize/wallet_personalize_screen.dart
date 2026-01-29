@@ -241,7 +241,7 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
 
     final success = await MockDigidScreen.mockLogin(context);
     if (success && context.mounted) {
-      await context.read<NavigationService>().handleNavigationRequest(PidIssuanceNavigationRequest('issue_pid'));
+      await context.read<NavigationService>().handleNavigationRequest(NavigationRequest.pidIssuance('mock'));
     } else if (context.mounted) {
       final error = GenericError('Mock login failed', sourceError: Exception('Mock exception'));
       context.bloc.add(WalletPersonalizeLoginWithDigidFailed(error: error));

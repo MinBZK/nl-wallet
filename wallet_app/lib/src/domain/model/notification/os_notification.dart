@@ -28,6 +28,9 @@ abstract class OsNotification with _$OsNotification {
     /// The localized body of the notification.
     required String body,
 
+    /// The payload of the notification.
+    String? payload,
+
     /// The exact date and time when the notification should be displayed.
     required DateTime notifyAt,
   }) = _OsNotification;

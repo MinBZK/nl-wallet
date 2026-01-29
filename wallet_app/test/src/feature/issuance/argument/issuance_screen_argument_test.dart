@@ -11,8 +11,8 @@ void main() {
         uri: 'https://example.org',
         isQrCode: false,
       );
-      final serialized = expected.toMap();
-      final result = IssuanceScreenArgument.fromMap(serialized);
+      final serialized = expected.toJson();
+      final result = IssuanceScreenArgument.fromJson(serialized);
       expect(result, expected);
     },
   );

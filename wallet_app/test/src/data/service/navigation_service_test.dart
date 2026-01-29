@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
+import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
+import 'package:wallet/src/feature/sign/argument/sign_screen_argument.dart';
 
 import '../../mocks/wallet_mocks.dart';
 
@@ -48,7 +51,7 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = PidIssuanceNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.pidIssuance('/mock');
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
@@ -64,7 +67,9 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = DisclosureNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.disclosure(
+        argument: const DisclosureScreenArgument(uri: '/mock', isQrCode: false),
+      );
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
@@ -80,7 +85,9 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = IssuanceNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.issuance(
+        argument: const IssuanceScreenArgument(isQrCode: false, uri: '/mock'),
+      );
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
@@ -96,7 +103,7 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = SignNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.sign(argument: const SignScreenArgument(uri: '/mock'));
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
