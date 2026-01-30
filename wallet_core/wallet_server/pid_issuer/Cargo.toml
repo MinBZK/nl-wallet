@@ -61,7 +61,7 @@ attestation_types = { path = "../../lib/attestation_types" }
 crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
 health_checkers.path = "../../lib/health_checkers"
-hsm = { path = "../../lib/hsm", features = ["settings"] }
+hsm.path = "../../lib/hsm"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
