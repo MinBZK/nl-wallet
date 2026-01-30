@@ -1,3 +1,4 @@
+use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
@@ -170,7 +171,7 @@ pub struct ClientMetadata {
     pub authorization_encryption_enc_values_supported: VpEncValues,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientIdScheme {
     #[serde(rename = "pre-registered")]
@@ -341,7 +342,7 @@ impl VpAuthorizationRequest {
     ///   `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
     ///   which is used by the mentioned profile.
     ///
-    /// This method consumes `self` and turns it into an [`IsoVpAuthorizationRequest`], which
+    /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
     pub fn validate(
         self,
@@ -494,14 +495,14 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap(),
             });
         }
-        if *vp_auth_request.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
+        if vp_auth_request.oauth_request.response_mode.unwrap() != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
             });
         }
-        if *vp_auth_request.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
+        if vp_auth_request.client_id_scheme.unwrap() != ClientIdScheme::X509SanDns {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "client_id_scheme",
                 expected: "x509_san_dns",
@@ -763,18 +764,31 @@ impl VpAuthorizationResponse {
     {
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
+        let session_transcript = encryption_nonce.map(|encryption_nonce| {
+            LazyCell::new(|| {
+                // Only one mdoc `SessionTranscript` is needed for the entire response.
+                // However, it may not be required, so initialize it lazily.
+                SessionTranscript::new_oid4vp(
+                    &auth_request.response_uri,
+                    &auth_request.client_id,
+                    auth_request.nonce.clone(),
+                    encryption_nonce,
+                )
+            })
+        });
+
         let mut holder_public_keys: Vec<VerifyingKey> = Vec::new();
         let mut disclosed_attestations = HashMap::new();
 
         for (id, presentation) in self.vp_token {
             let (attestations, public_keys) = match presentation {
                 VerifiablePresentation::MsoMdoc(device_responses) => {
+                    let session_transcript = session_transcript.as_deref().ok_or(AuthResponseError::MissingApu)?;
                     let (keys, attestations): (Vec<_>, Vec<_>) =
                         try_join_all(device_responses.iter().map(|device_response| async {
                             Self::mdoc_to_disclosed_attestation(
                                 device_response,
-                                auth_request,
-                                encryption_nonce,
+                                session_transcript,
                                 time,
                                 trust_anchors,
                                 revocation_verifier,
@@ -888,8 +902,7 @@ impl VpAuthorizationResponse {
 
     async fn mdoc_to_disclosed_attestation<C>(
         device_response: &DeviceResponse,
-        auth_request: &NormalizedVpAuthorizationRequest,
-        encryption_nonce: Option<&str>,
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         revocation_verifier: &RevocationVerifier<C>,
@@ -897,25 +910,10 @@ impl VpAuthorizationResponse {
     where
         C: StatusListClient,
     {
-        let session_transcript = encryption_nonce.map(|encryption_nonce|
-            // The mdoc `SessionTranscript` may not be required, so initialize it lazily.
-            SessionTranscript::new_oid4vp(
-                &auth_request.response_uri,
-                &auth_request.client_id,
-                auth_request.nonce.clone(),
-                encryption_nonce,
-            ));
-
         // Verify the cryptographic integrity of each mdoc `DeviceResponse`
         // and obtain a `DisclosedDocuments` for each.
         let disclosed_documents = device_response
-            .verify(
-                None,
-                &session_transcript.ok_or(AuthResponseError::MissingApu)?,
-                time,
-                trust_anchors,
-                revocation_verifier,
-            )
+            .verify(None, session_transcript, time, trust_anchors, revocation_verifier)
             .await?;
 
         // Then attempt to convert the disclosed documents to `DisclosedAttestation`s.
