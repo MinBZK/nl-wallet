@@ -217,7 +217,7 @@ pub enum KeyOrigin {
 
 integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
 #[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct OsVersion {
     pub major: u8,
@@ -227,31 +227,58 @@ pub struct OsVersion {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum OsVersionError {
-    #[error("could not convert Integer to usize: {0}")]
-    IntegerConversion(Integer),
-    #[error("not a valid OsVersion: ")]
-    InvalidOsVersion(usize),
+    #[error("could not convert Integer to u32: {0}")]
+    Conversion(Integer),
+    #[error("{0}")]
+    Parsing(#[from] OsVersionParsingError),
 }
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("not a valid OsVersion: {0}")]
+pub struct OsVersionParsingError(pub u32);
 
 impl TryFrom<Integer> for OsVersion {
     type Error = OsVersionError;
 
     fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        let version: usize = (&value)
-            .try_into()
-            .map_err(|_| OsVersionError::IntegerConversion(value))?;
-        let major = version / 10_000;
+        let number = u32::try_from(&value).map_err(|_| OsVersionError::Conversion(value))?;
+        let os_version = Self::try_from(number)?;
+
+        Ok(os_version)
+    }
+}
+
+impl TryFrom<u32> for OsVersion {
+    type Error = OsVersionParsingError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        let major = value / 10_000;
         if major >= 100 {
-            return Err(OsVersionError::InvalidOsVersion(version));
+            return Err(OsVersionParsingError(value));
         }
-        let minor = version / 100 % 100;
-        let sub_minor = version % 100;
+        let minor = value / 100 % 100;
+        let sub_minor = value % 100;
+
         // unwraps are safe because of guards above
-        Ok(OsVersion {
+        let os_version = Self {
             major: major.try_into().unwrap(),
             minor: minor.try_into().unwrap(),
             sub_minor: sub_minor.try_into().unwrap(),
-        })
+        };
+
+        Ok(os_version)
+    }
+}
+
+impl From<OsVersion> for u32 {
+    fn from(value: OsVersion) -> Self {
+        10_000 * Self::from(value.major) + 100 * Self::from(value.minor) + Self::from(value.sub_minor)
+    }
+}
+
+impl From<OsVersion> for Integer {
+    fn from(value: OsVersion) -> Self {
+        u32::from(value).into()
     }
 }
 
@@ -796,25 +823,29 @@ mod test {
     #[rstest]
     #[case(40_003.into(), Ok((4, 0, 3)))]
     #[case(999_999.into(), Ok((99, 99, 99)))]
-    #[case(
-        1_000_000.into(),
-        Err(OsVersionError::InvalidOsVersion(1_000_000))
-    )]
-    #[case(
-        4_040_003.into(),
-        Err(OsVersionError::InvalidOsVersion(4_040_003))
-    )]
+    #[case(42.into(), Ok((0, 0, 42)))]
+    #[case(Integer::ZERO, Ok((0, 0, 0)))]
+    #[case( 1_000_000.into(), Err(OsVersionError::Parsing(OsVersionParsingError(1_000_000))))]
+    #[case(4_040_003.into(), Err(OsVersionError::Parsing(OsVersionParsingError(4_040_003))))]
+    #[case((-1).into(), Err(OsVersionError::Conversion((-1).into())))]
+    #[case((u64::from(u32::MAX) + 1).into(), Err(OsVersionError::Conversion((u64::from(u32::MAX) + 1).into())))]
     fn os_version(#[case] input: Integer, #[case] expected: Result<(u8, u8, u8), OsVersionError>) {
-        let actual = OsVersion::try_from(input);
+        let actual = OsVersion::try_from(input.clone());
+
         assert_eq!(actual.is_ok(), expected.is_ok());
-        match (actual, expected) {
+        match (&actual, &expected) {
             (Err(e1), Err(e2)) => assert_eq!(e1, e2),
             (Ok(version), Ok((major, minor, bugfix))) => {
-                assert_eq!(version.major, major);
-                assert_eq!(version.minor, minor);
-                assert_eq!(version.sub_minor, bugfix);
+                assert_eq!(version.major, *major);
+                assert_eq!(version.minor, *minor);
+                assert_eq!(version.sub_minor, *bugfix);
             }
             _ => unreachable!(),
+        }
+
+        // Check that conversion back results in the input value.
+        if let Ok(os_version) = actual {
+            assert_eq!(Integer::from(os_version), input);
         }
     }
 
