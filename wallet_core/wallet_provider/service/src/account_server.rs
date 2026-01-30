@@ -639,7 +639,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     RSA_PKCS1_3072_8192_SHA384,
                 ];
 
-                let leaf_certificate = verify_google_key_attestation_with_params(
+                let (leaf_certificate, _key_attestation) = verify_google_key_attestation_with_params(
                     &attested_key_chain,
                     &self.android_config.root_public_keys,
                     &crl,
