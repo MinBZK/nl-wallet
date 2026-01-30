@@ -27,7 +27,7 @@ required-features = ["db_test"]
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["dep:rand_core", "mockall", "wallet_provider_domain/mock"]
+mock = ["dep:mockall", "dep:rand_core", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "dep:ctor",
@@ -42,7 +42,7 @@ db_test = [
     "test",
 ]
 # Include code used for testing
-test = []
+test = ["dep:rand_core", "hsm/mock", "wallet_provider_database_settings/test"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }

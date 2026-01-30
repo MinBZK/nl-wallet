@@ -50,6 +50,7 @@ function map_installable() {
     # "<EXECUTABLE>:<INSTALLABLE>".
     known_installables_map=(
         "cargo-set-version:cargo-edit"
+        "cargo-hack:cargo-hack"
         "p11tool:gnutls"
     )
 
@@ -69,7 +70,14 @@ function map_installable() {
 function have() {
     local missing=()
     for executable in "$@"; do
-        which "$executable" &>/dev/null || missing+=($(map_installable "$executable"))
+        if [[ "$executable" == cargo-* ]]; then
+            local subcommand="${executable#cargo-}"
+            if ! cargo "$subcommand" --help &>/dev/null; then
+                missing+=($(map_installable "$executable"))
+            fi
+        else
+            which "$executable" &>/dev/null || missing+=($(map_installable "$executable"))
+        fi
     done
     if [ ${#missing[@]} -eq 0 ]; then
         return 0

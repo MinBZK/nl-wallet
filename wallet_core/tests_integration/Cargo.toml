@@ -135,7 +135,6 @@ test_common = [
     "openid4vc_server/disclosure",
     "openid4vc_server/issuance",
     "p256/pem",
-    "pid_issuer/postgres",
     "platform_support/mock",
     "sea-orm/debug-print",
     "status_lists/axum",

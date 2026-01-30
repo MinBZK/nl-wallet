@@ -20,11 +20,8 @@ path = "tests/settings.rs"
 required-features = ["integration_test"]
 
 [features]
-default = ["postgres"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
-# Include session storage in PostgreSQL
-postgres = ["server_utils/postgres"]
 # Enable integration tests
 integration_test = []
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
@@ -61,7 +58,7 @@ hsm.path = "../../lib/hsm"
 http_utils.path = "../../lib/http_utils"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance", "disclosure"] }
-server_utils.path = "../server_utils"
+server_utils = { path = "../server_utils", features = ["postgres"] }
 status_lists = { path = "../../lib/status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 utils.path = "../../lib/utils"
