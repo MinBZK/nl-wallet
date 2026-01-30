@@ -766,7 +766,7 @@ impl VpAuthorizationResponse {
         //         and extract the disclosed attestations from them.
         let session_transcript = encryption_nonce.map(|encryption_nonce| {
             LazyCell::new(|| {
-                // Only only mdoc `SessionTranscript` is needed for the entire response.
+                // Only one mdoc `SessionTranscript` is needed for the entire response.
                 // However, it may not be required, so initialize it lazily.
                 SessionTranscript::new_oid4vp(
                     &auth_request.response_uri,
