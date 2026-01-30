@@ -14,10 +14,9 @@ doctest = false
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
 # Include TestCase type
-test = ["mock", "async-dropper/simple", "async-dropper/tokio", "dep:async-trait", "config/toml"]
-# Integration test features
-integration = ["test", "dep:rand_core", "dep:rstest", "dep:serial_test", "tokio/macros", "tokio/rt"]
-hsm_test = ["integration"]
+test = ["mock", "async-dropper/simple", "async-dropper/tokio", "dep:async-trait", "config/toml", "dep:rand_core"]
+# Integration test feature
+hsm_test = ["test"]
 
 [[test]]
 name = "hsm"
@@ -27,7 +26,7 @@ required-features = ["hsm_test"]
 [[test]]
 name = "mock"
 path = "tests/mock.rs"
-required-features = ["integration"]
+required-features = ["test"]
 
 [dependencies]
 cryptoki.workspace = true
@@ -50,11 +49,13 @@ dashmap = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-rstest = { workspace = true, optional = true }
-serial_test = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
-tokio = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
 measure.path = "../measure"
 utils.path = "../utils"
+
+[dev-dependencies]
+rstest.workspace = true
+serial_test.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
