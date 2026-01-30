@@ -11,19 +11,13 @@ workspace = true
 doctest = false
 
 [features]
-# Include settings submodule
-settings = ["serde/derive", "serde_with/base64"]
-
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
 # Include TestCase type
-test = ["mock", "async-dropper/simple", "async-dropper/tokio", "dep:async-trait"]
-# Include settings-based constructor for TestCase type
-test_settings = ["test", "settings", "config/toml"]
-
+test = ["mock", "async-dropper/simple", "async-dropper/tokio", "dep:async-trait", "config/toml"]
 # Integration test features
 integration = ["test", "dep:rand_core", "dep:rstest", "dep:serial_test", "tokio/macros", "tokio/rt"]
-hsm_test = ["integration", "test_settings"]
+hsm_test = ["integration"]
 
 [[test]]
 name = "hsm"
@@ -44,6 +38,8 @@ metrics.workspace = true
 p256.workspace = true
 r2d2-cryptoki.workspace = true
 sec1.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 
@@ -55,8 +51,6 @@ hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
-serde = { workspace = true, optional = true }
-serde_with = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }

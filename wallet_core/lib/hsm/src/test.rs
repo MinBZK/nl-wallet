@@ -1,11 +1,36 @@
+use std::path::Path;
+
 use async_dropper::AsyncDrop;
 use async_dropper::AsyncDropper;
 use async_trait::async_trait;
+use config::Config;
+use config::ConfigError;
+use config::File;
+use serde::Deserialize;
+use serde_with::serde_as;
+
+use utils::path::prefix_local_path;
 
 use crate::model::Hsm;
 use crate::model::mock::MockPkcs11Client;
 use crate::service::HsmError;
 use crate::service::Pkcs11Hsm;
+use crate::settings;
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+struct TestSettings {
+    pub(crate) hsm: settings::Hsm,
+}
+
+impl TestSettings {
+    fn new(config_file: &Path) -> Result<Self, ConfigError> {
+        Config::builder()
+            .add_source(File::from(prefix_local_path(config_file).as_ref()).required(true))
+            .build()?
+            .try_deserialize()
+    }
+}
 
 // Default is needed for AsyncDrop
 pub struct TestCase<H> {
@@ -52,46 +77,13 @@ impl TestCase<MockPkcs11Client<HsmError>> {
     }
 }
 
-#[cfg(feature = "test_settings")]
-mod test_settings {
-    use std::path::Path;
-
-    use config::Config;
-    use config::ConfigError;
-    use config::File;
-    use serde::Deserialize;
-    use serde_with::serde_as;
-
-    use utils::path::prefix_local_path;
-
-    use crate::service::Pkcs11Hsm;
-    use crate::settings;
-
-    use super::TestCase;
-
-    #[serde_as]
-    #[derive(Clone, Deserialize)]
-    struct TestSettings {
-        pub(crate) hsm: settings::Hsm,
-    }
-
-    impl TestSettings {
-        fn new(config_file: &Path) -> Result<Self, ConfigError> {
-            Config::builder()
-                .add_source(File::from(prefix_local_path(config_file).as_ref()).required(true))
-                .build()?
-                .try_deserialize()
-        }
-    }
-
-    impl TestCase<Pkcs11Hsm> {
-        pub fn new(config_file: &str, identifier_prefix: &str) -> Self {
-            let settings = TestSettings::new(config_file.as_ref()).unwrap();
-            let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).unwrap();
-            Self {
-                identifier: format!("{}-{}", identifier_prefix, crypto::utils::random_string(8)),
-                hsm: Some(hsm),
-            }
+impl TestCase<Pkcs11Hsm> {
+    pub fn new(config_file: &str, identifier_prefix: &str) -> Self {
+        let settings = TestSettings::new(config_file.as_ref()).unwrap();
+        let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).unwrap();
+        Self {
+            identifier: format!("{}-{}", identifier_prefix, crypto::utils::random_string(8)),
+            hsm: Some(hsm),
         }
     }
 }

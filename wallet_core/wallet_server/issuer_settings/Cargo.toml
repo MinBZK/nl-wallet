@@ -25,7 +25,7 @@ tracing.workspace = true
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
-hsm = { path = "../../lib/hsm", features = ["settings"] }
+hsm.path = "../../lib/hsm"
 http_utils.path = "../../lib/http_utils"
 openid4vc.path = "../../lib/openid4vc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
