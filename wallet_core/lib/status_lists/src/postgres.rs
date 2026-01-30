@@ -41,6 +41,7 @@ use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrlError;
 use jwt::error::JwtError;
 use measure::measure;
+use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::BatchIsRevoked;
@@ -62,6 +63,7 @@ use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
+use crate::flag::Flag;
 use crate::publish::LockVersion;
 use crate::publish::PublishLockError;
 use crate::refresh::RefreshControl;
@@ -71,6 +73,9 @@ const EXTERNAL_ID_SIZE: usize = 12;
 
 /// Number of tries to create status list while obtaining a status claim.
 const IN_FLIGHT_CREATE_TRIES: usize = 5;
+
+/// Flag name to revoke all status lists
+const FLAG_NAME_REVOKE_ALL: &str = "revoke_all";
 
 /// StatusListService implementation using Postgres for multiple attestation types.
 ///
@@ -100,6 +105,7 @@ pub struct PostgresStatusListService<K> {
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
     config: Arc<StatusListConfig<K>>,
+    revoke_all_flag: Flag,
 }
 
 // Manually implement Clone as derived Clone uses incorrect bounds:
@@ -113,6 +119,7 @@ where
             connection: self.connection.clone(),
             attestation_type_id: self.attestation_type_id,
             config: self.config.clone(),
+            revoke_all_flag: self.revoke_all_flag.clone(),
         }
     }
 }
@@ -233,6 +240,7 @@ impl<K> PostgresStatusListServices<K> {
                     connection: connection.clone(),
                     attestation_type_id,
                     config: Arc::new(config),
+                    revoke_all_flag: Flag::new(connection.clone(), FLAG_NAME_REVOKE_ALL.to_string()),
                 };
                 (attestation_type, service)
             })
@@ -367,6 +375,16 @@ impl<K> PostgresStatusListService<K> {
         attestation_type: &str,
         config: StatusListConfig<K>,
     ) -> Result<Self, StatusListServiceError> {
+        let revoke_all_flag = Flag::new(connection.clone(), FLAG_NAME_REVOKE_ALL.to_string());
+        Self::try_new_with_flag(connection, attestation_type, config, revoke_all_flag).await
+    }
+
+    pub async fn try_new_with_flag(
+        connection: DatabaseConnection,
+        attestation_type: &str,
+        config: StatusListConfig<K>,
+        revoke_all_flag: Flag,
+    ) -> Result<Self, StatusListServiceError> {
         let attestation_types = vec![attestation_type];
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types).await?;
 
@@ -378,6 +396,7 @@ impl<K> PostgresStatusListService<K> {
             connection,
             attestation_type_id,
             config: Arc::new(config),
+            revoke_all_flag,
         })
     }
 }
@@ -887,10 +906,15 @@ where
     }
 
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
-        // Build empty status list
+        // Build new status list
         let expires = Utc::now() + self.config.expiry;
         let sub = self.config.base_url.join(external_id);
-        let token = StatusListToken::builder(sub, StatusList::new(self.config.list_size.as_usize()).pack())
+        let packed = if self.revoke_all_flag.is_set().await? {
+            PackedStatusList::all_invalid(self.config.list_size.as_usize())
+        } else {
+            PackedStatusList::new(self.config.list_size.as_usize())
+        };
+        let token = StatusListToken::builder(sub, packed)
             .exp(Some(expires))
             .ttl(self.config.ttl)
             .sign(&self.config.key_pair)
@@ -937,16 +961,18 @@ where
             .with_lock_if_newer(version, async || {
                 // Build packed status list
                 let sub = self.config.base_url.join(external_id);
-                let mut status_list = StatusList::new(size);
-                let builder = tokio::task::spawn_blocking(move || {
-                    for indices in result {
-                        for index in indices {
+                let builder = if self.revoke_all_flag.is_set().await? {
+                    StatusListToken::builder(sub, PackedStatusList::all_invalid(size))
+                } else {
+                    tokio::task::spawn_blocking(move || {
+                        let mut status_list = StatusList::new(size);
+                        for index in result.into_iter().flatten() {
                             status_list.insert(index as usize, StatusType::Invalid);
                         }
-                    }
-                    StatusListToken::builder(sub, status_list.pack())
-                })
-                .await?;
+                        StatusListToken::builder(sub, status_list.pack())
+                    })
+                    .await?
+                };
 
                 // Sign
                 let token = builder
@@ -1071,6 +1097,7 @@ mod tests {
                     .unwrap(),
             }
             .into(),
+            revoke_all_flag: Flag::new(DatabaseConnection::default(), FLAG_NAME_REVOKE_ALL.to_string()),
         }
     }
 
