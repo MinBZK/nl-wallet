@@ -28,7 +28,7 @@ postgres = ["server_utils/postgres"]
 # Enable integration tests
 integration_test = []
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
-test_admin_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "status_lists/test_api"]
+test_internal_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "status_lists/test_api"]
 
 [dependencies]
 anyhow.workspace = true

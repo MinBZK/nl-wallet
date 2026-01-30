@@ -71,8 +71,8 @@ use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::wua_issuer::WuaIssuer;
 
-use crate::admin;
 use crate::errors::WalletProviderError;
+use crate::internal;
 use crate::router_state::RouterState;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
@@ -193,14 +193,14 @@ where
                 .with_state(Arc::clone(&state)),
         );
 
-    let (admin_router, admin_openapi) = admin::internal_router(state);
-    let router = router.nest("/admin", admin_router.layer(TraceLayer::new_for_http()));
-    let openapi = ApiDocs::openapi().nest("/admin", admin_openapi);
+    let (internal_router, internal_openapi) = internal::internal_router(state);
+    let router = router.nest("/internal", internal_router.layer(TraceLayer::new_for_http()));
+    let openapi = ApiDocs::openapi().nest("/internal", internal_openapi);
 
-    #[cfg(feature = "test_admin_ui")]
+    #[cfg(feature = "test_internal_ui")]
     let router = router.merge(utoipa_swagger_ui::SwaggerUi::new("/api-docs").url("/openapi.json", openapi));
 
-    #[cfg(not(feature = "test_admin_ui"))]
+    #[cfg(not(feature = "test_internal_ui"))]
     let router = router.route("/openapi.json", get(Json(openapi)));
 
     router

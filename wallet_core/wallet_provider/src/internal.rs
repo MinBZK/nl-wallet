@@ -19,7 +19,7 @@ use wallet_provider_service::revocation::RevocationResult;
 use crate::router_state::RouterState;
 
 #[derive(OpenApi)]
-#[openapi(info(title = "Admin API"))]
+#[openapi(info(title = "Internal API"))]
 struct ApiDoc;
 
 #[derive(Debug, thiserror::Error)]
@@ -117,7 +117,7 @@ where
     Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state, &TimeGenerator).await?)
 }
 
-#[cfg(feature = "test_admin_ui")]
+#[cfg(feature = "test_internal_ui")]
 #[utoipa::path(
     get,
     path = "/wallet/",
@@ -152,7 +152,7 @@ where
         .routes(routes!(revoke_wallet_by_revocation_code))
         .routes(routes!(nuke));
 
-    #[cfg(feature = "test_admin_ui")]
+    #[cfg(feature = "test_internal_ui")]
     let router = router.routes(routes!(list_wallets));
 
     let router = router.with_state(state);
