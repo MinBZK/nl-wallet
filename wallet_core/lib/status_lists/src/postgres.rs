@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::future;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
@@ -7,6 +8,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use futures::StreamExt;
 use futures::future::join_all;
 use futures::future::try_join_all;
 use itertools::Itertools;
@@ -50,6 +52,7 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_service::StatusListServices;
 use token_status_list::status_list_token::StatusListToken;
+use token_status_list::status_list_token::StatusListTokenBuilder;
 use tokio::task::AbortHandle;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
@@ -76,6 +79,9 @@ const IN_FLIGHT_CREATE_TRIES: usize = 5;
 
 /// Flag name to revoke all status lists
 const FLAG_NAME_REVOKE_ALL: &str = "revoke_all";
+
+/// Maximal concurrent publish when revoke_all is called
+const REVOKE_ALL_MAX_CONCURRENT: usize = 16;
 
 /// StatusListService implementation using Postgres for multiple attestation types.
 ///
@@ -939,6 +945,19 @@ where
         external_id: &str,
         size: usize,
     ) -> Result<bool, StatusListServiceError> {
+        if self.revoke_all_flag.is_set().await? {
+            self.publish_status_list_all_revoked(external_id, size).await
+        } else {
+            self.publish_status_list_from_db(list_id, external_id, size).await
+        }
+    }
+
+    async fn publish_status_list_from_db(
+        &self,
+        list_id: i64,
+        external_id: &str,
+        size: usize,
+    ) -> Result<bool, StatusListServiceError> {
         // Fetch all revoked attestation for this status list
         let result: Vec<Vec<i32>> = attestation_batch_list_indices::Entity::find()
             .join(
@@ -961,40 +980,97 @@ where
             .with_lock_if_newer(version, async || {
                 // Build packed status list
                 let sub = self.config.base_url.join(external_id);
-                let builder = if self.revoke_all_flag.is_set().await? {
-                    StatusListToken::builder(sub, PackedStatusList::all_invalid(size))
-                } else {
-                    tokio::task::spawn_blocking(move || {
-                        let mut status_list = StatusList::new(size);
-                        for index in result.into_iter().flatten() {
-                            status_list.insert(index as usize, StatusType::Invalid);
-                        }
-                        StatusListToken::builder(sub, status_list.pack())
-                    })
-                    .await?
-                };
-
-                // Sign
-                let token = builder
-                    .exp(Some(expires))
-                    .ttl(self.config.ttl)
-                    .sign(&self.config.key_pair)
-                    .await?;
-
-                // Write to a tempfile and atomically move via rename
-                let jwt_path = self.config.publish_dir.jwt_path(external_id);
-                let tmp_path = self.config.publish_dir.tmp_path(external_id);
-                tokio::task::spawn_blocking(move || {
-                    std::fs::write(&tmp_path, token.as_ref().serialization())
-                        .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
-                    std::fs::rename(&tmp_path, &jwt_path)
-                        .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
+                let builder = tokio::task::spawn_blocking(move || {
+                    let mut status_list = StatusList::new(size);
+                    for index in result.into_iter().flatten() {
+                        status_list.insert(index as usize, StatusType::Invalid);
+                    }
+                    StatusListToken::builder(sub, status_list.pack())
                 })
-                .await??;
+                .await?;
 
-                Ok(())
+                self.sign_and_write_token(builder, expires, external_id).await
             })
             .await
+    }
+
+    async fn publish_status_list_all_revoked(
+        &self,
+        external_id: &str,
+        size: usize,
+    ) -> Result<bool, StatusListServiceError> {
+        let expires = Utc::now() + self.config.expiry;
+        let version = LockVersion::from(usize::MAX, expires);
+        self.config
+            .publish_dir
+            .lock_for(external_id)
+            .with_lock_if_newer(version, async || {
+                let sub = self.config.base_url.join(external_id);
+                let builder = StatusListToken::builder(sub, PackedStatusList::all_invalid(size));
+                self.sign_and_write_token(builder, expires, external_id).await
+            })
+            .await
+    }
+
+    async fn sign_and_write_token(
+        &self,
+        builder: StatusListTokenBuilder,
+        expires: DateTime<Utc>,
+        external_id: &str,
+    ) -> Result<(), StatusListServiceError> {
+        // Sign
+        let token = builder
+            .exp(Some(expires))
+            .ttl(self.config.ttl)
+            .sign(&self.config.key_pair)
+            .await?;
+
+        // Write to a tempfile and atomically move via rename
+        let jwt_path = self.config.publish_dir.jwt_path(external_id);
+        let tmp_path = self.config.publish_dir.tmp_path(external_id);
+        tokio::task::spawn_blocking(move || {
+            let buf = token.as_ref().serialization();
+            std::fs::write(&tmp_path, buf).map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
+            std::fs::rename(&tmp_path, &jwt_path).map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
+        })
+        .await??;
+
+        Ok(())
+    }
+
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
+    pub async fn revoke_all(&self) -> Result<(), StatusListServiceError> {
+        // First set revoke all to ensure new lists are also created with invalid status
+        self.revoke_all_flag.set().await?;
+
+        let mut stream = status_list::Entity::find()
+            .select_only()
+            .select_column(status_list::Column::ExternalId)
+            .select_column(status_list::Column::Size)
+            .into_tuple::<(String, i32)>()
+            .stream(&self.connection)
+            .await?
+            .map(|result| {
+                let service = self.clone();
+                async move {
+                    match result {
+                        Ok((external_id, size)) => {
+                            service
+                                .publish_status_list_all_revoked(&external_id, size as usize)
+                                .await
+                        }
+                        Err(err) => future::ready(Err(StatusListServiceError::Db(err))).await,
+                    }
+                }
+            })
+            .buffer_unordered(REVOKE_ALL_MAX_CONCURRENT);
+
+        while let Some(result) = stream.next().await {
+            if let Err(err) = result {
+                tracing::error!("Error publishing list: {:?}", err);
+            }
+        }
+        Ok(())
     }
 }
 
