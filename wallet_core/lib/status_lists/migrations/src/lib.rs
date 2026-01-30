@@ -5,6 +5,7 @@ mod m20250925_000002_create_attestation_batch;
 mod m20250925_000003_create_status_lists;
 mod m20250925_000004_create_status_list_item;
 mod m20250925_000005_create_attestation_batch_list_indices;
+mod m20250925_000006_create_status_list_flag;
 
 pub struct Migrator;
 
@@ -17,6 +18,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250925_000003_create_status_lists::Migration),
             Box::new(m20250925_000004_create_status_list_item::Migration),
             Box::new(m20250925_000005_create_attestation_batch_list_indices::Migration),
+            Box::new(m20250925_000006_create_status_list_flag::Migration),
         ]
     }
 }
