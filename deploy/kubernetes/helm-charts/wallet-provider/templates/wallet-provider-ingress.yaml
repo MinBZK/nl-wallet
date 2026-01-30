@@ -71,7 +71,7 @@ spec:
                 name: {{ include "common.names.fullname" . }}
                 port:
                   name: http
-            path: /admin
+            path: /internal
             pathType: Prefix
           - backend:
               service:

@@ -93,7 +93,7 @@ pub mod mock {
             let key = SigningKey::random(&mut OsRng);
             let verifying_key = *key.verifying_key();
             let key_identifier = key_identifier(wallet_id, identifier);
-            self.insert(key_identifier, key);
+            self.insert_signing_key(key_identifier, key);
             Ok(verifying_key)
         }
 

@@ -15,6 +15,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use measure::measure;
 use wallet_account::messages::transfer::TransferSessionState;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::TransferSession;
@@ -83,6 +84,15 @@ impl WalletUserRepository for Repositories {
         wallet_ids: &HashSet<String>,
     ) -> Result<HashMap<String, Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_id_by_wallet_ids(transaction, wallet_ids).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_wallet_user_id_by_revocation_code(
+        &self,
+        transaction: &Self::TransactionType,
+        revocation_code_hmac: &[u8],
+    ) -> Result<QueryResult<Uuid>, PersistenceError> {
+        wallet_user::find_wallet_user_id_by_revocation_code(transaction, revocation_code_hmac).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -532,6 +542,12 @@ pub mod mock {
                 _wallet_ids: &HashSet<String> ,
             ) -> Result<HashMap<String, Uuid>, PersistenceError>;
 
+            async fn find_wallet_user_id_by_revocation_code(
+                &self,
+                _transaction: &MockTransaction,
+                _revocation_code_hmac: &[u8],
+            ) -> Result<QueryResult<Uuid>, PersistenceError>;
+
             async fn register_unsuccessful_pin_entry(
                 &self,
                 _transaction: &MockTransaction,
@@ -819,6 +835,14 @@ pub mod mock {
             _wallet_id: &HashSet<String>,
         ) -> Result<HashMap<String, Uuid>, PersistenceError> {
             Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
+        }
+
+        async fn find_wallet_user_id_by_revocation_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _revocation_code_hmac: &[u8],
+        ) -> Result<QueryResult<Uuid>, PersistenceError> {
+            Ok(QueryResult::Found(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08").into()))
         }
 
         async fn clear_instruction_challenge(

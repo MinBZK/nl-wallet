@@ -501,7 +501,7 @@ impl RecoveryCodeConfig {
 pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityClient> {
     pub name: String,
     instruction_challenge_timeout: Duration,
-    keys: AccountServerKeys,
+    pub keys: AccountServerKeys,
     recovery_code_paths: RecoveryCodeConfig,
     pub apple_config: AppleAttestationConfiguration,
     pub android_config: AndroidAttestationConfiguration,

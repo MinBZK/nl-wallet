@@ -32,7 +32,7 @@ mock = ["attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
-test_admin_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "status_lists/test_api"]
+test_internal_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "status_lists/test_api"]
 
 [dependencies]
 anyhow.workspace = true
