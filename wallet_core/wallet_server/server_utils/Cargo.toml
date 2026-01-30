@@ -50,7 +50,7 @@ strum = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
-hsm = { path = "../../lib/hsm", features = ["settings"] }
+hsm.path = "../../lib/hsm"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"

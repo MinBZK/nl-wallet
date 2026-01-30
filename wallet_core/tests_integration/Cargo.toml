@@ -299,7 +299,7 @@ itertools.workspace = true
 # * hsm_test
 # * db_test
 android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
-hsm = { path = "../lib/hsm", features = ["integration"] }
+hsm = { path = "../lib/hsm", features = ["test"] }
 issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer" }
