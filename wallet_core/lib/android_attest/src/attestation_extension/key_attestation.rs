@@ -8,6 +8,7 @@
 
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::string::FromUtf8Error;
 use std::time::Duration;
 
 use bitflags::bitflags;
@@ -570,18 +571,18 @@ pub struct AuthorizationList {
     pub os_version: Option<OsVersion>,
     pub os_patch_level: Option<PatchLevel>,
     pub attestation_application_id: Option<AttestationApplicationId>,
-    pub attestation_id_brand: Option<OctetString>,
-    pub attestation_id_device: Option<OctetString>,
-    pub attestation_id_product: Option<OctetString>,
-    pub attestation_id_serial: Option<OctetString>,
-    pub attestation_id_imei: Option<OctetString>,
-    pub attestation_id_meid: Option<OctetString>,
-    pub attestation_id_manufacturer: Option<OctetString>,
-    pub attestation_id_model: Option<OctetString>,
+    pub attestation_id_brand: Option<String>,
+    pub attestation_id_device: Option<String>,
+    pub attestation_id_product: Option<String>,
+    pub attestation_id_serial: Option<String>,
+    pub attestation_id_imei: Option<String>,
+    pub attestation_id_meid: Option<String>,
+    pub attestation_id_manufacturer: Option<String>,
+    pub attestation_id_model: Option<String>,
     pub vendor_patch_level: Option<PatchLevel>,
     pub boot_patch_level: Option<PatchLevel>,
     pub device_unique_attestation: bool,
-    pub attestation_id_second_imei: Option<OctetString>,
+    pub attestation_id_second_imei: Option<String>,
     pub module_hash: Option<OctetString>,
 }
 
@@ -623,6 +624,24 @@ pub enum AuthorizationListFieldError {
     BootPatchLevel(#[source] PatchLevelError),
     #[error("invalid attestation_application_id field: {0}")]
     AttestationApplicationId(#[source] DecodeError),
+    #[error("invalid attestation_id_brand field: {0}")]
+    AttestationIdBrand(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_device field: {0}")]
+    AttestationIdDevice(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_product field: {0}")]
+    AttestationIdProduct(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_serial field: {0}")]
+    AttestationIdSerial(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_imei field: {0}")]
+    AttestationIdImei(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_meid field: {0}")]
+    AttestationIdMeid(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_manufacturer field: {0}")]
+    AttestationIdManufacturer(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_model field: {0}")]
+    AttestationIdModel(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_second_imei field: {0}")]
+    AttestationIdSecondImei(#[source] FromUtf8Error),
     #[error("invalid usage_count_limit field: {0}")]
     UsageCountLimit(Integer),
     #[error("invalid key_size field: {0}")]
@@ -709,14 +728,46 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map(|bytes| rasn::der::decode(&bytes))
                 .transpose()
                 .map_err(AuthorizationListFieldError::AttestationApplicationId)?,
-            attestation_id_brand: source.attestation_id_brand,
-            attestation_id_device: source.attestation_id_device,
-            attestation_id_product: source.attestation_id_product,
-            attestation_id_serial: source.attestation_id_serial,
-            attestation_id_imei: source.attestation_id_imei,
-            attestation_id_meid: source.attestation_id_meid,
-            attestation_id_manufacturer: source.attestation_id_manufacturer,
-            attestation_id_model: source.attestation_id_model,
+            attestation_id_brand: source
+                .attestation_id_brand
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdBrand)?,
+            attestation_id_device: source
+                .attestation_id_device
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdDevice)?,
+            attestation_id_product: source
+                .attestation_id_product
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdProduct)?,
+            attestation_id_serial: source
+                .attestation_id_serial
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdSerial)?,
+            attestation_id_imei: source
+                .attestation_id_imei
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdImei)?,
+            attestation_id_meid: source
+                .attestation_id_meid
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdMeid)?,
+            attestation_id_manufacturer: source
+                .attestation_id_manufacturer
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdManufacturer)?,
+            attestation_id_model: source
+                .attestation_id_model
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdModel)?,
             vendor_patch_level: source
                 .vendor_patch_level
                 .map(TryFrom::try_from)
@@ -728,7 +779,11 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .transpose()
                 .map_err(AuthorizationListFieldError::BootPatchLevel)?,
             device_unique_attestation: source.device_unique_attestation.is_some(),
-            attestation_id_second_imei: source.attestation_id_second_imei,
+            attestation_id_second_imei: source
+                .attestation_id_second_imei
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdSecondImei)?,
             module_hash: source.module_hash,
         };
 
@@ -1101,18 +1156,18 @@ mod test {
                         OctetString::copy_from_slice(b"\xd3\xa5O\x11T\xc2ZZ\xb3\xf1%(\xdc\xc3r.\x0b\x8e\n\xd8\x11\xd42T\x84\xb7\xb2+\x0e\x8a\x1f\xe3"),
                     ]),
                 }),
-                attestation_id_brand: Some(OctetString::copy_from_slice(b"attestation_id_brand")),
-                attestation_id_device: Some(OctetString::copy_from_slice(b"attestation_id_device")),
-                attestation_id_product: Some(OctetString::copy_from_slice(b"attestation_id_product")),
-                attestation_id_serial: Some(OctetString::copy_from_slice(b"attestation_id_serial")),
-                attestation_id_imei: Some(OctetString::copy_from_slice(b"attestation_id_imei")),
-                attestation_id_meid: Some(OctetString::copy_from_slice(b"attestation_id_meid")),
-                attestation_id_manufacturer: Some(OctetString::copy_from_slice(b"attestation_id_manufacturer")),
-                attestation_id_model: Some(OctetString::copy_from_slice(b"attestation_id_model")),
+                attestation_id_brand: Some("attestation_id_brand".to_string()),
+                attestation_id_device: Some("attestation_id_device".to_string()),
+                attestation_id_product: Some("attestation_id_product".to_string()),
+                attestation_id_serial: Some("attestation_id_serial".to_string()),
+                attestation_id_imei: Some("attestation_id_imei".to_string()),
+                attestation_id_meid: Some("attestation_id_meid".to_string()),
+                attestation_id_manufacturer: Some("attestation_id_manufacturer".to_string()),
+                attestation_id_model: Some("attestation_id_model".to_string()),
                 vendor_patch_level: Some(PatchLevel::new(0, 0, None)),
                 boot_patch_level: Some(PatchLevel::new(2024, 3, Some(1))),
                 device_unique_attestation: true,
-                attestation_id_second_imei: Some(OctetString::copy_from_slice(b"attestation_id_second_imei")),
+                attestation_id_second_imei: Some("attestation_id_second_imei".to_string()),
                 module_hash: Some(OctetString::copy_from_slice(b"module_hash")),
             },
             hardware_enforced: AuthorizationList::default(),
