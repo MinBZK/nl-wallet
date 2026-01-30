@@ -304,11 +304,15 @@ fn duration_from_seconds(source: Integer) -> Result<Duration, Integer> {
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum PatchLevelError {
-    #[error("conversion error from: {0}")]
+    #[error("could not convert Integer to u32: {0}")]
     Conversion(Integer),
-    #[error("invalid date: {0}")]
-    InvalidDate(Integer),
+    #[error("{0}")]
+    Parsing(#[from] PatchLevelParsingError),
 }
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("not a valid PatchLevel: {0}")]
+pub struct PatchLevelParsingError(pub u32);
 
 /// Decoded patch_level.
 /// Supports both YYYYMM and YYYYMMDD notations, including values 0 or 00 for MM and/or DD.
@@ -323,43 +327,76 @@ pub enum PatchLevelError {
 ///
 /// - Sometimes DD is set to `00`, which is not a valid date
 /// - Sometimes the whole `PatchLevel` was set to `0`
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
 #[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct PatchLevel {
-    year: u16,
-    month: u8,
-    day: Option<u8>,
+    pub year: u16,
+    pub month: u8,
+    pub day: Option<u8>,
 }
 
 impl TryFrom<Integer> for PatchLevel {
     type Error = PatchLevelError;
 
     fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        let mut rest: usize = (&value)
-            .try_into()
-            .map_err(|_| PatchLevelError::Conversion(value.clone()))?;
+        let number = u32::try_from(&value).map_err(|_| PatchLevelError::Conversion(value))?;
+        let patch_level = Self::try_from(number)?;
 
-        if rest == 0 {
-            return Ok(PatchLevel::new(0, 0, None));
-        } else if rest < 10_000 {
-            return Err(PatchLevelError::InvalidDate(value));
+        Ok(patch_level)
+    }
+}
+
+impl TryFrom<u32> for PatchLevel {
+    type Error = PatchLevelParsingError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value == 0 {
+            return Ok(Self::new(0, 0, None));
+        }
+        if value < 10_000 {
+            return Err(PatchLevelParsingError(value));
         }
 
-        let first = rest % 100;
-        rest /= 100;
+        let first = value % 100;
+        let mut rest = value / 100;
 
-        let result = if rest < 10_000 {
-            PatchLevel::new(rest as u16, first as u8, None)
+        // unwraps are safe because of guards above
+        let patch_level = if rest < 10_000 {
+            Self::new(rest.try_into().unwrap(), first.try_into().unwrap(), None)
         } else {
             let second = rest % 100;
             rest /= 100;
+
             if rest > 10_000 {
-                return Err(PatchLevelError::InvalidDate(value));
+                return Err(PatchLevelParsingError(value));
             }
-            PatchLevel::new(rest as u16, second as u8, Some(first as u8))
+
+            Self::new(
+                rest.try_into().unwrap(),
+                second.try_into().unwrap(),
+                Some(first.try_into().unwrap()),
+            )
         };
 
-        Ok(result)
+        Ok(patch_level)
+    }
+}
+
+impl From<PatchLevel> for u32 {
+    fn from(value: PatchLevel) -> Self {
+        let year_and_month = Self::from(value.year) * 100 + Self::from(value.month);
+
+        if let Some(day) = value.day {
+            year_and_month * 100 + Self::from(day)
+        } else {
+            year_and_month
+        }
+    }
+}
+
+impl From<PatchLevel> for Integer {
+    fn from(value: PatchLevel) -> Self {
+        u32::from(value).into()
     }
 }
 
@@ -860,23 +897,28 @@ mod test {
 
     #[rstest]
     #[case(Integer::ZERO, Ok(PatchLevel::new(0, 0, None)))]
-    #[case(
-        2019.into(),
-        Err(PatchLevelError::InvalidDate(2019.into()))
-    )]
+    #[case(2019.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(2019))))]
     #[case(201907.into(), Ok(PatchLevel::new(2019, 7, None)))]
     #[case(201913.into(), Ok(PatchLevel::new(2019, 13, None)))]
+    #[case(201900.into(), Ok(PatchLevel::new(2019, 0, None)))]
     #[case(20190705.into(), Ok(PatchLevel::new(2019, 7, Some(5))))]
     #[case(20191305.into(), Ok(PatchLevel::new(2019, 13, Some(5))))]
     #[case(20190732.into(), Ok(PatchLevel::new(2019, 7, Some(32))))]
     #[case(20190229.into(), Ok(PatchLevel::new(2019, 2, Some(29))))]
-    #[case(
-        120190705.into(),
-        Err(PatchLevelError::InvalidDate(120190705.into()))
-    )]
+    #[case(20190200.into(), Ok(PatchLevel::new(2019, 2, Some(0))))]
+    #[case(20190000.into(), Ok(PatchLevel::new(2019, 0, Some(0))))]
+    #[case(120190705.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(120190705))))]
+    #[case((-1).into(), Err(PatchLevelError::Conversion((-1).into())))]
+    #[case((u64::from(u32::MAX) + 1).into(), Err(PatchLevelError::Conversion((u64::from(u32::MAX) + 1).into())))]
     fn patch_level(#[case] input: Integer, #[case] expected: Result<PatchLevel, PatchLevelError>) {
-        let actual: Result<PatchLevel, PatchLevelError> = input.try_into();
+        let actual = PatchLevel::try_from(input.clone());
+
         assert_eq!(actual, expected);
+
+        // Check that conversion back results in the input value.
+        if let Ok(patch_level) = actual {
+            assert_eq!(Integer::from(patch_level), input);
+        }
     }
 
     #[rstest]
