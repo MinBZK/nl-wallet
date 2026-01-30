@@ -86,7 +86,6 @@ mod test_settings {
 
     impl TestCase<Pkcs11Hsm> {
         pub fn new(config_file: &str, identifier_prefix: &str) -> Self {
-            // let (hsm, settings) = setup_hsm();
             let settings = TestSettings::new(config_file.as_ref()).unwrap();
             let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).unwrap();
             Self {
