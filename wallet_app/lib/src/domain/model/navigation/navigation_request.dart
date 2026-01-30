@@ -1,5 +1,6 @@
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../feature/card/detail/argument/card_detail_screen_argument.dart';
 import '../../../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../../../feature/issuance/argument/issuance_screen_argument.dart';
 import '../../../feature/sign/argument/sign_screen_argument.dart';
@@ -10,7 +11,10 @@ import 'pre_navigation_action.dart';
 export 'navigation_prerequisite.dart';
 export 'pre_navigation_action.dart';
 
-/// Common set of prerequisites: check if the wallet is unlocked, initialized and contains the pid.
+part 'navigation_request.freezed.dart';
+part 'navigation_request.g.dart';
+
+/// Common set of prerequisites: checks if the wallet is unlocked, initialized, has a pid and in the 'ready' state.
 const unlockedWithPidAndReadyPrerequisites = [
   NavigationPrerequisite.walletUnlocked,
   NavigationPrerequisite.walletInitialized,
@@ -18,60 +22,101 @@ const unlockedWithPidAndReadyPrerequisites = [
   NavigationPrerequisite.walletInReadyState,
 ];
 
-sealed class NavigationRequest extends Equatable {
-  /// The destination route to navigate to
-  final String destination;
+@freezed
+abstract class NavigationRequest with _$NavigationRequest {
+  const NavigationRequest._();
 
-  /// The destination that should be below the new [destination]
-  final String? removeUntil;
+  factory NavigationRequest.fromJson(Map<String, dynamic> json) => _$NavigationRequestFromJson(json);
 
-  /// An optional argument to pass to the destination route
-  final Object? argument;
+  const factory NavigationRequest.generic(
+    String destination, {
+    String? removeUntil,
+    Object? argument,
+    @Default([]) List<NavigationPrerequisite> navigatePrerequisites,
+    @Default([]) List<PreNavigationAction> preNavigationActions,
+  }) = GenericNavigationRequest;
 
-  /// A list of navigation prerequisites, used to specify which conditions have to be met before the user should be navigated to [destination]
-  final List<NavigationPrerequisite> navigatePrerequisites;
+  factory NavigationRequest.dashboard({
+    Object? argument,
+  }) => NavigationRequest.generic(
+    WalletRoutes.dashboardRoute,
+    removeUntil: WalletRoutes.splashRoute,
+    argument: argument,
+    navigatePrerequisites: const [NavigationPrerequisite.pidInitialized],
+  );
 
-  /// A list of navigation pre navigation actions, used to specify which actions should be performed before the user should be navigated to [destination]
-  final List<PreNavigationAction> preNavigationActions;
+  factory NavigationRequest.pidIssuance(String uri) => NavigationRequest.generic(
+    WalletRoutes.walletPersonalizeRoute,
+    removeUntil: WalletRoutes.splashRoute,
+    argument: uri,
+    navigatePrerequisites: const [
+      NavigationPrerequisite.walletUnlocked,
+      NavigationPrerequisite.walletInitialized,
+    ],
+    preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
+  );
 
-  const NavigationRequest(
-    this.destination, {
-    this.argument,
-    this.removeUntil,
-    this.navigatePrerequisites = const [],
-    this.preNavigationActions = const [],
-  });
+  factory NavigationRequest.pidRenewal(String uri) => NavigationRequest.generic(
+    WalletRoutes.renewPidRoute,
+    removeUntil: WalletRoutes.cardDetailRoute,
+    argument: uri,
+    navigatePrerequisites: const [
+      NavigationPrerequisite.walletUnlocked,
+      NavigationPrerequisite.walletInitialized,
+    ],
+    preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
+  );
 
-  @override
-  String toString() => 'NavigationRequest{destination: $destination, removeUntil: $removeUntil, argument: $argument}';
+  factory NavigationRequest.pinRecovery(String uri) => NavigationRequest.generic(
+    WalletRoutes.pinRecoveryRoute,
+    removeUntil: WalletRoutes.forgotPinRoute,
+    argument: uri,
+    navigatePrerequisites: const [NavigationPrerequisite.walletInitialized],
+    preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
+  );
 
-  @override
-  List<Object?> get props => [destination, removeUntil, argument, navigatePrerequisites, preNavigationActions];
+  factory NavigationRequest.disclosure({
+    required DisclosureScreenArgument argument,
+  }) => NavigationRequest.generic(
+    WalletRoutes.disclosureRoute,
+    removeUntil: WalletRoutes.dashboardRoute,
+    argument: argument,
+    navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
+  );
 
-  factory NavigationRequest.dashboard() => DashboardNavigationRequest();
+  factory NavigationRequest.issuance({
+    required IssuanceScreenArgument argument,
+  }) => NavigationRequest.generic(
+    WalletRoutes.issuanceRoute,
+    removeUntil: WalletRoutes.dashboardRoute,
+    argument: argument,
+    navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
+  );
 
-  factory NavigationRequest.pidIssuance(String uri) => PidIssuanceNavigationRequest(uri);
+  factory NavigationRequest.sign({
+    required SignScreenArgument argument,
+  }) => NavigationRequest.generic(
+    WalletRoutes.signRoute,
+    removeUntil: WalletRoutes.dashboardRoute,
+    argument: argument,
+    navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
+  );
 
-  factory NavigationRequest.pidRenewal(String uri) => PidRenewalNavigationRequest(uri);
+  factory NavigationRequest.cardDetail(String attestationId) => NavigationRequest.generic(
+    WalletRoutes.cardDetailRoute,
+    removeUntil: WalletRoutes.dashboardRoute,
+    navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
+    argument: CardDetailScreenArgument.fromId(attestationId, const {}).toJson(),
+  );
 
-  factory NavigationRequest.pinRecovery(String uri) => PinRecoveryNavigationRequest(uri);
-
-  factory NavigationRequest.disclosure(String uri, {bool isQrCode = false}) =>
-      DisclosureNavigationRequest(uri, isQrCode: isQrCode);
-
-  factory NavigationRequest.issuance(String uri, {bool isQrCode = false, bool isRefreshFlow = false}) =>
-      IssuanceNavigationRequest(uri, isQrCode: isQrCode, isRefreshFlow: isRefreshFlow);
-
-  factory NavigationRequest.sign(String uri) => SignNavigationRequest(uri);
-
-  factory NavigationRequest.walletTransferSource(String uri) => GenericNavigationRequest(
+  factory NavigationRequest.walletTransferSource(String uri) => NavigationRequest.generic(
     WalletRoutes.walletTransferSourceRoute,
     removeUntil: WalletRoutes.dashboardRoute,
     argument: uri,
     navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
   );
 
-  factory NavigationRequest.walletTransferTarget() => const GenericNavigationRequest(
+  factory NavigationRequest.walletTransferTarget() => const NavigationRequest.generic(
     WalletRoutes.walletTransferTargetRoute,
     removeUntil: WalletRoutes.splashRoute,
     navigatePrerequisites: [
@@ -80,98 +125,4 @@ sealed class NavigationRequest extends Equatable {
       NavigationPrerequisite.pidInitialized,
     ],
   );
-}
-
-class GenericNavigationRequest extends NavigationRequest {
-  const GenericNavigationRequest(
-    super.destination, {
-    super.removeUntil,
-    super.argument,
-    super.navigatePrerequisites,
-    super.preNavigationActions,
-  });
-}
-
-class DashboardNavigationRequest extends NavigationRequest {
-  DashboardNavigationRequest()
-    : super(
-        WalletRoutes.dashboardRoute,
-        removeUntil: WalletRoutes.splashRoute,
-        navigatePrerequisites: [
-          NavigationPrerequisite.pidInitialized,
-        ],
-      );
-}
-
-class PidIssuanceNavigationRequest extends NavigationRequest {
-  PidIssuanceNavigationRequest(String uri)
-    : super(
-        WalletRoutes.walletPersonalizeRoute,
-        removeUntil: WalletRoutes.splashRoute,
-        argument: uri,
-        navigatePrerequisites: [
-          NavigationPrerequisite.walletUnlocked,
-          NavigationPrerequisite.walletInitialized,
-        ],
-        preNavigationActions: [
-          PreNavigationAction.disableUpcomingPageTransition,
-        ],
-      );
-}
-
-class PidRenewalNavigationRequest extends NavigationRequest {
-  PidRenewalNavigationRequest(String uri)
-    : super(
-        WalletRoutes.renewPidRoute,
-        removeUntil: WalletRoutes.cardDetailRoute,
-        argument: uri,
-        navigatePrerequisites: [
-          NavigationPrerequisite.walletUnlocked,
-          NavigationPrerequisite.walletInitialized,
-        ],
-        preNavigationActions: [
-          PreNavigationAction.disableUpcomingPageTransition,
-        ],
-      );
-}
-
-class PinRecoveryNavigationRequest extends NavigationRequest {
-  PinRecoveryNavigationRequest(String uri)
-    : super(
-        WalletRoutes.pinRecoveryRoute,
-        removeUntil: WalletRoutes.forgotPinRoute,
-        argument: uri,
-        navigatePrerequisites: [NavigationPrerequisite.walletInitialized],
-        preNavigationActions: [PreNavigationAction.disableUpcomingPageTransition],
-      );
-}
-
-class DisclosureNavigationRequest extends NavigationRequest {
-  DisclosureNavigationRequest(String uri, {bool isQrCode = false})
-    : super(
-        WalletRoutes.disclosureRoute,
-        removeUntil: WalletRoutes.dashboardRoute,
-        argument: DisclosureScreenArgument(uri: uri, isQrCode: isQrCode),
-        navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
-      );
-}
-
-class IssuanceNavigationRequest extends NavigationRequest {
-  IssuanceNavigationRequest(String uri, {bool isQrCode = false, bool isRefreshFlow = false})
-    : super(
-        WalletRoutes.issuanceRoute,
-        removeUntil: WalletRoutes.dashboardRoute,
-        argument: IssuanceScreenArgument(uri: uri, isQrCode: isQrCode, isRefreshFlow: isRefreshFlow),
-        navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
-      );
-}
-
-class SignNavigationRequest extends NavigationRequest {
-  SignNavigationRequest(String uri)
-    : super(
-        WalletRoutes.signRoute,
-        removeUntil: WalletRoutes.dashboardRoute,
-        argument: SignScreenArgument(uri: uri),
-        navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
-      );
 }

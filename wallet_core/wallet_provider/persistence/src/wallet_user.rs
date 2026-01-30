@@ -304,6 +304,29 @@ where
         .collect())
 }
 
+pub async fn find_wallet_user_id_by_revocation_code<S, T>(
+    db: &T,
+    revocation_code_hmac: &[u8],
+) -> Result<QueryResult<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .filter(wallet_user::Column::RevocationCodeHmac.eq(revocation_code_hmac))
+        .into_tuple::<Uuid>()
+        .one(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result {
+        Some(wallet_user_id) => Ok(QueryResult::Found(Box::new(wallet_user_id))),
+        None => Ok(QueryResult::NotFound),
+    }
+}
+
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
 where
     S: ConnectionTrait,

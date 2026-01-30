@@ -407,7 +407,7 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
     assert(Environment.mockRepositories, 'Mock login is intended for mock builds only');
     final success = await MockDigidScreen.mockLogin(context);
     if (success && context.mounted) {
-      await context.read<NavigationService>().handleNavigationRequest(PinRecoveryNavigationRequest('renew_pid'));
+      await context.read<NavigationService>().handleNavigationRequest(NavigationRequest.pinRecovery('mock'));
     } else if (context.mounted) {
       context.bloc.add(
         const RecoverPinLoginWithDigidFailed(

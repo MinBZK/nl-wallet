@@ -11,6 +11,7 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 
+use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::RevocationReason;
 use crate::model::wallet_user::TransferSession;
@@ -44,6 +45,12 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_ids: &HashSet<String>,
     ) -> Result<HashMap<String, Uuid>>;
+
+    async fn find_wallet_user_id_by_revocation_code(
+        &self,
+        transaction: &Self::TransactionType,
+        revocation_code_hmac: &[u8],
+    ) -> Result<QueryResult<Uuid>>;
 
     async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
@@ -269,6 +276,14 @@ pub mod mock {
             _wallet_ids: &HashSet<String>,
         ) -> Result<HashMap<String, Uuid>> {
             Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
+        }
+
+        async fn find_wallet_user_id_by_revocation_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _revocation_code_hmac: &[u8],
+        ) -> Result<QueryResult<Uuid>> {
+            Ok(QueryResult::Found(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08").into()))
         }
 
         async fn clear_instruction_challenge(

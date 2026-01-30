@@ -21,7 +21,8 @@ mixin _$OsNotification {
 /// allow users to manage them.
  NotificationChannel get channel;/// The localized title of the notification.
  String get title;/// The localized body of the notification.
- String get body;/// The exact date and time when the notification should be displayed.
+ String get body;/// The payload of the notification.
+ String? get payload;/// The exact date and time when the notification should be displayed.
  DateTime get notifyAt;
 /// Create a copy of OsNotification
 /// with the given fields replaced by the non-null parameter values.
@@ -33,16 +34,16 @@ $OsNotificationCopyWith<OsNotification> get copyWith => _$OsNotificationCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OsNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OsNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.payload, payload) || other.payload == payload)&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,channel,title,body,notifyAt);
+int get hashCode => Object.hash(runtimeType,id,channel,title,body,payload,notifyAt);
 
 @override
 String toString() {
-  return 'OsNotification(id: $id, channel: $channel, title: $title, body: $body, notifyAt: $notifyAt)';
+  return 'OsNotification(id: $id, channel: $channel, title: $title, body: $body, payload: $payload, notifyAt: $notifyAt)';
 }
 
 
@@ -53,7 +54,7 @@ abstract mixin class $OsNotificationCopyWith<$Res>  {
   factory $OsNotificationCopyWith(OsNotification value, $Res Function(OsNotification) _then) = _$OsNotificationCopyWithImpl;
 @useResult
 $Res call({
- int id, NotificationChannel channel, String title, String body, DateTime notifyAt
+ int id, NotificationChannel channel, String title, String body, String? payload, DateTime notifyAt
 });
 
 
@@ -70,13 +71,14 @@ class _$OsNotificationCopyWithImpl<$Res>
 
 /// Create a copy of OsNotification
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? channel = null,Object? title = null,Object? body = null,Object? notifyAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? channel = null,Object? title = null,Object? body = null,Object? payload = freezed,Object? notifyAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,channel: null == channel ? _self.channel : channel // ignore: cast_nullable_to_non_nullable
 as NotificationChannel,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,body: null == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
-as String,notifyAt: null == notifyAt ? _self.notifyAt : notifyAt // ignore: cast_nullable_to_non_nullable
+as String,payload: freezed == payload ? _self.payload : payload // ignore: cast_nullable_to_non_nullable
+as String?,notifyAt: null == notifyAt ? _self.notifyAt : notifyAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }
@@ -162,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  NotificationChannel channel,  String title,  String body,  DateTime notifyAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  NotificationChannel channel,  String title,  String body,  String? payload,  DateTime notifyAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OsNotification() when $default != null:
-return $default(_that.id,_that.channel,_that.title,_that.body,_that.notifyAt);case _:
+return $default(_that.id,_that.channel,_that.title,_that.body,_that.payload,_that.notifyAt);case _:
   return orElse();
 
 }
@@ -183,10 +185,10 @@ return $default(_that.id,_that.channel,_that.title,_that.body,_that.notifyAt);ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  NotificationChannel channel,  String title,  String body,  DateTime notifyAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  NotificationChannel channel,  String title,  String body,  String? payload,  DateTime notifyAt)  $default,) {final _that = this;
 switch (_that) {
 case _OsNotification():
-return $default(_that.id,_that.channel,_that.title,_that.body,_that.notifyAt);case _:
+return $default(_that.id,_that.channel,_that.title,_that.body,_that.payload,_that.notifyAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +205,10 @@ return $default(_that.id,_that.channel,_that.title,_that.body,_that.notifyAt);ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  NotificationChannel channel,  String title,  String body,  DateTime notifyAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  NotificationChannel channel,  String title,  String body,  String? payload,  DateTime notifyAt)?  $default,) {final _that = this;
 switch (_that) {
 case _OsNotification() when $default != null:
-return $default(_that.id,_that.channel,_that.title,_that.body,_that.notifyAt);case _:
+return $default(_that.id,_that.channel,_that.title,_that.body,_that.payload,_that.notifyAt);case _:
   return null;
 
 }
@@ -218,7 +220,7 @@ return $default(_that.id,_that.channel,_that.title,_that.body,_that.notifyAt);ca
 
 
 class _OsNotification implements OsNotification {
-  const _OsNotification({required this.id, required this.channel, required this.title, required this.body, required this.notifyAt});
+  const _OsNotification({required this.id, required this.channel, required this.title, required this.body, this.payload, required this.notifyAt});
   
 
 /// A unique identifier for this notification.
@@ -232,6 +234,8 @@ class _OsNotification implements OsNotification {
 @override final  String title;
 /// The localized body of the notification.
 @override final  String body;
+/// The payload of the notification.
+@override final  String? payload;
 /// The exact date and time when the notification should be displayed.
 @override final  DateTime notifyAt;
 
@@ -245,16 +249,16 @@ _$OsNotificationCopyWith<_OsNotification> get copyWith => __$OsNotificationCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OsNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OsNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.payload, payload) || other.payload == payload)&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,channel,title,body,notifyAt);
+int get hashCode => Object.hash(runtimeType,id,channel,title,body,payload,notifyAt);
 
 @override
 String toString() {
-  return 'OsNotification(id: $id, channel: $channel, title: $title, body: $body, notifyAt: $notifyAt)';
+  return 'OsNotification(id: $id, channel: $channel, title: $title, body: $body, payload: $payload, notifyAt: $notifyAt)';
 }
 
 
@@ -265,7 +269,7 @@ abstract mixin class _$OsNotificationCopyWith<$Res> implements $OsNotificationCo
   factory _$OsNotificationCopyWith(_OsNotification value, $Res Function(_OsNotification) _then) = __$OsNotificationCopyWithImpl;
 @override @useResult
 $Res call({
- int id, NotificationChannel channel, String title, String body, DateTime notifyAt
+ int id, NotificationChannel channel, String title, String body, String? payload, DateTime notifyAt
 });
 
 
@@ -282,13 +286,14 @@ class __$OsNotificationCopyWithImpl<$Res>
 
 /// Create a copy of OsNotification
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? channel = null,Object? title = null,Object? body = null,Object? notifyAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? channel = null,Object? title = null,Object? body = null,Object? payload = freezed,Object? notifyAt = null,}) {
   return _then(_OsNotification(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,channel: null == channel ? _self.channel : channel // ignore: cast_nullable_to_non_nullable
 as NotificationChannel,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,body: null == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
-as String,notifyAt: null == notifyAt ? _self.notifyAt : notifyAt // ignore: cast_nullable_to_non_nullable
+as String,payload: freezed == payload ? _self.payload : payload // ignore: cast_nullable_to_non_nullable
+as String?,notifyAt: null == notifyAt ? _self.notifyAt : notifyAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CardDetailScreenArgument {
 
- WalletCard? get card; String get cardId;@LocalizedTextConverter() LocalizedText get cardTitle;
+ WalletCard? get card; String get cardId;@LocalizedTextConverter() LocalizedText? get cardTitle;
 
   /// Serializes this CardDetailScreenArgument to a JSON map.
   Map<String, dynamic> toJson();
@@ -119,7 +119,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( WalletCard? card,  String cardId, @LocalizedTextConverter()  LocalizedText cardTitle)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( WalletCard? card,  String cardId, @LocalizedTextConverter()  LocalizedText? cardTitle)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CardDetailScreenArgument() when $default != null:
 return $default(_that.card,_that.cardId,_that.cardTitle);case _:
@@ -140,7 +140,7 @@ return $default(_that.card,_that.cardId,_that.cardTitle);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( WalletCard? card,  String cardId, @LocalizedTextConverter()  LocalizedText cardTitle)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( WalletCard? card,  String cardId, @LocalizedTextConverter()  LocalizedText? cardTitle)  $default,) {final _that = this;
 switch (_that) {
 case _CardDetailScreenArgument():
 return $default(_that.card,_that.cardId,_that.cardTitle);case _:
@@ -160,7 +160,7 @@ return $default(_that.card,_that.cardId,_that.cardTitle);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( WalletCard? card,  String cardId, @LocalizedTextConverter()  LocalizedText cardTitle)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( WalletCard? card,  String cardId, @LocalizedTextConverter()  LocalizedText? cardTitle)?  $default,) {final _that = this;
 switch (_that) {
 case _CardDetailScreenArgument() when $default != null:
 return $default(_that.card,_that.cardId,_that.cardTitle);case _:
@@ -175,16 +175,18 @@ return $default(_that.card,_that.cardId,_that.cardTitle);case _:
 @JsonSerializable()
 
 class _CardDetailScreenArgument extends CardDetailScreenArgument {
-  const _CardDetailScreenArgument({this.card, required this.cardId, @LocalizedTextConverter() required final  LocalizedText cardTitle}): _cardTitle = cardTitle,super._();
+  const _CardDetailScreenArgument({this.card, required this.cardId, @LocalizedTextConverter() final  LocalizedText? cardTitle}): _cardTitle = cardTitle,super._();
   factory _CardDetailScreenArgument.fromJson(Map<String, dynamic> json) => _$CardDetailScreenArgumentFromJson(json);
 
 @override final  WalletCard? card;
 @override final  String cardId;
- final  LocalizedText _cardTitle;
-@override@LocalizedTextConverter() LocalizedText get cardTitle {
+ final  LocalizedText? _cardTitle;
+@override@LocalizedTextConverter() LocalizedText? get cardTitle {
+  final value = _cardTitle;
+  if (value == null) return null;
   if (_cardTitle is EqualUnmodifiableMapView) return _cardTitle;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_cardTitle);
+  return EqualUnmodifiableMapView(value);
 }
 
 

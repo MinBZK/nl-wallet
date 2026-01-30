@@ -86,10 +86,6 @@ where
     async fn get_flow_state(&self) -> Result<WalletState, WalletStateError> {
         let read_storage = self.storage.read().await;
 
-        if !read_storage.has_any_attestations().await? {
-            return Ok(WalletState::Empty);
-        }
-
         if let Some(transfer_data) = read_storage.fetch_data::<TransferData>().await? {
             return Ok(transfer_data
                 .key_data
@@ -118,6 +114,10 @@ where
 
         if self.storage.get_change_pin_state().await?.is_some() {
             return Ok(WalletState::InPinChangeFlow);
+        }
+
+        if !read_storage.has_any_attestations().await? {
+            return Ok(WalletState::Empty);
         }
 
         Ok(WalletState::Ready)
@@ -343,6 +343,15 @@ mod tests {
         Some(digid_session()),
         WalletState::TransferPossible
     )]
+    #[case::check_transfer_first_empty(
+        false,
+        false,
+        Some(State::Begin),
+        Some(empty_transfer_data()),
+        Some(PinRecoveryData),
+        Some(digid_session()),
+        WalletState::TransferPossible
+    )]
     #[case::check_session_second(
         false,
         true,
@@ -352,9 +361,9 @@ mod tests {
         Some(digid_session()),
         WalletState::InIssuanceFlow
     )]
-    #[case::check_session_second(
+    #[case::check_session_second_empty(
         false,
-        true,
+        false,
         Some(State::Begin),
         None,
         Some(PinRecoveryData),
@@ -370,7 +379,25 @@ mod tests {
         None,
         WalletState::InPinRecoveryFlow
     )]
+    #[case::check_pin_recovery_third_empty(
+        false,
+        false,
+        Some(State::Begin),
+        None,
+        Some(PinRecoveryData),
+        None,
+        WalletState::InPinRecoveryFlow
+    )]
     #[case::check_pin_state_fourth(false, true, Some(State::Begin), None, None, None, WalletState::InPinChangeFlow)]
+    #[case::check_pin_state_fourth_empty(
+        false,
+        false,
+        Some(State::Begin),
+        None,
+        None,
+        None,
+        WalletState::InPinChangeFlow
+    )]
     #[case::check_attestations_five(false, true, None::<State>, None, None, None, WalletState::Ready)]
     #[case::otherwise_empty(false, false, None::<State>, None, None, None, WalletState::Empty)]
     #[tokio::test]

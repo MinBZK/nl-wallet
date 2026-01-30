@@ -284,7 +284,7 @@ WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
     return BlocProvider<CardDetailBloc>(
       create: (context) =>
           CardDetailBloc(context.read(), context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
-      child: CardDetailScreen(cardTitle: argument.cardTitle.l10nValue(context)),
+      child: CardDetailScreen(cardTitle: argument.cardTitle?.l10nValue(context)),
     );
   };
 }
