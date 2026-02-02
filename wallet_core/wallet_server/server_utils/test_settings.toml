@@ -1,1 +1,0 @@
-storage_url = 'postgres://postgres:postgres@localhost:5432/issuance_server'
