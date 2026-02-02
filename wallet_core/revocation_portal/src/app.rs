@@ -32,7 +32,6 @@ use tracing::warn;
 use crypto::SymmetricKey;
 use crypto::utils::sha256;
 use http_utils::health::create_health_router;
-use readable_identifier::ReadableIdentifierParseError;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
 use web_utils::LANGUAGE_JS_SHA256;
@@ -40,7 +39,6 @@ use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::Language;
 
-use crate::DeletionCode;
 use crate::revocation_client::RevocationClient;
 use crate::translations::TRANSLATIONS;
 use crate::translations::Words;
@@ -197,9 +195,7 @@ async fn delete_wallet<C: RevocationClient>(
         return (StatusCode::UNPROCESSABLE_ENTITY, ErrorTemplate { base }).into_response();
     }
 
-    let parse_result: Result<DeletionCode, ReadableIdentifierParseError> = delete_form.deletion_code.parse();
-
-    match parse_result {
+    match delete_form.deletion_code.parse() {
         Ok(deletion_code) => match state.revocation_client.revoke(deletion_code).await {
             Ok(result) => {
                 let date = result
@@ -266,6 +262,7 @@ mod tests {
     use crypto::utils::random_bytes;
     use web_utils::language::Language;
 
+    use crate::DeletionCode;
     use crate::revocation_client::RevocationError;
     use crate::revocation_client::RevocationResult;
     use crate::revocation_client::tests::MockRevocationClient;
