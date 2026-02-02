@@ -57,11 +57,11 @@ workspace "Name" "NL-Wallet" {
  
         healthMonitoring = softwareSystem "Monitoring" "health monitoring"{ 
             tags "HostingPlatform"
-            -> ws.walletBackend "[A-104] Get health"
+            -> ws.walletBackend "[A-105] Get health"
         }
         performanceMetrics = softwareSystem "Performance monitoring" "Prometheus"{ 
             tags "HostingPlatform"
-            -> ws.walletBackend "[A-105] Get metrics"
+            -> ws.walletBackend "[A-106] Get metrics"
         }
 
         secureElement = softwareSystem "Secure Element" "Secure Enclave, Android TEE/Strongbox" ""{
@@ -139,9 +139,9 @@ workspace "Name" "NL-Wallet" {
 
 
 
-        ws -> platformServices "Request/verify app- and keyattestations" 
-        ws -> digid "Start user authentication (onboarding and recovery)"
-        ws -> verifier.ov "Present data"
+        ws -> platformServices "[E-501] Request/verify app- and keyattestations" 
+        ws -> digid "[E-201] Start user authentication (onboarding and recovery)" 
+        ws -> verifier.ov "[E-401] Present data"
         //issuerPb -> ws "Issue attestations" 
         ws.walletApp -> platformServices "[I-113] Request App/key attestation (Apple AppAttest)"
         ws.walletBackend -> platformServices "[I-405] Verify App attestation (Google Play Integrity)"
@@ -159,12 +159,14 @@ workspace "Name" "NL-Wallet" {
         ws.walletApp.appPlatform -> secureElement "[I-102] Manage keys, signing ops"
         ws.revokeUi -> ws.walletBackend.walletAccountManager "[I-407] Revoke wallet (user request)"
         //PID issuer specific
+        ws.walletApp -> issuerPid "[E-107] Wallet activation and PID issuance, [E-103] check PID status "
         ws.walletApp.appCore -> issuerPid.authServer "[I-107] Wallet activation and PID issuance, [I-108] check PID status "
 
         ws.walletBackend -> ws.walletHsm "[I-403] Call HSM for assisted operation"
         ws.walletBackend -> ws.statusList "[I-402] Publish WUA statuslist" 
 
 
+        ws.walletApp -> issuerPb "[E-301] Perform disclosure based issuance, [E-302] Retrieve Status List"
         ws.walletApp -> issuerPb.vvPbi "[I-109] Perform disclosure based issuance, [I-110] Retrieve Status List"
 
         ws.walletApp -> verifier "[I-111] Disclose attributes to verifier"
@@ -178,7 +180,7 @@ workspace "Name" "NL-Wallet" {
         ws.walletBackend.walletStatusManager -> ws.db "Store/retrieve WUA data + status"
         ws.walletBackend.walletDenyList -> ws.db "Store/retrieve denylist"
         us -> ws.revokeUi "Revoke wallet"
-        issuerPid -> ws.statusList "[E-202] Check wallet validity" 
+        issuerPid -> ws.statusList "[E-102] Check wallet validity" 
         issuerPid.vvPid -> ws.statusList "Get WUA status" 
 
         ws.walletApp.appCore -> issuerPid.statusList "Get attestation status list (PID)" 
@@ -217,7 +219,7 @@ workspace "Name" "NL-Wallet" {
 
     views {
         systemContext ws "AD1NL-Wallet" {
-            include u ws verifier issuerPid issuerPb
+            include u ws verifier issuerPid issuerPb platformServices
         }
 
         systemContext ws "B1PID-Issuer" {
