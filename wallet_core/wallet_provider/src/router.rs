@@ -242,7 +242,7 @@ async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Re
 
     let challenge = state
         .account_server
-        .registration_challenge(&state.certificate_signing_key)
+        .registration_challenge(&state.certificate_signing_key, &state.user_state)
         .await
         .inspect_err(|error| warn!("generating wallet registration challenge failed: {}", error))?;
 

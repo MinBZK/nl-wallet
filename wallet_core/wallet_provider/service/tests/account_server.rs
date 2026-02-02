@@ -63,8 +63,37 @@ async fn do_registration(
     WalletCertificateClaims,
     UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>>,
 ) {
+    let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let key_pair = wua_issuer_ca.generate_status_list_mock().unwrap();
+
+    let db_connection = db.to_connection();
+    let wua_status_list_config = StatusListConfig {
+        list_size: 100.try_into().unwrap(),
+        create_threshold: 10.try_into().unwrap(),
+        expiry: Duration::from_secs(3600),
+        refresh_threshold: Duration::from_secs(600),
+        ttl: None,
+
+        base_url: "http://example.com".parse().unwrap(), // unused
+        publish_dir: std::env::temp_dir().to_path_buf().try_into().unwrap(),
+        key_pair, // unused
+    };
+
+    let status_list_service =
+        PostgresStatusListService::try_new(db_connection, WUA_ATTESTATION_TYPE_IDENTIFIER, wua_status_list_config)
+            .await
+            .unwrap();
+
+    let user_state = mock::user_state(
+        Repositories::from(db),
+        wallet_certificate::mock::setup_hsm().await,
+        wrapping_key_identifier.to_string(),
+        vec![],
+        status_list_service,
+    );
+
     let challenge = account_server
-        .registration_challenge(certificate_signing_key)
+        .registration_challenge(certificate_signing_key, &user_state)
         .await
         .expect("Could not get registration challenge");
 
@@ -102,35 +131,6 @@ async fn do_registration(
             (registration_message, MockHardwareKey::Google(attested_private_key))
         }
     };
-
-    let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let key_pair = wua_issuer_ca.generate_status_list_mock().unwrap();
-
-    let db_connection = db.to_connection();
-    let wua_status_list_config = StatusListConfig {
-        list_size: 100.try_into().unwrap(),
-        create_threshold: 10.try_into().unwrap(),
-        expiry: Duration::from_secs(3600),
-        refresh_threshold: Duration::from_secs(600),
-        ttl: None,
-
-        base_url: "http://example.com".parse().unwrap(), // unused
-        publish_dir: std::env::temp_dir().to_path_buf().try_into().unwrap(),
-        key_pair, // unused
-    };
-
-    let status_list_service =
-        PostgresStatusListService::try_new(db_connection, WUA_ATTESTATION_TYPE_IDENTIFIER, wua_status_list_config)
-            .await
-            .unwrap();
-
-    let user_state = mock::user_state(
-        Repositories::from(db),
-        wallet_certificate::mock::setup_hsm().await,
-        wrapping_key_identifier.to_string(),
-        vec![],
-        status_list_service,
-    );
 
     let (certificate, _recovery_code) = account_server
         .register(certificate_signing_key, registration_message, &user_state)

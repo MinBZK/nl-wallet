@@ -154,6 +154,8 @@ pub enum ChallengeError {
     SequenceNumberValidation,
     #[error("account is revoked with data: {0:?}")]
     AccountIsRevoked(AccountRevokedData),
+    #[error("wallet solution revoked")]
+    WalletSolutionRevoked,
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -226,6 +228,8 @@ pub enum RegistrationError {
     WalletCertificate(#[from] WalletCertificateError),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+    #[error("wallet solution revoked")]
+    WalletSolutionRevoked,
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -316,6 +320,9 @@ pub enum InstructionError {
 
     #[error("recovery code is denied: {0}")]
     RecoveryCodeIsDenied(RecoveryCode),
+
+    #[error("wallet solution revoked")]
+    WalletSolutionRevoked,
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -530,10 +537,19 @@ pub struct UserState<R, H, W, S> {
 impl<GRC, PIC> AccountServer<GRC, PIC> {
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
-    pub async fn registration_challenge(
+    pub async fn registration_challenge<T, R, H, W, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
-    ) -> Result<Vec<u8>, ChallengeError> {
+        user_state: &UserState<R, H, W, S>,
+    ) -> Result<Vec<u8>, ChallengeError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(ChallengeError::WalletSolutionRevoked);
+        }
+
         let challenge = SignedJwt::sign_with_sub(
             RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32).into(),
@@ -564,6 +580,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(RegistrationError::WalletSolutionRevoked);
+        }
+
         debug!("Parsing message to lookup public keys");
 
         // We don't have the public keys yet against which to verify the message, as those are contained within the
@@ -811,6 +831,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(ChallengeError::WalletSolutionRevoked);
+        }
+
         debug!("Parse certificate and retrieving wallet user");
 
         // Some instructions are allowed for blocked users - but since the user is requesting a challenge,
@@ -920,6 +944,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(InstructionError::WalletSolutionRevoked);
+        }
+
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
                 wallet_user.encrypted_pin_pubkey.clone()
@@ -949,6 +977,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Encrypter<VerifyingKey, Error = HsmError>,
     {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(InstructionError::WalletSolutionRevoked);
+        }
+
         let (wallet_user, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &instruction.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
@@ -1035,6 +1067,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(InstructionError::WalletSolutionRevoked);
+        }
+
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
                 wallet_user.encrypted_pin_pubkey.clone()
@@ -1112,6 +1148,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
     {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(InstructionError::WalletSolutionRevoked);
+        }
+
         let (wallet_user, _) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
                 wallet_user
@@ -1154,6 +1194,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
+        if user_state.repositories.solution_is_revoked().await? {
+            return Err(InstructionError::WalletSolutionRevoked);
+        }
+
         // This instruction is signed not by the user's current PIN, as they are
         // recovering from having forgotten it. Instead it is signed by a newly chosen
         // PIN. To verify the instruction against that PIN key, we therefore first have
@@ -1935,6 +1979,7 @@ mod tests {
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
+    use wallet_account::messages::instructions::ResetTransfer;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
@@ -2048,8 +2093,37 @@ mod tests {
         ),
         RegistrationError,
     > {
+        let revocation_code_hmac = Arc::new(Mutex::new(None));
+        let repo_revocation_code_hmac = Arc::clone(&revocation_code_hmac);
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo.expect_solution_is_revoked().returning(|| Ok(false));
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_create_wallet_user()
+            .returning(move |_, wallet_user_create| {
+                repo_revocation_code_hmac
+                    .lock()
+                    .unwrap()
+                    .replace(wallet_user_create.revocation_code_hmac);
+
+                Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))
+            });
+
+        let hsm = setup_hsm().await;
+        let user_state = UserState {
+            repositories: wallet_user_repo,
+            wallet_user_hsm: hsm,
+            wua_issuer: MockWuaIssuer,
+            wua_validity: Days::new(1),
+            wrapping_key_identifier: wrapping_key_identifier.to_string(),
+            pid_issuer_trust_anchors: vec![], // not needed in these tests
+            status_list_service: MockStatusListService::default(),
+        };
+
         let challenge = account_server
-            .registration_challenge(certificate_signing_key)
+            .registration_challenge(certificate_signing_key, &user_state)
             .await
             .expect("Could not get registration challenge");
 
@@ -2087,34 +2161,6 @@ mod tests {
 
                 (registration_message, MockHardwareKey::Google(attested_private_key))
             }
-        };
-
-        let revocation_code_hmac = Arc::new(Mutex::new(None));
-        let repo_revocation_code_hmac = Arc::clone(&revocation_code_hmac);
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_create_wallet_user()
-            .returning(move |_, wallet_user_create| {
-                repo_revocation_code_hmac
-                    .lock()
-                    .unwrap()
-                    .replace(wallet_user_create.revocation_code_hmac);
-
-                Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))
-            });
-
-        let hsm = setup_hsm().await;
-        let user_state = UserState {
-            repositories: wallet_user_repo,
-            wallet_user_hsm: hsm,
-            wua_issuer: MockWuaIssuer,
-            wua_validity: Days::new(1),
-            wrapping_key_identifier: wrapping_key_identifier.to_string(),
-            pid_issuer_trust_anchors: vec![], // not needed in these tests
-            status_list_service: MockStatusListService::default(),
         };
 
         account_server
@@ -2190,6 +2236,7 @@ mod tests {
             state: WalletUserState::Active,
             revocation_code_hmac,
             revocation_registration: None,
+            solution_revoked: false,
         };
 
         let user_state = mock::user_state(
@@ -3479,6 +3526,7 @@ mod tests {
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let mut repositories = MockTransactionalWalletUserRepository::new();
+        repositories.expect_solution_is_revoked().returning(|| Ok(false));
         repositories
             .expect_find_wallet_user_by_wallet_id()
             .times(1)
@@ -3589,5 +3637,265 @@ mod tests {
             result,
             InstructionError::Validation(InstructionValidationError::TransferInProgress)
         );
+    }
+
+    async fn setup_mock_wallet() -> (
+        UserState<
+            MockTransactionalWalletUserRepository,
+            MockPkcs11Client<HsmError>,
+            MockWuaIssuer,
+            MockStatusListService,
+        >,
+        WalletCertificateSetup,
+        MockAccountServer,
+    ) {
+        let user_state = UserState {
+            repositories: MockTransactionalWalletUserRepository::new(),
+            wallet_user_hsm: setup_hsm().await,
+            wua_issuer: MockWuaIssuer,
+            wua_validity: Days::new(1),
+            wrapping_key_identifier: "my_wrapping_key_identifier".to_string(),
+            pid_issuer_trust_anchors: vec![],
+            status_list_service: MockStatusListService::default(),
+        };
+        let setup = WalletCertificateSetup::new().await;
+        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
+
+        (user_state, setup, account_server)
+    }
+
+    #[tokio::test]
+    async fn test_register_challenge_solution_revoked() {
+        let (mut user_state, setup, account_server) = setup_mock_wallet().await;
+
+        // Revoke wallet solution
+        user_state
+            .repositories
+            .expect_solution_is_revoked()
+            .once()
+            .returning(|| Ok(true));
+
+        let err = account_server
+            .registration_challenge(&setup.signing_key, &user_state)
+            .await
+            .expect_err("challenge should fail due to wallet solution revoked");
+
+        assert_matches!(err, ChallengeError::WalletSolutionRevoked);
+    }
+
+    #[tokio::test]
+    async fn test_register_solution_revoked() {
+        let (mut user_state, setup, account_server) = setup_mock_wallet().await;
+
+        // Revoke wallet solution on second call
+        let mut first = true;
+        user_state
+            .repositories
+            .expect_solution_is_revoked()
+            .times(2)
+            .returning(move || {
+                let revoked = !first;
+                first = false;
+                Ok(revoked)
+            });
+
+        // Get registration challenge
+        let challenge = account_server
+            .registration_challenge(&SigningKey::random(&mut OsRng), &user_state)
+            .await
+            .expect("Could not get registration challenge");
+
+        // Create registration message
+        let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
+            &MOCK_APPLE_CA,
+            &challenge,
+            account_server.apple_config.environment,
+            account_server.apple_config.app_identifier.clone(),
+        );
+        let registration_message =
+            ChallengeResponse::new_apple(&attested_key, attestation_data, &setup.pin_privkey, challenge)
+                .await
+                .expect("Could not sign new Apple attested registration");
+
+        // Test register
+        let err = account_server
+            .register(&setup.signing_key, registration_message, &user_state)
+            .await
+            .expect_err("register should fail due to wallet solution revoked");
+
+        assert_matches!(err, RegistrationError::WalletSolutionRevoked);
+    }
+
+    #[tokio::test]
+    async fn test_challenge_solution_revoked() {
+        let (_setup, account_server, hw_privkey, wallet_cert, _revocation_code, mut user_state) =
+            setup_and_do_registration(AttestationType::Apple).await;
+
+        user_state.repositories.solution_revoked = true;
+
+        let err = do_instruction_challenge::<CheckPin>(&account_server, &hw_privkey, wallet_cert, 12, &user_state)
+            .await
+            .expect_err("challenge should fail due to wallet solution revoked");
+
+        assert_matches!(err, ChallengeError::WalletSolutionRevoked);
+    }
+
+    async fn setup_challenge_solution_revoked() -> (
+        WalletCertificateSetup,
+        MockAccountServer,
+        MockHardwareKey,
+        WalletCertificate,
+        MockUserState,
+        Vec<u8>,
+    ) {
+        let (setup, account_server, hw_privkey, wallet_cert, _revocation_code, mut user_state) =
+            setup_and_do_registration(AttestationType::Google).await;
+
+        // Get challenge
+        let challenge =
+            do_instruction_challenge::<CheckPin>(&account_server, &hw_privkey, wallet_cert.clone(), 12, &user_state)
+                .await
+                .expect("challenge should succeed");
+
+        // Revoke solution and set challenge
+        user_state.repositories = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            instruction_sequence_number: 12,
+            solution_revoked: true,
+            ..user_state.repositories
+        };
+
+        (setup, account_server, hw_privkey, wallet_cert, user_state, challenge)
+    }
+
+    #[tokio::test]
+    async fn test_instruction_solution_revoked() {
+        let (setup, account_server, hw_privkey, wallet_cert, user_state, challenge) =
+            setup_challenge_solution_revoked().await;
+
+        let err = account_server
+            .handle_instruction(
+                hw_privkey
+                    .sign_instruction(CheckPin, challenge, 13, &setup.pin_privkey, wallet_cert)
+                    .await,
+                &setup.signing_key,
+                &MockGenerators,
+                &FailingPinPolicy,
+                &user_state,
+            )
+            .await
+            .expect_err("check pin should fail due to wallet solution revoked");
+
+        assert_matches!(err, InstructionError::WalletSolutionRevoked);
+    }
+
+    #[tokio::test]
+    async fn test_hw_instruction_solution_revoked() {
+        let (setup, account_server, hw_privkey, wallet_cert, user_state, challenge) =
+            setup_challenge_solution_revoked().await;
+
+        let instruction = ResetTransfer {
+            transfer_session_id: Uuid::new_v4(),
+        };
+        let err = account_server
+            .handle_hw_signed_instruction(
+                hw_privkey
+                    .sign_hw_signed_instruction(instruction, challenge, 13, wallet_cert)
+                    .await,
+                &setup.signing_key,
+                &MockGenerators,
+                &user_state,
+            )
+            .await
+            .expect_err("reset pin should fail due to wallet solution revoked");
+
+        assert_matches!(err, InstructionError::WalletSolutionRevoked);
+    }
+
+    #[tokio::test]
+    async fn test_change_pin_start_solution_revoked() {
+        let (setup, account_server, hw_privkey, wallet_cert, user_state, challenge) =
+            setup_challenge_solution_revoked().await;
+
+        // Create ChangePinStart instruction
+        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_pubkey = *new_pin_privkey.verifying_key();
+        let pop_pin_pubkey = new_pin_privkey.try_sign(challenge.as_slice()).await.unwrap();
+        let instruction = ChangePinStart {
+            pin_pubkey: new_pin_pubkey.into(),
+            pop_pin_pubkey: pop_pin_pubkey.into(),
+        };
+
+        // Send instruction
+        let err = account_server
+            .handle_change_pin_start_instruction(
+                hw_privkey
+                    .sign_instruction(instruction, challenge, 13, &setup.pin_privkey, wallet_cert)
+                    .await,
+                (&setup.signing_key, &new_pin_privkey),
+                &MockGenerators,
+                &FailingPinPolicy,
+                &user_state,
+            )
+            .await
+            .expect_err("change pin start should fail due to wallet solution revoked");
+
+        assert_matches!(err, InstructionError::WalletSolutionRevoked);
+    }
+
+    #[tokio::test]
+    async fn test_change_pin_rollback_solution_revoked() {
+        let (setup, account_server, hw_privkey, wallet_cert, user_state, challenge) =
+            setup_challenge_solution_revoked().await;
+
+        let err = account_server
+            .handle_change_pin_rollback_instruction(
+                hw_privkey
+                    .sign_instruction(ChangePinRollback {}, challenge, 13, &setup.pin_privkey, wallet_cert)
+                    .await,
+                &setup.signing_key,
+                &MockGenerators,
+                &FailingPinPolicy,
+                &user_state,
+            )
+            .await
+            .expect_err("change pin start should fail due to wallet solution revoked");
+
+        assert_matches!(err, InstructionError::WalletSolutionRevoked);
+    }
+
+    #[tokio::test]
+    async fn test_change_pin_recovery_solution_revoked() {
+        let (setup, account_server, hw_privkey, wallet_cert, user_state, challenge) =
+            setup_challenge_solution_revoked().await;
+
+        // Create ChangePinStart instruction
+        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_pubkey = *new_pin_privkey.verifying_key();
+        let instruction = StartPinRecovery {
+            issuance_with_wua_instruction: PerformIssuanceWithWua {
+                issuance_instruction: PerformIssuance {
+                    key_count: NonZeroUsize::MIN,
+                    aud: "aud".to_string(),
+                    nonce: Some("nonce".to_string()),
+                },
+            },
+            pin_pubkey: new_pin_pubkey.into(),
+        };
+
+        // Send instruction
+        let err = account_server
+            .handle_start_pin_recovery_instruction(
+                hw_privkey
+                    .sign_instruction(instruction, challenge, 13, &setup.pin_privkey, wallet_cert)
+                    .await,
+                (&setup.signing_key, &new_pin_privkey),
+                &MockGenerators,
+                &user_state,
+            )
+            .await
+            .expect_err("start pin recovery should fail due to wallet solution revoked");
+
+        assert_matches!(err, InstructionError::WalletSolutionRevoked);
     }
 }

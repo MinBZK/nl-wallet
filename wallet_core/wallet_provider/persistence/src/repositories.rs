@@ -520,6 +520,11 @@ impl WalletUserRepository for Repositories {
     ) -> Result<bool, PersistenceError> {
         recovery_code::set_allowed(transaction, recovery_code).await
     }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn solution_is_revoked(&self) -> Result<bool, PersistenceError> {
+        Ok(false)
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -836,6 +841,8 @@ pub mod mock {
                 transaction: &MockTransaction,
                 recovery_code: &RecoveryCode,
             ) -> Result<bool, PersistenceError>;
+
+            async fn solution_is_revoked(&self) -> Result<bool, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -856,6 +863,7 @@ pub mod mock {
         pub state: WalletUserState,
         pub revocation_code_hmac: Vec<u8>,
         pub revocation_registration: Option<RevocationRegistration>,
+        pub solution_revoked: bool,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -1283,6 +1291,10 @@ pub mod mock {
             _recovery_code: &RecoveryCode,
         ) -> Result<bool, PersistenceError> {
             Ok(false)
+        }
+
+        async fn solution_is_revoked(&self) -> Result<bool, PersistenceError> {
+            Ok(self.solution_revoked)
         }
     }
 

@@ -374,6 +374,7 @@ mod tests {
                 state: WalletUserState::Active,
                 revocation_code_hmac: random_bytes(32),
                 revocation_registration: None,
+                solution_revoked: false,
             },
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
