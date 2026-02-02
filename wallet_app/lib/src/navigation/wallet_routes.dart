@@ -62,6 +62,8 @@ import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
 import '../feature/recover_pin/recover_pin_screen.dart';
 import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
 import '../feature/renew_pid/renew_pid_screen.dart';
+import '../feature/review_revocation_code_screen/bloc/review_revocation_code_bloc.dart';
+import '../feature/review_revocation_code_screen/review_revocation_code_screen.dart';
 import '../feature/revocation/bloc/revocation_code_bloc.dart';
 import '../feature/revocation/revocation_code_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
@@ -137,6 +139,7 @@ class WalletRoutes {
   static const qrRoute = '/qr';
   static const renewPidRoute = '/pid/renew';
   static const revocationCodeRoute = '/revocation_code';
+  static const reviewRevocationCodeRoute = '/review_revocation_code';
   static const settingsRoute = '/menu/settings';
   static const setupSecurityRoute = '/security/setup';
   static const signRoute = '/sign';
@@ -192,6 +195,7 @@ class WalletRoutes {
     WalletRoutes.tourVideoRoute: _createTourVideoScreenBuilder,
     WalletRoutes.renewPidRoute: _createRenewPidScreenBuilder,
     WalletRoutes.revocationCodeRoute: (_) => _createRevocationCodeScreenBuilder,
+    WalletRoutes.reviewRevocationCodeRoute: (_) => _createReviewRevocationCodeScreenBuilder,
     WalletRoutes.walletTransferSourceRoute: _createWalletTransferSourceRoute,
     WalletRoutes.walletTransferTargetRoute: _createWalletTransferTargetRoute,
     WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
@@ -612,6 +616,11 @@ Widget _createRevocationCodeScreenBuilder(BuildContext context) => BlocProvider<
     context.read(),
   )..add(const RevocationCodeLoadTriggered()),
   child: const RevocationCodeScreen(),
+);
+
+Widget _createReviewRevocationCodeScreenBuilder(BuildContext context) => BlocProvider<ReviewRevocationCodeBloc>(
+  create: (BuildContext context) => ReviewRevocationCodeBloc(),
+  child: const ReviewRevocationCodeScreen(),
 );
 
 Widget _createManageNotificationsScreenBuilder(BuildContext context) => BlocProvider<ManageNotificationsBloc>(
