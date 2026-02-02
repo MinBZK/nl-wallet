@@ -40,6 +40,7 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
+use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
 use wallet_provider_persistence::test::db_from_env;
 use wallet_provider_persistence::test::encrypted_pin_key;
@@ -107,7 +108,8 @@ async fn register_wallets_to_revoke(
             let wallet_id = random_string(10);
 
             // manually create a user and some WUA IDs, bypassing registration logic
-            let user_uuid = create_wallet_user_with_random_keys(&tx, wallet_id.clone()).await;
+            let user_uuid =
+                create_wallet_user_with_random_keys(&tx, WalletDeviceVendor::Apple, wallet_id.clone()).await;
 
             let mut wuas: Vec<(Uuid, StatusClaim)> = vec![];
             for _ in 0..wua_count {

@@ -29,6 +29,7 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::QueryResult;
+use wallet_provider_domain::model::wallet_user::AndroidAttestations;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::RevocationRegistration;
@@ -105,6 +106,7 @@ where
         WalletUserAttestationCreate::Android {
             certificate_chain,
             integrity_verdict_json,
+            attestations,
         } => {
             let id = Uuid::new_v4();
 
@@ -112,6 +114,18 @@ where
                 id: Set(id),
                 certificate_chain: Set(certificate_chain),
                 integrity_verdict_json: Set(integrity_verdict_json),
+                brand: Set(attestations.brand),
+                model: Set(attestations.model),
+                os_version: Set(attestations.os_version.map(|os_version| {
+                    u32::from(os_version)
+                        .try_into()
+                        .expect("OsVersion u32 should always fit in i32")
+                })),
+                os_patch_level: Set(attestations.os_patch_level.map(|os_patch_level| {
+                    u32::from(os_patch_level)
+                        .try_into()
+                        .expect("PatchLevel u32 should always fit in i32")
+                })),
             }
             .insert(connection)
             .await
@@ -164,6 +178,10 @@ struct WalletUserJoinedModel {
     instruction_challenge_expiration_date_time: Option<DateTimeWithTimeZone>,
     instruction_sequence_number: i32,
     apple_assertion_counter: Option<i64>,
+    android_brand: Option<String>,
+    android_device: Option<String>,
+    android_os_version: Option<i32>,
+    android_os_patch_level: Option<i32>,
     revocation_code_hmac: Vec<u8>,
     revocation_reason: Option<String>,
     revocation_date_time: Option<DateTimeWithTimeZone>,
@@ -203,6 +221,13 @@ where
             wallet_user_apple_attestation::Column::AssertionCounter,
             "apple_assertion_counter",
         )
+        .column_as(wallet_user_android_attestation::Column::Brand, "android_brand")
+        .column_as(wallet_user_android_attestation::Column::Model, "android_device")
+        .column_as(wallet_user_android_attestation::Column::OsVersion, "android_os_version")
+        .column_as(
+            wallet_user_android_attestation::Column::OsPatchLevel,
+            "android_os_patch_level",
+        )
         .join(
             JoinType::LeftJoin,
             wallet_user::Relation::WalletUserInstructionChallenge.def(),
@@ -210,6 +235,10 @@ where
         .join(
             JoinType::LeftJoin,
             wallet_user::Relation::WalletUserAppleAttestation.def(),
+        )
+        .join(
+            JoinType::LeftJoin,
+            wallet_user::Relation::WalletUserAndroidAttestation.def(),
         )
         .filter(wallet_user::Column::WalletId.eq(wallet_id))
         .into_model::<WalletUserJoinedModel>()
@@ -243,14 +272,39 @@ where
         }),
         _ => None,
     };
+
     let attestation = match model.apple_assertion_counter {
         Some(counter) => WalletUserAttestation::Apple {
-            assertion_counter: AssertionCounter::from(u32::try_from(counter).unwrap()),
+            assertion_counter: AssertionCounter::from(
+                u32::try_from(counter).expect("assertion_counter should never be negative"),
+            ),
         },
         // If the JOIN results in an assertion counter of NULL, we can safely assume that this
         // user has registered using an Android attestation instead. This is enforced by the
         // CHECK statement on the table.
-        None => WalletUserAttestation::Android,
+        None => {
+            let os_version = model.android_os_version.map(|os_version| {
+                u32::try_from(os_version)
+                    .expect("os_version should never be negative")
+                    .try_into()
+                    .expect("os_version should parse correctly")
+            });
+            let os_patch_level = model.android_os_patch_level.map(|os_patch_level| {
+                u32::try_from(os_patch_level)
+                    .expect("os_patch_level should never be negative")
+                    .try_into()
+                    .expect("os_patch_level should parse correctly")
+            });
+
+            WalletUserAttestation::Android {
+                attestations: AndroidAttestations {
+                    brand: model.android_brand,
+                    model: model.android_device,
+                    os_version,
+                    os_patch_level,
+                },
+            }
+        }
     };
 
     let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
