@@ -7,6 +7,7 @@ mod m20250102_000020_create_wallet_user_key_table;
 mod m20250102_000021_create_wallet_user_challenge_instruction;
 mod m20250102_000030_create_wallet_transfer_table;
 mod m20251107_154522_create_wallet_user_wua_table;
+mod m20260202_105409_create_denied_recovery_code_table;
 
 pub struct Migrator;
 
@@ -22,6 +23,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250102_000021_create_wallet_user_challenge_instruction::Migration),
             Box::new(m20250102_000030_create_wallet_transfer_table::Migration),
             Box::new(m20251107_154522_create_wallet_user_wua_table::Migration),
+            Box::new(m20260202_105409_create_denied_recovery_code_table::Migration),
         ];
         migrations.extend(wallet_provider_migrations);
 
