@@ -46,7 +46,7 @@
         data-test="deletion-code-input"
         spellcheck="false"
         autocomplete="off"
-        class="{% if failed_reason is defined %}invalid{% endif %}"
+        {% if failed_reason is defined %}class="invalid"{% endif %}
       >
       <div id="error-message"
            data-test="error-message"
