@@ -7,8 +7,11 @@ import '../../../domain/usecase/notification/observe_dashboard_notifications_use
 import '../../../domain/usecase/tour/observe_show_tour_banner_usecase.dart';
 import '../../../domain/usecase/update/observe_version_state_usecase.dart';
 import '../../../util/extension/list_extension.dart';
+import '../../../util/extension/object_extension.dart';
 import '../../../wallet_constants.dart';
 import '../wallet_banner.dart';
+
+const _kTourBanner = TourSuggestionBanner();
 
 class BannerCubit extends Cubit<List<WalletBanner>> {
   final ObserveVersionStateUsecase _observeVersionStateUsecase;
@@ -31,11 +34,17 @@ class BannerCubit extends Cubit<List<WalletBanner>> {
       _observeShowTourBannerUseCase.invoke(),
       _observeDashboardNotificationsUseCase.invoke(),
       (versionState, showTour, notifications) async* {
-        final banners = [_resolveUpdateBanner(versionState), ...notifications].nonNullsList;
+        final banners = [
+          _resolveUpdateBanner(versionState),
+          ...notifications,
+          _kTourBanner.takeIf((_) => showTour && state.contains(_kTourBanner)),
+        ].nonNullsList;
         yield banners;
-        if (showTour) {
-          await Future.delayed(const Duration(seconds: 3)); // Business rule, see PVW-1750
-          yield [...banners, const TourSuggestionBanner()];
+
+        // If TourBanner is not already visible, show it after 3 seconds (PVW-1750)
+        if (showTour && !banners.contains(_kTourBanner)) {
+          await Future.delayed(const Duration(seconds: 3));
+          yield [...banners, _kTourBanner];
         }
       },
     ).flatMap((banners) => banners).debounceTime(kDefaultAnimationDuration);
