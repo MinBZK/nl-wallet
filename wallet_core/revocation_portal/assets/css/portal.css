@@ -4,11 +4,10 @@
   font-size: 16px;
   line-height: 1.5;
 
-  --primary-color: #9d0069; /* Deep pink/magenta */
-  --secondary-color: #004cff; /* The blue from the design */
-  --text-color: #333;
+  --primary-color: #ab0065; /* Deep pink/magenta */
+  --secondary-color: #383ede; /* The blue from the design */
+  --text-color: #191c1b;
   --border-color: #ccc;
-  --bg-light: #f9f9fb;
   --error-color: #d32f2f;
 }
 
