@@ -495,6 +495,7 @@ pub mod mock {
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::RevocationReason;
+    use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
@@ -773,6 +774,7 @@ pub mod mock {
         pub apple_assertion_counter: Option<AssertionCounter>,
         pub state: WalletUserState,
         pub revocation_code_hmac: Vec<u8>,
+        pub revocation_registration: Option<RevocationRegistration>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -824,7 +826,7 @@ pub mod mock {
                 },
                 state: self.state,
                 revocation_code_hmac: self.revocation_code_hmac.clone(),
-                revocation_registration: None,
+                revocation_registration: self.revocation_registration.clone(),
                 recovery_code: None,
             })))
         }

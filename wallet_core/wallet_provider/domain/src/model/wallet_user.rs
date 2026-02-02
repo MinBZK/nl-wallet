@@ -39,7 +39,7 @@ pub struct WalletUser {
     pub recovery_code: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RevocationRegistration {
     pub reason: RevocationReason,
     pub date_time: DateTime<Utc>,
