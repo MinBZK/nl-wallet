@@ -26,6 +26,11 @@ class WalletTransferLoading extends WalletTransferSourceState {
   const WalletTransferLoading();
 }
 
+/// Represents the state where the request is being aborted (shown briefly after the user presses stop)
+class WalletTransferCancelling extends WalletTransferSourceState {
+  const WalletTransferCancelling();
+}
+
 /// Represents the state where introductory information about the wallet transfer
 /// is displayed to the user.
 class WalletTransferIntroduction extends WalletTransferSourceState {
@@ -68,7 +73,12 @@ class WalletTransferSuccess extends WalletTransferSourceState {
 
 /// Represents the state when the wallet transfer was stopped by the user.
 class WalletTransferStopped extends WalletTransferSourceState {
-  const WalletTransferStopped();
+  final WalletStopRequestReason reason;
+
+  const WalletTransferStopped({this.reason = .generic});
+
+  @override
+  List<Object?> get props => [reason];
 }
 
 /// Represents the UI state for generic/unknown errors

@@ -1,10 +1,13 @@
 mod client;
 
+use std::io;
+
 use reqwest::StatusCode;
 use url::ParseError;
 
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
+use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::HwSignedInstruction;
@@ -23,12 +26,22 @@ pub use self::client::HttpAccountProviderClient;
 pub enum AccountProviderError {
     #[error("server responded with {0}")]
     Response(#[from] AccountProviderResponseError),
+
     #[error("networking error: {0}")]
     #[category(expected)]
     Networking(#[from] reqwest::Error),
+
     #[error("could not parse base URL: {0}")]
     #[category(pd)]
     BaseUrl(#[from] ParseError),
+
+    #[error("could not serialize payload: {0}")]
+    #[category(pd)]
+    PayloadSerialization(#[source] serde_json::Error),
+
+    #[error("could not compress payload: {0}")]
+    #[category(pd)]
+    PayloadCompression(#[source] io::Error),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -52,7 +65,7 @@ pub trait AccountProviderClient {
         &self,
         client_config: &TlsPinningConfig,
         registration_message: ChallengeResponse<Registration>,
-    ) -> Result<WalletCertificate, AccountProviderError>;
+    ) -> Result<(WalletCertificate, RevocationCode), AccountProviderError>;
 
     async fn instruction_challenge(
         &self,

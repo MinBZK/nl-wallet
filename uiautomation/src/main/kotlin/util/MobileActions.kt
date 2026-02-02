@@ -133,6 +133,37 @@ open class MobileActions {
         }
     }
 
+    fun scrollToElementContainingTexts(partialTexts: List<String>) {
+        when (val platform = platformName()) {
+            "ANDROID" -> {
+                val regexPattern = ".*" + partialTexts.joinToString(".*") { Regex.escape(it) } + ".*"
+                val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
+                driver.findElement(
+                    AppiumBy.androidUIAutomator(
+                        "new UiScrollable(new UiSelector().scrollable(true))" +
+                            ".scrollIntoView(new UiSelector().descriptionMatches($quotedPattern))"
+                    )
+                ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
+            }
+            "IOS" -> {
+                val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
+                val predicate = partialTexts.joinToString(" AND ") { partialText ->
+                    val quotedText = quoteForIos(partialText)
+                    "name CONTAINS $quotedText"
+                }
+                (driver as JavascriptExecutor).executeScript(
+                    "mobile: scroll",
+                    mapOf(
+                        "element" to scroll.id,
+                        "predicateString" to predicate,
+                        "toVisible" to true
+                    )
+                ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
+            }
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
     fun scrollToEndOfScreen(durationMs: Int = 300) {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
@@ -145,7 +176,7 @@ open class MobileActions {
         val height = size.height
 
         val startX = width / 2
-        val startY = (height * 0.80).toInt()   // near bottom
+        val startY = (height * 0.60).toInt()   // near bottom
         val endX   = startX
         val endY   = (height * 0.20).toInt()   // near top
 
@@ -307,24 +338,25 @@ open class MobileActions {
     }
 
     fun clickElementContainingText(partialText: String) {
-        return try {
-            findElementByPartialText(partialText).click()
-        } catch (e: Exception) {
-            println("Failed to get element: ${e.message}")
-        }
+        findElementByPartialText(partialText).click()
     }
 
     fun clickElementWithText(text: String) {
-        return try {
-            findElementByText(text).click()
-        } catch (e: Exception) {
-            println("Failed to get element: ${e.message}")
-        }
+        findElementByText(text).click()
     }
 
     fun elementContainingTextVisible(partialText: String): Boolean {
         return try {
             findElementByPartialText(partialText).isDisplayed
+        } catch (e: Exception) {
+            println("Element not found or error occurred: ${e.message}")
+            false
+        }
+    }
+
+    fun elementContainingTextsVisible(partialTexts: List<String>): Boolean {
+        return try {
+            findElementByPartialTexts(partialTexts).isDisplayed
         } catch (e: Exception) {
             println("Element not found or error occurred: ${e.message}")
             false
@@ -352,6 +384,20 @@ open class MobileActions {
         }
     }
 
+    fun getTextFromAllChildElementsFromElementWithText(parentText: String): String {
+        val parentElement = findElementByText(parentText)
+
+        val childElements = parentElement.findElements(By.xpath(".//*"))
+
+        return childElements.joinToString("") { element ->
+            when (val platform = platformName()) {
+                "ANDROID" -> element.getAttribute("contentDescription") ?: ""
+                "IOS" -> element.getAttribute("name") ?: ""
+                else -> ""
+            }
+        }
+    }
+
     private fun findElementByPartialText(partialText: String, timeoutInSeconds: Long = 5): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
         return when (val platform = platformName()) {
@@ -368,6 +414,36 @@ open class MobileActions {
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(
                         By.xpath("//*[contains(@name, $quotedText)]")
+                    )
+                )
+            }
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
+    private fun findElementByPartialTexts(
+        partialTexts: List<String>,
+        timeoutInSeconds: Long = 5
+    ): WebElement {
+        val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+        return when (val platform = platformName()) {
+            "ANDROID" -> {
+                val regexPattern = ".*" + partialTexts.joinToString(".*") { Regex.escape(it) } + ".*"
+                val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        AppiumBy.androidUIAutomator("new UiSelector().descriptionMatches($quotedPattern)")
+                    )
+                )
+            }
+            "IOS" -> {
+                val xpathConditions = partialTexts.joinToString(" and ") { partialText ->
+                    val quotedText = quoteForIos(partialText)
+                    "contains(@name, $quotedText)"
+                }
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//*[$xpathConditions]")
                     )
                 )
             }
@@ -417,13 +493,41 @@ open class MobileActions {
         }
     }
 
-    fun switchToWalletApp() {
+    fun findElementByPartialTextAndPartialSiblingText(
+        text: String,
+        siblingText: String,
+        timeoutInSeconds: Long = 5
+    ): WebElement {
+        val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+        return when (val platform = platformName()) {
+            "ANDROID" -> {
+                val quotedText = quoteForAndroid(text)
+                val quotedSibling = quoteForAndroid(siblingText)
+
+                val xpath = "//*[contains(@content-desc, $quotedText) and ../*[contains(@content-desc, $quotedSibling)]]"
+                wait.until(ExpectedConditions.presenceOfElementLocated(AppiumBy.xpath(xpath)))
+            }
+
+            "IOS" -> {
+                val quotedText = quoteForIos(text)
+                val quotedSibling = quoteForIos(siblingText)
+
+                val xpath = "//*[contains(@name, $quotedText) and ../*[contains(@name, $quotedSibling)]]"
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath(xpath)))
+            }
+
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
+    fun openApp() {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
             "IOS" -> driver as IOSDriver
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
         driver.activateApp(testConfig.appIdentifier)
+        Thread.sleep(1000)
     }
 
     fun switchToBrowser() {
@@ -456,6 +560,15 @@ open class MobileActions {
         val driver = driver as AppiumDriver
         driver.get(expiredUniversalLinkFromCameraApp)
         Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+    }
+
+    fun closeApp() {
+        val driver = when (val platform = platformName()) {
+            "ANDROID" -> driver as AndroidDriver
+            "IOS" -> driver as IOSDriver
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        driver.terminateApp(testConfig.appIdentifier)
     }
 
     companion object {

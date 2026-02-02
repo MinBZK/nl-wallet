@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/feature/tour/widget/tour_banner.dart';
+import 'package:wallet/src/feature/banner/widget/tour_banner.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';
@@ -74,7 +74,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('banner shows title', (tester) async {
+    testWidgets('ltc14 banner shows title', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourBanner(),
       );

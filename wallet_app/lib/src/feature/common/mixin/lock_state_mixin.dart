@@ -15,8 +15,8 @@ mixin LockStateMixin<T extends StatefulWidget> on State<T> {
     _lockSubscription = context
         .read<ObserveWalletLockedUseCase>()
         .invoke()
-        .distinct(/* only track changes */)
         .skip(1 /* skip initial value */)
+        .distinct(/* only track changes */)
         .listen(_onLockChanged);
   }
 

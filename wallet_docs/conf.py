@@ -9,7 +9,7 @@
 author = 'NL Wallet'
 project = author
 copyright = f"2025, {author}"
-version = '0.4.0-dev'
+version = '0.5.0-dev'
 release = version
 
 # -- General configuration ---------------------------------------------------
@@ -27,7 +27,7 @@ source_suffix = {
 }
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', '_venv', 'venv']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', '_venv', 'venv', 'README.md']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -75,10 +75,10 @@ smv_tag_whitelist = r'^v\d+\.\d+\.\d+$'
 smv_branch_whitelist = r'^main$'
 
 linkcheck_report_timeouts_as_broken = False
-
 linkcheck_ignore = [
     r'(?i)^https?://localhost(?::\d{1,5})?(?:[/?#].*)?$',
-    r'https://www\.iso\.org/obp/ui/en/#iso:std:iso-iec:18013:-5:ed-1:v1:en'
+    r'https://www\.iso\.org/obp/ui/en/#iso:std:iso-iec:18013:-5:ed-1:v1:en',
+    r'https://www\.tweedekamer\.nl/kamerstukken/brieven_regering/detail\?did=2022D32577&amp;id=2022Z15589'
 ]
 
 nitpicky = True

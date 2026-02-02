@@ -13,13 +13,7 @@ doctest = false
 
 [dependencies]
 async-trait.workspace = true
-sea-orm-migration = { workspace = true, features = [
-    "cli",
-    "runtime-tokio-rustls",
-    "sqlx-postgres",
-    "with-chrono",
-    "with-uuid",
-] }
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
+sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 
-wallet_provider_database_settings.path = "../database_settings"
+status_lists_migrations.path = "../../lib/status_lists/migrations"

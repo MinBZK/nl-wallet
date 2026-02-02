@@ -1,7 +1,10 @@
+use std::path::Path;
+
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::Debug;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -16,21 +19,27 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
+use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PidIssuerSettings {
+    #[debug(skip)]
     pub digid: Digid,
     pub brp_server: BaseUrl,
 
     #[serde_as(as = "Base64")]
+    #[debug(skip)]
     pub wua_issuer_pubkey: DerVerifyingKey,
 
+    #[debug(skip)]
     pub recovery_code: SecretKey,
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+
+    pub status_lists: StatusListsSettings,
 }
 
 #[derive(Clone, Deserialize)]
@@ -48,9 +57,15 @@ impl ServerSettings for PidIssuerSettings {
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 8001)?
+            .set_default("internal_server.ip", "0.0.0.0")?
+            .set_default("internal_server.port", 8002)?
             .set_default("public_url", "http://localhost:8001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
+            .set_default("status_lists.list_size", 100_000)?
+            .set_default("status_lists.create_threshold_ratio", 0.1)?
+            .set_default("status_lists.expiry_in_hours", 24)?
+            .set_default("status_lists.refresh_threshold_ratio", 0.25)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",
@@ -64,12 +79,11 @@ impl ServerSettings for PidIssuerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
-            .set_default("brp_server", "http://localhost:3011/")?;
+            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(Path::new(config_file));
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")

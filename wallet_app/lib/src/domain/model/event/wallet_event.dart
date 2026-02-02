@@ -38,7 +38,7 @@ sealed class WalletEvent extends Equatable {
     required DateTime dateTime,
     required EventStatus status,
     required WalletCard card,
-    required bool renewed,
+    required IssuanceEventType eventType,
   }) = IssuanceEvent;
 
   const factory WalletEvent.sign({

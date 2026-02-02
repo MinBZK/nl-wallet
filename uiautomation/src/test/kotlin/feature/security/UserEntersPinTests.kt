@@ -3,6 +3,15 @@ package feature.security
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.assertAll
+import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.dashboard.DashboardScreen
 import screen.error.NoInternetErrorScreen
@@ -10,13 +19,6 @@ import screen.menu.MenuScreen
 import screen.security.ForgotPinScreen
 import screen.security.PinScreen
 import screen.security.TemporarilyBlockedScreen
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.TestMethodOrder
-import org.junit.jupiter.api.assertAll
-import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC2.3 Unlock the app")
@@ -44,7 +46,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC47 Unlock app with correct PIN")
+    @DisplayName("LTC37 Unlock app with correct PIN")
     fun verifyPinScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
@@ -57,7 +59,8 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.")
+    @DisplayName("LTC37 Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.")
+    @Tags(Tag("a11yBatch2"))
     fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
         setUp(testInfo)
         try {
@@ -68,14 +71,15 @@ class UserEntersPinTests : TestBase() {
                 { assertTrue(noInternetErrorScreen.descriptionVisible(), "Description is not visible") },
                 { assertTrue(noInternetErrorScreen.tryAgainButtonVisible(), "Try again button is not visible") }
             )
-            noInternetErrorScreen.seeDetails()
+
+            noInternetErrorScreen.errorDetails.seeDetails()
             assertAll(
-                { assertTrue(noInternetErrorScreen.appVersionLabelVisible(), "App version is not visible") },
-                { assertTrue(noInternetErrorScreen.osVersionLabelVisible(), "Os version is not visible") },
-                { assertTrue(noInternetErrorScreen.appConfigLabelVisible(), "appConfig is not visible") },
-                { assertTrue(noInternetErrorScreen.appVersionVisible(), "App version is not visible") },
-                { assertTrue(noInternetErrorScreen.osVersionVisible(), "Os version is not visible") },
-                { assertTrue(noInternetErrorScreen.appConfigVisible(), "appConfig is not visible") }
+                { assertTrue(noInternetErrorScreen.errorDetails.appVersionLabelVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.osVersionLabelVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.appConfigLabelVisible(), "appConfig is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.appVersionVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.osVersionVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.errorDetails.appConfigVisible(), "appConfig is not visible") }
             )
         } finally {
             noInternetErrorScreen.enableInternetConnection();
@@ -83,7 +87,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC50 Unlock app with invalid PIN")
+    @DisplayName("LTC40 LTC46 Unlock app with invalid PIN")
     fun verifyRetriesAndTimeout(testInfo: TestInfo) {
         setUp(testInfo)
         pinScreen.enterPin("123456")
@@ -111,13 +115,13 @@ class UserEntersPinTests : TestBase() {
         pinScreen.clickForgotPinButton()
         assertAll(
             { assertTrue(forgotPinScreen.visible(), "forgot pin screen is not visible") },
-            { assertTrue(forgotPinScreen.dataLossTextVisible(), "data loss description text is not visible") },
-            { assertTrue(forgotPinScreen.resetButtonVisible(), "reset wallet button is not visible") }
+            { assertTrue(forgotPinScreen.descriptionTextVisible(), "description text is not visible") },
+            { assertTrue(forgotPinScreen.recoverButtonVisible(), "reset wallet button is not visible") }
         )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC47 The PIN entry screen offers an entrance to the App Info page.")
+    @DisplayName("LTC28 The PIN entry screen offers an entrance to the App Info page.")
     fun verifyAppInfoButton(testInfo: TestInfo) {
         setUp(testInfo)
         pinScreen.clickAppInfoButton()

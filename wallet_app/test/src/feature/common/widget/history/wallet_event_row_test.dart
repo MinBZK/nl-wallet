@@ -14,7 +14,7 @@ void main() {
 
   group('goldens', () {
     testGoldens(
-      'light wallet_event operation issued',
+      'light wallet_event card issued',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           WalletEventRow(
@@ -26,8 +26,9 @@ void main() {
         await screenMatchesGolden('wallet_event_row/light.operation.issued');
       },
     );
+
     testGoldens(
-      'dark wallet_event operation issued',
+      'dark wallet_event card issued',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           WalletEventRow(
@@ -38,6 +39,62 @@ void main() {
           surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden('wallet_event_row/dark.operation.issued');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event card renewed',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.issuanceEventCardRenewed,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/light.operation.renewed');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event card status expired',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.issuanceEventCardStatusExpired,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/light.operation.expired');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event card status revoked',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.issuanceEventCardStatusRevoked,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/light.operation.revoked');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event card status corrupted',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.issuanceEventCardStatusCorrupted,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/light.operation.corrupted');
       },
     );
 

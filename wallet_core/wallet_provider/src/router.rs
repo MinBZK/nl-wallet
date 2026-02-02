@@ -1,23 +1,38 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
+use axum::extract::Request;
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::middleware;
+use axum::middleware::Next;
 use axum::response::Json;
+use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
 use futures::TryFutureExt;
 use futures::try_join;
+use metrics::counter;
+use metrics_exporter_prometheus::PrometheusBuilder;
+use metrics_exporter_prometheus::PrometheusHandle;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
+use utoipa::OpenApi;
 
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
+use health_checkers::hsm::HsmChecker;
+use health_checkers::postgres::DatabaseChecker;
+use hsm::service::Pkcs11Hsm;
+use http_utils::health::create_health_router;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -33,9 +48,11 @@ use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
+use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
@@ -45,14 +62,17 @@ use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
+use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
+use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::wua_issuer::WuaIssuer;
 
 use crate::errors::WalletProviderError;
+use crate::internal;
 use crate::router_state::RouterState;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
@@ -68,15 +88,19 @@ use crate::router_state::RouterState;
 /// be able to handle these errors appropriately.
 type Result<T> = std::result::Result<T, WalletProviderError>;
 
+#[derive(OpenApi)]
+#[openapi(info(title = "Wallet provider API"))]
+struct ApiDocs;
+
 pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>) -> Router
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
     let state = Arc::new(router_state);
-
-    Router::new()
-        .merge(health_router())
+    let router = Router::new()
+        .merge(health_router(&state.user_state))
+        .merge(metrics_router())
         .nest(
             "/api/v1",
             Router::new()
@@ -84,16 +108,25 @@ where
                 .route("/createwallet", post(create_wallet))
                 .route("/instructions/challenge", post(instruction_challenge))
                 .route(
-                    &format!("/instructions/hw_signed/{}", ConfirmTransfer::NAME),
-                    post(handle_hw_signed_instruction::<ConfirmTransfer, _, _, _>),
+                    &format!("/instructions/hw_signed/{}", PairTransfer::NAME),
+                    post(handle_hw_signed_instruction::<PairTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
                     post(handle_hw_signed_instruction::<CancelTransfer, _, _, _>),
                 )
                 .route(
+                    &format!("/instructions/hw_signed/{}", ResetTransfer::NAME),
+                    post(handle_hw_signed_instruction::<ResetTransfer, _, _, _>),
+                )
+                .route(
                     &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),
                     post(handle_hw_signed_instruction::<GetTransferStatus, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", SendWalletPayload::NAME),
+                    post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _>)
+                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
@@ -144,10 +177,12 @@ where
                     post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _>),
                 )
                 .route(
-                    &format!("/instructions/{}", SendWalletPayload::NAME),
-                    post(handle_instruction::<SendWalletPayload, _, _, _>),
+                    &format!("/instructions/{}", ConfirmTransfer::NAME),
+                    post(handle_instruction::<ConfirmTransfer, _, _, _>),
                 )
+                .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
+                .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),
         )
         .nest(
@@ -156,11 +191,50 @@ where
                 .route("/public-keys", get(public_keys))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
-        )
+        );
+
+    let (internal_router, internal_openapi) = internal::internal_router(state);
+    let router = router.nest("/internal", internal_router.layer(TraceLayer::new_for_http()));
+    let openapi = ApiDocs::openapi().nest("/internal", internal_openapi);
+
+    #[cfg(feature = "test_internal_ui")]
+    let router = router.merge(utoipa_swagger_ui::SwaggerUi::new("/api-docs").url("/openapi.json", openapi));
+
+    #[cfg(not(feature = "test_internal_ui"))]
+    let router = router.route("/openapi.json", get(Json(openapi)));
+
+    router
 }
 
-fn health_router() -> Router {
-    Router::new().route("/health", get(|| async {}))
+fn health_router<W, S>(user_state: &UserState<Repositories, Pkcs11Hsm, W, S>) -> Router {
+    let checkers = [
+        Box::new(DatabaseChecker::new("db", user_state.repositories.as_ref().as_ref())) as Box<_>,
+        Box::new(HsmChecker::new(&user_state.wallet_user_hsm)) as Box<_>,
+    ];
+    create_health_router(checkers)
+}
+
+/// Prometheus Handle can only be installed once
+static PROMETHEUS_HANDLE: LazyLock<PrometheusHandle> = LazyLock::new(|| {
+    PrometheusBuilder::new()
+        .install_recorder()
+        .expect("failed to install Prometheus recorder")
+});
+
+fn metrics_router() -> Router {
+    Router::new()
+        .route("/metrics", get(metrics_handler))
+        .with_state(PROMETHEUS_HANDLE.clone())
+}
+
+async fn metrics_handler(State(handle): State<PrometheusHandle>) -> String {
+    counter!("nlwallet_metrics_endpoint_count", "service" => "http").increment(1);
+    handle.render()
+}
+
+async fn log_headers(req: Request, next: Next) -> Response {
+    tracing::info!("Headers: {:?}", req.headers());
+    next.run(req).await
 }
 
 async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {
@@ -189,13 +263,16 @@ where
 {
     info!("Received create wallet request, registering with account server");
 
-    let cert = state
+    let (certificate, revocation_code) = state
         .account_server
         .register(&state.certificate_signing_key, payload, &state.user_state)
         .await
         .inspect_err(|error| warn!("wallet registration failed: {}", error))?;
 
-    let body = Certificate { certificate: cert };
+    let body = Certificate {
+        certificate,
+        revocation_code,
+    };
 
     info!("Replying with the created wallet certificate");
 
@@ -315,7 +392,6 @@ async fn start_pin_recovery<GRC, PIC>(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
             state.as_ref(),
-            &state.pin_policy,
             &state.user_state,
         )
         .await

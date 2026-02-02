@@ -1,10 +1,8 @@
 package feature.introduction
 
 import helper.TestBase
-import screen.introduction.IntroductionPrivacyScreen
-import screen.introduction.IntroductionScreen
-import screen.introduction.PrivacyPolicyScreen
-import screen.security.PinScreen
+import navigator.OnboardingNavigator
+import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -13,6 +11,10 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.introduction.IntroductionPrivacyScreen
+import screen.introduction.IntroductionScreen
+import screen.introduction.PrivacyPolicyScreen
+import screen.security.PinScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 1.1 Introduce the app")
@@ -23,14 +25,15 @@ class IntroductionTests : TestBase() {
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Introduction)
         introductionScreen = IntroductionScreen()
         privacyScreen = IntroductionPrivacyScreen()
 
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC13 Introduction Happy flow")
-    @Tags(Tag("smokeIOS"), Tag("smoke"))
+    @DisplayName("LTC12 LTC29 Introduction & privacy statement")
+    @Tags(Tag("smokeIOS"), Tag("smoke"), Tag("a11yBatch1"))
     fun verifyWelcomeScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
@@ -58,7 +61,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC14 User skips introduction")
+    @DisplayName("LTC13 User skips introduction")
     fun verifySkipIntroButton(testInfo: TestInfo) {
         setUp(testInfo)
 

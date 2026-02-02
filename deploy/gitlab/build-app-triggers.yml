@@ -1,12 +1,12 @@
 build-mock-trigger:
   rules:
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: test-flutter
       artifacts: false
     - job: test-flutter-ui
       artifacts: false
-    - job: test-flutter-rust-brdige-codegen
+    - job: test-flutter-rust-bridge-codegen
       artifacts: false
     - job: test-rust
       artifacts: false
@@ -28,13 +28,13 @@ build-mock-trigger:
 
 build-demo-trigger:
   rules:
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: test-flutter
       artifacts: false
     - job: test-flutter-ui
       artifacts: false
-    - job: test-flutter-rust-brdige-codegen
+    - job: test-flutter-rust-bridge-codegen
       artifacts: false
     - job: test-rust
       artifacts: false

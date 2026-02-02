@@ -7,7 +7,7 @@ automation-compile-check:
 
 scheduled-automation-tests-trigger:
   rules:
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: deploy-apps-ont
       artifacts: false
@@ -32,14 +32,14 @@ scheduled-automation-tests-trigger:
     - set -euxo pipefail
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
-    DEVICE_NAME: "OnePlus 12R"
-    PLATFORM_NAME: "Android"
-    PLATFORM_VERSION: "14.0"
-    AUTOMATION_NAME: "UIAutomator2"
+    ENABLE_BROWSERSTACK_A11Y_CHECKS: false
 
 .run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .run-automation-tests-base
+  needs:
+    - job: build-env-ont
+      artifacts: true
   artifacts:
     name: uiautomation
     when: always
@@ -53,14 +53,9 @@ scheduled-automation-tests-trigger:
 .run-automation-tests-default:
   extends: .run-automation-tests-common-setup
   script:
+    - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="$DEVICE_NAME"
-      -Dtest.config.platform.name="$PLATFORM_NAME"
-      -Dtest.config.platform.version="$PLATFORM_VERSION"
-      -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
@@ -85,43 +80,205 @@ run-automation-card-and-history-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.CardsAndHistoryTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-disclosure-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.DisclosureTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-introduction-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.IntroductionTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-issuance-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.IssuanceTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-menu-and-settings-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.MenuAndSettingsTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-open-app-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.OpenAppTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-security-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.SecurityTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
+
+run-automation-english-tests:
+  extends: .run-automation-tests-common-setup
+  script:
+    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - ./gradlew --no-daemon --info --stacktrace testEnglish
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8 || true
+    # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
+    - compgen -G "build/test-results/testEnglish/*.xml"
+  rules:
+    - !reference [.on-schedule-automation, rules]
+
+.run-automation-a11y-batch:
+  extends: .run-automation-tests-common-setup
+  resource_group: null
+  script:
+    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - ./gradlew --no-daemon --info --stacktrace testA11yBatch${BATCH_NUMBER}
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8 || true
+  rules:
+    - !reference [.on-schedule-trigger-scan, rules]
+  variables:
+    ENABLE_BROWSERSTACK_A11Y_CHECKS: true
+
+run-automation-a11y-batch1-tests:
+  extends: .run-automation-a11y-batch
+  variables:
+    BATCH_NUMBER: "1"
+
+run-automation-a11y-batch2-tests:
+  extends: .run-automation-a11y-batch
+  needs:
+    - job: run-automation-a11y-batch1-tests
+      artifacts: false
+  variables:
+    BATCH_NUMBER: "2"
+
+run-automation-a11y-batch3-tests:
+  extends: .run-automation-a11y-batch
+  needs:
+    - job: run-automation-a11y-batch2-tests
+      artifacts: false
+  after_script:
+    - echo "$CI_PIPELINE_ID" > a11y-build-name.txt
+    - deploy/bin/store-artifact.sh a11y-build-name.txt qt/quality-time/a11y-results/a11y-build-name.txt
+  variables:
+    BATCH_NUMBER: "3"
+
+browserstack-a11y-merge:
+  extends: .run-automation-tests-base
+  rules:
+    - !reference [.on-schedule-scan, rules]
+  variables:
+    BROWSERSTACK_API_BASE: "https://api-app-accessibility.browserstack.com/automate/api/v1"
+  script:
+    - set +x
+    - BUILD_NAME=$(mc cat qt/quality-time/a11y-results/a11y-build-name.txt)
+    - BROWSERSTACK_PROJECT_ID=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.project_id}' | base64 --decode)
+    # Get the last 2 builds for this project whose name == CI_PIPELINE_ID
+    - |
+      curl -sfS "${BROWSERSTACK_API_BASE}/project/${BROWSERSTACK_PROJECT_ID}/build?page_size=50&page=1" \
+        -u "${BROWSERSTACK_USER}:${BROWSERSTACK_KEY}" \
+        -o builds_raw.json
+
+    - set -x
+    - |
+      echo "Filtering builds with name == BUILD_NAME (${BUILD_NAME}) and selecting the last 2…"
+      jq --arg build_name "$BUILD_NAME" '
+        {
+          success,
+          info,
+          filters,
+          builds: (
+            [ .builds[]
+              | select(.name == $build_name)
+            ]
+            | sort_by(.created_at)  # oldest → newest
+            | reverse               # newest → oldest
+            | .[:2]                 # take the last 2
+          )
+        }
+      ' builds_raw.json > builds.json
+
+      echo "Checking we have at least 2 matching builds…"
+      jq -e '
+        .success == true
+        and (.builds | length >= 2)
+      ' builds.json > /dev/null || {
+        echo "ERROR: Need at least 2 builds with name == \"${BUILD_NAME}\". Got:"
+        jq '{builds: [.builds[] | {id, th_build_id, name, created_at}]}' builds.json
+        exit 1
+      }
+
+    # Create a combined summary
+    - |
+      echo "Creating combined summary…"
+      jq -n --slurpfile r builds.json '
+      def to_num:
+        if type=="number" then .
+        elif type=="string" then (tonumber? // 0)
+        else 0 end;
+
+      # severity_count can be: object, array of objects, null → return numeric for key
+      def sev_get(o; k):
+        if o == null then 0
+        elif (o|type)=="object" then ((o[k] // 0) | to_num)
+        elif (o|type)=="array"  then ((o | map(. [k] // 0 | to_num) | add) // 0)
+        else 0 end;
+
+      # sum a severity key across all builds
+      def sev_sum(k):
+        ([$r[0].builds[]
+          | .issue_summary
+          | if . == null then {} else . end
+          | .severity_count
+          | sev_get(.; k)
+        ] | add) // 0;
+
+      {
+        project_id: ($r[0].builds[0].project_id // $r[0].project_id),
+        generated_at: (now | strflocaltime("%Y-%m-%dT%H:%M:%SZ")),
+        source: { page: $r[0].info.page, page_size: $r[0].info.page_size, count: $r[0].info.count },
+        builds: [
+          $r[0].builds[] |
+          { id, th_build_id, name, created_at, started_at, status, issue_summary }
+        ],
+        summary: {
+          build_count: ($r[0].builds | length),
+          statuses: (
+            reduce ($r[0].builds[] | .status) as $s ({}; .[$s] = ((.[$s] // 0) + 1) )
+          ),
+          totals: {
+            total_issues: ([$r[0].builds[].issue_summary.total] | map((. // 0) | to_num) | add),
+            scan_count:   ([$r[0].builds[].issue_summary.scan_count] | map((. // 0) | to_num) | add),
+            severity_count: {
+              minor:            sev_sum("minor"),
+              moderate:         sev_sum("moderate"),
+              serious:          sev_sum("serious"),
+              critical:         sev_sum("critical"),
+              failed_issues:    sev_sum("failed_issues"),
+              needs_review:     sev_sum("needs_review"),
+              confirmed:        sev_sum("confirmed"),
+              hidden_issues:    sev_sum("hidden_issues"),
+              duplicate_issues: sev_sum("duplicate_issues")
+            }
+          }
+        }
+      }' > combined_summary.json
+
+    # Verify summary
+    - |
+      jq -e '
+        (.builds | length == 2)
+        and (.summary.build_count == 2)
+        and (.summary.totals.total_issues | type == "number")
+      ' combined_summary.json > /dev/null || {
+        echo "ERROR: combined_summary.json sanity check failed"
+        cat combined_summary.json || true
+        exit 1
+      }
+  after_script:
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-results/a11y.zip uiautomation/combined_summary.json
+  artifacts:
+    name: browserstack-a11y
+    when: always
+    paths:
+      - uiautomation/combined_summary.json
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
@@ -129,17 +286,10 @@ run-automation-smoke-test-ont:
   needs:
     - job: upload-browserstack-android-app
       artifacts: false
-    - job: deploy-apps-ont
-      artifacts: false
   script:
+    - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="$DEVICE_NAME"
-      -Dtest.config.platform.name="$PLATFORM_NAME"
-      -Dtest.config.platform.version="$PLATFORM_VERSION"
-      -Dtest.config.automation.name="UIAutomator2"
       -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 run-automation-smoke-test-ios-ont:
@@ -151,14 +301,9 @@ run-automation-smoke-test-ios-ont:
     - job: deploy-apps-ont
       artifacts: false
   script:
+    - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace smokeTestIOS
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="iPhone 14"
-      -Dtest.config.platform.name="IOS"
-      -Dtest.config.platform.version="16"
-      -Dtest.config.automation.name="XCUITest"
       -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
@@ -166,7 +311,7 @@ browsertests-format-lint:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - cd browsertests
-    - npm ci
+    - npm ci --ignore-scripts
     - npm run format-check
     - npm run lint
 
@@ -187,7 +332,7 @@ run-wallet-web-browsertest-test-ont:
       artifacts: false
   script: |
     cd browsertests
-    npm ci
+    npm ci --ignore-scripts
     cd packages/wallet-web
     npx playwright install chromium webkit
     npm run test:ci
@@ -213,7 +358,7 @@ run-fallback-pages-browsertest-test-ont:
       artifacts: false
   script: |
     cd browsertests
-    npm ci
+    npm ci --ignore-scripts
     cd packages/fallback-pages
     npx playwright install chromium webkit
     npm run test:ci
@@ -231,135 +376,79 @@ run-fallback-pages-browsertest-test-ont:
 
 run-performance-test-ont:
   extends: .env-k8s
-  rules: !reference [.default-branch, rules]
+  rules:
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: build-performance-test
       artifacts: true
     - job: deploy-apps-ont
       artifacts: false
-  script: wallet_core/tests_integration/run_performance_test.sh --skip-build
-  allow_failure: true
-
-create-pipeline-for-running-test-on-all-browserstack-androids:
-  resource_group: automation-tests
-  extends: .run-automation-tests-base
-  needs:
-    - !reference [run-automation-smoke-test-ont, needs]
-  rules:
-    - !reference [.default-branch, rules]
-  allow_failure: true
-  when: manual
-  script: |
-      TEST_SETS=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json" |
-                  jq -r '.[] | select(.os == "android" and .realMobile == true) | "\(.device)|\(.os_version)"')
-
-      echo "Retrieved real Android devices: $TEST_SETS"
-
-      if [[ -z $TEST_SETS ]]; then
-        echo "No real Android devices found in BrowserStack!"
-        exit 1
-      fi
-
-      cd "$CI_PROJECT_DIR"
-
-      cat <<EOT > test-all-android-devices.yml
-      include:
-        - ".gitlab-ci.yml"
-      stages:
-        - test
-        - merge-results
-
-      merge-device-data:
-        stage: merge-results
-        rules:
-          - when: manual
-        script:
-          - |
-            mkdir -p merged-data
-            output_file="merged-data/merged-device-data.json"
-            echo "[" > "\$output_file"
-            first=true
-            find . -type f -path "uiautomation/device-data/*.json" -print0 | while IFS= read -r -d '' file; do
-              if [ "\$first" = true ]; then
-                first=false
-              else
-                echo "," >> "\$output_file"
-              fi
-              cat "\$file" >> "\$output_file"
-            done
-            echo "]" >> "\$output_file"
-        artifacts:
-          when: always
-          paths:
-            - merged-data/merged-device-data.json
-
-      .run-automation-test-ont:
-        stage: test
-        rules:
-          - if: \$CI_PIPELINE_SOURCE == "parent_pipeline"
-        extends: .run-automation-tests-common-setup
-        script:
-          - |
-            ./gradlew --no-daemon --info --stacktrace runOnAll \\
-              -Dtest.config.app.identifier="\$APP_ID" \\
-              -Dtest.config.device.name="\$DEVICE_NAME" \\
-              -Dtest.config.platform.name="\$PLATFORM_NAME" \\
-              -Dtest.config.platform.version="\$PLATFORM_VERSION" \\
-              -Dtest.config.remote=true \\
-              -Dtest.config.commit.sha="\$CI_COMMIT_SHA" \\
-              -Dfile.encoding=UTF-8
-        after_script:
-          - |
-            echo "start time: \$CI_JOB_STARTED_AT"
-            export END_DATE=\$(date)
-            echo "end time: \$END_DATE"
-            echo "DEVICE_NAME: \$DEVICE_NAME"
-            echo "PLATFORM_VERSION: \$PLATFORM_VERSION"
-            mkdir -p "\$CI_PROJECT_DIR/uiautomation/device-data"
-            echo "{\\"status\\": \\"\$CI_JOB_STATUS\\", \\"device_name\\": \\"\$DEVICE_NAME\\", \\"platform_version\\": \\"\$PLATFORM_VERSION\\", \\"start_date\\": \\"\$CI_JOB_STARTED_AT\\", \\"end_date\\": \\"\$END_DATE\\"}" > "\$CI_PROJECT_DIR/uiautomation/device-data/\${DEVICE_NAME}_\${PLATFORM_VERSION}.json"
-        variables:
-          APP_ID: "${APP_IDENTIFIER}"
-          PLATFORM_NAME: "Android"
-        allow_failure: true
-        artifacts:
-          name: uiautomation
-          when: always
-          paths:
-            - uiautomation/build/test-results/**/*.xml
-            - uiautomation/build/allure-results
-            - uiautomation/build/reports
-            - uiautomation/device-data
-      EOT
-
-      while IFS="|" read -r DEVICE_NAME PLATFORM_VERSION; do
-        JOB_NAME=$(echo "$DEVICE_NAME" | tr ' ' '_')
-
-        cat <<EOT >> test-all-android-devices.yml
-
-      run-$JOB_NAME$PLATFORM_VERSION:
-        extends: .run-automation-test-ont
-        variables:
-          DEVICE_NAME: "$DEVICE_NAME"
-          PLATFORM_VERSION: "$PLATFORM_VERSION"
-      EOT
-      done <<< "$TEST_SETS"
-
-      echo "Generated test-all-android-devices.yml:"
-      cat test-all-android-devices.yml
+      optional: true
+  script:
+    - START_TIME=$(date -u -d "-1 minute" "+%Y-%m-%d %H:%M:%S")
+    - echo "Performance test starting, query range begins at $START_TIME"
+    - wallet_core/tests_integration/run_performance_test.sh --skip-build 25
+    - END_TIME=$(date -u -d "+1 minute" "+%Y-%m-%d %H:%M:%S")
+    - echo "Performance test completed, query range ends at $END_TIME"
+    - echo "START_TIME=$START_TIME" > perf-test-timeframe.txt
+    - echo "END_TIME=$END_TIME" >> perf-test-timeframe.txt
   artifacts:
-    name: browserstack-all-devices
     paths:
-      - test-all-android-devices.yml
-    expire_in: 1 hour
+      - perf-test-timeframe.txt
+    when: on_success
+  allow_failure: true
 
-run-pipeline-for-running-test-on-all-browserstack-androids:
+retrieve-performance-test-results-ont:
+  extends: .env-k8s
   rules:
-    - !reference [ .default-branch, rules ]
+    - !reference [.on-schedule-nightly-performance-test, rules]
   needs:
-    - job: create-pipeline-for-running-test-on-all-browserstack-androids
+    - job: run-performance-test-ont
       artifacts: true
-  trigger:
-    include:
-      - artifact: test-all-android-devices.yml
-        job: create-pipeline-for-running-test-on-all-browserstack-androids
-    strategy: depend
+  before_script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip3 install --no-cache-dir --upgrade pip
+    - pip3 install --no-cache-dir -r deploy/qa-util/requirements.txt
+  script:
+    - START_TIME=$(grep START_TIME perf-test-timeframe.txt | cut -d'=' -f2-)
+    - END_TIME=$(grep END_TIME perf-test-timeframe.txt | cut -d'=' -f2-)
+    - echo "Using START_TIME=${START_TIME} and END_TIME=${END_TIME}"
+    - |
+      python3 deploy/qa-util/generate-k6-summary-from-grafana.py \
+        --grafana-url "${SP_GRAFANA_TEST_API_URL}" \
+        --api-token "${SP_GRAFANA_TEST_API_KEY}" \
+        --start-time "$START_TIME" \
+        --end-time "$END_TIME" \
+        --output-file k6-summary.json
+  after_script:
+    - deploy/bin/store-artifact.sh k6-summary.json qt/quality-time/performance-results/k6-summary.json
+  artifacts:
+    paths:
+      - k6-summary.json
+    when: on_success
+  variables:
+    TESTS:
+
+extract-manual-test-set:
+  rules: !reference [.default-branch, rules]
+  script:
+    - ./deploy/qa-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
+  when: manual
+  allow_failure: true
+  artifacts:
+    name: manual-test-set
+    when: always
+    paths:
+      - manual-test-set.md
+
+ltc-coverage-check:
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  before_script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip3 install --no-cache-dir --upgrade pip
+  script:
+    - python3 deploy/qa-util/traceability-check.py

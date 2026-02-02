@@ -12,15 +12,24 @@ import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
+import 'package:wallet/src/data/repository/notification/notification_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
+import 'package:wallet/src/data/repository/pin/pin_repository.dart';
+import 'package:wallet/src/data/repository/revocation/revocation_code_repository.dart';
 import 'package:wallet/src/data/repository/tour/tour_repository.dart';
 import 'package:wallet/src/data/repository/transfer/transfer_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
+import 'package:wallet/src/data/service/announcement_service.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
+import 'package:wallet/src/data/service/auto_lock_service.dart';
+import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
+import 'package:wallet/src/data/store/notification_settings_store.dart';
+import 'package:wallet/src/data/store/revocation_code_store.dart';
+import 'package:wallet/src/domain/app_event/app_event_listener.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
@@ -46,9 +55,15 @@ import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart'
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
-import 'package:wallet/src/domain/usecase/permission/check_has_permission_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart';
+import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart';
+import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart';
@@ -61,24 +76,33 @@ import 'package:wallet/src/domain/usecase/pin/create_pin_recovery_url_usecase.da
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart';
+import 'package:wallet/src/domain/usecase/revocation/get_registration_revocation_code_usecase.dart';
+import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_saved_usecase.dart';
+import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_usecase.dart';
+import 'package:wallet/src/domain/usecase/revocation/set_revocation_code_saved_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart';
 import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart';
 import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart';
 import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart';
-import 'package:wallet/src/domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
-import 'package:wallet/src/domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
+import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import 'package:wallet/src/domain/usecase/transfer/observe_transfer_session_state_usecase.dart';
+import 'package:wallet/src/domain/usecase/transfer/pair_wallet_transfer_usecase.dart';
+import 'package:wallet/src/domain/usecase/transfer/receive_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/get_wallet_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/move_to_ready_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
@@ -113,6 +137,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<PidRepository>()])
 @GenerateNiceMocks([MockSpec<DisclosureRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
+@GenerateNiceMocks([MockSpec<PinRepository>()])
 @GenerateNiceMocks([MockSpec<WalletCardRepository>()])
 @GenerateNiceMocks([MockSpec<WalletEventRepository>()])
 @GenerateNiceMocks([MockSpec<ConfigurationRepository>()])
@@ -122,6 +147,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<TourRepository>()])
 @GenerateNiceMocks([MockSpec<IssuanceRepository>()])
 @GenerateNiceMocks([MockSpec<TransferRepository>()])
+@GenerateNiceMocks([MockSpec<NotificationRepository>()])
+@GenerateNiceMocks([MockSpec<RevocationRepository>()])
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 @GenerateNiceMocks([MockSpec<NavigationService>()])
@@ -129,6 +156,12 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ActiveLocaleProvider>()])
 @GenerateNiceMocks([MockSpec<BiometricUnlockManager>()])
 @GenerateNiceMocks([MockSpec<SemanticsEventService>()])
+@GenerateNiceMocks([MockSpec<AppEventCoordinator>()])
+@GenerateNiceMocks([MockSpec<AppEventListener>()])
+@GenerateNiceMocks([MockSpec<AutoLockService>()])
+@GenerateNiceMocks([MockSpec<AnnouncementService>()])
+@GenerateNiceMocks([MockSpec<NotificationSettingsStore>()])
+@GenerateNiceMocks([MockSpec<RevocationCodeStore>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])
@@ -169,7 +202,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<LockWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<DiscloseForIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<DecodeQrUseCase>()])
-@GenerateNiceMocks([MockSpec<CheckHasPermissionUseCase>()])
+@GenerateNiceMocks([MockSpec<RequestPermissionUseCase>()])
 @GenerateNiceMocks([MockSpec<ChangePinUseCase>()])
 @GenerateNiceMocks([MockSpec<GetAvailableBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<SetBiometricsUseCase>()])
@@ -182,16 +215,31 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<FetchTourVideosUseCase>()])
 @GenerateNiceMocks([MockSpec<GetPidRenewalUrlUseCase>()])
 @GenerateNiceMocks([MockSpec<GetPidCardsUseCase>()])
+@GenerateNiceMocks([MockSpec<ConfirmWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<StartWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelWalletTransferUseCase>()])
-@GenerateNiceMocks([MockSpec<AcknowledgeWalletTransferUseCase>()])
-@GenerateNiceMocks([MockSpec<GetWalletTransferStatusUseCase>()])
+@GenerateNiceMocks([MockSpec<PairWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveTransferSessionStateUseCase>()])
 @GenerateNiceMocks([MockSpec<InitWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<SkipWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<CreatePinRecoveryRedirectUriUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelPinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
+@GenerateNiceMocks([MockSpec<GetWalletStateUseCase>()])
+@GenerateNiceMocks([MockSpec<ReceiveWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<IsWalletRegisteredAndUnlockedUseCase>()])
+@GenerateNiceMocks([MockSpec<CheckPermissionUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveDashboardNotificationsUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveOsNotificationsUseCase>()])
+@GenerateNiceMocks([MockSpec<CheckIsPidUseCase>()])
+@GenerateNiceMocks([MockSpec<MoveToReadyStateUseCase>()])
+@GenerateNiceMocks([MockSpec<ObservePushNotificationsSettingUseCase>()])
+@GenerateNiceMocks([MockSpec<SetPushNotificationsSettingUseCase>()])
+@GenerateNiceMocks([MockSpec<GetRevocationCodeSavedUseCase>()])
+@GenerateNiceMocks([MockSpec<SetRevocationCodeSavedUseCase>()])
+@GenerateNiceMocks([MockSpec<GetRevocationCodeUseCase>()])
+@GenerateNiceMocks([MockSpec<GetRegistrationRevocationCodeUseCase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants
@@ -266,7 +314,7 @@ class Mocks {
     sl.registerFactory<LockWalletUseCase>(MockLockWalletUseCase.new);
     sl.registerFactory<DiscloseForIssuanceUseCase>(MockDiscloseForIssuanceUseCase.new);
     sl.registerFactory<DecodeQrUseCase>(MockDecodeQrUseCase.new);
-    sl.registerFactory<CheckHasPermissionUseCase>(MockCheckHasPermissionUseCase.new);
+    sl.registerFactory<RequestPermissionUseCase>(MockRequestPermissionUseCase.new);
     sl.registerFactory<ChangePinUseCase>(MockChangePinUseCase.new);
     sl.registerFactory<GetAvailableBiometricsUseCase>(MockGetAvailableBiometricsUseCase.new);
     sl.registerFactory<SetBiometricsUseCase>(MockSetBiometricsUseCase.new);
@@ -292,7 +340,9 @@ class Mocks {
             idleWarningTimeout: Duration(minutes: 1),
             backgroundLockTimeout: Duration(minutes: 1),
             staticAssetsBaseUrl: 'https://example.com/',
-            version: 1,
+            pidAttestationTypes: ['com.example.attestationType'],
+            version: '1',
+            environment: 'test',
           ),
         ),
       );

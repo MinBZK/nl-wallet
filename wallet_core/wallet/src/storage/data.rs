@@ -2,9 +2,11 @@ use josekit::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_with::DisplayFromStr;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use wallet_account::RevocationCode;
 use wallet_account::messages::registration::WalletCertificate;
 
 use crate::pin::change::State;
@@ -27,6 +29,8 @@ pub struct RegistrationData {
     #[serde_as(as = "Base64")]
     pub pin_salt: Vec<u8>,
     pub wallet_id: String,
+    #[serde_as(as = "DisplayFromStr")]
+    pub revocation_code: RevocationCode,
     pub wallet_certificate: WalletCertificate,
 }
 
@@ -74,6 +78,9 @@ pub enum TransferKeyData {
     Destination { private_key: Jwk },
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PinRecoveryData;
+
 impl KeyedData for KeyData {
     const KEY: &'static str = "key";
 }
@@ -96,4 +103,15 @@ impl KeyedData for ChangePinData {
 
 impl KeyedData for TransferData {
     const KEY: &'static str = "transfer_data";
+}
+
+impl KeyedData for PinRecoveryData {
+    const KEY: &'static str = "pin_recovery";
+}
+
+#[cfg(test)]
+impl From<State> for ChangePinData {
+    fn from(source: State) -> Self {
+        ChangePinData { state: source }
+    }
 }

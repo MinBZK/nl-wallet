@@ -4,14 +4,20 @@ use derive_more::Debug;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
+use crypto::p256_der::verifying_key_sha256;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_account::messages::transfer::TransferSessionState;
 
+use crate::model::QueryResult;
+
 pub type WalletId = String;
+pub type WalletUserQueryResult = QueryResult<WalletUser>;
 
 #[derive(Debug)]
 pub struct WalletUser {
@@ -28,7 +34,15 @@ pub struct WalletUser {
     pub instruction_sequence_number: u64,
     pub attestation: WalletUserAttestation,
     pub state: WalletUserState,
+    pub revocation_code_hmac: Vec<u8>,
+    pub revocation_registration: Option<RevocationRegistration>,
     pub recovery_code: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct RevocationRegistration {
+    pub reason: RevocationReason,
+    pub date_time: DateTime<Utc>,
 }
 
 #[derive(Debug)]
@@ -72,12 +86,6 @@ pub struct InstructionChallenge {
 }
 
 #[derive(Debug)]
-pub enum WalletUserQueryResult {
-    Found(Box<WalletUser>),
-    NotFound,
-}
-
-#[derive(Debug)]
 pub struct WalletUserCreate {
     pub wallet_id: String,
     pub hw_pubkey: VerifyingKey,
@@ -85,6 +93,7 @@ pub struct WalletUserCreate {
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     pub attestation_date_time: DateTime<Utc>,
     pub attestation: WalletUserAttestationCreate,
+    pub revocation_code_hmac: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
@@ -95,6 +104,7 @@ pub enum WalletUserState {
     RecoveringPin,
     Transferring,
     Transferred,
+    Revoked,
 }
 
 #[derive(Debug)]
@@ -112,14 +122,43 @@ pub enum WalletUserAttestationCreate {
 #[derive(Clone)]
 pub struct WalletUserKeys {
     pub wallet_user_id: Uuid,
+    pub batch_id: Uuid,
     pub keys: Vec<WalletUserKey>,
 }
 
 #[derive(Clone)]
 pub struct WalletUserKey {
     pub wallet_user_key_id: Uuid,
-    pub key_identifier: String,
     pub key: WrappedKey,
+    pub is_blocked: bool,
+}
+
+impl WalletUserKey {
+    pub fn sha256_fingerprint(&self) -> String {
+        verifying_key_sha256(self.key.public_key())
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    SerializeDisplay,
+    DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
+    strum::EnumIter,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum RevocationReason {
+    // upon the explicit request of the User
+    UserRequest,
+    // can have several reasons
+    AdminRequest,
+    // the security of the Wallet Solution is breached or compromised
+    WalletSolutionCompromised,
 }
 
 #[cfg(feature = "mock")]
@@ -157,6 +196,8 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_sequence_number: 0,
             attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
+            revocation_code_hmac: random_bytes(32),
+            revocation_registration: None,
             recovery_code: None,
         }
     }

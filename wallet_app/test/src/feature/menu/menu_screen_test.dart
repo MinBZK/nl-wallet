@@ -1,8 +1,10 @@
 import 'dart:ui';
 
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
+import 'package:wallet/src/feature/menu/bloc/menu_bloc.dart';
 import 'package:wallet/src/feature/menu/menu_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -10,11 +12,16 @@ import '../../mocks/wallet_mocks.mocks.dart';
 import '../../test_util/golden_utils.dart';
 import '../../test_util/test_utils.dart';
 
+class MockMenuBloc extends MockBloc<MenuEvent, MenuState> implements MenuBloc {}
+
 void main() {
   group('goldens', () {
-    testGoldens('light', (tester) async {
+    testGoldens('ltc26 light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const MenuScreen(),
+        const MenuScreen().withState<MenuBloc, MenuState>(
+          MockMenuBloc(),
+          const MenuInitial(),
+        ),
         providers: [
           Provider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
         ],
@@ -23,23 +30,30 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('dark', (tester) async {
+    testGoldens('ltc26 dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const MenuScreen(),
+        const MenuScreen().withState<MenuBloc, MenuState>(
+          MockMenuBloc(),
+          const MenuInitial(),
+        ),
         brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
         providers: [
           Provider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
         ],
       );
 
-      await screenMatchesGolden('dark');
+      await screenMatchesGolden('dark.landscape');
     });
   });
 
   group('widgets', () {
-    testWidgets('expected menu items are visible', (WidgetTester tester) async {
+    testWidgets('ltc26 expected menu items are visible', (WidgetTester tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const MenuScreen(showDesignSystemRow: true),
+        const MenuScreen(showDesignSystemRow: true).withState<MenuBloc, MenuState>(
+          MockMenuBloc(),
+          const MenuInitial(),
+        ),
         providers: [
           Provider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
         ],
@@ -56,9 +70,12 @@ void main() {
       expect(find.text(l10n.menuScreenDesignCta), findsOneWidget);
     });
 
-    testWidgets('design system menu item is hidden when disabled', (WidgetTester tester) async {
+    testWidgets('ltc26 design system menu item is hidden when disabled', (WidgetTester tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const MenuScreen(showDesignSystemRow: false),
+        const MenuScreen(showDesignSystemRow: false).withState<MenuBloc, MenuState>(
+          MockMenuBloc(),
+          const MenuInitial(),
+        ),
         providers: [
           Provider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
         ],

@@ -27,19 +27,18 @@ class IssuanceInitial extends IssuanceState {
 }
 
 class IssuanceLoadInProgress extends IssuanceState {
+  const IssuanceLoadInProgress(this.stepperProgress);
+
   @override
   final FlowProgress? stepperProgress;
-
-  const IssuanceLoadInProgress(this.stepperProgress);
 }
 
 class IssuanceCheckOrganization extends IssuanceState {
-  final bool afterBackPressed;
-
   final Organization organization;
-  final Policy policy;
   final List<DiscloseCardRequest> cardRequests;
+  final Policy policy;
   final LocalizedText purpose;
+  final bool afterBackPressed;
 
   const IssuanceCheckOrganization({
     required this.organization,
@@ -48,15 +47,6 @@ class IssuanceCheckOrganization extends IssuanceState {
     required this.purpose,
     this.afterBackPressed = false,
   });
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kIssuanceSteps);
-
-  @override
-  bool get didGoBack => afterBackPressed;
-
-  @override
-  List<Object?> get props => [organization, policy, cardRequests, purpose, ...super.props];
 
   /// Returns a new [IssuanceCheckOrganization] with the updated request
   IssuanceCheckOrganization updateWith(DiscloseCardRequest updatedEntry) {
@@ -81,13 +71,20 @@ class IssuanceCheckOrganization extends IssuanceState {
       afterBackPressed: afterBackPressed ?? this.afterBackPressed,
     );
   }
+
+  @override
+  bool get didGoBack => afterBackPressed;
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [organization, policy, cardRequests, purpose, ...super.props];
 }
 
 class IssuanceMissingAttributes extends IssuanceState {
   final bool afterBackPressed;
-
   final Organization organization;
-
   final List<MissingAttribute> missingAttributes;
 
   const IssuanceMissingAttributes({
@@ -100,17 +97,25 @@ class IssuanceMissingAttributes extends IssuanceState {
   bool get didGoBack => afterBackPressed;
 
   @override
+  bool get showStopConfirmation => false;
+
+  @override
   List<Object?> get props => [organization, missingAttributes, ...super.props];
 }
 
 class IssuanceProvidePinForDisclosure extends IssuanceState {
-  const IssuanceProvidePinForDisclosure();
+  final List<int> selectedIndices;
+
+  const IssuanceProvidePinForDisclosure({required this.selectedIndices});
 
   @override
   bool get canGoBack => true;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [selectedIndices, ...super.props];
 }
 
 class IssuanceReviewCards extends IssuanceState {
@@ -131,9 +136,6 @@ class IssuanceReviewCards extends IssuanceState {
 
   final bool afterBackPressed;
 
-  @override
-  bool get didGoBack => afterBackPressed;
-
   const IssuanceReviewCards({required this.selectableCards, this.afterBackPressed = false});
 
   /// Create a IssuanceReviewCards state where all provided cards default to being selected
@@ -148,6 +150,9 @@ class IssuanceReviewCards extends IssuanceState {
     final updatedSelection = Map<WalletCard, bool>.from(selectableCards)..update(card, (selected) => !selected);
     return IssuanceReviewCards(selectableCards: updatedSelection);
   }
+
+  @override
+  bool get didGoBack => afterBackPressed;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps);
@@ -180,10 +185,10 @@ class IssuanceCompleted extends IssuanceState {
   FlowProgress get stepperProgress => const FlowProgress(currentStep: kIssuanceSteps, totalSteps: kIssuanceSteps);
 
   @override
-  List<Object?> get props => [addedCards, ...super.props];
+  bool get showStopConfirmation => false;
 
   @override
-  bool get showStopConfirmation => false;
+  List<Object?> get props => [addedCards, ...super.props];
 }
 
 class IssuanceStopped extends IssuanceState {
@@ -199,9 +204,6 @@ class IssuanceStopped extends IssuanceState {
 }
 
 class IssuanceGenericError extends IssuanceState implements ErrorState {
-  @override
-  final ApplicationError error;
-
   final String? returnUrl;
 
   const IssuanceGenericError({required this.error, this.returnUrl});
@@ -210,17 +212,20 @@ class IssuanceGenericError extends IssuanceState implements ErrorState {
   bool get showStopConfirmation => false;
 
   @override
+  final ApplicationError error;
+
+  @override
   List<Object?> get props => [...super.props, error, returnUrl];
 }
 
 class IssuanceExternalScannerError extends IssuanceState implements ErrorState {
-  @override
-  final ApplicationError error;
-
   const IssuanceExternalScannerError({required this.error});
 
   @override
   bool get showStopConfirmation => false;
+
+  @override
+  final ApplicationError error;
 
   @override
   List<Object?> get props => [...super.props, error];
@@ -239,35 +244,31 @@ class IssuanceNoCardsRetrieved extends IssuanceState {
 }
 
 class IssuanceNetworkError extends IssuanceState implements NetworkErrorState {
+  const IssuanceNetworkError({
+    required this.error,
+    required this.hasInternet,
+    this.statusCode,
+  });
+
   @override
-  final bool hasInternet;
+  bool get showStopConfirmation => false;
 
   @override
   final ApplicationError error;
 
   @override
-  final int? statusCode;
-
-  const IssuanceNetworkError({required this.error, required this.hasInternet, this.statusCode});
+  final bool hasInternet;
 
   @override
-  bool get showStopConfirmation => false;
+  final int? statusCode;
 
   @override
   List<Object?> get props => [...super.props, error, hasInternet, statusCode];
 }
 
 class IssuanceSessionExpired extends IssuanceState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  @override
-  bool get showStopConfirmation => false;
-
   final bool isCrossDevice;
-
   final bool canRetry;
-
   final String? returnUrl;
 
   const IssuanceSessionExpired({
@@ -278,6 +279,12 @@ class IssuanceSessionExpired extends IssuanceState implements ErrorState {
   });
 
   @override
+  bool get showStopConfirmation => false;
+
+  @override
+  final ApplicationError error;
+
+  @override
   List<Object?> get props => [error, canRetry, isCrossDevice, returnUrl, ...super.props];
 }
 
@@ -286,12 +293,6 @@ class IssuanceSessionCancelled extends IssuanceState implements ErrorState {
   final Organization? relyingParty;
   final String? returnUrl;
 
-  @override
-  final ApplicationError error;
-
-  @override
-  bool get showStopConfirmation => false;
-
   const IssuanceSessionCancelled({
     required this.error,
     this.relyingParty,
@@ -299,19 +300,28 @@ class IssuanceSessionCancelled extends IssuanceState implements ErrorState {
   });
 
   @override
+  bool get showStopConfirmation => false;
+
+  @override
+  final ApplicationError error;
+
+  @override
   List<Object?> get props => [error, relyingParty, returnUrl, ...super.props];
 }
 
 class IssuanceRelyingPartyError extends IssuanceState implements ErrorState {
-  @override
-  final ApplicationError error;
-
   final LocalizedText? organizationName;
+
+  const IssuanceRelyingPartyError({
+    required this.error,
+    this.organizationName,
+  });
 
   @override
   bool get showStopConfirmation => false;
 
-  const IssuanceRelyingPartyError({required this.error, this.organizationName});
+  @override
+  final ApplicationError error;
 
   @override
   List<Object?> get props => [error, organizationName, ...super.props];

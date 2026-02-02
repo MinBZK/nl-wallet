@@ -1,9 +1,12 @@
+import 'package:clock/clock.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/feature/common/widget/card/card_holograph.dart';
 import 'package:wallet/src/feature/common/widget/card/card_logo.dart';
 import 'package:wallet/src/feature/common/widget/card/mock_card_background.dart';
+import 'package:wallet/src/feature/common/widget/card/status/card_status_info_label.dart';
 import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
 import 'package:wallet/src/feature/common/widget/svg_or_image.dart';
 import 'package:wallet/src/theme/dark_wallet_theme.dart';
@@ -19,7 +22,7 @@ import '../../../../test_util/test_utils.dart';
 void _voidCallback() {}
 
 /// This test also (indirectly) verifies:
-/// [ShowDetailsCta], [CardLogo] and [CardHolograph]
+/// [ShowDetailsCta], [CardLogo], [CardHolograph] and [CardStatusInfoLabel]
 void main() {
   setUp(TestUtils.mockSensorsPlugin);
 
@@ -148,6 +151,97 @@ void main() {
         );
 
         await screenMatchesGolden('wallet_card_item/content');
+      },
+    );
+
+    testGoldens(
+      'Status is rendered - light',
+      (tester) async {
+        await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+          await tester.pumpWidgetWithAppWrapper(
+            Builder(
+              builder: (context) {
+                return Column(
+                  spacing: 16,
+                  children: WalletMockData.cardStatusList
+                      .mapIndexed(
+                        (index, status) => WalletCardItem.fromWalletCard(
+                          context,
+                          WalletMockData.card.copyWith(status: status),
+                          onPressed: index % 2 != 0 ? null : () => {},
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+            surfaceSize: const Size(330, 1444),
+          );
+
+          await screenMatchesGolden('wallet_card_item/status.light');
+        });
+      },
+    );
+
+    testGoldens(
+      'Status is rendered - dark',
+      (tester) async {
+        await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+          await tester.pumpWidgetWithAppWrapper(
+            brightness: Brightness.dark,
+            Builder(
+              builder: (context) {
+                return Column(
+                  spacing: 16,
+                  children: WalletMockData.cardStatusList
+                      .mapIndexed(
+                        (index, status) => WalletCardItem.fromWalletCard(
+                          context,
+                          WalletMockData.card.copyWith(status: status),
+                          onPressed: index % 2 != 0 ? null : () => {},
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+            surfaceSize: const Size(330, 1444),
+          );
+
+          await screenMatchesGolden('wallet_card_item/status.dark');
+        });
+      },
+    );
+
+    testGoldens(
+      'Status scaling is rendered',
+      (tester) async {
+        await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+          await tester.pumpWidgetWithAppWrapper(
+            Builder(
+              builder: (context) {
+                return MediaQuery(
+                  data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+                  child: Column(
+                    spacing: 16,
+                    children: WalletMockData.cardStatusList
+                        .mapIndexed(
+                          (index, status) => WalletCardItem.fromWalletCard(
+                            context,
+                            WalletMockData.card.copyWith(status: status),
+                            onPressed: () => {},
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+              },
+            ),
+            surfaceSize: const Size(330, 2200),
+          );
+
+          await screenMatchesGolden('wallet_card_item/status.scaling');
+        });
       },
     );
 

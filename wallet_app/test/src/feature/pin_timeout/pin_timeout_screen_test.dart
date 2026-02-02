@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
@@ -10,11 +11,11 @@ import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('PinTimeoutScreen light', (tester) async {
+    testGoldens('ltc48 PinTimeoutScreen light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            final expiryTime = clock.now().add(const Duration(seconds: 15, milliseconds: 500));
             return PinTimeoutScreen(expiryTime: expiryTime);
           },
         ),
@@ -22,11 +23,11 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('PinTimeoutScreen light - landscape', (tester) async {
+    testGoldens('ltc48 PinTimeoutScreen light - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            final expiryTime = clock.now().add(const Duration(seconds: 15, milliseconds: 500));
             return PinTimeoutScreen(expiryTime: expiryTime);
           },
         ),
@@ -35,11 +36,11 @@ void main() {
       await screenMatchesGolden('light.landscape');
     });
 
-    testGoldens('PinTimeoutScreen dark', (tester) async {
+    testGoldens('ltc48 PinTimeoutScreen dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            final expiryTime = clock.now().add(const Duration(seconds: 15, milliseconds: 500));
             return PinTimeoutScreen(expiryTime: expiryTime);
           },
         ),
@@ -50,10 +51,10 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('verify PinTimeoutScreen renders expected text', (tester) async {
+    testWidgets('ltc48 verify PinTimeoutScreen renders expected text', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         PinTimeoutScreen(
-          expiryTime: DateTime.now().add(const Duration(seconds: 5)),
+          expiryTime: clock.now().add(const Duration(seconds: 5)),
         ),
       );
 
@@ -65,13 +66,13 @@ void main() {
       expect(ctaFinder, findsOneWidget);
     });
 
-    testWidgets('verify onExpire is called', (tester) async {
+    testWidgets('ltc48 verify onExpire is called', (tester) async {
       bool isCalled = false;
 
       // Provide an expiryTime in the past, causing the callback to trigger asap
       await tester.pumpWidgetWithAppWrapper(
         PinTimeoutScreen(
-          expiryTime: DateTime.now().subtract(const Duration(seconds: 1)),
+          expiryTime: clock.now().subtract(const Duration(seconds: 1)),
           onExpire: () => isCalled = true,
         ),
       );

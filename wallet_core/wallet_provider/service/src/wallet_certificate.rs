@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
@@ -13,8 +11,8 @@ use jwt::EcdsaDecodingKey;
 use jwt::SignedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUser;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -87,24 +85,22 @@ where
     tx.commit().await?;
 
     match user_result {
-        WalletUserQueryResult::NotFound => {
+        QueryResult::NotFound => {
             debug!("No user found for the provided certificate: {}", &claims.wallet_id);
             Err(WalletCertificateError::UserNotRegistered)
         }
-        WalletUserQueryResult::Found(user_boxed)
-            if !include_blocked && matches!(user_boxed.state, WalletUserState::Blocked) =>
-        {
+        QueryResult::Found(user_boxed) if !include_blocked && matches!(user_boxed.state, WalletUserState::Blocked) => {
             debug!("User found for the provided certificate is blocked");
             Err(WalletCertificateError::UserBlocked)
         }
-        WalletUserQueryResult::Found(user_boxed) => {
+        QueryResult::Found(user_boxed) => {
             let user = *user_boxed;
             Ok((user, claims))
         }
     }
 }
 
-/// Specifies a PIN public key and what validations to do with it.
+/// Specifies which validations to do with with a PIN public key.
 #[derive(Clone)]
 pub enum PinKeyChecks {
     /// Verify the ECDSA signature over the instruction set with the PIN public key,
@@ -159,13 +155,13 @@ where
 /// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the (verified) wallet
 ///   certificate
 /// - Return the [`WalletUser`].
-pub async fn verify_wallet_certificate<T, R, H, F>(
+pub async fn verify_wallet_certificate<T, R, H, F, S>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinCheckOptions,
     pin_pubkey: F,
-    user_state: &UserState<R, H, impl WuaIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer, S>,
 ) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
 where
     T: Committable,
@@ -236,12 +232,11 @@ async fn sign_pin_pubkey<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_bts = pubkey
+    let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?
-        .to_vec();
+        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
 
-    let signature = hsm.sign_hmac(key_identifier, Arc::new(pin_pubkey_bts)).await?;
+    let signature = hsm.sign_hmac(key_identifier, pin_pubkey.as_bytes()).await?;
 
     Ok(signature)
 }
@@ -255,12 +250,11 @@ async fn verify_pin_pubkey<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_bts = pubkey
+    let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?
-        .to_vec();
+        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
 
-    hsm.verify_hmac(key_identifier, Arc::new(pin_pubkey_bts), pin_pubkey_hash)
+    hsm.verify_hmac(key_identifier, pin_pubkey.as_bytes(), pin_pubkey_hash)
         .await?;
 
     Ok(())
@@ -268,9 +262,9 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
 
     use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
@@ -282,11 +276,15 @@ pub mod mock {
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
         "pin_public_disclosure_protection_key_identifier_1";
     pub const ENCRYPTION_KEY_IDENTIFIER: &str = "encryption_key_1";
+    pub const REVOCATION_CODE_KEY_IDENTIFIER: &str = "revocation_code_key_identifier_1";
 
     pub async fn setup_hsm() -> MockPkcs11Client<HsmError> {
         let hsm = MockPkcs11Client::default();
         hsm.generate_generic_secret_key(SIGNING_KEY_IDENTIFIER).await.unwrap();
         hsm.generate_generic_secret_key(PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER)
+            .await
+            .unwrap();
+        hsm.generate_generic_secret_key(REVOCATION_CODE_KEY_IDENTIFIER)
             .await
             .unwrap();
         hsm
@@ -330,15 +328,17 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
 
+    use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -361,7 +361,7 @@ mod tests {
         hw_pubkey: VerifyingKey,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
         hsm: MockPkcs11Client<HsmError>,
-    ) -> UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer> {
+    ) -> UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
         user_state(
             WalletUserTestRepo {
                 hw_pubkey,
@@ -371,11 +371,12 @@ mod tests {
                 instruction_sequence_number: 42,
                 apple_assertion_counter: None,
                 state: WalletUserState::Active,
-                transfer_session: None,
+                revocation_code_hmac: random_bytes(32),
             },
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
             vec![],
+            MockStatusListService::default(),
         )
     }
 

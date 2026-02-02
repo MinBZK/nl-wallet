@@ -1,7 +1,8 @@
 use serde::Deserialize;
 
 use attestation_data::attributes::Attributes;
-use attestation_data::disclosure::ValidityInfo;
+use attestation_data::validity::IssuanceValidity;
+use attestation_types::qualification::AttestationQualification;
 use dcql::CredentialQueryIdentifier;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
@@ -17,10 +18,11 @@ pub struct DemoDisclosedAttestation {
     pub attributes: Attributes,
     pub format: Format,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
 
     /// The issuer CA's common name
     pub ca: String,
-    pub validity_info: ValidityInfo,
+    pub issuance_validity: IssuanceValidity,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -39,14 +41,16 @@ impl MayHaveUniqueId for DemoDisclosedAttestations {
 
 #[cfg(test)]
 mod test {
+    use chrono::DateTime;
     use indexmap::IndexMap;
-
-    use serde_with::chrono::DateTime;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use token_status_list::verification::verifier::RevocationStatus;
 
     use super::*;
 
@@ -54,9 +58,9 @@ mod test {
     fn test_deserialize_disclosed_attestations() {
         let attestations = vec![
             DisclosedAttestation {
-                attestation_type: "urn:eudi:pid:nl:1".to_string(),
+                attestation_type: PID_ATTESTATION_TYPE.to_string(),
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::from_iter(vec![(
-                    "urn:eudi:pid:nl:1".to_string(),
+                    PID_ATTESTATION_TYPE.to_string(),
                     IndexMap::from_iter(vec![
                         ("bsn".to_string(), AttributeValue::Text("999991772".to_string())),
                         ("birthdate".to_string(), AttributeValue::Text("2000-03-24".to_string())),
@@ -65,15 +69,17 @@ mod test {
                     ]),
                 )])),
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
-                validity_info: ValidityInfo {
-                    signed: DateTime::UNIX_EPOCH,
-                    valid_from: Some(DateTime::UNIX_EPOCH),
-                    valid_until: Some(DateTime::UNIX_EPOCH),
-                },
+                issuance_validity: IssuanceValidity::new(
+                    DateTime::UNIX_EPOCH,
+                    Some(DateTime::UNIX_EPOCH),
+                    Some(DateTime::UNIX_EPOCH),
+                ),
+                revocation_status: Some(RevocationStatus::Valid),
             },
             DisclosedAttestation {
-                attestation_type: "urn:eudi:pid-address:nl:1".to_string(),
+                attestation_type: ADDRESS_ATTESTATION_TYPE.to_string(),
                 attributes: DisclosedAttributes::SdJwt(
                     IndexMap::from_iter(vec![(
                         "address".to_string(),
@@ -95,12 +101,14 @@ mod test {
                     .into(),
                 ),
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
-                validity_info: ValidityInfo {
-                    signed: DateTime::UNIX_EPOCH,
-                    valid_from: Some(DateTime::UNIX_EPOCH),
-                    valid_until: Some(DateTime::UNIX_EPOCH),
-                },
+                issuance_validity: IssuanceValidity::new(
+                    DateTime::UNIX_EPOCH,
+                    Some(DateTime::UNIX_EPOCH),
+                    Some(DateTime::UNIX_EPOCH),
+                ),
+                revocation_status: Some(RevocationStatus::Valid),
             },
         ];
 

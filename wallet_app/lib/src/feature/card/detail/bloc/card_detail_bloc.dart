@@ -4,11 +4,11 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:wallet_mock/mock.dart';
 
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/wallet_card_detail.dart';
 import '../../../../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
+import '../../../../domain/usecase/pid/check_is_pid.dart';
 
 part 'card_detail_event.dart';
 part 'card_detail_state.dart';
@@ -19,6 +19,7 @@ const _kMaxEntryTransitionDuration = Duration(seconds: 5);
 
 class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
   final ObserveWalletCardDetailUseCase _observeWalletCardDetailUseCase;
+  final CheckIsPidUseCase _checkIsPidUseCase;
   final Completer<bool> _entryTransitionCompleted = Completer();
 
   /// Fetch the attestationId associated to the bloc's current state.
@@ -36,7 +37,7 @@ class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
     }
   }
 
-  CardDetailBloc(this._observeWalletCardDetailUseCase, WalletCard? preloadedCard)
+  CardDetailBloc(this._observeWalletCardDetailUseCase, this._checkIsPidUseCase, WalletCard? preloadedCard)
     : super(preloadedCard == null ? CardDetailInitial() : CardDetailLoadInProgress(card: preloadedCard)) {
     on<CardDetailLoadTriggered>(_onCardDetailLoadTriggered);
   }
@@ -51,9 +52,12 @@ class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
     await emit.forEach(
       _observeWalletCardDetailUseCase
           .invoke(event.attestationId)
+          .asyncMap((cardDetail) async {
+            final isPidResult = await _checkIsPidUseCase.invoke(cardDetail.card);
+            return CardDetailLoadSuccess(cardDetail, isPidCard: isPidResult.value ?? false);
+          })
           .debounce((_) => Stream.fromFuture(_entryTransitionCompleted.future.timeout(_kMaxEntryTransitionDuration))),
-      // ignore: unnecessary_lambdas, not actually unnecessary due to expected signature
-      onData: (data) => CardDetailLoadSuccess(data, showRenewOption: _isCardRenewable(data)),
+      onData: (state) => state as CardDetailLoadSuccess,
       onError: (ex, stack) {
         //Note: when providing onError like this the subscription is not cancelled on errors
         Fimber.e('Failed to observe card detail', ex: ex, stacktrace: stack);
@@ -61,10 +65,6 @@ class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
       },
     );
   }
-
-  // FIXME: This logic is to be implemented in the future, see PVW-4586 / PVW-4619
-  bool _isCardRenewable(WalletCardDetail data) =>
-      [MockAttestationTypes.pid, MockAttestationTypes.address].contains(data.card.attestationType);
 
   void notifyEntryTransitionCompleted() {
     if (!_entryTransitionCompleted.isCompleted) _entryTransitionCompleted.complete(true);

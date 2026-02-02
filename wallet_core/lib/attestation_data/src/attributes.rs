@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::num::TryFromIntError;
 
 use derive_more::AsRef;
@@ -7,10 +8,15 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Number;
 
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
+use sd_jwt::claims::ArrayClaim;
+use sd_jwt::claims::ClaimNameError;
+use sd_jwt::claims::ClaimValue;
+use sd_jwt::claims::ObjectClaims;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -31,7 +37,13 @@ pub enum AttributeError {
     FromCborConversion(Box<ciborium::Value>),
 
     #[error("unable to convert number to cbor: {0}")]
-    NumberToCborConversion(#[from] TryFromIntError),
+    NumberFromCborConversion(#[from] TryFromIntError),
+
+    #[error("unable to convert claim value: {0:?}")]
+    FromClaimValueConversion(ClaimValue),
+
+    #[error("unable to convert number from claim value: {0}")]
+    NumberFromClaimValueConversion(Number),
 
     #[error("unable to convert json value: {0}")]
     FromJsonConversion(serde_json::Value),
@@ -42,8 +54,11 @@ pub enum AttributesError {
     #[error("attributes without claim: {0:?}")]
     AttributesWithoutClaim(Vec<Vec<String>>),
 
+    #[error("attribute error at: {0}")]
+    Attribute(#[from] AttributeError),
+
     #[error("attribute error at {0}: {1}")]
-    AttributeError(String, #[source] AttributeError),
+    AttributeAtPath(String, #[source] AttributeError),
 
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
@@ -57,6 +72,20 @@ impl From<AttributeValue> for ciborium::Value {
             AttributeValue::Text(text) => ciborium::Value::Text(text),
             AttributeValue::Null => ciborium::Value::Null,
             AttributeValue::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
+        }
+    }
+}
+
+impl From<AttributeValue> for ClaimValue {
+    fn from(value: AttributeValue) -> Self {
+        match value {
+            AttributeValue::Null => ClaimValue::Null,
+            AttributeValue::Integer(number) => ClaimValue::Number(number.into()),
+            AttributeValue::Bool(boolean) => ClaimValue::Bool(boolean),
+            AttributeValue::Text(text) => ClaimValue::String(text),
+            AttributeValue::Array(elements) => {
+                ClaimValue::Array(elements.into_iter().map(|e| ArrayClaim::Value(Self::from(e))).collect())
+            }
         }
     }
 }
@@ -78,57 +107,107 @@ impl TryFrom<ciborium::Value> for AttributeValue {
     }
 }
 
-impl TryFrom<serde_json::Value> for AttributeValue {
+impl TryFrom<ClaimValue> for AttributeValue {
     type Error = AttributeError;
 
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+    fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
         match value {
-            serde_json::Value::Null => Ok(AttributeValue::Null),
-            serde_json::Value::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            serde_json::Value::Number(number) => Ok(number
-                .as_i64()
-                .map(AttributeValue::Integer)
-                .ok_or_else(|| AttributeError::FromJsonConversion(serde_json::Value::Number(number)))?),
-            serde_json::Value::String(text) => Ok(AttributeValue::Text(text)),
-            serde_json::Value::Array(elements) => Ok(AttributeValue::Array(
-                elements.into_iter().map(Self::try_from).try_collect()?,
+            ClaimValue::Null => Ok(AttributeValue::Null),
+            ClaimValue::Number(number) => {
+                Ok(AttributeValue::Integer(number.as_i64().ok_or_else(|| {
+                    AttributeError::NumberFromClaimValueConversion(number)
+                })?))
+            }
+            ClaimValue::Bool(boolean) => Ok(AttributeValue::Bool(boolean)),
+            ClaimValue::String(text) => Ok(AttributeValue::Text(text)),
+            ClaimValue::Array(elements) => Ok(AttributeValue::Array(
+                elements
+                    .into_iter()
+                    .filter_map(|value| match value {
+                        ArrayClaim::Value(claim_value) => Some(claim_value.try_into()),
+                        _ => None, // ignore hashes in Arrays
+                    })
+                    .try_collect()?,
             )),
-            _ => Err(AttributeError::FromJsonConversion(value)),
+            // nested objects are handled at the Attribute level
+            _ => Err(AttributeError::FromClaimValueConversion(value)),
         }
     }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(any(test, feature = "test"), derive(derive_more::Unwrap))]
 #[serde(untagged)]
 pub enum Attribute {
     Single(AttributeValue),
     Nested(IndexMap<String, Attribute>),
 }
 
-impl TryFrom<serde_json::Value> for Attribute {
+impl TryFrom<Attribute> for ClaimValue {
+    type Error = ClaimNameError;
+
+    fn try_from(value: Attribute) -> Result<Self, Self::Error> {
+        match value {
+            Attribute::Single(attribute_value) => Ok(attribute_value.into()),
+            Attribute::Nested(index_map) => Ok(attributes_to_claim_value(index_map)?),
+        }
+    }
+}
+
+impl TryFrom<Attributes> for ClaimValue {
+    type Error = ClaimNameError;
+
+    fn try_from(value: Attributes) -> Result<Self, Self::Error> {
+        attributes_to_claim_value(value.0)
+    }
+}
+
+impl TryFrom<ClaimValue> for Attribute {
     type Error = AttributeError;
 
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+    fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
         match value {
-            serde_json::Value::Object(map) => {
-                let attributes = map
-                    .into_iter()
-                    .map(|(key, value)| {
-                        let attribute = Attribute::try_from(value)?;
-                        Ok((key, attribute))
-                    })
-                    .collect::<Result<_, AttributeError>>()?;
-
-                Ok(Attribute::Nested(attributes))
-            }
-            _ => Ok(Attribute::Single(AttributeValue::try_from(value)?)),
+            ClaimValue::Object(object_claims) => Ok(Attribute::Nested(object_claims_to_attributes(object_claims)?.0)),
+            _ => Ok(Attribute::Single(value.try_into()?)),
         }
     }
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
 pub struct Attributes(IndexMap<String, Attribute>);
+
+impl TryFrom<ObjectClaims> for Attributes {
+    type Error = AttributesError;
+
+    fn try_from(value: ObjectClaims) -> Result<Self, Self::Error> {
+        Ok(object_claims_to_attributes(value)?)
+    }
+}
+
+fn object_claims_to_attributes(object_claims: ObjectClaims) -> Result<Attributes, AttributeError> {
+    Ok(Attributes(
+        object_claims
+            .claims
+            .into_iter()
+            .map(|(k, v)| Ok((k.into_inner(), v.try_into()?)))
+            .collect::<Result<_, AttributeError>>()?,
+    ))
+}
+
+fn attributes_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
+    Ok(ClaimValue::Object(ObjectClaims {
+        _sd: None,
+        claims: attributes
+            .into_iter()
+            .map(|(k, v)| Ok((k.parse()?, v.try_into()?)))
+            .collect::<Result<_, ClaimNameError>>()?,
+    }))
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AttributesTraversalBehaviour {
+    AllPaths,
+    OnlyLeaves,
+}
 
 impl Attributes {
     pub fn into_inner(self) -> IndexMap<String, Attribute> {
@@ -258,7 +337,7 @@ impl Attributes {
             [head] => {
                 if let Some(entries) = attributes.get_mut(prefix) {
                     Self::insert_entry(head, entries, result)
-                        .map_err(|error| AttributesError::AttributeError(format!("{prefix}.{head}"), error))?;
+                        .map_err(|error| AttributesError::AttributeAtPath(format!("{prefix}.{head}"), error))?;
 
                     if entries.is_empty() {
                         attributes.swap_remove(prefix);
@@ -338,7 +417,7 @@ impl Attributes {
         result
     }
 
-    pub fn claim_paths(&self) -> Vec<VecNonEmpty<ClaimPath>> {
+    pub fn claim_paths(&self, behaviour: AttributesTraversalBehaviour) -> Vec<VecNonEmpty<ClaimPath>> {
         /// Recursive depth first traversal helper to collect all claim paths from nested attributes.
         ///
         /// Depth first is necessary because the SD-JWT conceal functionality for leaves doesn't work properly if the
@@ -351,6 +430,7 @@ impl Attributes {
             prefix: &[ClaimPath],
             attrs: &IndexMap<String, Attribute>,
             result: &mut Vec<VecNonEmpty<ClaimPath>>,
+            behaviour: AttributesTraversalBehaviour,
         ) {
             for (key, attr) in attrs {
                 let path = prefix
@@ -361,16 +441,21 @@ impl Attributes {
 
                 // If it's a nested attribute, recurse deeper first
                 if let Attribute::Nested(nested) = attr {
-                    traverse_depth_first(&path, nested, result);
+                    traverse_depth_first(&path, nested, result, behaviour);
                 }
 
-                // Push current path after children have been processed (post-order)
-                result.push(VecNonEmpty::try_from(path).unwrap());
+                match (attr, behaviour) {
+                    (Attribute::Nested(_), AttributesTraversalBehaviour::AllPaths) | (Attribute::Single(_), _) => {
+                        // Push current path after children have been processed (post-order)
+                        result.push(VecNonEmpty::try_from(path).unwrap());
+                    }
+                    (Attribute::Nested(_), AttributesTraversalBehaviour::OnlyLeaves) => {}
+                }
             }
         }
 
         let mut result = Vec::with_capacity(self.0.len());
-        traverse_depth_first(&[], self.as_ref(), &mut result);
+        traverse_depth_first(&[], self.as_ref(), &mut result, behaviour);
         result
     }
 
@@ -481,6 +566,40 @@ impl Attributes {
             }
         }
     }
+
+    /// Prune attributes from a tree by only keeping those specified by a list of claim paths.
+    pub fn prune<'a>(&mut self, keep_claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>) {
+        fn nested_prune(
+            path_prefix: &[&str],
+            attributes: &mut IndexMap<String, Attribute>,
+            keep_claim_paths: &HashSet<Vec<&str>>,
+        ) -> bool {
+            attributes.retain(|path_element, attribute| {
+                let path = path_prefix
+                    .iter()
+                    .copied()
+                    .chain(std::iter::once(path_element.as_str()))
+                    .collect_vec();
+
+                match attribute {
+                    Attribute::Single(_) => keep_claim_paths.contains(&path),
+                    Attribute::Nested(attributes) => nested_prune(&path, attributes, keep_claim_paths),
+                }
+            });
+
+            !attributes.is_empty()
+        }
+
+        // Only key claim paths are supported for now, so if any path contains
+        // an element that is not a key, filter out the entire path.
+        let keep_claim_paths = keep_claim_paths
+            .into_iter()
+            .flat_map(|path| path.iter().map(ClaimPath::try_key_path).collect::<Option<Vec<_>>>())
+            .collect::<HashSet<_>>();
+
+        let Self(attributes) = self;
+        nested_prune(&[], attributes, &keep_claim_paths);
+    }
 }
 
 #[derive(Debug, thiserror::Error, PartialEq)]
@@ -489,6 +608,98 @@ pub enum AttributesHandlingError {
     InvalidClaimPath,
     #[error("cannot insert claim: already exists")]
     ClaimAlreadyExists,
+}
+
+#[cfg(any(test, feature = "example_credential_payloads"))]
+mod examples {
+    use indexmap::IndexMap;
+
+    use attestation_types::claim_path::ClaimPath;
+    use itertools::Itertools;
+
+    use super::Attribute;
+    use super::AttributeValue;
+    use super::Attributes;
+
+    impl Attributes {
+        pub fn example<'a>(
+            attributes: impl IntoIterator<Item = (impl IntoIterator<Item = &'a str>, AttributeValue)>,
+        ) -> Self {
+            attributes
+                .into_iter()
+                .fold(Self::from(IndexMap::new()), |mut attributes, (path, value)| {
+                    let path = path
+                        .into_iter()
+                        .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                        .collect_vec()
+                        .try_into()
+                        .expect("path should consist of at least one path element");
+
+                    attributes
+                        .insert(&path, Attribute::Single(value))
+                        .expect("paths are inconsistent");
+
+                    attributes
+                })
+        }
+    }
+}
+
+#[cfg(feature = "mock")]
+mod mock {
+    use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+    use attestation_types::pid_constants::PID_AGE_OVER_18;
+    use attestation_types::pid_constants::PID_BIRTH_DATE;
+    use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_FAMILY_NAME;
+    use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
+    use attestation_types::pid_constants::PID_RESIDENT_CITY;
+    use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
+    use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+    use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+    use attestation_types::pid_constants::PID_RESIDENT_STREET;
+
+    use super::AttributeValue;
+    use super::Attributes;
+
+    impl Attributes {
+        pub fn nl_pid_example() -> Self {
+            Self::example([
+                ([PID_GIVEN_NAME], AttributeValue::Text("Willeke Liselotte".to_string())),
+                ([PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
+                ([PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
+                ([PID_AGE_OVER_18], AttributeValue::Bool(true)),
+                ([PID_BSN], AttributeValue::Text("999991772".to_string())),
+                ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+            ])
+        }
+
+        pub fn nl_pid_address_example() -> Self {
+            Self::example([
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
+                    AttributeValue::Text("Turfmarkt".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
+                    AttributeValue::Text("147".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+                    AttributeValue::Text("2511 DP".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
+                    AttributeValue::Text("Den Haag".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
+                    AttributeValue::Text("Nederland".to_string()),
+                ),
+            ])
+        }
+    }
 }
 
 #[cfg(test)]
@@ -504,12 +715,14 @@ pub mod test {
     use mdoc::NameSpace;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
-    use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
-    use crate::attributes::Attributes;
-    use crate::attributes::AttributesError;
-    use crate::attributes::AttributesHandlingError;
+    use super::Attribute;
+    use super::AttributeValue;
+    use super::Attributes;
+    use super::AttributesError;
+    use super::AttributesHandlingError;
+    use super::AttributesTraversalBehaviour;
 
     pub fn complex_attributes() -> IndexMap<String, Attribute> {
         IndexMap::from([
@@ -924,6 +1137,48 @@ pub mod test {
             .collect()
     }
 
+    #[rstest]
+    #[case(&[], IndexMap::new())]
+    #[case(
+        &[vec_nonempty![ClaimPath::SelectByKey("name".to_string())]],
+        IndexMap::from([(
+            "name".to_string(),
+            Attribute::Single(AttributeValue::Text("Wallet".to_string())),
+        )]),
+    )]
+    #[case(
+        &[
+            vec_nonempty![ClaimPath::SelectByKey("nothing".to_string())],
+            vec_nonempty![ClaimPath::SelectByKey("address".to_string()), ClaimPath::SelectByKey("street".to_string())],
+            vec_nonempty![ClaimPath::SelectAll],
+            vec_nonempty![ClaimPath::SelectByKey("country".to_string()), ClaimPath::SelectByKey("iso".to_string())],
+            vec_nonempty![ClaimPath::SelectByIndex(0)],
+            vec_nonempty![ClaimPath::SelectByKey("address".to_string()), ClaimPath::SelectByKey("state".to_string())],
+        ],
+        IndexMap::from([
+            (
+                "country".to_string(),
+                Attribute::Nested(IndexMap::from([
+                    ("iso".to_string(), Attribute::Single(AttributeValue::Text("NL".to_string()))),
+                ])),
+            ), (
+                "address".to_string(),
+                Attribute::Nested(IndexMap::from([
+                    ("street".to_string(), Attribute::Single(AttributeValue::Text("Gracht".to_string()))),
+                ])),
+            ),
+        ]),
+    )]
+    fn test_attributes_prune(
+        #[case] keep_claim_paths: &[VecNonEmpty<ClaimPath>],
+        #[case] expected_attributes: IndexMap<String, Attribute>,
+    ) {
+        let mut attributes = example_attributes();
+        attributes.prune(keep_claim_paths);
+
+        assert_eq!(*attributes.as_ref(), expected_attributes);
+    }
+
     #[test]
     fn test_attributes_to_mdoc_attributes() {
         let attributes = setup_issuable_attributes().to_mdoc_attributes("com.example.address");
@@ -1116,7 +1371,6 @@ pub mod test {
 
     mod test_claim_paths_from_attributes {
         use attestation_types::claim_path::ClaimPath;
-        use utils::vec_at_least::VecNonEmpty;
 
         use super::*;
 
@@ -1128,10 +1382,10 @@ pub mod test {
             )])
             .into();
 
-            let expected: Vec<VecNonEmpty<_>> =
-                vec![VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("a"))]).unwrap()];
+            let expected = vec![vec_nonempty![ClaimPath::SelectByKey(String::from("a"))]];
 
-            assert_eq!(result.claim_paths(), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::AllPaths), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::OnlyLeaves), expected);
         }
 
         #[test]
@@ -1160,75 +1414,123 @@ pub mod test {
             ])
             .into();
 
-            let expected: Vec<VecNonEmpty<_>> = vec![
-                vec![ClaimPath::SelectByKey(String::from("b"))],
-                vec![
+            let expected_all = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("b"))],
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("a")),
                     ClaimPath::SelectByKey(String::from("a1")),
                     ClaimPath::SelectByKey(String::from("a2")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("a")),
                     ClaimPath::SelectByKey(String::from("a1")),
                     ClaimPath::SelectByKey(String::from("a3")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("a")),
                     ClaimPath::SelectByKey(String::from("a1")),
                 ],
-                vec![ClaimPath::SelectByKey(String::from("a"))],
-            ]
-            .into_iter()
-            .map(|v| VecNonEmpty::try_from(v).unwrap())
-            .collect();
+                vec_nonempty![ClaimPath::SelectByKey(String::from("a"))],
+            ];
 
-            assert_eq!(result.claim_paths(), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::AllPaths), expected_all);
+
+            let expected_leaves = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("b"))],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("a1")),
+                    ClaimPath::SelectByKey(String::from("a2")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("a1")),
+                    ClaimPath::SelectByKey(String::from("a3")),
+                ],
+            ];
+
+            assert_eq!(
+                result.claim_paths(AttributesTraversalBehaviour::OnlyLeaves),
+                expected_leaves
+            );
         }
 
         #[test]
         fn test_complex() {
             let result: Attributes = complex_attributes().into();
 
-            let expected: Vec<VecNonEmpty<_>> = vec![
-                vec![ClaimPath::SelectByKey(String::from("birth_date"))],
-                vec![
+            let expected_all = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("birth_date"))],
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("locality")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("country")),
                     ClaimPath::SelectByKey(String::from("name")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("country")),
                     ClaimPath::SelectByKey(String::from("area_code")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("country")),
                 ],
-                vec![ClaimPath::SelectByKey(String::from("place_of_birth"))],
-                vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("place_of_birth"))],
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("financial")),
                     ClaimPath::SelectByKey(String::from("has_debt")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("financial")),
                     ClaimPath::SelectByKey(String::from("has_job")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("financial")),
                     ClaimPath::SelectByKey(String::from("debt_amount")),
                 ],
-                vec![ClaimPath::SelectByKey(String::from("financial"))],
-            ]
-            .into_iter()
-            .map(|v| VecNonEmpty::try_from(v).unwrap())
-            .collect();
+                vec_nonempty![ClaimPath::SelectByKey(String::from("financial"))],
+            ];
 
-            assert_eq!(result.claim_paths(), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::AllPaths), expected_all);
+
+            let expected_leaves = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("birth_date"))],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("locality")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("name")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("area_code")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_debt")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_job")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("debt_amount")),
+                ],
+            ];
+
+            assert_eq!(
+                result.claim_paths(AttributesTraversalBehaviour::OnlyLeaves),
+                expected_leaves
+            );
         }
     }
 }

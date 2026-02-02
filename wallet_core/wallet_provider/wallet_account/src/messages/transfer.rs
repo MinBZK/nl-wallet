@@ -5,8 +5,9 @@ use serde::Serialize;
 #[strum(serialize_all = "snake_case")]
 pub enum TransferSessionState {
     Created,
-    ReadyForTransfer,
-    ReadyForDownload,
+    Paired,
+    Confirmed,
+    Uploaded,
     Success,
     Canceled,
     Error,

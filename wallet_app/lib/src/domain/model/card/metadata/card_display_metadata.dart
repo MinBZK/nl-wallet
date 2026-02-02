@@ -1,34 +1,23 @@
 import 'dart:ui';
 
-import 'package:equatable/equatable.dart';
-import 'package:json_annotation/json_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../converter/card_rendering_converter.dart';
 import '../../converter/locale_converter.dart';
 import 'card_rendering.dart';
 
+part 'card_display_metadata.freezed.dart';
 part 'card_display_metadata.g.dart';
 
-@JsonSerializable(converters: [LocaleConverter(), CardRenderingConverter()], explicitToJson: true)
-class CardDisplayMetadata extends Equatable {
-  final Locale language;
-  final String name;
-  final String? description;
-  final String? rawSummary;
-  final CardRendering? rendering;
-
-  const CardDisplayMetadata({
-    required this.language,
-    required this.name,
-    this.description,
-    this.rawSummary,
-    this.rendering,
-  });
+@Freezed(copyWith: false)
+abstract class CardDisplayMetadata with _$CardDisplayMetadata {
+  const factory CardDisplayMetadata({
+    @LocaleConverter() required Locale language,
+    required String name,
+    String? description,
+    String? rawSummary,
+    @CardRenderingConverter() CardRendering? rendering,
+  }) = _CardDisplayMetadata;
 
   factory CardDisplayMetadata.fromJson(Map<String, dynamic> json) => _$CardDisplayMetadataFromJson(json);
-
-  Map<String, dynamic> toJson() => _$CardDisplayMetadataToJson(this);
-
-  @override
-  List<Object?> get props => [language, name, description, rawSummary, rendering];
 }

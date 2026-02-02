@@ -70,12 +70,12 @@ mod examples {
     use futures::FutureExt;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::holder::Mdoc;
-    use crate::test::data::PID;
 
     use super::PartialMdoc;
 
@@ -84,7 +84,7 @@ mod examples {
             .iter()
             .map(|attr| {
                 vec![
-                    ClaimPath::SelectByKey(PID.to_string()),
+                    ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
                     ClaimPath::SelectByKey(attr.to_string()),
                 ]
                 .try_into()

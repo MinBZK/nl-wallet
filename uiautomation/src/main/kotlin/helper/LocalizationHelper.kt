@@ -23,6 +23,7 @@ class LocalizationHelper {
     ) {
         SECONDS("seconden", "seconds"),
         ADD_CARD("Voeg kaart toe", "Add 1 card"),
+        ADD_2_CARDS("Voeg 2 kaarten toe", "Add 2 cards"),
         RENEW_CARD("Kaart vernieuwen", "Renew card"),
     }
 

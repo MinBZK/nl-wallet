@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::time::Duration;
 
+use chrono::Utc;
 use derive_more::Debug;
 use futures::FutureExt;
 use itertools::Itertools;
@@ -8,6 +10,7 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 
+use attestation_types::status_claim::StatusClaim;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -16,14 +19,13 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use jwt::SignedJwt;
-use jwt::credential::JwtCredentialClaims;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
 
 use crate::Poa;
 use crate::wscd::IssuanceResult;
-use crate::wscd::Wscd;
+use crate::wscd::IssuanceWscd;
 
 pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
@@ -66,11 +68,21 @@ impl MockRemoteWscd {
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
         Self::new_signing_keys(keys)
     }
+
+    pub fn create_random_key(&self) -> MockRemoteEcdsaKey {
+        self.disclosure.create_random_key()
+    }
 }
 
 impl Default for MockRemoteWscd {
     fn default() -> Self {
         Self::new_signing_keys(HashMap::new())
+    }
+}
+
+impl AsRef<DisclosureMockRemoteWscd> for MockRemoteWscd {
+    fn as_ref(&self) -> &DisclosureMockRemoteWscd {
+        &self.disclosure
     }
 }
 
@@ -112,7 +124,10 @@ impl DisclosureWscd for MockRemoteWscd {
     }
 }
 
-impl Wscd for MockRemoteWscd {
+impl IssuanceWscd for MockRemoteWscd {
+    type Error = MockRemoteWscdError;
+    type Poa = Poa;
+
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,
@@ -152,11 +167,15 @@ impl Wscd for MockRemoteWscd {
 
             // If no WUA signing key is configured, just use the WUA's private key to sign it
             let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.key);
-            let wua = JwtCredentialClaims::new_signed(
-                wua_key.verifying_key(),
+            let wua = SignedJwt::sign(
+                &WuaClaims::new(
+                    wua_key.verifying_key(),
+                    MOCK_WALLET_CLIENT_ID.to_string(),
+                    Utc::now() + Duration::from_secs(600),
+                    StatusClaim::new_mock(),
+                )
+                .unwrap(),
                 wua_signing_key,
-                MOCK_WALLET_CLIENT_ID.to_string(),
-                WuaClaims::new(),
             )
             .now_or_never()
             .unwrap()

@@ -20,17 +20,6 @@ void main() {
   setUp(() {
     startSignUseCase = MockStartSignUseCase();
     rejectSignAgreementUseCase = MockRejectSignAgreementUseCase();
-    provideDummy<Result<StartSignResult>>(
-      Result.success(
-        StartSignReadyToSign(
-          document: WalletMockData.document,
-          policy: WalletMockData.policy,
-          relyingParty: WalletMockData.organization,
-          trustProvider: WalletMockData.organization,
-          requestedCards: [],
-        ),
-      ),
-    );
   });
 
   test('initial state is correct', () {

@@ -6,7 +6,7 @@ part of 'organization.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
+_Organization _$OrganizationFromJson(Map<String, dynamic> json) => _Organization(
   id: json['id'] as String,
   legalName: const LocalizedTextConverter().fromJson(
     json['legalName'] as Map<String, dynamic>,
@@ -40,7 +40,7 @@ Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
 );
 
 Map<String, dynamic> _$OrganizationToJson(
-  Organization instance,
+  _Organization instance,
 ) => <String, dynamic>{
   'id': instance.id,
   'legalName': const LocalizedTextConverter().toJson(instance.legalName),

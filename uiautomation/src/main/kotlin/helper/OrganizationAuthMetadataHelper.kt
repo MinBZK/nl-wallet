@@ -33,12 +33,17 @@ class OrganizationAuthMetadataHelper {
     }
 
     private val universityIssuerAuthJSON: JSONObject by lazy {
-        val jsonContent = File(UNIVERSITY_READER_AUTH_JSON_FILE_PATH).readText(Charsets.UTF_8)
+        val jsonContent = File(UNIVERSITY_ISSUER_AUTH_JSON_FILE_PATH).readText(Charsets.UTF_8)
         JSONObject(jsonContent)
     }
 
     private val insuranceIssuerAuthJSON: JSONObject by lazy {
         val jsonContent = File(INSURANCE_READER_AUTH_JSON_FILE_PATH).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
+
+    private val jobFinderAuthJSON: JSONObject by lazy {
+        val jsonContent = File(JOBFINDER_READER_AUTH_JSON_FILE_PATH).readText(Charsets.UTF_8)
         JSONObject(jsonContent)
     }
 
@@ -51,21 +56,22 @@ class OrganizationAuthMetadataHelper {
             Organization.RVIG -> rvigIssuerAuthJSON
             Organization.INSURANCE -> insuranceIssuerAuthJSON
             Organization.UNIVERSITY -> universityIssuerAuthJSON
+            Organization.JOBFINDER -> jobFinderAuthJSON
         }
-
         val pathParts = attributePath.split(".")
         var current: Any = json
-
         for (part in pathParts) {
             if (current is JSONObject && current.has(part)) {
                 current = current.get(part)
             } else {
-                throw IllegalArgumentException("Invalid attribute path: '$attributePath'. Missing part: '$part'")
+                throw IllegalArgumentException(
+                    "Invalid attribute path: '$attributePath'. Missing part: '$part'"
+                )
             }
         }
-
-        if (current is JSONObject && current.has(language)) {
-            return current.getString(language)
+        if (current is JSONObject) {
+            val preferred = current.optString(language, current.optString("nl"))
+            return preferred
         }
         return current.toString()
     }
@@ -77,7 +83,8 @@ class OrganizationAuthMetadataHelper {
         MARKETPLACE,
         RVIG,
         UNIVERSITY,
-        INSURANCE
+        INSURANCE,
+        JOBFINDER
     }
 
     companion object {
@@ -87,6 +94,7 @@ class OrganizationAuthMetadataHelper {
         val MARKETPLACE_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/online_marketplace_reader_auth.json")
         val RVIG_ISSUER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/rvig_issuer_auth.json")
         val INSURANCE_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/insurance_reader_auth.json")
-        val UNIVERSITY_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/university_issuer_auth.json")
+        val UNIVERSITY_ISSUER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/university_issuer_auth.json")
+        val JOBFINDER_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/job_finder_reader_auth.json")
     }
 }

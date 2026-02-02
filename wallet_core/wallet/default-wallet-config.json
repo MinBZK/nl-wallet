@@ -17,6 +17,20 @@
     "instruction_result_public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpGR/nbbo9qUoBdGE2avFHwLTmi4xbLeERwuL+BDE6jOrqw3OhJnS4WC4+U32KXZv7ClZTIFxTI8bKGvWPyJhhg==",
     "wua_public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEF0wwO3cW+mO01OfWvZErvJOZxzpAF7DrVoxKU/IUuz3nVoiBNvSIae9+CGnd7FcRCFfTlM3+BP5h/rCZ2m5xzQ=="
   },
+  "pid_attributes": {
+    "mso_mdoc": {
+      "urn:eudi:pid:nl:1": {
+        "login": ["urn:eudi:pid:nl:1", "bsn"],
+        "recovery_code": ["urn:eudi:pid:nl:1", "recovery_code"]
+      }
+    },
+    "sd_jwt": {
+      "urn:eudi:pid:nl:1": {
+        "login": ["bsn"],
+        "recovery_code": ["recovery_code"]
+      }
+    }
+  },
   "pid_issuance": {
     "pid_issuer_url": "http://localhost:3001/issuance/",
     "digid": {
@@ -46,5 +60,6 @@
     }
   },
   "google_cloud_project_number": 0,
-  "static_assets_base_url": "https://localhost:3001/"
+  "static_assets_base_url": "https://localhost:3001/",
+  "maintenance_window": null
 }

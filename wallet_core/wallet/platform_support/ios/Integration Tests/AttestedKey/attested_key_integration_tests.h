@@ -8,6 +8,6 @@
 #ifndef attested_key_integration_tests_h
 #define attested_key_integration_tests_h
 
-void attested_key_test(bool);
+void ios_attested_key_test();
 
 #endif /* attested_key_integration_tests_h */

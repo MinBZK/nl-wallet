@@ -3,16 +3,18 @@ package feature.menu_and_settings
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
-import screen.history.HistoryOverviewScreen
-import screen.menu.MenuScreen
-import screen.settings.SettingsScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.history.HistoryOverviewScreen
+import screen.menu.MenuScreen
+import screen.settings.SettingsScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.1 Show app menu")
@@ -32,7 +34,8 @@ class MenuTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC34 LTC35 Show app & Settings menu")
+    @DisplayName("LTC26 LTC27 Show app & Settings menu")
+    @Tags(Tag("a11yBatch2"))
     fun verifyMenuScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(menuScreen.menuListButtonsVisible(), "menu screen is not visible")
@@ -44,6 +47,7 @@ class MenuTests : TestBase() {
         historyOverviewScreen.clickBottomBackButton()
         menuScreen.clickSettingsButton()
         assertTrue(settingsScreen.settingsButtonsVisible(), "settings buttons are not visible")
+
         menuScreen.clickBottomBackButton()
 
         menuScreen.clickFeedbackButton()

@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/model/bloc/error_state.dart';
+import '../../domain/usecase/app/check_is_app_initialized_usecase.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/dialog_helper.dart';
 import '../../wallet_assets.dart';
@@ -21,15 +20,23 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
+import '../forgot_pin/forgot_pin_screen.dart';
+import '../pin/bloc/pin_bloc.dart';
 import 'bloc/wallet_transfer_source_bloc.dart';
 import 'page/wallet_transfer_source_confirm_pin_page.dart';
 import 'page/wallet_transfer_source_transfer_success_page.dart';
 import 'page/wallet_transfer_source_transferring_page.dart';
 import 'widget/wallet_transfer_source_stop_sheet.dart';
+import 'widget/wallet_transfer_source_stop_to_change_pin_sheet.dart';
 
-class WalletTransferSourceScreen extends StatelessWidget {
+class WalletTransferSourceScreen extends StatefulWidget {
   const WalletTransferSourceScreen({super.key});
 
+  @override
+  State<WalletTransferSourceScreen> createState() => _WalletTransferSourceScreenState();
+}
+
+class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen> {
   @override
   Widget build(BuildContext context) {
     return ScrollOffsetProvider(
@@ -47,17 +54,20 @@ class WalletTransferSourceScreen extends StatelessWidget {
             DialogHelper.dismissOpenDialogs(context); // Dismiss potentially open stop sheet on page transitions
           },
           builder: (context, state) {
-            void pop() => Navigator.pop(context);
             final Widget page = switch (state) {
               WalletTransferInitial() => GenericLoadingPage(
                 title: context.l10n.walletTransferScreenLoadingTitle,
                 description: context.l10n.walletTransferScreenLoadingDescription,
-                onCancel: () => _onStopPressed(context),
+                onCancel: () => _showStopSheet(context),
               ),
               WalletTransferLoading() => GenericLoadingPage(
                 title: context.l10n.walletTransferScreenLoadingTitle,
                 description: context.l10n.walletTransferScreenLoadingDescription,
-                onCancel: () => _onStopPressed(context),
+                onCancel: () => _showStopSheet(context),
+              ),
+              WalletTransferCancelling() => GenericLoadingPage(
+                title: context.l10n.walletTransferScreenCancellingTitle,
+                description: context.l10n.walletTransferScreenCancellingDescription,
               ),
               WalletTransferIntroduction() => TerminalPage(
                 title: context.l10n.walletTransferSourceScreenIntroductionTitle,
@@ -67,38 +77,42 @@ class WalletTransferSourceScreen extends StatelessWidget {
                 onPrimaryPressed: () => context.bloc.add(const WalletTransferAgreeEvent()),
                 secondaryButtonCta: context.l10n.generalStop,
                 secondaryButtonIcon: const Icon(Icons.block_flipped),
-                onSecondaryButtonPressed: () => _onStopPressed(context),
+                onSecondaryButtonPressed: () => _showStopSheet(context),
               ),
               WalletTransferConfirmPin() => WalletTransferSourceConfirmPinPage(
                 onPinConfirmed: (_) => context.bloc.add(const WalletTransferPinConfirmedEvent()),
                 onPinConfirmationFailed: (BuildContext context, ErrorState state) =>
                     context.bloc.add(WalletTransferPinConfirmationFailed(state.error)),
+                onForgotPinPressed: () => _showStopSheet(context, reason: .pinRecovery),
               ),
               WalletTransferTransferring() => WalletTransferSourceTransferringPage(
-                onStopPressed: () => _onStopPressed(context),
+                onStopPressed: () => _showStopSheet(context),
               ),
-              WalletTransferSuccess() => const WalletTransferSourceTransferSuccessPage(),
-              WalletTransferStopped() => TerminalPage(
-                title: context.l10n.walletTransferScreenStoppedTitle,
-                description: context.l10n.walletTransferSourceScreenStoppedDescription,
-                onPrimaryPressed: pop,
-                primaryButtonCta: context.l10n.generalClose,
-                primaryButtonIcon: const Icon(Icons.close_outlined),
-                illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
+              WalletTransferSuccess() => WalletTransferSourceTransferSuccessPage(
+                onCtaPressed: () => _navigateToSplashScreen(context),
               ),
+              WalletTransferStopped() => _buildWalletStopped(context, state),
               WalletTransferGenericError() => ErrorPage.generic(
                 context,
-                onPrimaryActionPressed: pop,
+                onPrimaryActionPressed: () => _closeTransferScreen(context),
                 style: ErrorCtaStyle.close,
               ),
               WalletTransferNetworkError() =>
                 state.hasInternet
-                    ? ErrorPage.network(context, onPrimaryActionPressed: pop, style: ErrorCtaStyle.close)
-                    : ErrorPage.noInternet(context, onPrimaryActionPressed: pop, style: ErrorCtaStyle.close),
+                    ? ErrorPage.network(
+                        context,
+                        onPrimaryActionPressed: () => _closeTransferScreen(context),
+                        style: ErrorCtaStyle.close,
+                      )
+                    : ErrorPage.noInternet(
+                        context,
+                        onPrimaryActionPressed: () => _closeTransferScreen(context),
+                        style: ErrorCtaStyle.close,
+                      ),
               WalletTransferSessionExpired() => ErrorPage.sessionExpired(
                 context,
                 style: ErrorCtaStyle.close,
-                onPrimaryActionPressed: pop,
+                onPrimaryActionPressed: () => _closeTransferScreen(context),
               ),
               WalletTransferFailed() => TerminalPage(
                 title: context.l10n.walletTransferScreenFailedTitle,
@@ -107,7 +121,7 @@ class WalletTransferSourceScreen extends StatelessWidget {
                 flipButtonOrder: true,
                 primaryButtonCta: context.l10n.generalClose,
                 primaryButtonIcon: const Icon(Icons.close),
-                onPrimaryPressed: pop,
+                onPrimaryPressed: () => _closeTransferScreen(context),
                 secondaryButtonCta: context.l10n.generalShowDetailsCta,
                 secondaryButtonIcon: const Icon(Icons.info_outline_rounded),
                 onSecondaryButtonPressed: () => ErrorDetailsSheet.show(context, error: state.error),
@@ -117,7 +131,7 @@ class WalletTransferSourceScreen extends StatelessWidget {
               animateBackwards: state.didGoBack,
               child: PopScope(
                 key: ValueKey(state.runtimeType),
-                canPop: _canPop(state),
+                canPop: _canPop(context, state),
                 onPopInvokedWithResult: (didPop, result) {
                   if (!didPop) _onPopInvoked(context, state);
                 },
@@ -130,9 +144,37 @@ class WalletTransferSourceScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildWalletStopped(BuildContext context, WalletTransferStopped state) {
+    switch (state.reason) {
+      case WalletStopRequestReason.generic:
+        return TerminalPage(
+          title: context.l10n.walletTransferScreenStoppedTitle,
+          description: context.l10n.walletTransferSourceScreenStoppedDescription,
+          onPrimaryPressed: () => _closeTransferScreen(context),
+          primaryButtonCta: context.l10n.generalClose,
+          primaryButtonIcon: const Icon(Icons.close_outlined),
+          illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
+        );
+      case WalletStopRequestReason.pinRecovery:
+        return TerminalPage(
+          title: context.l10n.walletTransferScreenStoppedTitle,
+          description: context.l10n.walletTransferSourceScreenStoppedForgotPinVariantDescription,
+          onSecondaryButtonPressed: () => _closeTransferScreen(context),
+          secondaryButtonCta: context.l10n.generalClose,
+          secondaryButtonIcon: const Icon(Icons.close_outlined),
+          illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
+          primaryButtonCta: context.l10n.walletTransferSourceScreenStoppedForgotPinCta,
+          primaryButtonIcon: const Icon(Icons.arrow_forward),
+          onPrimaryPressed: () => ForgotPinScreen.show(context),
+        );
+    }
+  }
+
   Widget? _buildBackButton(BuildContext context) {
     final canGoBack = context.watch<WalletTransferSourceBloc>().state.canGoBack;
     if (!canGoBack) return null;
+    final isConfirmingPin = context.watch<PinBloc?>()?.state is PinValidateInProgress;
+    if (isConfirmingPin) return null;
     return BackIconButton(onPressed: () => context.bloc.add(const WalletTransferBackPressedEvent()));
   }
 
@@ -143,8 +185,9 @@ class WalletTransferSourceScreen extends StatelessWidget {
       case WalletTransferLoading():
       case WalletTransferIntroduction():
       case WalletTransferConfirmPin():
+        return CloseIconButton(onPressed: () => _showStopSheet(context));
       case WalletTransferTransferring():
-        return CloseIconButton(onPressed: () => _onStopPressed(context));
+      case WalletTransferCancelling():
       case WalletTransferSuccess():
       case WalletTransferStopped():
       case WalletTransferGenericError():
@@ -155,12 +198,39 @@ class WalletTransferSourceScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _onStopPressed(BuildContext context) async {
-    final stopConfirmed = await WalletTransferSourceStopSheet.show(context);
-    if (stopConfirmed && context.mounted) context.bloc.add(const WalletTransferStopRequestedEvent());
+  Future<void> _showStopSheet(BuildContext context, {WalletStopRequestReason reason = .generic}) async {
+    bool stopConfirmed = false;
+    switch (reason) {
+      case WalletStopRequestReason.generic:
+        stopConfirmed = await WalletTransferSourceStopSheet.show(context);
+      case WalletStopRequestReason.pinRecovery:
+        stopConfirmed = await WalletTransferSourceStopToChangePinSheet.show(context);
+    }
+    if (stopConfirmed && context.mounted) context.bloc.add(WalletTransferStopRequestedEvent(reason: reason));
   }
 
-  bool _canPop(WalletTransferSourceState state) {
+  Future<void> _closeTransferScreen(BuildContext context) async {
+    // Sanity check to avoid race condition described in PVW-5095
+    final initialized = await context.read<IsWalletInitializedUseCase>().invoke();
+    if (!context.mounted) return;
+    if (initialized) {
+      Navigator.pop(context);
+    } else {
+      _navigateToSplashScreen(context);
+    }
+  }
+
+  // Remove all routes and start splash route
+  void _navigateToSplashScreen(BuildContext context) {
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      WalletRoutes.splashRoute,
+      ModalRoute.withName(WalletRoutes.splashRoute),
+    );
+  }
+
+  bool _canPop(BuildContext context, WalletTransferSourceState state) {
+    final isConfirmingPin = context.watch<PinBloc?>()?.state is PinValidateInProgress;
+    if (isConfirmingPin) return false;
     switch (state) {
       case WalletTransferInitial():
       case WalletTransferStopped():
@@ -171,6 +241,7 @@ class WalletTransferSourceScreen extends StatelessWidget {
         return true;
       case WalletTransferIntroduction():
       case WalletTransferLoading():
+      case WalletTransferCancelling():
       case WalletTransferConfirmPin():
       case WalletTransferTransferring():
       case WalletTransferSuccess():
@@ -184,11 +255,11 @@ class WalletTransferSourceScreen extends StatelessWidget {
       case WalletTransferLoading():
       case WalletTransferIntroduction():
       case WalletTransferTransferring():
-        _onStopPressed(context);
+        _showStopSheet(context);
       case WalletTransferConfirmPin():
         context.bloc.add(const WalletTransferBackPressedEvent());
       case WalletTransferSuccess():
-        if (Platform.isAndroid) SystemNavigator.pop();
+        _navigateToSplashScreen(context);
       default:
         Fimber.d('Unhandled onPopInvoked for state: $state');
     }
@@ -211,6 +282,7 @@ class WalletTransferSourceScreen extends StatelessWidget {
             : TitleText(context.l10n.errorScreenNoInternetHeadline),
       WalletTransferSessionExpired() => TitleText(context.l10n.errorScreenSessionExpiredHeadline),
       WalletTransferFailed() => TitleText(context.l10n.walletTransferScreenFailedTitle),
+      WalletTransferCancelling() => const SizedBox.shrink(),
     };
   }
 }

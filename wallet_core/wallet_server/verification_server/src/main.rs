@@ -4,8 +4,9 @@ use anyhow::Result;
 
 use hsm::service::Pkcs11Hsm;
 use server_utils::server::wallet_server_main;
-use server_utils::store::DatabaseConnection;
 use server_utils::store::SessionStoreVariant;
+use server_utils::store::StoreConnection;
+use token_status_list::verification::reqwest::HttpStatusListClient;
 use verification_server::server;
 use verification_server::settings::VerifierSettings;
 
@@ -24,10 +25,12 @@ async fn main_impl(settings: VerifierSettings) -> Result<()> {
 
     let storage_settings = &settings.server_settings.storage;
     let sessions = Arc::new(SessionStoreVariant::new(
-        DatabaseConnection::try_new(storage_settings.url.clone()).await?,
+        StoreConnection::try_new(storage_settings.url.clone()).await?,
         storage_settings.into(),
     ));
 
+    let status_list_client = HttpStatusListClient::new()?;
+
     // This will block until the server shuts down.
-    server::serve(settings, hsm, sessions).await
+    server::serve(settings, hsm, sessions, status_list_client).await
 }

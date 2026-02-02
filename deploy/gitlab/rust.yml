@@ -5,22 +5,49 @@
 
 lint-rust:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   before_script:
     - set -euxo pipefail
   script:
     # Check Rust formatting
-    - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} -- --check
+    - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} --
+      --check
     # Check clippy
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
-    - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+    - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy
+      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     # Again clippy with json
-    - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests --message-format=json -- -Dwarnings > wallet_core/clippy.json
-    - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests --message-format=json -- -Dwarnings >> wallet_core/clippy.json
+    - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests
+      --message-format=json -- -Dwarnings > wallet_core/clippy.json
+    - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy
+      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests --message-format=json --
+      -Dwarnings >> wallet_core/clippy.json
   artifacts:
     name: lint-rust
     paths:
-     - wallet_core/clippy.json
+      - wallet_core/clippy.json
+
+scheduled-check-rust-feature-powerset:
+  extends: .rust
+  rules:
+    - !reference [.on-schedule-rust-features-check, rules]
+  when: manual
+  before_script:
+    - set -euxo pipefail
+    - cd wallet_core
+  script:
+    # Run cargo check for every combination of features which includes default features and --no-default-features
+    - cargo hack check -feature-powerset --no-dev-deps
+
+manual-check-rust-feature-powerset:
+  rules: !reference [.default-or-merge-request, rules]
+  trigger:
+    include:
+      - local: .gitlab-ci.yml
+  variables:
+    SCHEDULED: rust-features-check
+  when: manual
+  allow_failure: true
 
 .test-rust:
   extends: .rust
@@ -31,10 +58,11 @@ lint-rust:
 
 test-rust:
   extends: .test-rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
+    DB_HOST: "postgres"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
@@ -43,10 +71,6 @@ test-rust:
         POSTGRES_PASSWORD: "postgres"
         POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
   script:
-    - |
-      cat > scripts/.env <<EOD
-      export DB_HOST=postgres
-      EOD
     - ./scripts/setup-devenv.sh
     - ./scripts/migrate-db.sh fresh
     - cd wallet_core
@@ -67,7 +91,7 @@ test-rust:
 
 test-rust-doctest:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -75,7 +99,7 @@ test-rust-doctest:
     - RUST_BACKTRACE=1 cargo test --doc --locked
 
 .test-rust-compilation:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     RUSTFLAGS: "-D warnings"
     CONFIG_ENV: "dev"
@@ -103,10 +127,11 @@ test-compilation-performance-test:
 
 test-sea-orm-generate-entity:
   extends: .test-rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
+    DB_HOST: "postgres"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
@@ -115,11 +140,6 @@ test-sea-orm-generate-entity:
         POSTGRES_PASSWORD: "postgres"
         POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
   script:
-    - |
-      cat > scripts/.env <<EOD
-      export DB_HOST=postgres
-      EOD
-    - ./scripts/setup-devenv.sh # Only needed for wallet-provider settings
     - ./scripts/migrate-db.sh fresh
     - ./scripts/generate-db-entity.sh
     - git diff
@@ -127,27 +147,31 @@ test-sea-orm-generate-entity:
 
 .build-binary:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules:
+    - !reference [.default-or-merge-request, rules]
   needs:
     - job: test-rust
       artifacts: false
+      optional: true
     - job: test-rust-doctest
       artifacts: false
+      optional: true
   variables:
     RUSTFLAGS: "-D warnings"
   before_script:
     - set -euxo pipefail
     - cd wallet_core
 
-test-configuration-server-compilation:
+test-static-server-compilation:
   extends: .build-binary
   script:
-    - cargo check --locked --release --package configuration_server --bin configuration_server
+    - cargo check --locked --release --package static_server --bin static_server
 
 build-update-policy-server-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "update_policy_server" --bin update_policy_server
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "update_policy_server" --bin
+      update_policy_server
   artifacts:
     name: update_policy_server
     paths:
@@ -158,6 +182,7 @@ build-wallet-provider-binary:
   script:
     # Use glibc binary because it needs to work with dynamically loaded PKCS11 library
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "wallet_provider" --bin wallet_provider
+      --features test_internal_ui
   artifacts:
     name: wallet_provider
     paths:
@@ -166,7 +191,8 @@ build-wallet-provider-binary:
 build-wallet-provider-migrations-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider_migrations" --bin wallet_provider_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider_migrations" --bin
+      wallet_provider_migrations
   artifacts:
     name: wallet_provider_migrations
     paths:
@@ -176,7 +202,8 @@ build-pid-issuer-binary:
   extends: .build-binary
   script:
     # Use musl since we only use software keys on pid-issuer for our own environments (docker image is from scratch)
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package pid_issuer --bin pid_issuer --features
+      test_internal_ui
   artifacts:
     name: pid_issuer
     paths:
@@ -185,9 +212,13 @@ build-pid-issuer-binary:
 build-verification-server-binary:
   extends: .build-binary
   script:
-    # Also build for glibc because it is needed to work with dynamically loaded PKCS11 library
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package verification_server --bin verification_server --no-default-features --features postgres
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package verification_server --bin verification_server --no-default-features --features postgres
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package verification_server --bin
+      verification_server
+    # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package verification_server --bin verification_server
+      fi
   artifacts:
     name: verification_server
     paths:
@@ -197,9 +228,13 @@ build-verification-server-binary:
 build-issuance-server-binary:
   extends: .build-binary
   script:
-    # Also build for glibc because it is needed to work with dynamically loaded PKCS11 library
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package issuance_server --bin issuance_server --no-default-features --features postgres
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package issuance_server --bin issuance_server --no-default-features --features postgres
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package issuance_server --bin issuance_server
+      --features test_internal_ui
+    # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package issuance_server --bin issuance_server --features test_internal_ui
+      fi
   artifacts:
     name: issuance_server
     paths:
@@ -209,18 +244,29 @@ build-issuance-server-binary:
 build-wallet-server-migrations-binaries:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "pid_issuer_migrations" --bin pid_issuer_migrations
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "issuance_server_migrations" --bin issuance_server_migrations
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "verification_server_migrations" --bin verification_server_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "pid_issuer_migrations" --bin
+      pid_issuer_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "issuance_server_migrations" --bin
+      issuance_server_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "verification_server_migrations" --bin
+      verification_server_migrations
+    # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package "issuance_server_migrations" --bin issuance_server_migrations
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package "verification_server_migrations" --bin verification_server_migrations
+      fi
   artifacts:
     name: wallet_server_migrations
     paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/*_migrations
       - wallet_core/target/x86_64-unknown-linux-musl/release/*_migrations
 
 build-demo-relying-party-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_relying_party" --bin demo_relying_party
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_relying_party" --bin
+      demo_relying_party
   artifacts:
     name: demo_relying_party
     paths:
@@ -247,7 +293,8 @@ build-demo-index-binary:
 build-gba-hc-converter-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin gba_hc_converter
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin
+      gba_hc_converter
   artifacts:
     name: gba_hc_converter
     paths:
@@ -274,7 +321,8 @@ build-gba-encrypt-binary:
 build-gba-fetch-frontend-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin gba_fetch_frontend
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin
+      gba_fetch_frontend
   artifacts:
     name: gba_fetch_frontend
     paths:
@@ -282,15 +330,19 @@ build-gba-fetch-frontend-binary:
 
 build-performance-test:
   extends: .build-binary
-  rules: !reference [.default-branch, rules]
+  rules:
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-branch, rules]
   needs:
     - !reference [.build-binary, needs]
     - job: build-env-ont
       artifacts: true
+      optional: true
     - job: wallet-config-ont
       artifacts: true
   script:
-    - cargo build --locked --release --package "tests_integration" --bin performance_test --features performance_test,allow_insecure_url
+    - cargo build --locked --release --package "tests_integration" --bin performance_test --features
+      performance_test,allow_insecure_url
   variables:
     APPLE_ATTESTATION_ENVIRONMENT: "production"
   artifacts:

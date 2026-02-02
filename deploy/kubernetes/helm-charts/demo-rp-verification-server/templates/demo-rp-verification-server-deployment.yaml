@@ -36,6 +36,7 @@ spec:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -46,11 +47,11 @@ spec:
             - name: http-internal
               containerPort: 8002
           volumeMounts:
-            - name: config-volume
+            - name: config
               mountPath: /verification_server.toml
               subPath: config.toml
           env:
-            - name: VERIFICATION_SERVER__REQUESTER_SERVER__IP
+            - name: VERIFICATION_SERVER__INTERNAL_SERVER__IP
               value: "0.0.0.0"
             - name: VERIFICATION_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
@@ -78,17 +79,29 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-ephemeral-id-secret
                   key: verifier_ephemeral_id_secret
-            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
                   key: certificate
-            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
                   key: private_key
-            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY_TYPE
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__PRIVATE_KEY_TYPE
               value: "software"
             - name: VERIFICATION_SERVER__USECASES__monkey_bike__CERTIFICATE
               valueFrom:
@@ -114,17 +127,41 @@ spec:
                   key: private_key
             - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY_TYPE
               value: "software"
-            - name: VERIFICATION_SERVER__USECASES__xyz_bank__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
                   key: certificate
-            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
                   key: private_key
-            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY_TYPE
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__PRIVATE_KEY_TYPE
               value: "software"
             - name: VERIFICATION_SERVER__USECASES__job_finder__CERTIFICATE
               valueFrom:
@@ -141,6 +178,6 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: config-volume
+        - name: config
           configMap:
             name: nl-wallet-demo-rp-verification-server-data

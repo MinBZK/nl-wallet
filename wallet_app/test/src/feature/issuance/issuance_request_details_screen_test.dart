@@ -18,7 +18,7 @@ import '../../test_util/test_utils.dart';
 import 'issuance_screen_test.dart';
 
 void main() {
-  testGoldens('RequestDetailsContent Light', (tester) async {
+  testGoldens('ltc5 RequestDetailsContent Light', (tester) async {
     // Test the _buildContent UI with valid issuance data
     await tester.pumpWidgetWithAppWrapper(
       const IssuanceRequestDetailsScreen().withState<IssuanceBloc, IssuanceState>(
@@ -37,7 +37,7 @@ void main() {
     await screenMatchesGolden('request_details/light');
   });
 
-  testGoldens('RequestDetailsContent Dark', (tester) async {
+  testGoldens('ltc5 RequestDetailsContent Dark', (tester) async {
     // Test the _buildContent UI with valid issuance data
     await tester.pumpWidgetWithAppWrapper(
       const IssuanceRequestDetailsScreen().withState<IssuanceBloc, IssuanceState>(
@@ -57,7 +57,7 @@ void main() {
     await screenMatchesGolden('request_details/dark');
   });
 
-  testGoldens('RequestDetailsContent Dark', (tester) async {
+  testGoldens('ltc5 RequestDetailsContent Dark', (tester) async {
     // Test the _buildContent UI with valid issuance data
     await tester.pumpWidgetWithAppWrapper(
       const IssuanceRequestDetailsScreen().withState<IssuanceBloc, IssuanceState>(
@@ -94,7 +94,7 @@ void main() {
     await screenMatchesGolden('request_details/select_card_sheet.dark');
   });
 
-  testGoldens('RequestDetailsError Light', (tester) async {
+  testGoldens('ltc5 RequestDetailsError Light', (tester) async {
     // Test the _buildError UI with generic error state
     await tester.pumpWidgetWithAppWrapper(
       const IssuanceRequestDetailsScreen().withState<IssuanceBloc, IssuanceState>(

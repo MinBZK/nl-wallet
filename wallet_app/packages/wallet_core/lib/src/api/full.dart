@@ -10,11 +10,14 @@ import '../models/disclosure.dart';
 import '../models/image.dart';
 import '../models/instruction.dart';
 import '../models/localize.dart';
+import '../models/notification.dart';
 import '../models/pin.dart';
+import '../models/revocation.dart';
 import '../models/transfer.dart';
 import '../models/uri.dart';
 import '../models/version_state.dart';
 import '../models/wallet_event.dart';
+import '../models/wallet_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `create_wallet`, `wallet`
@@ -40,6 +43,19 @@ Stream<List<AttestationPresentation>> setAttestationsStream() =>
     WalletCore.instance.api.crateApiFullSetAttestationsStream();
 
 Future<void> clearAttestationsStream() => WalletCore.instance.api.crateApiFullClearAttestationsStream();
+
+Stream<List<AppNotification>> setScheduledNotificationsStream() =>
+    WalletCore.instance.api.crateApiFullSetScheduledNotificationsStream();
+
+Future<void> clearScheduledNotificationsStream() =>
+    WalletCore.instance.api.crateApiFullClearScheduledNotificationsStream();
+
+Future<void> clearDirectNotificationsCallback() =>
+    WalletCore.instance.api.crateApiFullClearDirectNotificationsCallback();
+
+Future<void> setDirectNotificationsCallback({
+  required FutureOr<void> Function(List<(int, NotificationType)>) callback,
+}) => WalletCore.instance.api.crateApiFullSetDirectNotificationsCallback(callback: callback);
 
 Stream<List<WalletEvent>> setRecentHistoryStream() => WalletCore.instance.api.crateApiFullSetRecentHistoryStream();
 
@@ -75,7 +91,7 @@ Future<String> createPinRecoveryRedirectUri() => WalletCore.instance.api.crateAp
 Future<void> continuePinRecovery({required String uri}) =>
     WalletCore.instance.api.crateApiFullContinuePinRecovery(uri: uri);
 
-Future<WalletInstructionResult> completePinRecovery({required String pin}) =>
+Future<void> completePinRecovery({required String pin}) =>
     WalletCore.instance.api.crateApiFullCompletePinRecovery(pin: pin);
 
 Future<void> cancelPinRecovery() => WalletCore.instance.api.crateApiFullCancelPinRecovery();
@@ -91,20 +107,18 @@ Future<WalletInstructionResult> acceptIssuance({required String pin}) =>
 Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptPidIssuance(pin: pin);
 
-Future<bool> hasActiveIssuanceSession() => WalletCore.instance.api.crateApiFullHasActiveIssuanceSession();
-
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
 Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancelDisclosure();
 
-Future<AcceptDisclosureResult> acceptDisclosure({required String pin}) =>
-    WalletCore.instance.api.crateApiFullAcceptDisclosure(pin: pin);
+Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>
+    WalletCore.instance.api.crateApiFullAcceptDisclosure(selectedIndices: selectedIndices, pin: pin);
 
-Future<bool> hasActiveDisclosureSession() => WalletCore.instance.api.crateApiFullHasActiveDisclosureSession();
-
-Future<DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance({required String pin}) =>
-    WalletCore.instance.api.crateApiFullContinueDisclosureBasedIssuance(pin: pin);
+Future<DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance({
+  required List<int> selectedIndices,
+  required String pin,
+}) => WalletCore.instance.api.crateApiFullContinueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin);
 
 Future<bool> isBiometricUnlockEnabled() => WalletCore.instance.api.crateApiFullIsBiometricUnlockEnabled();
 
@@ -115,11 +129,15 @@ Future<void> unlockWalletWithBiometrics() => WalletCore.instance.api.crateApiFul
 
 Future<String> initWalletTransfer() => WalletCore.instance.api.crateApiFullInitWalletTransfer();
 
-Future<void> acknowledgeWalletTransfer({required String uri}) =>
-    WalletCore.instance.api.crateApiFullAcknowledgeWalletTransfer(uri: uri);
+Future<void> pairWalletTransfer({required String uri}) =>
+    WalletCore.instance.api.crateApiFullPairWalletTransfer(uri: uri);
 
-Future<WalletInstructionResult> transferWallet({required String pin}) =>
-    WalletCore.instance.api.crateApiFullTransferWallet(pin: pin);
+Future<WalletInstructionResult> confirmWalletTransfer({required String pin}) =>
+    WalletCore.instance.api.crateApiFullConfirmWalletTransfer(pin: pin);
+
+Future<void> transferWallet() => WalletCore.instance.api.crateApiFullTransferWallet();
+
+Future<void> receiveWalletTransfer() => WalletCore.instance.api.crateApiFullReceiveWalletTransfer();
 
 Future<void> cancelWalletTransfer() => WalletCore.instance.api.crateApiFullCancelWalletTransfer();
 
@@ -127,10 +145,17 @@ Future<void> skipWalletTransfer() => WalletCore.instance.api.crateApiFullSkipWal
 
 Future<TransferSessionState> getWalletTransferState() => WalletCore.instance.api.crateApiFullGetWalletTransferState();
 
+Future<WalletState> getWalletState() => WalletCore.instance.api.crateApiFullGetWalletState();
+
 Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGetHistory();
 
 Future<List<WalletEvent>> getHistoryForCard({required String attestationId}) =>
     WalletCore.instance.api.crateApiFullGetHistoryForCard(attestationId: attestationId);
+
+Future<String> getRegistrationRevocationCode() => WalletCore.instance.api.crateApiFullGetRegistrationRevocationCode();
+
+Future<RevocationCodeResult> getRevocationCode({required String pin}) =>
+    WalletCore.instance.api.crateApiFullGetRevocationCode(pin: pin);
 
 Future<void> resetWallet() => WalletCore.instance.api.crateApiFullResetWallet();
 

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../../../data/store/active_locale_provider.dart';
 import '../../../../util/extension/build_context_extension.dart';
 
 class BodyText extends StatelessWidget {
@@ -19,7 +17,7 @@ class BodyText extends StatelessWidget {
       child: SizedBox(
         width: double.infinity,
         child: Text.rich(
-          TextSpan(text: data, locale: context.read<ActiveLocaleProvider>().activeLocale),
+          TextSpan(text: data, locale: context.activeLocale),
           style: style ?? context.textTheme.bodyLarge,
           textAlign: textAlign,
         ),

@@ -78,6 +78,7 @@ impl<R> JwtTyp for InstructionResultClaims<R> {}
 /// Links an instruction with its result type and name string.
 pub trait InstructionAndResult: Serialize + DeserializeOwned {
     const NAME: &'static str;
+    const COMPRESS: bool = false;
 
     type Result: Serialize + DeserializeOwned;
 }
@@ -264,16 +265,16 @@ impl InstructionAndResult for DiscloseRecoveryCodePinRecovery {
     type Result = ();
 }
 
-// ConfirmTransfer instruction.
+// PairTransfer instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ConfirmTransfer {
+pub struct PairTransfer {
     pub transfer_session_id: Uuid,
     pub app_version: Version,
 }
 
-impl InstructionAndResult for ConfirmTransfer {
-    const NAME: &'static str = "confirm_transfer";
+impl InstructionAndResult for PairTransfer {
+    const NAME: &'static str = "pair_transfer";
 
     type Result = ();
 }
@@ -283,10 +284,24 @@ impl InstructionAndResult for ConfirmTransfer {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CancelTransfer {
     pub transfer_session_id: Uuid,
+    pub error: bool,
 }
 
 impl InstructionAndResult for CancelTransfer {
     const NAME: &'static str = "cancel_transfer";
+
+    type Result = ();
+}
+
+// ResetTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResetTransfer {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for ResetTransfer {
+    const NAME: &'static str = "reset_transfer";
 
     type Result = ();
 }
@@ -304,6 +319,19 @@ impl InstructionAndResult for GetTransferStatus {
     type Result = TransferSessionState;
 }
 
+// ConfirmTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfirmTransfer {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for ConfirmTransfer {
+    const NAME: &'static str = "confirm_transfer";
+
+    type Result = ();
+}
+
 // SendWalletPayload instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -314,6 +342,7 @@ pub struct SendWalletPayload {
 
 impl InstructionAndResult for SendWalletPayload {
     const NAME: &'static str = "send_wallet_payload";
+    const COMPRESS: bool = true;
 
     type Result = ();
 }

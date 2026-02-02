@@ -29,7 +29,7 @@ class SignScreen extends StatelessWidget {
   static SignScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return tryCast<SignScreenArgument>(args) ?? SignScreenArgument.fromMap(args! as Map<String, dynamic>);
+      return tryCast<SignScreenArgument>(args) ?? SignScreenArgument.fromJson(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [SignScreenArgument] when opening the SignScreen');
@@ -92,10 +92,9 @@ class SignScreen extends StatelessWidget {
           SignStopped() => _buildStopped(context, state),
           SignSuccess() => _buildSuccess(context, state),
         };
-        final skipAnim = !state.didGoBack && state is SignCheckOrganization;
         return FakePagingAnimatedSwitcher(
           animateBackwards: state.didGoBack,
-          animate: !skipAnim,
+          animate: !_shouldSkipPagingAnimation(state),
           child: result,
         );
       },
@@ -157,6 +156,24 @@ class SignScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildStopped(BuildContext context, SignStopped state) {
+    return SignStoppedPage(
+      onClosePressed: () => Navigator.pop(context),
+      onGiveFeedbackPressed: () => PlaceholderScreen.showGeneric(context),
+    );
+  }
+
+  Widget _buildSuccess(BuildContext context, SignSuccess state) {
+    return SignSuccessPage(
+      organizationName: state.relyingParty.displayName,
+      onClosePressed: () => Navigator.pop(context),
+      onHistoryPressed: () => Navigator.restorablePushNamed(
+        context,
+        WalletRoutes.walletHistoryRoute,
+      ),
+    );
+  }
+
   Future<void> _stopSigning(BuildContext context) async {
     final bloc = context.read<SignBloc>();
     if (bloc.state.showStopConfirmation) {
@@ -176,21 +193,5 @@ class SignScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildStopped(BuildContext context, SignStopped state) {
-    return SignStoppedPage(
-      onClosePressed: () => Navigator.pop(context),
-      onGiveFeedbackPressed: () => PlaceholderScreen.showGeneric(context),
-    );
-  }
-
-  Widget _buildSuccess(BuildContext context, SignSuccess state) {
-    return SignSuccessPage(
-      organizationName: state.relyingParty.displayName,
-      onClosePressed: () => Navigator.pop(context),
-      onHistoryPressed: () => Navigator.restorablePushNamed(
-        context,
-        WalletRoutes.walletHistoryRoute,
-      ),
-    );
-  }
+  bool _shouldSkipPagingAnimation(SignState state) => !state.didGoBack && state is SignCheckOrganization;
 }

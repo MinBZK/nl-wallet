@@ -1,48 +1,48 @@
-# EDI - NL Public Reference Wallet
+# NL Wallet
 
-Under the [Working Agenda Value Driven Digitization][1], the Dutch government is
-preparing for the introduction of European digital identity wallets (in short
-ID-wallets) through the revision of the [eIDAS-regulation][2]. One of the ways
-in which they are doing this, is by developing a public reference wallet called
-the NL Wallet. These ID-wallets will be mobile apps that citizens can use to
-identify (or ‘log in’) to public and private online services, share data about
-themselves, and sign electronically.
+NL Wallet is a secure app on your phone that lets you keep important personal information in one place, such as your name, age, or official documents like your ID card or driving licence.
+With the wallet, you can easily prove who you are, or show only the information a service needs.
 
-The first version of the NL Wallet will focus on online identification and data
-sharing and will be piloted at small scale in 2024. In the future, it may be
-possible to use such an ID-wallet in a lot of different situations, for example
-to share your diploma’s when applying for a job, to show your driver’s license,
-or to prove that you are 18+ to buy a beer.
+For example:
+- Showing you are over 18 without sharing your full date of birth.
+- Confirming your identity when dealing with the government.
+- Sharing a digital version of a diploma when applying for a job.
 
-The NL Wallet is being developed in an open and transparent way. We offer the
+This is useful, because:
+- You no longer need to upload scans of your passport.
+- You share only what is needed, not your whole identity.
+- Your documents are harder to fake, because they are digitally signed.
+- It works across all EU countries.
+
+You stay in control: you choose what to share, with whom, and when.
+
+NL Wallet is intended for Dutch nationals. It offers convenience, stronger security, and protection against identity fraud — all while giving individuals greater control over their own information.
+
+The app is being developed by Rijksoverheid (Dutch Government), in particular the Ministry of the Interior and Kingdom Relations (MinBZK) and is expected to be available to the public in 2027.
+
+NL Wallet also makes things easier and safer for relying parties, which are organisations that need to check identity or personal information.
+
+For these organisations, this means:
+- More trust – the information comes directly from trusted sources, so it is harder to fake.
+- Less sensitive data to store – no need to keep copies of passports or other documents.
+- Easier compliance with privacy rules – only the necessary information is shared.
+- Faster and smoother processes – users can identify themselves quickly, with fewer steps.
+- European coverage – the same approach can be used in all EU countries.
+
+This helps organisations to reduce fraud, protect personal data and offer a better experience to their users.
+
+NL Wallet is being developed in an open and transparent way. We offer the
 following channels to allow you to contribute:
 
 - The user interface of the app is available on [Figma][3].
 - The source code is published in this [GitHub repository][4].
 - More information, events and discussions can be found on [Pleio][5].
-- Project documentation is available on [Github pages][25].
+- Project documentation is available on [GitHub pages][25].
+
+This documentation reflects the current implementation and will be updated with every software update.
 
 Feel free to look around and share your [feedback and ideas][6].
 
-[[_TOC_]]
-
-## About progress
-
-As this project is a work in progress, you will find that the different
-components are at different levels of maturity. Most notably, the user interface
-is always a few steps ahead of the software under the hood. To put it simply, we
-incrementally add functionality to the wallet in three steps:
-
-1. We design the user interface of a piece of functionality in Figma. This is
-   purely graphical, ideal for quick iterations.
-2. We then build the user interface in the app displaying dummy data and using
-   mocked logic. This makes it fast and easy to explore, demonstrate and discuss
-   different scenarios and possibilities.
-3. We then replace the mocked logic with actual working software, still using
-   dummy data. This allows us to prove the app works and is secure.
-
-Once the first version of the app is complete, thoroughly tested and considered
-secure, we can fill it with real data and pilot it in real life scenarios.
 
 ## Current release
 
@@ -52,22 +52,10 @@ page.
 
 ## Documentation
 
-We have a dedicated [documentation site][25]. In more general terms, with the
-NL reference wallet we want to achieve the following things:
-
-- We want to validate the feasibility of the framework as proposed in the EU.
-- We want to explore how we can set the bar in terms of privacy protection,
-  security, usability and inclusion.
-- We want to learn what this development means for citizens, businesses, other
-  governments and public service providers.
-- We want to help citizens, especially those with special needs, in the best way
-  possible.
-- We want to offer a testing ground for a variety of use cases.
-- We want to share the lessons we learn with the public and share them with the
-  EU community.
+We have a dedicated [documentation site][25].
 
 If you want to learn more about the NL Wallet development, please read the
-background information on the Pleio hub. The development of the user flows and
+background information on the [Pleio][5] hub. The development of the user flows and
 screens can be followed through [Figma][3].
 
 ## Licensing
@@ -75,7 +63,7 @@ screens can be followed through [Figma][3].
 The source code of the NL Wallet is released under the [EUPL license][8]. The
 documentation is released under the [CC0 license](./LICENSES/CC0-1.0.txt).
 Please see the [.reuse/dep5][9] file for more details, which follows the
-[Reuse specfication][10].
+[Reuse specification][10].
 
 ## Contributing
 
@@ -109,9 +97,9 @@ information on how to configure specific components like [wallet app][13],
 [wallet core][14], [wallet_web][15], and [wallet_provider][16], please see the
 corresponding README files.
 
-The app's UI is build using Flutter, but to avoid tying the app to Flutter &
-Dart, all core business logic is build using Rust. This gives us the more
-flexibility to migrate to completely native iOS/Android app's if the need
+The app's UI is built using Flutter, but to avoid tying the app to Flutter &
+Dart, all core business logic is built using Rust. This gives us the more
+flexibility to migrate to completely native iOS/Android apps if the need
 arises. This does mean building the app is slightly more complex than a simple
 `flutter run`. This section describes how to set up your environment.
 
@@ -125,10 +113,10 @@ account.
 
 Our mobile apps require at least the following operating system versions:
 
-- Android 7.0 (API-level 24)
-- iOS 14.0
+- Android 10.0 (API-level 29)
+- iOS 15.0
 
-The app does not put a particulary heavy load on the device, so CPU and memory
+The app does not put a particularly heavy load on the device, so CPU and memory
 requirements are low to average. Note that this is subject to change.
 
 #### Wallet web
@@ -201,7 +189,7 @@ user to log in using DigiD in order to create the Wallet. The services are the
 following:
 
 - digid-connector (rdo-max)
-- configuration_server
+- static_server
 - gba_hc_converter
 - brpproxy
 - postgresql
@@ -247,7 +235,7 @@ to install a few additional utilities we use:
 ```shell
 cargo install --locked cargo-edit cargo-expand 'cargo-ndk@^4' cargo-nextest
 cargo install --locked --version 2.11.1 flutter_rust_bridge_codegen
-cargo install --locked --version 1.1.16 sea-orm-cli
+cargo install --locked --version 1.1.19 sea-orm-cli
 cargo install --list
 ```
 
@@ -491,12 +479,12 @@ output.
 
 For example, after having run `setup-devenv.sh`, you could run `start-devenv.sh`
 with the `--all`, which starts everything, including a dockerized PostgreSQL
-database and the NL-Wallet flutter app itself (which means that you need to have
+database and the NL Wallet flutter app itself (which means that you need to have
 an Android emulator or iOS simulator running already, or you have otherwise
 connected a mobile target for flutter to connect and deploy to).
 
 Conveniently, you could run with the `--default` flag, which starts everything
-except PostgreSQL and the NL-Wallet app. We use this mode of running a lot when
+except PostgreSQL and the NL Wallet app. We use this mode of running a lot when
 developing locally: simply start your own PostgreSQL, dockerized or locally and
 then `scripts/start-devenv.sh --default` to bring up all backend services. You
 can then work on the code and simply `flutter run` in the `wallet_app` directory
@@ -538,7 +526,7 @@ cd nl-wallet/wallet_core/wallet/platform_support/android
 ```
 
 You should see gradle build running. This will create a special kind of APK that
-is uploaded to the connecte (emulated) Android device, which the tests interact
+is uploaded to the connected (emulated) Android device, which the tests interact
 with.
 
 #### Run the app on emulator or simulator
@@ -552,7 +540,7 @@ flutter pub get
 flutter run # 🎉
 ```
 
-After a few moments, you should see the NL-Wallet app appear on your (emulated
+After a few moments, you should see the NL Wallet app appear on your (emulated
 or simulated) device. The app will interact with the backend services started
 by `start-devenv.sh`.
 
@@ -672,8 +660,8 @@ target the Android platform":
 
 ## App build configuration
 
-The app build includes the configuration for the connection to the configuration-server (`config-server-config.json`).
-Additionally it includes an initial configuration from the configuration-server (`wallet-server.json`).
+The app build includes the configuration for the connection to the server that hosts the configuration file (`config-server-config.json`).
+Additionally it includes an initial configuration from the this server (`wallet-server.json`).
 
 Next to these configuration files the build can be configured with:
 
@@ -712,17 +700,13 @@ Generate/update localisation files (to compile/run the project successfully):
 
     $ flutter gen-l10n
 
-## References
-
-Below you'll find a collection of links which we reference to through the entire
-text. Note that they don't display when rendered within a website, you need to
-read the text in a regular text editor or pager to see them.
-
+<!-- References -->
+s
 [1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
 
 [2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
 
-[3]: https://www.figma.com/design/Pv7yVW8jg26dgW1IWjVgt1/20250625_Release_UI_NLWallet?node-id=1-3716&t=eVkXvIquG6fOOLOF-1
+[3]: https://www.figma.com/design/XAaFKS0f2Y8KYNkH2fVYDJ/20251209_Release_UI_NLWallet?node-id=47602-6&t=cjbx4TyrKnQMYQl0-1
 
 [4]: https://github.com/MinBZK/nl-wallet/
 

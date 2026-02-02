@@ -56,6 +56,11 @@ class RecoverPinChooseNewPin extends RecoverPinState {
   @override
   final bool didGoBack;
 
+  // Override toString() so we don't log the user's PIN
+  @override
+  String toString() =>
+      'RecoverPinChooseNewPin{authUrl: $authUrl, didGoBack: $didGoBack, enteredDigits: $enteredDigits}';
+
   @override
   bool get canGoBack => true;
 
@@ -90,6 +95,11 @@ class RecoverPinConfirmNewPin extends RecoverPinState {
 
   // True if this is the second time that the user tries to confirm the [selectedPin]
   final bool isRetrying;
+
+  // Override toString() so we don't log the user's PIN
+  @override
+  String toString() =>
+      'RecoverPinConfirmNewPin{authUrl: $authUrl, isRetrying: $isRetrying, enteredDigits: $enteredDigits}';
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kRecoverPinSteps);

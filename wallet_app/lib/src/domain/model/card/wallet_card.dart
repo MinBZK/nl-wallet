@@ -1,5 +1,4 @@
-import 'package:equatable/equatable.dart';
-import 'package:json_annotation/json_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../util/extension/card_display_metadata_list_extension.dart';
 import '../../../util/extension/string_extension.dart';
@@ -7,25 +6,36 @@ import '../../../util/mapper/card/summary_mapper.dart';
 import '../attribute/attribute.dart';
 import '../organization.dart';
 import 'metadata/card_display_metadata.dart';
+import 'status/card_status.dart';
 
+part 'wallet_card.freezed.dart';
 part 'wallet_card.g.dart';
 
-@JsonSerializable(explicitToJson: true)
-class WalletCard extends Equatable {
-  /// ID of the attestation, null when the card is not persisted in the database
-  final String? attestationId;
+@freezed
+abstract class WalletCard with _$WalletCard {
+  const factory WalletCard({
+    /// ID of the attestation, null when the card is not persisted in the database
+    String? attestationId,
 
-  /// Type of document
-  final String attestationType;
+    /// Type of document
+    required String attestationType,
 
-  /// Organization that issued this card
-  final Organization issuer;
+    /// Organization that issued this card
+    required Organization issuer,
 
-  /// Card display metadata for UI rendering
-  final List<CardDisplayMetadata> metadata;
+    /// Card status (e.g. valid, expired, revoked)
+    required CardStatus status,
 
-  /// Data attributes stored in the card
-  final List<DataAttribute> attributes;
+    /// Data attributes stored in the card
+    required List<DataAttribute> attributes,
+
+    /// Card display metadata for UI rendering
+    @Default([]) List<CardDisplayMetadata> metadata,
+  }) = _WalletCard;
+
+  const WalletCard._();
+
+  factory WalletCard.fromJson(Map<String, dynamic> json) => _$WalletCardFromJson(json);
 
   /// Indicates whether the card is persisted in the database.
   bool get isPersisted => attestationId != null;
@@ -35,41 +45,4 @@ class WalletCard extends Equatable {
   LocalizedText get description => metadata.description ?? ''.untranslated;
 
   LocalizedText get summary => CardSummaryMapper().map(this);
-
-  const WalletCard({
-    required this.attestationId,
-    required this.attestationType,
-    required this.issuer,
-    required this.attributes,
-    this.metadata = const [],
-  });
-
-  factory WalletCard.fromJson(Map<String, dynamic> json) => _$WalletCardFromJson(json);
-
-  Map<String, dynamic> toJson() => _$WalletCardToJson(this);
-
-  @override
-  List<Object?> get props => [
-    attestationId,
-    attestationType,
-    issuer,
-    attributes,
-    metadata,
-  ];
-
-  WalletCard copyWith({
-    String? Function()? attestationId,
-    String? attestationType,
-    Organization? issuer,
-    List<DataAttribute>? attributes,
-    List<CardDisplayMetadata>? metadata,
-  }) {
-    return WalletCard(
-      attestationId: attestationId != null ? attestationId() : this.attestationId,
-      attestationType: attestationType ?? this.attestationType,
-      issuer: issuer ?? this.issuer,
-      attributes: attributes ?? this.attributes,
-      metadata: metadata ?? this.metadata,
-    );
-  }
 }

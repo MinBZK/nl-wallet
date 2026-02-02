@@ -26,7 +26,7 @@ void main() {
   );
 
   group('goldens', () {
-    testGoldens('CardHistoryLoadSuccess light', (tester) async {
+    testGoldens('ltc23 CardHistoryLoadSuccess light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -37,7 +37,7 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
-    testGoldens('CardHistoryLoadSuccess dark', (tester) async {
+    testGoldens('ltc23 CardHistoryLoadSuccess dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -48,7 +48,7 @@ void main() {
       await screenMatchesGolden('success.dark');
     });
 
-    testGoldens('CardHistoryLoadInProgress state', (tester) async {
+    testGoldens('ltc23 CardHistoryLoadInProgress state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -58,7 +58,7 @@ void main() {
       await screenMatchesGolden('loading.light');
     });
 
-    testGoldens('CardHistoryInitial state', (tester) async {
+    testGoldens('ltc23 CardHistoryInitial state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -68,7 +68,7 @@ void main() {
       await screenMatchesGolden('initial.light');
     });
 
-    testGoldens('CardHistoryLoadFailure state', (tester) async {
+    testGoldens('ltc23 CardHistoryLoadFailure state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -80,7 +80,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('sticky headers are shown', (tester) async {
+    testWidgets('ltc23 sticky headers are shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -89,19 +89,19 @@ void main() {
               dateTime: DateTime(2023, 1, 1),
               status: EventStatus.success,
               card: WalletMockData.card,
-              renewed: false,
+              eventType: IssuanceEventType.cardIssued,
             ),
             WalletEvent.issuance(
               dateTime: DateTime(2022, 12, 1),
               status: EventStatus.success,
               card: WalletMockData.card,
-              renewed: false,
+              eventType: IssuanceEventType.cardIssued,
             ),
             WalletEvent.issuance(
               dateTime: DateTime(2022, 11, 1),
               status: EventStatus.success,
               card: WalletMockData.card,
-              renewed: false,
+              eventType: IssuanceEventType.cardIssued,
             ),
           ]),
         ),
@@ -119,7 +119,7 @@ void main() {
       expect(stickyNovFinder, findsOneWidget);
     });
 
-    testWidgets('loading is rendered as expected', (tester) async {
+    testWidgets('ltc23 loading is rendered as expected', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -130,7 +130,7 @@ void main() {
       expect(find.byType(CenteredLoadingIndicator), findsOneWidget);
     });
 
-    testWidgets('error is rendered as expected, with error description and retry cta', (tester) async {
+    testWidgets('ltc23 error is rendered as expected, with error description and retry cta', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -146,7 +146,7 @@ void main() {
       expect(descriptionFinder, findsOneWidget);
     });
 
-    testWidgets('onRowPressed triggers navigation event', (tester) async {
+    testWidgets('ltc23 onRowPressed triggers navigation event', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
@@ -155,7 +155,7 @@ void main() {
               dateTime: DateTime(2023, 1, 1),
               status: EventStatus.success,
               card: WalletMockData.card,
-              renewed: false,
+              eventType: IssuanceEventType.cardIssued,
             ),
           ]),
         ),

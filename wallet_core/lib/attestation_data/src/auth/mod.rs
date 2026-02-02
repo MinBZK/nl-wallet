@@ -1,6 +1,7 @@
 pub mod issuer_auth;
 pub mod reader_auth;
 
+use derive_more::Debug;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -48,6 +49,7 @@ pub struct Organization {
     pub legal_name: LocalizedStrings,
     pub description: LocalizedStrings,
     pub category: LocalizedStrings,
+    #[debug(skip)]
     pub logo: Option<Image>,
     pub web_url: Option<Url>,
     pub kvk: Option<String>,
@@ -62,7 +64,7 @@ pub mod mock {
     use super::*;
 
     impl Organization {
-        pub fn new_mock() -> Self {
+        pub fn new_mock() -> Box<Self> {
             Organization {
                 display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
                 legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
@@ -80,6 +82,7 @@ pub mod mock {
                 privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
                 logo: None,
             }
+            .into()
         }
     }
 }

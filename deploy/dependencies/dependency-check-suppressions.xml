@@ -3,13 +3,19 @@
   <!-- Start group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
   <suppress>
     <!--
-      # Suppressing Flutter 1.0.0 because 1.0.0 doesn't present any particular Flutter release
-      # https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
-      # https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
+      Suppressing Flutter 1.0.0 because 1.0.0 doesn't present any particular Flutter release
+      https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
+      https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
     -->
     <notes><![CDATA[file name: Flutter:1.0.0]]></notes>
     <packageUrl>pkg:cocoapods/Flutter@1.0.0</packageUrl>
     <vulnerabilityName regex="true">.*</vulnerabilityName>
+  </suppress>
+  <!-- Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.10.0 and Flutter 3.38.1 -->
+  <suppress>
+    <notes><![CDATA[file name: flutter_local_notifications:0.0.1]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/flutter_local_notifications@.*$</packageUrl>
+    <cve>CVE-2022-3095</cve>
   </suppress>
   <suppress>
     <notes><![CDATA[file name: flutter_native_splash:2.4.3]]></notes>
@@ -22,6 +28,17 @@
     <cpe>cpe:/a:gitlab:gitlab</cpe>
   </suppress>
   <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
+
+
+  <!-- Start group: [HIGH] -->
+  <suppress>
+     <notes><![CDATA[
+     False positive, 10.5.0 is not affected
+     ]]></notes>
+     <packageUrl regex="true">^pkg:npm/glob@10[.]5[.]0$</packageUrl>
+     <vulnerabilityName>CVE-2025-64756</vulnerabilityName>
+  </suppress>
+  <!-- End group: [HIGH] -->
 
   <!-- Start group: [MEDIUM] -->
   <suppress>

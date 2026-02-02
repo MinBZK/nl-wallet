@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/object_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/button/list_button.dart';
@@ -9,14 +10,20 @@ import '../common/widget/wallet_scrollbar.dart';
 /// Builds upon the [ConfirmActionSheet], but supplies defaults for
 /// when the user is requesting to stop the pin recovery flow.
 class RecoverPinStopSheet extends StatelessWidget {
-  final VoidCallback? onReportIssuePressed;
-  final VoidCallback onCancelPressed;
+  /// Callback for when the user confirms the action.
   final VoidCallback onConfirmPressed;
 
+  /// Callback for when the user cancels the action.
+  final VoidCallback onCancelPressed;
+
+  /// Optional callback for when the user presses the "Report issue" button.
+  /// The "Report Issue" button is hidden when no callback is provided.
+  final VoidCallback? onReportIssuePressed;
+
   const RecoverPinStopSheet({
-    this.onReportIssuePressed,
-    required this.onCancelPressed,
     required this.onConfirmPressed,
+    required this.onCancelPressed,
+    this.onReportIssuePressed,
     super.key,
   });
 
@@ -38,7 +45,7 @@ class RecoverPinStopSheet extends StatelessWidget {
         dividerSide: DividerSide.none,
         onPressed: onReportIssuePressed,
         text: Text.rich(context.l10n.recoverPinStopSheetReportIssueCta.toTextSpan(context)),
-      ),
+      ).takeIf((_) => onReportIssuePressed != null),
       onCancelPressed: onCancelPressed,
       onConfirmPressed: onConfirmPressed,
     );

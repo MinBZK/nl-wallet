@@ -71,7 +71,7 @@ class RenewPidScreen extends StatelessWidget {
       automaticallyImplyLeading: false,
       actions: [
         const HelpIconButton(),
-        CloseIconButton(onPressed: () => _stopRenewPid(context)),
+        if (_showCloseButton(state)) CloseIconButton(onPressed: () => _stopRenewPid(context)),
       ],
       title: _buildTitle(context, state),
       progress: state.stepperProgress,
@@ -122,6 +122,8 @@ class RenewPidScreen extends StatelessWidget {
               key: _kOpeningDigidStateKey,
               title: context.l10n.renewPidLoadingDigidUrlTitle,
               description: context.l10n.renewPidLoadingDigidUrlDescription,
+              onCancel: () => _stopRenewPid(context),
+              cancelCta: context.l10n.generalStop,
             );
           case RenewPidAwaitingDigidAuthentication():
             result = GenericLoadingPage(
@@ -246,6 +248,29 @@ class RenewPidScreen extends StatelessWidget {
     }
   }
 
+  /// Determines whether to show the close button in the [WalletAppBar].
+  bool _showCloseButton(RenewPidState state) {
+    switch (state) {
+      case RenewPidAwaitingDigidAuthentication():
+      case RenewPidCheckData():
+      case RenewPidConfirmPin():
+      case RenewPidSuccess():
+      case RenewPidLoadingDigidUrl():
+      case RenewPidVerifyingDigidAuthentication():
+      case RenewPidUpdatingCards():
+        return false;
+      case RenewPidInitial():
+      case RenewPidDigidFailure():
+      case RenewPidDigidLoginCancelled():
+      case RenewPidNetworkError():
+      case RenewPidGenericError():
+      case RenewPidSessionExpired():
+      case RenewPidDigidMismatch():
+      case RenewPidStopped():
+        return true;
+    }
+  }
+
   /// Stop the renew PID flow, this methods checks the current state to make
   /// sure the correct stop action (dialog/sheet/pop) will be executed.
   Future<void> _stopRenewPid(BuildContext context) async {
@@ -253,6 +278,8 @@ class RenewPidScreen extends StatelessWidget {
     if (state is RenewPidAwaitingDigidAuthentication) {
       // This is a special case, for which we show the stop dialog
       unawaited(_showStopDigidLoginDialog(context));
+    } else if (state is RenewPidStopped) {
+      Navigator.pop(context);
     } else {
       if (await RenewPidStopSheet.show(context) && context.mounted) {
         context.bloc.add(const RenewPidStopPressed());
@@ -281,7 +308,7 @@ class RenewPidScreen extends StatelessWidget {
       await _performMockLogin(context);
     } else {
       try {
-        await launchUrl(Uri.parse(authUrl), mode: LaunchMode.platformDefault);
+        await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
       } catch (ex) {
         final error = GenericError('Failed to launch digid url', sourceError: ex);
         if (context.mounted) {
@@ -298,7 +325,7 @@ class RenewPidScreen extends StatelessWidget {
     assert(Environment.mockRepositories, 'Mock login is intended for mock builds only');
     final success = await MockDigidScreen.mockLogin(context);
     if (success && context.mounted) {
-      await context.read<NavigationService>().handleNavigationRequest(PidRenewalNavigationRequest('renew_pid'));
+      await context.read<NavigationService>().handleNavigationRequest(NavigationRequest.pidRenewal('mock'));
     } else if (context.mounted) {
       context.bloc.add(
         const RenewPidLoginWithDigidFailed(

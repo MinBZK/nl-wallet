@@ -22,6 +22,8 @@ use axum::routing::post;
 use axum_csrf::CsrfConfig;
 use axum_csrf::CsrfLayer;
 use axum_csrf::CsrfToken;
+use derive_more::AsRef;
+use derive_more::From;
 use http::StatusCode;
 use http::request::Parts;
 use nutype::nutype;
@@ -45,6 +47,7 @@ use gba_hc_converter::haal_centraal::Bsn;
 use gba_hc_converter::settings::PreloadedSettings;
 use gba_hc_converter::settings::RunMode;
 use gba_hc_converter::settings::Settings;
+use http_utils::health::create_health_router;
 
 const CERT_SERIAL_HEADER: &str = "Cert-Serial";
 
@@ -67,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
     serve(settings).await
 }
 
-#[nutype(derive(Debug, From, AsRef))]
+#[derive(Debug, From, AsRef)]
 pub struct Error(anyhow::Error);
 
 impl IntoResponse for Error {
@@ -121,7 +124,7 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
         .layer(CsrfLayer::new(csrf_config))
         .layer(middleware::from_fn(check_auth))
         .layer(TraceLayer::new_for_http())
-        .route("/health", get(|| async {}));
+        .merge(create_health_router([]));
 
     axum::serve(listener, app).await?;
 

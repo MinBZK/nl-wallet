@@ -2,9 +2,12 @@ import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/model/attribute/attribute.dart';
+import '../../domain/usecase/pin/disclose_for_issuance_usecase.dart';
+import '../../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -49,7 +52,7 @@ class IssuanceScreen extends StatelessWidget {
   static IssuanceScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return tryCast<IssuanceScreenArgument>(args) ?? IssuanceScreenArgument.fromMap(args! as Map<String, dynamic>);
+      return tryCast<IssuanceScreenArgument>(args) ?? IssuanceScreenArgument.fromJson(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [IssuanceScreenArgument] when opening the IssuanceScreen');
@@ -113,7 +116,7 @@ class IssuanceScreen extends StatelessWidget {
           IssuanceCompleted() => _buildIssuanceCompletedPage(context, state),
           IssuanceStopped() => _buildStoppedPage(context, state),
           IssuanceGenericError() => _buildGenericErrorPage(context),
-          IssuanceProvidePinForDisclosure() => _buildProvidePinForDisclosurePage(context),
+          IssuanceProvidePinForDisclosure() => _buildProvidePinForDisclosurePage(context, state),
           IssuanceProvidePinForIssuance() => _buildProvidePinForIssuancePage(context, state),
           IssuanceNoCardsRetrieved() => _buildNoCardsReceived(context, state),
           IssuanceExternalScannerError() => _buildGenericErrorPage(context),
@@ -193,17 +196,20 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildMissingAttributes(BuildContext context, IssuanceMissingAttributes state) {
     return MissingAttributesPage(
       organization: state.organization,
-      onClosePressed: () => _stopIssuance(context),
       missingAttributes: state.missingAttributes,
+      onClosePressed: () => _stopIssuance(context),
       hasReturnUrl: false,
     );
   }
 
-  Widget _buildProvidePinForDisclosurePage(BuildContext context) {
-    return IssuanceConfirmPinForDisclosurePage(
-      onPinValidated: (cards) => context.bloc.add(IssuancePinForDisclosureConfirmed(cards: cards)),
-      onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
-        IssuanceConfirmPinFailed(error: errorState.error),
+  Widget _buildProvidePinForDisclosurePage(BuildContext context, IssuanceProvidePinForDisclosure state) {
+    return Provider<DiscloseForIssuanceUseCase>(
+      create: (context) => DiscloseForIssuanceUseCaseImpl(context.read(), state.selectedIndices),
+      child: IssuanceConfirmPinForDisclosurePage(
+        onPinValidated: (cards) => context.bloc.add(IssuancePinForDisclosureConfirmed(cards: cards)),
+        onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
+          IssuanceConfirmPinFailed(error: errorState.error),
+        ),
       ),
     );
   }
@@ -262,7 +268,7 @@ class IssuanceScreen extends StatelessWidget {
       final stopped = await (inDisclosureState ? DisclosureStopSheet.show : IssuanceStopSheet.show)(
         context,
         organizationName: bloc.relyingParty?.displayName.l10nValue(context),
-        onReportIssuePressed: () => ReportIssueScreen.show(context, _resolveReportingOptionsForState(context)),
+        onReportIssuePressed: () => ReportIssueScreen.show(context, _resolveReportingOptionsForState(context, state)),
       );
       if (stopped) bloc.add(const IssuanceStopRequested());
     } else {
@@ -329,43 +335,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildTitle(BuildContext context) {
     final state = context.watch<IssuanceBloc>().state;
-    String title;
-    switch (state) {
-      case IssuanceInitial():
-        title = context.l10n.issuanceLoadingRequestTitle;
-      case IssuanceLoadInProgress():
-        title = context.l10n.issuanceLoadingCardsTitle;
-      case IssuanceCheckOrganization():
-        title = OrganizationApprovePage.resolveTitle(context, ApprovalPurpose.issuance, state.organization);
-      case IssuanceMissingAttributes():
-        title = context.l10n.missingAttributesPageTitle;
-      case IssuanceProvidePinForIssuance():
-      case IssuanceProvidePinForDisclosure():
-        title = '';
-      case IssuanceReviewCards():
-        title = IssuanceReviewCardsPage.resolveTitle(
-          context,
-          renewedCards: state.renewedCards,
-          offeredCards: state.offeredCards,
-        );
-      case IssuanceCompleted():
-        title = context.l10n.issuanceSuccessPageTitle(state.addedCards.length);
-      case IssuanceStopped():
-        title = context.l10n.issuanceStoppedPageTitle;
-      case IssuanceGenericError():
-      case IssuanceExternalScannerError():
-        title = context.l10n.issuanceGenericErrorPageTitle;
-      case IssuanceNoCardsRetrieved():
-        title = context.l10n.issuanceNoCardsPageTitle;
-      case IssuanceNetworkError():
-        title = state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline;
-      case IssuanceSessionExpired():
-        title = context.l10n.errorScreenSessionExpiredHeadline;
-      case IssuanceSessionCancelled():
-        title = context.l10n.errorScreenCancelledSessionHeadline;
-      case IssuanceRelyingPartyError():
-        title = context.l10n.issuanceRelyingPartyErrorTitle;
-    }
+    final title = _resolveTitleForState(context, state);
 
     // Check for [IssuanceCheckOrganization] state, as it has a taller header (with logo) and thus should fade in later.
     final isCheckOrganizationState = state is IssuanceCheckOrganization;
@@ -376,8 +346,37 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  List<ReportingOption> _resolveReportingOptionsForState(BuildContext context) {
-    final state = context.read<IssuanceBloc>().state;
+  String _resolveTitleForState(BuildContext context, IssuanceState state) {
+    return switch (state) {
+      IssuanceInitial() => context.l10n.issuanceLoadingRequestTitle,
+      IssuanceLoadInProgress() => context.l10n.issuanceLoadingCardsTitle,
+      IssuanceCheckOrganization() => OrganizationApprovePage.resolveTitle(
+        context,
+        ApprovalPurpose.issuance,
+        state.organization,
+      ),
+      IssuanceMissingAttributes() => context.l10n.missingAttributesPageTitle,
+      IssuanceProvidePinForIssuance() => '',
+      IssuanceProvidePinForDisclosure() => '',
+      IssuanceReviewCards() => IssuanceReviewCardsPage.resolveTitle(
+        context,
+        renewedCards: state.renewedCards,
+        offeredCards: state.offeredCards,
+      ),
+      IssuanceCompleted() => context.l10n.issuanceSuccessPageTitle(state.addedCards.length),
+      IssuanceStopped() => context.l10n.issuanceStoppedPageTitle,
+      IssuanceGenericError() => context.l10n.issuanceGenericErrorPageTitle,
+      IssuanceNoCardsRetrieved() => context.l10n.issuanceNoCardsPageTitle,
+      IssuanceExternalScannerError() => context.l10n.issuanceGenericErrorPageTitle,
+      IssuanceNetworkError() =>
+        state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
+      IssuanceSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
+      IssuanceSessionCancelled() => context.l10n.errorScreenCancelledSessionHeadline,
+      IssuanceRelyingPartyError() => context.l10n.issuanceRelyingPartyErrorTitle,
+    };
+  }
+
+  List<ReportingOption> _resolveReportingOptionsForState(BuildContext context, IssuanceState state) {
     switch (state) {
       case IssuanceCheckOrganization():
         final attributeCount = state.cardRequests.fold(0, (value, it) => value + it.selection.attributes.length);
@@ -386,6 +385,8 @@ class IssuanceScreen extends StatelessWidget {
         } else {
           return ReportingGroup.disclosureConfirmMultipleAttributes;
         }
+      case IssuanceProvidePinForDisclosure():
+        return ReportingGroup.disclosureConfirmMultipleAttributes;
       case IssuanceReviewCards():
         return ReportingGroup.issuanceConfirmCards;
       case IssuanceMissingAttributes():

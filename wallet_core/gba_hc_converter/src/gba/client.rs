@@ -66,7 +66,7 @@ impl HttpGbavClient {
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        let vraag_request_template_path = prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());
+        let vraag_request_template_path = prefix_local_path(Path::new("resources/remote/bsn_zoeken_template.xml"));
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
 
         let client = Self {
@@ -124,7 +124,7 @@ pub struct FileGbavClient<T> {
 }
 
 impl<T> FileGbavClient<T> {
-    pub fn new(path: &Path, decryption_key: SymmetricKey, hmac_key: SymmetricKey, client: T) -> Self {
+    pub fn new(path: PathBuf, decryption_key: SymmetricKey, hmac_key: SymmetricKey, client: T) -> Self {
         let base_path = prefix_local_path(path).into_owned();
 
         Self {

@@ -17,7 +17,7 @@ void main() {
   ];
 
   group('goldens', () {
-    testGoldens('ChangeLanguageScreen light', (tester) async {
+    testGoldens('ltc30 ChangeLanguageScreen light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ChangeLanguageScreen().withState<ChangeLanguageBloc, ChangeLanguageState>(
           MockChangeLanguageBloc(),
@@ -27,7 +27,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('ChangeLanguageScreen dark', (tester) async {
+    testGoldens('ltc30 ChangeLanguageScreen dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ChangeLanguageScreen().withState<ChangeLanguageBloc, ChangeLanguageState>(
           MockChangeLanguageBloc(),
@@ -38,7 +38,7 @@ void main() {
       await screenMatchesGolden('dark');
     });
 
-    testGoldens('Loading state', (tester) async {
+    testGoldens('ltc30 Loading state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ChangeLanguageScreen().withState<ChangeLanguageBloc, ChangeLanguageState>(
           MockChangeLanguageBloc(),
@@ -50,7 +50,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('languages are visible', (tester) async {
+    testWidgets('ltc30 languages are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ChangeLanguageScreen().withState<ChangeLanguageBloc, ChangeLanguageState>(
           MockChangeLanguageBloc(),

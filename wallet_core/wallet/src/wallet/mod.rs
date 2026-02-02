@@ -8,8 +8,14 @@ mod init;
 mod instruction_client;
 mod issuance;
 mod lock;
+mod notifications;
+mod pin_recovery;
+mod recovery_code;
 mod registration;
 mod reset;
+mod revocation;
+mod revocation_code;
+mod state;
 mod transfer;
 mod uri;
 
@@ -19,7 +25,9 @@ mod test;
 use std::sync::Arc;
 
 use cfg_if::cfg_if;
+use parking_lot::Mutex;
 use tokio::sync::RwLock;
+use tokio::task::AbortHandle;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -27,6 +35,8 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
+use token_status_list::verification::reqwest::HttpStatusListClient;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
@@ -36,11 +46,14 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::notifications::DirectNotificationsCallback;
+use crate::wallet::pin_recovery::PinRecoverySession;
 
 use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
 use self::issuance::WalletIssuanceSession;
 
+pub use self::disclosure::DisclosureAttestationOptions;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposalPresentation;
 pub use self::disclosure::DisclosureUriSource;
@@ -51,11 +64,19 @@ pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::issuance::IssuanceError;
 pub use self::issuance::IssuanceResult;
+pub use self::issuance::PidIssuancePurpose;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
+pub use self::notifications::ScheduledNotificationsCallback;
+pub use self::pin_recovery::PinRecoveryError;
+pub use self::recovery_code::RecoveryCodeError;
 pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
+pub use self::revocation_code::RevocationCodeError;
+pub use self::state::BlockedReason;
+pub use self::state::TransferRole;
+pub use self::state::WalletState;
 pub use self::transfer::TransferError;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
@@ -97,9 +118,16 @@ impl<A, G> WalletRegistration<A, G> {
 
 #[derive(Debug)]
 enum Session<DS, IS, DCS> {
-    Digid(DS),
+    Digid {
+        purpose: PidIssuancePurpose,
+        session: DS,
+    },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
+    PinRecovery {
+        pid_config: PidAttributesConfiguration,
+        session: PinRecoverySession<DS, IS>,
+    },
 }
 
 pub struct Wallet<
@@ -111,12 +139,13 @@ pub struct Wallet<
     DC = HttpDigidClient,                       // DigidClient
     IS = HttpIssuanceSession,                   // IssuanceSession
     DCC = VpDisclosureClient,                   // DisclosureClient
+    SLC = HttpStatusListClient,                 // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
 {
-    config_repository: CR,
+    config_repository: Arc<CR>,
     update_policy_repository: UR,
     storage: Arc<RwLock<S>>,
     key_holder: AKH,
@@ -124,8 +153,12 @@ pub struct Wallet<
     account_provider_client: Arc<APC>,
     digid_client: DC,
     disclosure_client: DCC,
+    status_list_client: Arc<SLC>,
     session: Option<Session<DC::Session, IS, DCC::Session>>,
     lock: WalletLock,
-    attestations_callback: Option<AttestationsCallback>,
+    attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,
+    scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
+    direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
+    revocation_status_job_handle: Option<AbortHandle>,
 }

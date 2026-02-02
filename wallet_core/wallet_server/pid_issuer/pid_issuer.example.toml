@@ -12,9 +12,16 @@ metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 
+[status_lists]
+list_size = 100_000
+
 [wallet_server]
 ip = '127.0.0.1'
 port = 8001
+
+[internal_server]
+ip = "127.0.0.1"
+port = 8002
 
 # Optional, for securing private keys
 [hsm]
@@ -53,4 +60,18 @@ valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "MIG..."                                  # DER-encoded private key
+certificate = "MIJ..."
+
+[attestation_settings."com.example.pid".status_list]
+context_path = "/tsl"
+publish_dir = "/srv/html/tsl"
+private_key_type = "software"
+private_key = "MIG..."
+certificate = "MIJ..."
+
+[attestation_settings."com.example.address".status_list]
+context_path = "/tsl"
+publish_dir = "/srv/html/tsl"
+private_key_type = "software"
+private_key = "MIG..."
 certificate = "MIJ..."

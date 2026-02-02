@@ -12,10 +12,12 @@ use wallet::errors::WalletUnlockError;
 #[tokio::test]
 #[rstest]
 #[serial(hsm)]
-async fn test_unlock_ok(#[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor) {
+async fn ltc37_test_unlock_ok(
+    #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
+) {
     let pin = "112234";
 
-    let mut wallet = setup_wallet_and_default_env(vendor).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(vendor).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();
@@ -33,7 +35,7 @@ async fn test_unlock_ok(#[values(WalletDeviceVendor::Apple, WalletDeviceVendor::
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_block() {
+async fn ltc47_test_block() {
     let pin = "112234";
 
     let (mut settings, wp_root_ca) = wallet_provider_settings();
@@ -43,10 +45,8 @@ async fn test_block() {
 
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         update_policy_server_settings(),
         (settings, wp_root_ca),
-        verification_server_settings(),
         pid_issuer_settings(),
         issuance_server_settings(),
     )
@@ -86,9 +86,9 @@ async fn test_block() {
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_unlock_error() {
+async fn ltc46_test_unlock_error() {
     let pin = "112234";
-    let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();

@@ -25,8 +25,7 @@ class HistoryDetailSignPage extends StatelessWidget {
         HistoryDetailTimestamp(dateTime: event.dateTime),
         const SizedBox(height: 24),
         const Divider(),
-        if (!event.wasSuccess)
-          RequestDetailCommonBuilders.buildStatusHeader(context, event: event, side: DividerSide.bottom),
+        RequestDetailCommonBuilders.buildStatusHeader(context, event: event, side: DividerSide.bottom),
         if (event.wasSuccess)
           RequestDetailCommonBuilders.buildPolicy(
             context,

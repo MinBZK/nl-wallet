@@ -7,14 +7,28 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-[lib]
+[[bin]]
 name = "wallet_migrations"
-path = "src/lib.rs"
 doctest = false
+required-features = ["cli"]
+
+[lib]
+doctest = false
+
+[features]
+cli = [
+    "sea-orm-migration/cli",
+    "sea-orm-migration/runtime-tokio",
+    "sea-orm-migration/sqlx-sqlite",
+    "tokio/rt",
+    "tokio/rt-multi-thread",
+    "tokio/macros",
+]
 
 [dependencies]
 async-trait.workspace = true
-sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio", "sqlx-sqlite"] }
-tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+sea-orm-migration.workspace = true
+
+tokio = { workspace = true, optional = true }
 
 entity.path = "../entity"

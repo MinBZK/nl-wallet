@@ -1,11 +1,12 @@
+import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/helper/setup_helper.dart';
 import '../../wallet_assets.dart';
+import '../common/widget/government_logo.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_logo.dart';
 import 'bloc/splash_bloc.dart';
@@ -20,18 +21,27 @@ class SplashScreen extends StatelessWidget {
       onInit: (context) {
         FlutterNativeSplash.remove();
         WalletAssets.preloadPidSvgs();
-        SetupHelper.init(context);
       },
       child: BlocListener<SplashBloc, SplashState>(
         listenWhen: (prev, current) => current is SplashLoaded,
         listener: (context, state) {
           if (state is SplashLoaded) {
-            if (state.hasPid && state.isRegistered) {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute);
-            } else if (state.isRegistered) {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
-            } else {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.introductionRoute);
+            switch (state.destination) {
+              case PostSplashDestination.onboarding:
+                Navigator.pushReplacementNamed(context, WalletRoutes.demoRoute);
+              case PostSplashDestination.revocationCode:
+                Navigator.pushReplacementNamed(context, WalletRoutes.revocationCodeRoute);
+              case PostSplashDestination.pidRetrieval:
+                Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
+              case PostSplashDestination.pinRecovery:
+                Navigator.pushReplacementNamed(context, WalletRoutes.pinRecoveryRoute);
+              case PostSplashDestination.transfer:
+                Navigator.pushReplacementNamed(context, WalletRoutes.walletTransferTargetRoute);
+              case PostSplashDestination.dashboard:
+                Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
+              case PostSplashDestination.blocked:
+                // UI updated by [UpdateChecker] & [RootChecker]. WP Block yet to be handled.
+                Fimber.d('Not navigating, state is blocked');
             }
           }
         },
@@ -42,22 +52,34 @@ class SplashScreen extends StatelessWidget {
 
   /// Build the visual part of the SplashScreen
   Widget _buildContent(BuildContext context) {
-    return Scaffold(
-      key: const Key('splashScreen'),
-      body: Center(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const WalletLogo(size: 100),
-            const SizedBox(height: 16),
-            Text(
-              context.l10n.appTitle,
-              style: context.textTheme.titleMedium,
+    return Stack(
+      children: [
+        Scaffold(
+          key: const Key('splashScreen'),
+          body: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const WalletLogo(size: 100),
+                const SizedBox(height: 16),
+                Text(
+                  context.l10n.appTitle,
+                  style: context.textTheme.titleMedium,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: ExcludeSemantics(
+            child: GovernmentLogo(),
+          ),
+        ),
+      ],
     );
   }
 }

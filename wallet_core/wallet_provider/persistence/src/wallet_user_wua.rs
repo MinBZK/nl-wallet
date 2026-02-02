@@ -1,0 +1,61 @@
+use sea_orm::ActiveModelTrait;
+use sea_orm::ActiveValue::Set;
+use sea_orm::ColumnTrait;
+use sea_orm::ConnectionTrait;
+use sea_orm::EntityTrait;
+use sea_orm::QueryFilter;
+use sea_orm::QuerySelect;
+use uuid::Uuid;
+
+use wallet_provider_domain::repository::PersistenceError;
+
+use crate::PersistenceConnection;
+use crate::entity::wallet_user_wua;
+
+pub async fn create<S, T>(db: &T, wallet_user_id: Uuid, wua_id: Uuid) -> Result<(), PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_wua::ActiveModel {
+        wallet_user_id: Set(wallet_user_id),
+        wua_id: Set(wua_id),
+    }
+    .insert(db.connection())
+    .await
+    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+    Ok(())
+}
+
+pub async fn list_wua_ids<S, T>(db: &T) -> Result<Vec<Uuid>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_wua::Entity::find()
+        .select_only()
+        .column(wallet_user_wua::Column::WuaId)
+        .into_tuple()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+pub async fn find_wua_ids_for_wallet_users<S, T>(
+    db: &T,
+    wallet_user_ids: Vec<Uuid>,
+) -> Result<Vec<Uuid>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_wua::Entity::find()
+        .select_only()
+        .column(wallet_user_wua::Column::WuaId)
+        .filter(wallet_user_wua::Column::WalletUserId.is_in(wallet_user_ids))
+        .into_tuple()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}

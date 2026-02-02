@@ -13,6 +13,7 @@ use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::digid::DigidClient;
+use crate::instruction::InstructionClientParameters;
 pub use crate::lock::LockCallback;
 pub use crate::storage::UnlockMethod;
 
@@ -25,6 +26,8 @@ use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::UnlockData;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::PinRecoverySession;
+use crate::wallet::Session;
 
 use super::Wallet;
 
@@ -56,7 +59,7 @@ pub enum WalletUnlockError {
     UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
@@ -131,9 +134,21 @@ where
     #[instrument(skip_all)]
     pub fn lock(&mut self) {
         self.lock.lock();
+
+        // If the user is in the PID issuance phase of PIN recovery, they are choosing a new PIN.
+        // Clear this state if the wallet is locked, to force them to start over with PIN recovery.
+        if matches!(
+            self.session,
+            Some(Session::PinRecovery {
+                session: PinRecoverySession::Issuance { .. },
+                ..
+            })
+        ) {
+            self.session.take();
+        };
     }
 
-    async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
+    pub(super) async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -164,9 +179,13 @@ where
             .new_instruction_client(
                 pin,
                 Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id.clone(),
+                    registration_data.pin_salt.clone(),
+                    registration_data.wallet_certificate.clone(),
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
             )
             .await?;
 
@@ -232,13 +251,6 @@ where
         S: Storage,
     {
         info!("Unlocking wallet without pin");
-        let config = &self.config_repository.get();
-
-        info!("Fetching update policy");
-        self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
-            .await?;
-
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(WalletUnlockError::VersionBlocked);
@@ -288,12 +300,12 @@ mod tests {
     use crate::pin::key::PinKey;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
-    use crate::wallet::test::TestWalletInMemoryStorage;
 
     use super::super::WalletRegistration;
-    use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::super::test::TestWalletInMemoryStorage;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
+    use super::super::test::create_wp_result;
     use super::*;
 
     const PIN: &str = "051097";
@@ -388,15 +400,7 @@ mod tests {
         };
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
-        let result_claims = InstructionResultClaims {
-            result: (),
-            iss: "wallet_unit_test".to_string(),
-            iat: Utc::now(),
-        };
-        let result = SignedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
-            .await
-            .unwrap()
-            .into();
+        let result = create_wp_result(());
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()

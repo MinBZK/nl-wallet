@@ -116,6 +116,27 @@ void main() {
       expect(onLockCallCount, 1);
     },
   );
+
+  testWidgets(
+    'verify unlock does not trigger consecutively',
+    (WidgetTester tester) async {
+      int onLockCallCount = 0;
+      int onUnlockCallCount = 0;
+      await tester.pumpWidgetWithAppWrapper(
+        _LockStateTester(
+          onLock: () => onLockCallCount++,
+          onUnlock: () => onUnlockCallCount++,
+        ).withDependency<ObserveWalletLockedUseCase>((context) => observeWalletLockedUseCase),
+      );
+      isLockedStream.add(false);
+      await tester.pumpAndSettle();
+      isLockedStream.add(false);
+      await tester.pumpAndSettle();
+      isLockedStream.add(false);
+      await tester.pumpAndSettle();
+      expect(onUnlockCallCount, 1);
+    },
+  );
 }
 
 class _LockStateTester extends StatefulWidget {

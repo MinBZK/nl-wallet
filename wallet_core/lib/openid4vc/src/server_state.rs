@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -18,10 +17,6 @@ use tokio::time::MissedTickBehavior;
 use tracing::warn;
 
 use crypto::utils::random_string;
-use crypto::utils::sha256;
-use jwt::VerifiedJwt;
-use jwt::credential::JwtCredentialClaims;
-use jwt::wua::WuaClaims;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
@@ -79,7 +74,7 @@ where
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
-        Self: Send + Sync + 'static,
+        Self: Sync + 'static,
     {
         let mut interval = time::interval(interval);
         interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -242,94 +237,12 @@ impl From<SessionToken> for AuthorizationCode {
     }
 }
 
-/// Allows detection of previously used WUAs, by keeping track of WUAs that have been used by wallets within
-/// their validity time window (after which they may be cleaned up with `cleanup()`).
-#[trait_variant::make(Send)]
-pub trait WuaTracker {
-    type Error: std::error::Error + Send + Sync + 'static;
-
-    /// Return whether or not we have seen this WUA within its validity window, and track this WUA as seen.
-    async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error>;
-
-    /// Cleanup expired WUAs from this tracker.
-    async fn cleanup(&self) -> Result<(), Self::Error>;
-
-    fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
-    where
-        Self: Send + Sync + 'static,
-    {
-        let mut interval = time::interval(interval);
-        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
-
-        tokio::spawn(async move {
-            loop {
-                interval.tick().await;
-                if let Err(e) = self.cleanup().await {
-                    warn!("error during session cleanup: {e}");
-                }
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct MemoryWuaTracker<G = TimeGenerator> {
-    seen_wuas: DashMap<Vec<u8>, DateTime<Utc>>,
-    time: G,
-}
-
-impl<G> MemoryWuaTracker<G> {
-    pub fn new_with_time(time_generator: G) -> Self {
-        Self {
-            seen_wuas: DashMap::new(),
-            time: time_generator,
-        }
-    }
-}
-
-impl MemoryWuaTracker {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-impl<G> WuaTracker for MemoryWuaTracker<G>
-where
-    G: Generator<DateTime<Utc>> + Send + Sync,
-{
-    type Error = Infallible;
-
-    async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error> {
-        let shasum = sha256(wua.to_string().as_bytes());
-
-        // We don't have to check for expiry of the WUA, because its type guarantees that it has already been verified.
-        if self.seen_wuas.contains_key(&shasum) {
-            Ok(true)
-        } else {
-            self.seen_wuas.insert(shasum, wua.payload().contents.attributes.exp);
-            Ok(false)
-        }
-    }
-
-    async fn cleanup(&self) -> Result<(), Self::Error> {
-        let now = self.time.generate();
-        self.seen_wuas.retain(|_, exp| *exp > now);
-
-        Ok(())
-    }
-}
-
 #[cfg(any(test, feature = "test"))]
 pub mod test {
     use std::fmt::Debug;
 
     use assert_matches::assert_matches;
-    use p256::ecdsa::SigningKey;
     use parking_lot::RwLock;
-    use rand_core::OsRng;
-
-    use jwt::wua::WUA_EXPIRY;
-    use jwt::wua::WUA_JWT_VALIDATIONS;
 
     use super::*;
 
@@ -543,39 +456,6 @@ pub mod test {
 
         assert!(session.is_none());
     }
-
-    pub async fn test_wua_tracker(wua_tracker: &impl WuaTracker, mock_time: &RwLock<DateTime<Utc>>) {
-        let wua_signing_key = SigningKey::random(&mut OsRng);
-        let wua_privkey = SigningKey::random(&mut OsRng);
-
-        let wua = JwtCredentialClaims::new_signed(
-            wua_privkey.verifying_key(),
-            &wua_signing_key,
-            "iss".to_string(),
-            WuaClaims::new(),
-        )
-        .await
-        .unwrap()
-        .into_unverified();
-
-        let wua = wua
-            .into_verified(&wua_signing_key.verifying_key().into(), &WUA_JWT_VALIDATIONS)
-            .unwrap();
-
-        // Checking our WUA for the first time means we haven't seen it before
-        assert!(!wua_tracker.track_wua(&wua).await.unwrap());
-
-        // Now we have seen it
-        assert!(wua_tracker.track_wua(&wua).await.unwrap());
-
-        // Advance time past the expiry of the WUA and run the cleanup job
-        let t2 = *mock_time.read() + WUA_EXPIRY * 2;
-        *mock_time.write() = t2;
-        wua_tracker.cleanup().await.unwrap();
-
-        // The expired WUA has been removed by the cleanup job
-        assert!(!wua_tracker.track_wua(&wua).await.unwrap());
-    }
 }
 
 #[cfg(test)]
@@ -676,13 +556,5 @@ mod tests {
 
         test::test_session_store_cleanup_failed_deletion(&session_store, &session_store.timeouts, mock_time.as_ref())
             .await;
-    }
-
-    #[tokio::test]
-    async fn test_memory_wua_tracker() {
-        let time_generator = MockTimeGenerator::default();
-        let mock_time = Arc::clone(&time_generator.time);
-
-        test::test_wua_tracker(&MemoryWuaTracker::new_with_time(time_generator), mock_time.as_ref()).await;
     }
 }

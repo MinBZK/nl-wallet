@@ -10,7 +10,13 @@ workspace = true
 [lib]
 doctest = false
 
+[features]
+test = ["config/toml", "dep:utils"]
+
 [dependencies]
-config = { workspace = true, features = ["toml"] }
+config = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["chrono"] }
+url = { workspace = true, features = ["serde"] }
+
+utils = { path = "../../lib/utils", optional = true }

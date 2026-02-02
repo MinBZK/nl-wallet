@@ -13,6 +13,11 @@ class Environment {
   /// Set using: `flutter build --dart-define=MOCK_REPOSITORIES=true`
   static bool get mockRepositories => const bool.fromEnvironment('MOCK_REPOSITORIES', defaultValue: false);
 
+  /// Indicates whether debug options are enabled, e.g. to display the notifications debug screen.
+  ///
+  /// Set using: `flutter build --dart-define=SHOW_DEBUG_OPTIONS=true`
+  static bool get showDebugOptions => const bool.fromEnvironment('SHOW_DEBUG_OPTIONS', defaultValue: false);
+
   /// Indicates whether the application is currently running in a test environment.
   static bool get isTest => Platform.environment.containsKey('FLUTTER_TEST');
 
@@ -29,7 +34,7 @@ class Environment {
   /// The URL for the demo relying party.
   ///
   /// Set using: `flutter build --dart-define=DEMO_INDEX_URL=https://example.org/demo`
-  static String get demoRelyingPartyUrl => const String.fromEnvironment('DEMO_INDEX_URL');
+  static String get demoIndexUrl => const String.fromEnvironment('DEMO_INDEX_URL');
 
   /// The DSN for Sentry error reporting.
   ///

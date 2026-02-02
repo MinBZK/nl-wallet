@@ -22,16 +22,16 @@ fake_attestation = [
 # Adds serializability for snapshot tests
 snapshot_test = []
 # Various test related functionality of Wallet types and dependencies
-test = ["dep:mockall", "mdoc/mock", "openid4vc/mock", "platform_support/mock_hw_keystore"]
+test = ["openid4vc/mock", "platform_support/mock_hw_keystore", "dep:mockall"]
 
 [dependencies]
-thiserror.workspace = true
+async-trait.workspace = true
 base64.workspace = true
-chrono = { workspace = true, features = ["std", "clock"] }
+chrono = { workspace = true, features = ["now"] }
 cfg-if.workspace = true
 ciborium.workspace = true
-derive_more = { workspace = true, features = ["constructor", "debug"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+derive_more = { workspace = true, features = ["constructor", "debug", "display"] }
+futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
@@ -40,27 +40,29 @@ libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-ope
 josekit.workspace = true
 mime.workspace = true
 nutype.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "std"] }
+p256.workspace = true
 parking_lot.workspace = true
+rand.workspace = true
 regex.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
-ring = { workspace = true, features = ["std"] }
-rusqlite = {workspace = true }
+reqwest = { workspace = true, features = ["zstd"] }
+ring.workspace = true
+rusqlite.workspace = true
 rustls-pki-types.workspace = true
 sanitize-filename.workspace = true
-sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
-sea-query.workspace = true
+sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64", "json"] }
 strum = { workspace = true, features = ["derive"] }
 tempfile.workspace = true
-tokio = { workspace = true, features = ["sync", "fs"] }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
 uuid = { workspace = true, features = ["v4", "v7"] }
+zstd.workspace = true
 
 mockall = { workspace = true, optional = true }
 
@@ -77,6 +79,7 @@ openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
 sd_jwt.path = "../lib/sd_jwt"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
+token_status_list.path = "../lib/token_status_list"
 update_policy_model.path = "../update_policy/model"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 utils.path = "../lib/utils"
@@ -87,23 +90,23 @@ wscd.path = "../lib/wscd"
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
 [dev-dependencies]
-aes-gcm = { workspace = true, features = ["std"] }
+aes-gcm.workspace = true
 assert_matches.workspace = true
 mockall.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 serial_test.workspace = true
 ssri.workspace = true
-tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
+tokio = { workspace = true, features = ["macros", "test-util"] }
 wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
+attestation_types = { path = "../lib/attestation_types" }
 attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
-crypto = { path = "../lib/crypto", features = ["mock_secure_keys"] }
+crypto = { path = "../lib/crypto", features = ["mock", "mock_secure_keys"] }
 dcql = { path = "../lib/dcql", features = ["mock"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
-mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }
 openid4vc = { path = "../lib/openid4vc", features = [
     "mock",
     "test",
@@ -114,8 +117,9 @@ openid4vc = { path = "../lib/openid4vc", features = [
 platform_support = { path = "platform_support", features = ["mock"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples", "mock"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
+wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server", "mock"] }
 wscd = { path = "../lib/wscd", features = ["mock"] }
+token_status_list = { path = "../lib/token_status_list", features = ["mock"] }
 
 [build-dependencies]
 serde.workspace = true

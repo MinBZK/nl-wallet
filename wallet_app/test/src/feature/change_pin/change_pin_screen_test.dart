@@ -1,16 +1,15 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:semantic_announcement_tester/semantic_announcement_tester.dart';
+import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/service/announcement_service.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/feature/change_pin/bloc/change_pin_bloc.dart';
 import 'package:wallet/src/feature/change_pin/change_pin_screen.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
-import 'package:wallet/src/wallet_constants.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.mocks.dart';
@@ -25,7 +24,7 @@ void main() {
     'goldens',
     () {
       testGoldens(
-        'ChangePinInitial',
+        'ltc45 ChangePinInitial',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen()
@@ -45,7 +44,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinInitial Dark',
+        'ltc45 ChangePinInitial Dark',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen()
@@ -66,7 +65,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinSelectNewPinInProgress',
+        'ltc45 ChangePinSelectNewPinInProgress',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -80,7 +79,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinSelectNewPinInProgress - landscape',
+        'ltc45 ChangePinSelectNewPinInProgress - landscape',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -95,7 +94,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinSelectNewPinFailed - sequential',
+        'ltc45 ChangePinSelectNewPinFailed - sequential',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -109,7 +108,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinConfirmNewPinInProgress',
+        'ltc45 ChangePinConfirmNewPinInProgress',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -123,7 +122,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinConfirmNewPinFailed - retry allowed',
+        'ltc45 ChangePinConfirmNewPinFailed - retry allowed',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -137,7 +136,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinConfirmNewPinFailed - retry not allowed',
+        'ltc45 ChangePinConfirmNewPinFailed - retry not allowed',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -151,7 +150,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinUpdating',
+        'ltc45 ChangePinUpdating',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -165,7 +164,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinGenericError',
+        'ltc45 ChangePinGenericError',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -179,7 +178,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinNetworkError',
+        'ltc45 ChangePinNetworkError',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -196,7 +195,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinCompleted',
+        'ltc45 ChangePinCompleted',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -210,7 +209,7 @@ void main() {
       );
 
       testGoldens(
-        'ChangePinCompleted - dark',
+        'ltc45 ChangePinCompleted - dark',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -230,7 +229,7 @@ void main() {
     'widgets',
     () {
       testWidgets(
-        'verify ChangePinInitial state shows correct title',
+        'ltc45 verify ChangePinInitial state shows correct title',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen()
@@ -253,7 +252,7 @@ void main() {
       );
 
       testWidgets(
-        'verify ChangePinSelectNewPinInProgress shows correct title',
+        'ltc45 verify ChangePinSelectNewPinInProgress shows correct title',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -270,7 +269,7 @@ void main() {
       );
 
       testWidgets(
-        'verify ChangePinConfirmNewPinInProgress shows correct title',
+        'ltc45 verify ChangePinConfirmNewPinInProgress shows correct title',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -287,7 +286,7 @@ void main() {
       );
 
       testWidgets(
-        'verify ChangePinUpdating shows correct title & description',
+        'ltc45 verify ChangePinUpdating shows correct title & description',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -306,7 +305,7 @@ void main() {
       );
 
       testWidgets(
-        'verify ChangePinCompleted shows correct title',
+        'ltc45 verify ChangePinCompleted shows correct title',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
@@ -325,13 +324,12 @@ void main() {
       );
 
       testWidgets(
-        'verify announcements of entered digits when selecting new pin',
+        'ltc45 verify announcements of entered digits when selecting new pin',
         (tester) async {
-          final mock = MockSemanticAnnouncements(tester);
+          final mock = MockAnnouncementService();
+          when(mock.announcementsEnabled).thenReturn(true);
           await tester.pumpWidgetWithAppWrapper(
-            const ChangePinScreen(
-              forceAnnouncements: true,
-            ).withState<ChangePinBloc, ChangePinState>(
+            const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
               const ChangePinSelectNewPinInProgress(2),
               streamStates: [
@@ -339,36 +337,22 @@ void main() {
                 const ChangePinSelectNewPinInProgress(2, afterBackspacePressed: true),
               ],
             ),
+            providers: [RepositoryProvider<AnnouncementService>.value(value: mock)],
           );
           await tester.pumpAndSettle();
 
-          final l10n = await TestUtils.englishLocalizations;
-          expect(
-            mock.announcements,
-            hasNAnnouncements(
-              [
-                AnnounceSemanticsEvent(
-                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 3),
-                  TextDirection.ltr,
-                ),
-                AnnounceSemanticsEvent(
-                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 2),
-                  TextDirection.ltr,
-                ),
-              ],
-            ),
-          );
+          verify(mock.announceEnteredDigits(any, 3));
+          verify(mock.announceEnteredDigits(any, 2));
         },
       );
 
       testWidgets(
-        'verify announcements of entered digits when confirming new pin',
+        'ltc45 verify announcements of entered digits when confirming new pin',
         (tester) async {
-          final mock = MockSemanticAnnouncements(tester);
+          final mock = MockAnnouncementService();
+          when(mock.announcementsEnabled).thenReturn(true);
           await tester.pumpWidgetWithAppWrapper(
-            const ChangePinScreen(
-              forceAnnouncements: true,
-            ).withState<ChangePinBloc, ChangePinState>(
+            const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
               const ChangePinConfirmNewPinInProgress(1),
               streamStates: [
@@ -377,29 +361,14 @@ void main() {
                 const ChangePinConfirmNewPinInProgress(0),
               ],
             ),
+            providers: [RepositoryProvider<AnnouncementService>.value(value: mock)],
           );
           await tester.pumpAndSettle();
 
           final l10n = await TestUtils.englishLocalizations;
-          expect(
-            mock.announcements,
-            hasNAnnouncements(
-              [
-                AnnounceSemanticsEvent(
-                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 2),
-                  TextDirection.ltr,
-                ),
-                AnnounceSemanticsEvent(
-                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 1),
-                  TextDirection.ltr,
-                ),
-                AnnounceSemanticsEvent(
-                  l10n.setupSecurityScreenWCAGPinChosenAnnouncement,
-                  TextDirection.ltr,
-                ),
-              ],
-            ),
-          );
+          verify(mock.announceEnteredDigits(any, 2));
+          verify(mock.announceEnteredDigits(any, 1));
+          verify(mock.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement));
         },
       );
     },

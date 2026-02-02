@@ -1,3 +1,11 @@
+//! This module provides three header wrappers used throughout the crate:
+//! - [`HeaderWithTyp`]: minimal header that carries `alg` and a required `typ`, can be enforced via [`JwtTyp`].
+//! - [`HeaderWithJwk<H>`]: header with a required embedded `jwk` field for self-contained verification.
+//! - [`HeaderWithX5c<H>`]: header with a required `x5c` certificate chain used for verification against trust anchors.
+//!
+//! Notes
+//! - All headers are convertible to/from `jsonwebtoken::Header` to interoperate with lower-level APIs.
+//! - `HeaderWithTyp::default()` sets `alg` to `ES256` and `typ` to `T::TYP`, which is `"jwt"` by default.
 use std::borrow::Cow;
 
 use base64::prelude::*;
@@ -20,6 +28,7 @@ use crate::error::JwtError;
 use crate::jwk::jwk_from_p256;
 use crate::jwk::jwk_to_p256;
 
+/// Default `typ` value for JWTs when a payload does not override `JwtTyp::TYP`.
 pub(crate) const DEFAULT_JWT_TYP: &str = "jwt";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,11 +77,15 @@ impl TryFrom<Header> for HeaderWithTyp {
     }
 }
 
+/// Header with a required JWK, used to make verification self-contained.
+///
+/// See `UnverifiedJwt<_, HeaderWithJwk<_>>::parse_and_verify_with_jwk` for verification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HeaderWithJwk<H = HeaderWithTyp> {
     #[serde(flatten)]
     header: H,
 
+    /// Embedded public key as a JWK (must be P-256 for this crate).
     pub jwk: Jwk,
 }
 
@@ -124,6 +137,12 @@ where
     }
 }
 
+/// Header with a required X.509 certificate chain (`x5c`).
+///
+/// The chain can be validated against trust anchors, and the leaf certificate's public key is used to verify the JWS
+/// signature. The `x5c` field is serialized as base64-encoded DER certificates.
+///
+/// See `UnverifiedJwt::parse_and_verify_against_trust_anchors` for verification.
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HeaderWithX5c<H = HeaderWithTyp> {

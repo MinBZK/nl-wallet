@@ -10,15 +10,21 @@ class FlutterConfiguration {
   final int inactiveWarningTimeout;
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
+  final List<String> pidAttestationTypes;
   final String staticAssetsBaseUrl;
-  final BigInt version;
+  final (String, String)? maintenanceWindow;
+  final String version;
+  final String environment;
 
   const FlutterConfiguration({
     required this.inactiveWarningTimeout,
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
+    required this.pidAttestationTypes,
     required this.staticAssetsBaseUrl,
+    this.maintenanceWindow,
     required this.version,
+    required this.environment,
   });
 
   @override
@@ -26,8 +32,11 @@ class FlutterConfiguration {
       inactiveWarningTimeout.hashCode ^
       inactiveLockTimeout.hashCode ^
       backgroundLockTimeout.hashCode ^
+      pidAttestationTypes.hashCode ^
       staticAssetsBaseUrl.hashCode ^
-      version.hashCode;
+      maintenanceWindow.hashCode ^
+      version.hashCode ^
+      environment.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -37,6 +46,9 @@ class FlutterConfiguration {
           inactiveWarningTimeout == other.inactiveWarningTimeout &&
           inactiveLockTimeout == other.inactiveLockTimeout &&
           backgroundLockTimeout == other.backgroundLockTimeout &&
+          pidAttestationTypes == other.pidAttestationTypes &&
           staticAssetsBaseUrl == other.staticAssetsBaseUrl &&
-          version == other.version;
+          maintenanceWindow == other.maintenanceWindow &&
+          version == other.version &&
+          environment == other.environment;
 }

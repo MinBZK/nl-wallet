@@ -2,6 +2,8 @@ import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/data/repository/uri/core/core_uri_repository.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
+import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
@@ -20,7 +22,10 @@ void main() {
       const testUri = 'https://disclosure.org';
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Disclosure);
       final result = await uriRepository.processUri(Uri.parse(testUri));
-      expect(result, NavigationRequest.disclosure(testUri));
+      expect(
+        result,
+        NavigationRequest.disclosure(argument: const DisclosureScreenArgument(uri: testUri, isQrCode: false)),
+      );
     });
 
     test('Pid Issuance uri should result in a PidIssuanceNavigationRequest', () async {
@@ -36,7 +41,7 @@ void main() {
         mockWalletCore.identifyUri(testUri),
       ).thenAnswer((realInvocation) async => IdentifyUriResult.DisclosureBasedIssuance);
       final result = await uriRepository.processUri(Uri.parse(testUri));
-      expect(result, NavigationRequest.issuance(testUri));
+      expect(result, NavigationRequest.issuance(argument: const IssuanceScreenArgument(uri: testUri, isQrCode: false)));
     });
 
     test('Pid Renewal uri should result in a PidRenewalNavigationRequest', () async {
@@ -57,7 +62,7 @@ void main() {
       const testUri = 'https://transfer.org';
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Transfer);
       final result = await uriRepository.processUri(Uri.parse(testUri));
-      expect(result, NavigationRequest.walletTransfer(testUri));
+      expect(result, NavigationRequest.walletTransferSource(testUri));
     });
   });
 }

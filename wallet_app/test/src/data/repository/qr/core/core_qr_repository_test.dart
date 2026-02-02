@@ -9,6 +9,7 @@ import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/qr/edi_qr_code.dart';
 import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
 import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
+import 'package:wallet/src/navigation/wallet_routes.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
@@ -27,7 +28,7 @@ void main() {
       const testUri = 'https://disclosure.org';
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Disclosure);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
-      expect(result, isA<DisclosureNavigationRequest>());
+      expect(result.destination, WalletRoutes.disclosureRoute);
       expect(
         result.argument,
         const DisclosureScreenArgument(uri: testUri, isQrCode: true),
@@ -39,7 +40,7 @@ void main() {
       const testUri = 'https://pid_issuance.org';
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.PidIssuance);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
-      expect(result, isA<PidIssuanceNavigationRequest>());
+      expect(result.destination, WalletRoutes.walletPersonalizeRoute);
       expect(
         result.argument,
         testUri,
@@ -77,7 +78,7 @@ void main() {
         mockWalletCore.identifyUri(testUri),
       ).thenAnswer((realInvocation) async => IdentifyUriResult.DisclosureBasedIssuance);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
-      expect(result, NavigationRequest.issuance(testUri, isQrCode: true));
+      expect(result, NavigationRequest.issuance(argument: const IssuanceScreenArgument(uri: testUri, isQrCode: true)));
       expect(
         result.argument,
         const IssuanceScreenArgument(uri: testUri, isQrCode: true, isRefreshFlow: false, mockSessionId: null),
@@ -89,7 +90,7 @@ void main() {
       const testUri = 'https://transfer.org';
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Transfer);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
-      expect(result, NavigationRequest.walletTransfer(testUri));
+      expect(result, NavigationRequest.walletTransferSource(testUri));
       expect(
         result.argument,
         testUri,

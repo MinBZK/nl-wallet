@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart';
@@ -28,11 +29,7 @@ void main() {
   final MockStartIssuanceUseCase startIssuanceUseCase = MockStartIssuanceUseCase();
   final MockCancelIssuanceUseCase cancelIssuanceUseCase = MockCancelIssuanceUseCase();
 
-  setUp(() {
-    provideDummy<Result<StartIssuanceResult>>(
-      Result.success(_kDefaultReadyToDiscloseResponse),
-    );
-  });
+  setUp(() {});
 
   IssuanceBloc createBloc({bool isRefreshFlow = false}) => IssuanceBloc(
     startIssuanceUseCase,
@@ -40,13 +37,13 @@ void main() {
   );
 
   blocTest(
-    'verify initial state',
+    'ltc5 verify initial state',
     build: createBloc,
     verify: (bloc) => expect(bloc.state, const IssuanceInitial()),
   );
 
   blocTest(
-    'IssuanceGenericError is emitted when issuance can not be initiated',
+    'ltc5 IssuanceGenericError is emitted when issuance can not be initiated',
     build: () => createBloc(isRefreshFlow: true),
     setUp: () => when(
       startIssuanceUseCase.invoke(any),
@@ -59,7 +56,7 @@ void main() {
   );
 
   blocTest(
-    'verify happy path - cross device',
+    'ltc5 verify happy path - cross device',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -99,7 +96,7 @@ void main() {
   );
 
   blocTest(
-    'verify happy path - same device',
+    'ltc5 verify happy path - same device',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -128,7 +125,7 @@ void main() {
   );
 
   blocTest(
-    'verify missing attributes path',
+    'ltc5 verify missing attributes path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -155,7 +152,7 @@ void main() {
   );
 
   blocTest(
-    'verify IssuanceNoCardsRetrieved is emitted when pin disclosure does not result in cards',
+    'ltc5 verify IssuanceNoCardsRetrieved is emitted when pin disclosure does not result in cards',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -179,7 +176,7 @@ void main() {
   );
 
   blocTest(
-    'verify back press from confirm pin for disclosure',
+    'ltc5 verify back press from confirm pin for disclosure',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -200,7 +197,7 @@ void main() {
   );
 
   blocTest(
-    'verify back press from confirm pin for issuance',
+    'ltc5 verify back press from confirm pin for issuance',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -227,7 +224,7 @@ void main() {
   );
 
   blocTest(
-    'verify decline sharing attributes to organization path',
+    'ltc5 verify decline sharing attributes to organization path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -245,7 +242,7 @@ void main() {
   );
 
   blocTest(
-    'verify disclosure failed with network error path',
+    'ltc5 verify disclosure failed with network error path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -267,7 +264,7 @@ void main() {
   );
 
   blocTest(
-    'verify issuance failed with generic error path',
+    'ltc5 verify issuance failed with generic error path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       clearInteractions(cancelIssuanceUseCase);
@@ -294,13 +291,13 @@ void main() {
       isA<IssuanceNetworkError>(),
     ],
     verify: (_) {
-      // once once for during initialization and once on network error
-      verify(cancelIssuanceUseCase.invoke()).called(2);
+      // once during init, network error and the close callback.
+      verify(cancelIssuanceUseCase.invoke()).called(3);
     },
   );
 
   blocTest(
-    'verify path that contains a session error when trying to continue issuance',
+    'ltc5 verify path that contains a session error when trying to continue issuance',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       clearInteractions(cancelIssuanceUseCase);
@@ -328,7 +325,7 @@ void main() {
   );
 
   blocTest(
-    'verify path where session was cancelled externally leads to cancelled session state',
+    'ltc5 verify path where session was cancelled externally leads to cancelled session state',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       clearInteractions(cancelIssuanceUseCase);
@@ -356,7 +353,7 @@ void main() {
   );
 
   blocTest(
-    'verify accepting zero cards results in error',
+    'ltc5 verify accepting zero cards results in error',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -382,7 +379,7 @@ void main() {
   );
 
   blocTest(
-    'verify navigation back and forth between check organization and pin input maintains custom selection',
+    'ltc5 verify navigation back and forth between check organization and pin input maintains custom selection',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -413,18 +410,18 @@ void main() {
     },
     expect: () => [
       isA<IssuanceCheckOrganization>().having(
-        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        (it) => it.cardRequests.selectedIndices,
         'verify initial selection',
         [0],
       ),
       isA<IssuanceCheckOrganization>().having(
-        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        (it) => it.cardRequests.selectedIndices,
         'verify altered selection',
         [1],
       ),
       isA<IssuanceProvidePinForDisclosure>(),
       isA<IssuanceCheckOrganization>().having(
-        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        (it) => it.cardRequests.selectedIndices,
         'verify altered selection is maintained',
         [1],
       ),

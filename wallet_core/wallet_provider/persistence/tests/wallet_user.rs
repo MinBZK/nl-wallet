@@ -1,81 +1,63 @@
 use assert_matches::assert_matches;
-use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
-use sea_orm::ActiveModelTrait;
-use sea_orm::Set;
-use semver::Version;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
 use crypto::utils::random_string;
 use hsm::model::encrypted::Encrypted;
 use utils::generator::Generator;
-use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::EpochGenerator;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
-use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
-use wallet_provider_persistence::entity::wallet_transfer;
 use wallet_provider_persistence::entity::wallet_user;
+use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
+use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::encrypted_pin_key;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
-use wallet_provider_persistence::wallet_user::create_transfer_session;
-use wallet_provider_persistence::wallet_user::find_transfer_session_by_transfer_session_id;
-use wallet_provider_persistence::wallet_user::find_transfer_session_id_by_destination_wallet_user_id;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
+use wallet_provider_persistence::wallet_user::list_wallet_ids;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
+use wallet_provider_persistence::wallet_user::reset_wallet_user_state;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
-use wallet_provider_persistence::wallet_user::set_wallet_transfer_data;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
 use wallet_provider_persistence::wallet_user::transition_wallet_user_state;
 use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
-use wallet_provider_persistence::wallet_user::update_transfer_state;
-
-use crate::common::encrypted_pin_key;
 
 pub mod common;
 
-async fn create_test_user() -> (Db, Uuid, String, wallet_user::Model) {
-    let db = common::db_from_env().await.expect("Could not connect to database");
-
-    let wallet_id = random_string(32);
-
-    let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
-
-    let user = common::find_wallet_user(&db, wallet_user_id)
-        .await
-        .expect("Wallet user not found");
-
-    (db, wallet_user_id, wallet_id, user)
-}
-
 #[tokio::test]
 async fn test_create_wallet_user() {
-    let (_db, _wallet_user_id, wallet_id, wallet_user) = create_test_user().await;
+    let (_db, _wallet_user_id, wallet_id, wallet_user) = common::create_test_user().await;
     assert_eq!(wallet_id, wallet_user.wallet_id);
 }
 
 #[tokio::test]
+async fn test_list_wallet_ids() {
+    let (db, _wallet_user_id, wallet_id, _) = common::create_test_user().await;
+    let wallet_ids = list_wallet_ids(&db).await.unwrap();
+    assert!(wallet_ids.contains(&wallet_id));
+}
+
+#[tokio::test]
 async fn test_find_wallet_user_by_wallet_id() {
-    let (db, wallet_user_id, wallet_id, wallet_user_model) = create_test_user().await;
+    let (db, wallet_user_id, wallet_id, wallet_user_model) = common::create_test_user().await;
 
     // A wallet user that does not have an instruction challenge associated with it should be found.
     let wallet_user_result = find_wallet_user_by_wallet_id(&db, &wallet_id)
         .await
         .expect("finding wallet user by wallet id should succeed");
 
-    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+    assert_matches!(wallet_user_result, QueryResult::Found(_));
 
-    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
-        panic!();
-    };
+    let wallet_user = wallet_user_result.unwrap_found();
 
     assert_eq!(wallet_user.id, wallet_user_id);
     assert_eq!(wallet_user.wallet_id, wallet_id);
@@ -93,18 +75,16 @@ async fn test_find_wallet_user_by_wallet_id() {
         .await
         .expect("finding wallet user by wallet id should succeed");
 
-    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+    assert_matches!(wallet_user_result, QueryResult::Found(_));
 
-    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
-        panic!();
-    };
+    let wallet_user = wallet_user_result.unwrap_found();
 
     assert!(wallet_user.instruction_challenge.is_some());
 }
 
 #[tokio::test]
 async fn test_create_wallet_user_transaction_commit() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
 
     let transaction = transaction::begin_transaction(&db)
         .await
@@ -112,7 +92,7 @@ async fn test_create_wallet_user_transaction_commit() {
 
     let wallet_id = random_string(32);
 
-    let wallet_user_id = common::create_wallet_user_with_random_keys(&transaction, wallet_id.clone()).await;
+    let wallet_user_id = create_wallet_user_with_random_keys(&transaction, wallet_id.clone()).await;
 
     let maybe_wallet_user = common::find_wallet_user(&db, wallet_user_id).await;
 
@@ -132,7 +112,7 @@ async fn test_create_wallet_user_transaction_commit() {
 
 #[tokio::test]
 async fn test_create_wallet_user_transaction_rollback() {
-    let db = common::db_from_env().await.expect("Could not connect to database");
+    let db = db_from_env().await.expect("Could not connect to database");
     let wallet_id = random_string(32);
 
     let wallet_user_id = {
@@ -140,7 +120,7 @@ async fn test_create_wallet_user_transaction_rollback() {
             .await
             .expect("Could not begin transaction");
 
-        common::create_wallet_user_with_random_keys(&transaction, wallet_id).await
+        create_wallet_user_with_random_keys(&transaction, wallet_id).await
     };
 
     let maybe_wallet_user = common::find_wallet_user(&db, wallet_user_id).await;
@@ -150,7 +130,7 @@ async fn test_create_wallet_user_transaction_rollback() {
 
 #[tokio::test]
 async fn test_insert_instruction_challenge_on_conflict() {
-    let (db, wallet_user_id, wallet_id, _wallet_user) = create_test_user().await;
+    let (db, wallet_user_id, wallet_id, _wallet_user) = common::create_test_user().await;
 
     let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert!(challenges.is_empty());
@@ -190,7 +170,7 @@ async fn test_insert_instruction_challenge_on_conflict() {
 
     // create a second wallet
     let wallet_id2 = random_string(32);
-    let wallet_user_id2 = common::create_wallet_user_with_random_keys(&db, wallet_id2.clone()).await;
+    let wallet_user_id2 = create_wallet_user_with_random_keys(&db, wallet_id2.clone()).await;
 
     let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
@@ -212,7 +192,7 @@ async fn test_insert_instruction_challenge_on_conflict() {
 
 #[tokio::test]
 async fn test_register_unsuccessful_pin_entry() {
-    let (db, wallet_user_id, wallet_id, before) = create_test_user().await;
+    let (db, wallet_user_id, wallet_id, before) = common::create_test_user().await;
     assert!(before.last_unsuccessful_pin.is_none());
 
     register_unsuccessful_pin_entry(&db, &wallet_id, false, EpochGenerator.generate())
@@ -233,7 +213,7 @@ async fn do_change_pin() -> (
     wallet_user::Model,
     wallet_user::Model,
 ) {
-    let (db, wallet_user_id, wallet_id, before) = create_test_user().await;
+    let (db, wallet_user_id, wallet_id, before) = common::create_test_user().await;
 
     let new_pin = encrypted_pin_key("new_pin_1").await;
 
@@ -288,15 +268,15 @@ async fn test_rollback_pin() {
 
 #[tokio::test]
 async fn test_update_apple_assertion_counter() {
-    let (db, _wallet_user_id, wallet_id, _wallet_user_model) = create_test_user().await;
-    let (_, _, other_wallet_id, _) = create_test_user().await;
+    let (db, _wallet_user_id, wallet_id, _wallet_user_model) = common::create_test_user().await;
+    let (_, _, other_wallet_id, _) = common::create_test_user().await;
 
     // Each of the two users created above should start out with an assertion counter of 0.
     let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     match (wallet_user, other_wallet_user) {
-        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+        (QueryResult::Found(wallet_user), QueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
                 WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 0
@@ -319,7 +299,7 @@ async fn test_update_apple_assertion_counter() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     match (wallet_user, other_wallet_user) {
-        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+        (QueryResult::Found(wallet_user), QueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
                 WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 1337
@@ -334,8 +314,8 @@ async fn test_update_apple_assertion_counter() {
 }
 
 #[tokio::test]
-async fn test_update_wallet_user_state() {
-    let (db, wallet_user_id, wallet_id, user) = create_test_user().await;
+async fn test_transition_wallet_user_state() {
+    let (db, wallet_user_id, wallet_id, user) = common::create_test_user().await;
 
     assert_eq!(user.state, WalletUserState::Active.to_string());
 
@@ -348,9 +328,10 @@ async fn test_update_wallet_user_state() {
     .await
     .unwrap();
 
-    let WalletUserQueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
-        panic!("Could not find wallet user");
-    };
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
 
     assert_eq!(user.state, WalletUserState::RecoveringPin);
 
@@ -367,22 +348,57 @@ async fn test_update_wallet_user_state() {
 }
 
 #[tokio::test]
+async fn test_reset_wallet_user_state() {
+    let (db, wallet_user_id, wallet_id, user) = common::create_test_user().await;
+
+    assert_eq!(user.state, WalletUserState::Active.to_string());
+
+    transition_wallet_user_state(
+        &db,
+        wallet_user_id,
+        WalletUserState::Active,
+        WalletUserState::Transferring,
+    )
+    .await
+    .unwrap();
+
+    reset_wallet_user_state(&db, wallet_user_id).await.unwrap();
+
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
+
+    assert_eq!(user.state, WalletUserState::Active);
+
+    // Resetting should be idempotent
+    reset_wallet_user_state(&db, wallet_user_id).await.unwrap();
+
+    let user = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .unwrap()
+        .unwrap_found();
+
+    assert_eq!(user.state, WalletUserState::Active);
+}
+
+#[tokio::test]
 async fn test_store_recovery_code() {
-    let (db, _, wallet_id, _) = create_test_user().await;
-    let (_, _, other_wallet_id, _) = create_test_user().await;
+    let (db, _, wallet_id, _) = common::create_test_user().await;
+    let (_, _, other_wallet_id, _) = common::create_test_user().await;
 
     // Each of the two users created above should start out with a recovery code that is null.
     let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     assert_matches!(
-        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+        wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
     assert_matches!(
-        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+        other_wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
 
-    let recovery_code = "885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string();
+    let recovery_code = "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string();
     // After updating the recovery_code for the first user it should be changed, while the other one should remain null
     store_recovery_code(&db, &other_wallet_id, recovery_code.clone())
         .await
@@ -392,10 +408,10 @@ async fn test_store_recovery_code() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     assert_matches!(
-        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+        wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
     assert_matches!(
-        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+        other_wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
     );
 
     // After updating the recovery_code for the second user it should be changed as well
@@ -407,10 +423,10 @@ async fn test_store_recovery_code() {
     let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
 
     assert_matches!(
-        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+        wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
     );
     assert_matches!(
-        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+        other_wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
     );
 
     // Updating the recovery_code for the first user again should give an error
@@ -425,13 +441,13 @@ async fn test_store_recovery_code() {
 #[tokio::test]
 async fn test_has_multiple_accounts() {
     // Prepare three wallet users
-    let (db, _, wallet_id1, _) = create_test_user().await;
-    let (_, _, wallet_id2, _) = create_test_user().await;
-    let (_, _, wallet_id3, _) = create_test_user().await;
+    let (db, _, wallet_id1, _) = common::create_test_user().await;
+    let (_, wallet_user_id2, wallet_id2, _) = common::create_test_user().await;
+    let (_, wallet_user_id3, wallet_id3, _) = common::create_test_user().await;
 
     let recovery_code = Uuid::new_v4().to_string();
 
-    // There is only one wallet user having the recovery_code
+    // There is only one wallet user having the same recovery_code
     store_recovery_code(&db, &wallet_id1, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
@@ -441,7 +457,7 @@ async fn test_has_multiple_accounts() {
             .unwrap()
     );
 
-    // There are two wallet users having the recovery_code
+    // There are two wallet users having the same recovery_code
     store_recovery_code(&db, &wallet_id2, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
@@ -451,7 +467,7 @@ async fn test_has_multiple_accounts() {
             .unwrap()
     );
 
-    // There are trhee wallet users having the recovery_code
+    // There are trhee wallet users having the same recovery_code
     store_recovery_code(&db, &wallet_id3, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
@@ -461,237 +477,34 @@ async fn test_has_multiple_accounts() {
             .unwrap()
     );
 
-    // After blocking one of the wallet users, there are two wallet users having the recovery_code
-    register_unsuccessful_pin_entry(&db, &wallet_id3, true, Utc::now())
-        .await
-        .unwrap();
+    // After setting one of the wallet users to "Transferred", there are two wallet users having the same recovery_code
+    transition_wallet_user_state(
+        &db,
+        wallet_user_id3,
+        WalletUserState::Active,
+        WalletUserState::Transferred,
+    )
+    .await
+    .unwrap();
     assert!(
         has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
             .await
             .unwrap()
     );
 
-    // After blocking another of the wallet users, there is only one wallet user having the recovery_code
-    register_unsuccessful_pin_entry(&db, &wallet_id2, true, Utc::now())
-        .await
-        .unwrap();
+    // After setting another of the wallet users to "Transferred", there is only one wallet user having the
+    // recovery_code
+    transition_wallet_user_state(
+        &db,
+        wallet_user_id2,
+        WalletUserState::Active,
+        WalletUserState::Transferred,
+    )
+    .await
+    .unwrap();
     assert!(
         !has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
             .await
             .unwrap()
     );
-}
-
-#[tokio::test]
-async fn test_create_transfer_session() {
-    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
-
-    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
-        .await
-        .expect("storing the recovery code should succeed");
-
-    let transfer_session_id = Uuid::new_v4();
-    let destination_wallet_app_version = Version::parse("1.0.0").unwrap();
-
-    create_transfer_session(
-        &db,
-        wallet_user_id,
-        transfer_session_id,
-        destination_wallet_app_version.clone(),
-        Utc::now(),
-    )
-    .await
-    .unwrap();
-
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(wallet_user_id, transfer_session.destination_wallet_user_id);
-
-    // Preparing a transfer for a wallet that is already transferring should return an error
-    let result = create_transfer_session(
-        &db,
-        wallet_user_id,
-        Uuid::new_v4(),
-        destination_wallet_app_version,
-        Utc::now(),
-    )
-    .await;
-    assert_matches!(result, Err(PersistenceError::Execution(_)));
-
-    // The existing transfer_session_id should be returned
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
-}
-
-#[tokio::test]
-async fn test_find_transfer_session_by_transfer_session_id() {
-    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
-
-    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
-        .await
-        .expect("storing the recovery code should succeed");
-
-    let transfer_session_id = Uuid::new_v4();
-    let destination_wallet_app_version = Version::parse("1.2.3").unwrap();
-
-    create_transfer_session(
-        &db,
-        wallet_user_id,
-        transfer_session_id,
-        destination_wallet_app_version.clone(),
-        Utc::now(),
-    )
-    .await
-    .unwrap();
-
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
-    assert_eq!(
-        destination_wallet_app_version,
-        transfer_session.destination_wallet_app_version
-    );
-
-    assert!(
-        find_transfer_session_by_transfer_session_id(&db, Uuid::new_v4())
-            .await
-            .unwrap()
-            .is_none()
-    )
-}
-
-#[tokio::test]
-async fn test_find_transfer_session_id_by_destination_wallet_user_id() {
-    let (db, wallet_user_id, _, _) = create_test_user().await;
-
-    let transfer_session_id = Uuid::new_v4();
-
-    create_transfer_session(
-        &db,
-        wallet_user_id,
-        transfer_session_id,
-        Version::parse("1.2.3").unwrap(),
-        Utc::now(),
-    )
-    .await
-    .unwrap();
-
-    let stored_transfer_session_id = find_transfer_session_id_by_destination_wallet_user_id(&db, wallet_user_id)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(stored_transfer_session_id, transfer_session_id);
-}
-
-#[tokio::test]
-async fn test_update_transfer_state() {
-    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
-
-    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
-        .await
-        .expect("storing the recovery code should succeed");
-
-    let transfer_session_id = Uuid::new_v4();
-    let destination_wallet_app_version = Version::parse("1.2.3").unwrap();
-
-    create_transfer_session(
-        &db,
-        wallet_user_id,
-        transfer_session_id,
-        destination_wallet_app_version.clone(),
-        Utc::now(),
-    )
-    .await
-    .unwrap();
-
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
-    assert_eq!(transfer_session.state, TransferSessionState::Created);
-
-    update_transfer_state(&db, transfer_session_id, TransferSessionState::ReadyForTransfer)
-        .await
-        .unwrap();
-
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
-    assert_eq!(transfer_session.state, TransferSessionState::ReadyForTransfer);
-
-    let err = update_transfer_state(&db, Uuid::new_v4(), TransferSessionState::Success)
-        .await
-        .expect_err("Updating a non-existing transfer session should fail");
-    assert_matches!(err, PersistenceError::NoRowsUpdated);
-}
-
-#[tokio::test]
-async fn test_set_wallet_transfer_data() {
-    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
-
-    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
-        .await
-        .expect("storing the recovery code should succeed");
-
-    let transfer_session_id = Uuid::new_v4();
-
-    wallet_transfer::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        source_wallet_user_id: Set(None),
-        destination_wallet_user_id: Set(wallet_user_id),
-        transfer_session_id: Set(transfer_session_id),
-        destination_wallet_app_version: Set("1.2.3".to_string()),
-        state: Set(TransferSessionState::Created.to_string()),
-        created: Set(Utc::now().into()),
-        encrypted_wallet_data: Set(Some(random_string(128))),
-    }
-    .insert(db.connection())
-    .await
-    .unwrap();
-
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert!(transfer_session.encrypted_wallet_data.is_some());
-
-    set_wallet_transfer_data(&db, transfer_session_id, None).await.unwrap();
-
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert!(transfer_session.encrypted_wallet_data.is_none());
-
-    set_wallet_transfer_data(&db, transfer_session_id, Some(random_string(32)))
-        .await
-        .unwrap();
-
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert!(transfer_session.encrypted_wallet_data.is_some());
-
-    let err = set_wallet_transfer_data(&db, Uuid::new_v4(), None)
-        .await
-        .expect_err("Updating a non-existing transfer session should fail");
-    assert_matches!(err, PersistenceError::NoRowsUpdated);
 }

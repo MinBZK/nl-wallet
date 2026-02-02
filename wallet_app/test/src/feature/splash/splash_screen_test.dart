@@ -45,25 +45,25 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('when NOT registered navigate to introduction', (tester) async {
+    testWidgets('when NOT registered navigate to demo screen', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
-          const SplashLoaded(isRegistered: false, hasPid: false),
+          const SplashLoaded(.onboarding),
         ),
         providers: [
           RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
         ],
       );
       await tester.pumpAndSettle();
-      expect(find.text(WalletRoutes.introductionRoute), findsOneWidget);
+      expect(find.text(WalletRoutes.demoRoute), findsOneWidget);
     });
 
     testWidgets('when registered and pid is NOT available navigate to personalization', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
-          const SplashLoaded(isRegistered: true, hasPid: false),
+          const SplashLoaded(.pidRetrieval),
         ),
         providers: [
           RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
@@ -77,7 +77,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
-          const SplashLoaded(isRegistered: true, hasPid: true),
+          const SplashLoaded(.dashboard),
         ),
         providers: [
           RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),

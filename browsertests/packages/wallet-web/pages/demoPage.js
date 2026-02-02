@@ -4,10 +4,11 @@ export class DemoPage {
   constructor(page) {
     this.page = page
 
-    this.amsterdamMunicipalityButton = "#mijn_amsterdam"
-    this.xyzBankButton = "#xyz_bank"
+    this.amsterdamMunicipalityButton = "#mijn_amsterdam_mdoc"
+    this.xyzBankButton = "#xyz_bank_sd_jwt"
     this.marketplaceButton = "#online_marketplace"
     this.monkeyBikeButton = "#monkey_bike"
+    this.universityButton = "#university_mdoc"
 
     this.walletModal = 'aside[data-testid="wallet_modal"]'
     this.nlWalletButtonTag = "nl-wallet-button"
@@ -43,6 +44,10 @@ export class DemoPage {
 
   async goToMonkeyBike() {
     await this.page.locator(this.monkeyBikeButton).click()
+  }
+
+  async goToUniversity() {
+    await this.page.locator(this.universityButton).click()
   }
 
   async getWalletButtonText() {

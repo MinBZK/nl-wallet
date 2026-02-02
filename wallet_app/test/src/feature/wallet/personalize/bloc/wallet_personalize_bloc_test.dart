@@ -2,8 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
-import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
@@ -26,13 +24,10 @@ void main() {
     mockCancelPidIssuanceUseCase = MockCancelPidIssuanceUseCase();
     mockContinuePidIssuanceUseCase = MockContinuePidIssuanceUseCase();
     mockIsWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
-    provideDummy<Result<List<WalletCard>>>(const Result.success([]));
-    provideDummy<Result<bool>>(const Result.success(true));
-    provideDummy<Result<List<Attribute>>>(const Result.success([]));
   });
 
   blocTest(
-    'verify initial state',
+    'ltc1 verify initial state',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -60,7 +55,7 @@ void main() {
   });
 
   blocTest(
-    'verify initial state when wallet is initialized with pid',
+    'ltc1 verify initial state when wallet is initialized with pid',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -79,7 +74,7 @@ void main() {
   );
 
   blocTest(
-    'verify successful path to pid issuance - with wallet transfer option',
+    'ltc1 verify successful path to pid issuance - with wallet transfer option',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -111,7 +106,7 @@ void main() {
   );
 
   blocTest(
-    'verify getting issuance url error path',
+    'ltc1 verify getting issuance url error path',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -135,7 +130,7 @@ void main() {
   );
 
   blocTest(
-    'verify successful path from continuePidIssuance (i.e. deeplink back into app)',
+    'ltc1 verify successful path from continuePidIssuance (i.e. deeplink back into app)',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -165,7 +160,7 @@ void main() {
   );
 
   blocTest(
-    'verify that accessDenied error leads to WalletPersonalizeDigidCancelled',
+    'ltc1 verify that accessDenied error leads to WalletPersonalizeDigidCancelled',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -191,7 +186,7 @@ void main() {
   );
 
   blocTest(
-    'rejecting the offered pid puts the user back at the initial state',
+    'ltc1 rejecting the offered pid puts the user back at the initial state',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -216,7 +211,7 @@ void main() {
   );
 
   blocTest(
-    'when accepting the pid fails with a generic error, the bloc transitions to WalletPersonalizeGenericError',
+    'ltc1 when accepting the pid fails with a generic error, the bloc transitions to WalletPersonalizeGenericError',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -242,6 +237,30 @@ void main() {
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       isA<WalletPersonalizeLoadInProgress>(),
       isA<WalletPersonalizeGenericError>(),
+    ],
+  );
+
+  blocTest(
+    'ltc1 emits WalletPersonalizeDigidCancelled when a DeniedDigidError is received',
+    build: () => WalletPersonalizeBloc(
+      mockGetWalletCardsUseCase,
+      mockGetPidIssuanceUrlUseCase,
+      mockCancelPidIssuanceUseCase,
+      mockContinuePidIssuanceUseCase,
+      mockIsWalletInitializedWithPidUseCase,
+    ),
+    setUp: () {
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
+        (_) async => const Result.error(DeniedDigidError(sourceError: 'test')),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
+    },
+    expect: () => [
+      const WalletPersonalizeAuthenticating(),
+      isA<WalletPersonalizeLoadInProgress>(),
+      isA<WalletPersonalizeDigidCancelled>(),
     ],
   );
 }

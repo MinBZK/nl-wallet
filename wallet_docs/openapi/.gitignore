@@ -1,0 +1,4 @@
+# Devproxy working folder
+devproxy/*
+!devproxy/devproxyrc.json
+

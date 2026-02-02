@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::LazyLock;
 use std::sync::OnceLock;
@@ -17,7 +18,6 @@ use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
 use base64::prelude::*;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -39,6 +39,7 @@ use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
 use demo_utils::language::LanguageParam;
+use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::ConnectSource;
 use http_utils::urls::SourceExpression;
@@ -61,7 +62,7 @@ struct ApplicationState {
     public_url: BaseUrl,
     help_base_url: BaseUrl,
     demo_index_url: BaseUrl,
-    usecases: IndexMap<String, Usecase>,
+    usecases: HashMap<String, Usecase>,
 }
 
 static CSP_HEADER: OnceLock<String> = OnceLock::new();
@@ -88,9 +89,11 @@ pub fn create_router(settings: Settings) -> Router {
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path("assets".as_ref())).fallback(
+                    ServeDir::new(prefix_local_path(std::path::Path::new("assets"))).fallback(
                         ServiceBuilder::new()
-                            .service(ServeDir::new(prefix_local_path("../demo_utils/assets".as_ref())))
+                            .service(ServeDir::new(prefix_local_path(std::path::Path::new(
+                                "../demo_utils/assets",
+                            ))))
                             .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
                     ),
                 ),
@@ -123,7 +126,7 @@ pub fn create_router(settings: Settings) -> Router {
         app = app.layer(axum::middleware::from_fn(log_request_response));
     }
 
-    app
+    app.merge(create_health_router([]))
 }
 
 #[derive(Serialize, Deserialize)]

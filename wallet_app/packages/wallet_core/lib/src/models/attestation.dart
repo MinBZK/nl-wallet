@@ -9,6 +9,7 @@ import 'image.dart';
 import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+import 'revocation.dart';
 part 'attestation.freezed.dart';
 
 class AttestationAttribute {
@@ -53,6 +54,8 @@ class AttestationPresentation {
   final String attestationType;
   final List<DisplayMetadata> displayMetadata;
   final Organization issuer;
+  final RevocationStatus? revocationStatus;
+  final ValidityStatus validityStatus;
   final List<AttestationAttribute> attributes;
 
   const AttestationPresentation({
@@ -60,12 +63,20 @@ class AttestationPresentation {
     required this.attestationType,
     required this.displayMetadata,
     required this.issuer,
+    this.revocationStatus,
+    required this.validityStatus,
     required this.attributes,
   });
 
   @override
   int get hashCode =>
-      identity.hashCode ^ attestationType.hashCode ^ displayMetadata.hashCode ^ issuer.hashCode ^ attributes.hashCode;
+      identity.hashCode ^
+      attestationType.hashCode ^
+      displayMetadata.hashCode ^
+      issuer.hashCode ^
+      revocationStatus.hashCode ^
+      validityStatus.hashCode ^
+      attributes.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -76,6 +87,8 @@ class AttestationPresentation {
           attestationType == other.attestationType &&
           displayMetadata == other.displayMetadata &&
           issuer == other.issuer &&
+          revocationStatus == other.revocationStatus &&
+          validityStatus == other.validityStatus &&
           attributes == other.attributes;
 }
 
@@ -165,4 +178,22 @@ sealed class RenderingMetadata with _$RenderingMetadata {
     String? textColor,
   }) = RenderingMetadata_Simple;
   const factory RenderingMetadata.svgTemplates() = RenderingMetadata_SvgTemplates;
+}
+
+@freezed
+sealed class ValidityStatus with _$ValidityStatus {
+  const ValidityStatus._();
+
+  const factory ValidityStatus.notYetValid({
+    required String validFrom,
+  }) = ValidityStatus_NotYetValid;
+  const factory ValidityStatus.valid({
+    String? validUntil,
+  }) = ValidityStatus_Valid;
+  const factory ValidityStatus.expiresSoon({
+    required String validUntil,
+  }) = ValidityStatus_ExpiresSoon;
+  const factory ValidityStatus.expired({
+    required String validUntil,
+  }) = ValidityStatus_Expired;
 }

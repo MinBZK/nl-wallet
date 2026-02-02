@@ -12,16 +12,15 @@ doctest = false
 
 [features]
 examples = []
-mock = ["mdoc/examples"]
-test_document = ["mdoc/test"]
+mock = ["attestation_types/test_pid_constants", "mdoc/examples", "mdoc/mock_example_constructors"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["into_iterator"] }
 nutype = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true, features = ["std"] }
-serde_with.workspace = true
+serde_json.workspace = true
+serde_with = { workspace = true, features = ["base64"] }
 strum.workspace = true
 thiserror.workspace = true
 
@@ -34,4 +33,5 @@ mdoc = { path = "../mdoc", optional = true }
 [dev-dependencies]
 rstest.workspace = true
 
-mdoc = { path = "../mdoc", features = ["examples"] }
+attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }
+mdoc = { path = "../mdoc", features = ["examples", "mock_example_constructors"] }

@@ -87,6 +87,7 @@ pub mod generate {
     use rcgen::CustomExtension;
     use rcgen::DnType;
     use rcgen::IsCa;
+    use rcgen::Issuer;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PublicKeyData;
     use rcgen::SanType;
@@ -109,22 +110,28 @@ pub mod generate {
     }
 
     pub struct Ca {
-        certificate: rcgen::Certificate,
-        key_pair: rcgen::KeyPair,
+        issuer: Issuer<'static, rcgen::KeyPair>,
+        certificate: CertificateDer<'static>,
         borrowing_trust_anchor: BorrowingTrustAnchor,
+        intermediate_count: u8,
     }
 
     impl Ca {
-        fn new(certificate: rcgen::Certificate, key_pair: rcgen::KeyPair) -> Result<Self, CertificateError> {
-            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.der().as_ref())?;
+        fn new(
+            issuer: Issuer<'static, rcgen::KeyPair>,
+            certificate: CertificateDer<'static>,
+            intermediate_count: u8,
+        ) -> Result<Self, CertificateError> {
+            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.as_ref())?;
 
-            let key_pair_ca = Self {
+            let ca = Self {
+                issuer,
                 certificate,
-                key_pair,
                 borrowing_trust_anchor,
+                intermediate_count,
             };
 
-            Ok(key_pair_ca)
+            Ok(ca)
         }
 
         /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
@@ -139,8 +146,9 @@ pub mod generate {
 
             let key_pair = rcgen::KeyPair::generate()?;
             let certificate = params.self_signed(&key_pair)?;
+            let issuer = Issuer::new(params, key_pair);
 
-            Self::new(certificate, key_pair)
+            Self::new(issuer, certificate.into(), intermediate_count)
         }
 
         /// Generate a new self-signed CA key pair, constrained to having no intermediate CAs.
@@ -159,26 +167,28 @@ pub mod generate {
                 return Err(CertificateError::NotRootCa);
             }
 
-            let params = CertificateParams::from_ca_cert_der(&certificate_der.as_ref().into())?;
             let key_pair = rcgen::KeyPair::from_pkcs8_der_and_sign_algo(
                 &signing_key_der.as_ref().into(),
                 &PKCS_ECDSA_P256_SHA256,
             )?;
-            let certificate = params.self_signed(&key_pair)?;
+            let certificate = CertificateDer::from(certificate_der.as_ref()).into_owned();
+            let issuer = Issuer::from_ca_cert_der(&certificate, key_pair)?;
 
-            Self::new(certificate, key_pair)
+            // Unfortunately `x509_parser` does not parse the intermediate count from
+            // the basic constraint, so we should assume the worst, which is 0.
+            Self::new(issuer, certificate, 0)
         }
 
-        pub fn as_certificate_der(&self) -> &CertificateDer<'static> {
-            self.certificate.der()
+        pub fn certificate(&self) -> &CertificateDer<'static> {
+            &self.certificate
         }
 
-        pub fn as_borrowing_trust_anchor(&self) -> &BorrowingTrustAnchor {
+        pub fn borrowing_trust_anchor(&self) -> &BorrowingTrustAnchor {
             &self.borrowing_trust_anchor
         }
 
         pub fn to_signing_key(&self) -> Result<SigningKey, CertificateError> {
-            rcgen_cert_privkey(&self.key_pair)
+            rcgen_cert_privkey(self.issuer.key())
         }
 
         pub fn to_trust_anchor(&self) -> TrustAnchor<'_> {
@@ -193,11 +203,12 @@ pub mod generate {
             extension: CustomExtension,
             configuration: CertificateConfiguration,
         ) -> Result<Self, CertificateError> {
-            let constraint = match self.certificate.params().is_ca {
-                IsCa::Ca(BasicConstraints::Unconstrained) => BasicConstraints::Unconstrained,
-                IsCa::Ca(BasicConstraints::Constrained(count)) if count > 0 => BasicConstraints::Constrained(count - 1),
-                _ => return Err(CertificateError::BasicConstraintViolation),
-            };
+            if self.intermediate_count < 1 {
+                return Err(CertificateError::BasicConstraintViolation);
+            }
+
+            let intermediate_count = self.intermediate_count - 1;
+            let constraint = BasicConstraints::Constrained(intermediate_count);
 
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(constraint);
@@ -205,9 +216,10 @@ pub mod generate {
             params.custom_extensions.push(extension);
 
             let key_pair = rcgen::KeyPair::generate()?;
-            let certificate = params.signed_by(&key_pair, &self.certificate, &self.key_pair)?;
+            let certificate = params.signed_by(&key_pair, &self.issuer)?;
+            let issuer = Issuer::new(params, key_pair);
 
-            Self::new(certificate, key_pair)
+            Self::new(issuer, certificate.into(), intermediate_count)
         }
 
         fn certificate_for<EX>(
@@ -227,7 +239,7 @@ pub mod generate {
             params.subject_alt_names.push(SanType::DnsName(common_name.try_into()?));
             params.custom_extensions.extend(custom_extensions);
 
-            let certificate = params.signed_by(pk, &self.certificate, &self.key_pair)?;
+            let certificate = params.signed_by(pk, &self.issuer)?;
             let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
             Ok(certificate)
         }
@@ -274,10 +286,10 @@ pub mod generate {
         fn from(source: CertificateConfiguration) -> Self {
             let mut result = CertificateParams::default();
             if let Some(not_before) = source.not_before.and_then(|ts| ts.timestamp_nanos_opt()) {
-                result.not_before = OffsetDateTime::from_unix_timestamp_nanos(not_before as i128).unwrap();
+                result.not_before = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_before)).unwrap();
             }
             if let Some(not_after) = source.not_after.and_then(|ts| ts.timestamp_nanos_opt()) {
-                result.not_after = OffsetDateTime::from_unix_timestamp_nanos(not_after as i128).unwrap();
+                result.not_after = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_after)).unwrap();
             }
             result
         }
@@ -305,6 +317,7 @@ pub mod generate {
 
         pub const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
         pub const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
+        pub const PID_ISSUER_CERT_CN: &str = "pid.example.com";
 
         pub const RP_CA_CN: &str = "ca.rp.example.com";
         pub const RP_CERT_CN: &str = "cert.rp.example.com";
@@ -318,12 +331,28 @@ pub mod generate {
                 Self::generate(RP_CA_CN, Default::default())
             }
 
+            pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
+            }
+
             pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
             }
 
             pub fn generate_reader_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(RP_CERT_CN, CertificateUsage::ReaderAuth, Default::default())
+            }
+
+            pub fn generate_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(
+                    ISSUANCE_CERT_CN,
+                    CertificateUsage::OAuthStatusSigning,
+                    Default::default(),
+                )
+            }
+
+            pub fn generate_status_list_mock_with_dn(&self, dn: &str) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(dn, CertificateUsage::OAuthStatusSigning, Default::default())
             }
         }
     }

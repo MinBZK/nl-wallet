@@ -36,6 +36,7 @@ spec:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -43,17 +44,26 @@ spec:
           ports:
             - name: http
               containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
           volumeMounts:
-            - name: issuance-server-settings
+            - name: settings
               mountPath: /issuance_server.toml
               subPath: issuance_server.toml
-            - name: demo-issuer-metadata
+            - name: metadata
               mountPath: /com.example.degree.json
               subPath: com.example.degree.json
-            - name: demo-issuer-metadata
+            - name: metadata
               mountPath: /com.example.insurance.json
               subPath: com.example.insurance.json
+            - name: metadata
+              mountPath: /com.example.housing.json
+              subPath: com.example.housing.json
+            - name: status-lists
+              mountPath: /status-lists
           env:
+            - name: ISSUANCE_SERVER__INTERNAL_SERVER__IP
+              value: "0.0.0.0"
             - name: ISSUANCE_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: ISSUANCE_SERVER__UNIVERSAL_LINK_BASE_URL
@@ -61,7 +71,7 @@ spec:
             - name: ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
             - name: ISSUANCE_SERVER__METADATA
-              value: "com.example.degree.json,com.example.insurance.json"
+              value: "com.example.degree.json,com.example.insurance.json,com.example.housing.json"
             - name: ISSUANCE_SERVER__STORAGE__URL
               valueFrom:
                 secretKeyRef:
@@ -80,9 +90,12 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: issuance-server-settings
+        - name: settings
           secret:
             secretName: nl-wallet-demo-issuer-issuance-server-settings
-        - name: demo-issuer-metadata
+        - name: metadata
           configMap:
             name: nl-wallet-demo-issuer-metadata
+        - name: status-lists
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}

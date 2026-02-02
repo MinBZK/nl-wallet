@@ -63,6 +63,23 @@ serviceAccountName: null
 ##
 securityContext: {}
 
+## @section Ingress internal parameters
+## Parameters for the internal ingress
+## @param ingressInternal.enabled Enable or disable the internal ingress
+## @param ingressInternal.className Ingress class name
+## @param ingressInternal.hostname Hostname for the internal ingress
+## @param ingressInternal.tlsSecretName Name of the TLS secret for the internal ingress
+## @param ingressInternal.labels Additional labels for the internal ingress
+## @param ingressInternal.annotations Additional annotations for the internal ingress
+##
+ingressInternal:
+  enabled: false
+  className: "nginx"
+  hostname: null
+  tlsSecretName: null
+  labels: {}
+  annotations: {}
+
 ## @section Ingress parameters
 ## @param ingress.className Ingress class name
 ## @param ingress.hostname Hostname for the ingress
@@ -70,6 +87,7 @@ securityContext: {}
 ## @param ingress.tlsSecretName TLS secret name for the ingress
 ## @param ingress.labels Additional labels for the ingress
 ## @param ingress.annotations Additional annotations for the ingress
+## @param ingress.maxBodySize Sets the maximum allowed size of the client request body
 ##
 ingress:
   className: "nginx"
@@ -78,6 +96,22 @@ ingress:
   tlsSecretName: null
   labels: {}
   annotations: {}
+  maxBodySize: "100m"
+
+## @section Container probes
+## @param probes.config.liveness Additional configuration for liveness probe
+## @param probes.config.readiness Additional configuration for readiness probe
+## @param probes.config.startup Additional configuration for startup probe
+## @param probes.disableLiveness Disable liveness probe
+## @param probes.useLivenessAsReadiness Use liveness endpoint for readiness
+##
+probes:
+  config:
+    liveness: {}
+    readiness: {}
+    startup: {}
+  disableLiveness: false
+  useLivenessAsReadiness: false
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request
@@ -137,8 +171,24 @@ ios:
 
 ## @section Application parameters
 ## @param appIdentifier Application identifier
+## @param recoveryCodePaths.urn:eudi:pid:nl:1 Recovery code path for default PID attestation
 ##
 appIdentifier: null
+recoveryCodePaths:
+  "urn:eudi:pid:nl:1": ["recovery_code"]
+
+## @section WUA status list parameters
+## Parameters for the WUA status list configuration
+## @param wuaStatusList.baseUrl WUA status list base url that will be encoded as iss claim
+## @param wuaStatusList.certificate WUA status list certificate
+## @param wuaStatusList.volumeClaimName Name of PVC where the WUA status lists are published
+## @param wuaStatusList.volumeClaimPath Path in the PVC where the WUA status lists are published
+##
+wuaStatusList:
+  baseUrl: null
+  certificate: null
+  volumeClaimName: null
+  volumeClaimPath: null
 
 ## @section Migration parameters
 ## Parameters for the migration configuration

@@ -1,15 +1,18 @@
+use std::sync::Arc;
+
 use tracing::info;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::attestation::AttestationPresentation;
 use crate::digid::DigidClient;
+use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredAttestationCopy;
 
 use super::Wallet;
 
@@ -20,28 +23,35 @@ pub enum AttestationsError {
     Storage(#[from] StorageError),
 }
 
-pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
+pub type AttestationsCallback = Box<dyn Fn(Vec<AttestationPresentation>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
+    CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
 {
-    pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
+    pub(super) async fn emit_attestations(&self) -> Result<(), AttestationsError> {
         info!("Emit attestations from storage");
 
+        let has_callback = self.attestations_callback.lock().is_some();
+        if !has_callback {
+            return Ok(());
+        }
+
+        let wallet_config = self.config_repository.get();
         let storage = self.storage.read().await;
 
         let attestations = storage
             .fetch_unique_attestations()
             .await?
             .into_iter()
-            .map(StoredAttestationCopy::into_attestation_presentation)
+            .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
             .collect();
 
-        if let Some(ref mut callback) = self.attestations_callback {
+        if let Some(ref callback) = self.attestations_callback.lock().as_deref() {
             callback(attestations);
         }
 
@@ -53,7 +63,7 @@ where
         &mut self,
         callback: AttestationsCallback,
     ) -> Result<Option<AttestationsCallback>, AttestationsError> {
-        let previous_callback = self.attestations_callback.replace(callback);
+        let previous_callback = self.attestations_callback.lock().replace(callback);
 
         if self.registration.is_registered() {
             self.emit_attestations().await?;
@@ -63,7 +73,7 @@ where
     }
 
     pub fn clear_attestations_callback(&mut self) -> Option<AttestationsCallback> {
-        self.attestations_callback.take()
+        self.attestations_callback.lock().take()
     }
 }
 
@@ -74,14 +84,12 @@ mod tests {
     use assert_matches::assert_matches;
     use uuid::Uuid;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-    use crypto::server_keys::generate::Ca;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use attestation_data::validity::ValidityWindow;
 
     use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::create_example_pid_mdoc;
+    use crate::wallet::test::create_example_pid_sd_jwt;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
@@ -121,12 +129,9 @@ mod tests {
     async fn test_wallet_set_clear_documents_callback_registered() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair =
-            generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
-
-        let sd_jwt = VerifiedSdJwt::pid_example(&issuance_keypair);
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
+        let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
+        let attestation_type = sd_jwt.claims().vct.clone();
+        let (mdoc, mdoc_metadata) = create_example_pid_mdoc();
 
         let storage = wallet.mut_storage();
         storage.expect_fetch_unique_attestations().return_once(move || {
@@ -134,19 +139,21 @@ mod tests {
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
                     StoredAttestation::SdJwt {
                         key_identifier: "sd_jwt_key_id".to_string(),
                         sd_jwt,
                     },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    sd_jwt_metadata,
+                    None,
                 ),
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
-                    StoredAttestation::MsoMdoc {
-                        mdoc: create_example_pid_mdoc(),
-                    },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    ValidityWindow::new_valid_mock(),
+                    StoredAttestation::MsoMdoc { mdoc },
+                    mdoc_metadata,
+                    None,
                 ),
             ])
         });
@@ -167,9 +174,9 @@ mod tests {
 
             let attestation = attestations
                 .first()
-                .expect("Attestations callback should have been called")
+                .expect("attestations callback should have been called")
                 .first()
-                .expect("Attestations callback should have been provided an Mdoc");
+                .expect("attestations callback should have been provided a document");
             assert_eq!(attestation.attestation_type, attestation_type);
         }
 

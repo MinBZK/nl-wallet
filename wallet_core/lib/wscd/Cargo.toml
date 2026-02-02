@@ -14,25 +14,33 @@ doctest = false
 # Include examples from the ISO specification
 examples = ["crypto/examples"]
 # Include MockRemoteEcdsaKey type and MockRemoteWscd implementation of Wscd for testing
-mock = ["crypto/mock", "dep:parking_lot", "dep:rand_core"]
+mock = ["dep:parking_lot", "dep:rand_core", "chrono/now", "attestation_types/mock", "crypto/mock"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
-futures = { workspace = true, features = ["std"] }
+futures.workspace = true
 itertools.workspace = true
-parking_lot = { workspace = true, optional = true }
-p256 = { workspace = true, features = ["ecdsa"] }
-rand_core = { workspace = true, optional = true }
+p256.workspace = true
 serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 
-crypto = { path = "../crypto/", features = ["mock"] }
+crypto.path = "../crypto"
 jwt.path = "../jwt"
-utils.path = "../utils/"
+utils.path = "../utils"
+
+chrono = { workspace = true, optional = true }
+parking_lot = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
+
+attestation_types = { path = "../attestation_types", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+chrono = { workspace = true, features = ["now"] }
 parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+
+attestation_types = { path = "../attestation_types", features = ["mock"] }
+crypto = { path = "../crypto", features = ["mock"] }

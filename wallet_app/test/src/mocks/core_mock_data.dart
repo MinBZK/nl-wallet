@@ -8,6 +8,7 @@ abstract class CoreMockData {
     displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
     issuer: organization,
     attributes: [attestationAttributeName],
+    validityStatus: ValidityStatus_Valid(validUntil: null),
   );
 
   static const enDisplayMetadata = DisplayMetadata(lang: 'en', name: 'PID attestation', rendering: null);
@@ -30,5 +31,11 @@ abstract class CoreMockData {
     displayName: [LocalizedString(language: 'en', value: 'displayName')],
     category: [LocalizedString(language: 'en', value: 'category')],
     description: [LocalizedString(language: 'en', value: 'description')],
+  );
+
+  static const RequestPolicy policy = RequestPolicy(
+    dataSharedWithThirdParties: true,
+    dataDeletionPossible: true,
+    policyUrl: 'https://example.org',
   );
 }

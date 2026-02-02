@@ -3,6 +3,10 @@ pub mod logging;
 
 #[cfg(feature = "test_common")]
 pub mod common;
+#[cfg(feature = "test_credentials")]
+pub mod metadata;
+#[cfg(feature = "test_credentials")]
+pub mod test_credential;
 #[cfg(feature = "test_common")]
 pub mod utils;
 

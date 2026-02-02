@@ -97,8 +97,10 @@ class _MenuItemState extends State<MenuItem> {
                 mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(width: widget.leftIcon == null ? 0 : 16),
-                  if (widget.leftIcon != null) _buildLeftIcon(),
+                  if (widget.leftIcon != null) ...[
+                    const SizedBox(width: 16),
+                    _buildLeftIcon(),
+                  ],
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -148,8 +150,10 @@ class _MenuItemState extends State<MenuItem> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  if (widget.rightIcon != null) _buildRightIcon(),
-                  SizedBox(width: widget.rightIcon == null ? 0 : 8),
+                  if (widget.rightIcon != null) ...[
+                    _buildRightIcon(),
+                    const SizedBox(width: 8),
+                  ],
                 ].nonNullsList,
               ),
             ),

@@ -1,14 +1,18 @@
+use std::collections::HashMap;
 use std::net::IpAddr;
+use std::path::Path;
 
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use indexmap::IndexMap;
+use derive_more::Into;
 use serde::Deserialize;
+use serde_valid::Validate;
 
 use attestation_data::attributes::AttributeValue;
-use attestation_data::issuable_document::IssuableDocuments;
+use attestation_data::attributes::Attributes;
+use attestation_data::issuable_document::IssuableDocument;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -25,7 +29,7 @@ pub struct Settings {
     pub help_base_url: BaseUrl,
     pub structured_logging: bool,
     pub log_requests: bool,
-    pub usecases: IndexMap<String, Usecase>,
+    pub usecases: HashMap<String, Usecase>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -36,9 +40,18 @@ pub struct Server {
 
 #[derive(Deserialize, Clone)]
 pub struct Usecase {
-    pub data: IndexMap<AttributeValue, IssuableDocuments>,
+    pub data: HashMap<AttributeValue, IssuableDocumentTemplates>,
     pub client_id: String,
     pub disclosed: Disclosed,
+}
+
+pub type IssuableDocumentTemplates = VecNonEmpty<IssuableDocumentTemplate>;
+
+#[derive(Deserialize, Clone, Validate, Into)]
+pub struct IssuableDocumentTemplate {
+    attestation_type: String,
+    #[validate(custom = IssuableDocument::validate_attributes)]
+    attributes: Attributes,
 }
 
 #[derive(Deserialize, Clone)]
@@ -57,7 +70,7 @@ impl Settings {
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("structured_logging", false)?
             .set_default("log_requests", false)?
-            .add_source(File::from(prefix_local_path("demo_issuer.json".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path(Path::new("demo_issuer.json")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("demo_issuer")
                     .separator("__")

@@ -41,7 +41,6 @@ mod android {
     use jni::JNIEnv;
     use jni::objects::JClass;
 
-    #[rustfmt::skip]
     #[unsafe(no_mangle)]
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_signing_SigningKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
         _env: JNIEnv,
@@ -50,7 +49,6 @@ mod android {
         super::hw_keystore_test_hardware_signature();
     }
 
-    #[rustfmt::skip]
     #[unsafe(no_mangle)]
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_encryption_EncryptionKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1encryption(
         _env: JNIEnv,

@@ -8,7 +8,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val goToWebsiteButton = l10n.getString("disclosureSuccessPageToWebsiteCta")
     private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
     private val closeButton = l10n.getString("disclosureSuccessPageCloseCta")
-    private val attributesMissingMessage = l10n.getString("missingAttributesPageTitle")
     private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
     private val viewDisclosureOrganizationDetailsButton = l10n.getString("organizationButtonLabel")
     private val goBackButton = l10n.getString("generalBottomBackCta")
@@ -20,6 +19,9 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val disclosureConfirmDataAttributesSubtitleTerms = l10n.getString("disclosureConfirmDataAttributesSubtitleTerms")
     private val disclosureConfirmDataAttributesCheckConditionsCta = l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta")
     private val reportOptionSuspiciousOrganization = l10n.getString("reportOptionSuspiciousOrganization")
+    private val swapCardButton = l10n.getString("sharedAttributesCardChangeCardCta")
+    private val stopButton = l10n.getString("organizationApprovePageDenyCta")
+    private val bottomSheetConfirmStopButton = l10n.getString("disclosureStopSheetPositiveCta")
 
     fun login() = clickElementWithText(loginButton)
 
@@ -37,8 +39,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         clickElementWithText(closeButton)
         switchToWebViewContext()
     }
-
-    fun attributesMissingMessageVisible() = elementWithTextVisible(attributesMissingMessage)
 
     fun organizationNameForSharingFlowVisible(organizationName: String): Boolean {
         val selectorText = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organizationName)
@@ -109,4 +109,17 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         scrollToElementWithText(disclosureConfirmDataAttributesCheckConditionsCta)
         return elementWithTextVisible(disclosureConfirmDataAttributesCheckConditionsCta)
     }
+
+    fun clickSwapCardButton() {
+        scrollToElementWithText(swapCardButton)
+        clickElementWithText(swapCardButton)
+    }
+
+    fun swapCardTo(cardIdentifier: String) {
+        clickElementContainingText(cardIdentifier)
+    }
+
+    fun stop() = clickElementWithText(stopButton)
+
+    fun bottomSheetConfirmStop() = clickElementWithText(bottomSheetConfirmStopButton)
 }

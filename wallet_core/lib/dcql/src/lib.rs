@@ -2,14 +2,15 @@ pub mod disclosure;
 pub mod normalized;
 pub mod unique_id_vec;
 
-#[cfg(feature = "test_document")]
-mod test_document;
-
 use std::ops::Not;
 
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use strum::EnumDiscriminants;
 
@@ -41,7 +42,7 @@ fn validate_identifier_str(id: &str) -> Result<(), IdentifierError> {
 }
 
 #[nutype(
-    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, FromStr, Serialize, Deserialize),
     validate(with = validate_identifier_str, error = IdentifierError),
 )]
 pub struct CredentialQueryIdentifier(String);
@@ -174,6 +175,7 @@ pub struct CredentialSetQuery {
 /// in one of the provided types.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#dcql_trusted_authorities>
+#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "values", rename_all = "snake_case")]
 pub enum TrustedAuthoritiesQuery {
@@ -182,11 +184,11 @@ pub enum TrustedAuthoritiesQuery {
     /// element of an X.509 certificate in the certificate chain present in the credential (e.g., in the header of an
     /// mdoc or SD-JWT). Note that the chain can consist of a single certificate and the credential can include the
     /// entire X.509 chain or parts of it.
-    Aki(VecNonEmpty<String>),
+    Aki(#[serde_as(as = "Vec<Base64<UrlSafe, Unpadded>>")] VecNonEmpty<Vec<u8>>),
 
     // Allow parsing of methods not supported by this implementation.
     #[serde(untagged)]
-    Other(String),
+    Other(VecNonEmpty<String>),
 }
 
 /// Specifies claims in the requested Credential.
@@ -204,16 +206,25 @@ pub struct ClaimsQuery {
     /// Claims path pointers that specify the path to a claim within the Credential.
     pub path: VecNonEmpty<ClaimPath>,
 
-    /// Expected values of the claim, if any. If the values property is present, the Wallet SHOULD return the claim
-    /// only if the type and value of the claim both match exactly for at least one of the elements in the array.
+    /// A non-empty array of strings, integers or boolean values that specifies the expected values of the claim. If the
+    /// values property is present, the Wallet SHOULD return the claim only if the type and value of the claim both
+    /// match exactly for at least one of the elements in the array.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub values: Vec<serde_json::Value>,
+    pub values: Vec<ClaimsQueryValue>,
 
     /// Whether the RP intends to retain the attribute after disclosure for some amount of time.
     /// Note: this flag is specific to the mdoc credential format and should not be present in case of other formats.
     ///
     /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-parameter-in-the-claims-que>
     pub intent_to_retain: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ClaimsQueryValue {
+    Boolean(bool),
+    Integer(i64),
+    String(String),
 }
 
 impl MayHaveUniqueId for ClaimsQuery {

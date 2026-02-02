@@ -1,11 +1,11 @@
 build-wallet-web:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     VITE_HELP_BASE_URL: ${WALLET_WEB_HELP_BASE_URL}
   script:
     - set -euxo pipefail
-    - (cd wallet_web; npm ci && npm run format-check && npm run lint && npm run type-check && npm run coverage -- --run)
+    - (cd wallet_web; npm ci --ignore-scripts && npm run format-check && npm run lint && npm run type-check && npm run coverage -- --run)
     - (cd wallet_web; npm run build)
     # copy the built files to the demo utils assets folder
     - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/demo/demo_utils/assets/
@@ -25,7 +25,7 @@ build-wallet-web:
 
 test-generate-web-bindings:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   script:
     - scripts/generate-web-bindings.sh
     - git diff

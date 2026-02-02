@@ -14,32 +14,23 @@ doctest = false
 anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
-axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
+axum = { workspace = true, features = ["json"] }
 axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
-config = { workspace = true, features = ["preserve_order", "json"] }
-indexmap.workspace = true
+config = { workspace = true, features = ["json"] }
+derive_more.workspace = true
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
+serde_valid.workspace = true
 serde_urlencoded.workspace = true
 strum.workspace = true
-tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tower.workspace = true
 tower-http = { workspace = true, features = ["trace", "fs"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = [
-    "std",
-    "fmt",
-    "tracing-log",
-    "smallvec",
-    "parking_lot",
-    "env-filter",
-    "json",
-    "ansi",
-] }
+tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 url.workspace = true
 
 attestation_data.path = "../../lib/attestation_data"
-dcql.path = "../../lib/dcql"
 demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc.path = "../../lib/openid4vc"

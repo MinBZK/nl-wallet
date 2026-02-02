@@ -1,25 +1,41 @@
+use std::collections::HashSet;
+use std::num::NonZeroUsize;
+use std::time::Duration;
+
 use base64::prelude::*;
+use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
+use attestation_types::status_claim::StatusClaim;
+use crypto::server_keys::generate::Ca;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
+use status_lists::config::StatusListConfig;
+use status_lists::postgres::PostgresStatusListService;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::PerformIssuance;
+use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::signed::ChallengeResponse;
-use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::EpochGenerator;
-use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
-use wallet_provider_domain::repository::PersistenceError;
+use wallet_provider_domain::generator::mock::MockGenerators;
+use wallet_provider_domain::model::QueryResult;
+use wallet_provider_domain::model::TimeoutPinPolicy;
+use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
+use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
+use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::wallet_user;
+use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
@@ -30,19 +46,8 @@ use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
+use wallet_provider_service::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
-
-async fn db_from_env() -> Result<Db, PersistenceError> {
-    let _ = tracing::subscriber::set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .with_test_writer()
-            .finish(),
-    );
-
-    let settings = Settings::new().unwrap();
-    Db::new(settings.database.connection_string(), Default::default()).await
-}
 
 async fn do_registration(
     account_server: &MockAccountServer,
@@ -55,7 +60,7 @@ async fn do_registration(
     WalletCertificate,
     MockHardwareKey,
     WalletCertificateClaims,
-    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer>,
+    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>>,
 ) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
@@ -97,13 +102,36 @@ async fn do_registration(
         }
     };
 
+    let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let key_pair = wua_issuer_ca.generate_status_list_mock().unwrap();
+
+    let db_connection = db.connection().to_owned();
+    let wua_status_list_config = StatusListConfig {
+        list_size: 100.try_into().unwrap(),
+        create_threshold: 10.try_into().unwrap(),
+        expiry: Duration::from_secs(3600),
+        refresh_threshold: Duration::from_secs(600),
+        ttl: None,
+
+        base_url: "http://example.com".parse().unwrap(), // unused
+        publish_dir: std::env::temp_dir().to_path_buf().try_into().unwrap(),
+        key_pair, // unused
+    };
+
+    let status_list_service =
+        PostgresStatusListService::try_new(db_connection, WUA_ATTESTATION_TYPE_IDENTIFIER, wua_status_list_config)
+            .await
+            .unwrap();
+
     let user_state = mock::user_state(
         Repositories::from(db),
         wallet_certificate::mock::setup_hsm().await,
         wrapping_key_identifier.to_string(),
         vec![],
+        status_list_service,
     );
-    let certificate = account_server
+
+    let (certificate, _recovery_code) = account_server
         .register(certificate_signing_key, registration_message, &user_state)
         .await
         .expect("Could not process registration message at account server");
@@ -124,7 +152,7 @@ async fn assert_instruction_data(
     let tx = repos.begin_transaction().await.unwrap();
     let user_result = repos.find_wallet_user_by_wallet_id(&tx, wallet_id).await.unwrap();
     match user_result {
-        WalletUserQueryResult::Found(user_boxed) => {
+        QueryResult::Found(user_boxed) => {
             let user = *user_boxed;
 
             assert_eq!(expected_sequence_number, user.instruction_sequence_number);
@@ -190,4 +218,98 @@ async fn test_instruction_challenge(
     assert_instruction_data(&user_state.repositories, &cert_data.wallet_id, 2, true).await;
 
     assert_ne!(challenge1, challenge2);
+}
+
+#[tokio::test]
+async fn test_wua_status() {
+    let db = db_from_env().await.expect("Could not connect to database");
+    let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+    let certificate_signing_key = SigningKey::random(&mut OsRng);
+    let certificate_signing_pubkey = certificate_signing_key.verifying_key();
+
+    let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
+    let pin_privkey = SigningKey::random(&mut OsRng);
+
+    let (certificate, hw_privkey, cert_data, user_state) = do_registration(
+        &account_server,
+        &certificate_signing_key,
+        &pin_privkey,
+        db,
+        AttestationCa::Apple(&MOCK_APPLE_CA),
+        wrapping_key_identifier,
+    )
+    .await;
+
+    let challenge = account_server
+        .instruction_challenge(
+            hw_privkey
+                .sign_instruction_challenge::<PerformIssuanceWithWua>(
+                    cert_data.wallet_id.clone(),
+                    1,
+                    certificate.clone(),
+                )
+                .await,
+            &EpochGenerator,
+            &user_state,
+        )
+        .await
+        .unwrap();
+
+    let instruction = hw_privkey
+        .sign_instruction(
+            PerformIssuanceWithWua {
+                issuance_instruction: PerformIssuance {
+                    key_count: NonZeroUsize::MIN,
+                    aud: "aud".to_string(),
+                    nonce: Some("nonce".to_string()),
+                },
+            },
+            challenge,
+            44,
+            &pin_privkey,
+            certificate.clone(),
+        )
+        .await;
+
+    let result = account_server
+        .handle_instruction(
+            instruction,
+            &certificate_signing_key,
+            &MockGenerators,
+            &TimeoutPinPolicy,
+            &user_state,
+        )
+        .await
+        .unwrap();
+
+    // fetch all WUA IDs for this wallet directly from the database
+    let tx = user_state.repositories.begin_transaction().await.unwrap();
+    let wallet_user_ids = wallet_user::find_wallet_user_id_by_wallet_ids(&tx, &HashSet::from([cert_data.wallet_id]))
+        .await
+        .unwrap()
+        .into_values()
+        .collect_vec();
+    let wua_ids = wallet_user_wua::find_wua_ids_for_wallet_users(&tx, wallet_user_ids)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+
+    // assert that one WUA has been stored in the database, linked to this wallet
+    assert!(wua_ids.len() == 1);
+
+    assert!(matches!(
+        result
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .result
+            .wua_disclosure
+            .wua()
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .status,
+        StatusClaim::StatusList(_)
+    ));
 }

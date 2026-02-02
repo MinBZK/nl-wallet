@@ -10,12 +10,17 @@ pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protect
 
 pid_issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
+[recovery_code_paths]
+"urn:eudi:pid:nl:1" = ["recovery_code"]
+
 [database]
-host = "${DB_HOST}"
-port = "${DB_PORT}"
-username = "${DB_USERNAME}"
-password = "${DB_PASSWORD}"
-name = "wallet_provider"
+url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider"
+
+[wua_status_list]
+base_url = "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wua"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
+key_identifier = "wua_tsl_key"
+key_certificate = "${WUA_TSL_CRT}"
 
 [webserver]
 ip = "0.0.0.0"
@@ -47,9 +52,8 @@ root_certificates = [
 
 [android]
 root_public_keys = [
-    "${ANDROID_ROOT_PUBKEY}",
-    "${ANDROID_EMULATOR_EC_ROOT_PUBKEY}",
-    "${ANDROID_EMULATOR_RSA_ROOT_PUBKEY}"
+    "${ANDROID_ROOT_RSA_PUBKEY}",
+    "${ANDROID_ROOT_EC_PUBKEY}",
 ]
 package_name = "nl.ictu.edi.wallet.latest"
 allow_sideloading = true

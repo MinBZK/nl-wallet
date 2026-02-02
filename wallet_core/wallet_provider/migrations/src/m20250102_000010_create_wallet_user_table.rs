@@ -29,6 +29,9 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone(WalletUser::AttestationDateTime))
                     .col(uuid_null(WalletUser::AppleAttestationId))
                     .col(uuid_null(WalletUser::AndroidAttestationId))
+                    .col(binary_uniq(WalletUser::RevocationCodeHmac))
+                    .col(string_null(WalletUser::RevocationReason))
+                    .col(timestamp_with_time_zone_null(WalletUser::RevocationDateTime))
                     .col(string_null(WalletUser::RecoveryCode))
                     .check(SimpleExpr::or(
                         // Both of these columns should be used or neither.
@@ -78,6 +81,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(WalletUser::Table)
+                    .name("wallet_user_recovery_code")
+                    .col(WalletUser::RecoveryCode)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 }
@@ -96,8 +109,11 @@ pub enum WalletUser {
     PinEntries,
     LastUnsuccessfulPin,
     State,
+    RevocationReason,
+    RevocationDateTime,
     AttestationDateTime,
     AppleAttestationId,
     AndroidAttestationId,
+    RevocationCodeHmac,
     RecoveryCode,
 }

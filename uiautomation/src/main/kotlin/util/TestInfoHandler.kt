@@ -23,15 +23,16 @@ class TestInfoHandler {
         }
 
         private fun setupLanguage(tags: Set<String>) {
-            setDutchLanguage() // Default to Dutch when no language tag is set
-            tags.forEach { tag ->
-                when (tag) {
-                    ENGLISH_LANGUAGE_TAG -> setEnglishLanguage()
-                    FRANCE_LANGUAGE_TAG -> setFranceLanguage()
-                }
+            if (EnvironmentUtil.getVar("ENABLE_BROWSERSTACK_A11Y_CHECKS") == "true") {
+                setEnglishLanguage()
+                return
             }
-            if (tags.containsAll(listOf(ENGLISH_LANGUAGE_TAG, FRANCE_LANGUAGE_TAG))) {
-                throw ConfigurationException("Multiple foreign language tags are not allowed.")
+            when {
+                tags.contains(ENGLISH_LANGUAGE_TAG) -> setEnglishLanguage()
+                tags.contains(FRANCE_LANGUAGE_TAG) -> setFranceLanguage()
+                tags.containsAll(listOf(ENGLISH_LANGUAGE_TAG, FRANCE_LANGUAGE_TAG)) ->
+                    throw ConfigurationException("Multiple foreign language tags are not allowed.")
+                else -> setDutchLanguage() // Default to Dutch when no language tag is set
             }
         }
 

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
 import '../mock.dart';
@@ -52,7 +54,10 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin}) async {
+  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
+    required List<int> selectedIndices,
+    required String pin,
+  }) async {
     return _disclosureManager.acceptDisclosure(pin);
   }
 
@@ -187,8 +192,10 @@ class WalletCoreMock implements WalletCoreApi {
         inactiveWarningTimeout: const Duration(minutes: 1).inSeconds,
         inactiveLockTimeout: const Duration(minutes: 3).inSeconds,
         backgroundLockTimeout: const Duration(seconds: 20).inSeconds,
+        pidAttestationTypes: [MockAttestationTypes.pid, MockAttestationTypes.address],
         staticAssetsBaseUrl: 'https://example.com/',
-        version: BigInt.one,
+        version: '1',
+        environment: 'mock',
       ),
     );
   }
@@ -224,13 +231,10 @@ class WalletCoreMock implements WalletCoreApi {
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream() => _eventLog.logStream;
 
   @override
-  Future<bool> crateApiFullHasActiveDisclosureSession() async => _disclosureManager.hasActiveDisclosureSession;
-
-  @override
-  Future<bool> crateApiFullHasActiveIssuanceSession() async => _issuanceManager.hasActiveIssuanceSession;
-
-  @override
-  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin}) async {
+  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
+    required List<int> selectedIndices,
+    required String pin,
+  }) async {
     assert(_issuanceManager.hasActiveIssuanceSession, 'invalid state');
     final attestations = await _issuanceManager.discloseForIssuance(pin);
     try {
@@ -308,12 +312,14 @@ class WalletCoreMock implements WalletCoreApi {
   Future<String> crateApiFullInitWalletTransfer() => _transferManager.initWalletTransfer();
 
   @override
-  Future<void> crateApiFullAcknowledgeWalletTransfer({required String uri}) async =>
-      _transferManager.acknowledgeWalletTransfer(uri);
+  Future<void> crateApiFullPairWalletTransfer({required String uri}) async => _transferManager.pairWalletTransfer(uri);
 
   @override
-  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin}) async =>
-      _transferManager.transferWallet(pin);
+  Future<WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String pin}) async =>
+      _transferManager.confirmWalletTransfer(pin);
+
+  @override
+  Future<void> crateApiFullTransferWallet() => _transferManager.transferWallet();
 
   @override
   Future<void> crateApiFullCancelWalletTransfer() async => _transferManager.cancelWalletTransfer();
@@ -323,4 +329,54 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<TransferSessionState> crateApiFullGetWalletTransferState() => _transferManager.getTransferState();
+
+  @override
+  Future<WalletState> crateApiFullGetWalletState() async {
+    if (!_pinManager.isRegistered) return const WalletState.unregistered();
+
+    // Support basic [WalletState]s for the mock build
+    WalletState state = const WalletState.ready();
+    if (_wallet.isEmpty) {
+      state = const WalletState.empty();
+    } else if (_issuanceManager.hasActiveIssuanceSession) {
+      state = const WalletState.inIssuanceFlow();
+    } else if (_disclosureManager.hasActiveDisclosureSession) {
+      state = const WalletState.inDisclosureFlow();
+    }
+    // Wrap in Locked state when wallet is locked
+    final locked = await _wallet.lockedStream.first;
+    if (locked) return WalletState.locked(subState: state);
+    return state;
+  }
+
+  @override
+  Future<void> crateApiFullReceiveWalletTransfer() => Future.delayed(const Duration(seconds: 2));
+
+  @override
+  Future<void> crateApiFullClearScheduledNotificationsStream() async {}
+
+  @override
+  Stream<List<AppNotification>> crateApiFullSetScheduledNotificationsStream() => PublishSubject();
+
+  @override
+  Future<void> crateApiFullSetDirectNotificationsCallback({
+    required FutureOr<void> Function(List<(int, NotificationType)>) callback,
+  }) async {}
+
+  @override
+  Future<void> crateApiFullClearDirectNotificationsCallback() async {}
+
+  @override
+  Future<String> crateApiFullGetRegistrationRevocationCode() async => 'AB12CD34EF56GH78IJ';
+
+  @override
+  Future<RevocationCodeResult> crateApiFullGetRevocationCode({required String pin}) async {
+    final result = _pinManager.checkPin(pin);
+    switch (result) {
+      case WalletInstructionResult_Ok():
+        return const RevocationCodeResult.ok(revocationCode: 'AB12CD34EF56GH78IJ');
+      case WalletInstructionResult_InstructionError():
+        return RevocationCodeResult.instructionError(error: result.error);
+    }
+  }
 }

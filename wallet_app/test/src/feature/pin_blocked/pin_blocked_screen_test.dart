@@ -10,14 +10,14 @@ import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('PinBlockedScreen light', (tester) async {
+    testGoldens('ltc46 PinBlockedScreen light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const PinBlockedScreen(),
       );
       await screenMatchesGolden('light');
     });
 
-    testGoldens('PinBlockedScreen dark', (tester) async {
+    testGoldens('ltc46 PinBlockedScreen dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const PinBlockedScreen(),
         brightness: Brightness.dark,
@@ -27,7 +27,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('verify PinBlockedScreen renders expected text', (tester) async {
+    testWidgets('ltc46 verify PinBlockedScreen renders expected text', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const PinBlockedScreen());
 
       final AppLocalizations l10n = await TestUtils.englishLocalizations;

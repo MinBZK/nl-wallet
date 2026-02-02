@@ -4,6 +4,7 @@ mod config;
 mod digid;
 mod instruction;
 mod lock;
+mod notification;
 mod pin;
 mod repository;
 mod reqwest;
@@ -18,18 +19,30 @@ pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationAttributeValue;
 pub use crate::attestation::AttestationIdentity;
 pub use crate::attestation::AttestationPresentation;
+pub use crate::attestation::ValidityStatus;
+pub use crate::notification::DisplayTarget;
+pub use crate::notification::Notification;
+pub use crate::notification::NotificationType;
 pub use crate::pin::validation::validate_pin;
 pub use crate::storage::DisclosureStatus;
 pub use crate::storage::WalletEvent;
+pub use crate::wallet::BlockedReason;
+pub use crate::wallet::DisclosureAttestationOptions;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
 pub use crate::wallet::IssuanceResult;
 pub use crate::wallet::LockCallback;
+pub use crate::wallet::PidIssuancePurpose;
+pub use crate::wallet::ScheduledNotificationsCallback;
+pub use crate::wallet::TransferRole;
 pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 pub use crate::wallet::WalletClients;
+pub use crate::wallet::WalletState;
 
+pub use token_status_list::verification::verifier::RevocationStatus;
+pub use wallet_account::RevocationCode;
 pub use wallet_account::messages::transfer::TransferSessionState;
 
 pub mod attestation_data {
@@ -43,6 +56,7 @@ pub mod attestation_data {
     pub use attestation_data::auth::reader_auth::RetentionPolicy;
     pub use attestation_data::auth::reader_auth::SharingPolicy;
     pub use attestation_data::disclosure_type::DisclosureType;
+    pub use attestation_data::validity::ValidityWindow;
 }
 
 pub mod configuration {
@@ -92,7 +106,7 @@ pub mod test {
     pub use crate::repository::RepositoryUpdateState;
     pub use crate::repository::UpdateableRepository;
     pub use crate::storage::DatabaseStorage;
-    pub use crate::storage::InMemoryDatabaseStorage;
+    pub use crate::storage::MockHardwareDatabaseStorage;
     pub use crate::storage::Storage;
     pub use crate::update_policy::HttpUpdatePolicyRepository;
     pub use crate::update_policy::MockUpdatePolicyRepository;

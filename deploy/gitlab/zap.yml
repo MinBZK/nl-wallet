@@ -19,6 +19,7 @@
     paths:
       - zapreports/
   before_script:
+    - set -euxo pipefail
     - mkdir zapreports
 
 .run-zap-scan:
@@ -47,13 +48,13 @@ zap-scan-demo:
   variables:
     SUT: "DEMO_RP_AND_ISSUER"
 
-zap-scan-config-server:
+zap-scan-static-server:
   extends: .zap-scan-base
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    CONFIG_SERVER_HOST: "${STATIC_HOSTNAME}"
-    SUT: "CONFIG_SERVER"
+    STATIC_SERVER_HOST: "${STATIC_HOSTNAME}"
+    SUT: "STATIC_SERVER"
 
 zap-scan-wallet-provider:
   extends: .zap-scan-base
@@ -77,9 +78,9 @@ zap-scan-internal-verification-server:
     - !reference [.get-session-token, script]
     - |
       yq e ".servers[0].url=\"${INTERNAL_VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-private.openapi.yaml
-      sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-private.openapi.yaml
+      sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-private.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" wallet_docs/openapi/wallet-disclosure-private.openapi.yaml
-      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-disclosure-private.openapi.yaml wallet_docs/openapi/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-internal-wallet-disclosure.openapi.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-disclosure-private.openapi.yaml wallet_docs/openapi/wallet-components.openapi.yaml > ${ZAP_HOME}/merged-internal-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
     SUT: "INTERNAL_VERIFICATION_SERVER"
@@ -90,22 +91,35 @@ zap-scan-public-verification-server:
     - !reference [.get-session-token, script]
     - |
       yq e ".servers[0].url=\"${PUBLIC_VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
-      sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
+      sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|application/x-www-form-urlencoded|application/json|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
-      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml wallet_docs/openapi/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-public-wallet-disclosure.openapi.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml wallet_docs/openapi/wallet-components.openapi.yaml > ${ZAP_HOME}/merged-public-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
     SUT: "PUBLIC_VERIFICATION_SERVER"
+
+zap-scan-issuance-server:
+  extends: .zap-scan-base
+  script:
+    - |
+      yq e ".servers[0].url=\"${ISSUANCE_SERVER_URL}\"" -i wallet_docs/openapi/wallet-issuance.openapi.yaml
+      sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-issuance.openapi.yaml
+      sed -i "s|application/x-www-form-urlencoded|application/json|g" wallet_docs/openapi/wallet-issuance.openapi.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-issuance.openapi.yaml wallet_docs/openapi/wallet-components.openapi.yaml > ${ZAP_HOME}/merged-issuance.openapi.yaml
+    - !reference [.run-zap-scan, script]
+  variables:
+    SUT: "ISSUANCE_SERVER"
 
 zap-scan-publish-results:
   rules: !reference [.zap-base, rules]
   needs:
     - { job: zap-scan-demo }
-    - { job: zap-scan-config-server }
+    - { job: zap-scan-static-server }
     - { job: zap-scan-wallet-provider }
     - { job: zap-scan-pid-issuer }
     - { job: zap-scan-internal-verification-server }
     - { job: zap-scan-public-verification-server }
+    - { job: zap-scan-issuance-server }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/zap.zip zapreports/*.xml

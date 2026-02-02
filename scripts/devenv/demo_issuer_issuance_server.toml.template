@@ -4,7 +4,8 @@ reader_trust_anchors = ["${READER_CA_CRT}"]
 
 metadata = [
     "${ISSUER_METADATA_DEGREE_PATH}",
-    "${ISSUER_METADATA_INSURANCE_PATH}"
+    "${ISSUER_METADATA_INSURANCE_PATH}",
+    "${ISSUER_METADATA_HOUSING_PATH}"
 ]
 
 [storage]
@@ -14,27 +15,56 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_s
 ip = '0.0.0.0'
 port = ${ISSUANCE_SERVER_WS_PORT}
 
+[internal_server]
+ip = '0.0.0.0'
+port = ${ISSUANCE_SERVER_IS_PORT}
+
+[status_lists]
+# Make sure the list_size is as large as the number of attestation copies, so that every issued attestation gets its
+# own status list. This is necessary for integration testing, because otherwise the status list would be reused and the
+# url claims wouldn't match.
+list_size = 8
+# Ensure that no new lists (having the wrong url claim) are created when the current list is full.
+create_threshold_ratio = 0
+
 [hsm]
 library_path = "${HSM_LIBRARY_PATH}"
 user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[disclosure_settings.university]
+[disclosure_settings.university_mdoc]
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_READER}"
 
-[[disclosure_settings.university.dcql_query.credentials]]
-id = "my_credential"
+[[disclosure_settings.university_mdoc.dcql_query.credentials]]
+id = "bsn_mdoc"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
     { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
 ]
 
-[disclosure_settings.university.attestation_url_config]
-base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university/"
+[disclosure_settings.university_mdoc.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_mdoc/"
+trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
+
+[disclosure_settings.university_sd_jwt]
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_READER}"
+
+[[disclosure_settings.university_sd_jwt.dcql_query.credentials]]
+id = "bsn_sd_jwt"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:nl:1"] }
+claims = [
+    { path = ["bsn"] }
+]
+
+[disclosure_settings.university_sd_jwt.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_sd_jwt/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [attestation_settings."com.example.degree"]
@@ -43,6 +73,13 @@ copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
+
+[attestation_settings."com.example.degree".status_list]
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_TSL}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_TSL}"
 
 [disclosure_settings.insurance]
 private_key_type = "software"
@@ -67,3 +104,41 @@ copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
+
+[attestation_settings."com.example.insurance".status_list]
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
+certificate = "${DEMO_ISSUER_CRT_INSURANCE_TSL}"
+
+[attestation_settings."com.example.housing"]
+valid_days = 365
+copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_HOUSING_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_HOUSING_ISSUER}"
+
+[disclosure_settings.housing]
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_HOUSING_READER}"
+certificate = "${DEMO_ISSUER_CRT_HOUSING_READER}"
+
+[[disclosure_settings.housing.dcql_query.credentials]]
+id = "my_credential"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
+]
+
+[disclosure_settings.housing.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/housing/"
+trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
+
+[attestation_settings."com.example.housing".status_list]
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_HOUSING_TSL}"
+certificate = "${DEMO_ISSUER_CRT_HOUSING_TSL}"

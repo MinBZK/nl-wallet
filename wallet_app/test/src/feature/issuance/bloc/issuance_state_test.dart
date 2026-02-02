@@ -4,11 +4,11 @@ import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
-  final newCard = WalletMockData.card.copyWith(attestationId: () => null);
+  final newCard = WalletMockData.card.copyWith(attestationId: null);
   final updatedCard = WalletMockData.altCard;
 
   group('IssuanceReviewCards', () {
-    test('init factory selects all cards', () {
+    test('ltc5 init factory selects all cards', () {
       final cards = [newCard, updatedCard];
       final state = IssuanceReviewCards.init(cards: cards);
 
@@ -17,7 +17,7 @@ void main() {
       expect(state.selectedCards, cards);
     });
 
-    test('toggleCard flips the selection state of a card', () {
+    test('ltc5 toggleCard flips the selection state of a card', () {
       final cards = [newCard];
       final initial = IssuanceReviewCards.init(cards: cards);
 
@@ -28,7 +28,7 @@ void main() {
       expect(toggledAgain.selectableCards[newCard], true);
     });
 
-    test('offeredCards returns newly created cards', () {
+    test('ltc5 offeredCards returns newly created cards', () {
       final state = IssuanceReviewCards(
         selectableCards: {
           newCard: true,
@@ -40,7 +40,7 @@ void main() {
       expect(state.offeredCards, isNot(contains(updatedCard)));
     });
 
-    test('renewedCards returns updated cards', () {
+    test('ltc5 renewedCards returns updated cards', () {
       final state = IssuanceReviewCards(
         selectableCards: {
           newCard: true,
@@ -52,7 +52,7 @@ void main() {
       expect(state.renewedCards, contains(updatedCard));
     });
 
-    test('selectedCards filters correctly', () {
+    test('ltc5 selectedCards filters correctly', () {
       final newCard2 = newCard.copyWith(attributes: [], metadata: []);
       final state = IssuanceReviewCards(
         selectableCards: {

@@ -2,6 +2,7 @@ import 'package:wallet_core/core.dart' as core;
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/metadata/card_display_metadata.dart';
+import '../../../domain/model/card/status/card_status.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/organization.dart';
 import '../mapper.dart';
@@ -12,11 +13,13 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
   final Mapper<CardAttributeWithCardId, DataAttribute> _attributeMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.DisplayMetadata, CardDisplayMetadata> _displayMetadataMapper;
+  final Mapper<core.AttestationPresentation, CardStatus> _cardStatusMapper;
 
   CardMapper(
     this._attributeMapper,
     this._organizationMapper,
     this._displayMetadataMapper,
+    this._cardStatusMapper,
   );
 
   @override
@@ -30,6 +33,8 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
       attestationId: cardId,
       attestationType: input.attestationType,
       issuer: _organizationMapper.map(input.issuer),
+      status: _cardStatusMapper.map(input),
+      metadata: _displayMetadataMapper.mapList(input.displayMetadata),
       attributes: _attributeMapper.mapList(
         input.attributes.map(
           (attribute) => CardAttributeWithCardId(
@@ -38,7 +43,6 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
           ),
         ),
       ),
-      metadata: _displayMetadataMapper.mapList(input.displayMetadata),
     );
   }
 }

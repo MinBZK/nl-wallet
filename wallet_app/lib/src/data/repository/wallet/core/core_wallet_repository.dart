@@ -4,9 +4,9 @@ import 'dart:io' as io;
 import 'package:fimber/fimber.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
-import '../../../../domain/model/pin/pin_validation_error.dart';
+import '../../../../domain/model/wallet_state.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
@@ -19,19 +19,10 @@ class CoreWalletRepository implements WalletRepository {
   @visibleForTesting
   ExitFn exit = io.exit;
 
+  final Mapper<core.WalletState, WalletState> _stateMapper;
   final TypedWalletCore _walletCore;
-  final Mapper<PinValidationResult, PinValidationError?> _pinValidationErrorMapper;
 
-  CoreWalletRepository(this._walletCore, this._pinValidationErrorMapper);
-
-  @override
-  Future<void> validatePin(String pin) async {
-    final result = await _walletCore.isValidPin(pin);
-    final error = _pinValidationErrorMapper.map(result);
-    if (error != null) {
-      throw error;
-    }
-  }
+  CoreWalletRepository(this._walletCore, this._stateMapper);
 
   @override
   Future<void> createWallet(String pin) async {
@@ -59,7 +50,7 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<WalletInstructionResult> unlockWallet(String pin) async {
+  Future<core.WalletInstructionResult> unlockWallet(String pin) async {
     if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.unlockWallet(pin);
   }
@@ -68,24 +59,6 @@ class CoreWalletRepository implements WalletRepository {
   Future<void> unlockWalletWithBiometrics() async {
     if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.unlockWithBiometrics();
-  }
-
-  @override
-  Future<WalletInstructionResult> checkPin(String pin) async {
-    if (!(await isRegistered())) throw walletNotRegisteredError;
-    return _walletCore.checkPin(pin);
-  }
-
-  @override
-  Future<WalletInstructionResult> changePin(String oldPin, String newPin) async {
-    if (!(await isRegistered())) throw walletNotRegisteredError;
-    return _walletCore.changePin(oldPin, newPin);
-  }
-
-  @override
-  Future<WalletInstructionResult> continueChangePin(String pin) async {
-    if (!(await isRegistered())) throw walletNotRegisteredError;
-    return _walletCore.continueChangePin(pin);
   }
 
   @override
@@ -98,5 +71,11 @@ class CoreWalletRepository implements WalletRepository {
       Fimber.e('Stream remained empty, no cards available yet.', ex: ex);
       return false;
     }
+  }
+
+  @override
+  Future<WalletState> getWalletState() async {
+    final state = await _walletCore.getWalletState();
+    return _stateMapper.map(state);
   }
 }

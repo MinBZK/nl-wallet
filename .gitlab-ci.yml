@@ -10,8 +10,8 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: 250924-df15f8c7
-  HSM_CLIENT_TAG: "37a60c5e"
+  BUILD_TAG: 260130-22e3a24c
+  HSM_CLIENT_TAG: "2800ab75"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
 
@@ -26,9 +26,9 @@ variables:
       namespace: ${K8S_NAMESPACE}
 
 .env-macos-runner:
+  image: tahoe-wallet:0.3.1
   tags:
     - macos
-  image: sequoia-wallet:0.2.5
 
 .default-branch:
   rules:
@@ -37,14 +37,6 @@ variables:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       variables:
         CACHE_POLICY: pull-push
-
-.release-tag:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
-      when: never
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-      variables:
-        CACHE_POLICY: pull
 
 .merge-request:
   rules:
@@ -63,24 +55,14 @@ variables:
       # jobs that have "when: manual" in rules are non optional in Gitlab CI/CD
       allow_failure: true
 
-.default-or-release:
-  rules:
-    - !reference [.default-branch, rules]
-    - !reference [.release-tag, rules]
-
 .default-or-merge-request:
   rules:
     - !reference [.default-branch, rules]
     - !reference [.merge-request, rules]
 
-.default-or-release-or-merge-request:
+.default-or-merge-request-manual:
   rules:
-    - !reference [.default-or-release, rules]
-    - !reference [.merge-request, rules]
-
-.default-or-release-or-merge-request-manual:
-  rules:
-    - !reference [.default-or-release, rules]
+    - !reference [.default-branch, rules]
     - !reference [.merge-request-manual, rules]
 
 .on-schedule-automation:
@@ -97,6 +79,18 @@ variables:
   rules:
     - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-rust-features-check:
+  rules:
+    - if:
+        $SCHEDULED == "rust-features-check" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH ==
+        $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "rust-features-check" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-nightly-performance-test:
+  rules:
+    - if: $SCHEDULED == "performance" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "performance" && $CI_PIPELINE_SOURCE == "parent_pipeline"
 
 .on-mock-build:
   rules:

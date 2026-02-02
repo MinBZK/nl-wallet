@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'bullet_list_dot.dart';
 import 'icon_row.dart';
 import 'text/body_text.dart';
 
@@ -11,7 +12,7 @@ class BulletList extends StatelessWidget {
 
   const BulletList({
     required this.items,
-    required this.icon,
+    this.icon = const BulletListDot(),
     this.rowCrossAxisAlignment,
     this.rowPadding,
     super.key,

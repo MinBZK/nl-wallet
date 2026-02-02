@@ -1,4 +1,6 @@
+use std::borrow::Cow;
 use std::sync::Arc;
+use std::time::Duration;
 
 use cfg_if::cfg_if;
 use futures::try_join;
@@ -16,6 +18,8 @@ use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
 use platform_support::utils::hardware::HardwareUtilities;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::reqwest::HttpStatusListClient;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -40,6 +44,10 @@ use crate::update_policy::UpdatePolicyRepository;
 use super::KeyHolderType;
 use super::Wallet;
 use super::WalletRegistration;
+
+const DATABASE_NAME: &str = "wallet";
+
+const REVOCATION_CHECK_FREQUENCY: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -119,7 +127,7 @@ where
         let update_policy_repository = UpdatePolicyRepository::init();
 
         let storage_path = HardwareUtilities::storage_path().await?;
-        let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
+        let storage = DatabaseStorage::<HardwareEncryptionKey>::new(Cow::Borrowed(DATABASE_NAME), storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
             storage_path.clone(),
             default_config_server_config(),
@@ -141,42 +149,46 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct WalletClients<APC, DC, DCC> {
+pub struct WalletClients<APC, DC, DCC, SLC> {
     pub account_provider_client: APC,
     pub digid_client: DC,
     pub disclosure_client: DCC,
+    pub status_list_client: SLC,
 }
 
-impl<APC, DC> WalletClients<APC, DC, VpDisclosureClient>
+impl<APC, DC> WalletClients<APC, DC, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
     DC: Default,
 {
     pub fn new_http(disclosure_client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
         let disclosure_client = VpDisclosureClient::new_http(disclosure_client_builder)?;
+        let status_list_client = HttpStatusListClient::new()?;
 
         let clients = Self {
             account_provider_client: APC::default(),
             digid_client: DC::default(),
             disclosure_client,
+            status_list_client,
         };
 
         Ok(clients)
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
 {
     pub(super) fn new(
         config_repository: CR,
         update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DC, DCC>,
+        wallet_clients: WalletClients<APC, DC, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -201,7 +213,7 @@ where
         };
 
         Wallet {
-            config_repository,
+            config_repository: Arc::new(config_repository),
             update_policy_repository,
             storage: Arc::new(RwLock::new(storage)),
             key_holder,
@@ -209,10 +221,14 @@ where
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
             digid_client: wallet_clients.digid_client,
             disclosure_client: wallet_clients.disclosure_client,
+            status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
             lock: WalletLock::new(true),
-            attestations_callback: None,
+            attestations_callback: Arc::default(),
             recent_history_callback: None,
+            scheduled_notifications_callback: Arc::default(),
+            direct_notifications_callback: Arc::default(),
+            revocation_status_job_handle: None,
         }
     }
 
@@ -222,19 +238,20 @@ where
         update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DC, DCC>,
+        wallet_clients: WalletClients<APC, DC, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
-        CR: Repository<Arc<WalletConfiguration>>,
+        CR: Repository<Arc<WalletConfiguration>> + Send + Sync + 'static,
         UR: BackgroundUpdateableRepository<VersionState, TlsPinningConfig>,
-        S: Storage,
+        SLC: Sync + 'static,
+        S: Storage + Sync + 'static,
     {
         let http_config = config_repository.get().update_policy_server.http_config.clone();
         update_policy_repository.fetch_in_background(http_config);
 
         let registration_status = Self::fetch_registration_status(&mut storage).await?;
 
-        let wallet = Self::new(
+        let mut wallet = Self::new(
             config_repository,
             update_policy_repository,
             storage,
@@ -243,16 +260,19 @@ where
             registration_status,
         );
 
+        wallet.start_background_revocation_checks(REVOCATION_CHECK_FREQUENCY);
+
         Ok(wallet)
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
     DCC: DisclosureClient,
+    SLC: StatusListClient,
 {
     /// Attempts to fetch the initial data from storage, without creating a database if there is none.
     async fn fetch_registration_status(storage: &mut S) -> Result<RegistrationStatus, StorageError> {
@@ -283,6 +303,8 @@ where
 mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+
+    use wallet_account::RevocationCode;
 
     use crate::pin::key as pin_key;
     use crate::storage::MockStorage;
@@ -371,6 +393,7 @@ mod tests {
                 pin_salt: expected_pin_salt.clone(),
                 wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "this.isa.jwt".parse().unwrap(),
+                revocation_code: RevocationCode::new_random(),
             }))
         });
         storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));

@@ -5,7 +5,9 @@ import util.MobileActions
 class PersonalizePidPreviewScreen : MobileActions() {
 
     private val walletPersonalizeCheckDataOfferingPageTitle = l10n.getString("walletPersonalizeCheckDataOfferingPageTitle")
+    private val renewPidCheckDetailsPageTitle = l10n.getString("renewPidCheckDetailsPageTitle")
     private val acceptButton = l10n.getString("walletPersonalizeCheckDataOfferingPageAcceptCta")
+    private val acceptPidRenewalButton = l10n.getString("renewPidCheckDetailsPageAcceptCta")
     private val rejectButton = l10n.getString("walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel")
 
     fun visible() = elementWithTextVisible(walletPersonalizeCheckDataOfferingPageTitle)
@@ -24,8 +26,16 @@ class PersonalizePidPreviewScreen : MobileActions() {
         clickElementWithText(acceptButton)
     }
 
+    fun clickAcceptPidRenewalButton() {
+        switchToNativeContext()
+        scrollToElementWithText(acceptPidRenewalButton)
+        clickElementWithText(acceptPidRenewalButton)
+    }
+
     fun clickRejectButton() {
         scrollToElementWithText(rejectButton)
         clickElementWithText(rejectButton)
     }
+
+    fun renewPidCardTitleVisible() = elementWithTextVisible(renewPidCheckDetailsPageTitle)
 }

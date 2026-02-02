@@ -60,14 +60,25 @@
 
 ### Ingress parameters
 
-| Name                    | Description                            | Value   |
-| ----------------------- | -------------------------------------- | ------- |
-| `ingress.className`     | Ingress class name                     | `nginx` |
-| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
-| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
-| `ingress.tlsSecretName` | TLS secret name for the ingress        | `nil`   |
-| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
-| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
+| Name                    | Description                                              | Value   |
+| ----------------------- | -------------------------------------------------------- | ------- |
+| `ingress.className`     | Ingress class name                                       | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress                                 | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress                    | `nil`   |
+| `ingress.tlsSecretName` | TLS secret name for the ingress                          | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress                        | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress                   | `{}`    |
+| `ingress.maxBodySize`   | Sets the maximum allowed size of the client request body | `100m`  |
+
+### Container probes
+
+| Name                            | Description                                  | Value   |
+| ------------------------------- | -------------------------------------------- | ------- |
+| `probes.config.liveness`        | Additional configuration for liveness probe  | `{}`    |
+| `probes.config.readiness`       | Additional configuration for readiness probe | `{}`    |
+| `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
+| `probes.disableLiveness`        | Disable liveness probe                       | `false` |
+| `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
 
 ### Resource requests and limits
 
@@ -107,9 +118,19 @@
 
 ### Application parameters
 
-| Name            | Description            | Value |
-| --------------- | ---------------------- | ----- |
-| `appIdentifier` | Application identifier | `nil` |
+| Name                                  | Description                                    | Value               |
+| ------------------------------------- | ---------------------------------------------- | ------------------- |
+| `appIdentifier`                       | Application identifier                         | `nil`               |
+| `recoveryCodePaths.urn:eudi:pid:nl:1` | Recovery code path for default PID attestation | `["recovery_code"]` |
+
+### WUA status list parameters
+
+| Name                            | Description                                                | Value |
+| ------------------------------- | ---------------------------------------------------------- | ----- |
+| `wuaStatusList.baseUrl`         | WUA status list base url that will be encoded as iss claim | `nil` |
+| `wuaStatusList.certificate`     | WUA status list certificate                                | `nil` |
+| `wuaStatusList.volumeClaimName` | Name of PVC where the WUA status lists are published       | `nil` |
+| `wuaStatusList.volumeClaimPath` | Path in the PVC where the WUA status lists are published   | `nil` |
 
 ### Migration parameters
 

@@ -12,9 +12,10 @@ doctest = false
 
 [dependencies]
 chrono.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "from"] }
-futures = { workspace = true }
+derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into_iterator"] }
+futures.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
+itertools.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -24,12 +25,13 @@ tracing.workspace = true
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
-hsm = { path = "../../lib/hsm", features = ["settings"] }
+hsm.path = "../../lib/hsm"
 http_utils.path = "../../lib/http_utils"
 openid4vc.path = "../../lib/openid4vc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils.path = "../../lib/utils"
 server_utils.path = "../server_utils"
+status_lists.path = "../../lib/status_lists"
 
 [dev-dependencies]
 assert_matches.workspace = true

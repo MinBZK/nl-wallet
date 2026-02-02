@@ -36,7 +36,7 @@ void main() {
   }
 
   group('goldens', () {
-    testGoldens('light', (tester) async {
+    testGoldens('ltc14 light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourOverviewScreen().withState<TourOverviewBloc, TourOverviewState>(
           MockTourBloc(),
@@ -46,7 +46,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('dark', (tester) async {
+    testGoldens('ltc14 dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourOverviewScreen().withState<TourOverviewBloc, TourOverviewState>(
           MockTourBloc(),
@@ -57,7 +57,7 @@ void main() {
       await screenMatchesGolden('dark');
     });
 
-    testGoldens('light scaled', (tester) async {
+    testGoldens('ltc14 light scaled', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourOverviewScreen().withState<TourOverviewBloc, TourOverviewState>(
           MockTourBloc(),
@@ -68,7 +68,7 @@ void main() {
       await screenMatchesGolden('scaled.light');
     });
 
-    testGoldens('light landscape', (tester) async {
+    testGoldens('ltc14 light landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourOverviewScreen().withState<TourOverviewBloc, TourOverviewState>(
           MockTourBloc(),
@@ -79,7 +79,7 @@ void main() {
       await screenMatchesGolden('landscape.light');
     });
 
-    testGoldens('light - loading', (tester) async {
+    testGoldens('ltc14 light - loading', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourOverviewScreen().withState<TourOverviewBloc, TourOverviewState>(
           MockTourBloc(),
@@ -89,7 +89,7 @@ void main() {
       await screenMatchesGolden('light.loading');
     });
 
-    testGoldens('light - error', (tester) async {
+    testGoldens('ltc14 light - error', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourOverviewScreen().withState<TourOverviewBloc, TourOverviewState>(
           MockTourBloc(),
@@ -101,7 +101,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('expected tour videos are visible', (tester) async {
+    testWidgets('ltc14 expected tour videos are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const TourOverviewScreen().withState<TourOverviewBloc, TourOverviewState>(
           MockTourBloc(),

@@ -16,13 +16,12 @@ void main() {
   late GetVersionStringUseCase getVersionUsecase;
 
   setUp(() async {
-    provideDummy<Result<String>>(const Result.success('1.0'));
     getVersionUsecase = MockGetVersionStringUseCase();
     when(getVersionUsecase.invoke()).thenAnswer((_) async => const Result.success('1.2.3 (123)'));
   });
 
   group('goldens', () {
-    testGoldens('about light', (tester) async {
+    testGoldens('ltc28 about light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const AboutScreen(),
         providers: [
@@ -33,7 +32,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('about light - landscape', (tester) async {
+    testGoldens('ltc28 about light - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const AboutScreen(),
         providers: [
@@ -45,7 +44,7 @@ void main() {
       await screenMatchesGolden('light.landscape');
     });
 
-    testGoldens('about dark', (tester) async {
+    testGoldens('ltc28 about dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const AboutScreen(),
         brightness: Brightness.dark,
@@ -59,7 +58,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('about the app title is visible', (tester) async {
+    testWidgets('ltc28 about the app title is visible', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
         const AboutScreen()

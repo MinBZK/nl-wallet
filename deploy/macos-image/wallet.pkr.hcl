@@ -9,13 +9,13 @@ packer {
 
 variable "vm_base_name" {
   type = string
-  # macos-sequoia-xcode:16.4
-  default = "ghcr.io/cirruslabs/macos-sequoia-xcode@sha256:db7deaf20e58b08db63a3fc541923103a0bb715b55da751e140dc45c6df0ba62"
+  # macos-tahoe-xcode:26.2
+  default = "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:1f7b38002dcfc2927a2e33a405a44867e3d140d92fa295f9e89c018edfe4214a"
 }
 
 variable "vm_name" {
   type = string
-  default = "sequoia-wallet:0.2.5"
+  default = "tahoe-wallet:0.3.1"
 }
 
 source "tart-cli" "tart" {
@@ -54,7 +54,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "git -C $FLUTTER_HOME fetch origin",
-      "git -C $FLUTTER_HOME switch --detach 3.35.1",
+      "git -C $FLUTTER_HOME switch --detach 3.38.1",
       "dart --disable-analytics",
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",
@@ -70,14 +70,14 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "brew install rustup",
-      "rustup-init -y --default-toolchain 1.90.0 --profile minimal --component clippy,rustfmt",
+      "rustup-init -y --default-toolchain 1.93.0 --profile minimal --component clippy,rustfmt",
     ]
   }
 
   provisioner "shell" {
     inline = [
       "source ~/.zprofile",
-      "cargo install cargo-expand --locked --version 1.0.116",
+      "cargo install cargo-expand --locked --version 1.0.119",
       "cargo install lcov2xml --locked --version 1.0.6",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
     ]

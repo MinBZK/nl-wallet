@@ -329,10 +329,11 @@ impl From<SdJwtAttributeRequest> for ClaimsQuery {
 pub mod mock {
     use itertools::Itertools;
 
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
-    use mdoc::test::data::PID;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
@@ -362,6 +363,10 @@ pub mod mock {
 
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_single(CredentialQuery::new_mock_mdoc_pid_example())
+        }
+
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            Self::new_mock_single(CredentialQuery::new_mock_sd_jwt_pid_example())
         }
     }
 
@@ -440,7 +445,28 @@ pub mod mock {
         }
 
         pub fn new_mock_mdoc_pid_example() -> Self {
-            Self::new_mock_mdoc("mdoc_pid_example", PID, PID, &["bsn", "given_name", "family_name"])
+            Self::new_mock_mdoc(
+                "mdoc_pid_example",
+                PID_ATTESTATION_TYPE,
+                PID_ATTESTATION_TYPE,
+                &["bsn", "given_name", "family_name"],
+            )
+        }
+
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            Self::new_mock_sd_jwt(
+                "mock_sd_jwt_example",
+                &[PID_ATTESTATION_TYPE],
+                &[&["bsn"], &["given_name"], &["family_name"]],
+            )
+        }
+
+        pub fn new_mock_sd_jwt_eu_pid_example() -> Self {
+            Self::new_mock_sd_jwt(
+                "mock_sd_jwt_example",
+                &[ROOT_PID_ATTESTATION_TYPE],
+                &[&["given_name"], &["family_name"]],
+            )
         }
     }
 
@@ -607,8 +633,12 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "mdoc_pid_example",
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                &[PID],
-                &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
+                &[PID_ATTESTATION_TYPE],
+                &[
+                    &[PID_ATTESTATION_TYPE, "bsn"],
+                    &[PID_ATTESTATION_TYPE, "given_name"],
+                    &[PID_ATTESTATION_TYPE, "family_name"],
+                ],
             )
         }
 
@@ -616,7 +646,7 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "sd_jwt_pid_example",
                 MockCredentialFormat::SdJwt,
-                &[PID],
+                &[PID_ATTESTATION_TYPE],
                 &[&["bsn"], &["given_name"], &["family_name"]],
             )
         }
@@ -631,6 +661,7 @@ mod test {
 
     use crate::ClaimPath;
     use crate::ClaimsQuery;
+    use crate::ClaimsQueryValue;
     use crate::ClaimsSelection;
     use crate::CredentialQuery;
     use crate::Query;
@@ -722,7 +753,7 @@ mod test {
     fn mdoc_query_with_trusted_authorities() -> Query {
         mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.trusted_authorities
-                .push(TrustedAuthoritiesQuery::Other("placeholder".to_string()));
+                .push(TrustedAuthoritiesQuery::Other(vec_nonempty!["placeholder".to_string()]));
             c
         })
     }
@@ -781,7 +812,7 @@ mod test {
     fn mdoc_query_with_values() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
-            claims_query.values = vec![serde_json::Value::Bool(true)];
+            claims_query.values = vec![ClaimsQueryValue::Boolean(true)];
             claims_query
         };
         mdoc_example_query_mutate_first_credential_query(move |mut c| {
@@ -835,7 +866,7 @@ mod test {
             claims: vec![ClaimsQuery {
                 id: None,
                 path: vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())],
-                values: vec![serde_json::Value::String("Name".to_string())],
+                values: vec![ClaimsQueryValue::String("Name".to_string())],
                 intent_to_retain: None,
             }]
             .try_into()

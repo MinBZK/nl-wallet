@@ -1,6 +1,6 @@
 default:
   interruptible: true
-  image: "${HARBOR_REGISTRY}/docker-hub-proxy/alpine/k8s:1.29.11"
+  image: "${HARBOR_REGISTRY}/docker-hub-proxy/alpine/k8s:${K8S_IMAGE_VERSION}"
 
 variables:
   HELM_CHARTS_PATH: deploy/kubernetes/helm-charts
@@ -21,7 +21,7 @@ variables:
 
 .docker-login:
   script: |
-    mkdir -p /root/.docker
+    mkdir -p ~/.docker
     echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
 
 .replace-chart-app-version:
@@ -269,6 +269,8 @@ run-demo-issuer-issuance-server-reset-${DEPLOY_ENV}:
     - kubectl create job --from=cronjob/demo-issuer-issuance-server-reset demo-issuer-issuance-db-reset-$(date +%s)
   allow_failure: true
   when: manual
+  manual_confirmation: >
+    This will launch a reset job that will reset the database using sea-orm-cli.
 
 run-demo-rp-verification-server-reset-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -279,6 +281,8 @@ run-demo-rp-verification-server-reset-${DEPLOY_ENV}:
     - kubectl create job --from=cronjob/demo-rp-verification-server-reset demo-rp-verification-db-reset-$(date +%s)
   allow_failure: true
   when: manual
+  manual_confirmation: >
+    This will launch a reset job that will reset the database using sea-orm-cli.
 
 run-pid-issuer-reset-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -289,6 +293,8 @@ run-pid-issuer-reset-${DEPLOY_ENV}:
     - kubectl create job --from=cronjob/pid-issuer-reset pid-issuer-db-reset-$(date +%s)
   allow_failure: true
   when: manual
+  manual_confirmation: >
+    This will launch a reset job that will reset the database using sea-orm-cli.
 
 run-wallet-provider-reset-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -299,3 +305,16 @@ run-wallet-provider-reset-${DEPLOY_ENV}:
     - kubectl create job --from=cronjob/wallet-provider-reset wallet-provider-db-reset-$(date +%s)
   allow_failure: true
   when: manual
+  manual_confirmation: >
+    This will launch a reset job that will reset the database using sea-orm-cli.
+
+reset-${DEPLOY_ENV}:
+  extends: .deploy-base
+  script:
+    - deploy/bin/reset-env.sh
+  allow_failure: true
+  when: manual
+  manual_confirmation: >
+    This will wipe the complete environment (except HSM and static-server).
+    You need to deploy the environment by restarting the already completed jobs in this pipeline.
+    You also need to encrypt the GBA-V responses via the designated job.

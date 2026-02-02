@@ -13,7 +13,7 @@ import '../../../mocks/wallet_mock_data.dart';
 import '../../../test_util/test_utils.dart';
 
 void main() {
-  testWidgets('card titles are shown', (tester) async {
+  testWidgets('ltc15 card titles are shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
@@ -40,7 +40,7 @@ void main() {
     expect(altCardFinder, findsOneWidget);
   });
 
-  testWidgets('organization title is shown', (tester) async {
+  testWidgets('ltc15 organization title is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
@@ -64,7 +64,7 @@ void main() {
     expect(orgNameFinder, findsNWidgets(3));
   });
 
-  testWidgets('data purpose is shown', (tester) async {
+  testWidgets('ltc15 data purpose is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
@@ -85,7 +85,7 @@ void main() {
     expect(titleFinder, findsOneWidget);
   });
 
-  testWidgets('verify decline button callback', (tester) async {
+  testWidgets('ltc15 verify decline button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
       Provider<ContextMapper<OrganizationPolicy, String>>(
@@ -112,7 +112,7 @@ void main() {
     expect(isCalled, isTrue);
   });
 
-  testWidgets('verify accept button callback', (tester) async {
+  testWidgets('ltc15 verify accept button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
       Provider<ContextMapper<OrganizationPolicy, String>>(

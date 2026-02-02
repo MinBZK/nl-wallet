@@ -23,13 +23,13 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   final GetPidRenewalUrlUseCase _getPidRenewalUrlUseCase;
   final ContinuePidIssuanceUseCase _continuePidIssuanceUseCase;
   final CancelPidIssuanceUseCase _cancelPidIssuanceUseCase;
-  final GetPidCardsUseCase _getWalletCardsUseCase;
+  final GetPidCardsUseCase _getPidCardsUseCase;
 
   RenewPidBloc(
     this._getPidRenewalUrlUseCase,
     this._continuePidIssuanceUseCase,
     this._cancelPidIssuanceUseCase,
-    this._getWalletCardsUseCase, {
+    this._getPidCardsUseCase, {
     required bool continueFromDigiD,
   }) : super(continueFromDigiD ? const RenewPidVerifyingDigidAuthentication() : const RenewPidInitial()) {
     on<RenewPidLoginWithDigidClicked>(_onDigidLoginClicked);
@@ -46,7 +46,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
 
   FutureOr<void> _onDigidLoginClicked(RenewPidLoginWithDigidClicked event, Emitter<RenewPidState> emit) async {
     emit(const RenewPidLoadingDigidUrl());
-    unawaited(_cancelPidIssuanceUseCase.invoke()); // Cancel any potential stale session
+    await _cancelPidIssuanceUseCase.invoke(); // Cancel any potential stale session
     final result = await _getPidRenewalUrlUseCase.invoke();
     await result.process(
       onSuccess: (url) => emit(RenewPidAwaitingDigidAuthentication(url)),
@@ -64,10 +64,12 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   }
 
   Future<void> _handleApplicationError(ApplicationError error, Emitter<RenewPidState> emit) async {
-    await _cancelPidIssuanceUseCase.invoke(); // Always attempt to cancel the session, then render the specific error
-
-    // TODO(Rob): Handle DigiDMismatch and emit [RenewPidDigidMismatch]
+    unawaited(_cancelPidIssuanceUseCase.invoke()); // Attempt to cancel the session, then render the specific error
     switch (error) {
+      case WrongDigidError():
+        emit(const RenewPidDigidMismatch());
+      case DeniedDigidError():
+        emit(const RenewPidDigidLoginCancelled());
       case NetworkError():
         emit(RenewPidNetworkError(hasInternet: error.hasInternet, error: error));
       case RedirectUriError():
@@ -92,7 +94,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
 
   FutureOr<void> _onPinConfirmed(RenewPidPinConfirmed event, Emitter<RenewPidState> emit) async {
     emit(const RenewPidUpdatingCards());
-    final result = await _getWalletCardsUseCase.invoke();
+    final result = await _getPidCardsUseCase.invoke();
     await result.process(
       onSuccess: (cards) => emit(RenewPidSuccess(cards)),
       onError: (error) => _handleApplicationError(error, emit),

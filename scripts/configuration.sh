@@ -3,7 +3,10 @@
 source "${SCRIPTS_DIR}/utils.sh"
 
 WALLET_CORE_DIR="${BASE_DIR}/wallet_core"
+export WALLET_CORE_DIR
 WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
+HEALTH_CHECKERS_DIR="${WALLET_CORE_DIR}/lib/health_checkers"
+STATUS_LISTS_DIR="${WALLET_CORE_DIR}/lib/status_lists"
 PID_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/pid_issuer"
 ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/issuance_server"
 VERIFICATION_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/verification_server"
@@ -11,7 +14,7 @@ WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 DEMO_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/demo/demo_relying_party"
 DEMO_ISSUER_DIR="${WALLET_CORE_DIR}/demo/demo_issuer"
 DEMO_INDEX_DIR="${WALLET_CORE_DIR}/demo/demo_index"
-CS_DIR="${WALLET_CORE_DIR}/configuration_server"
+STATIC_SERVER_DIR="${WALLET_CORE_DIR}/static_server"
 UPS_DIR="${WALLET_CORE_DIR}/update_policy/server"
 GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
@@ -19,36 +22,37 @@ DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 
 # source user variables
-[ -f "${SCRIPTS_DIR}/.env" ] && . "${SCRIPTS_DIR}/.env"
+[[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"
 
 # Path and repository of the nl-rdo-max repository
-export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}"/nl-rdo-max}
-DIGID_CONNECTOR_REPOSITORY="https://github.com/minvws/nl-rdo-max.git"
-DIGID_CONNECTOR_BASE_TAG="v2.11.0"
-DIGID_CONNECTOR_BASE_COMMIT="e6daa09f94efe434c62e9617bd768fd909174a41"
+export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}/nl-rdo-max"}
+export DIGID_CONNECTOR_REPOSITORY=${DIGID_CONNECTOR_REPOSITORY:-"https://github.com/minvws/nl-rdo-max.git"}
+export DIGID_CONNECTOR_VERSION=${DIGID_CONNECTOR_VERSION:-"v4.0.3"}
 
 # Set to `10.0.2.2` for android or to `localhost` for ios
 # export SERVICES_HOST=10.0.2.2
 export SERVICES_HOST=localhost
 
 export WALLET_PROVIDER_PORT=3000
-export CONFIG_SERVER_PORT=3001
+export STATIC_SERVER_PORT=3001
 export UPDATE_POLICY_SERVER_PORT=3002
 
 export PID_ISSUER_WS_PORT=3003
+export PID_ISSUER_IS_PORT=3004
 
-export DEMO_INDEX_PORT=3004
+export DEMO_INDEX_PORT=3005
 
-export DEMO_ISSUER_PORT=3005
-export DEMO_ISSUER_IS_PORT=3006
-export ISSUANCE_SERVER_WS_PORT=3007
+export DEMO_ISSUER_PORT=3006
+export DEMO_ISSUER_IS_PORT=3007
+export ISSUANCE_SERVER_WS_PORT=3008
+export ISSUANCE_SERVER_IS_PORT=3009
 
-export DEMO_RP_PORT=3008
-export VERIFICATION_SERVER_WS_PORT=3009
-export VERIFICATION_SERVER_RS_PORT=3010
+export DEMO_RP_PORT=3010
+export VERIFICATION_SERVER_WS_PORT=3011
+export VERIFICATION_SERVER_IS_PORT=3012
 
-export BRP_SERVER_PORT=3011
-export GBA_HC_CONV_PORT=3012
+export BRP_SERVER_PORT=3013
+export GBA_HC_CONV_PORT=3014
 
 export RDO_MAX_PORT=8006
 
@@ -75,13 +79,20 @@ export DB_PASSWORD="${DB_PASSWORD:-postgres}"
 export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}"
 
 # HSM properties, with defaults
-export HSM_LIBRARY_PATH="${HSM_LIBRARY_PATH:-$(detect_softhsm)}"
+HSM_LIBRARY_PATH="${HSM_LIBRARY_PATH:-$(detect_softhsm)}"
+export HSM_LIBRARY_PATH
 export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
 export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
 export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
 export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
+export HSM_TOKEN=${HSM_TOKEN:-test_token}
 
-# export WALLET_CLIENT_ID=$(uuidgen)
+# WALLET_CLIENT_ID=$(uuidgen)
+# export WALLET_CLIENT_ID
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
 export SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-local}
+
+# Optionally use a single CA when generating certs. 0 is false, 1 is true.
+export USE_SINGLE_CA=${USE_SINGLE_CA:-0}
+export USE_SINGLE_CA_PATH=${USE_SINGLE_CA_PATH:-"$TARGET_DIR/single_ca"}

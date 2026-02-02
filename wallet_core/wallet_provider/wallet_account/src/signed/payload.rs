@@ -468,6 +468,24 @@ pub mod server {
     }
 }
 
+#[cfg(all(feature = "mock", feature = "server"))]
+pub mod mock {
+    use serde::de::DeserializeOwned;
+
+    use crate::error::DecodeError;
+    use crate::signed::ChallengeResponsePayload;
+    use crate::signed::HwSignedChallengeResponse;
+
+    impl<T> HwSignedChallengeResponse<T> {
+        pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>, DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            self.0.dangerous_parse_unverified()
+        }
+    }
+}
+
 #[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
     use assert_matches::assert_matches;

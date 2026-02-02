@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
@@ -34,7 +35,8 @@ class CorePidRepository extends PidRepository {
   Future<void> cancelIssuance() => _walletCore.cancelIssuance();
 
   @override
-  Future<bool> hasActiveIssuanceSession() => _walletCore.hasActiveIssuanceSession();
+  Future<bool> hasActiveIssuanceSession() async =>
+      await _walletCore.getWalletState() is core.WalletState_InIssuanceFlow;
 
   @override
   Future<TransferState> acceptIssuance(String pin) async {

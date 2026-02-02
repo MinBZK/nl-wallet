@@ -10,6 +10,7 @@ import 'instruction.dart';
 import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+import 'revocation.dart';
 part 'disclosure.freezed.dart';
 
 @freezed
@@ -22,6 +23,22 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
   const factory AcceptDisclosureResult.instructionError({
     required WalletInstructionError error,
   }) = AcceptDisclosureResult_InstructionError;
+}
+
+class DisclosureOptions {
+  final List<AttestationPresentation> field0;
+
+  const DisclosureOptions({
+    required this.field0,
+  });
+
+  @override
+  int get hashCode => field0.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DisclosureOptions && runtimeType == other.runtimeType && field0 == other.field0;
 }
 
 enum DisclosureSessionType {
@@ -146,7 +163,7 @@ sealed class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.request({
     required Organization relyingParty,
     required RequestPolicy policy,
-    required List<AttestationPresentation> requestedAttestations,
+    required List<DisclosureOptions> disclosureOptions,
     required bool sharedDataWithRelyingPartyBefore,
     required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,

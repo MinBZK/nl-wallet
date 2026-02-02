@@ -8,6 +8,7 @@ import 'package:wallet/src/util/mapper/card/attribute/claim_display_metadata_map
 import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/card/metadata_mapper.dart';
+import 'package:wallet/src/util/mapper/card/status/card_status_mapper.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
@@ -25,11 +26,11 @@ void main() {
 
   setUp(() {
     core = Mocks.create();
-    provideDummy<PidIssuanceResult>(const PidIssuanceResult.ok(transferAvailable: true));
     cardMapper = CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
       DisplayMetadataMapper(ImageMapper()),
+      CardStatusMapper(),
     );
     pidRepository = CorePidRepository(core, cardMapper);
   });
@@ -48,6 +49,7 @@ void main() {
         displayMetadata: [CoreMockData.enDisplayMetadata],
         issuer: CoreMockData.organization,
         attributes: CoreMockData.attestation.attributes,
+        validityStatus: const ValidityStatus_Valid(validUntil: null),
       );
       final expectedAttributes = cardMapper.map(testAttestation).attributes;
 
@@ -83,16 +85,6 @@ void main() {
       when(core.createPidRenewalRedirectUri()).thenAnswer((_) async => kMockPidRenewalUrl);
       expect(await pidRepository.getPidRenewalUrl(), kMockPidRenewalUrl);
       verify(core.createPidRenewalRedirectUri());
-    });
-
-    test('hasActiveIssuanceSession should check through the wallet_core', () async {
-      when(core.hasActiveIssuanceSession()).thenAnswer((_) async => true);
-      expect(await pidRepository.hasActiveIssuanceSession(), true);
-      verify(core.hasActiveIssuanceSession());
-
-      when(core.hasActiveIssuanceSession()).thenAnswer((_) async => false);
-      expect(await pidRepository.hasActiveIssuanceSession(), false);
-      verify(core.hasActiveIssuanceSession());
     });
   });
 }

@@ -8,6 +8,7 @@ extension AttestationPresentationExtension on AttestationPresentation {
       displayMetadata: displayMetadata,
       issuer: issuer,
       attributes: attributes,
+      validityStatus: validityStatus,
     );
   }
 }

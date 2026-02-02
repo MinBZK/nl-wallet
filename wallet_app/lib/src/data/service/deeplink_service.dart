@@ -35,28 +35,29 @@ class DeeplinkService {
   /// Observe [_appLinks] to process any incoming deeplink. The logic here makes sure the incoming [Uri]s are only
   /// processed when the app is resumed and thus any potential calls to lockWallet have been processed.
   void _startObservingAppLinks() {
-    // Note: The [kResumeDebounceDuration] is important, as the apps 'locked' flag is set when the [AppLifecycleState]
-    //       changes. Meaning that without the debounceTime the [ObserveWalletLockUseCase] could produce a stale value.
-    final initialLinkStream = Stream.fromFuture(_appLinks.getInitialLink()).whereNotNull();
-    // This clearController is used to make [allLinksStream] emit null after processing so that the same Uri is not
-    // processed twice, which would otherwise happen when the user hides and shows the app.
+    // A stream that emits the latest link from either the initial link or subsequent links.
     final clearController = StreamController<Uri?>();
-    final allLinksStream = Rx.merge<Uri?>([initialLinkStream, _appLinks.uriLinkStream, clearController.stream]);
-    final debounceUntilResumedStream = CombineLatestStream.combine2(
-      allLinksStream,
-      _appLifecycleService.observe(),
-      (uri, state) => state == AppLifecycleState.resumed ? uri : null,
-    ).whereNotNull();
-    debounceUntilResumedStream
-        .debounceTime(kResumeDebounceDuration)
+    final uriStream = Rx.merge<Uri?>([
+      Stream.fromFuture(_appLinks.getInitialLink()),
+      _appLinks.uriLinkStream,
+      clearController.stream,
+    ]);
+
+    // Combine the latest link with the latest lifecycle state, so we only process when app is resumed.
+    CombineLatestStream.combine2(uriStream, _appLifecycleService.observe(), (uri, state) => (uri: uri, state: state))
+        .where((data) => data.state == .resumed) // Only emit when .resumed
+        .map((data) => data.uri) // We only care about the uri
+        .distinct() // Don't process uris twice
+        .whereNotNull()
+        .debounceTime(kResumeDebounceDuration) // Debounce (chance to process background auto-lock)
         .asyncMap((uri) async {
-          clearController.add(null);
+          clearController.add(null); // Reset uriStream so that a deeplink can be processed again later
           final decodeUriResult = await _decodeUriUseCase.invoke(uri);
           if (decodeUriResult.hasError) throw decodeUriResult.error!;
           return decodeUriResult.value!;
         })
         .listen(
-          (navigationRequest) => _navigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true),
+          (navRequest) => _navigationService.handleNavigationRequest(navRequest, queueIfNotReady: true),
           onError: (exception) => Fimber.e('Error while processing deeplink', ex: exception),
           cancelOnError: false,
         );

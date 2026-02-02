@@ -3,7 +3,6 @@ use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
-use dcql::Query;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -17,13 +16,15 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
+use tests_integration::test_credential::new_mock_mdoc_pid_example;
 use wallet::DisclosureUriSource;
+use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::HttpDigidClient;
-use wallet::test::InMemoryDatabaseStorage;
+use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
@@ -38,7 +39,7 @@ fn init() {
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    InMemoryDatabaseStorage,
+    MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidClient,
@@ -76,7 +77,7 @@ async fn main() {
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
 
-    let storage = InMemoryDatabaseStorage::open().await;
+    let storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
@@ -93,7 +94,7 @@ async fn main() {
     wallet.register(pin).await.expect("Could not register wallet");
 
     let authorization_url = wallet
-        .create_pid_issuance_auth_url()
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("Could not create pid issuance auth url");
 
@@ -117,8 +118,8 @@ async fn main() {
     let client = reqwest::Client::new();
 
     let start_request = StartDisclosureRequest {
-        usecase: "xyz_bank".to_owned(),
-        dcql_query: Some(Query::new_mock_mdoc_pid_example()),
+        usecase: "xyz_bank_mdoc".to_owned(),
+        dcql_query: Some(new_mock_mdoc_pid_example()),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 
@@ -162,10 +163,10 @@ async fn main() {
         .start_disclosure(&ul.into_inner(), DisclosureUriSource::Link)
         .await
         .expect("Could not start disclosure");
-    assert_eq!(proposal.attestations.len(), 1);
+    assert_eq!(proposal.attestation_options.len().get(), 1);
 
     let return_url = wallet
-        .accept_disclosure(pin.to_owned())
+        .accept_disclosure(&[0], pin.to_owned())
         .await
         .expect("Could not accept disclosure");
 

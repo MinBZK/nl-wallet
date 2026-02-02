@@ -10,7 +10,6 @@ import '../../data/service/navigation_service.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/model/result/application_error.dart';
-import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/list_extension.dart';
@@ -21,6 +20,7 @@ import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../../wallet_core/error/core_error.dart';
 import '../common/dialog/stop_digid_login_dialog.dart';
+import '../common/mixin/lock_state_mixin.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -40,8 +40,19 @@ import '../pin_dialog/pin_validation_error_dialog.dart';
 import 'bloc/recover_pin_bloc.dart';
 import 'recover_pin_stop_sheet.dart';
 
-class RecoverPinScreen extends StatelessWidget {
+class RecoverPinScreen extends StatefulWidget {
   const RecoverPinScreen({super.key});
+
+  @override
+  State<RecoverPinScreen> createState() => _RecoverPinScreenState();
+}
+
+class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin<RecoverPinScreen> {
+  @override
+  FutureOr<void> onLock() => Navigator.of(context).resetToDashboard();
+
+  @override
+  FutureOr<void> onUnlock() {}
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +62,8 @@ class RecoverPinScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: _buildTitle(context),
         leading: BackIconButton(
-          onPressed: () => state.canGoBack ? context.addBackPressedEvent() : Navigator.pop(context),
-        ).takeIf((_) => state.canGoBack || _canPop(state)),
+          onPressed: () => _handleBackPress(state, context),
+        ).takeIf((_) => _canPop(state)),
         actions: [
           const HelpIconButton(),
           CloseIconButton(onPressed: () => _stopRecoverPin(context)).takeIf(
@@ -64,13 +75,23 @@ class RecoverPinScreen extends StatelessWidget {
       body: PopScope(
         canPop: _canPop(state),
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop) context.addBackPressedEvent();
+          if (!didPop) _handleBackPress(state, context);
         },
         child: SafeArea(
           child: _buildPage(),
         ),
       ),
     );
+  }
+
+  void _handleBackPress(RecoverPinState state, BuildContext context) {
+    if (state.canGoBack) {
+      context.addBackPressedEvent();
+    } else if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.of(context).resetToDashboard();
+    }
   }
 
   Widget _buildTitle(BuildContext context) {
@@ -109,17 +130,18 @@ class RecoverPinScreen extends StatelessWidget {
   /// Returns:
   ///   True if the "Back" button should be visible, false otherwise.
   bool _canPop(RecoverPinState state) {
+    if (state.canGoBack) return true;
     return switch (state) {
       RecoverPinInitial() => true,
       RecoverPinLoadingDigidUrl() => false,
       RecoverPinAwaitingDigidAuthentication() => false,
       RecoverPinVerifyingDigidAuthentication() => false,
       RecoverPinDigidMismatch() => true,
-      RecoverPinStopped() => true,
+      RecoverPinStopped() => false,
       RecoverPinChooseNewPin() => false,
       RecoverPinConfirmNewPin() => false,
       RecoverPinUpdatingPin() => false,
-      RecoverPinSuccess() => true,
+      RecoverPinSuccess() => false,
       RecoverPinSelectPinFailed() => true,
       RecoverPinConfirmPinFailed() => true,
       RecoverPinDigidFailure() => true,
@@ -193,10 +215,10 @@ class RecoverPinScreen extends StatelessWidget {
             );
           case RecoverPinAwaitingDigidAuthentication():
             page = GenericLoadingPage(
-              contextImage: const SvgOrImage(asset: WalletAssets.logo_wallet, height: 64, width: 64),
-              title: c.l10n.recoverPinGenericLoadingTitle,
-              description: c.l10n.recoverPinAwaitingDigidAuthenticationDescription,
+              title: c.l10n.recoverPinContinueWithDigiDTitle,
+              description: c.l10n.recoverPinContinueWithDigiDDescription,
               cancelCta: c.l10n.generalStop,
+              loadingIndicator: const SizedBox.shrink(),
               onCancel: () => _stopRecoverPin(c),
             );
           case RecoverPinVerifyingDigidAuthentication():
@@ -225,7 +247,7 @@ class RecoverPinScreen extends StatelessWidget {
               description: c.l10n.recoverPinStoppedPageDescription,
               primaryButtonCta: c.l10n.generalClose,
               illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-              onPrimaryPressed: () => Navigator.pop(c),
+              onPrimaryPressed: () => Navigator.of(context).resetToDashboard(),
               primaryButtonIcon: const Icon(Icons.close_outlined),
             );
           case RecoverPinChooseNewPin():
@@ -259,12 +281,13 @@ class RecoverPinScreen extends StatelessWidget {
               illustration: const PageIllustration(asset: WalletAssets.svg_pin_set),
               primaryButtonCta: c.l10n.recoverPinSuccessPageToOverviewCta,
               onPrimaryPressed: () => Navigator.of(c).resetToDashboard(),
-              secondaryButtonCta: c.l10n.recoverPinSuccessPageToHistoryCta,
+              // Re-introduce secondary button in PVW-5058 (also see PVW-5141)
+              /* secondaryButtonCta: c.l10n.recoverPinSuccessPageToHistoryCta,
               onSecondaryButtonPressed: () {
                 Navigator.of(c)
                   ..resetToDashboard()
                   ..pushNamed(WalletRoutes.walletHistoryRoute);
-              },
+              }, */
             );
           case RecoverPinSelectPinFailed():
             page = const CenteredLoadingIndicator();
@@ -331,15 +354,18 @@ class RecoverPinScreen extends StatelessWidget {
   /// sure the correct stop action (dialog/sheet/pop) will be executed.
   Future<void> _stopRecoverPin(BuildContext context) async {
     final state = context.bloc.state;
-    if (state is ErrorState) {
-      Navigator.pop(context);
-    } else if (state is RecoverPinAwaitingDigidAuthentication) {
-      // This is a special case, for which we show the stop dialog
-      unawaited(_showStopDigidLoginDialog(context));
-    } else {
-      // Confirm with user through the stop sheet
-      final stoppedByUser = await RecoverPinStopSheet.show(context);
-      if (stoppedByUser && context.mounted) context.bloc.add(const RecoverPinStopPressed());
+    switch (state) {
+      case ErrorState():
+        Navigator.pop(context);
+      case RecoverPinSuccess():
+        unawaited(Navigator.of(context).resetToDashboard());
+      case RecoverPinAwaitingDigidAuthentication():
+        // This is a special case, for which we show the stop dialog
+        unawaited(_showStopDigidLoginDialog(context));
+      default:
+        // Confirm with user through the stop sheet
+        final stoppedByUser = await RecoverPinStopSheet.show(context);
+        if (stoppedByUser && context.mounted) context.bloc.add(const RecoverPinStopPressed());
     }
   }
 
@@ -364,7 +390,7 @@ class RecoverPinScreen extends StatelessWidget {
       await _performMockLogin(context);
     } else {
       try {
-        await launchUrl(Uri.parse(authUrl), mode: LaunchMode.platformDefault);
+        await launchUrl(Uri.parse(authUrl), mode: LaunchMode.externalApplication);
       } catch (ex) {
         final error = GenericError('Failed to launch digid url', sourceError: ex);
         if (context.mounted) {
@@ -381,7 +407,7 @@ class RecoverPinScreen extends StatelessWidget {
     assert(Environment.mockRepositories, 'Mock login is intended for mock builds only');
     final success = await MockDigidScreen.mockLogin(context);
     if (success && context.mounted) {
-      await context.read<NavigationService>().handleNavigationRequest(PinRecoveryNavigationRequest('renew_pid'));
+      await context.read<NavigationService>().handleNavigationRequest(NavigationRequest.pinRecovery('mock'));
     } else if (context.mounted) {
       context.bloc.add(
         const RecoverPinLoginWithDigidFailed(

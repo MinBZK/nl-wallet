@@ -11,6 +11,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   git \
   jq \
   xxd \
+  imagemagick \
   gnupg2 \
   sudo \
   openssh-client \
@@ -34,8 +35,8 @@ chmod +x /usr/local/bin/mc
 
 # k8s same version as SP
 # Get sha256 by appending .sha256)
-wget --no-hsts -q -O /usr/local/bin/kubectl https://dl.k8s.io/release/v1.30.14/bin/linux/amd64/kubectl
-echo "7ccac981ece0098284d8961973295f5124d78eab7b89ba5023f35591baa16271  /usr/local/bin/kubectl" | sha256sum -c
+wget --no-hsts -q -O /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.11/bin/linux/amd64/kubectl
+echo "449674ed53789d63c94c147c689be986f4c135848ec91e1a64796ed896934b45  /usr/local/bin/kubectl" | sha256sum -c
 chmod +x /usr/local/bin/kubectl
 
 # Helm

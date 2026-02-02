@@ -37,3 +37,15 @@ pub enum ConfigurationError {
     #[error("http client error: {0}")]
     HttpClient(#[from] HttpClientError),
 }
+
+#[cfg(test)]
+pub(crate) mod test {
+    use wallet_configuration::wallet_config::WalletConfiguration;
+
+    const TEST_WALLET_CONFIG_JSON: &str = include_str!("../../test-wallet-config.json");
+
+    pub fn test_wallet_config() -> WalletConfiguration {
+        // The JSON has already been parsed in build.rs, so unwrap is safe here
+        serde_json::from_str(TEST_WALLET_CONFIG_JSON).unwrap()
+    }
+}

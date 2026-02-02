@@ -1,7 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 
@@ -13,7 +12,6 @@ void main() {
 
   setUp(() {
     getWalletCardsUseCase = MockGetWalletCardsUseCase();
-    provideDummy<Result<List<WalletCard>>>(const Result.success([]));
   });
 
   blocTest(

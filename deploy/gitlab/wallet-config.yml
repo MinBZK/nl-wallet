@@ -17,7 +17,10 @@ wallet-config-ont:
   needs:
     - job: build-env-ont
       artifacts: true
-  rules: !reference [.default-branch, rules]
+  rules:
+    - !reference [.on-schedule-scan, rules]
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-branch, rules]
 
 wallet-config-demo:
   extends: .wallet-config
@@ -25,27 +28,3 @@ wallet-config-demo:
     - job: build-env-demo
       artifacts: true
   rules: !reference [.on-demo-build, rules]
-
-wallet-config-acceptance:
-  extends: .wallet-config
-  needs:
-    - job: build-env-acceptance
-      artifacts: true
-  rules: !reference [.release-tag, rules]
-  when: manual
-
-wallet-config-preproduction:
-  extends: .wallet-config
-  needs:
-    - job: build-env-preproduction
-      artifacts: true
-  rules: !reference [.release-tag, rules]
-  when: manual
-
-wallet-config-production:
-  extends: .wallet-config
-  needs:
-    - job: build-env-production
-      artifacts: true
-  rules: !reference [.release-tag, rules]
-  when: manual

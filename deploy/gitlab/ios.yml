@@ -1,6 +1,6 @@
 test-ios:
   extends: [.env-macos-runner, .ruby-cache-macos]
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   artifacts:
     name: test-ios
     when: always
@@ -27,7 +27,7 @@ test-ios:
       artifacts: false
     - job: test-flutter-ui
       artifacts: false
-    - job: test-flutter-rust-brdige-codegen
+    - job: test-flutter-rust-bridge-codegen
       artifacts: false
     - job: test-rust
       artifacts: false
@@ -49,13 +49,16 @@ test-ios:
       - "wallet_app/ios/*.xcactivitylog"
   variables:
     APPLE_ATTESTATION_ENVIRONMENT: "production"
+    APP_BUILD_MODE: "release"
+    APP_MOCK: "false"
   script:
-    - VERSION=${CI_COMMIT_TAG#v}
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
     - git config --global url.https://repo-certificates-deploy-token:${REPO_CERTIFICATES_DEPLOY_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
+    - label="${CI_JOB_NAME##*-}"
     - bundle install
+    - bundle exec fastlane ios add_badge label:"${label}"
     # Build
     - |
       bundle exec fastlane ios build \
@@ -65,8 +68,7 @@ test-ios:
         fake_attestation:"${FAKE_ATTESTATION:-false}" \
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
-        build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${VERSION:-}"
+        build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
     # Sign
     - |
       bundle exec fastlane ios sign \
@@ -75,7 +77,7 @@ test-ios:
   after_script:
     - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
 
-.build-ios-app-ont:
+build-ios-app-ont:
   extends: .build-ios-app
   rules: !reference [.default-branch, rules]
   needs:
@@ -87,42 +89,21 @@ test-ios:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
-    APP_MOCK: "false"
-
-build-ios-app-ont:
-  extends: .build-ios-app-ont
-  variables:
-    APP_BUILD_MODE: "release"
-
-build-ios-app-ont-profile:
-  extends: .build-ios-app-ont
-  variables:
-    APP_BUILD_MODE: "profile"
-    FAKE_ATTESTATION: "true"
-
-.build-ios-app-release-tag:
-  extends: .build-ios-app
-  rules: !reference [.release-tag, rules]
-  variables:
-    APP_MOCK: "false"
-    APP_BUILD_MODE: "release"
 
 build-ios-app-mock:
-  extends: .build-ios-app-release-tag
-  rules:
-    - !reference [.on-mock-build, rules]
+  extends: .build-ios-app
+  rules: !reference [.on-mock-build, rules]
   needs: []
   variables:
-    APP_MOCK: "true" # override .build-ios-app-release-tag
+    APP_MOCK: "true" # override .build-ios-app
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
     CONFIG_ENV: "dev"
     SENTRY_ENVIRONMENT: "mock"
 
 build-ios-app-demo:
-  extends: .build-ios-app-release-tag
-  rules:
-    - !reference [.on-demo-build, rules]
+  extends: .build-ios-app
+  rules: !reference [.on-demo-build, rules]
   needs:
     - job: build-env-demo
       artifacts: true
@@ -131,42 +112,6 @@ build-ios-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-
-build-ios-app-acceptance:
-  extends: .build-ios-app-release-tag
-  needs:
-    - !reference [.build-ios-app, needs]
-    - job: build-env-acceptance
-      artifacts: true
-    - job: wallet-config-acceptance
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
-    APP_NAME: "NL Wallet (acceptance)"
-
-build-ios-app-preproduction:
-  extends: .build-ios-app-release-tag
-  needs:
-    - !reference [.build-ios-app, needs]
-    - job: build-env-preproduction
-      artifacts: true
-    - job: wallet-config-preproduction
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
-    APP_NAME: "NL Wallet (pre-production)"
-
-build-ios-app-production:
-  extends: .build-ios-app-release-tag
-  needs:
-    - !reference [.build-ios-app, needs]
-    - job: build-env-production
-      artifacts: true
-    - job: wallet-config-production
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: ""
-    APP_NAME: "NL Wallet"
 
 ## iOS Deploying
 .deploy-ios-app:
@@ -188,14 +133,9 @@ deploy-ios-app-ont:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
 
-.deploy-ios-app-release-tag:
-  extends: .deploy-ios-app
-  rules: !reference [.release-tag, rules]
-
 deploy-ios-app-mock:
-  extends: .deploy-ios-app-release-tag
-  rules:
-    - !reference [.on-mock-build, rules]
+  extends: .deploy-ios-app
+  rules: !reference [.on-mock-build, rules]
   needs:
     - job: build-ios-app-mock
       artifacts: true
@@ -203,35 +143,10 @@ deploy-ios-app-mock:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
 deploy-ios-app-demo:
-  extends: .deploy-ios-app-release-tag
-  rules:
-    - !reference [.on-demo-build, rules]
+  extends: .deploy-ios-app
+  rules: !reference [.on-demo-build, rules]
   needs:
     - job: build-ios-app-demo
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
-
-deploy-ios-app-acceptance:
-  extends: .deploy-ios-app-release-tag
-  needs:
-    - job: build-ios-app-acceptance
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
-
-deploy-ios-app-preproduction:
-  extends: .deploy-ios-app-release-tag
-  needs:
-    - job: build-ios-app-preproduction
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
-
-deploy-ios-app-production:
-  extends: .deploy-ios-app-release-tag
-  needs:
-    - job: build-ios-app-production
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: ""

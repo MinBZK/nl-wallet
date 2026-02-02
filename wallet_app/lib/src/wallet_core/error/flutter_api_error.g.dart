@@ -6,13 +6,13 @@ part of 'flutter_api_error.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-FlutterApiError _$FlutterApiErrorFromJson(Map<String, dynamic> json) => FlutterApiError(
+_FlutterApiError _$FlutterApiErrorFromJson(Map<String, dynamic> json) => _FlutterApiError(
   type: $enumDecode(_$FlutterApiErrorTypeEnumMap, json['type']),
   description: json['description'] as String?,
   data: json['data'] as Map<String, dynamic>?,
 );
 
-Map<String, dynamic> _$FlutterApiErrorToJson(FlutterApiError instance) => <String, dynamic>{
+Map<String, dynamic> _$FlutterApiErrorToJson(_FlutterApiError instance) => <String, dynamic>{
   'type': _$FlutterApiErrorTypeEnumMap[instance.type]!,
   'description': instance.description,
   'data': instance.data,
@@ -30,4 +30,6 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.cancelledSession: 'CancelledSession',
   FlutterApiErrorType.issuer: 'Issuer',
   FlutterApiErrorType.verifier: 'Verifier',
+  FlutterApiErrorType.wrongDigid: 'WrongDigid',
+  FlutterApiErrorType.deniedDigid: 'DeniedDigid',
 };

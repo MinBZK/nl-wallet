@@ -26,20 +26,30 @@
                 <a role="button" id="{{ usecase_id }}" href="{{ service.service_url.join(usecase_id) }}/?lang={{ base.selected_lang }}">
                     <span>
                         {% match usecase_id.as_ref() %}
-                            {% when "mijn_amsterdam" %}
-                                {{ base.trans.amsterdam_index }}
+                            {% when "mijn_amsterdam_mdoc" %}
+                                {{ base.trans.amsterdam_mdoc_index }}
+                            {% when "mijn_amsterdam_sd_jwt" %}
+                                {{ base.trans.amsterdam_sd_jwt_index }}
                             {% when "monkey_bike" %}
                                 {{ base.trans.monkeybike_index }}
                             {% when "online_marketplace" %}
                                 {{ base.trans.marketplace_index }}
-                            {% when "xyz_bank" %}
-                                {{ base.trans.xyz_index }}
-                            {% when "university" %}
-                                {{ base.trans.university_index }}
+                            {% when "xyz_bank_mdoc" %}
+                                {{ base.trans.xyz_mdoc_index }}
+                            {% when "xyz_bank_sd_jwt" %}
+                                {{ base.trans.xyz_sd_jwt_index }}
+                            {% when "xyz_bank_sd_jwt_eu" %}
+                                {{ base.trans.xyz_sd_jwt_eu_index }}
+                            {% when "university_mdoc" %}
+                                {{ base.trans.university_mdoc_index }}
+                            {% when "university_sd_jwt" %}
+                                {{ base.trans.university_sd_jwt_index }}
                             {% when "insurance" %}
                                 {{ base.trans.insurance_index }}
                             {% when "job_finder" %}
                                 {{ base.trans.job_index }}
+                            {% when "housing" %}
+                                {{ base.trans.housing_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

@@ -32,7 +32,7 @@ pub enum ResetError {
 
 type ResetResult<T> = Result<T, ResetError>;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     UR: Repository<VersionState>,
     S: Storage,
@@ -69,7 +69,7 @@ where
             self.session.take();
 
             // Send empty collections to both the attestations and recent history callbacks, if present.
-            if let Some(ref mut attestations_callback) = self.attestations_callback {
+            if let Some(ref mut attestations_callback) = self.attestations_callback.lock().as_deref_mut() {
                 attestations_callback(vec![]);
             }
 
@@ -113,6 +113,7 @@ mod tests {
 
     use openid4vc::mock::MockIssuanceSession;
 
+    use crate::PidIssuancePurpose;
     use crate::attestation::AttestationPresentation;
     use crate::storage::StorageState;
     use crate::wallet::Session;
@@ -172,7 +173,7 @@ mod tests {
     async fn test_wallet_reset_full() {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
+            Some(PidIssuancePurpose::Enrollment),
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
         )));

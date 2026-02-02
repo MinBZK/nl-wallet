@@ -1,6 +1,37 @@
-// Copyright 2020-2023 IOTA Stiftung
-// SPDX-License-Identifier: Apache-2.0
-
+//! Disclosure types and helpers for SD-JWT selective disclosure.
+//!
+//! A Disclosure represents a selectively disclosable value. The disclosure content can be either:
+//! - an object property (salt, claim name, claim value), or
+//! - an array element (salt, array element; which may be a placeholder hash or an actual claim value).
+//!
+//! The serialized form is the Base64URL (no padding) encoding of a JSON array defined by the SD-JWT spec. This module
+//! exposes:
+//! - [`Disclosure`]: holds the encoded representation and the parsed `DisclosureContent`.
+//! - [`DisclosureContent`]: the enum describing either object properties or array elements.
+//!
+//! Examples:
+//! - Parse a disclosure and inspect its type:
+//! ```
+//! use sd_jwt::claims::ClaimType;
+//! use sd_jwt::disclosure::Disclosure;
+//!
+//! // Example disclosure for an array element (from the SD-JWT draft)
+//! let encoded = "WyJsa2x4RjVqTVlsR1RQVW92TU5JdkNBIiwgIlVTIl0";
+//! let disclosure: Disclosure = encoded.parse().unwrap();
+//! assert_eq!(disclosure.encoded(), encoded);
+//! assert_eq!(disclosure.disclosure_type(), ClaimType::Array);
+//! ```
+//!
+//! - Parse an object-property disclosure and list the referenced digest claim types:
+//! ```
+//! use sd_jwt::disclosure::Disclosure;
+//!
+//! // Example disclosure for an object property (from the SD-JWT draft)
+//! let encoded = "WyIyR0xDNDJzS1F2ZUNmR2ZyeU5STjl3IiwgInRpbWUiLCAiMjAxMi0wNC0yM1QxODoyNVoiXQ";
+//! let disclosure: Disclosure = encoded.parse().unwrap();
+//! // This returns (digest, ClaimType) pairs for any nested values that would be disclosed by this disclosure.
+//! let _digests = disclosure.digests();
+//! ```
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -10,22 +41,25 @@ use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
-use crate::error::Error;
-use crate::sd_jwt::ClaimValue;
-use crate::sd_jwt::HashType;
+use crate::claims::ArrayClaim;
+use crate::claims::ClaimName;
+use crate::claims::ClaimType;
+use crate::claims::ClaimValue;
+use crate::error::ClaimError;
+use crate::error::DecoderError;
 
 /// A disclosable value.
+///
 /// Both object properties and array elements disclosures are supported.
 ///
-/// See: https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures
-// TODO: [PVW-4138] Update link and check spec changes
+/// See: <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures>
 #[derive(Debug, Clone, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct Disclosure {
     /// Indicates whether this disclosure is an object property or array element.
     pub content: DisclosureContent,
 
     /// Base64Url-encoded disclosure.
-    pub(crate) encoded: String,
+    pub encoded: String,
 }
 
 impl Display for Disclosure {
@@ -36,17 +70,11 @@ impl Display for Disclosure {
 
 /// Parses a Base64 encoded disclosure into a [`Disclosure`].
 impl FromStr for Disclosure {
-    type Err = Error;
+    type Err = DecoderError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let content: DisclosureContent = BASE64_URL_SAFE_NO_PAD
-            .decode(s)
-            .map_err(|_| Error::InvalidDisclosure(format!("Base64 decoding of the disclosure was not possible {s}")))
-            .and_then(|data| {
-                serde_json::from_slice(&data).map_err(|_| {
-                    Error::InvalidDisclosure(format!("decoded disclosure could not be serialized as an array {s}"))
-                })
-            })?;
+        let decoded = BASE64_URL_SAFE_NO_PAD.decode(s)?;
+        let content: DisclosureContent = serde_json::from_slice(&decoded)?;
 
         Ok(Self {
             content,
@@ -57,15 +85,8 @@ impl FromStr for Disclosure {
 
 #[derive(Debug)]
 pub(crate) struct DisclosureContentSerializationError {
-    pub key: Option<String>,
-    pub value: serde_json::Value,
-    pub error: serde_json::Error,
-}
-
-impl AsRef<str> for Disclosure {
-    fn as_ref(&self) -> &str {
-        &self.encoded
-    }
+    pub(crate) content: Box<DisclosureContent>,
+    pub(crate) error: serde_json::Error,
 }
 
 impl Disclosure {
@@ -76,35 +97,47 @@ impl Disclosure {
         let serialized = match serde_json::to_vec(&content) {
             Ok(serialized) => serialized,
             Err(error) => {
-                return match content {
-                    DisclosureContent::ObjectProperty(_, key, value) => Err(DisclosureContentSerializationError {
-                        key: Some(key),
-                        value,
-                        error,
-                    }),
-                    DisclosureContent::ArrayElement(_, value) => Err(DisclosureContentSerializationError {
-                        key: None,
-                        value,
-                        error,
-                    }),
-                };
+                return Err(DisclosureContentSerializationError {
+                    content: Box::new(content),
+                    error,
+                });
             }
         };
 
         let encoded = BASE64_URL_SAFE_NO_PAD.encode(serialized.as_slice());
+
         Ok(Self { content, encoded })
     }
 
-    pub fn as_str(&self) -> &str {
-        self.as_ref()
+    pub fn disclosure_type(&self) -> ClaimType {
+        self.content.disclosure_type()
     }
 
-    pub fn claim_value(&self) -> &serde_json::Value {
-        self.content.claim_value()
+    pub fn digests(&self) -> Vec<(String, ClaimType)> {
+        match &self.content {
+            DisclosureContent::ObjectProperty(_, _, claim_value) => claim_value.digests(),
+            DisclosureContent::ArrayElement(_, array_claim) => match array_claim {
+                ArrayClaim::Hash { digest } => vec![(digest.to_string(), ClaimType::Array)],
+                ArrayClaim::Value(value) => value.digests(),
+            },
+        }
     }
 
-    pub fn hash_type(&self) -> HashType {
-        self.content.hash_type()
+    pub fn encoded(&self) -> &str {
+        &self.encoded
+    }
+
+    pub fn verify_matching_claim_type(&self, actual: ClaimType, digest: impl Into<String>) -> Result<(), ClaimError> {
+        let expected = self.disclosure_type();
+        if actual != expected {
+            Err(ClaimError::DisclosureTypeMismatch {
+                expected,
+                actual,
+                digest: digest.into(),
+            })
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -120,35 +153,48 @@ pub enum DisclosureContent {
     ObjectProperty(
         /// The salt value.
         String,
-        /// The claim name, optional for array elements.
-        String,
-        /// The claim Value which can be of any type.
-        serde_json::Value,
+        /// The claim name.
+        ClaimName,
+        /// The claim value.
+        ClaimValue,
     ),
     ArrayElement(
         /// The salt value.
         String,
-        /// The claim Value which can be of any type.
-        serde_json::Value,
+        /// The array value which can be an array hash, or a claim value.
+        ArrayClaim,
     ),
 }
 
 impl DisclosureContent {
-    pub fn claim_value(&self) -> &serde_json::Value {
-        match self {
-            DisclosureContent::ObjectProperty(_, _, value) => value,
-            DisclosureContent::ArrayElement(_, value) => value,
+    pub fn disclosure_type(&self) -> ClaimType {
+        match &self {
+            DisclosureContent::ObjectProperty(..) => ClaimType::Object,
+            DisclosureContent::ArrayElement(..) => ClaimType::Array,
         }
     }
 
-    pub(crate) fn parsed_claim_value(&self) -> Result<ClaimValue, serde_json::Error> {
-        serde_json::from_value(self.claim_value().clone())
+    pub fn try_as_object_property(&self, digest: &str) -> Result<(&String, &ClaimName, &ClaimValue), ClaimError> {
+        if let DisclosureContent::ObjectProperty(salt, name, value) = self {
+            Ok((salt, name, value))
+        } else {
+            Err(ClaimError::DisclosureTypeMismatch {
+                expected: ClaimType::Object,
+                actual: self.disclosure_type(),
+                digest: digest.to_string(),
+            })
+        }
     }
 
-    pub(crate) fn hash_type(&self) -> HashType {
-        match &self {
-            DisclosureContent::ObjectProperty(..) => HashType::Object,
-            DisclosureContent::ArrayElement(..) => HashType::Array,
+    pub fn try_as_array_element(&self, digest: &str) -> Result<(&String, &ArrayClaim), ClaimError> {
+        if let DisclosureContent::ArrayElement(salt, value) = self {
+            Ok((salt, value))
+        } else {
+            Err(ClaimError::DisclosureTypeMismatch {
+                expected: ClaimType::Array,
+                actual: self.disclosure_type(),
+                digest: digest.to_string(),
+            })
         }
     }
 }
@@ -162,19 +208,20 @@ mod test {
 
     use crypto::utils::random_bytes;
 
-    use crate::error::Error;
+    use crate::claims::ClaimValue;
+    use crate::error::DecoderError;
 
     use super::Disclosure;
     use super::DisclosureContent;
 
     // Test values from:
-    // https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7
+    // <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7>
     #[test]
     fn test_parsing_value() {
         let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(
             "2GLC42sKQveCfGfryNRN9w".to_string(),
-            "time".to_owned(),
-            "2012-04-23T18:25Z".to_owned().into(),
+            "time".parse().unwrap(),
+            ClaimValue::String("2012-04-23T18:25Z".to_string()),
         ))
         .unwrap();
 
@@ -188,7 +235,7 @@ mod test {
     fn test_parsing_array_value() {
         let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(
             "lklxF5jMYlGTPUovMNIvCA".to_string(),
-            "US".to_owned().into(),
+            ClaimValue::String("US".to_string()).into(),
         ))
         .unwrap();
 
@@ -202,6 +249,9 @@ mod test {
         let disclosure = serde_json::to_vec(&json!([salt])).unwrap();
         let encoded = BASE64_URL_SAFE_NO_PAD.encode(disclosure);
 
-        assert_matches!(&encoded.parse::<Disclosure>(), Err(Error::InvalidDisclosure(_)));
+        assert_matches!(
+            &encoded.parse::<Disclosure>(),
+            Err(DecoderError::JsonDeserialization(_))
+        );
     }
 }

@@ -1,7 +1,7 @@
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::CertificateType;
+use attestation_data::x509::CertificateTypeError;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
 
 #[derive(Debug, Clone)]
 pub struct VerifierCertificate {
@@ -10,11 +10,11 @@ pub struct VerifierCertificate {
 }
 
 impl VerifierCertificate {
-    pub fn try_new(certificate: BorrowingCertificate) -> Result<Option<Self>, CertificateError> {
+    pub fn try_new(certificate: BorrowingCertificate) -> Result<Option<Self>, CertificateTypeError> {
         let verifier_certificate = match CertificateType::from_certificate(&certificate)? {
-            CertificateType::ReaderAuth(Some(reader_registration)) => Some(Self {
+            CertificateType::ReaderAuth(reader_registration) => Some(Self {
                 certificate,
-                registration: *reader_registration,
+                registration: reader_registration,
             }),
             _ => None,
         };

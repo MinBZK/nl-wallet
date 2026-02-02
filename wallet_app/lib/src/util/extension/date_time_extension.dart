@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 extension DateTimeExtension on DateTime {
   /// Returns year & month (resets all other date/time data)
   DateTime get yearMonth {
@@ -9,17 +11,17 @@ extension DateTimeExtension on DateTime {
   }
 
   bool get isToday {
-    final now = DateTime.now();
+    final now = clock.now();
     return now.year == year && now.month == month && now.day == day;
   }
 
   bool get isInLastWeek {
-    final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+    final oneWeekAgo = clock.now().subtract(const Duration(days: 7));
     return isAfter(oneWeekAgo);
   }
 
   bool get isInLastMonth {
-    final oneMonthAgo = DateTime.now().subtract(const Duration(days: 31));
+    final oneMonthAgo = clock.now().subtract(const Duration(days: 31));
     return isAfter(oneMonthAgo);
   }
 }

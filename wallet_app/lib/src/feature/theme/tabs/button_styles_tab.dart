@@ -8,6 +8,8 @@ import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
+import '../../common/widget/list/list_item.dart';
+import '../../common/widget/setting/switch_setting_row.dart';
 import '../../common/widget/text_with_link.dart';
 import '../theme_screen.dart';
 
@@ -80,6 +82,33 @@ class ButtonStylesTab extends StatelessWidget {
             icon: null,
             text: Text('Decline'),
           ),
+        ),
+        const ThemeSectionSubHeader(title: 'ListItems'),
+        const ListItem.compact(
+          label: Text('Compact'),
+          subtitle: Text('Subtitle'),
+          dividerSide: .bottom,
+          icon: Icon(Icons.camera),
+        ),
+        const ListItem.horizontal(
+          label: Text('Horizontal'),
+          subtitle: Text('Subtitle'),
+          dividerSide: .bottom,
+          icon: Icon(Icons.camera),
+        ),
+        const ListItem.vertical(
+          label: Text('Vertical'),
+          subtitle: Text('Subtitle'),
+          button: PrimaryButton(text: Text('primary')),
+          dividerSide: .bottom,
+          icon: Icon(Icons.camera),
+        ),
+        const ThemeSectionSubHeader(title: 'Switch'),
+        const SwitchSettingRow(
+          label: Text('Toggle Setting'),
+          subtitle: Text('Subtitle'),
+          value: true,
+          dividerSide: .bottom,
         ),
       ],
     );

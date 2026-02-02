@@ -1,6 +1,16 @@
+use chrono::DateTime;
+use chrono::Utc;
 use derive_more::Constructor;
+use sea_orm::ActiveModelBehavior;
+use sea_orm::DeriveEntityModel;
+use sea_orm::DerivePrimaryKey;
+use sea_orm::EntityTrait;
+use sea_orm::EnumIter;
 use sea_orm::FromJsonQueryResult;
-use sea_orm::entity::prelude::*;
+use sea_orm::PrimaryKeyTrait;
+use sea_orm::Related;
+use sea_orm::RelationDef;
+use sea_orm::RelationTrait;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
@@ -15,7 +25,18 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub attestation_type: String,
+    #[sea_orm(column_name = "expiration_date_time")]
+    pub expiration: Option<DateTime<Utc>>,
+    #[sea_orm(column_name = "not_before_date_time")]
+    pub not_before: Option<DateTime<Utc>>,
+    pub extended_types: ExtendedTypesModel,
     pub type_metadata: TypeMetadataModel,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]
+#[serde(transparent)]
+pub struct ExtendedTypesModel {
+    pub attestation_types: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]

@@ -155,6 +155,19 @@ class DarkWalletTheme {
 
   static final iconTheme = BaseWalletTheme.baseIconTheme.copyWith(color: colorScheme.onSurface);
 
+  static final switchTheme = SwitchThemeData(
+    trackOutlineWidth: const WidgetStatePropertyAll(2),
+    trackOutlineColor: const WidgetStateMapper({
+      WidgetState.selected: _Colors.actionPrimary,
+      WidgetState.any: _Colors.actionSecondary,
+    }),
+    thumbIcon: const WidgetStateMapper({WidgetState.selected: Icon(Icons.check)}),
+    thumbColor: WidgetStateMapper({
+      WidgetState.selected: colorScheme.surface,
+      WidgetState.any: _Colors.actionSecondary,
+    }),
+  );
+
   //endregion Modified (colored) BaseThemes
 
   static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFF292D3A));

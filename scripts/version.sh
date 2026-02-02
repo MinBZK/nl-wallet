@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get the directory of this script.
-SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
+scripts_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
 # Include utility functions.
 source "${scripts_dir}/utils.sh"
@@ -76,20 +76,25 @@ function set() {
         local non_prefixed_version="${version#v}"
 
         # Tell us about it.
-        error "Setting versions of wallet_core, wallet_app and wallet_web to: $non_prefixed_version"
+        error "Setting versions of wallet_app, wallet_core, wallet_docs, and wallet_web to: $non_prefixed_version"
+
+        # Wallet app (pubspec.yaml):
+        $sed -i "s|^version:[\s]*.*$|version: $non_prefixed_version|" "$project_root/wallet_app/pubspec.yaml" > /dev/null 2>&1
 
         # Wallet core (Cargo.toml):
         cargo set-version --manifest-path "$project_root/wallet_core/Cargo.toml" --workspace "$non_prefixed_version" > /dev/null 2>&1
 
-        # Wallet app (pubspec.yaml):
-        $sed -i "s|^version:[\s]*.*$|version: $non_prefixed_version|g" "$project_root/wallet_app/pubspec.yaml" > /dev/null 2>&1
+        # Wallet docs (conf.py):
+        $sed -i "s|^version = [\s]*.*$|version = \'$non_prefixed_version\'|" "$project_root/wallet_docs/conf.py" > /dev/null 2>&1
+
+        # Wallet docs (*.openapi.yaml)
+        for file in "$project_root/wallet_docs/openapi/"*.openapi.yaml; do
+            $sed -i "s|version:[\s]*.*$|version: $non_prefixed_version|" "$file" > /dev/null 2>&1
+        done
 
         # Wallet web (package.json):
         jq ".version = \"$non_prefixed_version\"" "$project_root/wallet_web/package.json" > "/tmp/wallet_web_package_json_$$" 2>&1
         mv "/tmp/wallet_web_package_json_$$" "$project_root/wallet_web/package.json" > /dev/null 2>&1
-
-        # Wallet docs (conf.py):
-        $sed -i "s|^version = [\s]*.*$|version = \'$non_prefixed_version\'|g" "$project_root/wallet_docs/conf.py" > /dev/null 2>&1
 
         # Inform about doing lock upgrades.
         error ""

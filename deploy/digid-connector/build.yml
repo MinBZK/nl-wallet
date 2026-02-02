@@ -1,0 +1,61 @@
+# Global variables
+variables:
+  RDO_MAX_VERSION:
+    value: v4.0.3
+    description: "The version of RDO max to use"
+  RDO_MAX_SHA256SUM:
+    value: fc917dffbe97dd36f89e185af42f853d1251acdc73ee2faa398c4ed89471c26f
+    description: "The SHA256 sum of the rdo-max tar archive"
+
+.base:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+# Obtain nl-rdo-max
+get-rdo-max-source:
+  extends: .base
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  variables:
+    GIT_STRATEGY: empty
+  script:
+    - mkdir -p nl-rdo-max
+    - curl -fsSL "https://github.com/minvws/nl-rdo-max/tarball/${RDO_MAX_VERSION}" -o "nl-rdo-max-${RDO_MAX_VERSION}.tar.gz"
+    - echo "${RDO_MAX_SHA256SUM} nl-rdo-max-${RDO_MAX_VERSION}.tar.gz" | sha256sum -c
+    - tar xzf "nl-rdo-max-${RDO_MAX_VERSION}.tar.gz" -C nl-rdo-max --strip-components=1
+    - cd nl-rdo-max
+    - npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
+  artifacts:
+    name: rdo-max-source
+    paths:
+      - nl-rdo-max
+
+# Build nl-rdo-max
+build-rdo-max-image:
+  extends: .base
+  image: "$HARBOR_REGISTRY/quay-proxy/buildah/stable:v1.42.2"
+  tags:
+    - linux
+  needs:
+    - job: get-rdo-max-source
+      artifacts: true
+  variables:
+    GIT_STRATEGY: none
+    STORAGE_DRIVER: vfs
+    BUILDAH_FORMAT: docker
+    BUILDAH_ISOLATION: chroot
+  before_script:
+    - mkdir -p ~/.docker
+    - echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
+  script:
+    - cd nl-rdo-max
+    - buildah build
+        --build-arg APP_GROUP=app
+        --build-arg APP_USER=app
+        --build-arg LOCAL_SOURCE_DIR=.
+        --build-arg PROJECT_DIR=/app
+        --file docker/Dockerfile
+        --tag "nl-rdo-max:$RDO_MAX_VERSION"
+    - |
+      for HARBOR_REGISTRY in $HARBOR_REGISTRIES; do
+        buildah push nl-rdo-max:$RDO_MAX_VERSION "$HARBOR_REGISTRY/$HARBOR_PROJECT/nl-rdo-max:$RDO_MAX_VERSION"
+      done

@@ -13,39 +13,49 @@ doctest = false
 [features]
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
-settings = ["dep:serde", "dep:serde_with"]
-test = ["dep:async-dropper", "dep:async-trait", "dep:config", "dep:rand_core"]
+# Include TestCase type
+test = ["mock", "async-dropper/simple", "async-dropper/tokio", "dep:async-trait", "config/toml", "dep:rand_core"]
+# Integration test feature
+hsm_test = ["test"]
 
 [[test]]
 name = "hsm"
 path = "tests/hsm.rs"
-required-features = ["settings", "test"]
+required-features = ["hsm_test"]
+
+[[test]]
+name = "mock"
+path = "tests/mock.rs"
+required-features = ["test"]
 
 [dependencies]
 cryptoki.workspace = true
-der = { workspace = true, features = ["std"] }
-derive_more = { workspace = true, features = ["constructor"] }
+der.workspace = true
+derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "std"] }
+metrics.workspace = true
+p256.workspace = true
 r2d2-cryptoki.workspace = true
 sec1.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["base64"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 
-async-dropper = { workspace = true, optional = true, features = ["simple", "tokio"] }
+async-dropper = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
-config = { workspace = true, optional = true, features = ["toml"] }
+config = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
-hmac = { workspace = true, optional = true, features = ["std"] }
+hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-serde = { workspace = true, optional = true, features = ["derive"] }
-serde_with = { workspace = true, optional = true, features = ["base64"] }
 sha2 = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
+measure.path = "../measure"
 utils.path = "../utils"
 
 [dev-dependencies]
 rstest.workspace = true
 serial_test.workspace = true
-tokio = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["macros", "rt"] }

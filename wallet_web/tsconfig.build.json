@@ -3,7 +3,8 @@
   "include": [
     "env.d.ts",
     "lib/**/*",
-    "lib/**/*.vue"
+    "lib/**/*.vue",
+    "lib/l10n/*.json"
   ],
   "exclude": [
     "lib/**/__tests__/*"

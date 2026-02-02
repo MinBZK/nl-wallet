@@ -3,9 +3,6 @@ package feature.menu_and_settings
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
-import screen.menu.MenuScreen
-import screen.settings.ChangeLanguageScreen
-import screen.settings.SettingsScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -15,6 +12,9 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.menu.MenuScreen
+import screen.settings.ChangeLanguageScreen
+import screen.settings.SettingsScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC9.3 Change app language")
@@ -31,8 +31,8 @@ class ChangeLanguageTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @Tags(Tag("english"))
-    @DisplayName("LTC38, LTC39 Select a new language, English")
+    @Tags(Tag("english"), Tag("a11yBatch2"))
+    @DisplayName("LTC30 Select a new language, English")
     fun verifyDutchLanguageSelect(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(
@@ -46,8 +46,8 @@ class ChangeLanguageTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @Tags(Tag("dutch"), Tag("smoke"))
-    @DisplayName("LTC38, LTC39 Select a new language, Dutch")
+    @Tags(Tag("smoke"))
+    @DisplayName("LTC30 Select a new language, Dutch")
     fun verifyEnglishLanguageSelect(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(

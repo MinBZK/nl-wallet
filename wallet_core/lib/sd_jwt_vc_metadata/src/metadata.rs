@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Write;
 use std::ops::Deref;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
@@ -142,6 +139,7 @@ const INTERNAL_ATTRIBUTES: &[&str] = &[
     "exp",
     "iat",
     "sub",
+    "status",
     "attestation_qualification",
 ];
 
@@ -401,7 +399,7 @@ pub enum JsonSchemaPropertyFormat {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisplayMetadata {
     ///  A language tag as defined in Section 2 of [RFC5646].
     pub lang: String,
@@ -416,6 +414,7 @@ pub struct DisplayMetadata {
     pub summary: Option<String>,
 
     /// An object containing rendering information for the type
+    #[debug(skip)]
     pub rendering: Option<RenderingMetadata>,
 }
 
@@ -482,9 +481,10 @@ impl From<Image> for DataUri {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
     /// Explicitly reject non-embedded images and unsupported mime types
+    #[debug(skip)]
     #[serde(rename = "uri")]
     #[serde_as(as = "TryFromInto<DataUri>")]
     pub image: Image,
@@ -515,10 +515,7 @@ pub struct ClaimMetadata {
 
 impl ClaimMetadata {
     pub(crate) fn path_to_string(path: &[ClaimPath]) -> String {
-        path.iter().fold(String::new(), |mut output, path| {
-            let _ = write!(output, "[{path}]");
-            output
-        })
+        format!("[{}]", path.iter().join(", "))
     }
 
     fn find_duplicate_languages(&self) -> Vec<String> {
@@ -527,12 +524,6 @@ impl ClaimMetadata {
             .duplicates_by(|display| &display.lang)
             .map(|display| display.lang.clone())
             .collect()
-    }
-}
-
-impl Display for ClaimMetadata {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Self::path_to_string(self.path.as_ref()))
     }
 }
 
@@ -583,14 +574,8 @@ mod example_constructors {
     use crypto::utils::random_string;
 
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
-    use crate::examples::EUDI_PID_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
-    use crate::examples::EXAMPLE_V2_METADATA_BYTES;
-    use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
-    use crate::examples::SD_JWT_VC_SPEC_METADATA_BYTES;
-    use crate::examples::SIMPLE_EMBEDDED_BYTES;
-    use crate::examples::SIMPLE_REMOTE_BYTES;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
@@ -670,41 +655,16 @@ mod example_constructors {
             }
         }
 
-        pub fn example() -> Self {
+        pub(crate) fn example() -> Self {
             serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
-        }
-
-        pub fn example_v2() -> Self {
-            serde_json::from_slice(EXAMPLE_V2_METADATA_BYTES).unwrap()
-        }
-
-        pub fn example_v3() -> Self {
-            serde_json::from_slice(EXAMPLE_V3_METADATA_BYTES).unwrap()
         }
 
         pub fn pid_example() -> Self {
             serde_json::from_slice(PID_METADATA_BYTES).unwrap()
         }
 
-        pub fn eudi_pid_example() -> Self {
-            serde_json::from_slice(EUDI_PID_METADATA_BYTES).unwrap()
-        }
-
-        pub fn sd_jwt_vc_spec_example() -> Self {
-            serde_json::from_slice(SD_JWT_VC_SPEC_METADATA_BYTES).unwrap()
-        }
-
         pub fn credential_payload_sd_jwt_metadata() -> Self {
             serde_json::from_slice(CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES).unwrap()
-        }
-
-        pub fn simple_embedded_example() -> Self {
-            serde_json::from_slice(SIMPLE_EMBEDDED_BYTES).unwrap()
-        }
-
-        pub fn simple_remote_example() -> serde_json::Error {
-            // Explicitly unsupported at the moment, hence the error return
-            serde_json::from_slice::<Self>(SIMPLE_REMOTE_BYTES).unwrap_err()
         }
     }
 
@@ -736,24 +696,8 @@ mod example_constructors {
             TypeMetadata::try_new(UncheckedTypeMetadata::example_with_claim_names(attestation_type, names)).unwrap()
         }
 
-        pub fn example() -> Self {
-            Self::try_new(UncheckedTypeMetadata::example()).unwrap()
-        }
-
-        pub fn example_v2() -> Self {
-            Self::try_new(UncheckedTypeMetadata::example_v2()).unwrap()
-        }
-
-        pub fn example_v3() -> Self {
-            Self::try_new(UncheckedTypeMetadata::example_v3()).unwrap()
-        }
-
         pub fn pid_example() -> Self {
             Self::try_new(UncheckedTypeMetadata::pid_example()).unwrap()
-        }
-
-        pub fn simple_embedded_example() -> Self {
-            Self::try_new(UncheckedTypeMetadata::simple_embedded_example()).unwrap()
         }
     }
 
@@ -792,7 +736,6 @@ mod test {
     use std::str::FromStr;
 
     use assert_matches::assert_matches;
-    use jsonschema::ValidationError;
     use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;
     use serde_json::json;
@@ -801,10 +744,61 @@ mod test {
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
-    use crate::examples::RED_DOT_BYTES;
-    use crate::examples::VCT_EXAMPLE_CREDENTIAL;
+    use crate::examples::test::EXAMPLE_V2_METADATA_BYTES;
+    use crate::examples::test::EXAMPLE_V3_METADATA_BYTES;
+    use crate::examples::test::RED_DOT_BYTES;
+    use crate::examples::test::SIMPLE_EMBEDDED_METADATA_BYTES;
+    use crate::examples::test::SIMPLE_REMOTE_METADATA_BYTES;
+    use crate::examples::test::VCT_EXAMPLE_CREDENTIAL;
 
     use super::*;
+
+    impl UncheckedTypeMetadata {
+        pub(crate) fn example_v2() -> Self {
+            serde_json::from_slice(EXAMPLE_V2_METADATA_BYTES).unwrap()
+        }
+
+        pub(crate) fn example_v3() -> Self {
+            serde_json::from_slice(EXAMPLE_V3_METADATA_BYTES).unwrap()
+        }
+
+        pub(crate) fn simple_embedded_example() -> Self {
+            serde_json::from_slice(SIMPLE_EMBEDDED_METADATA_BYTES).unwrap()
+        }
+
+        pub(crate) fn simple_remote_example() -> serde_json::Error {
+            // Explicitly unsupported at the moment, hence the error return
+            serde_json::from_slice::<Self>(SIMPLE_REMOTE_METADATA_BYTES).unwrap_err()
+        }
+    }
+
+    impl TypeMetadata {
+        pub(crate) fn example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example()).unwrap()
+        }
+
+        pub(crate) fn example_v2() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v2()).unwrap()
+        }
+
+        pub(crate) fn example_v3() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v3()).unwrap()
+        }
+
+        pub(crate) fn simple_embedded_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::simple_embedded_example()).unwrap()
+        }
+    }
+
+    #[test]
+    fn test_path_to_string() {
+        let result = ClaimMetadata::path_to_string(&[
+            ClaimPath::SelectByKey("key".to_string()),
+            ClaimPath::SelectByIndex(3),
+            ClaimPath::SelectAll,
+        ]);
+        assert_eq!(result, String::from("[key, 3, null]"));
+    }
 
     #[test]
     fn test_deserialize() {
@@ -930,6 +924,12 @@ mod test {
           "iat": 1683000000,
           "exp": 1883000000,
           "attestation_qualification": "EAA",
+          "status": {
+              "status_list": {
+                  "idx": 0,
+                  "uri": "https://example.com/statuslists/1"
+              }
+          },
           "place_of_birth": {
             "locality": "DE"
           }
@@ -961,6 +961,12 @@ mod test {
           "iss": "https://example.com/issuer",
           "iat": 1683000000,
           "attestation_qualification": "EAA",
+          "status": {
+              "status_list": {
+                  "idx": 0,
+                  "uri": "https://example.com/statuslists/1"
+              }
+          },
           "financial": {
             "has_job": "yes"
           }
@@ -987,6 +993,12 @@ mod test {
             "iss": "https://example.com/issuer",
             "iat": 1683000000,
             "attestation_qualification": "EAA",
+            "status": {
+                "status_list": {
+                    "idx": 0,
+                    "uri": "https://example.com/statuslists/1"
+                }
+            },
             "birth_date": date_str,
         });
 
@@ -1022,16 +1034,9 @@ mod test {
             .validate(&claims)
             .expect_err("JSON schema should fail validation");
 
-        assert_matches!(
-            *error,
-            ValidationError {
-                instance,
-                kind: ValidationErrorKind::Format { format },
-                instance_path,
-                ..
-            } if instance.to_string() == format!("\"{date_str}\"")
-                    && format == "date" && instance_path.to_string() == "/birth_date"
-        );
+        assert_eq!(error.instance().to_string(), format!("\"{date_str}\""));
+        assert_matches!(error.kind(), ValidationErrorKind::Format { format } if format == "date");
+        assert_eq!(error.instance_path().to_string(), "/birth_date");
     }
 
     #[rstest]

@@ -233,7 +233,7 @@ class DisclosureMissingAttributes extends DisclosureState {
   final FlowProgress stepperProgress;
 
   @override
-  bool get canGoBack => true;
+  bool get canGoBack => false;
 
   @override
   bool get showStopConfirmation => false;
@@ -332,6 +332,7 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
 class DisclosureConfirmPin extends DisclosureState {
   final Organization relyingParty;
   final bool isLoginFlow;
+  final List<int> selectedIndices;
 
   @override
   final FlowProgress stepperProgress;
@@ -349,11 +350,12 @@ class DisclosureConfirmPin extends DisclosureState {
   DisclosureConfirmPin({
     required this.relyingParty,
     this.isLoginFlow = false,
+    required this.selectedIndices,
     required bool isCrossDevice,
   }) : stepperProgress = _calculateStepperProgress(isCrossDevice: isCrossDevice);
 
   @override
-  List<Object?> get props => [relyingParty, isLoginFlow, ...super.props];
+  List<Object?> get props => [relyingParty, isLoginFlow, selectedIndices, ...super.props];
 }
 
 class DisclosureSuccess extends DisclosureState {

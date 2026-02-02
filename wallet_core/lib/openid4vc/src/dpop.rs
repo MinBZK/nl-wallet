@@ -217,7 +217,7 @@ impl Dpop {
 mod tests {
     use base64::prelude::*;
     use p256::ecdsa::SigningKey;
-    use p256::elliptic_curve::rand_core::OsRng;
+    use rand_core::OsRng;
     use reqwest::Method;
     use rstest::rstest;
     use serde::de::DeserializeOwned;

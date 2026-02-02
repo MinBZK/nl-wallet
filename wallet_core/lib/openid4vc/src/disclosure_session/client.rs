@@ -53,7 +53,7 @@ impl<H> VpDisclosureClient<H> {
             | VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
             | VpVerifierError::RpCertificate(_)
-            | VpVerifierError::MissingReaderRegistration
+            | VpVerifierError::NoReaderCertificate
             | VpVerifierError::RequestedAttributesValidation(_) => {
                 let error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
 
@@ -96,7 +96,7 @@ impl<H> VpDisclosureClient<H> {
         // Extract `ReaderRegistration` from the certificate.
         let verifier_certificate = VerifierCertificate::try_new(certificate)
             .map_err(VpVerifierError::RpCertificate)?
-            .ok_or(VpVerifierError::MissingReaderRegistration)?;
+            .ok_or(VpVerifierError::NoReaderCertificate)?;
 
         // Verify that the requested attributes are included in the reader authentication.
         verifier_certificate
@@ -178,9 +178,10 @@ where
             Err(error) => return Err(self.report_error_back(auth_request.response_uri, error).await)?,
         };
 
-        // Signing of disclosures using a mix of formats is currently unsupported, because of how we use the
-        // `DisclosureWscd` trait. If the credential request contains this, simply terminate the session and
-        // return an error.
+        // TODO (PVW-4955): Signing of disclosures using a mix of formats is currently unsupported, because of how we
+        //                  use the `DisclosureWscd` trait. If the credential request contains this, simply terminate
+        //                  the session and return an error. In the future, we should change our use of `DisclosureWscd`
+        //                  to support disclosing both mdoc and SD-JWT credentials in the same response.
         let format_count = auth_request
             .credential_requests
             .as_ref()
@@ -223,7 +224,9 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::x509::CertificateTypeError;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
@@ -234,8 +237,9 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
-    use mdoc::test::data::PID;
-    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt::builder::SignedSdJwt;
+    use token_status_list::verification::client::mock::StatusListClientStub;
+    use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -243,6 +247,7 @@ mod tests {
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
+    use crate::mock::ExtendingVctRetrieverStub;
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::RequestUriMethod;
     use crate::openid4vp::VpAuthorizationResponse;
@@ -448,8 +453,9 @@ mod tests {
                 let issuer_key_pair = ca
                     .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
                     .unwrap();
-                let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key_pair, attestation_key.verifying_key());
-                let unsigned_sd_jwt_presentation = sd_jwt
+                let verified_sd_jwt =
+                    SignedSdJwt::pid_example(&issuer_key_pair, attestation_key.verifying_key()).into_verified();
+                let unsigned_presentation = verified_sd_jwt
                     .into_presentation_builder()
                     .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
                     .unwrap()
@@ -461,7 +467,7 @@ mod tests {
 
                 DisclosableAttestations::SdJwt(HashMap::from([(
                     "sd_jwt_pid_example".try_into().unwrap(),
-                    vec_nonempty![(unsigned_sd_jwt_presentation, "attestation_key".to_string())],
+                    vec_nonempty![(unsigned_presentation, "attestation_key".to_string())],
                 )]))
                 .try_into()
                 .unwrap()
@@ -495,7 +501,14 @@ mod tests {
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &[ca.to_trust_anchor()],
+            &ExtendingVctRetrieverStub,
+            &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
+                ca.generate_status_list_mock().unwrap(),
+            ))),
+            false,
         )
+        .now_or_never()
+        .unwrap()
         .expect("decrypting and verifying VPDisclosureSession authorization response should succeed");
 
         // Finally, check that the disclosed attestations match exactly those provided.
@@ -504,13 +517,15 @@ mod tests {
             .exactly_one()
             .ok()
             .and_then(|attestations| attestations.attestations.iter().exactly_one().ok())
-            .and_then(|attestation| (attestation.attestation_type.as_str() == PID).then_some(attestation))
+            .and_then(|attestation| {
+                (attestation.attestation_type.as_str() == PID_ATTESTATION_TYPE).then_some(attestation)
+            })
             .and_then(|attestation| match &attestation.attributes {
                 DisclosedAttributes::MsoMdoc(attributes) => attributes
                     .iter()
                     .exactly_one()
                     .ok()
-                    .and_then(|(namespaces, attributes)| (namespaces == PID).then_some(attributes))
+                    .and_then(|(namespaces, attributes)| (namespaces == PID_ATTESTATION_TYPE).then_some(attributes))
                     .map(|attributes| {
                         attributes
                             .iter()
@@ -788,7 +803,7 @@ mod tests {
     fn test_vp_disclosure_client_start_error_missing_reader_registration() {
         // Calling `VpDisclosureClient::start()` with an Authorization Request JWT that contains
         // a valid reader certificate but no `ReaderRegistration` should result in an error.
-        // Note that the test for `VpVerifierError::RpCertificate` is missing,
+        // Note that the test for `VpVerifierError::NoReaderCertificate` is missing,
         // which is too convoluted of an error condition to simulate.
         let (error, verifier_session) = start_disclosure_session(
             SessionType::SameDevice,
@@ -803,7 +818,9 @@ mod tests {
 
         assert_matches!(
             *error,
-            VpSessionError::Verifier(VpVerifierError::MissingReaderRegistration)
+            VpSessionError::Verifier(VpVerifierError::RpCertificate(
+                CertificateTypeError::ReaderRegistrationNotFound
+            ))
         );
 
         let wallet_messages = verifier_session.wallet_messages.lock();
@@ -819,7 +836,10 @@ mod tests {
         // Calling `VpDisclosureClient::start()` where the Authorization Request contains
         // an attribute that is not in the `ReaderRegistration` should result in an error.
         let reader_registration = ReaderRegistration {
-            authorized_attributes: ReaderRegistration::create_attributes(PID, [["given_name"], ["family_name"]]),
+            authorized_attributes: ReaderRegistration::create_attributes(
+                PID_ATTESTATION_TYPE,
+                [["given_name"], ["family_name"]],
+            ),
             ..ReaderRegistration::new_mock()
         };
         let (error, verifier_session) = start_disclosure_session(
@@ -834,7 +854,7 @@ mod tests {
         .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
 
         let unregistered_attributes = HashMap::from([(
-            PID.to_string(),
+            PID_ATTESTATION_TYPE.to_string(),
             HashSet::from([vec![ClaimPath::SelectByKey("bsn".to_string())].try_into().unwrap()]),
         )]);
         assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
@@ -862,7 +882,7 @@ mod tests {
             .cloned()
             .collect();
         let reader_registration = ReaderRegistration {
-            authorized_attributes: HashMap::from([(PID.to_string(), authorized_attributes)]),
+            authorized_attributes: HashMap::from([(PID_ATTESTATION_TYPE.to_string(), authorized_attributes)]),
             ..ReaderRegistration::new_mock()
         };
 

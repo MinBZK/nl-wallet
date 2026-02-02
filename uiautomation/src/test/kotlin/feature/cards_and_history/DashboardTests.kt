@@ -5,8 +5,6 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
-import screen.card.CardDetailScreen
-import screen.dashboard.DashboardScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -16,6 +14,8 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.card.CardDetailScreen
+import screen.dashboard.DashboardScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("Use Case 7.1 Show all available cards")
@@ -37,16 +37,14 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC32 Show all available cards")
-    @Tags(Tag("smoke"))
+    @DisplayName("LTC24 Show all available cards")
+    @Tags(Tag("smoke"), Tag("a11yBatch1"))
     fun verifyIssuedCardsVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(
-            { assertTrue(dashboardScreen.cardTitlesVisible(), "card title are not visible") },
+            { assertTrue(dashboardScreen.cardTitleVisible(), "card title is not visible") },
             { assertTrue(dashboardScreen.cardButtonsVisible(), "card buttons are not visible") },
             { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.FIRST_NAME, DEFAULT_BSN)), "pid card subtitle is not visible") },
-            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.CITY, DEFAULT_BSN)), "adress card subtitle is not visible") },
-            { assertTrue(dashboardScreen.checkCardSorting(), "card sorting not as expected") },
         )
 
         dashboardScreen.clickCard(tasData.getPidDisplayName())
@@ -54,7 +52,7 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC32 The card information (and images) is displayed in the active language.")
+    @DisplayName("LTC24 The card information (and images) is displayed in the active language.")
     @Tags(Tag("english"))
     fun verifyActiveLanguage(testInfo: TestInfo) {
         setUp(testInfo)

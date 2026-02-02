@@ -1,0 +1,53 @@
+.git-jira-check-base:
+  extends: .env-k8s
+  allow_failure: true
+  before_script:
+    - JIRA_PAT=$(kubectl get secret nl-wallet-git-jira-check-tokens -o jsonpath='{.data.JIRA_TOKEN}' | base64 --decode)
+    - export JIRA_PAT
+    - GITLAB_TOKEN=$(kubectl get secret nl-wallet-git-jira-check-tokens -o jsonpath='{.data.GITLAB_TOKEN}' | base64 --decode)
+    - export GITLAB_TOKEN
+    - export CURRENT_RELEASE="$(jq -r '"v" + .version | sub("-dev$"; "")' wallet_web/package.json)"
+    - echo "Using CURRENT_RELEASE = $CURRENT_RELEASE"
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip3 install -r deploy/qa-util/requirements.txt
+
+nightly-git-jira-check:
+  extends: .git-jira-check-base
+  rules: !reference [ .on-schedule-scan, rules ]
+  script:
+    - python3 deploy/qa-util/git_jira_sync.py sync-nightly
+
+verify-release-check:
+  extends: .git-jira-check-base
+  rules: !reference [.default-branch, rules]
+  when: manual
+  script:
+    - python3 deploy/qa-util/git_jira_sync.py verify-release
+  artifacts:
+    name: mrs-missing-jira-key
+    when: always
+    paths:
+      - mrs_missing_jira.log
+
+create-release-artifacts:
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-issuance-server-binary
+      artifacts: true
+    - job: build-verification-server-binary
+      artifacts: true
+    - job: build-wallet-server-migrations-binaries
+      artifacts: true
+    - job: build-sbom
+      artifacts: true
+    - job: build-wallet-web
+      artifacts: true
+  script: scripts/create-release-artifacts.sh
+  when: manual
+  allow_failure: true
+  artifacts:
+    name: release
+    paths:
+      - '*.zip'
+      - SHA256SUMS

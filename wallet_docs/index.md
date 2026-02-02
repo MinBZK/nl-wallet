@@ -1,7 +1,7 @@
 # Index
 
-This is the documentation index of the NL-Wallet. Here you can find information
-related to various aspects of the NL-Wallet ecosystem, like how to get started,
+This is the documentation index of the NL Wallet. Here you can find information
+related to various aspects of the NL Wallet ecosystem, like how to get started,
 architecture documentation, notes on various development-related subjects, our
 community effort, our way of working, and an overview of our release versions.
 
@@ -32,6 +32,7 @@ functional-design/use-case-overview
 functional-design/functional-design
 functional-design/use-cases
 functional-design/partial-flows
+functional-design/errors
 functional-design/logical-test-cases
 ```
 

@@ -11,7 +11,9 @@ import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/localized_text_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../../util/formatter/time_ago_formatter.dart';
+import '../../../util/formatter/datetime/duration_formatter.dart';
+import '../../../util/mapper/card/status/card_status_metadata_mapper.dart';
+import '../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../common/screen/placeholder_screen.dart';
@@ -20,6 +22,7 @@ import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/card/status/card_status_info_text.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/menu_item.dart';
@@ -52,9 +55,11 @@ class CardDetailScreen extends StatelessWidget {
     }
   }
 
-  final String cardTitle;
+  /// The fallback title used during the loading state; typically the name
+  /// of the card being fetched.
+  final String? cardTitle;
 
-  const CardDetailScreen({required this.cardTitle, super.key});
+  const CardDetailScreen({this.cardTitle, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -96,14 +101,14 @@ class CardDetailScreen extends StatelessWidget {
   String _getTitle(BuildContext context) {
     final state = context.watch<CardDetailBloc>().state;
     final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.title.l10nValue(context);
-    return title ?? cardTitle;
+    return title ?? cardTitle ?? context.l10n.cardDetailScreenFallbackTitle;
   }
 
   Widget _buildBody(BuildContext context, CardDetailState state) {
     return switch (state) {
       CardDetailInitial() => _buildLoading(context),
       CardDetailLoadInProgress() => _buildLoading(context, card: state.card),
-      CardDetailLoadSuccess() => _buildDetail(context, state.detail),
+      CardDetailLoadSuccess() => _buildDetail(context, state),
       CardDetailLoadFailure() => _buildError(context, state),
     };
   }
@@ -115,9 +120,20 @@ class CardDetailScreen extends StatelessWidget {
         child: CenteredLoadingIndicator(),
       );
     }
+
+    final cardStatusMetadata = CardStatusMetadataMapper.map(context, card, CardStatusRenderType.cardDetailScreen);
     return SliverMainAxisGroup(
       slivers: [
-        const SliverSizedBox(height: 24 + 8),
+        if (cardStatusMetadata != null) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CardStatusInfoText(cardStatusMetadata),
+            ),
+          ),
+        ],
+
+        const SliverSizedBox(height: 24),
         SliverToBoxAdapter(
           child: ExcludeSemantics(
             child: FractionallySizedBox(
@@ -151,12 +167,27 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetail(BuildContext context, WalletCardDetail detail) {
+  Widget _buildDetail(BuildContext context, CardDetailLoadSuccess state) {
+    final detail = state.detail;
     final card = detail.card;
-
+    final cardStatusMetadata = CardStatusMetadataMapper.map(
+      context,
+      card,
+      CardStatusRenderType.cardDetailScreen,
+      isPidCard: state.isPidCard,
+    );
     return SliverMainAxisGroup(
       slivers: [
-        const SliverSizedBox(height: 24 + 8),
+        if (cardStatusMetadata != null) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CardStatusInfoText(cardStatusMetadata),
+            ),
+          ),
+        ],
+
+        const SliverSizedBox(height: 24),
         SliverToBoxAdapter(
           child: ExcludeSemantics(
             child: FractionallySizedBox(
@@ -227,7 +258,7 @@ class CardDetailScreen extends StatelessWidget {
 
   String _createInteractionText(BuildContext context, DisclosureEvent? attribute) {
     if (attribute != null) {
-      final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
+      final String timeAgo = DurationFormatter.prettyPrintTimeAgo(context.l10n, attribute.dateTime);
       final String status = WalletEventStatusTextMapper().map(context, attribute).toLowerCase();
       return context.l10n
           .cardDetailScreenLatestSuccessInteraction(
@@ -283,13 +314,13 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context, CardDetailState state) {
-    final showRefreshButton = tryCast<CardDetailLoadSuccess>(state)?.showRenewOption ?? false;
+    final showRenewPidButton = tryCast<CardDetailLoadSuccess>(state)?.isPidCard ?? false;
     return Column(
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         const Divider(),
-        if (showRefreshButton)
+        if (showRenewPidButton)
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 12),
             child: PrimaryButton(

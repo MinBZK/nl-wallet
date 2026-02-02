@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use http_utils::tls::pinning::TlsPinningConfig;
-use jwt::EcdsaDecodingKey;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -16,12 +14,11 @@ use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
-use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -38,9 +35,7 @@ where
         &self,
         pin: String,
         attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
-        registration_data: RegistrationData,
-        client_config: TlsPinningConfig,
-        instruction_result_public_key: EcdsaDecodingKey,
+        parameters: InstructionClientParameters,
     ) -> Result<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError> {
         tracing::info!("Try to finalize PIN change if it is in progress");
 
@@ -53,11 +48,7 @@ where
             Arc::clone(&self.storage),
             attested_key,
             Arc::clone(&self.account_provider_client),
-            Arc::new(InstructionClientParameters::new(
-                registration_data,
-                client_config,
-                instruction_result_public_key,
-            )),
+            Arc::new(parameters),
         );
 
         Ok(client)
@@ -66,19 +57,13 @@ where
     pub(super) fn new_hw_signed_instruction_client(
         &self,
         attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
-        registration_data: RegistrationData,
-        client_config: TlsPinningConfig,
-        instruction_result_public_key: EcdsaDecodingKey,
+        parameters: InstructionClientParameters,
     ) -> HwSignedInstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC> {
         HwSignedInstructionClient::new(
             Arc::clone(&self.storage),
             attested_key,
             Arc::clone(&self.account_provider_client),
-            Arc::new(InstructionClientParameters::new(
-                registration_data,
-                client_config,
-                instruction_result_public_key,
-            )),
+            Arc::new(parameters),
         )
     }
 }

@@ -12,7 +12,7 @@ import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
-import 'package:wallet/src/util/helper/setup_helper.dart';
+import 'package:wallet/src/util/helper/onboarding_helper.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -24,7 +24,7 @@ class MockSetupSecurityBloc extends MockBloc<SetupSecurityEvent, SetupSecuritySt
 
 void main() {
   group('goldens', () {
-    testGoldens('SetupSecuritySelectPinInProgress light', (tester) async {
+    testGoldens('ltc51 SetupSecuritySelectPinInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -34,7 +34,7 @@ void main() {
       await screenMatchesGolden('in_progress.light');
     });
 
-    testGoldens('SetupSecuritySelectPinInProgress light - landscape', (tester) async {
+    testGoldens('ltc51 SetupSecuritySelectPinInProgress light - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -45,7 +45,7 @@ void main() {
       await screenMatchesGolden('in_progress.light.landscape');
     });
 
-    testGoldens('SetupSecuritySelectPinFailed (sequentialDigits) light', (tester) async {
+    testGoldens('ltc51 SetupSecuritySelectPinFailed (sequentialDigits) light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -55,7 +55,7 @@ void main() {
       await screenMatchesGolden('error.light');
     });
 
-    testGoldens('SetupSecurityGenericError -  light', (tester) async {
+    testGoldens('ltc51 SetupSecurityGenericError -  light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -65,7 +65,7 @@ void main() {
       await screenMatchesGolden('generic_error.light');
     });
 
-    testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed light', (tester) async {
+    testGoldens('ltc51 SetupSecurityPinConfirmationFailed retry NOT allowed light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -75,7 +75,7 @@ void main() {
       await screenMatchesGolden('pin_confirmation_failed.light');
     });
 
-    testGoldens('SetupSecurityPinConfirmationInProgress light', (tester) async {
+    testGoldens('ltc51 SetupSecurityPinConfirmationInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -85,9 +85,9 @@ void main() {
       await screenMatchesGolden('pin_confirmation_in_progress.light');
     });
 
-    testGoldens('SetupSecurityConfigureBiometrics fingerOnly light', (tester) async {
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics fingerOnly light', (tester) async {
       // Configure the SetupHelper with a custom value, impacting the stepper visuals.
-      SetupHelper.initWithValue(9);
+      OnboardingHelper.initWithValue(9);
 
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
@@ -98,7 +98,7 @@ void main() {
       await screenMatchesGolden('biometrics.finger.light');
     });
 
-    testGoldens('SetupSecurityConfigureBiometrics faceOnly light', (tester) async {
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics faceOnly light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -108,7 +108,7 @@ void main() {
       await screenMatchesGolden('biometrics.face.light');
     });
 
-    testGoldens('SetupSecurityConfigureBiometrics some dark', (tester) async {
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics some dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -119,7 +119,7 @@ void main() {
       await screenMatchesGolden('biometrics.some.dark');
     });
 
-    testGoldens('SetupSecurityCompleted light', (tester) async {
+    testGoldens('ltc51 SetupSecurityCompleted light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -129,7 +129,7 @@ void main() {
       await screenMatchesGolden('completed.light');
     });
 
-    testGoldens('SetupSecurityCompleted dark - some biometrics', (tester) async {
+    testGoldens('ltc51 SetupSecurityCompleted dark - some biometrics', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -139,7 +139,7 @@ void main() {
       await screenMatchesGolden('completed.dark');
     });
 
-    testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed dark', (tester) async {
+    testGoldens('ltc51 SetupSecurityPinConfirmationFailed retry NOT allowed dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -150,7 +150,7 @@ void main() {
       await screenMatchesGolden('pin_confirmation_failed.dark');
     });
 
-    testGoldens('SetupSecurityCreatingWallet light', (tester) async {
+    testGoldens('ltc51 SetupSecurityCreatingWallet light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -160,7 +160,7 @@ void main() {
       await screenMatchesGolden('creating_wallet.light');
     });
 
-    testGoldens('SetupSecuritySelectPinFailed (tooFewUniqueDigits) dark', (tester) async {
+    testGoldens('ltc51 SetupSecuritySelectPinFailed (tooFewUniqueDigits) dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -173,7 +173,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('SetupSecurityScreen shows the correct title for SetupSecuritySelectPinInProgress state', (
+    testWidgets('ltc51 SetupSecurityScreen shows the correct title for SetupSecuritySelectPinInProgress state', (
       tester,
     ) async {
       await tester.pumpWidgetWithAppWrapper(
@@ -192,7 +192,7 @@ void main() {
       expect(titleFinder, findsOneWidget);
     });
 
-    testWidgets('SetupSecurityScreen shows the correct title for SetupSecurityPinConfirmationInProgress state', (
+    testWidgets('ltc51 SetupSecurityScreen shows the correct title for SetupSecurityPinConfirmationInProgress state', (
       tester,
     ) async {
       await tester.pumpWidgetWithAppWrapper(
@@ -211,7 +211,7 @@ void main() {
       expect(titleFinder, findsOneWidget);
     });
 
-    testWidgets('SetupSecurityScreen shows the server error for SetupSecurityNetworkError hasInternet true', (
+    testWidgets('ltc51 SetupSecurityScreen shows the server error for SetupSecurityNetworkError hasInternet true', (
       tester,
     ) async {
       await tester.pumpWidgetWithAppWrapper(
@@ -241,7 +241,9 @@ void main() {
       expect(showDetailsCtaFinder, findsOneWidget);
     });
 
-    testWidgets('SetupSecurityScreen shows the generic error for SetupSecurityGenericError state', (tester) async {
+    testWidgets('ltc51 SetupSecurityScreen shows the generic error for SetupSecurityGenericError state', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -266,42 +268,45 @@ void main() {
       expect(showDetailsCtaFinder, findsOneWidget);
     });
 
-    testWidgets('SetupSecurityScreen shows the device incompatible error for SetupSecurityDeviceIncompatibleError', (
-      tester,
-    ) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-          MockSetupSecurityBloc(),
-          const SetupSecurityDeviceIncompatibleError(error: HardwareUnsupportedError(sourceError: 'test')),
-        ),
-        providers: [
-          RepositoryProvider<WalletRepository>(
-            create: (_) {
-              final mockRepo = MockWalletRepository();
-              when(mockRepo.isLockedStream).thenAnswer((_) => Stream.value(false));
-              return mockRepo;
-            },
+    testWidgets(
+      'ltc51 SetupSecurityScreen shows the device incompatible error for SetupSecurityDeviceIncompatibleError',
+      (
+        tester,
+      ) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityDeviceIncompatibleError(error: HardwareUnsupportedError(sourceError: 'test')),
           ),
-          RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
-          RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
-          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
-          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
-        ],
-      );
+          providers: [
+            RepositoryProvider<WalletRepository>(
+              create: (_) {
+                final mockRepo = MockWalletRepository();
+                when(mockRepo.isLockedStream).thenAnswer((_) => Stream.value(false));
+                return mockRepo;
+              },
+            ),
+            RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
+            RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
+            RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+            RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+          ],
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      final l10n = await TestUtils.englishLocalizations;
+        final l10n = await TestUtils.englishLocalizations;
 
-      // Verify the 'device not supported' explanation is shown
-      final headlineFinder = find.text(l10n.errorScreenDeviceIncompatibleHeadline, findRichText: true);
-      final descriptionFinder = find.text(l10n.errorScreenDeviceIncompatibleDescription, findRichText: true);
-      expect(headlineFinder, findsAtLeastNWidgets(1));
-      expect(descriptionFinder, findsOneWidget);
+        // Verify the 'device not supported' explanation is shown
+        final headlineFinder = find.text(l10n.errorScreenDeviceIncompatibleHeadline, findRichText: true);
+        final descriptionFinder = find.text(l10n.errorScreenDeviceIncompatibleDescription, findRichText: true);
+        expect(headlineFinder, findsAtLeastNWidgets(1));
+        expect(descriptionFinder, findsOneWidget);
 
-      // Verify the 'close' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalClose);
-      expect(tryAgainCtaFinder, findsOneWidget);
-    });
+        // Verify the 'close' cta is shown
+        final tryAgainCtaFinder = find.text(l10n.generalClose);
+        expect(tryAgainCtaFinder, findsOneWidget);
+      },
+    );
   });
 }

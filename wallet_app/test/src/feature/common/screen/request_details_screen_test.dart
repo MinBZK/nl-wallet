@@ -71,11 +71,12 @@ void main() {
                 purpose: 'Sample where no attributes are available'.untranslated,
                 cards: [
                   WalletCard(
+                    attestationId: 'id',
                     attestationType: 'com.example.attestationType',
                     issuer: WalletMockData.organization,
-                    attributes: [],
-                    attestationId: 'id',
+                    status: WalletMockData.status,
                     metadata: WalletMockData.card.metadata,
+                    attributes: [],
                   ),
                 ],
                 policy: WalletMockData.policy,

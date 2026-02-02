@@ -47,6 +47,15 @@ source "${SCRIPTS_DIR}/utils.sh"
 # Check prerequisites
 ########################################################################
 
+if [[ ${BASH_VERSINFO[0]} -lt 5 ]]; then
+    error "Install a modern bash version"
+    if is_macos; then
+        echo "You can install modern bash via Homebrew"
+        echo "> brew install bash"
+    fi
+    exit 1
+fi
+
 # Use gsed on macOS, sed on others
 is_macos && SED="gsed" || SED="sed"
 have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
@@ -70,7 +79,7 @@ fi
 
 source "${SCRIPTS_DIR}"/configuration.sh
 
-if [ ! -f "${SCRIPTS_DIR}/.env" ]
+if [[ ! -f "${SCRIPTS_DIR}/.env" ]]
 then
     echo -e "${INFO}Saving initial environment variables${NC}"
     echo -e \
@@ -83,7 +92,8 @@ then
 # export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
 # export HSM_SO_PIN=${HSM_SO_PIN}
 # export HSM_USER_PIN=${HSM_USER_PIN}
-# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}" \
+# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}
+# export HSM_TOKEN=${HSM_TOKEN}" \
     > "${SCRIPTS_DIR}/.env"
     echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}."
     echo -e "${INFO}Edit this file to reflect your environment, and un-comment the relevant variables.${NC}"
@@ -95,7 +105,7 @@ fi
 ########################################################################
 
 mkdir -p "${TARGET_DIR}"
-mkdir -p "${TARGET_DIR}/configuration_server"
+mkdir -p "${TARGET_DIR}/static_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
 mkdir -p "${TARGET_DIR}/verification_server"
 mkdir -p "${TARGET_DIR}/issuance_server"
@@ -106,40 +116,83 @@ mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
+# Configure CA
+########################################################################
+
+# Create a bad CA for integration testing usage
+echo -e "${SECTION}Configuring a bad CA for integration testing${NC}"
+USE_SINGLE_CA=0 generate_or_reuse_root_ca "${TARGET_DIR}/bad_ca" "Bad Example CA"
+
+# Create a single CA if use single SA is requested
+if [[ "${USE_SINGLE_CA}" == 1 && -n ${USE_SINGLE_CA_PATH} ]]; then
+    echo -e "${SECTION}Configuring a single CA for shared usage ${NC}"
+    generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "Local Dev CA"
+fi
+
+########################################################################
 # Configure digid-connector
 ########################################################################
 
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   echo -e "${SECTION}Configure and start digid-connector${NC}"
 
-  # Check for existing nl-rdo-max, re-use if existing, clone if not
+  # Check for existing nl-rdo-max, re-use if existing, clone if not.
   if [[ -d "${DIGID_CONNECTOR_PATH}" ]]; then
-    echo -e "${INFO}Using existing nl-rdo-max repository (not cloning)${NC}"
+    echo -e "${INFO}Using existing nl-rdo-max repository, making sure we're at the requested version tag/branch${NC}"
+
+    # Git fetch first, so we have the latest available
+    git -C "${DIGID_CONNECTOR_PATH}" fetch
+
+    # Undo any changes to package.json and package-lock.json we know to be discardable.
+    DIGID_CONNECTOR_PACKAGE_CHANGES_HASH=aec3870a1961fe429ffc00e171c48e58e6607be988698b1921a5d3d715fca155
+    DIGID_CONNECTOR_PACKAGE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff package.json package-lock.json | sha256sum | awk '{print $1}')
+    if [[ "$DIGID_CONNECTOR_PACKAGE_CHANGES_HASH" == "$DIGID_CONNECTOR_PACKAGE_CHANGES_COMMAND" ]]; then
+        echo -e "${INFO}Reverting known package.json, package-lock.json changes${NC}"
+        git -C "${DIGID_CONNECTOR_PATH}" checkout -- package.json package-lock.json
+    fi
+
+    # Undo any changes to resources/css/app.scss and resources/js/app.js we know to be discardable.
+    DIGID_CONNECTOR_CODE_CHANGES_HASH=3df338dfbafd21c15fbab77d2e72188cc1be1e8f0bb3a1a1667ed11d14fcbb26
+    DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff resources/css/app.scss resources/js/app.js | sha256sum | awk '{print $1}')
+    if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
+        echo -e "${INFO}Reverting known resources/css/app.scss, resources/js/app.js changes${NC}"
+        git -C "${DIGID_CONNECTOR_PATH}" checkout -- resources/css/app.scss resources/js/app.js
+    fi
+
+    # Undo any changes to docker/Dockerfile we know to be discardable.
+    DIGID_CONNECTOR_CODE_CHANGES_HASH=1f62b863412ecac49d60571e3231d814a7d13f535bdbac34aa5a9f8a4101c2f0
+    DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff docker/Dockerfile | sha256sum | awk '{print $1}')
+    if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
+        echo -e "${INFO}Reverting known docker/Dockerfile changes${NC}"
+        git -C "${DIGID_CONNECTOR_PATH}" checkout -- docker/Dockerfile
+    fi
+
+    # Warn user if any changes remain.
+    if [[ -n "$(git status --porcelain)" ]]; then
+        echo -e "${WARN}There are unknown changes in your nl-rdo-max repository, will attempt switch to ${DIGID_CONNECTOR_VERSION} anyway, but this might fail...${NC}"
+    fi
+
+    # Regardless any remaining changes, attempt to switch, catch error.
+    git -C "${DIGID_CONNECTOR_PATH}" checkout "${DIGID_CONNECTOR_VERSION}"
+
   else
     echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
-    # Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
-    git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
+    git clone -b "${DIGID_CONNECTOR_VERSION}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
   fi
 
-  # Enter nl-rdo-max git repository
+  # Enter nl-rdo-max git repository.
   cd "${DIGID_CONNECTOR_PATH}"
 
-  # Checkout validated-working commit
-  echo -e "${INFO}Switching to commit: ${DIGID_CONNECTOR_BASE_COMMIT}${NC}"
-  git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
+  # Don't use the rijksoverheid ui-theme.
+  npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
 
-  # Apply the patches, if not applied before
-  for p in "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*; do
-    if git apply --check "$p" 2> /dev/null; then
-      echo -e "${INFO}Applying patch: $p${NC}"
-      git apply "$p"
-    else
-      echo -e "${INFO}Skipping previously applied patch: $p${NC}"
-    fi
-  done
+  # Workaround for groupadd existing group
+  ${SED} -i 's|^RUN groupadd --system|RUN groupadd -f --system|' docker/Dockerfile
 
-  make setup-secrets setup-saml setup-config
+  # Create an RDO max container.
+  make setup-remote
 
+  # Create our config files (overwrites defaults created in make targets).
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
   render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
   render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
@@ -147,13 +200,13 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
   openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
       -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
+
   DIGID_CA_CRT=$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})
   export DIGID_CA_CRT
 
-  # Build max docker container
-  docker compose build max
   # Generate JWK from private RSA key of test_client.
-  CLIENT_PRIVKEY_JWK=$(docker compose run --rm max make --silent create-jwk)
+  CLIENT_PRIVKEY_JWK=$(docker compose run --rm app make --silent create-jwk)
+
   # Remove the 'kid' json field, because the digid-connector does not send a JWE 'kid' header claim, which is required
   # if `kid` field is specified.
   BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')
@@ -170,8 +223,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
 
     cd "${WALLET_WEB_DIR}"
 
-    VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
-    export VITE_HELP_BASE_URL
+    export VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
     npm ci && npm run build
 
     cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/
@@ -195,14 +247,19 @@ if [[ ! -f "$HSM_LIBRARY_PATH" ]]; then
 fi
 
 mkdir -p "${HOME}/.config/softhsm2"
-if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
+if [[ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]]; then
   mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"
 fi
 
 render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
 
-softhsm2-util --delete-token --token test_token --force > /dev/null || true
-softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
+HSM_SLOT=$(softhsm2-util --show-slots | awk '/^Slot / { slot=$1 } /^ *Label: +'"${HSM_TOKEN}"' *$/ { print slot; exit }')
+if [[ -z $HSM_SLOT ]]; then
+    softhsm2-util --init-token --free --label "${HSM_TOKEN}" --so-pin "${HSM_SO_PIN}" --pin "${HSM_USER_PIN}"
+else
+    softhsm2-util --init-token --token "${HSM_TOKEN}" --label "${HSM_TOKEN}" --so-pin "${HSM_SO_PIN}" --pin "${HSM_USER_PIN}"
+fi
+HSM_TOKEN_URL="$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep -e "model=SoftHSM%20v2;.*;token=${HSM_TOKEN}")"
 
 render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/hsm.toml"
 
@@ -216,30 +273,23 @@ echo -e "${SECTION}Configure verification_server, issuance_server, pid_issuer, d
 
 cd "${BASE_DIR}"
 
-# Generate root TLS CA
-if [ ! -f "${TARGET_DIR}/demo_issuer/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/demo_issuer/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for static server
+generate_or_reuse_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/demo_issuer" demo_issuer "${TARGET_DIR}/demo_issuer/ca.crt.pem" "${TARGET_DIR}/demo_issuer/ca.key.pem"
 
-cp "${TARGET_DIR}/demo_issuer/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.ca.crt.der"
+ln -sf "${TARGET_DIR}/demo_issuer/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.ca.crt.der"
 DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT=$(< "${TARGET_DIR}/demo_issuer/ca.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT
-
-cp "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.crt.der"
+ln -sf "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.crt.der"
 DEMO_ISSUER_ATTESTATION_SERVER_CERT=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CERT
-
-cp "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" "${BASE_DIR}/wallet_core/tests_integration/di.key.der"
+ln -sf "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" "${BASE_DIR}/wallet_core/tests_integration/di.key.der"
 DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_KEY
 
-
 # Generate root CA for issuer
-if [ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]; then
+if [[ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]]; then
     generate_issuer_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.issuer.key.pem' already exists, not (re-)generating issuer root CA"
@@ -249,21 +299,29 @@ export ISSUER_CA_CRT
 
 # Generate key for WUA signing
 generate_wp_signing_key wua_signing
-WP_WUA_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wua_signing.pem"
-export WP_WUA_SIGNING_KEY_PATH
 WP_WUA_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wua_signing.pub.der" ${BASE64})
 export WP_WUA_PUBLIC_KEY
 
+# Generate key for WUA tsl
+generate_wallet_provider_tsl_key_pair
+WUA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wua_tsl.crt.der" ${BASE64})
+export WUA_TSL_CRT
+
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
+generate_pid_issuer_tsl_key_pair
 
-PID_ISSUER_KEY=pid_issuer_key
-export PID_ISSUER_KEY
+export PID_ISSUER_KEY=pid_issuer_key
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
 export PID_ISSUER_CRT
 
+PID_ISSUER_TSL_KEY=$(< "${TARGET_DIR}/pid_issuer/tsl.key.der" ${BASE64})
+export PID_ISSUER_TSL_KEY
+PID_ISSUER_TSL_CRT=$(< "${TARGET_DIR}/pid_issuer/tsl.crt.der" ${BASE64})
+export PID_ISSUER_TSL_CRT
+
 # Generate root CA for reader
-if [ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]; then
+if [[ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]]; then
     generate_reader_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"
@@ -275,8 +333,7 @@ export READER_CA_CRT
 
 # Generate relying party key and cert
 generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party
-DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
-export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM
+export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
 
@@ -308,6 +365,13 @@ export DEMO_RELYING_PARTY_KEY_JOB_FINDER
 DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
+# Generate relying party key and cert
+generate_demo_relying_party_key_pair housing
+DEMO_RELYING_PARTY_KEY_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_HOUSING
+DEMO_RELYING_PARTY_CRT_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_HOUSING
+
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
 
 
@@ -321,6 +385,10 @@ DEMO_ISSUER_KEY_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issu
 export DEMO_ISSUER_KEY_UNIVERSITY_ISSUER
 DEMO_ISSUER_CRT_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_ISSUER
+DEMO_ISSUER_KEY_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_UNIVERSITY_TSL
+DEMO_ISSUER_CRT_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_UNIVERSITY_TSL
 
 generate_demo_issuer_key_pairs insurance
 DEMO_ISSUER_KEY_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.key.der" ${BASE64})
@@ -331,33 +399,43 @@ DEMO_ISSUER_KEY_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer
 export DEMO_ISSUER_KEY_INSURANCE_ISSUER
 DEMO_ISSUER_CRT_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_ISSUER
+DEMO_ISSUER_KEY_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_INSURANCE_TSL
+DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_INSURANCE_TSL
+
+generate_demo_issuer_key_pairs housing
+DEMO_ISSUER_KEY_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_READER
+DEMO_ISSUER_CRT_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_READER
+DEMO_ISSUER_KEY_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_ISSUER
+DEMO_ISSUER_CRT_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_ISSUER
+DEMO_ISSUER_KEY_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_TSL
+DEMO_ISSUER_CRT_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_TSL
 
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
 
 # Generate relying party ephemeral ID secret
-generate_ws_random_key ephemeral_id_secret
-DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/demo_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
+DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(openssl rand -hex 64 | tr -d '\n')
 export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_index.toml"
 
 # Copy the Technical Attestation Schemas
-cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${ISSUANCE_SERVER_DIR}"
-ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
-export ISSUER_METADATA_PID_PATH
-ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
-export ISSUER_METADATA_PID_NL_PATH
-ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
-export ISSUER_METADATA_ADDRESS_PATH
-ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
-export ISSUER_METADATA_ADDRESS_NL_PATH
-ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
-export ISSUER_METADATA_DEGREE_PATH
-ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
-export ISSUER_METADATA_INSURANCE_PATH
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${PID_ISSUER_DIR}"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
+export ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
+export ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
+export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
+export ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
+export ISSUER_METADATA_HOUSING_PATH="com.example.housing.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
@@ -371,36 +449,42 @@ render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/te
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
+# And the storage config for crate level integration test
+render_template "${DEVENV}/test_settings.toml.template" "${HEALTH_CHECKERS_DIR}/test_settings.toml"
+render_template "${DEVENV}/test_settings.toml.template" "${STATUS_LISTS_DIR}/test_settings.toml"
+
+# Ensure the status_lists dirs exists
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 
 ########################################################################
 # Configure update-policy-server
+########################################################################
 
 echo
 echo -e "${SECTION}Configure update-policy-server${NC}"
 
 cd "${BASE_DIR}"
 
-# Generate root CA
-if [ ! -f "${TARGET_DIR}/update_policy_server/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/update_policy_server" "nl-wallet-update-policy-server"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/update_policy_server/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for update-policy-server
+generate_or_reuse_root_ca "${TARGET_DIR}/update_policy_server" "nl-wallet-update-policy-server"
+
+# Link bad CA for integration test purposes
+ln -sf "${TARGET_DIR}/bad_ca/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/bad.ca.crt.der"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/update_policy_server" update_policy_server "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${TARGET_DIR}/update_policy_server/ca.key.pem"
 
-cp "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.pem"
-cp "${TARGET_DIR}/update_policy_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.der"
+ln -sf "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.pem"
+ln -sf "${TARGET_DIR}/update_policy_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.der"
 UPDATE_POLICY_SERVER_CA_CRT=$(< "${TARGET_DIR}/update_policy_server/ca.crt.der" ${BASE64})
 export UPDATE_POLICY_SERVER_CA_CRT
-
 UPDATE_POLICY_SERVER_CERT=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.crt.der" ${BASE64})
 export UPDATE_POLICY_SERVER_CERT
-
 UPDATE_POLICY_SERVER_KEY=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.key.der" ${BASE64})
 export UPDATE_POLICY_SERVER_KEY
-
 UPDATE_POLICY_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${UPDATE_POLICY_SERVER_CERT[*]}")
 export UPDATE_POLICY_SERVER_TRUST_ANCHORS
 
@@ -414,46 +498,32 @@ cp "${UPS_DIR}/update_policy_server.toml" "${BASE_DIR}/wallet_core/tests_integra
 echo
 echo -e "${SECTION}Configure wallet_provider${NC}"
 
-
-# Generate root CA
-if [ ! -f "${TARGET_DIR}/wallet_provider/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/wallet_provider" "nl-wallet-provider"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/wallet_provider/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for wallet_provider
+generate_or_reuse_root_ca "${TARGET_DIR}/wallet_provider" "nl-wallet-provider"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/wallet_provider" wallet_provider "${TARGET_DIR}/wallet_provider/ca.crt.pem" "${TARGET_DIR}/wallet_provider/ca.key.pem"
 
-cp "${TARGET_DIR}/wallet_provider/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/wp.ca.crt.der"
+ln -sf "${TARGET_DIR}/wallet_provider/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/wp.ca.crt.der"
 WALLET_PROVIDER_SERVER_CA_CRT=$(< "${TARGET_DIR}/wallet_provider/ca.crt.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_CA_CRT
-
 WALLET_PROVIDER_SERVER_CERT=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.crt.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_CERT
-
 WALLET_PROVIDER_SERVER_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.key.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_KEY
 
-
 generate_wp_signing_key certificate_signing
-WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
-export WP_CERTIFICATE_SIGNING_KEY_PATH
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
-WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
-export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
-generate_wp_random_key attestation_wrapping
-WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
-export WP_ATTESTATION_WRAPPING_KEY_PATH
+generate_wp_aes_key attestation_wrapping
+export WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
 
-generate_wp_random_key pin_pubkey_encryption
-WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
-export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
+generate_wp_aes_key pin_pubkey_encryption
+export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 
 APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/lib/apple_app_attest/assets/Apple_App_Attestation_Root_CA.pem" -outform DER | ${BASE64})
 export APPLE_ROOT_CA
@@ -462,73 +532,68 @@ MOCK_APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/lib/apple_a
 export MOCK_APPLE_ROOT_CA
 
 # Source: https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
-ANDROID_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_pubkey.pem" -outform DER | ${BASE64})
-export ANDROID_ROOT_PUBKEY
-
-# Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable EC_ATTEST_ROOT_CERT
-ANDROID_EMULATOR_EC_ROOT_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/android_emulator_ec_root_pubkey.pem" -outform DER | ${BASE64})
-export ANDROID_EMULATOR_EC_ROOT_PUBKEY
-
-# Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable RSA_ATTEST_ROOT_CERT
-ANDROID_EMULATOR_RSA_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/android_emulator_rsa_root_pubkey.pem" -outform DER | ${BASE64})
-export ANDROID_EMULATOR_RSA_ROOT_PUBKEY
+ANDROID_ROOT_RSA_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_rsa_pubkey.pem" -outform DER | ${BASE64})
+export ANDROID_ROOT_RSA_PUBKEY
+ANDROID_ROOT_EC_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_ec_pubkey.pem" -outform DER | ${BASE64})
+export ANDROID_ROOT_EC_PUBKEY
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
+# Database settings for wallet_provider crate level integration tests
+render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${WP_DIR}/persistence/wallet_provider_database_settings.toml"
+render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${WP_DIR}/service/wallet_provider_database_settings.toml"
+
 render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
 
 ########################################################################
-# Configure HSM
+# Import secret keys into HSM
 ########################################################################
 
-softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
-softhsm2-util --import "${WP_WUA_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wua_signing" | xxd -p)" --label "wua_signing_key" --token "test_token"
-softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
-softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "test_token"
-softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "test_token"
+softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "${HSM_TOKEN}"
 
 p11tool --login --write \
-  --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" \
+  --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
   --set-pin "${HSM_USER_PIN}" \
   --label="pin_public_disclosure_protection_key" \
   --provider="${HSM_LIBRARY_PATH}" \
-  "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
+  "${HSM_TOKEN_URL}"
+
+p11tool --login --write \
+  --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
+  --set-pin "${HSM_USER_PIN}" \
+  --label="revocation_code_key" \
+  --provider="${HSM_LIBRARY_PATH}" \
+  "${HSM_TOKEN_URL}"
 
 ########################################################################
-# Configure configuration-server
+# Configure static-server
 ########################################################################
 
 echo
-echo -e "${SECTION}Configure configuration-server${NC}"
+echo -e "${SECTION}Configure static-server${NC}"
 
 cd "${BASE_DIR}"
 
-# Generate root CA
-if [ ! -f "${TARGET_DIR}/configuration_server/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/configuration_server" "nl-wallet-configuration-server"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/configuration_server/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for static-server
+generate_or_reuse_root_ca "${TARGET_DIR}/static_server" "nl-wallet-static-server"
 
-generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_server "${TARGET_DIR}/configuration_server/ca.crt.pem" "${TARGET_DIR}/configuration_server/ca.key.pem"
+generate_ssl_key_pair_with_san "${TARGET_DIR}/static_server" static_server "${TARGET_DIR}/static_server/ca.crt.pem" "${TARGET_DIR}/static_server/ca.key.pem"
 
-cp "${TARGET_DIR}/configuration_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/cs.ca.crt.der"
-CONFIG_SERVER_CA_CRT=$(< "${TARGET_DIR}/configuration_server/ca.crt.der" ${BASE64})
-export CONFIG_SERVER_CA_CRT
+ln -sf "${TARGET_DIR}/static_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/static.ca.crt.der"
+STATIC_SERVER_CA_CRT=$(< "${TARGET_DIR}/static_server/ca.crt.der" ${BASE64})
+export STATIC_SERVER_CA_CRT
+STATIC_SERVER_CERT=$(< "${TARGET_DIR}/static_server/static_server.crt.der" ${BASE64})
+export STATIC_SERVER_CERT
+STATIC_SERVER_KEY=$(< "${TARGET_DIR}/static_server/static_server.key.der" ${BASE64})
+export STATIC_SERVER_KEY
 
-CONFIG_SERVER_CERT=$(< "${TARGET_DIR}/configuration_server/config_server.crt.der" ${BASE64})
-export CONFIG_SERVER_CERT
-
-CONFIG_SERVER_KEY=$(< "${TARGET_DIR}/configuration_server/config_server.key.der" ${BASE64})
-export CONFIG_SERVER_KEY
-
-
-generate_wp_signing_key config_signing
+generate_config_signing_key_pair
 CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
 export CONFIG_SIGNING_PUBLIC_KEY
 
-BASE64_JWS_HEADER=$(echo -n '{"typ":"JOSE+JSON","alg":"ES256"}' | base64_url_encode)
+BASE64_JWS_HEADER=$(echo -n '{"typ":"jwt","alg":"ES256"}' | base64_url_encode)
 BASE64_JWS_PAYLOAD=$(jq --compact-output --join-output "." "${TARGET_DIR}/wallet-config.json" | base64_url_encode)
 BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
 DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
@@ -544,8 +609,9 @@ cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/t
 
 WALLET_CONFIG_JWT=$(< "${TARGET_DIR}/wallet-config-jws-compact.txt")
 export WALLET_CONFIG_JWT
-render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
-cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
+
+render_template "${DEVENV}/static_server.toml.template" "${STATIC_SERVER_DIR}/static_server.toml"
+cp "${STATIC_SERVER_DIR}/static_server.toml" "${BASE_DIR}/wallet_core/tests_integration/static_server.toml"
 
 ########################################################################
 # Configure gba-hc-converter

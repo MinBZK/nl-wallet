@@ -36,7 +36,7 @@ use wscd::mock_remote::MockRemoteWscd;
 /// - `accept_issuance()` in the `openid4vc` integration tests, which also mocks the HTTP server and client.
 #[tokio::test]
 #[serial(hsm)]
-async fn test_pid_issuance_digid_bridge() {
+async fn ltc1_test_pid_issuance_digid_bridge() {
     let (settings, _) = pid_issuer_settings();
     let hsm = settings
         .issuer_settings
@@ -61,7 +61,7 @@ async fn test_pid_issuance_digid_bridge() {
     )
     .unwrap();
 
-    let port = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
+    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
@@ -90,12 +90,10 @@ async fn test_pid_issuance_digid_bridge() {
         .await
         .unwrap();
 
-    let server_url = local_pid_base_url(port);
-
     // Start issuance by exchanging the authorization code for the attestation previews
     let issuance_session = HttpIssuanceSession::start_issuance(
         HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), reqwest::Client::new()),
-        server_url.clone(),
+        issuer_url.public.clone(),
         token_request,
         &wallet_config.issuer_trust_anchors(),
     )

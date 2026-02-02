@@ -10,6 +10,7 @@ import 'image.dart';
 import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+import 'revocation.dart';
 part 'instruction.freezed.dart';
 
 @freezed
@@ -34,6 +35,18 @@ sealed class PidIssuanceResult with _$PidIssuanceResult {
   const factory PidIssuanceResult.instructionError({
     required WalletInstructionError error,
   }) = PidIssuanceResult_InstructionError;
+}
+
+@freezed
+sealed class RevocationCodeResult with _$RevocationCodeResult {
+  const RevocationCodeResult._();
+
+  const factory RevocationCodeResult.ok({
+    required String revocationCode,
+  }) = RevocationCodeResult_Ok;
+  const factory RevocationCodeResult.instructionError({
+    required WalletInstructionError error,
+  }) = RevocationCodeResult_InstructionError;
 }
 
 @freezed

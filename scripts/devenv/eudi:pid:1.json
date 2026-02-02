@@ -64,6 +64,61 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": ["address", "country"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country",
+          "description": "Country of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "locality"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "City",
+          "description": "City of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "postal_code"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Postal code",
+          "description": "Postal code of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "street_address"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Street",
+          "description": "Street of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "house_number"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "House number",
+          "description": "House number of the address"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {
@@ -120,8 +175,28 @@
         "items": {
           "type": "string"
         }
+      },
+      "address": {
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "street_address": {
+            "type": "string"
+          },
+          "house_number": {
+            "type": "string"
+          }
+        }
       }
     },
-    "required": ["vct", "iss", "attestation_qualification", "given_name", "family_name", "birthdate"]
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification", "given_name", "family_name", "birthdate"]
   }
 }

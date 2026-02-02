@@ -9,14 +9,14 @@ import '../../../test_util/golden_utils.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens('CardPreview - light', (tester) async {
+    testGoldens('ltc5 ltc25 CardPreview - light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardPreviewScreen(card: WalletMockData.card),
       );
       await screenMatchesGolden('card_preview.light');
     });
 
-    testGoldens('CardPreview - dark, landscape', (tester) async {
+    testGoldens('ltc5 ltc25 CardPreview - dark, landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardPreviewScreen(card: WalletMockData.altCard),
         brightness: Brightness.dark,

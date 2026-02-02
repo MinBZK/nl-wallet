@@ -2,6 +2,9 @@ import 'package:wallet_core/core.dart';
 
 import '../../../../../environment.dart';
 import '../../../../domain/model/navigation/navigation_request.dart';
+import '../../../../feature/disclosure/argument/disclosure_screen_argument.dart';
+import '../../../../feature/issuance/argument/issuance_screen_argument.dart';
+import '../../../../feature/sign/argument/sign_screen_argument.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../uri_repository.dart';
 
@@ -11,26 +14,26 @@ class CoreUriRepository implements UriRepository {
   CoreUriRepository(this._walletCore);
 
   @override
-  Future<NavigationRequest> processUri(Uri uri) async {
+  Future<NavigationRequest> processUri(Uri inputUri) async {
+    final uri = inputUri.toString();
     if (Environment.mockRepositories) {
-      // When wallet_core supports issue/sign requests, this logic should be removed.
-      if (uri.toString().contains('issue')) return IssuanceNavigationRequest(uri.toString());
-      if (uri.toString().contains('sign')) return SignNavigationRequest(uri.toString());
+      // When wallet_core supports sign requests, this logic should be removed.
+      if (uri.contains('sign')) return NavigationRequest.sign(argument: SignScreenArgument(uri: uri));
     }
-    final uriType = await _walletCore.identifyUri(uri.toString());
+    final uriType = await _walletCore.identifyUri(uri);
     switch (uriType) {
       case IdentifyUriResult.PidIssuance:
-        return PidIssuanceNavigationRequest(uri.toString());
+        return NavigationRequest.pidIssuance(uri);
       case IdentifyUriResult.PidRenewal:
-        return PidRenewalNavigationRequest(uri.toString());
+        return NavigationRequest.pidRenewal(uri);
       case IdentifyUriResult.PinRecovery:
-        return PinRecoveryNavigationRequest(uri.toString());
+        return NavigationRequest.pinRecovery(uri);
       case IdentifyUriResult.Disclosure:
-        return DisclosureNavigationRequest(uri.toString());
+        return NavigationRequest.disclosure(argument: DisclosureScreenArgument(uri: uri, isQrCode: false));
       case IdentifyUriResult.DisclosureBasedIssuance:
-        return IssuanceNavigationRequest(uri.toString());
+        return NavigationRequest.issuance(argument: IssuanceScreenArgument(uri: uri, isQrCode: false));
       case IdentifyUriResult.Transfer:
-        return NavigationRequest.walletTransfer(uri.toString());
+        return NavigationRequest.walletTransferSource(uri);
     }
   }
 }

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
@@ -19,12 +21,12 @@ class MockDashboardBloc extends MockBloc<DashboardEvent, DashboardState> impleme
 
 void main() {
   group('goldens', () {
-    testGoldens('DashboardLoadSuccess light', (tester) async {
+    testGoldens('ltc24 DashboardLoadSuccess light', (tester) async {
       await _pumpSuccessWithVersionState(tester, state: VersionStateOk());
       await screenMatchesGolden('success.light');
     });
 
-    testGoldens('DashboardLoadSuccess light - landscape', (tester) async {
+    testGoldens('ltc24 DashboardLoadSuccess light - landscape', (tester) async {
       await _pumpSuccessWithVersionState(
         tester,
         state: VersionStateOk(),
@@ -33,7 +35,7 @@ void main() {
       await screenMatchesGolden('success.light.landscape');
     });
 
-    testGoldens('DashboardLoadSuccess light - landscape - scrolled', (tester) async {
+    testGoldens('ltc24 DashboardLoadSuccess light - landscape - scrolled', (tester) async {
       await _pumpSuccessWithVersionState(
         tester,
         state: VersionStateOk(),
@@ -45,31 +47,35 @@ void main() {
       await screenMatchesGolden('success.light.landscape.scrolled');
     });
 
-    testGoldens('DashboardLoadSuccess dark', (tester) async {
+    testGoldens('ltc24 DashboardLoadSuccess dark', (tester) async {
       await _pumpSuccessWithVersionState(tester, state: VersionStateOk(), brightness: Brightness.dark);
       await screenMatchesGolden('success.dark');
     });
 
-    testGoldens('DashboardLoadInProgress light', (tester) async {
+    testGoldens('ltc24 DashboardLoadInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DashboardScreen().withState<DashboardBloc, DashboardState>(
           MockDashboardBloc(),
           const DashboardLoadInProgress(),
         ),
         providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
+          RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
         ],
       );
       await screenMatchesGolden('loading.light');
     });
 
-    testGoldens('DashboardLoadFailure light', (tester) async {
+    testGoldens('ltc24 DashboardLoadFailure light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DashboardScreen().withState<DashboardBloc, DashboardState>(
           MockDashboardBloc(),
           const DashboardLoadFailure(),
         ),
         providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
+          RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
         ],
       );
@@ -77,32 +83,32 @@ void main() {
     });
 
     group('VersionState goldens', () {
-      testGoldens('DashboardLoadSuccess light - VersionStateNotify', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess light - VersionStateNotify', (tester) async {
         await _pumpSuccessWithVersionState(tester, state: VersionStateNotify());
         await screenMatchesGolden('success.notify.light');
       });
 
-      testGoldens('DashboardLoadSuccess dark - VersionStateNotify', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess dark - VersionStateNotify', (tester) async {
         await _pumpSuccessWithVersionState(tester, state: VersionStateNotify(), brightness: Brightness.dark);
         await screenMatchesGolden('success.notify.dark');
       });
 
-      testGoldens('DashboardLoadSuccess light - VersionStateRecommend', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess light - VersionStateRecommend', (tester) async {
         await _pumpSuccessWithVersionState(tester, state: VersionStateRecommend());
         await screenMatchesGolden('success.recommend.light');
       });
 
-      testGoldens('DashboardLoadSuccess dark - VersionStateRecommend', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess dark - VersionStateRecommend', (tester) async {
         await _pumpSuccessWithVersionState(tester, state: VersionStateRecommend(), brightness: Brightness.dark);
         await screenMatchesGolden('success.recommend.dark');
       });
 
-      testGoldens('DashboardLoadSuccess light - VersionStateWarn (10 days)', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess light - VersionStateWarn (10 days)', (tester) async {
         await _pumpSuccessWithVersionState(tester, state: VersionStateWarn(timeUntilBlocked: const Duration(days: 10)));
         await screenMatchesGolden('success.warn.10days.light');
       });
 
-      testGoldens('DashboardLoadSuccess dark - VersionStateWarn (10 days)', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess dark - VersionStateWarn (10 days)', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,
           state: VersionStateWarn(timeUntilBlocked: const Duration(days: 10)),
@@ -111,7 +117,7 @@ void main() {
         await screenMatchesGolden('success.warn.10days.dark');
       });
 
-      testGoldens('DashboardLoadSuccess light - VersionStateWarn (10 hours)', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess light - VersionStateWarn (10 hours)', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,
           state: VersionStateWarn(timeUntilBlocked: const Duration(hours: 10)),
@@ -119,7 +125,7 @@ void main() {
         await screenMatchesGolden('success.warn.10hours.light');
       });
 
-      testGoldens('DashboardLoadSuccess dark - VersionStateWarn (10 hours)', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess dark - VersionStateWarn (10 hours)', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,
           state: VersionStateWarn(timeUntilBlocked: const Duration(hours: 10)),
@@ -128,7 +134,7 @@ void main() {
         await screenMatchesGolden('success.warn.10hours.dark');
       });
 
-      testGoldens('DashboardLoadSuccess light - VersionStateWarn (10 minutes)', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess light - VersionStateWarn (10 minutes)', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,
           state: VersionStateWarn(timeUntilBlocked: const Duration(minutes: 10)),
@@ -136,7 +142,7 @@ void main() {
         await screenMatchesGolden('success.warn.10minutes.light');
       });
 
-      testGoldens('DashboardLoadSuccess light - VersionStateWarn (10 minutes)', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess light - VersionStateWarn (10 minutes)', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,
           state: VersionStateWarn(timeUntilBlocked: const Duration(minutes: 10)),
@@ -145,7 +151,7 @@ void main() {
         await screenMatchesGolden('success.warn.10minutes.light.scaled_2x');
       });
 
-      testGoldens('DashboardLoadSuccess light - Cards', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess light - Cards', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,
           state: VersionStateOk(),
@@ -160,7 +166,7 @@ void main() {
         await screenMatchesGolden('success.ok.cards.light.scaled_2x');
       });
 
-      testGoldens('DashboardLoadSuccess dark - VersionStateWarn (10 minutes)', (tester) async {
+      testGoldens('ltc24 DashboardLoadSuccess dark - VersionStateWarn (10 minutes)', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,
           state: VersionStateWarn(timeUntilBlocked: const Duration(minutes: 10)),
@@ -174,19 +180,22 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('cards are visible', (tester) async {
+    testWidgets('ltc24 cards are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DashboardScreen().withState<DashboardBloc, DashboardState>(
           MockDashboardBloc(),
           DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
         ),
         providers: [
+          RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
           RepositoryProvider<ObserveVersionStateUsecase>(create: (c) => MockObserveVersionStateUsecase()),
           RepositoryProvider<BannerCubit>(
             create: (c) => BannerCubit(
               MockObserveShowTourBannerUseCase(),
               MockObserveVersionStateUsecase(),
+              MockObserveDashboardNotificationsUseCase(),
             ),
           ),
         ],
@@ -218,6 +227,8 @@ Future<void> _pumpSuccessWithVersionState(
     textScaleSize: textScaleSize,
     surfaceSize: surfaceSize,
     providers: [
+      RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
+      RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
       RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
       RepositoryProvider<ObserveVersionStateUsecase>(
         create: (c) {
@@ -232,7 +243,13 @@ Future<void> _pumpSuccessWithVersionState(
           when(versionStateUseCase.invoke()).thenAnswer((_) => Stream.value(state));
           final mockShowBannerUseCase = MockObserveShowTourBannerUseCase();
           when(mockShowBannerUseCase.invoke()).thenAnswer((_) => Stream.value(false));
-          return BannerCubit(mockShowBannerUseCase, versionStateUseCase);
+          final mockObserveDashboardNotificationsUseCase = MockObserveDashboardNotificationsUseCase();
+          when(mockObserveDashboardNotificationsUseCase.invoke()).thenAnswer((_) => Stream.value([]));
+          return BannerCubit(
+            mockShowBannerUseCase,
+            versionStateUseCase,
+            mockObserveDashboardNotificationsUseCase,
+          );
         },
       ),
     ],

@@ -15,6 +15,7 @@ use serde_with::serde_as;
 use url::Url;
 
 use attestation_data::x509::CertificateType;
+use attestation_data::x509::CertificateTypeError;
 use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -40,6 +41,11 @@ pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
     pub wallet_server: Server,
 
+    // used by the application, SHOULD be reachable only by the application.
+    // if not configured the wallet_server will be used, but an api_key is required in that case
+    // if it conflicts with wallet_server, the application will crash on startup
+    pub internal_server: ServerAuth,
+
     /// Publicly reachable URL used by the wallet during sessions
     pub public_url: BaseUrl,
 
@@ -64,7 +70,7 @@ pub struct Server {
 }
 
 #[derive(Clone, Deserialize)]
-pub enum RequesterAuth {
+pub enum ServerAuth {
     #[serde(rename = "authentication")]
     Authentication(Authentication),
     #[serde(untagged)]
@@ -179,9 +185,7 @@ pub enum CertificateVerificationError {
     #[error("invalid key pair `{1}`: {0}")]
     InvalidKeyPair(#[source] CertificateError, String),
     #[error("no CertificateType found in certificate `{1}`: {0}")]
-    NoCertificateType(#[source] CertificateError, String),
-    #[error("certificate `{0}` is missing CertificateType registration data")]
-    IncompleteCertificateType(String),
+    NoCertificateType(#[source] CertificateTypeError, String),
 }
 
 pub trait ServerSettings: Sized {
@@ -192,16 +196,12 @@ pub trait ServerSettings: Sized {
     fn server_settings(&self) -> &Settings;
 }
 
-pub fn verify_key_pairs<F>(
+pub fn verify_key_pairs(
     key_pairs: &[(&str, &KeyPair)],
     trust_anchors: &[TrustAnchor<'_>],
     usage: CertificateUsage,
     time: &impl Generator<DateTime<Utc>>,
-    has_usage_registration: F,
-) -> Result<(), CertificateVerificationError>
-where
-    F: Fn(CertificateType) -> bool,
-{
+) -> Result<(), CertificateVerificationError> {
     if trust_anchors.is_empty() {
         return Err(CertificateVerificationError::MissingTrustAnchors);
     }
@@ -209,20 +209,14 @@ where
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        if !trust_anchors.is_empty() {
-            key_pair
-                .certificate
-                .verify(usage, &[], time, trust_anchors)
-                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
-        }
+        key_pair
+            .certificate
+            .verify(usage, &[], time, trust_anchors)
+            .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
-        let certificate_type = CertificateType::from_certificate(&key_pair.certificate)
-            .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
-
-        if !has_usage_registration(certificate_type) {
-            return Err(CertificateVerificationError::IncompleteCertificateType(
-                key_pair_id.to_string(),
-            ));
+        if CertificateType::has_certificate_type(usage) {
+            CertificateType::from_certificate(&key_pair.certificate)
+                .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
         }
     }
 

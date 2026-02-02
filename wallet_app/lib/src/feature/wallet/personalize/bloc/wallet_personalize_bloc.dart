@@ -16,7 +16,7 @@ import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
-import '../../../../util/helper/setup_helper.dart';
+import '../../../../util/helper/onboarding_helper.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
@@ -67,6 +67,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         switch (error) {
           case NetworkError():
             emit(WalletPersonalizeNetworkError(error: error, hasInternet: error.hasInternet));
+          case DeniedDigidError():
+            add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true, error: error));
           case RedirectUriError():
             // Currently seeing 'accessDenied/loginRequired' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)
             final cancelled = [RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError);

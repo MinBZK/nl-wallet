@@ -6,7 +6,7 @@ import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
-  testWidgets('card title is rendered', (WidgetTester tester) async {
+  testWidgets('ltc15 card title is rendered', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       CardAttributeRow(
         entry: {WalletMockData.card: WalletMockData.card.attributes}.entries.first,
@@ -16,7 +16,7 @@ void main() {
     expect(find.textContaining(WalletMockData.card.title.testValue), findsOneWidget);
   });
 
-  testWidgets('card attribute labels are rendered', (WidgetTester tester) async {
+  testWidgets('ltc15 card attribute labels are rendered', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       CardAttributeRow(
         entry: {WalletMockData.card: WalletMockData.card.attributes}.entries.first,

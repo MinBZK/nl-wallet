@@ -1,19 +1,35 @@
 [test-groups]
-db-hsm = { max-threads = 1 }
+cleanup = { max-threads = 1 }
+hsm = { max-threads = 1 }
 mock-oidc = { max-threads = 1 }
 mock-issuance-session = { max-threads = 1 }
+mock-pkce = { max-threads = 1 }
+metrics-recorder = { max-threads = 1 }
 
 [[profile.default.overrides]]
-filter = 'package(tests_integration*) | (kind(test) & (package(wallet_provider*) | package(pid_issuer) | package(verification_server) | package(issuance_server) | package(hsm)))'
-test-group = 'db-hsm'
+filter = 'package(verification_server) & binary(postgres)'
+test-group = 'cleanup'
+
+[[profile.default.overrides]]
+# Include all tests_integration because not all of the tests can run independently inbetween binaries
+filter = 'package(tests_integration) | (package(wallet_provider) & binary(hsm)) | (package(hsm) & binary(hsm))'
+test-group = 'hsm'
 
 [[profile.default.overrides]]
 filter = 'package(wallet) & test(/^digid::http::/)'
 test-group = 'mock-oidc'
 
 [[profile.default.overrides]]
-filter = 'package(wallet) & test(/(test_wallet_accept_disclosure_based_issuance|test_continue_pid_issuance(|_error_(pid_issuer|document)))$/)'
+filter = 'package(wallet) & test(/(continue_pin_recovery(|_received_no_recovery_code|_received_wrong_recovery_code)|test_wallet_accept_disclosure_based_issuance|test_continue_pid_issuance(|_error_(pid_issuer|document)))$/)'
 test-group = 'mock-issuance-session'
+
+[[profile.default.overrides]]
+filter = 'package(openid4vc) & test(/(test_start_and_into_token_request|test_user_cancels)$/)'
+test-group = 'mock-pkce'
+
+[[profile.default.overrides]]
+filter = 'package(measure) & binary(measure_tests)'
+test-group = 'metrics-recorder'
 
 [profile.ci]
 fail-fast = false

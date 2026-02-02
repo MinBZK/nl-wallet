@@ -124,10 +124,11 @@ void main() {
           showHeaderAttributesDivider: true,
           bottomSection: const Text('BS'),
           offeredCard: WalletCard(
+            attestationId: 'id',
             attestationType: 'com.example.attestationType',
             issuer: WalletMockData.organization,
+            status: WalletMockData.status,
             attributes: const [],
-            attestationId: 'id',
           ),
         ),
       );

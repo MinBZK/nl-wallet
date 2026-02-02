@@ -15,7 +15,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
@@ -33,6 +32,7 @@ use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -48,7 +48,7 @@ use crate::translations::TRANSLATIONS;
 use crate::translations::Words;
 
 struct ApplicationState {
-    usecases: IndexMap<String, Usecase>,
+    usecases: HashMap<String, Usecase>,
     issuance_server_url: BaseUrl,
     universal_link_base_url: BaseUrl,
     help_base_url: BaseUrl,
@@ -78,9 +78,11 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path("assets".as_ref())).fallback(
+                    ServeDir::new(prefix_local_path(std::path::Path::new("assets"))).fallback(
                         ServiceBuilder::new()
-                            .service(ServeDir::new(prefix_local_path("../demo_utils/assets".as_ref())))
+                            .service(ServeDir::new(prefix_local_path(std::path::Path::new(
+                                "../demo_utils/assets",
+                            ))))
                             .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
                     ),
                 ),
@@ -100,7 +102,7 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         app = app.layer(axum::middleware::from_fn(log_request_response));
     }
 
-    (app, attestation_router)
+    (app.merge(create_health_router([])), attestation_router)
 }
 
 struct BaseTemplate<'a> {
@@ -215,7 +217,17 @@ async fn attestation(
     let documents: Vec<IssuableDocument> = usecase
         .data
         .get(attribute_value)
-        .map(|docs| docs.clone().into_inner())
+        .map(|docs| {
+            docs.iter()
+                .cloned()
+                .map(|doc| {
+                    let (attestation_type, attribute) = doc.into();
+                    IssuableDocument::try_new_with_random_id(attestation_type, attribute)
+                        .map_err(|err| demo_utils::error::Error::from(anyhow::Error::from(err)))
+                })
+                .collect::<Result<Vec<_>>>()
+                .unwrap()
+        })
         .unwrap_or_default();
 
     Ok(Json(documents).into_response())

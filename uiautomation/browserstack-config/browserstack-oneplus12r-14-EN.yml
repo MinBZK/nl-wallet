@@ -1,0 +1,37 @@
+userName: ${BROWSERSTACK_USER}
+accessKey: ${BROWSERSTACK_KEY}
+
+framework: junit
+
+platforms:
+  - platformName: "android"
+    platformVersion: "14.0"
+    deviceName: "OnePlus 12R"
+    language: "en"
+    locale: "EN"
+
+app: "NLWalletAndroid_${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+
+appiumVersion: "2.18.0"
+buildName: "${CI_PIPELINE_ID}"
+projectName: "NL Wallet Mobile"
+buildIdentifier: "${CI_JOB_ID}"
+
+autoGrantPermissions: true
+automationName: UIAutomator2
+newCommandTimeout: 350
+networkLogs: true
+video: true
+debug: true
+deviceLogs: true
+appiumLogs: true
+disableAnimations: true
+
+staticWebDriver: false
+
+accessibility: "${ENABLE_BROWSERSTACK_A11Y_CHECKS}"
+accessibilityOptions:
+  wcagVersion: wcag21aa
+  includeIssueType:
+    bestPractice: false
+  scannerProcessingTimeout: 10

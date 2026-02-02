@@ -46,6 +46,17 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
+### Ingress internal parameters
+
+| Name                            | Description                                     | Value   |
+| ------------------------------- | ----------------------------------------------- | ------- |
+| `ingressInternal.enabled`       | Enable or disable the internal ingress          | `false` |
+| `ingressInternal.className`     | Ingress class name                              | `nginx` |
+| `ingressInternal.hostname`      | Hostname for the internal ingress               | `nil`   |
+| `ingressInternal.tlsSecretName` | Name of the TLS secret for the internal ingress | `nil`   |
+| `ingressInternal.labels`        | Additional labels for the internal ingress      | `{}`    |
+| `ingressInternal.annotations`   | Additional annotations for the internal ingress | `{}`    |
+
 ### Ingress parameters
 
 | Name                    | Description                            | Value   |
@@ -57,6 +68,16 @@
 | `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
 | `ingress.labels`        | Additional labels for the ingress      | `{}`    |
 | `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
+
+### Container probes
+
+| Name                            | Description                                  | Value   |
+| ------------------------------- | -------------------------------------------- | ------- |
+| `probes.config.liveness`        | Additional configuration for liveness probe  | `{}`    |
+| `probes.config.readiness`       | Additional configuration for readiness probe | `{}`    |
+| `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
+| `probes.disableLiveness`        | Disable liveness probe                       | `false` |
+| `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
 
 ### Resource requests and limits
 

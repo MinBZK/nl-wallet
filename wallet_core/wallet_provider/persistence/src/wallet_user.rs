@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
 use sea_orm::ActiveModelTrait;
-use sea_orm::ActiveValue::Set;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
@@ -14,21 +16,22 @@ use sea_orm::PaginatorTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::RelationTrait;
+use sea_orm::Set;
 use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::sea_query::Expr;
+use sea_orm::prelude::Expr;
 use sea_orm::sea_query::IntoIden;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sea_query::SimpleExpr;
-use semver::Version;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
-use wallet_account::messages::transfer::TransferSessionState;
+use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::TransferSession;
+use wallet_provider_domain::model::wallet_user::RevocationReason;
+use wallet_provider_domain::model::wallet_user::RevocationRegistration;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -38,13 +41,40 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
-use crate::entity::wallet_transfer;
 use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
 use crate::entity::wallet_user_instruction_challenge;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
+
+pub async fn list_wallet_ids<S, T>(db: &T) -> Result<Vec<String>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::WalletId)
+        .into_tuple()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+pub async fn list_wallet_user_ids<S, T>(db: &T) -> Result<Vec<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .into_tuple()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
 
 pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<Uuid>
 where
@@ -103,9 +133,12 @@ where
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
         state: Set(WalletUserState::Active.to_string()),
+        revocation_reason: Set(None),
+        revocation_date_time: Set(None),
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),
+        revocation_code_hmac: Set(user.revocation_code_hmac),
         recovery_code: Set(None),
     }
     .insert(connection)
@@ -131,6 +164,9 @@ struct WalletUserJoinedModel {
     instruction_challenge_expiration_date_time: Option<DateTimeWithTimeZone>,
     instruction_sequence_number: i32,
     apple_assertion_counter: Option<i64>,
+    revocation_code_hmac: Vec<u8>,
+    revocation_reason: Option<String>,
+    revocation_date_time: Option<DateTimeWithTimeZone>,
     recovery_code: Option<String>,
 }
 
@@ -153,6 +189,9 @@ where
         .column(wallet_user::Column::PreviousPinPubkeyIv)
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
+        .column(wallet_user::Column::RevocationCodeHmac)
+        .column(wallet_user::Column::RevocationReason)
+        .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
@@ -178,7 +217,7 @@ where
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?
     else {
-        return Ok(WalletUserQueryResult::NotFound);
+        return Ok(QueryResult::NotFound);
     };
 
     let state: WalletUserState = model
@@ -214,6 +253,15 @@ where
         None => WalletUserAttestation::Android,
     };
 
+    let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
+        (Some(reason), Some(date_time)) => Some(RevocationRegistration {
+            reason: reason.parse().unwrap(),
+            date_time: date_time.into(),
+        }),
+        (None, None) => None,
+        _ => panic!("every reason should have a registered datetime"),
+    };
+
     let wallet_user = WalletUser {
         id: model.id,
         wallet_id: model.wallet_id,
@@ -226,10 +274,57 @@ where
         instruction_sequence_number: u64::try_from(model.instruction_sequence_number).unwrap(),
         attestation,
         state,
+        revocation_code_hmac: model.revocation_code_hmac,
+        revocation_registration,
         recovery_code: model.recovery_code.clone(),
     };
 
-    Ok(WalletUserQueryResult::Found(Box::new(wallet_user)))
+    Ok(QueryResult::Found(Box::new(wallet_user)))
+}
+
+pub async fn find_wallet_user_id_by_wallet_ids<S, T>(
+    db: &T,
+    wallet_ids: &HashSet<String>,
+) -> Result<HashMap<String, Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    Ok(wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .column(wallet_user::Column::WalletId)
+        .filter(wallet_user::Column::WalletId.is_in(wallet_ids))
+        .into_tuple::<(Uuid, String)>()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .into_iter()
+        .map(|(wallet_user_id, wallet_id)| (wallet_id, wallet_user_id))
+        .collect())
+}
+
+pub async fn find_wallet_user_id_by_revocation_code<S, T>(
+    db: &T,
+    revocation_code_hmac: &[u8],
+) -> Result<QueryResult<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .filter(wallet_user::Column::RevocationCodeHmac.eq(revocation_code_hmac))
+        .into_tuple::<Uuid>()
+        .one(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result {
+        Some(wallet_user_id) => Ok(QueryResult::Found(Box::new(wallet_user_id))),
+        None => Ok(QueryResult::NotFound),
+    }
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -373,30 +468,31 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    update_fields(
-        db,
-        wallet_id,
-        vec![
-            (
-                wallet_user::Column::EncryptedPinPubkeySec1,
-                Expr::value(new_encrypted_pin_pubkey.data),
-            ),
-            (
-                wallet_user::Column::PinPubkeyIv,
-                Expr::value(new_encrypted_pin_pubkey.iv.0),
-            ),
-            (
-                wallet_user::Column::EncryptedPreviousPinPubkeySec1,
-                Expr::col(wallet_user::Column::EncryptedPinPubkeySec1).into(),
-            ),
-            (
-                wallet_user::Column::PreviousPinPubkeyIv,
-                Expr::col(wallet_user::Column::PinPubkeyIv).into(),
-            ),
-            (wallet_user::Column::State, Expr::value(user_state.to_string())),
-        ],
-    )
-    .await
+    let mut fields = vec![
+        (
+            wallet_user::Column::EncryptedPinPubkeySec1,
+            Expr::value(new_encrypted_pin_pubkey.data),
+        ),
+        (
+            wallet_user::Column::PinPubkeyIv,
+            Expr::value(new_encrypted_pin_pubkey.iv.0),
+        ),
+        (wallet_user::Column::State, Expr::value(user_state.to_string())),
+    ];
+
+    if !matches!(user_state, WalletUserState::RecoveringPin) {
+        // During and after PIN recovery, the user's previous PIN is never needed anymore.
+        fields.push((
+            wallet_user::Column::EncryptedPreviousPinPubkeySec1,
+            Expr::col(wallet_user::Column::EncryptedPinPubkeySec1).into(),
+        ));
+        fields.push((
+            wallet_user::Column::PreviousPinPubkeyIv,
+            Expr::col(wallet_user::Column::PinPubkeyIv).into(),
+        ));
+    }
+
+    update_fields(db, wallet_id, fields).await
 }
 
 pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -534,12 +630,46 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
+    // revocation is irreversible
+    assert!(
+        from_state != WalletUserState::Revoked,
+        "Wallet user is in a revoked state, cannot transition to: '{}'",
+        to_state
+    );
+
     let result = wallet_user::Entity::update_many()
         .col_expr(wallet_user::Column::State, Expr::value(to_state.to_string()))
         .filter(
             wallet_user::Column::Id
                 .eq(wallet_user_id)
                 .and(wallet_user::Column::State.eq(from_state.to_string())),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
+    }
+}
+
+pub async fn reset_wallet_user_state<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_user::Entity::update_many()
+        .col_expr(
+            wallet_user::Column::State,
+            Expr::value(WalletUserState::Active.to_string()),
+        )
+        .filter(
+            wallet_user::Column::Id
+                .eq(wallet_user_id)
+                // revocation is irreversible
+                .and(wallet_user::Column::State.ne(WalletUserState::Revoked.to_string())),
         )
         .exec(db.connection())
         .await
@@ -575,33 +705,6 @@ where
     }
 }
 
-pub async fn recover_pin_with_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_user::Entity::update_many()
-        .col_expr(
-            wallet_user::Column::State,
-            Expr::value(WalletUserState::Active.to_string()),
-        )
-        .filter(
-            wallet_user::Column::WalletId
-                .eq(wallet_id)
-                .and(wallet_user::Column::RecoveryCode.eq(recovery_code))
-                .and(wallet_user::Column::State.eq(WalletUserState::RecoveringPin.to_string())),
-        )
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
-    }
-}
-
 pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<bool>
 where
     S: ConnectionTrait,
@@ -611,7 +714,10 @@ where
         .filter(
             wallet_user::Column::RecoveryCode
                 .eq(recovery_code)
-                .and(wallet_user::Column::State.ne(WalletUserState::Blocked.to_string())),
+                .and(wallet_user::Column::State.is_not_in([
+                    WalletUserState::Transferred.to_string(),
+                    WalletUserState::Revoked.to_string(),
+                ])),
         )
         .count(db.connection())
         .await
@@ -620,175 +726,39 @@ where
     Ok(count > 1)
 }
 
-pub async fn create_transfer_session<S, T>(
+pub async fn revoke_wallets<S, T>(
     db: &T,
-    destination_wallet_user_id: Uuid,
-    transfer_session_id: Uuid,
-    destination_wallet_app_version: Version,
-    created: DateTime<Utc>,
+    wallet_user_ids: Vec<Uuid>,
+    revocation_reason: RevocationReason,
+    revocation_date_time: DateTime<Utc>,
 ) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_transfer::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        destination_wallet_user_id: Set(destination_wallet_user_id),
-        source_wallet_user_id: Set(None),
-        transfer_session_id: Set(transfer_session_id),
-        destination_wallet_app_version: Set(destination_wallet_app_version.to_string()),
-        state: Set(TransferSessionState::Created.to_string()),
-        created: Set(created.into()),
-        encrypted_wallet_data: Set(None),
-    }
-    .insert(db.connection())
-    .await
-    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+    wallet_user::Entity::update_many()
+        .col_expr(
+            wallet_user::Column::State,
+            Expr::value(WalletUserState::Revoked.to_string()),
+        )
+        .col_expr(
+            wallet_user::Column::RevocationReason,
+            Expr::value(revocation_reason.to_string()),
+        )
+        .col_expr(
+            wallet_user::Column::RevocationDateTime,
+            Expr::value(revocation_date_time),
+        )
+        .filter(
+            wallet_user::Column::Id
+                .is_in(wallet_user_ids)
+                .and(wallet_user::Column::State.ne(WalletUserState::Revoked.to_string()))
+                .and(wallet_user::Column::RevocationReason.is_null())
+                .and(wallet_user::Column::RevocationDateTime.is_null()),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
     Ok(())
-}
-
-pub async fn find_transfer_session_by_transfer_session_id<S, T>(
-    db: &T,
-    transfer_session_id: Uuid,
-) -> Result<Option<TransferSession>>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    type TransferQueryResult = (Uuid, Uuid, Option<Uuid>, Uuid, String, String, Option<String>, String);
-
-    let result: Option<TransferQueryResult> = wallet_transfer::Entity::find()
-        .select_only()
-        .column(wallet_transfer::Column::Id)
-        .column(wallet_transfer::Column::DestinationWalletUserId)
-        .column(wallet_transfer::Column::SourceWalletUserId)
-        .column(wallet_transfer::Column::TransferSessionId)
-        .column(wallet_transfer::Column::DestinationWalletAppVersion)
-        .column(wallet_transfer::Column::State)
-        .column(wallet_transfer::Column::EncryptedWalletData)
-        .column(wallet_user::Column::RecoveryCode)
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transfer_session_id))
-        .join(JoinType::InnerJoin, wallet_transfer::Relation::WalletUser2.def())
-        .into_tuple()
-        .one(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    let transfer_session = result.map(
-        |(
-            id,
-            destination_wallet_user_id,
-            source_wallet_user_id,
-            transfer_session_id,
-            destination_wallet_app_version,
-            state,
-            encrypted_wallet_data,
-            destination_wallet_recovery_code,
-        )| TransferSession {
-            id,
-            source_wallet_user_id,
-            destination_wallet_user_id,
-            destination_wallet_app_version: Version::parse(&destination_wallet_app_version)
-                .expect("version from database should parse"),
-            transfer_session_id,
-            state: state.parse().expect("state from database should parse"),
-            encrypted_wallet_data,
-            destination_wallet_recovery_code,
-        },
-    );
-
-    Ok(transfer_session)
-}
-
-pub async fn find_transfer_session_id_by_destination_wallet_user_id<S, T>(
-    db: &T,
-    destination_wallet_user_id: Uuid,
-) -> Result<Option<Uuid>>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    wallet_transfer::Entity::find()
-        .select_only()
-        .column(wallet_transfer::Column::TransferSessionId)
-        .filter(wallet_transfer::Column::DestinationWalletUserId.eq(destination_wallet_user_id))
-        .into_tuple()
-        .one(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
-}
-
-pub async fn update_transfer_state<S, T>(
-    db: &T,
-    transer_session_id: Uuid,
-    transfer_session_state: TransferSessionState,
-) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_transfer::Entity::update_many()
-        .col_expr(
-            wallet_transfer::Column::State,
-            Expr::value(transfer_session_state.to_string()),
-        )
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
-    }
-}
-
-pub async fn set_transfer_source<S, T>(db: &T, transer_session_id: Uuid, source_wallet_user_id: Uuid) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_transfer::Entity::update_many()
-        .col_expr(
-            wallet_transfer::Column::SourceWalletUserId,
-            Expr::value(source_wallet_user_id),
-        )
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
-    }
-}
-
-pub async fn set_wallet_transfer_data<S, T>(
-    db: &T,
-    transer_session_id: Uuid,
-    encrypted_wallet_data: Option<String>,
-) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_transfer::Entity::update_many()
-        .col_expr(
-            wallet_transfer::Column::EncryptedWalletData,
-            encrypted_wallet_data.map_or(Expr::cust("null"), Expr::value),
-        )
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
-    }
 }

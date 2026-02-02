@@ -18,12 +18,14 @@ void main() {
   test('verify that CoreConfigurationRepository fetches configuration through wallet_core', () async {
     when(mockCore.observeConfig()).thenAnswer(
       (_) => Stream.value(
-        FlutterConfiguration(
+        const FlutterConfiguration(
           inactiveWarningTimeout: 3,
           inactiveLockTimeout: 5,
           backgroundLockTimeout: 10,
+          pidAttestationTypes: ['urn:eudi:pid:nl:1'],
           staticAssetsBaseUrl: 'https://example.com/',
-          version: BigInt.zero,
+          version: '0',
+          environment: 'test',
         ),
       ),
     );
@@ -36,7 +38,9 @@ void main() {
         idleLockTimeout: Duration(seconds: 5),
         backgroundLockTimeout: Duration(seconds: 10),
         staticAssetsBaseUrl: 'https://example.com/',
-        version: 0,
+        pidAttestationTypes: ['urn:eudi:pid:nl:1'],
+        version: '0',
+        environment: 'test',
       ),
     );
   });

@@ -7,10 +7,8 @@
   script:
     - NAME=${CI_JOB_NAME#build-env-}
     - deploy-variables/create-env.sh $NAME | tee build-${NAME}.env
-    - . build-${NAME}.env
-    - export NAME
   artifacts:
-    name: build-env-${NAME}
+    name: build-env
     reports:
       dotenv: build-*.env
 
@@ -18,23 +16,14 @@ build-env-ont:
   extends: .build-env
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-release, rules]
+    - !reference [.on-schedule-automation, rules]
+    - !reference [.on-schedule-trigger-scan, rules]
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-branch, rules]
 
 build-env-demo:
   extends: .build-env
   rules: !reference [.on-demo-build, rules]
-
-build-env-acceptance:
-  extends: .build-env
-  rules: !reference [.release-tag, rules]
-
-build-env-preproduction:
-  extends: .build-env
-  rules: !reference [.release-tag, rules]
-
-build-env-production:
-  extends: .build-env
-  rules: !reference [.release-tag, rules]
 
 .sentry-env:
   before_script:

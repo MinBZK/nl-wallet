@@ -4,15 +4,25 @@ import util.MobileActions
 
 class CardDataScreen : MobileActions() {
 
-    private val dataIncorrectScreenHeaderTitle = l10n.getString("dataIncorrectScreenHeaderTitle")
+    private val cardPreviewScreenIncorrectCta = l10n.getString("cardPreviewScreenIncorrectCta")
     private val dataIncorrectButton = l10n.getString("cardDataScreenIncorrectCta")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
+    private val revocationMessage = l10n.getString("cardStatusMetadataCardDataScreenRevoked")
 
-    fun visible() = elementContainingTextVisible(dataIncorrectScreenHeaderTitle)
+    fun visible(): Boolean {
+        scrollToElementWithText(cardPreviewScreenIncorrectCta)
+        return elementContainingTextVisible(cardPreviewScreenIncorrectCta)
+    }
 
-    fun dataAttributeVisible(attribute: String) = elementContainingTextVisible(attribute)
+    fun dataAttributeVisible(attribute: String): Boolean {
+        scrollToElementContainingText(attribute)
+        return elementContainingTextVisible(attribute)
+    }
 
-    fun dataLabelVisible(label: String) = elementContainingTextVisible(label)
+    fun dataLabelVisible(label: String): Boolean {
+        scrollToElementContainingText(label)
+        return elementContainingTextVisible(label)
+    }
 
     fun dataLabelAbsent(attribute: String) = !elementContainingTextVisible(attribute)
 
@@ -22,4 +32,6 @@ class CardDataScreen : MobileActions() {
     }
 
     fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
+
+    fun revocationMessageVisible() = elementWithTextVisible(revocationMessage)
 }

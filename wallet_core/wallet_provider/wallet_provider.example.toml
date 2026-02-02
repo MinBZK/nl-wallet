@@ -16,14 +16,32 @@ pin_pubkey_encryption_key_identifier = "pin_pubkey_encryption_key"
 # Identifier for key used to sign the hash of the pin public key for use in the wallet certificate
 pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protection_key"
 
+# Identifier for key used to generate revocation code HMACs that are stored in the database
+revocation_code_key_identifier = "revocation_code_key"
+
 # Identifier for key used to issue WUAs to wallets
 wua_signing_key_identifier = "wua_signing_key"
 
-# Identifier for the WUA issuer. Must equal the CN from the WUA trust anchor CA certificate.
+# Identifier for the WUA issuer.
 wua_issuer_identifier = "wua-issuer.example.com"
+
+# Status List configuration for the WUA
+[wua_status_lists]
+# Base URL for the Status List Claims
+base_url = "http://cdn.example.com/tsl"
+# Directory to publish the Status List Tokens
+publish_dir = "/srv/html/tsl"
+# Identifier for key inused to sign Status List Token
+key_identifier = "instruction_result_signing_key"
+# Base64 DER encoded certificate containing the public key
+key_certificate = "MIJ..."
 
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
+
+# Recovery code claim path for every attestation type
+[recovery_code_paths]
+"urn:eudi:pid:nl:1" = ["recovery_code"]
 
 [database]
 # host = "localhost"
@@ -58,6 +76,7 @@ root_certificates = [
 # They can be either RSA or ECDSA keys, base64 encoded in PKCS 8 format.
 root_public_keys = [
     "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAr7bHgiuxpwHsK7Qui8xUFmOr75gvMsd/dTEDDJdSSxtf6An7xyqpRR90PL2abxM1dEqlXnf2tqw1Ne4Xwl5jlRfdnJLmN0pTy/4lj4/7tv0Sk3iiKkypnEUtR6WfMgH0QZfKHM1+di+y9TFRtv6y//0rb+T+W8a9nsNL/ggjnar86461qO0rOs2cXjp3kOG1FEJ5MVmFmBGtnrKpa73XpXyTqRxB/M0n1n/W9nGqC4FSYa04T6N5RIZGBN2z2MT5IKGbFlbC8UrW0DxW7AYImQQcHtGl/m00QLVWutHQoVJYnFPlXTcHYvASLu+RhhsbDmxMgJJ0mcDpvsC4PjvB+TxywElgS70vE0XmLD+OJtvsBslHZvPBKCOdT0MS+tgSOIfga+z1Z1g7+DVagf7quvmag8jfPioyKvxnK/EgsTUVi2ghzq8wm27ud/mIM7AY2qEORR8Go3TVB4HzWQgpZrt3i5MIlCaY504LzSRiigHCzAPlHws+W0rB5N+er5/2pJKnfBSDiCiFAVtCLOZ7gLiMm0jhO2B6tUXHI/+MRPjy02i59lINMRRev56GKtcd9qO/0kUJWdZTdA2XoS82ixPvZtXQpUpuL12ab+9EaDK8Z4RHJYYfCT3Q5vNAXaiWQ+8PTWm2QgBR/bkwSWc+NpUFgNPN9PvQi8WEg5UmAGMCAwEAAQ==",
+    "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEI9ojcU7fPlsFCjxy6IRqzgeOoK0b+YsV9FPQywiyw8EQRTkJ9u3qwfnI4DGoSLlBqClTXJfgfCcZvs60FikNMHnu4fkRzObfgDkU2KNXezT9/RQ+XvNslxPHrHCowhGr",
 ]
 package_name = "com.example.wallet-app"
 # If this value is set to :"false" (which is the default), the Android app has to be installed through the Play Store.

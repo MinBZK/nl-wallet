@@ -39,21 +39,19 @@ impl MigrationTrait for Migration {
                     .index(
                         Index::create()
                             .unique()
-                            .name("wallet_transfer_unique_destination_wallet_id")
-                            .col(WalletTransfer::DestinationWalletUserId),
-                    )
-                    .index(
-                        Index::create()
-                            .unique()
-                            .name("wallet_transfer_unique_source_wallet_id")
-                            .col(WalletTransfer::SourceWalletUserId),
-                    )
-                    .index(
-                        Index::create()
-                            .unique()
                             .name("wallet_transfer_unique_transfer_session_id")
                             .col(WalletTransfer::TransferSessionId),
                     )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .table(WalletTransfer::Table)
+                    .name("wallet_transfer_destination_wallet_user_id")
+                    .col(WalletTransfer::DestinationWalletUserId)
                     .to_owned(),
             )
             .await?;

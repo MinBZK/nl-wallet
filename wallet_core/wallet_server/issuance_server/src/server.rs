@@ -13,7 +13,6 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::TrivialAttributeService;
 use openid4vc::issuer::WuaConfig;
-use openid4vc::server_state::MemoryWuaTracker;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -22,48 +21,77 @@ use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
+use server_utils::server::add_cache_control_no_store_layer;
+use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
+use server_utils::server::secure_internal_router;
+use status_lists::revoke::create_revocation_router;
+use token_status_list::status_list_service::StatusListRevocationService;
+use token_status_list::status_list_service::StatusListServices;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
+use utils::generator::TimeGenerator;
 
 use crate::disclosure::AttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
 
-pub async fn serve<A, IS, DS>(
+#[expect(clippy::too_many_arguments, reason = "Setup function")]
+pub async fn serve<A, L, IS, DS, C>(
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
+    status_list_services: L,
+    status_list_router: Option<Router>,
+    status_list_client: C,
+    health_router: Router,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Sync + 'static,
+    C: StatusListClient + Sync + 'static,
 {
-    serve_with_listener(
+    serve_with_listeners(
         create_wallet_listener(&settings.issuer_settings.server_settings.wallet_server).await?,
+        create_internal_listener(&settings.issuer_settings.server_settings.internal_server).await?,
         settings,
         hsm,
         issuance_sessions,
         disclosure_sessions,
         attributes_fetcher,
+        status_list_services,
+        status_list_router,
+        status_list_client,
+        health_router,
     )
     .await
 }
 
-pub async fn serve_with_listener<A, IS, DS>(
-    listener: TcpListener,
+#[expect(clippy::too_many_arguments, reason = "Setup function")]
+pub async fn serve_with_listeners<A, L, IS, DS, C>(
+    wallet_listener: TcpListener,
+    internal_listener: Option<TcpListener>,
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
+    status_list_services: L,
+    status_list_router: Option<Router>,
+    status_list_client: C,
+    health_router: Router,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Sync + 'static,
+    C: StatusListClient + Sync + 'static,
 {
     let log_requests = settings.issuer_settings.server_settings.log_requests;
     let issuer_settings = settings.issuer_settings;
@@ -87,13 +115,15 @@ where
 
     let use_cases = WalletInitiatedUseCases::new(use_cases);
 
+    let status_list_services = Arc::new(status_list_services);
     let issuer = Arc::new(Issuer::new(
         issuance_sessions,
         TrivialAttributeService,
         attestation_config,
         &issuer_settings.server_settings.public_url,
         issuer_settings.wallet_client_ids.clone(),
-        Option::<WuaConfig<MemoryWuaTracker>>::None, // The compiler forces us to explicitly specify a type here
+        Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here,
+        Arc::clone(&status_list_services),
     ));
 
     let issuance_router = create_issuance_router(Arc::clone(&issuer));
@@ -103,6 +133,14 @@ where
         credential_issuer: issuer_settings.server_settings.public_url.join_base_url("issuance/"),
         attributes_fetcher,
     };
+
+    let revocation_verifier = RevocationVerifier::new(
+        Arc::new(status_list_client),
+        settings.status_list_token_cache_settings.capacity,
+        settings.status_list_token_cache_settings.default_ttl,
+        settings.status_list_token_cache_settings.error_ttl,
+        TimeGenerator,
+    );
 
     let disclosure_router = VerifierFactory::new(
         issuer_settings.server_settings.public_url.join_base_url("disclosure"),
@@ -115,14 +153,35 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         issuer_settings.wallet_client_ids,
+        settings.extending_vct_values.unwrap_or_default(),
     )
-    .create_wallet_router(disclosure_sessions, Some(Box::new(result_handler)));
+    .create_wallet_router(disclosure_sessions, revocation_verifier, Some(Box::new(result_handler)));
 
+    let mut wallet_router = Router::new()
+        .nest("/issuance", add_cache_control_no_store_layer(issuance_router))
+        .nest("/disclosure", add_cache_control_no_store_layer(disclosure_router));
+
+    if let Some(status_list_router) = status_list_router {
+        wallet_router = wallet_router.merge(status_list_router);
+    }
+
+    let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
+
+    #[cfg(feature = "test_internal_ui")]
+    let mut internal_router =
+        internal_router.merge(utoipa_swagger_ui::SwaggerUi::new("/api-docs").url("/openapi.json", internal_openapi));
+
+    #[cfg(not(feature = "test_internal_ui"))]
+    let mut internal_router = internal_router.route("/openapi.json", axum::routing::get(axum::Json(internal_openapi)));
+
+    internal_router = secure_internal_router(&issuer_settings.server_settings.internal_server, internal_router);
+    internal_router = add_cache_control_no_store_layer(internal_router);
     listen(
-        listener,
-        Router::new()
-            .nest("/issuance", issuance_router)
-            .nest("/disclosure", disclosure_router),
+        wallet_listener,
+        internal_listener,
+        wallet_router,
+        internal_router,
+        health_router,
         log_requests,
     )
     .await

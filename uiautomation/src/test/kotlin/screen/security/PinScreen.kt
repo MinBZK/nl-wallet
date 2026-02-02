@@ -8,6 +8,7 @@ class PinScreen : MobileActions() {
     private val setupSecuritySelectPinPageTitle = l10n.getString("setupSecuritySelectPinPageTitle")
     private val pinScreenHeader = l10n.getString("pinScreenHeader")
     private val confirmPinScreen = l10n.getString("setupSecurityConfirmationPageTitle")
+    private val confirmRecoverPinScreen = l10n.getString("recoverPinConfirmNewPinPageTitle")
     private val personalizeConfirmPinScreen = l10n.getString("walletPersonalizeConfirmPinPageTitle")
     private val backButton = l10n.getString("generalWCAGBack")
     private val appInfoButton = l10n.getString("generalWCAGInfo")
@@ -25,11 +26,17 @@ class PinScreen : MobileActions() {
     private val pinErrorDialogNonFinalRoundInitialAttempt = l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt")
     private val pinErrorDialogNonFinalRoundFinalAttempt = l10n.getString("pinErrorDialogNonFinalRoundFinalAttempt")
 
+    private val changePinScreenEnterCurrentPinTitle = l10n.getString("changePinScreenEnterCurrentPinTitle")
+    private val changePinScreenSelectNewPinTitle = l10n.getString("changePinScreenSelectNewPinTitle")
+    private val changePinScreenConfirmNewPinTitle = l10n.getString("changePinScreenConfirmNewPinTitle")
+
     fun setupPinScreenVisible() = elementWithTextVisible(setupSecuritySelectPinPageTitle)
 
     fun pinScreenVisible() = elementWithTextVisible(pinScreenHeader)
 
     fun confirmPinScreenVisible() = elementWithTextVisible(confirmPinScreen)
+
+    fun confirmRecoverPinScreenVisible() = elementWithTextVisible(confirmRecoverPinScreen)
 
     fun personalizeConfirmPinScreenVisible() = elementWithTextVisible(personalizeConfirmPinScreen)
 
@@ -88,4 +95,10 @@ class PinScreen : MobileActions() {
     }
 
     fun pinErrorDialogNonFinalRoundFinalAttemptVisible() = elementWithTextVisible(pinErrorDialogNonFinalRoundFinalAttempt)
+
+    fun enterCurrentPinTitleVisible() = elementWithTextVisible(changePinScreenEnterCurrentPinTitle)
+
+    fun selectNewPinTitleVisible() = elementWithTextVisible(changePinScreenSelectNewPinTitle)
+
+    fun confirmNewPinTitleVisible() = elementWithTextVisible(changePinScreenConfirmNewPinTitle)
 }

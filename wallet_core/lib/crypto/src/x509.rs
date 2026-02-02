@@ -1,10 +1,15 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Constructor;
 use derive_more::Debug;
+use derive_more::Display;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
 use p256::pkcs8::der::Decode;
@@ -19,10 +24,13 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use webpki::EndEntityCert;
 use webpki::ring::ECDSA_P256_SHA256;
+use x509_parser::asn1_rs::SerializeError;
+use x509_parser::asn1_rs::ToDer;
 use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom;
 use x509_parser::nom::AsBytes;
+use x509_parser::objects::oid_registry;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
@@ -34,7 +42,7 @@ use yoke::Yokeable;
 
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
-use http_utils::urls::HttpsUriParseError;
+use http_utils::urls::HttpsUriError;
 use utils::generator::Generator;
 use utils::vec_at_least::VecAtLeastNError;
 use utils::vec_at_least::VecNonEmpty;
@@ -42,10 +50,11 @@ use utils::vec_at_least::VecNonEmpty;
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
 /// being verified.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
+    OAuthStatusSigning,
 }
 
 #[rustfmt::skip]
@@ -55,6 +64,8 @@ mod extended_key_usage_oid {
 
     pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
     pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
+    // The .127 is made up, the real child node is TDB
+    pub const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
 }
 
 use extended_key_usage_oid::*;
@@ -82,6 +93,8 @@ impl CertificateUsage {
             return Ok(Self::Mdl);
         } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
             return Ok(Self::ReaderAuth);
+        } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
+            return Ok(Self::OAuthStatusSigning);
         }
 
         Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
@@ -91,6 +104,7 @@ impl CertificateUsage {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
+            CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
         }
         .as_bytes()
     }
@@ -98,7 +112,7 @@ impl CertificateUsage {
 
 // This requires both "generate" and "mock", because this is not to be used in the Wallet.
 // The wallet must use CertificateType.
-#[cfg(all(feature = "generate", feature = "mock"))]
+#[cfg(any(test, all(feature = "generate", feature = "mock")))]
 impl TryFrom<CertificateUsage> for Vec<rcgen::CustomExtension> {
     type Error = CertificateError;
 
@@ -144,9 +158,6 @@ pub enum CertificateError {
     IncorrectEku(String),
     #[error("PEM decoding error: {0}")]
     Pem(#[from] nom::Err<PEMError>),
-    #[error("unexpected PEM header: found {found}, expected {expected}")]
-    #[category(critical)]
-    UnexpectedPemHeader { found: String, expected: String },
     #[error("DER coding error: {0}")]
     DerEncodingError(#[from] p256::pkcs8::der::Error),
     #[error("JSON coding error: {0}")]
@@ -157,14 +168,14 @@ pub enum CertificateError {
     KeyMismatch,
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("missing Common Name")]
-    MissingCommonName,
     #[error("missing SAN extension")]
     MissingSan,
     #[error("missing SAN DNS name or URI, found: {0:?}")]
     MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
     #[error("SAN DNS name is not a URI: {0}")]
-    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriParseError),
+    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
+    #[error("could not serialize to DER: {0}")]
+    DerSerialization(#[from] SerializeError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -290,6 +301,32 @@ impl BorrowingCertificate {
         x509_common_names(&self.x509_certificate().subject)
     }
 
+    pub fn distinguished_name(&self) -> Result<String, CertificateError> {
+        let dn = self
+            .x509_certificate()
+            .subject
+            .to_string_with_registry(oid_registry())?;
+        Ok(dn)
+    }
+
+    // Returns a human-readable string representation of the distinguished name attributes with the raw OID values and
+    // base64-encoded DER values. Can be used for persistence and comparison, since this representation is independent
+    // of an OID registry.
+    pub fn distinguished_name_canonical(&self) -> Result<DistinguishedName, CertificateError> {
+        let encoded_attrs: Vec<_> = self
+            .x509_certificate()
+            .subject()
+            .iter_attributes()
+            .map(|attr| {
+                let r#type = attr.attr_type().to_id_string();
+                let value = BASE64_STANDARD_NO_PAD.encode(&attr.attr_value().to_der_vec()?);
+                Ok::<_, CertificateError>(format!("{}={}", r#type, value))
+            })
+            .try_collect()?;
+
+        Ok(DistinguishedName::new(encoded_attrs.join(",")))
+    }
+
     /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
     pub fn san_dns_name_or_uris(&self) -> Result<VecNonEmpty<HttpsUri>, CertificateError> {
         let san_ext = self
@@ -406,6 +443,25 @@ where
     }
 }
 
+/// A distinguished name encoded in a canonical, OID-registry-independent format.
+/// This type is specifically designed for database persistence and comparison.
+/// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Display, Constructor)]
+#[cfg_attr(feature = "persistence", derive(sea_orm::DeriveValueType))]
+pub struct DistinguishedName(String);
+
+impl DistinguishedName {
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
+
+impl AsRef<str> for DistinguishedName {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[cfg(any(test, feature = "generate"))]
 #[derive(Debug, Clone, Default)]
 pub struct CertificateConfiguration {
@@ -415,7 +471,6 @@ pub struct CertificateConfiguration {
 
 #[cfg(test)]
 mod test {
-
     use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Duration;
@@ -458,7 +513,7 @@ mod test {
     #[test]
     fn generate_ca() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
         let x509_cert = certificate.x509_certificate();
@@ -476,8 +531,14 @@ mod test {
             not_after: Some(later),
         };
         let ca = Ca::generate("myca", config).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
+
+        assert_eq!("CN=myca", certificate.distinguished_name().unwrap());
+        assert_eq!(
+            "2.5.4.3=DARteWNh",
+            certificate.distinguished_name_canonical().unwrap().as_ref()
+        );
 
         let x509_cert = certificate.x509_certificate();
         assert_certificate_common_name(x509_cert, &["myca"]);
@@ -507,7 +568,10 @@ mod test {
         let end = Some(now + Duration::days(2));
 
         let error = generate_and_verify_issuer_for_validity(start, end);
-        assert_matches!(error, CertificateError::Verification(webpki::Error::CertNotValidYet));
+        assert_matches!(
+            error,
+            CertificateError::Verification(webpki::Error::CertNotValidYet { .. })
+        );
     }
 
     #[test]
@@ -517,7 +581,7 @@ mod test {
         let end = Some(now - Duration::days(1));
 
         let error = generate_and_verify_issuer_for_validity(start, end);
-        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired));
+        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired { .. }));
     }
 
     fn assert_certificate_default_validity(certificate: &X509Certificate) {

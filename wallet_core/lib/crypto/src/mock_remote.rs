@@ -16,6 +16,7 @@ use crate::CredentialEcdsaKey;
 use crate::EcdsaKey;
 use crate::SecureEcdsaKey;
 use crate::WithIdentifier;
+use crate::utils::random_string;
 use crate::wscd::DisclosureResult;
 use crate::wscd::DisclosureWscd;
 use crate::wscd::WscdPoa;
@@ -117,6 +118,15 @@ impl MockRemoteWscd {
 
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
         Self::new_signing_keys(keys)
+    }
+
+    pub fn create_random_key(&self) -> MockRemoteEcdsaKey {
+        let identifier = random_string(16);
+        let key = MockRemoteEcdsaKey::new_random(identifier.clone());
+
+        self.signing_keys.lock().insert(identifier, key.key.clone());
+
+        key
     }
 }
 

@@ -1,14 +1,12 @@
 use std::collections::HashMap;
+use std::iter;
 
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use crypto::server_keys::generate::Ca;
+use dcql::disclosure::ExtendingVctRetriever;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::Mdoc;
-use mdoc::test::TestDocument;
-use wscd::wscd::Wscd;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
@@ -60,7 +58,7 @@ impl IssuanceSession for MockIssuanceSession {
         Self::start()
     }
 
-    async fn accept_issuance<K, W>(
+    async fn accept_issuance<W>(
         &self,
         _: &[TrustAnchor<'_>],
         _: &W,
@@ -79,6 +77,13 @@ impl IssuanceSession for MockIssuanceSession {
 
     fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
+    }
+}
+
+pub struct ExtendingVctRetrieverStub;
+impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
+    fn retrieve(&self, _vct_value: &str) -> impl Iterator<Item = &str> {
+        iter::empty()
     }
 }
 
@@ -139,38 +144,4 @@ impl TokenRequest {
             redirect_uri: None,
         }
     }
-}
-
-pub async fn test_document_to_mdoc<W>(doc: TestDocument, ca: &Ca, wscd: &W) -> Mdoc
-where
-    W: Wscd,
-{
-    let key = generate_key(wscd).await;
-
-    doc.sign(ca, &key).await
-}
-
-async fn generate_key<W>(wscd: &W) -> W::Key
-where
-    W: Wscd,
-{
-    let issuance_data = wscd
-        .perform_issuance(
-            1.try_into().unwrap(),
-            "aud".to_string(),
-            Some("nonce".to_string()),
-            false,
-        )
-        .await
-        .unwrap();
-
-    let pubkey = issuance_data
-        .pops
-        .first()
-        .dangerous_parse_header_unverified()
-        .unwrap()
-        .verifying_key()
-        .unwrap();
-
-    wscd.new_key(issuance_data.key_identifiers.first(), pubkey)
 }

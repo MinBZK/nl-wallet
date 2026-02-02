@@ -1,12 +1,15 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_rendering.dart';
+import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/document.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
+import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
@@ -18,11 +21,15 @@ import 'package:wallet/src/wallet_assets.dart';
 abstract class WalletMockData {
   static Locale testLocale = const Locale('en');
 
+  static final DateTime validFrom = DateTime(2050, 5, 1, 17, 25);
+  static final DateTime validUntil = DateTime(2025, 5, 1, 17, 25);
+  static final CardStatus status = CardStatusValid(validUntil: validUntil);
+
   static WalletCard card = WalletCard(
+    attestationId: 'id',
     attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
-    attributes: [textDataAttribute],
-    attestationId: 'id',
+    status: WalletMockData.status,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -35,12 +42,26 @@ abstract class WalletMockData {
         ),
       ),
     ],
+    attributes: [textDataAttribute],
   );
 
+  static WalletCard cardWithStatus(CardStatus status) => card.copyWith(status: status);
+
+  static List<CardStatus> cardStatusList = [
+    CardStatusValidSoon(validFrom: validFrom),
+    CardStatusValid(validUntil: validUntil),
+    CardStatusExpiresSoon(validUntil: validUntil),
+    CardStatusExpired(validUntil: validUntil),
+    const CardStatusRevoked(),
+    const CardStatusCorrupted(),
+    const CardStatusUndetermined(),
+  ];
+
   static WalletCard simpleRenderingCard = WalletCard(
+    attestationId: 'id',
     attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
-    attributes: [textDataAttribute],
+    status: WalletMockData.status,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -50,14 +71,14 @@ abstract class WalletMockData {
         rendering: const SimpleCardRendering(textColor: Colors.white, bgColor: Colors.deepPurple),
       ),
     ],
-    attestationId: 'id',
+    attributes: [textDataAttribute],
   );
 
   static WalletCard altCard = WalletCard(
-    issuer: WalletMockData.organization,
-    attestationType: 'com.example.alt.attestationType',
-    attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     attestationId: 'id2',
+    attestationType: 'com.example.alt.attestationType',
+    issuer: WalletMockData.organization,
+    status: WalletMockData.status,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -70,6 +91,7 @@ abstract class WalletMockData {
         ),
       ),
     ],
+    attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
   );
 
   static DiscloseCardRequest discloseCardRequestSingleCard = DiscloseCardRequest.fromCard(card);
@@ -114,6 +136,38 @@ abstract class WalletMockData {
     fileName: 'docs/agreement.pdf',
     url: 'https://example.org/agreement.pdf',
   );
+
+  /// Notification data
+  static final DateTime _appNotificationNow = clock.now();
+  static final DateTime expiresIn30Days = _appNotificationNow.add(const Duration(days: 30));
+  static final DateTime expiresIn5Days = _appNotificationNow.add(const Duration(days: 5));
+  static final DateTime defaultNotifyAt = _appNotificationNow.add(const Duration(days: 1));
+
+  static AppNotification dashboardCardExpiresSoonNotification = AppNotification(
+    id: 1,
+    type: CardExpiresSoon(card: card, expiresAt: expiresIn30Days),
+    displayTargets: [const Dashboard()],
+  );
+
+  static AppNotification dashboardCardExpiredNotification = AppNotification(
+    id: 2,
+    type: CardExpired(card: card),
+    displayTargets: [const Dashboard()],
+  );
+
+  static AppNotification osCardExpiresSoonNotification = AppNotification(
+    id: 3,
+    type: CardExpiresSoon(card: card, expiresAt: expiresIn5Days),
+    displayTargets: [Os(notifyAt: defaultNotifyAt)],
+  );
+
+  static AppNotification osCardExpiredNotification = AppNotification(
+    id: 4,
+    type: CardExpired(card: card),
+    displayTargets: [Os(notifyAt: defaultNotifyAt)],
+  );
+
+  /// Disclosure events
 
   static DisclosureEvent get disclosureEvent =>
       WalletEvent.disclosure(
@@ -163,34 +217,6 @@ abstract class WalletMockData {
           )
           as DisclosureEvent;
 
-  static SignEvent get signEvent =>
-      WalletEvent.sign(
-            dateTime: DateTime(2024, 1, 1),
-            status: EventStatus.success,
-            relyingParty: organization,
-            policy: policy,
-            document: document,
-          )
-          as SignEvent;
-
-  static IssuanceEvent get issuanceEvent =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2023, 12, 1),
-            status: EventStatus.success,
-            card: card,
-            renewed: false,
-          )
-          as IssuanceEvent;
-
-  static IssuanceEvent get renewEvent =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2025, 2, 1),
-            status: EventStatus.success,
-            card: card,
-            renewed: true,
-          )
-          as IssuanceEvent;
-
   static DisclosureEvent get failedDisclosureEvent =>
       WalletEvent.disclosure(
             dateTime: DateTime(2024, 2, 1),
@@ -226,4 +252,63 @@ abstract class WalletMockData {
             type: DisclosureType.regular,
           )
           as DisclosureEvent;
+
+  /// Sign events
+
+  static SignEvent get signEvent =>
+      WalletEvent.sign(
+            dateTime: DateTime(2024, 1, 1),
+            status: EventStatus.success,
+            relyingParty: organization,
+            policy: policy,
+            document: document,
+          )
+          as SignEvent;
+
+  /// Issuance events
+
+  static IssuanceEvent get issuanceEvent =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2023, 12, 1),
+            status: EventStatus.success,
+            card: card,
+            eventType: IssuanceEventType.cardIssued,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardRenewed =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: card,
+            eventType: IssuanceEventType.cardRenewed,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardStatusExpired =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: cardWithStatus(CardStatusExpired(validUntil: validUntil)),
+            eventType: IssuanceEventType.cardStatusExpired,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardStatusRevoked =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: cardWithStatus(const CardStatusRevoked()),
+            eventType: IssuanceEventType.cardStatusRevoked,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardStatusCorrupted =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: cardWithStatus(const CardStatusCorrupted()),
+            eventType: IssuanceEventType.cardStatusCorrupted,
+          )
+          as IssuanceEvent;
 }

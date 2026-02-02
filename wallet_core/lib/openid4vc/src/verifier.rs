@@ -39,6 +39,7 @@ use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
 use dcql::Query;
+use dcql::disclosure::ExtendingVctRetriever;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -46,7 +47,10 @@ use http_utils::urls::BaseUrl;
 use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -216,6 +220,7 @@ pub struct Created {
     usecase_id: String,
     client_id: String,
     redirect_uri_template: Option<RedirectUriTemplate>,
+    accept_undetermined_revocation_status: bool,
 }
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
@@ -225,6 +230,7 @@ pub struct WaitingForResponse {
     usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
+    accept_undetermined_revocation_status: bool,
 }
 
 /// State for a session that has ended (for any reason).
@@ -549,6 +555,7 @@ pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
     credential_requests: Option<NormalizedCredentialRequests>,
     return_url_template: Option<ReturnUrlTemplate>,
+    accept_undetermined_revocation_status: bool,
 }
 
 #[derive(Debug, Constructor)]
@@ -562,6 +569,9 @@ pub struct RpInitiatedUseCases<K, S> {
 pub enum NewDisclosureUseCaseError {
     #[error(transparent)]
     UseCaseCertificate(#[from] UseCaseCertificateError),
+
+    #[error("additional accepted attestation types can only be configured for the SD-JWT format")]
+    WrongFormatForAdditionalAcceptedAttestationTypes,
 }
 
 impl<K> RpInitiatedUseCase<K> {
@@ -570,8 +580,10 @@ impl<K> RpInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
+        accept_undetermined_revocation_status: bool,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
+
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
@@ -580,6 +592,7 @@ impl<K> RpInitiatedUseCase<K> {
             },
             credential_requests,
             return_url_template,
+            accept_undetermined_revocation_status,
         };
 
         Ok(use_case)
@@ -629,6 +642,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             id,
             self.data.client_id.clone(),
             redirect_uri_template,
+            self.accept_undetermined_revocation_status,
         );
         Ok(session)
     }
@@ -743,8 +757,9 @@ impl<K> WalletInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
-    ) -> Result<Self, UseCaseCertificateError> {
+    ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
+
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
@@ -780,6 +795,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
                 template: self.return_url_template.clone(),
                 share_on_error: false,
             }),
+            false,
         );
 
         Ok(session)
@@ -854,7 +870,7 @@ pub trait DisclosureResultHandler {
 }
 
 #[derive(Debug)]
-pub struct Verifier<S, US> {
+pub struct Verifier<S, US, C> {
     use_cases: US,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
@@ -862,21 +878,24 @@ pub struct Verifier<S, US> {
     #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
     accepted_wallet_client_ids: Vec<String>,
+    extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
+    revocation_verifier: RevocationVerifier<C>,
 }
 
-impl<S, K> Drop for Verifier<S, K> {
+impl<S, K, C> Drop for Verifier<S, K, C> {
     fn drop(&mut self) {
         // Stop the task at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<S, US, UC, K> Verifier<S, US>
+impl<S, US, UC, K, C> Verifier<S, US, C>
 where
     S: SessionStore<DisclosureData>,
     US: UseCases<UseCase = UC, Key = K>,
     UC: UseCase<Key = K>,
     K: EcdsaKey,
+    C: StatusListClient,
 {
     /// Create a new [`Verifier`].
     ///
@@ -887,15 +906,18 @@ where
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these
     ///   CAs.
     /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
+    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
         use_cases: US,
         sessions: Arc<S>,
         trust_anchors: Vec<TrustAnchor<'static>>,
         result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
         accepted_wallet_client_ids: Vec<String>,
+        extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
+        revocation_verifier: RevocationVerifier<C>,
     ) -> Self
     where
-        S: Send + Sync + 'static,
+        S: Sync + 'static,
     {
         Self {
             use_cases,
@@ -904,6 +926,8 @@ where
             trust_anchors,
             result_handler,
             accepted_wallet_client_ids,
+            extending_vct_values_store,
+            revocation_verifier,
         }
     }
 
@@ -995,6 +1019,8 @@ where
                 time,
                 &self.trust_anchors,
                 self.result_handler.as_deref(),
+                self,
+                &self.revocation_verifier,
             )
             .await;
 
@@ -1097,7 +1123,7 @@ where
     }
 }
 
-impl<S, US> Verifier<S, US> {
+impl<S, US, C> Verifier<S, US, C> {
     fn format_ul(
         base_ul: BaseUrl,
         request_uri: BaseUrl,
@@ -1119,6 +1145,16 @@ impl<S, US> Verifier<S, US> {
         })?));
 
         Ok(ul.try_into().unwrap()) // safe because we constructed ul from a BaseUrl
+    }
+}
+
+impl<S, US, C> ExtendingVctRetriever for Verifier<S, US, C> {
+    fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str> {
+        self.extending_vct_values_store
+            .get(vct_value)
+            .map(|vct| vct.iter().map(String::as_str))
+            .into_iter()
+            .flatten()
     }
 }
 
@@ -1193,6 +1229,7 @@ impl Session<Created> {
         usecase_id: String,
         client_id: String,
         redirect_uri_template: Option<RedirectUriTemplate>,
+        accept_undetermined_revocation_status: bool,
     ) -> Session<Created> {
         Session::<Created> {
             state: SessionState::new(
@@ -1202,6 +1239,7 @@ impl Session<Created> {
                     usecase_id,
                     client_id,
                     redirect_uri_template,
+                    accept_undetermined_revocation_status,
                 },
             ),
         }
@@ -1238,6 +1276,7 @@ impl Session<Created> {
                     redirect_uri,
                     encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     usecase_id: self.state.data.usecase_id.clone(),
+                    accept_undetermined_revocation_status: self.state().accept_undetermined_revocation_status,
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -1371,17 +1410,23 @@ impl Session<WaitingForResponse> {
     /// because it differs from similar methods in the following aspect: in some cases (to wit, if the user
     /// sent an error instead of a disclosure) then we should respond with HTTP 200 to the user (mandated by
     /// the OpenID4VP spec), while we fail our session. This does not neatly fit in the `_inner()` method pattern.
-    async fn process_authorization_response(
+    #[expect(clippy::too_many_arguments)]
+    async fn process_authorization_response<C>(
         self,
         wallet_response: WalletAuthResponse,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         result_handler: Option<&(dyn DisclosureResultHandler + Send + Sync)>,
+        extending_vct_values: &impl ExtendingVctRetriever,
+        revocation_verifier: &RevocationVerifier<C>,
     ) -> (
         Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
         Session<Done>,
-    ) {
+    )
+    where
+        C: StatusListClient,
+    {
         debug!("Session({}): process response", self.state.token);
 
         let jwe = match wallet_response {
@@ -1419,7 +1464,12 @@ impl Session<WaitingForResponse> {
             accepted_wallet_client_ids,
             time,
             trust_anchors,
-        ) {
+            extending_vct_values,
+            revocation_verifier,
+            self.state().accept_undetermined_revocation_status,
+        )
+        .await
+        {
             Ok(disclosed) => disclosed,
             Err(err) => return self.handle_err(err.into()),
         };
@@ -1523,12 +1573,16 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::disclosure::ValidityInfo;
+    use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
+    use token_status_list::verification::client::mock::StatusListClientStub;
+    use token_status_list::verification::verifier::RevocationStatus;
+    use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
@@ -1573,13 +1627,14 @@ mod tests {
     type TestVerifier = Verifier<
         MemorySessionStore<DisclosureData>,
         RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData>>,
+        StatusListClientStub<SigningKey>,
     >;
 
     fn create_verifier() -> TestVerifier {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let reader_registration = Some(ReaderRegistration::new_mock());
+        let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([
             (
@@ -1589,6 +1644,7 @@ mod tests {
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
+                    false,
                 )
                 .unwrap(),
             ),
@@ -1599,6 +1655,7 @@ mod tests {
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
+                    false,
                 )
                 .unwrap(),
             ),
@@ -1609,6 +1666,7 @@ mod tests {
                     SessionTypeReturnUrl::Both,
                     None,
                     None,
+                    false,
                 )
                 .unwrap(),
             ),
@@ -1626,6 +1684,13 @@ mod tests {
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            HashMap::default(),
+            RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
+                Ca::generate_issuer_mock_ca()
+                    .unwrap()
+                    .generate_status_list_mock()
+                    .unwrap(),
+            ))),
         )
     }
 
@@ -1816,12 +1881,10 @@ mod tests {
                 attestation_type: "attestation_type".to_string(),
                 attributes: DisclosedAttributes::MsoMdoc(Default::default()),
                 issuer_uri: "https://issuer.example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Utc::now(),
-                    valid_from: Some(Utc::now()),
-                    valid_until: Some(Utc::now())
-                },
+                issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
+                revocation_status: Some(RevocationStatus::Valid),
             }],
         }])
         .unwrap()
@@ -1924,7 +1987,7 @@ mod tests {
         let time = time_str.parse().unwrap();
 
         // Create a UL for the wallet, given the provided parameters.
-        let verifier_url = Verifier::<(), ()>::format_ul(
+        let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             Some(EphemeralIdParameters {
@@ -1957,7 +2020,7 @@ mod tests {
     #[test]
     fn test_verifier_url_without_ephemeral_id() {
         // Create a UL for the wallet, given the provided parameters.
-        let verifier_url = Verifier::<(), ()>::format_ul(
+        let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             None,
@@ -1977,7 +2040,7 @@ mod tests {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let reader_registration = Some(ReaderRegistration::new_mock());
+        let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
@@ -2000,6 +2063,13 @@ mod tests {
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            HashMap::default(),
+            RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
+                Ca::generate_issuer_mock_ca()
+                    .unwrap()
+                    .generate_status_list_mock()
+                    .unwrap(),
+            ))),
         );
 
         let query_params = serde_urlencoded::to_string(VerifierUrlParameters {

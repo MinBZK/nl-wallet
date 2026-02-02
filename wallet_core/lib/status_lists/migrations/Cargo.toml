@@ -1,0 +1,16 @@
+[package]
+name = "status_lists_migrations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+name = "status_lists_migrations"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+sea-orm-migration.workspace = true

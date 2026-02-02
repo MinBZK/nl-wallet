@@ -3,7 +3,7 @@ import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.da
 
 void main() {
   test(
-    'serialize to and from Map<> yields identical object',
+    'ltc5 serialize to and from Map<> yields identical object',
     () {
       const expected = IssuanceScreenArgument(
         mockSessionId: '1aef7',
@@ -11,8 +11,8 @@ void main() {
         uri: 'https://example.org',
         isQrCode: false,
       );
-      final serialized = expected.toMap();
-      final result = IssuanceScreenArgument.fromMap(serialized);
+      final serialized = expected.toJson();
+      final result = IssuanceScreenArgument.fromJson(serialized);
       expect(result, expected);
     },
   );

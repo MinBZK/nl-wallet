@@ -6,7 +6,7 @@
     "port": ${DEMO_ISSUER_PORT}
   },
   "issuance_server": {
-    "ip": "127.0.0.1",
+    "ip": "0.0.0.0",
     "port": ${DEMO_ISSUER_IS_PORT}
   },
   "issuance_server_tls_config": {
@@ -14,18 +14,52 @@
     "key": "${DEMO_ISSUER_ATTESTATION_SERVER_KEY}"
   },
   "usecases": {
-    "university": {
+    "university_mdoc": {
       "client_id": "university.example.com",
       "data": {
+        "900253022": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Mathematics",
+              "graduation_date": "1995-10-10",
+              "grade": "9",
+              "cum_laude": true
+            }
+          }
+        ],
         "999991772": [
           {
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": "Holland University",
-              "education": "MSc Economics",
-              "graduation_date": "1970-01-01",
-              "grade": null,
+              "education": "BSc Economics",
+              "graduation_date": "2001-07-12",
+              "grade": "8",
               "cum_laude": false
+            }
+          },
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Economics",
+              "graduation_date": "2004-07-01",
+              "grade": "7",
+              "cum_laude": false
+            }
+          }
+        ],
+        "999991905": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Zealand University",
+              "education": "Leisure management",
+              "graduation_date": "2010-08-31",
+              "grade": "9",
+              "cum_laude": true
             }
           }
         ]
@@ -33,6 +67,61 @@
       "disclosed": {
         "credential_type": "urn:eudi:pid:nl:1",
         "path": ["urn:eudi:pid:nl:1", "bsn"]
+      }
+    },
+    "university_sd_jwt": {
+      "client_id": "university.example.com",
+      "data": {
+        "900253022": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Mathematics",
+              "graduation_date": "1995-10-10",
+              "grade": "9",
+              "cum_laude": true
+            }
+          }
+        ],
+        "999991772": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "BSc Economics",
+              "graduation_date": "2001-07-12",
+              "grade": "8",
+              "cum_laude": false
+            }
+          },
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Economics",
+              "graduation_date": "2004-07-01",
+              "grade": "7",
+              "cum_laude": false
+            }
+          }
+        ],
+        "999991905": [
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Zealand University",
+              "education": "Leisure management",
+              "graduation_date": "2010-08-31",
+              "grade": "9",
+              "cum_laude": true
+            }
+          }
+        ]
+      },
+      "disclosed": {
+        "credential_type": "urn:eudi:pid:nl:1",
+        "path": ["bsn"]
       }
     },
     "insurance": {
@@ -47,6 +136,71 @@
               "start_date": "2025-01-01",
               "duration": "365",
               "customer_number": "283728"
+            }
+          }
+        ]
+      },
+      "disclosed": {
+        "credential_type": "urn:eudi:pid:nl:1",
+        "path": ["urn:eudi:pid:nl:1", "bsn"]
+      }
+    },
+    "housing": {
+      "client_id": "housing.example.com",
+      "data": {
+        "999991772": [
+          {
+            "attestation_type": "com.example.housing",
+            "attributes": {
+              "rent": "€ 810,00",
+              "service_charges": "€ 51,00",
+              "eligible_service_charges": "€ 30,00",
+              "rental_object": {
+                "bag_id": "518010001648892",
+                "street_name": "Turfmarkt",
+                "house_number": "147",
+                "house_number_suffix": null,
+                "room_number": null,
+                "zip_code": " 2511DP",
+                "city": "Den Haag"
+              },
+              "rental_contract": {
+                "start_date": "2023-07-01",
+                "end_date": null,
+                "duration_in_months": 12
+              },
+              "rental_organization": {
+                "name": "DroomWoon N.V.",
+                "kvk_number": "41215563"
+              }
+            }
+          }
+        ],
+        "999991905": [
+          {
+            "attestation_type": "com.example.housing",
+            "attributes": {
+              "rent": "€ 720,00",
+              "service_charges": "€ 48,00",
+              "eligible_service_charges": "€ 40,00",
+              "rental_object": {
+                "bag_id": "518010001648894",
+                "street_name": "Glitterstraat",
+                "house_number": "301",
+                "house_number_suffix": null,
+                "room_number": null,
+                "zip_code": "1103SK",
+                "city": "Amsterdam"
+              },
+              "rental_contract": {
+                "start_date": "2025-12-01",
+                "end_date": null,
+                "duration_in_months": 12
+              },
+              "rental_organization": {
+                "name": "DroomWoon N.V.",
+                "kvk_number": "41215563"
+              }
             }
           }
         ]

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use axum::response::IntoResponse;
 use axum::response::Response;
 use derive_more::AsRef;
@@ -5,6 +7,7 @@ use derive_more::Display;
 use derive_more::From;
 use derive_more::FromStr;
 use http::StatusCode;
+use metrics::counter;
 
 use hsm::service::HsmError;
 use http_utils::error::HttpJsonError;
@@ -21,7 +24,7 @@ use wallet_provider_service::wua_issuer::HsmWuaIssuerError;
 #[derive(Debug, Clone, From, AsRef, Display, FromStr)]
 pub struct WalletProviderErrorType(AccountErrorType);
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum WalletProviderError {
     #[error("{0}")]
     Challenge(#[from] ChallengeError),
@@ -93,15 +96,18 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::AccountBlocked => Self::AccountBlocked,
                 InstructionError::Validation(_)
                 | InstructionError::NonExistingKey(_)
+                | InstructionError::UnknownPidAttestationType(_)
                 | InstructionError::MissingRecoveryCode
                 | InstructionError::InvalidRecoveryCode
+                | InstructionError::AttributesConversion(_)
                 | InstructionError::AccountNotTransferable
                 | InstructionError::NoAccountTransferInProgress
                 | InstructionError::AccountTransferWalletsMismatch
                 | InstructionError::AccountTransferIllegalState
                 | InstructionError::AccountTransferCanceled
                 | InstructionError::AppVersionMismatch { .. }
-                | InstructionError::SdJwtError(_) => Self::InstructionValidation,
+                | InstructionError::SdJwtError(_)
+                | InstructionError::PinRecoveryAccountMismatch => Self::InstructionValidation,
                 InstructionError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
@@ -110,7 +116,8 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::HsmError(_)
                 | InstructionError::Poa(_)
                 | InstructionError::PopSigning(_)
-                | InstructionError::JwkConversion(_) => Self::Unexpected,
+                | InstructionError::JwkConversion(_)
+                | InstructionError::ObtainStatusClaim(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
             WalletProviderError::Wua(_) => Self::Unexpected,
@@ -133,6 +140,165 @@ impl From<WalletProviderError> for HttpJsonError<WalletProviderErrorType> {
 
 impl IntoResponse for WalletProviderError {
     fn into_response(self) -> Response {
+        register_error_metric(&self);
         HttpJsonError::<WalletProviderErrorType>::from(self).into_response()
+    }
+}
+
+fn register_error_metric(error: &WalletProviderError) {
+    let inner_error: Cow<'static, str> = match error {
+        WalletProviderError::Challenge(inner) => Cow::Borrowed(inner.into()),
+        WalletProviderError::Registration(inner) => Cow::Borrowed(inner.into()),
+        WalletProviderError::Instruction(inner) => {
+            let instruction_error: &'static str = inner.into();
+            match inner {
+                InstructionError::Validation(error) => {
+                    let error: &'static str = error.into();
+                    Cow::Owned(format!("{instruction_error}::{error}"))
+                }
+                InstructionError::WalletCertificate(error) => {
+                    let error: &'static str = error.into();
+                    Cow::Owned(format!("{instruction_error}::{error}"))
+                }
+                _ => Cow::Borrowed(inner.into()),
+            }
+        }
+        WalletProviderError::Hsm(inner) => Cow::Borrowed(inner.into()),
+        WalletProviderError::Wua(inner) => Cow::Borrowed(inner.into()),
+    };
+
+    let error: &'static str = error.into();
+    counter!(
+        "nlwallet_error_response",
+        "service" => "wallet_provider",
+        "error" => error,
+        "inner_error" => inner_error
+    )
+    .increment(1);
+}
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::type_complexity)]
+
+    use std::sync::Arc;
+    use std::sync::Mutex;
+
+    use metrics::Counter;
+    use metrics::CounterFn;
+    use metrics::Gauge;
+    use metrics::Histogram;
+    use metrics::Key;
+    use metrics::KeyName;
+    use metrics::Metadata;
+    use metrics::Recorder;
+    use metrics::SharedString;
+    use metrics::Unit;
+    use rstest::rstest;
+
+    use wallet_account::error::DecodeError;
+    use wallet_provider_service::account_server::InstructionValidationError;
+
+    use super::*;
+
+    struct MockCounter {
+        labels: Vec<(String, String)>,
+        counters: Arc<Mutex<Vec<Vec<(String, String)>>>>,
+    }
+
+    impl CounterFn for MockCounter {
+        fn increment(&self, _value: u64) {
+            self.counters.lock().unwrap().push(self.labels.clone());
+        }
+
+        fn absolute(&self, _value: u64) {
+            unimplemented!()
+        }
+    }
+
+    #[derive(Clone, Default)]
+    struct MockRecorder {
+        counters: Arc<Mutex<Vec<Vec<(String, String)>>>>,
+    }
+
+    impl Recorder for MockRecorder {
+        fn describe_counter(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {}
+        fn describe_gauge(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {}
+        fn describe_histogram(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {}
+
+        fn register_counter(&self, key: &Key, _metadata: &Metadata<'_>) -> Counter {
+            let labels: Vec<_> = key
+                .labels()
+                .map(|label| (label.key().to_string(), label.value().to_string()))
+                .collect();
+
+            Counter::from_arc(Arc::new(MockCounter {
+                labels,
+                counters: Arc::clone(&self.counters),
+            }))
+        }
+
+        fn register_gauge(&self, _key: &Key, _metadata: &Metadata<'_>) -> Gauge {
+            unimplemented!()
+        }
+        fn register_histogram(&self, _key: &Key, _metadata: &Metadata<'_>) -> Histogram {
+            unimplemented!()
+        }
+    }
+
+    #[rstest]
+    #[case::nested_instruction_validation_error(
+        WalletProviderError::Instruction(InstructionError::Validation(
+            InstructionValidationError::SequenceNumberMismatch
+        )),
+        "Instruction",
+        "Validation::SequenceNumberMismatch"
+    )]
+    #[case::deeper_nested_instruction_validation_error(
+        WalletProviderError::Instruction(InstructionError::Validation(
+            InstructionValidationError::VerificationFailed(DecodeError::ChallengeMismatch)
+        )),
+        "Instruction",
+        "Validation::VerificationFailed"
+    )]
+    #[case::nested_wallet_certificate_error(
+        WalletProviderError::Instruction(InstructionError::WalletCertificate(
+            WalletCertificateError::HwPubKeyMismatch
+        )),
+        "Instruction",
+        "WalletCertificate::HwPubKeyMismatch"
+    )]
+    #[case::other_error(
+        WalletProviderError::Registration(RegistrationError::SerialNumberMismatch { expected: 3, received: 2}),
+        "Registration",
+        "SerialNumberMismatch"
+    )]
+    fn test_register_error_metric(
+        #[case] error: WalletProviderError,
+        #[case] expected_error: &str,
+        #[case] expected_inner_error: &str,
+    ) {
+        let recorder = MockRecorder::default();
+
+        metrics::with_local_recorder(&recorder, || {
+            register_error_metric(&error);
+        });
+
+        let counters = recorder.counters.lock().unwrap();
+        assert_eq!(counters.len(), 1);
+
+        let labels = &counters[0];
+        assert!(
+            labels.iter().any(|(key, val)| key == "error" && val == expected_error),
+            "Missing or incorrect error label. Got labels: {:?}",
+            labels
+        );
+        assert!(
+            labels
+                .iter()
+                .any(|(key, val)| key == "inner_error" && val == expected_inner_error),
+            "Missing or incorrect inner_error label. Got labels: {:?}",
+            labels
+        );
     }
 }

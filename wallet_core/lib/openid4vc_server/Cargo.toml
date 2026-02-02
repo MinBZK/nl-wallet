@@ -13,19 +13,19 @@ doctest = false
 
 [features]
 # Enable issuance
-issuance = ["dep:axum-extra"]
+issuance = ["axum-extra/typed-header"]
 # Enable disclosure
 disclosure = ["dep:ring"]
 
 [dependencies]
-axum = { workspace = true, features = ["form", "http1", "json", "query", "tower-log", "tracing"] }
+axum = { workspace = true, features = ["form", "json"] }
 http.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
-tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
+tower-http = { workspace = true, features = ["cors"] }
 tracing.workspace = true
 
-axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
+axum-extra = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
 
 attestation_data.path = "../attestation_data"
@@ -34,4 +34,5 @@ dcql.path = "../dcql"
 http_utils = { path = "../http_utils", features = ["server"] }
 jwt.path = "../jwt"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
+token_status_list = { path = "../token_status_list" }
 utils = { path = "../utils" }

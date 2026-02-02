@@ -8,6 +8,7 @@ import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
 import 'package:wallet/src/feature/banner/wallet_banner.dart';
 
 import '../../../wallet_app_test_widget.dart';
+import '../../mocks/wallet_mock_data.dart';
 import '../../test_util/golden_utils.dart';
 
 class MockBannerCubit extends MockCubit<List<WalletBanner>> implements BannerCubit {}
@@ -18,6 +19,12 @@ const kMultiItemSize = Size(390, 180);
 const tourBanner = TourSuggestionBanner();
 final updateNotifyBanner = UpdateAvailableBanner(state: VersionStateNotify());
 final updateRecommendBanner = UpdateAvailableBanner(state: VersionStateRecommend());
+final cardExpiryWarningBanner = CardExpiresSoonBanner(
+  card: WalletMockData.altCard,
+  expiresAt: DateTime.now().add(const Duration(days: 4, minutes: 1)),
+);
+final cardExpiredBanner = CardExpiredBanner(card: WalletMockData.card);
+final cardRevokedBanner = CardRevokedBanner(card: WalletMockData.card);
 
 void main() {
   // Common setup for widget pumping
@@ -43,7 +50,7 @@ void main() {
   }
 
   group('BannerList Goldens', () {
-    testGoldens('empty list - light theme', (tester) async {
+    testGoldens('ltc14 ltc42 empty list - light theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [],
@@ -52,7 +59,7 @@ void main() {
       await screenMatchesGolden('banner_list.empty.light');
     });
 
-    testGoldens('single tour banner - light theme', (tester) async {
+    testGoldens('ltc14 ltc42 single tour banner - light theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [tourBanner],
@@ -61,7 +68,7 @@ void main() {
       await screenMatchesGolden('banner_list.single_tour.light');
     });
 
-    testGoldens('single update banner (notify) - light theme', (tester) async {
+    testGoldens('ltc14 ltc42 single update banner (notify) - light theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [updateNotifyBanner],
@@ -70,17 +77,44 @@ void main() {
       await screenMatchesGolden('banner_list.single_update_notify.light');
     });
 
-    testGoldens('multiple banners (tour and update) - light theme', (tester) async {
+    testGoldens('ltc14 ltc42 multiple banners (tour and update) - light theme', (tester) async {
       await pumpBannerList(tester, initialBanners: [tourBanner, updateRecommendBanner]);
       await screenMatchesGolden('banner_list.multiple_banners.light');
     });
 
-    testGoldens('multiple banners (update and tour) - light theme', (tester) async {
+    testGoldens('ltc14 ltc42 multiple banners (update and tour) - light theme', (tester) async {
       await pumpBannerList(tester, initialBanners: [updateRecommendBanner, tourBanner]);
       await screenMatchesGolden('banner_list.multiple_banners_alt_order.light');
     });
 
-    testGoldens('single tour banner - dark theme', (tester) async {
+    testGoldens('multiple banners (expiry, expired, revoked) - light theme', (tester) async {
+      await pumpBannerList(
+        tester,
+        initialBanners: [
+          cardExpiredBanner,
+          cardExpiryWarningBanner,
+          cardRevokedBanner,
+        ],
+        surfaceSize: const Size(390, 310),
+      );
+      await screenMatchesGolden('banner_list.multiple_expiry_banners.light');
+    });
+
+    testGoldens('multiple banners (expiry, expired, revoked) - dark theme', (tester) async {
+      await pumpBannerList(
+        tester,
+        initialBanners: [
+          cardExpiryWarningBanner,
+          cardExpiredBanner,
+          cardRevokedBanner,
+        ],
+        brightness: Brightness.dark,
+        surfaceSize: const Size(390, 310),
+      );
+      await screenMatchesGolden('banner_list.multiple_expiry_banners.dark');
+    });
+
+    testGoldens('ltc14 ltc42 single tour banner - dark theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [tourBanner],
@@ -90,7 +124,7 @@ void main() {
       await screenMatchesGolden('banner_list.single_tour.dark');
     });
 
-    testGoldens('multiple banners - dark theme', (tester) async {
+    testGoldens('ltc14 ltc42 multiple banners - dark theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [updateNotifyBanner, tourBanner],
@@ -99,7 +133,7 @@ void main() {
       await screenMatchesGolden('banner_list.multiple_banners.dark');
     });
 
-    testGoldens('single tour banner - text scaled', (tester) async {
+    testGoldens('ltc14 ltc42 single tour banner - text scaled', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [tourBanner],

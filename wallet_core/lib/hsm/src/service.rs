@@ -1,6 +1,5 @@
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 use cryptoki::context::CInitializeArgs;
@@ -16,6 +15,7 @@ use cryptoki::types::AuthPin;
 use der::Decode;
 use der::Encode;
 use der::asn1::OctetString;
+use derive_more::AsRef;
 use futures::future;
 use p256::NistP256;
 use p256::ecdsa::Signature;
@@ -29,6 +29,7 @@ use sec1::EcParameters;
 
 use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::sha256;
+use measure::measure;
 use utils::spawn;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -36,8 +37,9 @@ use crate::model::Hsm;
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
 use crate::model::wrapped_key::WrappedKey;
+use crate::settings;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum HsmError {
     #[error("pkcs11 error: {0}")]
     Pkcs11(#[from] cryptoki::error::Error),
@@ -95,13 +97,13 @@ pub trait Pkcs11Client {
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Vec<u8>>;
     async fn verify(
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
         signature: Vec<u8>,
     ) -> Result<()>;
     async fn random_bytes(&self, length: u32) -> Result<Vec<u8>>;
@@ -148,11 +150,11 @@ pub trait Pkcs11Client {
         &self,
         wrapping_key_identifier: &str,
         wrapped_key: WrappedKey,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Signature>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, AsRef)]
 pub struct Pkcs11Hsm {
     pool: Pool,
 }
@@ -188,8 +190,7 @@ impl Pkcs11Hsm {
         Ok(Self { pool })
     }
 
-    #[cfg(feature = "settings")]
-    pub fn from_settings(settings: crate::settings::Hsm) -> Result<Self> {
+    pub fn from_settings(settings: settings::Hsm) -> Result<Self> {
         Pkcs11Hsm::new(
             settings.library_path,
             settings.user_pin,
@@ -250,13 +251,13 @@ impl Hsm for Pkcs11Hsm {
         Ok(())
     }
 
-    async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Signature, Self::Error> {
+    async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> std::result::Result<Signature, Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
         let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
         Ok(Signature::from_slice(&signature)?)
     }
 
-    async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Vec<u8>, Self::Error> {
+    async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> std::result::Result<Vec<u8>, Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
         Pkcs11Client::sign(self, handle, SigningMechanism::Sha256Hmac, data).await
     }
@@ -264,7 +265,7 @@ impl Hsm for Pkcs11Hsm {
     async fn verify_hmac(
         &self,
         identifier: &str,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
         signature: Vec<u8>,
     ) -> std::result::Result<(), Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
@@ -286,6 +287,7 @@ impl Hsm for Pkcs11Hsm {
 }
 
 impl Pkcs11Client for Pkcs11Hsm {
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
@@ -311,6 +313,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
@@ -336,6 +339,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
         let pool = self.pool.clone();
 
@@ -362,6 +366,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
@@ -391,18 +396,21 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle> {
         self.get_key_handle(identifier, HandleType::Private)
             .await
             .map(PrivateKeyHandle)
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle> {
         self.get_key_handle(identifier, HandleType::Public)
             .await
             .map(PublicKeyHandle)
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn get_verifying_key(&self, public_key_handle: PublicKeyHandle) -> Result<VerifyingKey> {
         let pool = self.pool.clone();
 
@@ -426,6 +434,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn delete_key(&self, private_key_handle: PrivateKeyHandle) -> Result<()> {
         let pool = self.pool.clone();
 
@@ -437,13 +446,15 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn sign(
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
+        let data_hash = sha256(data);
 
         spawn::blocking(move || {
             let mechanism = match mechanism {
@@ -452,20 +463,22 @@ impl Pkcs11Client for Pkcs11Hsm {
             };
 
             let session = pool.get()?;
-            let signature = session.sign(&mechanism, private_key_handle.0, &sha256(&data))?;
+            let signature = session.sign(&mechanism, private_key_handle.0, &data_hash)?;
             Ok(signature)
         })
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn verify(
         &self,
         private_key_handle: PrivateKeyHandle,
         mechanism: SigningMechanism,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
         signature: Vec<u8>,
     ) -> Result<()> {
         let pool = self.pool.clone();
+        let data_hash = sha256(data);
 
         spawn::blocking(move || {
             let mechanism = match mechanism {
@@ -474,13 +487,14 @@ impl Pkcs11Client for Pkcs11Hsm {
             };
 
             let session = pool.get()?;
-            session.verify(&mechanism, private_key_handle.0, &sha256(&data), &signature)?;
+            session.verify(&mechanism, private_key_handle.0, &data_hash, &signature)?;
 
             Ok(())
         })
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn random_bytes(&self, length: u32) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
 
@@ -492,6 +506,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn encrypt(
         &self,
         key_handle: PrivateKeyHandle,
@@ -509,6 +524,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn decrypt(
         &self,
         key_handle: PrivateKeyHandle,
@@ -526,6 +542,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn wrap_key(
         &self,
         wrapping_key: PrivateKeyHandle,
@@ -542,6 +559,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn unwrap_signing_key(
         &self,
         unwrapping_key: PrivateKeyHandle,
@@ -569,6 +587,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .map(PrivateKeyHandle)
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey> {
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
@@ -581,11 +600,12 @@ impl Pkcs11Client for Pkcs11Hsm {
         Ok(wrapped)
     }
 
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn sign_wrapped(
         &self,
         wrapping_key_identifier: &str,
         wrapped_key: WrappedKey,
-        data: Arc<Vec<u8>>,
+        data: &[u8],
     ) -> Result<Signature> {
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let private_handle = self.unwrap_signing_key(private_wrapping_handle, wrapped_key).await?;

@@ -8,6 +8,15 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.assertAll
+import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
 import screen.disclosure.DisclosureApproveOrganizationScreen
@@ -19,13 +28,6 @@ import screen.organization.OrganizationDetailScreen
 import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.TestMethodOrder
-import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC6 Complete & card history overview and history events")
@@ -71,13 +73,14 @@ class HistoryTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC30 View activity list")
+    @DisplayName("LTC22 View activity list")
+    @Tags(Tag("a11yBatch1"))
     fun verifyHistoryEntries(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()
         menuScreen.clickBrowserTestButton()
         overviewWebPage.switchToWebViewContext()
-        overviewWebPage.clickAmsterdamButton()
+        overviewWebPage.clickAmsterdamMdocButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
 
         amsterdamWebPage.switchToNativeContext()
@@ -85,7 +88,7 @@ class HistoryTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.close()
 
-        amsterdamWebPage.switchToWalletApp()
+        amsterdamWebPage.openApp()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(dashboardScreen.visible())
 
@@ -97,7 +100,6 @@ class HistoryTests : TestBase() {
             { assertTrue(historyOverviewScreen.visible(), "history overview screen is not visible") },
             { assertTrue(historyOverviewScreen.pidIssuanceLogEntryVisible(), "pid issuance log entry is not visible") },
             { assertTrue(historyOverviewScreen.issuanceSubtitleVisible(), "pid issuance log entry is not visible") },
-            { assertTrue(historyOverviewScreen.addressIssuanceLogEntryVisible(), "address issuance log entry is not visible") },
             { assertTrue(historyOverviewScreen.loginDisclosureLogEntryVisible(), "login log entry is not visible") },
             { assertTrue(historyOverviewScreen.disclosureOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM))) }
         )
@@ -125,7 +127,7 @@ class HistoryTests : TestBase() {
         historyOverviewScreen.clickLoginEntryTitle()
         assertAll(
             { assertTrue(historyDetailScreen.reasonForSharingHeaderVisible(), "reason for sharing header not visible") },
-            { assertTrue(historyDetailScreen.reasonForSharingVisible(l10n.getString("organizationApprovePageLoginCta")), "reason for sharing not visible") },
+            { assertTrue(historyDetailScreen.reasonForSharingVisible(organizationAuthData.getAttributeValueForOrganization("purposeStatement", AMSTERDAM)), "reason for sharing not visible") },
             { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("bsn")), "BSN label not visible") },
             { assertTrue(historyDetailScreen.disclosureOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)), "organization not visible") },
             { assertTrue(historyDetailScreen.titleCorrectForLogin(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)), "title not visible") },
@@ -135,7 +137,7 @@ class HistoryTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC31 View card-specific activity list")
+    @DisplayName("LTC23 View card-specific activity list")
     fun verifyCardHistory(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickCard(tasData.getPidDisplayName())

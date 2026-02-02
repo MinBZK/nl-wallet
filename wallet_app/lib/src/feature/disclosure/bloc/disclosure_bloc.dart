@@ -56,6 +56,18 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     return _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
   }
 
+  /// Returns the indices of the cards selected by the user for disclosure.
+  ///
+  /// Returns null if the bloc is not in a state where selections can be made.
+  List<int>? get selectedIndices {
+    assert(
+      state is DisclosureConfirmDataAttributes || state is DisclosureCheckOrganizationForLogin,
+      'bloc in incorrect state ($state) to get selectedCardIndices',
+    );
+    return tryCast<DisclosureConfirmDataAttributes>(state)?.cardRequests.selectedIndices ??
+        tryCast<DisclosureCheckOrganizationForLogin>(state)?.cardRequests.selectedIndices;
+  }
+
   DisclosureBloc(
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
@@ -233,11 +245,24 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   void _onShareRequestedCardsApproved(DisclosureShareRequestedCardsApproved event, emit) {
     assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state to continue disclosing');
-    assert(
-      state is DisclosureConfirmDataAttributes || state is DisclosureCheckOrganizationForLogin,
-      'Invalid UI state to move to pin entry',
-    );
-    emit(DisclosureConfirmPin(relyingParty: relyingParty!, isCrossDevice: isCrossDeviceFlow));
+    final selectedIndices = this.selectedIndices;
+    if (selectedIndices != null) {
+      emit(
+        DisclosureConfirmPin(
+          relyingParty: relyingParty!,
+          isCrossDevice: isCrossDeviceFlow,
+          selectedIndices: selectedIndices,
+        ),
+      );
+    } else {
+      _handleApplicationError(
+        GenericError(
+          'App in incorrect state to move to approval',
+          sourceError: Exception('Invalid state'),
+        ),
+        emit,
+      );
+    }
   }
 
   void _onAlternativeCardSelected(DisclosureAlternativeCardSelected event, Emitter<DisclosureState> emit) {
@@ -326,8 +351,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   @override
   Future<void> close() async {
-    await super.close();
     _startDisclosureResult = null;
     _cardRequestsSelectionCache = null;
+    await super.close();
   }
 }

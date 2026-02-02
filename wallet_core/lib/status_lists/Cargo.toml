@@ -1,0 +1,95 @@
+[package]
+name = "status_lists"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[[test]]
+name = "postgres"
+path = "tests/postgres.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "revoke"
+path = "tests/revoke.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "serve"
+path = "tests/serve.rs"
+required-features = ["db_test"]
+
+[features]
+default = []
+axum = [
+    "dep:etag",
+    "dep:mediatype",
+    "dep:utoipa-axum",
+    "axum/json",
+    "tower-http/compression-gzip",
+    "utoipa/uuid",
+    "token_status_list/axum",
+]
+db_test = ["axum", "dep:reqwest", "health_checkers/test_settings"]
+# Enable additional test API endpoints
+test_api = ["axum"]
+
+[dependencies]
+anyhow.workspace = true
+chrono = { workspace = true, features = ["now"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into_iterator"] }
+futures.workspace = true
+itertools.workspace = true
+metrics.workspace = true
+nutype.workspace = true
+rand.workspace = true
+rustix = { workspace = true, features = ["fs"] }
+sea-orm = { workspace = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-uuid",
+] }
+serde = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "fs"] }
+tracing.workspace = true
+url.workspace = true
+uuid.workspace = true
+
+axum = { workspace = true, optional = true }
+etag = { workspace = true, optional = true }
+mediatype = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
+utoipa-axum = { workspace = true, optional = true }
+
+attestation_types.path = "../../lib/attestation_types"
+crypto.path = "../../lib/crypto"
+jwt.path = "../../lib/jwt"
+http_utils.path = "../../lib/http_utils"
+hsm.path = "../../lib/hsm"
+measure.path = "../../lib/measure"
+token_status_list = { path = "../../lib/token_status_list" }
+utils.path = "../../lib/utils"
+
+health_checkers = { path = "../../lib/health_checkers", optional = true }
+
+[dev-dependencies]
+assert_matches.workspace = true
+p256.workspace = true
+rstest.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["macros", "test-util"] }
+uuid = { workspace = true, features = ["v4"] }
+
+crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
+utils = { path = "../../lib/utils", features = ["mock_time"] }

@@ -1,6 +1,10 @@
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
+use crypto::x509::DistinguishedName;
+
+use crate::compressed_blob::CompressedBlob;
+
 use super::attestation;
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
@@ -11,8 +15,12 @@ pub struct Model {
     pub disclosure_count: u32,
     pub attestation_id: Uuid,
     pub key_identifier: String,
+    pub status_list_url: Option<String>,
+    pub status_list_index: Option<u32>,
+    pub issuer_certificate_dn: DistinguishedName,
+    pub revocation_status: Option<String>,
     pub attestation_format: AttestationFormat,
-    pub attestation: Vec<u8>,
+    pub attestation: CompressedBlob,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]

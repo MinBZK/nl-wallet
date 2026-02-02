@@ -1,7 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/history/overview/bloc/history_overview_bloc.dart';
@@ -14,7 +13,6 @@ void main() {
 
   setUp(() {
     getWalletEventsUseCase = MockGetWalletEventsUseCase();
-    provideDummy<Result<List<WalletEvent>>>(const Result.success([]));
   });
 
   blocTest(

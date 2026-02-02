@@ -1,6 +1,10 @@
 use std::hash::Hash;
+use std::io;
+use std::io::Write;
 
 use http::StatusCode;
+use http::header::CONTENT_ENCODING;
+use http::header::CONTENT_TYPE;
 use reqwest::RequestBuilder;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -10,6 +14,7 @@ use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::reqwest::parse_content_type;
 use http_utils::tls::pinning::TlsPinningConfig;
+use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::HwSignedInstruction;
@@ -71,13 +76,30 @@ where
         http_config: &C,
         path: &str,
         payload: &S,
+        should_compress: bool,
     ) -> Result<T, AccountProviderError>
     where
         S: Serialize,
         T: DeserializeOwned,
     {
-        self.send_custom_post_request(http_config, path, |request| request.json(payload))
-            .await
+        let compressed_data = if should_compress {
+            let json_bytes = serde_json::to_vec(&payload).map_err(AccountProviderError::PayloadSerialization)?;
+            Some(compress_bytes(&json_bytes).map_err(AccountProviderError::PayloadCompression)?)
+        } else {
+            None
+        };
+
+        self.send_custom_post_request(http_config, path, |request| {
+            if let Some(compressed_data) = compressed_data {
+                request
+                    .header(CONTENT_ENCODING, "zstd")
+                    .header(CONTENT_TYPE, "application/json")
+                    .body(compressed_data)
+            } else {
+                request.json(payload)
+            }
+        })
+        .await
     }
 
     async fn send_custom_post_request<T, F>(
@@ -160,12 +182,15 @@ impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
         &self,
         client_config: &TlsPinningConfig,
         registration_message: ChallengeResponse<Registration>,
-    ) -> Result<WalletCertificate, AccountProviderError> {
-        let cert: Certificate = self
-            .send_json_post_request(client_config, "createwallet", &registration_message)
+    ) -> Result<(WalletCertificate, RevocationCode), AccountProviderError> {
+        let Certificate {
+            certificate,
+            revocation_code,
+        } = self
+            .send_json_post_request(client_config, "createwallet", &registration_message, false)
             .await?;
 
-        Ok(cert.certificate)
+        Ok((certificate, revocation_code))
     }
 
     async fn instruction_challenge(
@@ -174,7 +199,7 @@ impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
         challenge_request: InstructionChallengeRequest,
     ) -> Result<Vec<u8>, AccountProviderError> {
         let challenge: Challenge = self
-            .send_json_post_request(client_config, "instructions/challenge", &challenge_request)
+            .send_json_post_request(client_config, "instructions/challenge", &challenge_request, false)
             .await?;
 
         Ok(challenge.challenge)
@@ -189,7 +214,12 @@ impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
         I: InstructionAndResult,
     {
         let message: InstructionResultMessage<I::Result> = self
-            .send_json_post_request(client_config, &format!("instructions/{}", I::NAME), &instruction)
+            .send_json_post_request(
+                client_config,
+                &format!("instructions/{}", I::NAME),
+                &instruction,
+                I::COMPRESS,
+            )
             .await?;
 
         Ok(message.result)
@@ -208,11 +238,18 @@ impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
                 client_config,
                 &format!("instructions/hw_signed/{}", I::NAME),
                 &instruction,
+                I::COMPRESS,
             )
             .await?;
 
         Ok(message.result)
     }
+}
+
+fn compress_bytes(bytes: &[u8]) -> Result<Vec<u8>, io::Error> {
+    let mut encoder = zstd::Encoder::new(Vec::new(), 3)?;
+    encoder.write_all(bytes)?;
+    encoder.finish()
 }
 
 #[cfg(test)]

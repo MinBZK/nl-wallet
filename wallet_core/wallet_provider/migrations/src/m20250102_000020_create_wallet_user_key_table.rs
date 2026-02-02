@@ -16,9 +16,12 @@ impl MigrationTrait for Migration {
                     .table(WalletUserKey::Table)
                     .col(pk_uuid(WalletUserKey::Id))
                     .col(uuid(WalletUserKey::WalletUserId))
+                    .col(uuid(WalletUserKey::BatchId))
                     .col(string(WalletUserKey::Identifier))
-                    .col(binary(WalletUserKey::EncryptedPrivateKey))
                     .col(binary(WalletUserKey::PublicKey))
+                    .col(binary(WalletUserKey::EncryptedPrivateKey))
+                    // Allow blocking keys for PID renewal and PIN recovery flows
+                    .col(boolean(WalletUserKey::IsBlocked))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_id")
@@ -37,6 +40,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(WalletUserKey::Table)
+                    .name("wallet_user_key_is_blocked_true")
+                    .col(WalletUserKey::IsBlocked)
+                    .and_where(Expr::column(WalletUserKey::IsBlocked))
+                    .to_owned(),
+            )
+            .await?;
         Ok(())
     }
 }
@@ -46,7 +59,9 @@ enum WalletUserKey {
     Table,
     Id,
     WalletUserId,
+    BatchId,
     Identifier,
     EncryptedPrivateKey,
     PublicKey,
+    IsBlocked,
 }

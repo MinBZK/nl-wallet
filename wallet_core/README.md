@@ -7,11 +7,11 @@ This contains the "shared core" part of the app.
 The functionality of the Wallet and supporting services is spread accross multiple directories in the workspace.
 The list below is not exhaustive, but is meant as a starting point for understanding the project structure.
 
-- `configuration_server`: Wallet configuration server for local development.
+- `demo`: Demo Pelying Party and Demo Issuer server, mocks multiple use cases.
 - `flutter_api`: Contains `flutter_rust_bridge` bindings. This allows Flutter to use the functionality from the `wallet` crate.
 - `gba_hc_converter`: Web server that converts GBA-V XML responses to HaalCentraal JSON format.
 - `lib`: Contains multiple libraries and protocols that are shared between the `wallet` and other applications.
-- `demo_relying_party`: Demo Pelying Party server, mocks multiple use cases.
+- `static_server`: Static server for local development hosting configuration and WUA status lists.
 - `tests_integration`: Integration tests for the `wallet` and core applications.
 - `uniffi-bindgen`: Helpers for `wallet/platform_support` bridge code generation.
 - `update_policy`: Server component for the update policy and shared data types with `wallet`.

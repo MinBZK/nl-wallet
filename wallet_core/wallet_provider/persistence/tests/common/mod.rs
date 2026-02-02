@@ -1,11 +1,5 @@
-use std::convert::Infallible;
-
 use chrono::DateTime;
 use chrono::Utc;
-use ctor::ctor;
-use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
@@ -15,69 +9,16 @@ use sea_orm::sea_query::Expr;
 use sea_orm::sea_query::Query;
 use uuid::Uuid;
 
-use apple_app_attest::AssertionCounter;
 use crypto::utils::random_bytes;
-use hsm::model::encrypted::Encrypted;
-use hsm::model::encrypter::Encrypter;
-use hsm::model::mock::MockPkcs11Client;
-use wallet_provider_database_settings::Settings;
+use crypto::utils::random_string;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
-use wallet_provider_domain::model::wallet_user::WalletUserCreate;
-use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::entity::wallet_user_instruction_challenge;
-use wallet_provider_persistence::wallet_user::create_wallet_user;
+use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
+use wallet_provider_persistence::test::db_from_env;
 use wallet_provider_persistence::wallet_user::update_instruction_challenge_and_sequence_number;
-
-#[ctor]
-fn init_logging() {
-    let _ = tracing::subscriber::set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .with_test_writer()
-            .finish(),
-    );
-}
-
-pub async fn db_from_env() -> Result<Db, PersistenceError> {
-    let settings = Settings::new().unwrap();
-    Db::new(settings.database.connection_string(), Default::default()).await
-}
-
-pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
-    Encrypter::<VerifyingKey>::encrypt(
-        &MockPkcs11Client::<Infallible>::default(),
-        identifier,
-        *SigningKey::random(&mut OsRng).verifying_key(),
-    )
-    .await
-    .unwrap()
-}
-
-pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, wallet_id: String) -> Uuid
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    create_wallet_user(
-        db,
-        WalletUserCreate {
-            wallet_id,
-            hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
-            encrypted_pin_pubkey: encrypted_pin_key("key1").await,
-            attestation_date_time: Utc::now(),
-            attestation: WalletUserAttestationCreate::Apple {
-                data: random_bytes(64),
-                assertion_counter: AssertionCounter::default(),
-            },
-        },
-    )
-    .await
-    .expect("Could not create wallet user")
-}
 
 pub async fn find_wallet_user<S, T>(db: &T, id: Uuid) -> Option<wallet_user::Model>
 where
@@ -148,4 +89,18 @@ where
         .all(conn)
         .await
         .expect("Could not fetch instruction challenges")
+}
+
+pub async fn create_test_user() -> (Db, Uuid, String, wallet_user::Model) {
+    let db = db_from_env().await.expect("Could not connect to database");
+
+    let wallet_id = random_string(32);
+
+    let wallet_user_id = create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
+
+    let user = find_wallet_user(&db, wallet_user_id)
+        .await
+        .expect("Wallet user not found");
+
+    (db, wallet_user_id, wallet_id, user)
 }

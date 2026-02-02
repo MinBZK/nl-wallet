@@ -14,7 +14,7 @@ use wallet::test::UpdateableRepository;
 use wallet_configuration::wallet_config::UpdatePolicyServerConfiguration;
 
 #[tokio::test]
-async fn test_wallet_update_policy() {
+async fn ltc42_test_wallet_update_policy() {
     let (mut ups_settings, root_ca) = update_policy_server_settings();
     ups_settings.update_policy =
         serde_json::from_value::<UpdatePolicyConfig>(json!({ env!("CARGO_PKG_VERSION"): "Block" })).unwrap();
@@ -72,8 +72,8 @@ async fn test_wallet_update_policy_server_tls_pinning() {
     let (ups_settings, root_ca) = update_policy_server_settings();
     let port = start_update_policy_server(ups_settings.clone(), root_ca).await;
 
-    // Use the wrong root CA
-    let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
+    // Use bad root CA
+    let root_ca = read_file("bad.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_ups_base_url(port),

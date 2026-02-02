@@ -57,6 +57,23 @@ imagePullSecrets: []
 ##
 serviceAccountName: null
 
+## @section Ingress internal parameters
+## Parameters for the internal ingress
+## @param ingressInternal.enabled Enable or disable the internal ingress
+## @param ingressInternal.className Ingress class name
+## @param ingressInternal.hostname Hostname for the internal ingress
+## @param ingressInternal.tlsSecretName Name of the TLS secret for the internal ingress
+## @param ingressInternal.labels Additional labels for the internal ingress
+## @param ingressInternal.annotations Additional annotations for the internal ingress
+##
+ingressInternal:
+  enabled: false
+  className: "nginx"
+  hostname: null
+  tlsSecretName: null
+  labels: {}
+  annotations: {}
+
 ## @section Ingress parameters
 ## @param ingress.className Ingress class name
 ## @param ingress.hostname Hostname for the ingress
@@ -72,6 +89,21 @@ ingress:
   tlsSecretName: null
   labels: {}
   annotations: {}
+
+## @section Container probes
+## @param probes.config.liveness Additional configuration for liveness probe
+## @param probes.config.readiness Additional configuration for readiness probe
+## @param probes.config.startup Additional configuration for startup probe
+## @param probes.disableLiveness Disable liveness probe
+## @param probes.useLivenessAsReadiness Use liveness endpoint for readiness
+##
+probes:
+  config:
+    liveness: {}
+    readiness: {}
+    startup: {}
+  disableLiveness: false
+  useLivenessAsReadiness: false
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request

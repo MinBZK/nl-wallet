@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
 use aes_gcm::Aes256Gcm;
@@ -13,7 +14,7 @@ use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::settings::SymmetricKey;
 
 fn xml_resources_path() -> PathBuf {
-    prefix_local_path("tests/resources".as_ref()).into_owned()
+    prefix_local_path(Path::new("tests/resources")).into_owned()
 }
 
 pub async fn read_file(name: &str) -> String {

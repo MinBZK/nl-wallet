@@ -1,2 +1,0 @@
-python-gitlab==6.1.0
-jira==3.8.0

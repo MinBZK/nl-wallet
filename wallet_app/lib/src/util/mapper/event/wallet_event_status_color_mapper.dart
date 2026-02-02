@@ -16,8 +16,18 @@ class WalletEventStatusColorMapper extends ContextMapper<WalletEvent, Color> {
   bool useErrorColor(WalletEvent input) {
     return switch (input) {
       DisclosureEvent() => input.status != EventStatus.success,
-      IssuanceEvent() => false,
+      IssuanceEvent() => _isIssuanceEventError(input.eventType),
       SignEvent() => false,
+    };
+  }
+
+  bool _isIssuanceEventError(IssuanceEventType eventType) {
+    return switch (eventType) {
+      IssuanceEventType.cardIssued => false,
+      IssuanceEventType.cardRenewed => false,
+      IssuanceEventType.cardStatusExpired => true,
+      IssuanceEventType.cardStatusRevoked => true,
+      IssuanceEventType.cardStatusCorrupted => true,
     };
   }
 }

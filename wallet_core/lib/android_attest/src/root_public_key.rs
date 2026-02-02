@@ -1,33 +1,9 @@
-use std::sync::LazyLock;
-
-use const_decoder::Pem;
-use const_decoder::decode;
-use p256::ecdsa::VerifyingKey;
+use p384::ecdsa::VerifyingKey;
 use rsa::BigUint;
 use rsa::RsaPublicKey;
 use rsa::traits::PublicKeyParts;
 use spki::DecodePublicKey;
 use x509_parser::public_key::PublicKey;
-
-const GOOGLE_ROOT_PUBKEY_DER: &[u8] = &decode!(
-    Pem,
-    include_bytes!("../assets/google_hardware_attestation_root_pubkey.pem")
-);
-
-const EMULATOR_ROOT_RSA_PUBKEY_DER: &[u8] =
-    &decode!(Pem, include_bytes!("../assets/android_emulator_rsa_root_pubkey.pem"));
-const EMULATOR_ROOT_ECDSA_PUBKEY_DER: &[u8] =
-    &decode!(Pem, include_bytes!("../assets/android_emulator_ec_root_pubkey.pem"));
-
-pub static GOOGLE_ROOT_PUBKEYS: LazyLock<Vec<RootPublicKey>> =
-    LazyLock::new(|| vec![RootPublicKey::rsa_from_der(GOOGLE_ROOT_PUBKEY_DER).unwrap()]);
-
-pub static EMULATOR_PUBKEYS: LazyLock<Vec<RootPublicKey>> = LazyLock::new(|| {
-    vec![
-        RootPublicKey::rsa_from_der(EMULATOR_ROOT_RSA_PUBKEY_DER).unwrap(),
-        RootPublicKey::ecdsa_from_der(EMULATOR_ROOT_ECDSA_PUBKEY_DER).unwrap(),
-    ]
-});
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RootPublicKey {
@@ -80,9 +56,39 @@ impl TryFrom<&[u8]> for RootPublicKey {
     }
 }
 
+#[cfg(feature = "test_root_keys")]
+pub use test_keys::GOOGLE_ROOT_PUBKEYS;
+
+#[cfg(feature = "test_root_keys")]
+mod test_keys {
+    use std::sync::LazyLock;
+
+    use const_decoder::Pem;
+    use const_decoder::decode;
+
+    use super::RootPublicKey;
+
+    const GOOGLE_ROOT_RSA_PUBKEY_DER: &[u8] = &decode!(
+        Pem,
+        include_bytes!("../assets/google_hardware_attestation_root_rsa_pubkey.pem")
+    );
+
+    const GOOGLE_ROOT_EC_PUBKEY_DER: &[u8] = &decode!(
+        Pem,
+        include_bytes!("../assets/google_hardware_attestation_root_ec_pubkey.pem")
+    );
+
+    pub static GOOGLE_ROOT_PUBKEYS: LazyLock<Vec<RootPublicKey>> = LazyLock::new(|| {
+        vec![
+            RootPublicKey::rsa_from_der(GOOGLE_ROOT_RSA_PUBKEY_DER).unwrap(),
+            RootPublicKey::ecdsa_from_der(GOOGLE_ROOT_EC_PUBKEY_DER).unwrap(),
+        ]
+    });
+}
+
 #[cfg(test)]
 mod test {
-    use p256::ecdsa::SigningKey;
+    use p384::ecdsa::SigningKey;
     use rsa::RsaPrivateKey;
     use rsa::RsaPublicKey;
     use spki::EncodePublicKey;

@@ -84,6 +84,7 @@ pub enum AttestationVersion {
     V100 = 100,
     V200 = 200,
     V300 = 300,
+    V400 = 400,
 }
 
 integer_int_enum_conversion!(
@@ -104,6 +105,7 @@ pub enum KeyMintVersion {
     V100 = 100,
     V200 = 200,
     V300 = 300,
+    V400 = 400,
 }
 
 integer_int_enum_conversion!(KeyMintVersion, i32, KeyMintVersionError, InvalidKeyMintVersion);
@@ -516,6 +518,7 @@ pub struct AuthorizationList {
     pub boot_patch_level: Option<PatchLevel>,
     pub device_unique_attestation: bool,
     pub attestation_id_second_imei: Option<OctetString>,
+    pub module_hash: Option<OctetString>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -662,6 +665,7 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map_err(AuthorizationListFieldError::BootPatchLevel)?,
             device_unique_attestation: source.device_unique_attestation.is_some(),
             attestation_id_second_imei: source.attestation_id_second_imei,
+            module_hash: source.module_hash,
         };
 
         Ok(result)
@@ -687,12 +691,10 @@ mod test {
     #[case(100.into(), Ok(AttestationVersion::V100))]
     #[case(200.into(), Ok(AttestationVersion::V200))]
     #[case(300.into(), Ok(AttestationVersion::V300))]
+    #[case(400.into(), Ok(AttestationVersion::V400))]
     #[case(0.into(), Err(AttestationVersionError::InvalidAttestationVersion(0)))]
     #[case(5.into(), Err(AttestationVersionError::InvalidAttestationVersion(5)))]
-    #[case(
-        400.into(),
-        Err(AttestationVersionError::InvalidAttestationVersion(400))
-    )]
+    #[case(500.into(), Err(AttestationVersionError::InvalidAttestationVersion(500)))]
     fn attestation_version(
         #[case] input: Integer,
         #[case] expected: Result<AttestationVersion, AttestationVersionError>,
@@ -708,10 +710,11 @@ mod test {
     #[case(100.into(), Ok(KeyMintVersion::V100))]
     #[case(200.into(), Ok(KeyMintVersion::V200))]
     #[case(300.into(), Ok(KeyMintVersion::V300))]
+    #[case(400.into(), Ok(KeyMintVersion::V400))]
+    #[case(500.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(500)))]
     #[case(0.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(0)))]
     #[case(1.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(1)))]
     #[case(5.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(5)))]
-    #[case(400.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(400)))]
     fn key_mint_version(#[case] input: Integer, #[case] expected: Result<KeyMintVersion, KeyMintVersionError>) {
         assert_eq!(KeyMintVersion::try_from(&input), expected);
     }
@@ -850,7 +853,7 @@ mod test {
     #[case(1.into(), &[HardwareAuthenticatorType::PASSWORD])]
     #[case(2.into(), &[HardwareAuthenticatorType::FINGERPRINT])]
     #[case(3.into(), &[HardwareAuthenticatorType::PASSWORD, HardwareAuthenticatorType::FINGERPRINT])]
-    #[case(Integer::Primitive(u32::MAX as isize), &[HardwareAuthenticatorType::PASSWORD, HardwareAuthenticatorType::FINGERPRINT])]
+    #[case(u32::MAX.into(), &[HardwareAuthenticatorType::PASSWORD, HardwareAuthenticatorType::FINGERPRINT])]
     fn hardware_authenticator_type(#[case] input: Integer, #[case] expected: &[HardwareAuthenticatorType]) {
         let actual = HardwareAuthenticatorType::try_from(input.clone()).unwrap();
 
@@ -860,7 +863,7 @@ mod test {
         if expected.is_empty() {
             assert!(actual.is_empty());
         }
-        if input == Integer::Primitive(u32::MAX as isize) {
+        if input == u32::MAX.into() {
             assert!(actual.is_all());
         }
     }
@@ -885,9 +888,9 @@ mod test {
     #[expect(clippy::octal_escapes)]
     fn convert_key_description() {
         let input = KeyDescription {
-            attestation_version: 200.into(),
+            attestation_version: 400.into(),
             attestation_security_level: SecurityLevel::Software,
-            key_mint_version: 200
+            key_mint_version: 400
                 .into(),
             key_mint_security_level: SecurityLevel::Software,
             attestation_challenge: OctetString::copy_from_slice(&[116, 104, 105, 115, 95, 105, 115, 95, 97, 95, 99, 104, 97, 108, 108, 101, 110, 103, 101, 95, 115, 116, 114, 105, 110, 103]),
@@ -938,6 +941,7 @@ mod test {
                 boot_patch_level: Integer::from(20240301).into(),
                 device_unique_attestation: ().into(),
                 attestation_id_second_imei: OctetString::copy_from_slice(b"attestation_id_second_imei").into(),
+                module_hash: OctetString::copy_from_slice(b"module_hash").into(),
             },
             hardware_enforced: super::key_description::AuthorizationList {
                 ..Default::default()
@@ -946,9 +950,9 @@ mod test {
         let actual = KeyAttestation::try_from(input).expect("test case is valid");
 
         let expected = KeyAttestation {
-            attestation_version: AttestationVersion::V200,
+            attestation_version: AttestationVersion::V400,
             attestation_security_level: SecurityLevel::Software,
-            key_mint_version: KeyMintVersion::V200,
+            key_mint_version: KeyMintVersion::V400,
             key_mint_security_level: SecurityLevel::Software,
             attestation_challenge: OctetString::copy_from_slice(b"this_is_a_challenge_string"),
             unique_id: OctetString::copy_from_slice(b""),
@@ -1036,6 +1040,7 @@ mod test {
                 boot_patch_level: Some(PatchLevel::new(2024, 3, Some(1))),
                 device_unique_attestation: true,
                 attestation_id_second_imei: Some(OctetString::copy_from_slice(b"attestation_id_second_imei")),
+                module_hash: Some(OctetString::copy_from_slice(b"module_hash")),
             },
             hardware_enforced: AuthorizationList::default(),
         };

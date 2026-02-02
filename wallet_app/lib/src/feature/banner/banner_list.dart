@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../wallet_constants.dart';
-import '../tour/widget/tour_banner.dart';
-import '../update/widget/update_banner.dart';
 import 'cubit/banner_cubit.dart';
 import 'wallet_banner.dart';
+import 'widget/card_expiry_banner.dart';
+import 'widget/card_revocation_banner.dart';
+import 'widget/tour_banner.dart';
+import 'widget/update_banner.dart';
 
 /// A widget that displays a list of [WalletBanner]s with animations.
 ///
@@ -108,6 +110,15 @@ class _BannerListState extends State<BannerList> {
         bannerWidget = UpdateBanner(versionState: banner.state);
       case TourSuggestionBanner():
         bannerWidget = const TourBanner();
+      case CardExpiresSoonBanner():
+        bannerWidget = CardExpiryBanner(
+          card: banner.card,
+          expiresIn: banner.expiresAt.difference(DateTime.now()),
+        );
+      case CardExpiredBanner():
+        bannerWidget = CardExpiryBanner(card: banner.card);
+      case CardRevokedBanner():
+        bannerWidget = CardRevocationBanner(card: banner.card);
     }
 
     return FadeTransition(

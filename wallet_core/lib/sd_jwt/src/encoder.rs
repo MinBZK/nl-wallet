@@ -1,35 +1,34 @@
-// Copyright 2020-2024 IOTA Stiftung
-// SPDX-License-Identifier: Apache-2.0
-
+//! This module provides the encoder half of the selective-disclosure pipeline.
+//!
+//! It encodes a claims object by substituting selected claim values with digests derived from disclosures.
+//!
+//! See the decoder [`SdObjectDecoder`] on how to reconstruct original values given the disclosures.
 use base64::prelude::*;
 use rand::Rng;
-use serde_json::Map;
 use serde_json::Value;
-use serde_json::json;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::utils::random_bytes;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::claims::ClaimValue;
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::disclosure::DisclosureContentSerializationError;
-use crate::error::Error;
-use crate::error::Result;
+use crate::error::ClaimError;
+use crate::error::EncoderError;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
+use crate::sd_jwt::SdJwtVcClaims;
 
-pub(crate) const DIGESTS_KEY: &str = "_sd";
-pub(crate) const ARRAY_DIGEST_KEY: &str = "...";
 pub(crate) const DEFAULT_SALT_SIZE: usize = 30;
-pub(crate) const SD_ALG: &str = "_sd_alg";
 
 /// Transforms a JSON object into an SD-JWT object by substituting selected values
 /// with their corresponding disclosure digests.
 #[derive(Debug, Clone)]
 pub struct SdObjectEncoder<H> {
     /// The object in JSON format.
-    object: Value,
+    object: SdJwtVcClaims,
     /// Size of random data used to generate the salts for disclosures in bytes.
     /// Constant length for readability considerations.
     salt_size: usize,
@@ -38,92 +37,47 @@ pub struct SdObjectEncoder<H> {
 }
 
 impl TryFrom<Value> for SdObjectEncoder<Sha256Hasher> {
-    type Error = Error;
+    type Error = serde_json::Error;
 
-    fn try_from(value: Value) -> Result<Self> {
-        Self::with_custom_hasher_and_salt_size(value, Sha256Hasher, DEFAULT_SALT_SIZE)
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let value = serde_json::from_value(value)?;
+        Ok(Self::with_custom_hasher_and_salt_size(
+            value,
+            Sha256Hasher,
+            DEFAULT_SALT_SIZE,
+        ))
     }
 }
 
 impl<H: Hasher> SdObjectEncoder<H> {
     /// Creates a new [`SdObjectEncoder`] with custom hash function to create digests, and custom salt size.
-    pub fn with_custom_hasher_and_salt_size(object: Value, hasher: H, salt_size: usize) -> Result<Self> {
-        if !object.is_object() {
-            return Err(Error::DataTypeMismatch(
-                "argument `object` must be a JSON Object".to_string(),
-            ));
-        };
-
-        Ok(Self {
+    pub fn with_custom_hasher_and_salt_size(object: SdJwtVcClaims, hasher: H, salt_size: usize) -> Self {
+        Self {
             object,
             salt_size,
             hasher,
-        })
+        }
     }
 
-    pub fn encode(self) -> Value {
+    pub fn encode(mut self) -> SdJwtVcClaims {
+        self.object._sd_alg = Some(self.hasher.alg());
         self.object
     }
 
     /// Substitutes a value with the digest of its disclosure.
     ///
     /// `path` indicates the claim paths pointing to the value that will be concealed.
-    pub fn conceal(&mut self, path: VecNonEmpty<ClaimPath>) -> Result<Disclosure> {
+    pub fn conceal(&mut self, path: VecNonEmpty<ClaimPath>) -> Result<Disclosure, EncoderError> {
         // Determine salt.
         let salt = Self::gen_rand(self.salt_size);
 
         let (rest, last_path) = path.into_inner_last();
-        let parent = Self::traverse_object_by_claim_paths(&mut self.object, rest.iter())?;
+        let parent = self.object.claims.traverse_by_claim_paths(rest.iter())?;
 
-        match (parent, last_path) {
-            (Some(Value::Object(parent)), ClaimPath::SelectByKey(key)) => {
-                let disclosure = parent
-                    .remove(&key)
-                    .ok_or_else(|| Error::DisclosureNotFound(key.clone(), parent.clone()))?;
-
-                // Remove the value from the parent and create a disclosure for it.
-                let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(salt, key, disclosure))
-                    .map_err(|DisclosureContentSerializationError { key, value, error }| {
-                        // In case of an error, restore the removed entry so that the original object is intact
-                        parent.insert(key.expect("key should have a value for ObjectProperty"), value);
-                        error
-                    })?;
-
-                // Hash the disclosure.
-                let hash = self.hasher.encoded_digest(disclosure.as_str());
-
-                // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
-                Self::add_digest_to_object(parent, hash);
-                Ok(disclosure)
-            }
-            (Some(Value::Array(entries)), ClaimPath::SelectByIndex(index)) => {
-                let Some(element) = entries.get_mut(index) else {
-                    return Err(Error::IndexOutOfBounds(index, entries.clone()));
-                };
-
-                let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(salt, std::mem::take(element)))
-                    .map_err(|DisclosureContentSerializationError { value, error, .. }| {
-                        // In case of an error, restore the removed entry so that the original object is intact
-                        *element = value;
-                        error
-                    })?;
-                let hash = self.hasher.encoded_digest(disclosure.as_str());
-                let tripledot = json!({ARRAY_DIGEST_KEY: hash});
-                *element = tripledot;
-                Ok(disclosure)
-            }
-            (Some(element), path) => Err(Error::UnexpectedElement((*element).clone(), vec![path])),
-            (None, path) => Err(Error::ParentNotFound(vec![path])),
+        match parent {
+            Some(claim) => claim.conceal(&last_path, salt, &self.hasher),
+            None => Err(ClaimError::ParentNotFound(rest))?,
         }
-    }
-
-    /// Adds the `_sd_alg` property to the top level of the object.
-    /// The value is taken from the [`crate::Hasher::alg_name`] implementation.
-    pub fn add_sd_alg_property(&mut self) {
-        self.object
-            .as_object_mut()
-            .expect("`object` should be a JSON object")
-            .insert(SD_ALG.to_string(), Value::String(self.hasher.alg().to_string()));
     }
 
     /// Adds a decoy digest to the specified path.
@@ -132,67 +86,18 @@ impl<H: Hasher> SdObjectEncoder<H> {
     /// [JSON pointer](https://datatracker.ietf.org/doc/html/rfc6901).
     ///
     /// Use `path` = "" to add decoys to the top level.
-    pub fn add_decoys(&mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<()> {
+    pub fn add_decoys(&mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<(), EncoderError> {
         for _ in 0..number_of_decoys {
             self.add_decoy(path)?;
         }
         Ok(())
     }
 
-    fn add_decoy(&mut self, path: &[ClaimPath]) -> Result<()> {
-        let Some(parent) = Self::traverse_object_by_claim_paths(&mut self.object, path.iter())? else {
-            return Err(Error::ParentNotFound(path.to_vec()));
-        };
-
-        if let Some(object) = parent.as_object_mut() {
-            let hash = Self::random_digest(&self.hasher, self.salt_size, false)?;
-            Self::add_digest_to_object(object, hash);
-            Ok(())
-        } else if let Some(array) = parent.as_array_mut() {
-            let hash = Self::random_digest(&self.hasher, self.salt_size, true)?;
-            let tripledot = json!({ARRAY_DIGEST_KEY: hash});
-            array.push(tripledot);
-            Ok(())
-        } else {
-            Err(Error::UnexpectedElement((*parent).clone(), path.to_vec()))
-        }
+    fn add_decoy(&mut self, path: &[ClaimPath]) -> Result<(), EncoderError> {
+        self.object.claims.add_decoy(path, &self.hasher, self.salt_size)
     }
 
-    fn traverse_object_by_claim_paths<'a, 'b>(
-        object: &'a mut Value,
-        mut claim_paths: impl Iterator<Item = &'b ClaimPath>,
-    ) -> Result<Option<&'a mut serde_json::Value>> {
-        claim_paths.try_fold(Some(object), |maybe_object, claim_path| {
-            maybe_object.map_or(Ok(None), |object| match claim_path {
-                ClaimPath::SelectByKey(key) => Ok(object.get_mut(key)),
-                ClaimPath::SelectByIndex(index) => Ok(object.get_mut(index)),
-                ClaimPath::SelectAll => Err(Error::UnsupportedTraversalPath(claim_path.clone())),
-            })
-        })
-    }
-
-    /// Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
-    fn add_digest_to_object(object: &mut Map<String, Value>, digest: String) {
-        if let Some(sd_value) = object.get_mut(DIGESTS_KEY) {
-            let Value::Array(value) = sd_value else {
-                panic!("existing `_sd` type is not an array");
-            };
-
-            // Make sure the digests are sorted.
-            let idx = value
-                .iter()
-                .enumerate()
-                .find(|(_, value)| value.as_str().is_some_and(|s| s > digest.as_str()))
-                .map(|(pos, _)| pos)
-                .unwrap_or(value.len());
-
-            value.insert(idx, Value::String(digest));
-        } else {
-            object.insert(DIGESTS_KEY.to_owned(), json!([digest]));
-        }
-    }
-
-    fn random_digest(hasher: &impl Hasher, salt_len: usize, array_entry: bool) -> Result<String> {
+    pub(crate) fn random_digest(hasher: &H, salt_len: usize, array_entry: bool) -> Result<String, EncoderError> {
         let mut rng = rand::thread_rng();
         let salt = Self::gen_rand(salt_len);
         let decoy_value_length = rng.gen_range(20..=100);
@@ -204,11 +109,15 @@ impl<H: Hasher> SdObjectEncoder<H> {
         };
         let decoy_value = Self::gen_rand(decoy_value_length);
         let disclosure = Disclosure::try_new(match decoy_claim_name {
-            Some(claim_name) => DisclosureContent::ObjectProperty(salt, claim_name, Value::String(decoy_value)),
-            None => DisclosureContent::ArrayElement(salt, Value::String(decoy_value)),
+            Some(claim_name) => DisclosureContent::ObjectProperty(
+                salt,
+                claim_name.parse().map_err(ClaimError::ReservedClaimName)?,
+                ClaimValue::String(decoy_value),
+            ),
+            None => DisclosureContent::ArrayElement(salt, ClaimValue::String(decoy_value).into()),
         })
         .map_err(|DisclosureContentSerializationError { error, .. }| error)?;
-        Ok(hasher.encoded_digest(disclosure.as_str()))
+        Ok(hasher.encoded_digest(disclosure.encoded()))
     }
 
     fn gen_rand(len: usize) -> String {
@@ -218,6 +127,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
 #[cfg(test)]
 mod test {
+    use std::num::NonZeroUsize;
     use std::vec;
 
     use assert_matches::assert_matches;
@@ -226,17 +136,37 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
 
-    use crate::error::Error;
+    use crate::claims::ClaimName;
+    use crate::claims::ObjectClaims;
+    use crate::error::ClaimError;
+    use crate::error::EncoderError;
 
     use super::SdObjectEncoder;
 
+    impl<H> SdObjectEncoder<H> {
+        pub fn object_claims(&self) -> &ObjectClaims {
+            self.object.claims()
+        }
+    }
+
     fn object() -> Value {
         json!({
-          "id": "did:value",
-          "claim1": {
-            "abc": true
-          },
-          "claim2": ["arr-value1", "arr-value2"]
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "id": "did:value",
+            "claim1": {
+                "abc": true
+            },
+            "claim2": ["arr-value1", "arr-value2"],
+            "vct": "com.example.pid",
+            "cnf": {
+                "jwk": {
+                    "kty": "EC",
+                    "crv": "P-256",
+                    "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                    "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+                }
+            }
         })
     }
 
@@ -260,14 +190,34 @@ mod test {
         encoder
             .add_decoys(&[ClaimPath::SelectByKey(String::from("claim2"))], 10)
             .unwrap();
-        assert!(encoder.object.get("id").is_none());
-        assert_eq!(encoder.object.get("_sd").unwrap().as_array().unwrap().len(), 11);
-        assert_eq!(encoder.object.get("claim2").unwrap().as_array().unwrap().len(), 12);
+        assert!(
+            !encoder
+                .object
+                .claims()
+                .claims
+                .contains_key(&"id".parse::<ClaimName>().unwrap())
+        );
+        assert_eq!(
+            encoder.object.claims()._sd.as_ref().unwrap().len(),
+            11.try_into().unwrap()
+        );
+        assert_eq!(
+            encoder
+                .object
+                .claims()
+                .claims
+                .get(&"claim2".parse::<ClaimName>().unwrap())
+                .unwrap()
+                .unwrap_array_ref()
+                .len(),
+            12
+        );
     }
 
     #[test]
     fn nested() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
+
         encoder
             .conceal(
                 vec![
@@ -278,12 +228,19 @@ mod test {
                 .unwrap(),
             )
             .unwrap();
+
         encoder
             .conceal(vec![ClaimPath::SelectByKey(String::from("claim1"))].try_into().unwrap())
             .unwrap();
 
-        assert!(encoder.object.get("claim1").is_none());
-        assert_eq!(encoder.object.get("_sd").unwrap().as_array().unwrap().len(), 1);
+        assert!(
+            !encoder
+                .object
+                .claims()
+                .claims
+                .contains_key(&"claim1".parse::<ClaimName>().unwrap())
+        );
+        assert_eq!(encoder.object.claims()._sd.as_ref().unwrap().len(), NonZeroUsize::MIN);
     }
 
     #[test]
@@ -310,7 +267,7 @@ mod test {
                     .unwrap(),
                 )
                 .unwrap_err(),
-            Error::IndexOutOfBounds(2, _)
+            EncoderError::ClaimStructure(ClaimError::IndexOutOfBounds(2, _))
         );
     }
 
@@ -325,7 +282,7 @@ mod test {
                         .unwrap()
                 )
                 .unwrap_err(),
-            Error::DisclosureNotFound(key, _) if key == "claim12"
+            EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _)) if key == "claim12".parse().unwrap()
         );
         assert_matches!(
             encoder
@@ -338,7 +295,7 @@ mod test {
                     .unwrap(),
                 )
                 .unwrap_err(),
-            Error::ParentNotFound(_)
+            EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))
         );
     }
 }

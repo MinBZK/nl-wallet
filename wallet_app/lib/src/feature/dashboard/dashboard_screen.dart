@@ -1,14 +1,17 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../data/service/navigation_service.dart';
+import '../../data/service/announcement_service.dart';
+import '../../data/service/event/app_event_coordinator.dart';
 import '../../domain/model/card/wallet_card.dart';
+import '../../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -34,7 +37,7 @@ import 'bloc/dashboard_bloc.dart';
 
 const _kMaxCrossAxisCount = 2;
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   static DashboardScreenArgument? getArgument(RouteSettings settings) {
     final args = settings.arguments;
     if (args == null) return null;
@@ -49,18 +52,57 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+
+  /// Show the [DashboardScreen], placing it at the root of the navigation stack. When [cards] are provided
+  /// the [DashboardBloc] is initialized with these cards, so that they are instantly
+  /// available, e.g. useful when triggering Hero animations.
+  static void show(BuildContext context, {List<WalletCard>? cards}) {
+    if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 1200));
+    Navigator.restorablePushNamedAndRemoveUntil(
+      context,
+      WalletRoutes.dashboardRoute,
+      ModalRoute.withName(WalletRoutes.splashRoute),
+      arguments: cards == null ? null : DashboardScreenArgument(cards: cards).toJson(),
+    );
+  }
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final PublishSubject<VisibilityInfo> _visibilitySubject = PublishSubject<VisibilityInfo>();
+  late StreamSubscription _visibilitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _visibilitySubscription =
+        Rx.combineLatest2<bool, VisibilityInfo, bool>(
+          context.read<ObserveWalletLockedUseCase>().invoke(),
+          _visibilitySubject.stream,
+          (locked, visibilityInfo) => !locked && visibilityInfo.visibleFraction >= 1,
+        ).listen((visible) {
+          final context = this.context;
+          if (context.mounted && visible) {
+            context.read<AppEventCoordinator>().onDashboardShown();
+            context.read<AnnouncementService>().announce(context.l10n.dashboardScreenOverviewAnnouncement);
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _visibilitySubscription.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('dashboardScreen'),
       appBar: _buildAppBar(context),
       body: VisibilityDetector(
         key: const Key('dashboardVisibilityDetector'),
-        onVisibilityChanged: (visibilityInfo) {
-          if (visibilityInfo.visibleFraction >= 1) {
-            context.read<NavigationService>().processQueue();
-            SemanticsService.announce(context.l10n.dashboardScreenOverviewAnnouncement, TextDirection.ltr);
-          }
-        },
+        onVisibilityChanged: _visibilitySubject.add,
         child: _buildBody(context),
       ),
     );
@@ -199,7 +241,7 @@ class DashboardScreen extends StatelessWidget {
     Navigator.restorablePushNamed(
       context,
       WalletRoutes.cardDetailRoute,
-      arguments: CardDetailScreenArgument.forCard(walletCard).toJson(),
+      arguments: CardDetailScreenArgument.fromCard(walletCard).toJson(),
     );
   }
 
@@ -222,19 +264,6 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  /// Show the [DashboardScreen], placing it at the root of the navigation stack. When [cards] are provided
-  /// the [DashboardBloc] is initialized with these cards, so that they are instantly
-  /// available, e.g. useful when triggering Hero animations.
-  static void show(BuildContext context, {List<WalletCard>? cards}) {
-    if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 1200));
-    Navigator.restorablePushNamedAndRemoveUntil(
-      context,
-      WalletRoutes.dashboardRoute,
-      ModalRoute.withName(WalletRoutes.splashRoute),
-      arguments: cards == null ? null : DashboardScreenArgument(cards: cards).toJson(),
     );
   }
 }

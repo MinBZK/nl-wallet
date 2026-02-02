@@ -5,7 +5,19 @@
 
 {% block styles %}
 <link rel="stylesheet" href="../css/demo_bar.css" />
-<link rel="stylesheet" href="../css/{{ usecase }}-index.css" />
+{% match usecase %}
+{% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
+    <link rel="stylesheet" href="../css/mijn_amsterdam-index.css" />
+{% when "monkey_bike" %}
+    <link rel="stylesheet" href="../css/monkey_bike-index.css" />
+{% when "online_marketplace" %}
+    <link rel="stylesheet" href="../css/online_marketplace-index.css" />
+{% when "xyz_bank_mdoc" | "xyz_bank_sd_jwt" | "xyz_bank_sd_jwt_eu" %}
+    <link rel="stylesheet" href="../css/xyz_bank-index.css" />
+{% when "job_finder" %}
+    <link rel="stylesheet" href="../css/job_finder-index.css" />
+{% else %}
+{% endmatch %}
 {% endblock %}
 
 {% block scripts %}
@@ -16,13 +28,13 @@
 
 {% block content %}
 {% match usecase %}
-{% when "mijn_amsterdam" %}
+{% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
     {% include "mijn_amsterdam.askama" %}
 {% when "monkey_bike" %}
     {% include "monkey_bike.askama" %}
 {% when "online_marketplace" %}
     {% include "online_marketplace.askama" %}
-{% when "xyz_bank" %}
+{% when "xyz_bank_mdoc" | "xyz_bank_sd_jwt" | "xyz_bank_sd_jwt_eu" %}
     {% include "xyz_bank.askama" %}
 {% when "job_finder" %}
     {% include "job_finder.askama" %}

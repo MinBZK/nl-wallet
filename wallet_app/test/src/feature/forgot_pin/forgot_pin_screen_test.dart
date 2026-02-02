@@ -20,7 +20,7 @@ void main() {
   });
 
   group('goldens', () {
-    testGoldens('forgot pin light', (tester) async {
+    testGoldens('ltc41 forgot pin light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ForgotPinScreen(),
         providers: [
@@ -30,7 +30,7 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('forgot pin dark', (tester) async {
+    testGoldens('ltc41 forgot pin dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ForgotPinScreen(),
         brightness: Brightness.dark,
@@ -43,7 +43,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('clear wallet button can be found', (tester) async {
+    testWidgets('ltc41 clear wallet button can be found', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ForgotPinScreen(),
         providers: [

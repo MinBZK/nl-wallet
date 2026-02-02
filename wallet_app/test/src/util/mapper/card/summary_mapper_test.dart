@@ -21,11 +21,12 @@ void main() {
   group('map', () {
     test('card without summary results in empty LocalizedText', () {
       final input = WalletCard(
+        attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
-        attributes: [],
-        attestationId: 'id',
+        status: WalletMockData.status,
         metadata: [const CardDisplayMetadata(language: Locale('en'), name: 'name')],
+        attributes: [],
       );
       expect(mapper.map(input).testValue, '');
     });
@@ -33,13 +34,14 @@ void main() {
     test('card without placeholders in summary results in identical contents in LocalizedText', () {
       const summary = 'No svgIds';
       final input = WalletCard(
+        attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
-        attributes: [WalletMockData.textDataAttribute],
+        status: WalletMockData.status,
         metadata: const [
           CardDisplayMetadata(language: Locale('en'), name: 'name', rawSummary: summary),
         ],
-        attestationId: 'id',
+        attributes: [WalletMockData.textDataAttribute],
       );
       expect(mapper.map(input).testValue, summary);
     });
@@ -47,8 +49,13 @@ void main() {
     test('card with placeholders in summary should result in summary with placeholders replaced', () {
       const summary = 'First: {{first_id}}, Second: {{second_id}}';
       final input = WalletCard(
+        attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
+        status: WalletMockData.status,
+        metadata: const [
+          CardDisplayMetadata(language: Locale('en'), name: 'name', rawSummary: summary),
+        ],
         attributes: [
           DataAttribute.untranslated(
             key: 'first',
@@ -63,26 +70,16 @@ void main() {
             value: const StringValue('Doe'),
           ),
         ],
-        metadata: const [
-          CardDisplayMetadata(language: Locale('en'), name: 'name', rawSummary: summary),
-        ],
-        attestationId: 'id',
       );
       expect(mapper.map(input).testValue, 'First: John, Second: Doe');
     });
 
     test('placeholders should be replaced taking localization into account', () {
       final input = WalletCard(
+        attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
-        attributes: [
-          DataAttribute(
-            key: 'over18',
-            svgId: 'over18',
-            label: {const Locale('en'): 'Over 18', const Locale('nl'): 'Ouder dan 18'},
-            value: const BooleanValue(true),
-          ),
-        ],
+        status: WalletMockData.status,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),
@@ -95,7 +92,14 @@ void main() {
             rawSummary: 'Gebruiker is 18+ {{over18}}',
           ),
         ],
-        attestationId: 'id',
+        attributes: [
+          DataAttribute(
+            key: 'over18',
+            svgId: 'over18',
+            label: {const Locale('en'): 'Over 18', const Locale('nl'): 'Ouder dan 18'},
+            value: const BooleanValue(true),
+          ),
+        ],
       );
 
       expect(mapper.map(input)[const Locale('en')], 'User is 18+ Yes');
@@ -104,9 +108,10 @@ void main() {
 
     test('placeholders without a corresponding value should be blanked', () {
       final input = WalletCard(
+        attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
-        attributes: [],
+        status: WalletMockData.status,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),
@@ -114,7 +119,7 @@ void main() {
             rawSummary: 'Middle name: {{middle_name}}',
           ),
         ],
-        attestationId: 'id',
+        attributes: [],
       );
 
       expect(mapper.map(input).testValue, 'Middle name: ');
@@ -126,18 +131,19 @@ void main() {
         attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
-        attributes: [
-          DataAttribute(
-            key: key,
-            label: {const Locale('en'): 'mock'},
-            value: const StringValue('mock_value'),
-          ),
-        ],
+        status: WalletMockData.status,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),
             name: 'name',
             rawSummary: '{{$key}}',
+          ),
+        ],
+        attributes: [
+          DataAttribute(
+            key: key,
+            label: {const Locale('en'): 'mock'},
+            value: const StringValue('mock_value'),
           ),
         ],
       );
@@ -148,16 +154,10 @@ void main() {
 
     test('Dates are formatted based on localization', () {
       final input = WalletCard(
+        attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
-        attributes: [
-          DataAttribute(
-            key: 'dob',
-            svgId: 'dob',
-            label: ''.untranslated,
-            value: DateValue(DateTime(2024, 10, 5)),
-          ),
-        ],
+        status: WalletMockData.status,
         metadata: const [
           CardDisplayMetadata(
             language: Locale('en'),
@@ -175,7 +175,14 @@ void main() {
             rawSummary: 'Datum {{dob}}',
           ),
         ],
-        attestationId: 'id',
+        attributes: [
+          DataAttribute(
+            key: 'dob',
+            svgId: 'dob',
+            label: ''.untranslated,
+            value: DateValue(DateTime(2024, 10, 5)),
+          ),
+        ],
       );
 
       expect(mapper.map(input)[const Locale('en')], 'Date 10/5/2024');

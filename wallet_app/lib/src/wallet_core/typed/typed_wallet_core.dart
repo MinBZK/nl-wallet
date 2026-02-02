@@ -20,6 +20,7 @@ class TypedWalletCore {
   final BehaviorSubject<core.FlutterVersionState> _flutterVersionState = BehaviorSubject();
   final BehaviorSubject<List<core.WalletEvent>> _recentHistory = BehaviorSubject();
   final BehaviorSubject<List<core.AttestationPresentation>> _attestations = BehaviorSubject();
+  final BehaviorSubject<List<core.AppNotification>> _notifications = BehaviorSubject();
 
   TypedWalletCore(this._errorMapper) {
     _setupLockedStream();
@@ -27,41 +28,36 @@ class TypedWalletCore {
     _setupVersionStateStream();
     _setupAttestationsStream();
     _setupRecentHistoryStream();
+    _setupNotificationStream();
   }
 
   void _setupLockedStream() {
-    _isLocked.onListen = () async {
-      core.setLockStream().listen(_isLocked.add);
-    };
+    _isLocked.onListen = () => core.setLockStream().listen(_isLocked.add);
     _isLocked.onCancel = core.clearLockStream;
   }
 
   void _setupConfigurationStream() {
-    _flutterConfig.onListen = () async {
-      core.setConfigurationStream().listen(_flutterConfig.add);
-    };
+    _flutterConfig.onListen = () => core.setConfigurationStream().listen(_flutterConfig.add);
     _flutterConfig.onCancel = core.clearConfigurationStream;
   }
 
   void _setupVersionStateStream() {
-    _flutterVersionState.onListen = () async {
-      core.setVersionStateStream().listen(_flutterVersionState.add);
-    };
+    _flutterVersionState.onListen = () => core.setVersionStateStream().listen(_flutterVersionState.add);
     _flutterVersionState.onCancel = core.clearVersionStateStream;
   }
 
-  Future<void> _setupAttestationsStream() async {
-    // Ideally we don't set the card stream until we start observing it (i.e. in onListen())
-    // but since the cards are not persisted yet that means we might miss events, so observing
-    // the wallet_core cards stream through the complete lifecycle of the app for now.
-    // NOTE: To reproduce issue: 1. Start clean, 2. Setup Wallet, 3. Kill app, 4. Continue Setup, 5. Cards don't show up on success page
-    core.setAttestationsStream().listen(_attestations.add);
+  void _setupNotificationStream() {
+    _notifications.onListen = () => core.setScheduledNotificationsStream().listen(_notifications.add);
+    _notifications.onCancel = core.clearScheduledNotificationsStream;
+  }
+
+  void _setupAttestationsStream() {
+    _attestations.onListen = () => core.setAttestationsStream().listen(_attestations.add);
+    _attestations.onCancel = core.clearAttestationsStream;
   }
 
   void _setupRecentHistoryStream() {
-    _recentHistory.onListen = () async {
-      core.setRecentHistoryStream().listen(_recentHistory.add);
-    };
+    _recentHistory.onListen = () => core.setRecentHistoryStream().listen(_recentHistory.add);
     _recentHistory.onCancel = core.clearRecentHistoryStream;
   }
 
@@ -88,6 +84,8 @@ class TypedWalletCore {
 
   Stream<core.FlutterVersionState> observeVersionState() => _flutterVersionState.stream;
 
+  Stream<List<core.AppNotification>> observeNotifications() => _notifications.stream;
+
   Future<String> createPidIssuanceRedirectUri() => call(core.createPidIssuanceRedirectUri);
 
   Future<String> createPidRenewalRedirectUri() => call(core.createPidRenewalRedirectUri);
@@ -100,17 +98,14 @@ class TypedWalletCore {
   Future<List<core.AttestationPresentation>> continuePidIssuance(String uri) =>
       call(() => core.continuePidIssuance(uri: uri));
 
-  Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin) =>
-      call(() => core.continueDisclosureBasedIssuance(pin: pin));
+  Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin, List<int> selectedIndices) =>
+      call(() => core.continueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin));
 
   /// Accept offered attestations
   Future<core.WalletInstructionResult> acceptIssuance(String pin) => call(() => core.acceptIssuance(pin: pin));
 
   /// Accept offered PID
   Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => call(() => core.acceptPidIssuance(pin: pin));
-
-  /// Check if there is an active issuance session
-  Future<bool> hasActiveIssuanceSession() => call(core.hasActiveIssuanceSession);
 
   Future<core.StartDisclosureResult> startDisclosure(
     String uri, {
@@ -119,9 +114,8 @@ class TypedWalletCore {
 
   Future<String?> cancelDisclosure() => call(core.cancelDisclosure);
 
-  Future<core.AcceptDisclosureResult> acceptDisclosure(String pin) => call(() => core.acceptDisclosure(pin: pin));
-
-  Future<bool> hasActiveDisclosureSession() => call(core.hasActiveDisclosureSession);
+  Future<core.AcceptDisclosureResult> acceptDisclosure(String pin, List<int> selectedIndices) =>
+      call(() => core.acceptDisclosure(selectedIndices: selectedIndices, pin: pin));
 
   Stream<List<core.AttestationPresentation>> observeCards() => _attestations.stream;
 
@@ -152,15 +146,26 @@ class TypedWalletCore {
 
   Future<String> initWalletTransfer() => call(core.initWalletTransfer);
 
-  Future<void> acknowledgeWalletTransfer(String uri) => call(() => core.acknowledgeWalletTransfer(uri: uri));
+  Future<void> pairWalletTransfer(String uri) => call(() => core.pairWalletTransfer(uri: uri));
 
-  Future<core.WalletInstructionResult> transferWallet(String pin) => call(() => core.transferWallet(pin: pin));
+  Future<core.WalletInstructionResult> confirmWalletTransfer(String pin) =>
+      call(() => core.confirmWalletTransfer(pin: pin));
+
+  Future<void> transferWallet() => call(core.transferWallet);
+
+  Future<void> receiveWalletTransfer() => call(core.receiveWalletTransfer);
 
   Future<void> cancelWalletTransfer() => call(core.cancelWalletTransfer);
 
   Future<core.TransferSessionState> getWalletTransferState() => call(core.getWalletTransferState);
 
   Future<void> skipWalletTransfer() => call(core.skipWalletTransfer);
+
+  Future<core.WalletState> getWalletState() => call(core.getWalletState);
+
+  Future<String> getRegistrationRevocationCode() => call(core.getRegistrationRevocationCode);
+
+  Future<core.RevocationCodeResult> getRevocationCode(String pin) => call(() => core.getRevocationCode(pin: pin));
 
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
@@ -192,7 +197,7 @@ class TypedWalletCore {
       return error;
     } catch (exception) {
       Fimber.e(
-        'Failed to map exception to CoreError, returning original exception',
+        'Failed to map exception ($ex) to CoreError, returning original exception',
         ex: exception,
       );
       return ex;

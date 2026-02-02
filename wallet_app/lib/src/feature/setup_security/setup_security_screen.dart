@@ -1,15 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../data/service/announcement_service.dart';
 import '../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/helper/announcements_helper.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
@@ -64,25 +63,9 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildPage() {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
-      listener: (context, state) async {
-        unawaited(_runAnnouncements(context, state));
-        final bloc = context.bloc;
-        switch (state) {
-          case SetupSecurityGenericError():
-            ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-          case SetupSecurityNetworkError():
-            ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
-          case SetupSecuritySelectPinFailed():
-            await PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
-          case SetupSecurityPinConfirmationFailed():
-            await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
-              bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
-            });
-          case SetupSecurityDeviceIncompatibleError():
-            ErrorScreen.showDeviceIncompatible(context);
-          default:
-            break;
-        }
+      listener: (context, state) {
+        _runAnnouncements(context, state);
+        _listenerForState(context, state);
       },
       builder: (context, state) {
         final Widget result = switch (state) {
@@ -94,11 +77,11 @@ class SetupSecurityScreen extends StatelessWidget {
           ),
           SetupSecurityPinConfirmationFailed() => _buildPinConfirmationPage(context, enteredDigits: kPinDigits),
           SetupSecurityCreatingWallet() => _buildCreatingWallet(context, state),
-          SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
           SetupSecurityGenericError() => _buildSetupFailed(context),
           SetupSecurityNetworkError() => _buildSetupFailed(context),
           SetupSecurityDeviceIncompatibleError() => _buildSetupFailed(context),
           SetupSecurityConfigureBiometrics() => _buildConfigureBiometricsPage(context, state),
+          SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -106,25 +89,46 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Future<void> _runAnnouncements(BuildContext context, SetupSecurityState state) async {
-    if (!context.isScreenReaderEnabled) return;
+    final AnnouncementService announcementService = context.read();
+    if (!announcementService.announcementsEnabled) return; // Early return optimization
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
 
     if (state is SetupSecuritySelectPinInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
     if (state is SetupSecurityPinConfirmationInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
-        await SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+        await announcementService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
+    }
+  }
+
+  void _listenerForState(BuildContext context, SetupSecurityState state) {
+    final bloc = context.bloc;
+    switch (state) {
+      case SetupSecurityGenericError():
+        ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
+      case SetupSecurityNetworkError():
+        ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
+      case SetupSecuritySelectPinFailed():
+        PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
+      case SetupSecurityPinConfirmationFailed():
+        PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
+          bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
+        });
+      case SetupSecurityDeviceIncompatibleError():
+        ErrorScreen.showDeviceIncompatible(context);
+      default:
+        break;
     }
   }
 
@@ -202,7 +206,7 @@ class SetupSecurityScreen extends StatelessWidget {
       key: const Key('setupSecurityCompletedPage'),
       enabledBiometrics: state.enabledBiometrics,
       onSetupWalletPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
-        WalletRoutes.walletPersonalizeRoute,
+        WalletRoutes.revocationCodeRoute,
         ModalRoute.withName(WalletRoutes.splashRoute),
       ),
     );

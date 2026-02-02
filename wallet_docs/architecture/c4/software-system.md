@@ -1,6 +1,6 @@
 # Software System overview
 
-The container diagram shown in Figure 2 describes all applications and data stores (containers) that are part of the NL-Wallet Software System. External systems that interact with the containers in the NL-Wallet Software System are also shown. (See the Context chapter for description of the External systems.)  
+The container diagram shown in Figure 2 describes all applications and data stores (containers) that are part of the NL Wallet Software System. External systems that interact with the containers in the NL Wallet Software System are also shown. (See the Context chapter for description of the External systems.)
 
 ![Context diagram](../../_static/img/diagrams/D2NL-WalletSystem.png)
 
@@ -27,7 +27,9 @@ Relations:
 - [I-111] Verifiers, to present stored credentials [E-401]
 - [I-112] Retrieve WUA Status List for revocation status of WUA
 - [I-113] Request App Attest attestation from Apple (iOS only) 
+
 ## 2. App database
+
 The App database is an on-device store that is used for storing credentials, app configuration and user preferences. 
 Technology: sqlite (on Android/iOS)
 
@@ -35,7 +37,9 @@ For a description of the database contained in the App database, please see [Inf
 
 Relations:
 - Wallet app uses the App database [I-101]
+
 ## 3. Secure Element
+
 The Secure Element is a tamper-resistant environment that stores cryptographic keys  and can perform actions using the stored cryptographic keys. It prevents the keys from being exposed to the rest of the system.
 
 Technology: Secure Enclave (iOS), Trusted Execution Enivornment (Android)
@@ -44,6 +48,7 @@ Relations:
 - Wallet app uses the Secure Element [I-102]
 
 ## 4. WalletBackend (WP)
+
 WalletBackend provides backend services to support the Wallet app. WalletBackend facilitates account management, Wallet Unit Attestation status management and offers an endpoint to the Wallet app to perform HSM-assisted operations. 
 
 Technology: axum (rust)
@@ -59,6 +64,7 @@ Relations:
 - [I-406] Issue WUA to Wallet on activation
 
 ## 5. ConfigurationServer
+
 ConfigurationServer is a content server that serves the Configuration data that is used by the app. Configuration items include: trust roots for issuer and verifier certificates, reference to current update policy, the URLs to components such as the WalletBackend, DigiD and the PID issuer, and more.
 
 Technology: nginx (static)
@@ -68,6 +74,7 @@ Relations:
 - Configuration is maintained by Wallet Technical Support
 
 ## 6. UpdateServer
+
 UpdateServer is a content server that serves the Update policy data that is used by the app. The update policy instructs the app to display update notifications to the end-user when appropriate.
 
 Technology: nginx (static)
@@ -87,6 +94,7 @@ Relations:
 - Status List is consumed by Wallet app [I-112] and PID Issuer [E-202]
 
 ## 8. WP database (accounts, WUA status)
+
 The WP database contains user account data, and the statuses for issued Wallet Unit Attestations.
 
 For a description of the database contained in the App database, please see [Information model](../information-model/information-model.md#Wallet-Backend-database)
@@ -97,6 +105,7 @@ Relations:
 - Accessed by WalletBackend  [I-401]
 
 ## 9. HSM device
+
 Dedicated cryptographic hardware used to perform issuing of keys and signing operations. 
 
 Technology: (not specified)

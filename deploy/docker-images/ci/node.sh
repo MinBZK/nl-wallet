@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-wget --no-hsts -q -O ./setup.sh https://deb.nodesource.com/setup_22.x
-echo "c61e58b2284efea4746ffbdcb4d4080f58fa7a31fb0060d2b024eb3d2e95572d  setup.sh" | sha256sum -c
+wget --no-hsts -q -O ./setup.sh https://deb.nodesource.com/setup_24.x
+echo "872150825071bb403b6e210c66d9487a791047d0299026de429eb1f626fd969f  setup.sh" | sha256sum -c
 
 chmod +x ./setup.sh
 ./setup.sh

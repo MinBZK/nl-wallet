@@ -1,15 +1,20 @@
+use chrono::Utc;
+
 use wallet::attestation_data;
 use wallet::sd_jwt_vc_metadata::LogoMetadata;
 
 use crate::models::disclosure::Organization;
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
+use crate::models::revocation::RevocationStatus;
 
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
     pub display_metadata: Vec<DisplayMetadata>,
     pub issuer: Organization,
+    pub revocation_status: Option<RevocationStatus>,
+    pub validity_status: ValidityStatus,
     pub attributes: Vec<AttestationAttribute>,
 }
 
@@ -20,6 +25,8 @@ impl From<wallet::AttestationPresentation> for AttestationPresentation {
             attestation_type: value.attestation_type,
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
             issuer: value.issuer.into(),
+            revocation_status: value.validity.revocation_status.map(Into::into),
+            validity_status: wallet::ValidityStatus::from_window(&value.validity.validity_window, Utc::now()).into(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
     }
@@ -35,6 +42,33 @@ impl From<wallet::AttestationIdentity> for AttestationIdentity {
         match value {
             wallet::AttestationIdentity::Ephemeral => AttestationIdentity::Ephemeral,
             wallet::AttestationIdentity::Fixed { id } => AttestationIdentity::Fixed { id: id.to_string() },
+        }
+    }
+}
+
+pub enum ValidityStatus {
+    NotYetValid { valid_from: String },    // ISO8601
+    Valid { valid_until: Option<String> }, // ISO8601
+    ExpiresSoon { valid_until: String },   // ISO8601
+    Expired { valid_until: String },       // ISO8601
+}
+
+impl From<wallet::ValidityStatus> for ValidityStatus {
+    fn from(value: wallet::ValidityStatus) -> Self {
+        match value {
+            wallet::ValidityStatus::NotYetValid { valid_from } => ValidityStatus::NotYetValid {
+                valid_from: valid_from.to_rfc3339(),
+            },
+            wallet::ValidityStatus::AlwaysValid => ValidityStatus::Valid { valid_until: None },
+            wallet::ValidityStatus::ValidUntil { expires_at, .. } => ValidityStatus::Valid {
+                valid_until: Some(expires_at.to_rfc3339()),
+            },
+            wallet::ValidityStatus::ExpiresSoon { expires_at, .. } => ValidityStatus::ExpiresSoon {
+                valid_until: expires_at.to_rfc3339(),
+            },
+            wallet::ValidityStatus::Expired { expired_at } => ValidityStatus::Expired {
+                valid_until: expired_at.to_rfc3339(),
+            },
         }
     }
 }
@@ -124,7 +158,7 @@ pub struct AttestationAttribute {
 impl From<wallet::AttestationAttribute> for AttestationAttribute {
     fn from(value: wallet::AttestationAttribute) -> Self {
         Self {
-            key: value.key.join("__"),
+            key: value.key.as_ref().join("__"),
             labels: value.metadata.into_iter().map(ClaimDisplayMetadata::from).collect(),
             value: value.value.into(),
             svg_id: value.svg_id,

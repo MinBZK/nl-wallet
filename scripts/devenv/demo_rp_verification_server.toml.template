@@ -5,6 +5,9 @@ reader_trust_anchors = ["${READER_CA_CRT}"]
 ephemeral_id_secret = "${DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
 allow_origins = ["http://${SERVICES_HOST}:${DEMO_RP_PORT}"]
 
+[extending_vct_values]
+"urn:eudi:pid:1" = ["urn:eudi:pid:nl:1"]
+
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/verification_server'
 
@@ -12,9 +15,9 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/verificati
 ip = '0.0.0.0'
 port = ${VERIFICATION_SERVER_WS_PORT}
 
-[requester_server]
+[internal_server]
 ip = '0.0.0.0'
-port = ${VERIFICATION_SERVER_RS_PORT}
+port = ${VERIFICATION_SERVER_IS_PORT}
 
 [hsm]
 library_path = "${HSM_LIBRARY_PATH}"
@@ -22,7 +25,12 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[usecases.mijn_amsterdam]
+[usecases.mijn_amsterdam_mdoc]
+certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
+private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
+private_key_type = "hsm"
+
+[usecases.mijn_amsterdam_sd_jwt]
 certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 private_key_type = "hsm"
@@ -32,7 +40,17 @@ certificate = "${DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
 private_key_type = "software"
 
-[usecases.xyz_bank]
+[usecases.xyz_bank_mdoc]
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
+[usecases.xyz_bank_sd_jwt]
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
+[usecases.xyz_bank_sd_jwt_eu]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
@@ -48,12 +66,6 @@ private_key = "${DEMO_RELYING_PARTY_KEY_JOB_FINDER}"
 private_key_type = "software"
 
 # Integration test cases
-[usecases.multiple_cards]
-session_type_return_url = "neither"
-certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
-private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"
-private_key_type = "software"
-
 [usecases.xyz_bank_no_return_url]
 session_type_return_url = "neither"
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"

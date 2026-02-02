@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/helper/dialog_helper.dart';
@@ -85,8 +88,8 @@ class WalletTransferTargetScreen extends StatelessWidget {
                 title: context.l10n.walletTransferScreenStoppedTitle,
                 description: context.l10n.walletTransferTargetScreenStoppedDescription,
                 onPrimaryPressed: restart,
-                primaryButtonCta: context.l10n.generalRetry,
-                primaryButtonIcon: const Icon(Icons.refresh_outlined),
+                primaryButtonCta: context.l10n.generalClose,
+                primaryButtonIcon: const Icon(Icons.close_outlined),
                 illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
               ),
               WalletTransferGenericError() => ErrorPage.generic(
@@ -145,8 +148,8 @@ class WalletTransferTargetScreen extends StatelessWidget {
       case WalletTransferIntroduction():
         return CloseIconButton(onPressed: () => _onSkipPressed(context));
       case WalletTransferAwaitingConfirmation():
-      case WalletTransferTransferring():
         return CloseIconButton(onPressed: () => _onStopPressed(context));
+      case WalletTransferTransferring():
       case WalletTransferLoadingQrData():
       case WalletTransferAwaitingQrScan():
       case WalletTransferSuccess():
@@ -222,7 +225,11 @@ class WalletTransferTargetScreen extends StatelessWidget {
 
     if (skip && context.mounted) {
       context.bloc.add(const WalletTransferOptOutEvent());
-      Navigator.pop(context);
+      await Navigator.pushNamedAndRemoveUntil(
+        context,
+        WalletRoutes.walletPersonalizeRoute,
+        ModalRoute.withName(WalletRoutes.splashRoute),
+      );
     }
   }
 }

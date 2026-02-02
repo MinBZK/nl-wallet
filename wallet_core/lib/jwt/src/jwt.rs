@@ -47,15 +47,41 @@ use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
 use crate::jwk::jwk_to_p256;
 
-/// JWT type, generic over its contents.
+/// A JWT/JWS in its unverified state, generic over payload `T` and header `H`.
 ///
-/// This wrapper of the `jsonwebtoken` crate echoes the following aspect of `jsonwebtoken`:
-/// Validating one of the a standard fields during verification of the JWT using [`Validation`] does NOT automatically
-/// result in enforcement that the field is present. For example, if validation of `exp` is turned on then JWTs without
-/// an `exp` fields are still accepted (but not JWTs having an `exp` from the past).
+/// Implements `Serialize` and `Deserialize` via `Display` and `FromStr`. To be used to receive a JWT over an untrusted
+/// channel.
 ///
-/// Presence of the field may be enforced using [`Validation::required_spec_claims`] and/or by including it
-/// explicitly as a field in the (de)serialized type.
+/// - Use [`UnverifiedJwt::parse_and_verify`] to cryptographically verify the signature and parse the header and
+///   payload, yielding a payload `T` and header `H`. For specific cases like X.509 certificate verification or
+///   JWK-based verification, see the methods [`UnverifiedJwt::parse_and_verify_against_trust_anchors`] and
+///   [`UnverifiedJwt::parse_and_verify_against_jwk`].
+/// - Use [`UnverifiedJwt::into_verified`] to verify the signature and parse the JWT and obtain a [`VerifiedJwt<T, H>`].
+/// - Use [`UnverifiedJwt::dangerous_parse_unverified`] only when reading from a trusted source (e.g., a database or
+///   config) where signature verification has already been performed earlier.
+///
+/// # Example
+/// ```rust
+/// # use jwt::error::JwtError;
+/// # use jwt::JwtTyp;
+/// # use jwt::UnverifiedJwt;
+/// # use serde::Deserialize;
+///
+/// #[derive(Deserialize)]
+/// struct Claims {
+///     name: String,
+/// }
+///
+/// impl JwtTyp for Claims {}
+///
+/// let jwt: UnverifiedJwt<Claims> = "eyJhbGciOiJFUzI1NiIsInR5cCI6Imp3ZCJ9.eyJuYW1lIjoiYWxpY2UifQ.signature".parse()?;
+///
+/// // Note: dangerous_parse_unverified should only be used when the source is trusted.
+/// let (_, payload) = jwt.dangerous_parse_unverified()?;
+/// assert_eq!(payload.name, "alice");
+///
+/// # Ok::<(), JwtError>(())
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{serialization}")]
 pub struct UnverifiedJwt<T, H = HeaderWithTyp> {
@@ -108,6 +134,9 @@ impl<T, H: DeserializeOwned> UnverifiedJwt<T, H> {
 }
 
 impl<T: DeserializeOwned, H: DeserializeOwned> UnverifiedJwt<T, H> {
+    /// Dangerously parse the header and payload without verifying the signature.
+    ///
+    /// Only use this when the source is trusted and the token was validated earlier.
     pub fn dangerous_parse_unverified(&self) -> Result<(H, T)> {
         let parts = self.serialization.split('.').collect_vec();
         if parts.len() != 3 {
@@ -141,6 +170,10 @@ where
     H: TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
+    /// Verify the JWT using the provided public key and `validation_options`, then deserialize header and payload.
+    ///
+    /// - Enforces `JwtTyp::TYP` on the header `typ` value.
+    /// - Returns `(header, payload)` on success.
     pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<(H, T)> {
         let token_data = jsonwebtoken::decode::<T>(&self.serialization, &pubkey.0, validation_options)
             .map_err(JwtError::Validation)?;
@@ -156,6 +189,7 @@ where
         ))
     }
 
+    /// Calls `parse_and_verify` and returns a `VerifiedJwt<T, H>`.
     pub fn into_verified(
         self,
         pubkey: &EcdsaDecodingKey,
@@ -189,7 +223,6 @@ where
         let certificates = self.extract_x5c_certificates()?;
 
         // Verify the certificate chain against the trust anchors.
-        let certificates = VecNonEmpty::try_from(certificates).map_err(|_| JwtX5cError::MissingCertificates)?;
         let leaf_cert = certificates.first();
 
         leaf_cert
@@ -236,6 +269,7 @@ where
     H: DeserializeOwned + TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
+    /// Verify the JWT against the contained JWK in the header.
     pub fn parse_and_verify_with_jwk(
         &self,
         validation_options: &Validation,
@@ -244,12 +278,15 @@ where
         self.parse_and_verify(&(&pubkey).into(), validation_options)
     }
 
+    /// Verify the JWT against an expected JWK in the header.
+    ///
+    /// This can, for example, be used to pin a specific key to an earlier session.
     pub fn parse_and_verify_with_expected_jwk(
         &self,
         expected_verifying_key: &VerifyingKey,
         validation_options: &Validation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtError> {
-        let (header, payload) = self.parse_and_verify(&(expected_verifying_key).into(), validation_options)?;
+        let (header, payload) = self.parse_and_verify(&expected_verifying_key.into(), validation_options)?;
 
         // Compare the specified key against the one in the JWT header
         let contained_key = jwk_to_p256(&header.jwk)?;
@@ -264,11 +301,50 @@ where
     }
 }
 
+/// A freshly signed JWT.
+///
+/// Implemented as a wrapper over `UnverifiedJwt<T, H>`. Implements `Serialize` (via `Display`), but not `Deserialize`
+/// as that would be unsafe.
+///
+/// - Use helpers [`SignedJwt::sign`], [`SignedJwt::sign_with_certificate`], and [`SignedJwt::sign_with_jwk`] to produce
+///   a `SignedJwt`.
+/// - Convert to [`UnverifiedJwt<T, H>`] with [`SignedJwt::into_unverified`], or to [`VerifiedJwt<T, H>`] using
+///   [`SignedJwt::into_verified`]. This is safe because it was just signed.
+///
+/// # Example
+/// ```
+/// # use jwt::DEFAULT_VALIDATIONS;
+/// # use jwt::EcdsaDecodingKey;
+/// # use jwt::JwtTyp;
+/// # use jwt::SignedJwt;
+/// # use jwt::error::JwtError;
+/// # use p256::ecdsa::SigningKey;
+/// # use rand_core::OsRng;
+/// # use serde::Deserialize;
+/// # use serde::Serialize;
+///
+/// #[derive(Serialize, Deserialize)]
+/// struct Claims {
+///     name: String,
+/// }
+/// impl JwtTyp for Claims {}
+///
+/// # tokio_test::block_on(async {
+/// let key = SigningKey::random(&mut OsRng);
+/// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
+///
+/// let unverified = signed.into_unverified();
+/// let (_, payload) =
+///     unverified.parse_and_verify(&EcdsaDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
+/// assert_eq!(payload.name, "alice");
+/// # Ok::<(), JwtError>(())
+/// # });
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay)]
 pub struct SignedJwt<T, H = HeaderWithTyp>(UnverifiedJwt<T, H>);
 
 impl<T, H> SignedJwt<T, H> {
-    /// Internal constructor that takes an already concatendated header and payload and a signature.
+    /// Internal constructor that takes an already concatenated header and payload and a signature.
     fn from_header_payload_and_signature(header_and_payload: String, signature: &Signature) -> Self {
         let payload_end = header_and_payload.len();
         let encoded_signature = BASE64_URL_SAFE_NO_PAD.encode(signature.to_bytes());
@@ -303,14 +379,16 @@ impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T> {
+    /// Sign a payload `T` into a JWT using the default [`HeaderWithTyp`]. The `typ` value in injected via
+    /// [`JwtTyp::TYP`] based on `T`.
     pub async fn sign(payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithTyp>> {
         SignedJwt::sign_with_header(HeaderWithTyp::default(), payload, privkey).await
     }
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithX5c> {
-    /// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
-    /// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
+    /// Sign a payload into a JWT, and put the certificate of the provided keypair in the `x5c` field in the header. The
+    /// resulting JWT can be verified using [`UnverifiedJwt::parse_and_verify_against_trust_anchors`].
     pub async fn sign_with_certificate<K: EcdsaKey>(
         payload: &T,
         keypair: &KeyPair<K>,
@@ -324,6 +402,8 @@ impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithX5c> {
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithJwk> {
+    /// Sign a payload into a JWT, and put the public key of the provided keypair in the `jwk` field in the header. The
+    /// resulting JWT can be verified using [`UnverifiedJwt::parse_and_verify_with_jwk`].
     pub async fn sign_with_jwk(payload: &T, key: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithJwk>, JwtError> {
         let header = HeaderWithJwk::try_from_verifying_key(key).await?;
         SignedJwt::sign_with_header(header, payload, key).await
@@ -432,7 +512,71 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
     }
 }
 
-/// A verified JWS, along with its header and payload.
+/// A verified JWT, along with its parsed header and payload. Can be obtained by verifying an `UnverifiedJwt` or
+/// converting a `SignedJwt`. Implements `Serialize` (via `Display`), but not `Deserialize` as that would be unsafe.
+///
+/// # Security
+/// Methods `dangerous_parse_unverified` and `dangerous_deserialize` are also provided to be able to parse a JWT that
+/// were verified before and are read from a trusted source like a database or config. These should *not* be used for
+/// JWTs obtained from untrusted sources.
+///
+/// # Examples
+/// From an `UnverifiedJwt`:
+/// ```
+/// # use jwt::DEFAULT_VALIDATIONS;
+/// # use jwt::EcdsaDecodingKey;
+/// # use jwt::JwtTyp;
+/// # use jwt::SignedJwt;
+/// # use jwt::error::JwtError;
+/// # use p256::ecdsa::SigningKey;
+/// # use rand_core::OsRng;
+/// # use serde::Deserialize;
+/// # use serde::Serialize;
+///
+/// #[derive(Serialize, Deserialize)]
+/// struct Claims {
+///     name: String,
+/// }
+/// impl JwtTyp for Claims {}
+///
+/// # tokio_test::block_on(async {
+/// let key = SigningKey::random(&mut OsRng);
+/// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
+///
+/// let unverified = signed.into_unverified();
+/// let verified = unverified.into_verified(&EcdsaDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
+/// assert_eq!(verified.payload().name, "alice");
+/// # Ok::<(), JwtError>(())
+/// # });
+/// ```
+///
+/// Or directly from a `SignedJwt`:
+/// ```
+/// # use jwt::DEFAULT_VALIDATIONS;
+/// # use jwt::EcdsaDecodingKey;
+/// # use jwt::JwtTyp;
+/// # use jwt::SignedJwt;
+/// # use jwt::error::JwtError;
+/// # use p256::ecdsa::SigningKey;
+/// # use rand_core::OsRng;
+/// # use serde::Deserialize;
+/// # use serde::Serialize;
+///
+/// #[derive(Serialize, Deserialize)]
+/// struct Claims {
+///     name: String,
+/// }
+/// impl JwtTyp for Claims {}
+///
+/// # tokio_test::block_on(async {
+/// let key = SigningKey::random(&mut OsRng);
+/// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
+///
+/// let verified = signed.into_verified();
+/// assert_eq!(verified.payload().name, "alice");
+/// # Ok::<(), JwtError>(())
+/// # });
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay)]
 #[display("{jwt}")]
 pub struct VerifiedJwt<T, H = HeaderWithTyp> {
@@ -468,6 +612,10 @@ impl<T, H> VerifiedJwt<T, H> {
 
     pub fn payload(&self) -> &T {
         &self.payload
+    }
+
+    pub fn into_payload(self) -> T {
+        self.payload
     }
 
     pub fn jwt(&self) -> &UnverifiedJwt<T, H> {
@@ -528,8 +676,23 @@ pub static DEFAULT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     validation_options
 });
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/// Trait defining the expected `sub` field value for a JWT payload. To use `sign_with_sub`, types used as payloads of
+/// JWTs must implement this trait, which enforces that only JWTs with a matching `sub` field are accepted when using
+/// `parse_and_verify_with_sub`.
+///
+/// When calling `sign_with_sub` the constant `SUB` is injected into the payload. When using `parse_and_verify_with_sub`
+/// the `sub` field is enforced during verification.
+///
+/// # Example
+/// ```
+/// # use jwt::JwtSub;
+///
+/// struct ExampleClaims;
+///
+/// impl JwtSub for ExampleClaims {
+///     const SUB: &'static str = "example";
+/// }
+/// ```
 pub trait JwtSub {
     const SUB: &'static str;
 }
@@ -600,8 +763,22 @@ where
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/// Trait defining the expected `typ` header value for a JWT payload. Types used as payloads of JWTs must implement this
+/// trait, which enforces that only JWTs with a matching `typ` header are accepted.
+///
+/// The constant `TYP` is injected into the header during signing and enforced during verification. By default, `TYP` is
+/// `"jwt"`.
+///
+/// # Example
+/// ```
+/// # use jwt::JwtTyp;
+///
+/// struct ExampleClaims;
+///
+/// impl JwtTyp for ExampleClaims {
+///     const TYP: &'static str = "example+jwt";
+/// }
+/// ```
 pub trait JwtTyp {
     const TYP: &'static str = DEFAULT_JWT_TYP;
 
@@ -760,7 +937,6 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
@@ -1070,7 +1246,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
+        let keypair = ca.generate_reader_mock().unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
@@ -1162,16 +1338,16 @@ mod tests {
                 CertificateConfiguration::default(),
             )
             .unwrap();
-        let keypair = generate_reader_mock_with_registration(&intermediate3, None).unwrap();
+        let keypair = intermediate3.generate_reader_mock().unwrap();
 
         // Construct a JWT with the `x5c` field containing the X.509 certificates
         // of the leaf certificate and the intermediates, in reverse order.
         let payload = json!({"hello": "world"});
         let certs = vec_nonempty![
             keypair.certificate().to_owned(),
-            BorrowingCertificate::from_certificate_der(intermediate3.as_certificate_der().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate2.as_certificate_der().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate1.as_certificate_der().to_owned()).unwrap(),
+            BorrowingCertificate::from_certificate_der(intermediate3.certificate().to_owned()).unwrap(),
+            BorrowingCertificate::from_certificate_der(intermediate2.certificate().to_owned()).unwrap(),
+            BorrowingCertificate::from_certificate_der(intermediate1.certificate().to_owned()).unwrap(),
         ];
 
         let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
@@ -1196,7 +1372,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_wrong_cert() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
+        let keypair = ca.generate_reader_mock().unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
@@ -1220,10 +1396,22 @@ mod tests {
         );
     }
 
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    enum ToyEnum {
+        Variant,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    struct MessageWithEnum {
+        number: u8,
+        string: String,
+        enumerate: ToyEnum,
+    }
+
     #[rstest]
-    #[case(Header::default())]
-    #[case(HeaderWithTyp::default())]
+    #[case(ToyMessage::default())]
     #[case(ToyMessage { number: 1, string: "a".to_string() })]
+    #[case(MessageWithEnum  { number: 1, string: "a".to_string(), enumerate: ToyEnum::Variant })]
     fn test_payload_with_sub_deserialize<U>(#[case] u: U)
     where
         U: Serialize + DeserializeOwned + Debug + PartialEq + Eq,

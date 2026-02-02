@@ -1,3 +1,4 @@
+use attestation_data::attributes::Attributes;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -6,8 +7,19 @@ use serde_with::skip_serializing_none;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
-use attestation_data::constants::*;
-use utils::vec_at_least::VecNonEmpty;
+
+use crate::pid::constants::PID_ADDRESS_GROUP;
+use crate::pid::constants::PID_AGE_OVER_18;
+use crate::pid::constants::PID_BIRTH_DATE;
+use crate::pid::constants::PID_BSN;
+use crate::pid::constants::PID_FAMILY_NAME;
+use crate::pid::constants::PID_GIVEN_NAME;
+use crate::pid::constants::PID_NATIONALITY;
+use crate::pid::constants::PID_RESIDENT_CITY;
+use crate::pid::constants::PID_RESIDENT_COUNTRY;
+use crate::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
+use crate::pid::constants::PID_RESIDENT_POSTAL_CODE;
+use crate::pid::constants::PID_RESIDENT_STREET;
 
 #[derive(Deserialize)]
 pub struct BrpPersons {
@@ -50,7 +62,7 @@ impl BrpPerson {
 }
 
 impl BrpPerson {
-    pub fn into_issuable(self) -> VecNonEmpty<(String, IndexMap<String, Attribute>)> {
+    pub fn into_attributes(self) -> Attributes {
         let given_names = self.name.given_names.clone();
         let is_over_18 = self.is_over_18();
         let family_name = self.name.into_name_with_prefix();
@@ -62,47 +74,36 @@ impl BrpPerson {
             .filter_map(|nationality| nationality.nationality.map(|nationality| nationality.description))
             .collect_vec();
 
-        vec![
-            (
-                String::from(PID_ATTESTATION_TYPE),
-                IndexMap::from_iter(
-                    vec![
-                        Some((
-                            String::from(PID_FAMILY_NAME),
-                            Attribute::Single(AttributeValue::Text(family_name)),
-                        )),
-                        given_names.map(|names| {
-                            (
-                                String::from(PID_GIVEN_NAME),
-                                Attribute::Single(AttributeValue::Text(names)),
-                            )
-                        }),
-                        Some((
-                            String::from(PID_BIRTH_DATE),
-                            Attribute::Single(AttributeValue::Text(
-                                self.birth.date.date.format("%Y-%m-%d").to_string(),
-                            )),
-                        )),
-                        Some((
-                            String::from(PID_AGE_OVER_18),
-                            Attribute::Single(AttributeValue::Bool(is_over_18)),
-                        )),
-                        Some((String::from(PID_BSN), Attribute::Single(AttributeValue::Text(self.bsn)))),
-                        Some((
-                            String::from(PID_NATIONALITY),
-                            Attribute::Single(AttributeValue::Array(
-                                nationalities.into_iter().map(AttributeValue::Text).collect_vec(),
-                            )),
-                        )),
-                    ]
-                    .into_iter()
-                    .flatten()
-                    .collect::<Vec<(String, Attribute)>>(),
-                ),
-            ),
-            (
-                String::from(ADDRESS_ATTESTATION_TYPE),
-                IndexMap::from_iter(vec![(
+        let attributes = IndexMap::from_iter(
+            vec![
+                Some((
+                    String::from(PID_FAMILY_NAME),
+                    Attribute::Single(AttributeValue::Text(family_name)),
+                )),
+                given_names.map(|names| {
+                    (
+                        String::from(PID_GIVEN_NAME),
+                        Attribute::Single(AttributeValue::Text(names)),
+                    )
+                }),
+                Some((
+                    String::from(PID_BIRTH_DATE),
+                    Attribute::Single(AttributeValue::Text(
+                        self.birth.date.date.format("%Y-%m-%d").to_string(),
+                    )),
+                )),
+                Some((
+                    String::from(PID_AGE_OVER_18),
+                    Attribute::Single(AttributeValue::Bool(is_over_18)),
+                )),
+                Some((String::from(PID_BSN), Attribute::Single(AttributeValue::Text(self.bsn)))),
+                Some((
+                    String::from(PID_NATIONALITY),
+                    Attribute::Single(AttributeValue::Array(
+                        nationalities.into_iter().map(AttributeValue::Text).collect_vec(),
+                    )),
+                )),
+                Some((
                     String::from(PID_ADDRESS_GROUP),
                     Attribute::Nested(IndexMap::from_iter(
                         vec![
@@ -133,11 +134,14 @@ impl BrpPerson {
                         .flatten()
                         .collect::<Vec<(String, Attribute)>>(),
                     )),
-                )]),
-            ),
-        ]
-        .try_into()
-        .unwrap()
+                )),
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<(String, Attribute)>>(),
+        );
+
+        Attributes::from(attributes)
     }
 }
 
@@ -288,20 +292,19 @@ impl BrpAddress {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::PathBuf;
 
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_data::constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
 
     fn read_json(name: &str) -> String {
-        fs::read_to_string(prefix_local_path(
-            format!("resources/test/haal-centraal-examples/{name}.json").as_ref(),
-        ))
+        fs::read_to_string(prefix_local_path(PathBuf::from(format!(
+            "resources/test/haal-centraal-examples/{name}.json"
+        ))))
         .unwrap()
     }
 
@@ -346,45 +349,29 @@ mod tests {
     #[test]
     fn should_convert_brp_person_to_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let issuable = brp_persons.persons.remove(0).into_issuable();
-
-        assert_eq!(2, issuable.as_ref().len());
-
-        let pid_card = &issuable.as_ref()[0];
-        let address_card = &issuable.as_ref()[1];
+        let pid_card = brp_persons.persons.remove(0).into_attributes();
 
         assert_eq!(
-            json!([
-                PID_ATTESTATION_TYPE,
-                {
-                    "family_name": "Jansen",
-                    "given_name": "Frouke",
-                    "birthdate": "2000-03-24",
-                    "age_over_18": true,
-                    "bsn": "999991772",
-                    "nationalities": [
-                        "Nederlandse",
-                        "Belgische"
-                    ]
+            json!(
+            {
+                "family_name": "Jansen",
+                "given_name": "Frouke",
+                "birthdate": "2000-03-24",
+                "age_over_18": true,
+                "bsn": "999991772",
+                "nationalities": [
+                    "Nederlandse",
+                    "Belgische"
+                ],
+                "address": {
+                    "street_address": "Van Wijngaerdenstraat",
+                    "house_number": "1",
+                    "postal_code": "2596TW",
+                    "locality": "Toetsoog",
+                    "country": "Nederland",
                 },
-            ]),
+            }),
             serde_json::to_value(pid_card).unwrap()
-        );
-
-        assert_eq!(
-            json!([
-                ADDRESS_ATTESTATION_TYPE,
-                {
-                    "address": {
-                        "street_address": "Van Wijngaerdenstraat",
-                        "house_number": "1",
-                        "postal_code": "2596TW",
-                        "locality": "Toetsoog",
-                        "country": "Nederland",
-                    },
-                },
-            ]),
-            serde_json::to_value(address_card).unwrap()
         );
     }
 }

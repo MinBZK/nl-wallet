@@ -1,15 +1,16 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::Debug;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
@@ -24,33 +25,48 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
+use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
+use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct IssuanceServerSettings {
     pub disclosure_settings: HashMap<String, AttestationSettings>,
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
 
+    pub status_lists: StatusListsSettings,
+
+    /// Configuration for caching status list tokens.
+    #[serde(default)]
+    pub status_list_token_cache_settings: StatusListTokenCacheSettings,
+
     /// Reader trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
     /// application startup.
     #[serde_as(as = "Vec<Base64>")]
+    #[debug(skip)]
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     pub universal_link_base_url: BaseUrl,
+
+    /// Indicate per vct what extending vcts are accepted during disclosure.
+    pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AttestationSettings {
     #[serde(flatten)]
+    #[debug(skip)]
     pub key_pair: KeyPair,
     pub dcql_query: Query,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).
+    #[debug(skip)]
     pub attestation_url_config: TlsPinningConfig,
 }
 
@@ -63,9 +79,15 @@ impl ServerSettings for IssuanceServerSettings {
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 8001)?
+            .set_default("internal_server.ip", "0.0.0.0")?
+            .set_default("internal_server.port", 8002)?
             .set_default("public_url", "http://localhost:8001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
+            .set_default("status_lists.list_size", 100_000)?
+            .set_default("status_lists.create_threshold_ratio", 0.1)?
+            .set_default("status_lists.expiry_in_hours", 24)?
+            .set_default("status_lists.refresh_threshold_ratio", 0.25)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",
@@ -84,7 +106,7 @@ impl ServerSettings for IssuanceServerSettings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(Path::new(config_file));
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
@@ -122,13 +144,7 @@ impl ServerSettings for IssuanceServerSettings {
             .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &trust_anchors,
-            CertificateUsage::ReaderAuth,
-            &time,
-            |certificate_type| matches!(certificate_type, CertificateType::ReaderAuth(Some(_))),
-        )?;
+        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::ReaderAuth, &time)?;
 
         Ok(())
     }

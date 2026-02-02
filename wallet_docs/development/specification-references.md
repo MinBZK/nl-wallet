@@ -29,5 +29,6 @@ this project:
 - [PoP](https://www.rfc-editor.org/rfc/rfc7800.html) - Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)
 
 ## Other
-- [PID Rulebook](https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/1.6.0/annexes/annex-3/annex-3.01-pid-rulebook/) - Person Identification Data (PID) Rulebook
+- [PID Rulebook](https://eudi.dev/1.6.0/annexes/annex-3/annex-3.01-pid-rulebook/) - Person Identification Data (PID) Rulebook
 - [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) - Problem Details for HTTP APIs
+- [TSL](https://datatracker.ietf.org/doc/draft-ietf-oauth-status-list/13/) - Token Status List (draft 13)

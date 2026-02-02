@@ -1,16 +1,15 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../environment.dart';
+import '../../data/service/announcement_service.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -24,6 +23,7 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
+import '../common/widget/government_logo.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
@@ -125,34 +125,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             child: _buildContent(context),
           ),
         ),
-        _buildGovernmentLabel(context),
+        _buildGovernmentLogo(),
       ],
-    );
-  }
-
-  Widget _buildGovernmentLabel(BuildContext context) {
-    // Calculate the height, taking the top (os level) padding into account. Assuring it doesn't overlap with the appbar
-    final topPadding = MediaQuery.of(context).padding.top;
-    final double portraitLogoHeight = math.min(88, 64 + topPadding);
-    // Calculate the offset for the scroll animation
-    final labelOffset = -2 * _currentScrollControllerPixelOffset;
-    final normalizedOffset = min(labelOffset, 0).toDouble();
-    return Positioned(
-      top: normalizedOffset,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: ExcludeSemantics(
-          child: Semantics(
-            attributedLabel: context.l10n.introductionWCAGDutchGovernmentLogoLabel.toAttributedString(context),
-            child: Image.asset(
-              WalletAssets.logo_rijksoverheid_label,
-              height: context.isLandscape ? 64 : portraitLogoHeight,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -172,6 +146,22 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         ),
         _buildControls(context),
       ],
+    );
+  }
+
+  Widget _buildGovernmentLogo() {
+    // Calculate the offset for the scroll animation
+    final logoOffset = -2 * _currentScrollControllerPixelOffset;
+    final normalizedOffset = min(logoOffset, 0).toDouble();
+    return Positioned(
+      top: normalizedOffset,
+      left: 0,
+      right: 0,
+      child: const Center(
+        child: ExcludeSemantics(
+          child: GovernmentLogo(),
+        ),
+      ),
     );
   }
 
@@ -336,7 +326,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     _announcementStream.add(announcement);
   }
 
-  void _announce(String announcement) => SemanticsService.announce(announcement, TextDirection.ltr);
+  void _announce(String announcement) => context.read<AnnouncementService>().announce(announcement);
 
   Widget? _buildBackButton() {
     if (_currentPage < 0.5) return null;

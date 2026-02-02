@@ -37,6 +37,7 @@ spec:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -44,23 +45,23 @@ spec:
           ports:
             - name: http
               containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
           volumeMounts:
-            - name: pid-issuer-private-keys
+            - name: private-keys
               mountPath: /pid_issuer.toml
               subPath: pid_issuer.toml
-            - name: pid-issuer-metadata
+            - name: metadata
               mountPath: /eudi:pid:1.json
               subPath: eudi_pid_1.json
-            - name: pid-issuer-metadata
+            - name: metadata
               mountPath: /eudi:pid:nl:1.json
               subPath: eudi_pid_nl_1.json
-            - name: pid-issuer-metadata
-              mountPath: /eudi:pid-address:1.json
-              subPath: eudi_pid-address_1.json
-            - name: pid-issuer-metadata
-              mountPath: /eudi:pid-address:nl:1.json
-              subPath: eudi_pid-address_nl_1.json
+            - name: status-lists
+              mountPath: /status-lists
           env:
+            - name: PID_ISSUER__INTERNAL_SERVER__IP
+              value: "0.0.0.0"
             - name: PID_ISSUER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: PID_ISSUER__STRUCTURED_LOGGING
@@ -90,7 +91,7 @@ spec:
                   name: nl-wallet-pid-issuer-wua-issuer-pubkey
                   key: wua_issuer_pubkey
             - name: PID_ISSUER__METADATA
-              value: "eudi:pid:1.json,eudi:pid:nl:1.json,eudi:pid-address:1.json,eudi:pid-address:nl:1.json"
+              value: "eudi:pid:1.json,eudi:pid:nl:1.json"
             - name: PID_ISSUER__STORAGE__URL
               valueFrom:
                 secretKeyRef:
@@ -106,9 +107,12 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: pid-issuer-private-keys
+        - name: private-keys
           secret:
             secretName: nl-wallet-pid-issuer-private-keys
-        - name: pid-issuer-metadata
+        - name: metadata
           configMap:
             name: nl-wallet-pid-issuer-metadata
+        - name: status-lists
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}

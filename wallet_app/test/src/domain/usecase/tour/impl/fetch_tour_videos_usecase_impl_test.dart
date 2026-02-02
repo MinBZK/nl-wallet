@@ -23,7 +23,9 @@ void main() {
     idleWarningTimeout: Duration.zero,
     backgroundLockTimeout: Duration.zero,
     staticAssetsBaseUrl: testBaseUrl,
-    version: 0,
+    pidAttestationTypes: ['com.example.attestationType'],
+    version: '0',
+    environment: 'test',
   );
 
   setUp(() {

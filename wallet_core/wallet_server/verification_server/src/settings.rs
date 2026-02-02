@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 
 use config::Config;
@@ -17,7 +18,6 @@ use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
-use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
@@ -36,12 +36,13 @@ use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
-use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
+use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 const MIN_KEY_LENGTH_BYTES: usize = 32;
 
@@ -58,11 +59,6 @@ pub struct VerifierSettings {
     #[serde_as(as = "Vec<Base64>")]
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 
-    // used by the application, SHOULD be reachable only by the application.
-    // if not configured the wallet_server will be used, but an api_key is required in that case
-    // if it conflicts with wallet_server, the application will crash on startup
-    pub requester_server: RequesterAuth,
-
     pub universal_link_base_url: BaseUrl,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
@@ -71,6 +67,13 @@ pub struct VerifierSettings {
     /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
     /// JWTs.
     pub wallet_client_ids: Vec<String>,
+
+    /// Indicate per vct what extending vcts are accepted during disclosure.
+    pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
+
+    /// Configuration for caching status list tokens.
+    #[serde(default)]
+    pub status_list_token_cache_settings: StatusListTokenCacheSettings,
 
     #[serde(flatten)]
     pub server_settings: Settings,
@@ -91,6 +94,9 @@ pub struct UseCaseSettings {
 
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
+
+    #[serde(default)]
+    pub accept_undetermined_revocation_status: bool,
 }
 
 impl UseCasesSettings {
@@ -123,6 +129,7 @@ impl UseCaseSettings {
             self.session_type_return_url,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
+            self.accept_undetermined_revocation_status,
         )?;
 
         Ok(use_case)
@@ -161,13 +168,13 @@ impl ServerSettings for VerifierSettings {
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
-            .set_default("requester_server.ip", "127.0.0.1")?
-            .set_default("requester_server.port", 8002)?
+            .set_default("internal_server.ip", "127.0.0.1")?
+            .set_default("internal_server.port", 8002)?
             .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(Path::new(config_file));
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
@@ -205,13 +212,7 @@ impl ServerSettings for VerifierSettings {
             .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &trust_anchors,
-            CertificateUsage::ReaderAuth,
-            &time,
-            |certificate_type| matches!(certificate_type, CertificateType::ReaderAuth(Some(_))),
-        )?;
+        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::ReaderAuth, &time)?;
 
         Ok(())
     }

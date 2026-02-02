@@ -1,4 +1,4 @@
-internal_wallet_server_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_RS_PORT}'
+internal_wallet_server_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_IS_PORT}'
 public_wallet_server_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}'
 public_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
 help_base_url = "https://example.com/"
@@ -10,14 +10,22 @@ connect_src = ["'self'", "http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}
 ip = '0.0.0.0'
 port = ${DEMO_RP_PORT}
 
-[[usecases.mijn_amsterdam.dcql_query.credentials]]
-id = "my_pid"
+[[usecases.mijn_amsterdam_mdoc.dcql_query.credentials]]
+id = "bsn_mdoc"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
     { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = false }
 ]
 
+[[usecases.mijn_amsterdam_sd_jwt.dcql_query.credentials]]
+id = "bsn_sd_jwt"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:nl:1"] }
+claims = [
+    { path = ["bsn"] }
+]
+
 [[usecases.online_marketplace.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"
@@ -26,37 +34,52 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "nationalities"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "nationalities"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "postal_code"], intent_to_retain = true }
 ]
 
-[[usecases.online_marketplace.dcql_query.credentials]]
-id = "my_address"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
-claims = [
-    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
-]
-
-[[usecases.xyz_bank.dcql_query.credentials]]
-id = "my_pid"
+[[usecases.xyz_bank_mdoc.dcql_query.credentials]]
+id = "mdoc_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
+    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "postal_code"], intent_to_retain = true }
 ]
 
-[[usecases.xyz_bank.dcql_query.credentials]]
-id = "my_address"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
+[[usecases.xyz_bank_sd_jwt.dcql_query.credentials]]
+id = "sd_jwt_pid"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:nl:1"] }
 claims = [
-    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
+    { path = ["bsn"] },
+    { path = ["given_name"]},
+    { path = ["family_name"] },
+    { path = ["birthdate"] },
+    { path = ["address", "street_address"] },
+    { path = ["address", "house_number"] },
+    { path = ["address", "postal_code"] }
+]
+
+[[usecases.xyz_bank_sd_jwt_eu.dcql_query.credentials]]
+id = "sd_jwt_pid"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:1"] }
+claims = [
+    { path = ["bsn"] },
+    { path = ["given_name"]},
+    { path = ["family_name"] },
+    { path = ["birthdate"] },
+    { path = ["address", "street_address"] },
+    { path = ["address", "house_number"] },
+    { path = ["address", "postal_code"] }
 ]
 
 [[usecases.monkey_bike.dcql_query.credentials]]
@@ -67,18 +90,11 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "gender"], intent_to_retain = true }
-]
-
-[[usecases.monkey_bike.dcql_query.credentials]]
-id = "my_address"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
-claims = [
-    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true },
-    { path = ["urn:eudi:pid-address:nl:1.address", "locality"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "gender"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "postal_code"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1.address", "locality"], intent_to_retain = true }
 ]
 
 [[usecases.job_finder.dcql_query.credentials]]

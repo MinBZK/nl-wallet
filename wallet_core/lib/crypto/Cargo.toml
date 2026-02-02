@@ -11,22 +11,25 @@ workspace = true
 doctest = false
 
 [features]
+# Implements SeaORM traits for types that can be persisted
+persistence = ["sea-orm/macros"]
 # Include examples from the ISO specification
 examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Include code for generating certificates and keys
-generate = ["dep:rcgen", "dep:time"]
+generate = ["dep:time", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 # Include mock implementations and constructors for testing
 mock = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 mock_secure_keys = []
 
 [dependencies]
-aes-gcm = { workspace = true, features = ["std"] }
+aes-gcm.workspace = true
 base64.workspace = true
-chrono = { workspace = true, features = ["std", "clock"] }
-derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into"] }
+chrono.workspace = true
+derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
+itertools.workspace = true
+p256 = { workspace = true, features = ["pem"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 rand.workspace = true
@@ -44,15 +47,17 @@ http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 anyhow = { workspace = true, optional = true }
-futures = { workspace = true, optional = true, features = ["std"] }
+futures = { workspace = true, optional = true }
 hex = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_rs"] }
+rcgen = { workspace = true, optional = true }
+sea-orm = { workspace = true, optional = true }
 time = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+chrono = { workspace = true, features = ["now"] }
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 time.workspace = true

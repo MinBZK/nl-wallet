@@ -88,9 +88,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<AF, AS, K, S, W> {
+pub struct IssuanceResultHandler<AF, AS, K, S, C> {
     pub attributes_fetcher: AF,
-    pub issuer: Arc<Issuer<AS, K, S, W>>,
+    pub issuer: Arc<Issuer<AS, K, S, C>>,
     pub credential_issuer: BaseUrl,
 }
 
@@ -118,13 +118,13 @@ impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
 }
 
 #[async_trait]
-impl<AF, AS, K, S, W> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, W>
+impl<AF, AS, K, S, C> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, C>
 where
     AF: AttributesFetcher + Sync,
     AS: AttributeService + Sync,
-    S: SessionStore<IssuanceData> + Sync,
     K: Send + Sync,
-    W: Send + Sync,
+    S: SessionStore<IssuanceData> + Sync,
+    C: Send + Sync,
 {
     async fn disclosure_result(
         &self,
@@ -145,7 +145,7 @@ where
 
         let credential_configuration_ids = to_issue
             .iter()
-            .map(|attestation| attestation.attestation_type().to_string())
+            .map(|document| document.attestation_type().to_string())
             .collect();
 
         // Start a new issuance session.
@@ -192,8 +192,9 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
+    use attestation_data::validity::IssuanceValidity;
+    use attestation_types::qualification::AttestationQualification;
     use dcql::unique_id_vec::UniqueIdVec;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
@@ -203,11 +204,12 @@ mod tests {
     use openid4vc::issuer::TrivialAttributeService;
     use openid4vc::issuer::WuaConfig;
     use openid4vc::server_state::MemorySessionStore;
-    use openid4vc::server_state::MemoryWuaTracker;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
+    use token_status_list::status_list_service::mock::MockStatusListServices;
+    use token_status_list::verification::verifier::RevocationStatus;
     use utils::vec_nonempty;
 
     use super::AttributesFetcher;
@@ -222,12 +224,10 @@ mod tests {
                 attestation_type,
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
                 issuer_uri: "https://example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Utc::now(),
-                    valid_from: Some(Utc::now()),
-                    valid_until: Some(Utc::now()),
-                },
+                issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
+                revocation_status: Some(RevocationStatus::Valid),
             }],
         }])
         .unwrap()
@@ -246,7 +246,7 @@ mod tests {
             let attestation = disclosed.as_ref().first().unwrap().attestations.first();
 
             Ok(vec![
-                IssuableDocument::try_new(
+                IssuableDocument::try_new_with_random_id(
                     attestation.attestation_type.clone(),
                     IndexMap::from([(
                         "attr_name".to_string(),
@@ -273,7 +273,8 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWuaTracker>;
+    type MockIssuer =
+        Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusListServices>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
@@ -282,7 +283,8 @@ mod tests {
             HashMap::<std::string::String, AttestationTypeConfig<SigningKey>>::new().into(),
             &"https://example.com".parse().unwrap(),
             vec![],
-            None::<WuaConfig<MemoryWuaTracker>>,
+            None::<WuaConfig>,
+            Arc::new(MockStatusListServices::default()),
         )
     }
 

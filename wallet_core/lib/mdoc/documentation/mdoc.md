@@ -43,7 +43,7 @@ In an mdoc, attributes are grouped within namespaces. The structure of an mdoc i
   - signing and expiry dates
   - mdoc public key (corresponding to private key)
   - one or more namespaces
-    - per namespace, the digests of the attributes inside the namesapce
+    - per namespace, the digests of the attributes inside the namespace
 
 When disclosing an attribute, the holder sends the COSE with the MSO inside it to the RP, along with the attributes that it wants to disclose.
 In addition, it uses the private key of the mdoc (whose corresponding public key is included in the MSO) to sign a particular data structure that is unique to each session. This proves to the RP that the holder indeed has possession of the mdoc and it prevents replay attacks.

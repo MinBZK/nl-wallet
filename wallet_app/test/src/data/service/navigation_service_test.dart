@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
+import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
+import 'package:wallet/src/feature/sign/argument/sign_screen_argument.dart';
 
 import '../../mocks/wallet_mocks.dart';
 
@@ -9,12 +12,12 @@ void main() {
   late NavigationService service;
   late MockCheckNavigationPrerequisitesUseCase mockCheckNavigationPrerequisitesUseCase;
   late MockPerformPreNavigationActionsUseCase mockPerformPreNavigationActionsUseCase;
+  late MockGetWalletStateUseCase mockGetWalletStateUseCase;
   late MockNavigatorKey navigatorKey;
   late MockNavigatorState navigatorState;
   late MockBuildContext context;
 
   setUp(() {
-    provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
     navigatorKey = MockNavigatorKey();
     navigatorState = MockNavigatorState();
     context = MockBuildContext();
@@ -23,11 +26,13 @@ void main() {
     // Usecases
     mockCheckNavigationPrerequisitesUseCase = MockCheckNavigationPrerequisitesUseCase();
     mockPerformPreNavigationActionsUseCase = MockPerformPreNavigationActionsUseCase();
+    mockGetWalletStateUseCase = MockGetWalletStateUseCase();
 
     service = NavigationService(
       navigatorKey,
       mockCheckNavigationPrerequisitesUseCase,
       mockPerformPreNavigationActionsUseCase,
+      mockGetWalletStateUseCase,
     );
   });
 
@@ -46,7 +51,7 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = PidIssuanceNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.pidIssuance('/mock');
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
@@ -62,7 +67,9 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = DisclosureNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.disclosure(
+        argument: const DisclosureScreenArgument(uri: '/mock', isQrCode: false),
+      );
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
@@ -78,7 +85,9 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = IssuanceNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.issuance(
+        argument: const IssuanceScreenArgument(isQrCode: false, uri: '/mock'),
+      );
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
@@ -94,7 +103,7 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      final navigationRequest = SignNavigationRequest('/mock');
+      final navigationRequest = NavigationRequest.sign(argument: const SignScreenArgument(uri: '/mock'));
       await service.handleNavigationRequest(navigationRequest);
 
       verify(
@@ -156,14 +165,19 @@ void main() {
     });
 
     test(
-      'Verify assertion error is thrown when trying to process the queue while prerequisites are still unmet',
+      'Verify navigation does not occur when prerequisites are not met',
       () async {
         // Disallow navigation
         when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => false);
+
+        // Queue event
         await service.handleNavigationRequest(const GenericNavigationRequest('/mock'), queueIfNotReady: true);
 
-        // And process any queue if it exists, while app is still NOT ready
-        expect(() async => service.processQueue(), throwsAssertionError);
+        // Attempt to process queue
+        await service.processQueue();
+
+        // Verify queue was not processed
+        verifyZeroInteractions(navigatorKey.currentState);
       },
     );
   });

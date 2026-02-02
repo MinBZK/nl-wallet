@@ -3,17 +3,19 @@ package feature.introduction
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
-import screen.dashboard.DashboardScreen
-import screen.introduction.AppTourScreen
-import screen.introduction.VideoPlayer
-import screen.menu.MenuScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.dashboard.DashboardScreen
+import screen.introduction.AppTourScreen
+import screen.introduction.VideoPlayer
+import screen.menu.MenuScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 1.3 App tour video player")
@@ -34,7 +36,8 @@ class AppTourVideoTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC16 User views app tour")
+    @DisplayName("LTC14 User views app tour")
+    @Tags(Tag("a11yBatch3"))
     fun verifyVideoTour(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(dashboardScreen.appTourBannerVisible(), "app tour banner is not visible")

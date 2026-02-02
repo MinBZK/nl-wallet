@@ -6,7 +6,15 @@
 
 {% block styles %}
 <link rel="stylesheet" href="../css/demo_bar.css" />
-<link rel="stylesheet" href="../css/{{ usecase }}.css" />
+{% match usecase %}
+{% when "university_mdoc" | "university_sd_jwt" %}
+    <link rel="stylesheet" href="../css/university.css" />
+{% when "insurance" %}
+    <link rel="stylesheet" href="../css/insurance.css" />
+{% when "housing" %}
+    <link rel="stylesheet" href="../css/housing.css" />
+{% else %}
+{% endmatch %}
 {% endblock %}
 
 {% block scripts %}
@@ -16,10 +24,12 @@
 
 {% block content %}
 {% match usecase %}
-    {% when "university" %}
+    {% when "university_mdoc" | "university_sd_jwt" %}
         {% include "university.askama" %}
     {% when "insurance" %}
         {% include "insurance.askama" %}
+    {% when "housing" %}
+        {% include "housing.askama" %}
     {% else %}
         <nl-wallet-button
             text={{ base.trans.add_to_nl_wallet }}

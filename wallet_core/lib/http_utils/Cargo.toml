@@ -14,16 +14,24 @@ doctest = false
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = []
 # Include implementations for http clients
-client = ["dep:reqwest", "serde_with/base64"]
+client = ["reqwest/gzip", "serde_with/base64"]
 # Implement the HttpConfig type for insecurely fetching configurations.
 insecure_http_client = ["client"]
 # Include implementations of the axum IntoResponse trait.
-server = ["dep:axum", "dep:axum-server", "dep:tower-http", "serde_with/base64"]
+server = [
+    "axum/json",
+    "axum-server/tls-rustls-no-provider",
+    "dep:tracing",
+    "dep:futures",
+    "serde_with/base64",
+    "tower-http/cors",
+]
 
 [dependencies]
+async-trait.workspace = true
 cfg-if.workspace = true
-base64 = { workspace = true }
-data-url = { workspace = true }
+base64.workspace = true
+data-url.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "constructor"] }
 http.workspace = true
 itertools.workspace = true
@@ -31,17 +39,18 @@ mime.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
 regex.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true, features = ["std"] }
+serde_json.workspace = true
 serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 
-axum = { workspace = true, optional = true, features = ["json"] }
-axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
-reqwest = { workspace = true, optional = true, features = ["rustls-tls-no-provider"] }
-tower-http = { workspace = true, optional = true, features = ["cors"] }
+axum = { workspace = true, optional = true }
+axum-server = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstest.workspace = true

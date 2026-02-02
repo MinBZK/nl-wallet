@@ -1,6 +1,6 @@
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
-import '../../../../domain/model/transfer/wallet_transfer_status.dart';
+import '../../../../domain/model/transfer/transfer_session_state.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../transfer_repository.dart';
 
@@ -13,24 +13,31 @@ class CoreTransferRepository implements TransferRepository {
   Future<String> initWalletTransfer() => _walletCore.initWalletTransfer();
 
   @override
-  Future<void> acknowledgeWalletTransfer(String uri) => _walletCore.acknowledgeWalletTransfer(uri);
+  Future<void> pairWalletTransfer(String uri) => _walletCore.pairWalletTransfer(uri);
 
   @override
-  Future<WalletInstructionResult> transferWallet(String pin) => _walletCore.transferWallet(pin);
+  Future<core.WalletInstructionResult> confirmWalletTransfer(String pin) => _walletCore.confirmWalletTransfer(pin);
+
+  @override
+  Future<void> transferWallet() => _walletCore.transferWallet();
+
+  @override
+  Future<void> receiveWalletTransfer() => _walletCore.receiveWalletTransfer();
 
   @override
   Future<void> cancelWalletTransfer() => _walletCore.cancelWalletTransfer();
 
   @override
-  Future<WalletTransferStatus> getWalletTransferState() async {
+  Future<TransferSessionState> getWalletTransferState() async {
     final result = await _walletCore.getWalletTransferState();
     return switch (result) {
-      TransferSessionState.Created => WalletTransferStatus.waitingForScan,
-      TransferSessionState.ReadyForTransfer => WalletTransferStatus.waitingForApprovalAndUpload,
-      TransferSessionState.ReadyForDownload => WalletTransferStatus.transferring,
-      TransferSessionState.Success => WalletTransferStatus.success,
-      TransferSessionState.Cancelled => WalletTransferStatus.cancelled,
-      TransferSessionState.Error => WalletTransferStatus.error,
+      core.TransferSessionState.Created => TransferSessionState.created,
+      core.TransferSessionState.Paired => TransferSessionState.paired,
+      core.TransferSessionState.Confirmed => TransferSessionState.confirmed,
+      core.TransferSessionState.Uploaded => TransferSessionState.uploaded,
+      core.TransferSessionState.Success => TransferSessionState.success,
+      core.TransferSessionState.Canceled => TransferSessionState.cancelled,
+      core.TransferSessionState.Error => TransferSessionState.error,
     };
   }
 

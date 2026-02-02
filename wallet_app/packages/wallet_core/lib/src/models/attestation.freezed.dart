@@ -1083,4 +1083,440 @@ String toString() {
 
 
 
+/// @nodoc
+mixin _$ValidityStatus {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'ValidityStatus()';
+}
+
+
+}
+
+/// @nodoc
+class $ValidityStatusCopyWith<$Res>  {
+$ValidityStatusCopyWith(ValidityStatus _, $Res Function(ValidityStatus) __);
+}
+
+
+/// Adds pattern-matching-related methods to [ValidityStatus].
+extension ValidityStatusPatterns on ValidityStatus {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ValidityStatus_NotYetValid value)?  notYetValid,TResult Function( ValidityStatus_Valid value)?  valid,TResult Function( ValidityStatus_ExpiresSoon value)?  expiresSoon,TResult Function( ValidityStatus_Expired value)?  expired,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case ValidityStatus_NotYetValid() when notYetValid != null:
+return notYetValid(_that);case ValidityStatus_Valid() when valid != null:
+return valid(_that);case ValidityStatus_ExpiresSoon() when expiresSoon != null:
+return expiresSoon(_that);case ValidityStatus_Expired() when expired != null:
+return expired(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ValidityStatus_NotYetValid value)  notYetValid,required TResult Function( ValidityStatus_Valid value)  valid,required TResult Function( ValidityStatus_ExpiresSoon value)  expiresSoon,required TResult Function( ValidityStatus_Expired value)  expired,}){
+final _that = this;
+switch (_that) {
+case ValidityStatus_NotYetValid():
+return notYetValid(_that);case ValidityStatus_Valid():
+return valid(_that);case ValidityStatus_ExpiresSoon():
+return expiresSoon(_that);case ValidityStatus_Expired():
+return expired(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ValidityStatus_NotYetValid value)?  notYetValid,TResult? Function( ValidityStatus_Valid value)?  valid,TResult? Function( ValidityStatus_ExpiresSoon value)?  expiresSoon,TResult? Function( ValidityStatus_Expired value)?  expired,}){
+final _that = this;
+switch (_that) {
+case ValidityStatus_NotYetValid() when notYetValid != null:
+return notYetValid(_that);case ValidityStatus_Valid() when valid != null:
+return valid(_that);case ValidityStatus_ExpiresSoon() when expiresSoon != null:
+return expiresSoon(_that);case ValidityStatus_Expired() when expired != null:
+return expired(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String validFrom)?  notYetValid,TResult Function( String? validUntil)?  valid,TResult Function( String validUntil)?  expiresSoon,TResult Function( String validUntil)?  expired,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case ValidityStatus_NotYetValid() when notYetValid != null:
+return notYetValid(_that.validFrom);case ValidityStatus_Valid() when valid != null:
+return valid(_that.validUntil);case ValidityStatus_ExpiresSoon() when expiresSoon != null:
+return expiresSoon(_that.validUntil);case ValidityStatus_Expired() when expired != null:
+return expired(_that.validUntil);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String validFrom)  notYetValid,required TResult Function( String? validUntil)  valid,required TResult Function( String validUntil)  expiresSoon,required TResult Function( String validUntil)  expired,}) {final _that = this;
+switch (_that) {
+case ValidityStatus_NotYetValid():
+return notYetValid(_that.validFrom);case ValidityStatus_Valid():
+return valid(_that.validUntil);case ValidityStatus_ExpiresSoon():
+return expiresSoon(_that.validUntil);case ValidityStatus_Expired():
+return expired(_that.validUntil);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String validFrom)?  notYetValid,TResult? Function( String? validUntil)?  valid,TResult? Function( String validUntil)?  expiresSoon,TResult? Function( String validUntil)?  expired,}) {final _that = this;
+switch (_that) {
+case ValidityStatus_NotYetValid() when notYetValid != null:
+return notYetValid(_that.validFrom);case ValidityStatus_Valid() when valid != null:
+return valid(_that.validUntil);case ValidityStatus_ExpiresSoon() when expiresSoon != null:
+return expiresSoon(_that.validUntil);case ValidityStatus_Expired() when expired != null:
+return expired(_that.validUntil);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class ValidityStatus_NotYetValid extends ValidityStatus {
+  const ValidityStatus_NotYetValid({required this.validFrom}): super._();
+  
+
+ final  String validFrom;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ValidityStatus_NotYetValidCopyWith<ValidityStatus_NotYetValid> get copyWith => _$ValidityStatus_NotYetValidCopyWithImpl<ValidityStatus_NotYetValid>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_NotYetValid&&(identical(other.validFrom, validFrom) || other.validFrom == validFrom));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,validFrom);
+
+@override
+String toString() {
+  return 'ValidityStatus.notYetValid(validFrom: $validFrom)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ValidityStatus_NotYetValidCopyWith<$Res> implements $ValidityStatusCopyWith<$Res> {
+  factory $ValidityStatus_NotYetValidCopyWith(ValidityStatus_NotYetValid value, $Res Function(ValidityStatus_NotYetValid) _then) = _$ValidityStatus_NotYetValidCopyWithImpl;
+@useResult
+$Res call({
+ String validFrom
+});
+
+
+
+
+}
+/// @nodoc
+class _$ValidityStatus_NotYetValidCopyWithImpl<$Res>
+    implements $ValidityStatus_NotYetValidCopyWith<$Res> {
+  _$ValidityStatus_NotYetValidCopyWithImpl(this._self, this._then);
+
+  final ValidityStatus_NotYetValid _self;
+  final $Res Function(ValidityStatus_NotYetValid) _then;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? validFrom = null,}) {
+  return _then(ValidityStatus_NotYetValid(
+validFrom: null == validFrom ? _self.validFrom : validFrom // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class ValidityStatus_Valid extends ValidityStatus {
+  const ValidityStatus_Valid({this.validUntil}): super._();
+  
+
+ final  String? validUntil;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ValidityStatus_ValidCopyWith<ValidityStatus_Valid> get copyWith => _$ValidityStatus_ValidCopyWithImpl<ValidityStatus_Valid>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_Valid&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,validUntil);
+
+@override
+String toString() {
+  return 'ValidityStatus.valid(validUntil: $validUntil)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ValidityStatus_ValidCopyWith<$Res> implements $ValidityStatusCopyWith<$Res> {
+  factory $ValidityStatus_ValidCopyWith(ValidityStatus_Valid value, $Res Function(ValidityStatus_Valid) _then) = _$ValidityStatus_ValidCopyWithImpl;
+@useResult
+$Res call({
+ String? validUntil
+});
+
+
+
+
+}
+/// @nodoc
+class _$ValidityStatus_ValidCopyWithImpl<$Res>
+    implements $ValidityStatus_ValidCopyWith<$Res> {
+  _$ValidityStatus_ValidCopyWithImpl(this._self, this._then);
+
+  final ValidityStatus_Valid _self;
+  final $Res Function(ValidityStatus_Valid) _then;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? validUntil = freezed,}) {
+  return _then(ValidityStatus_Valid(
+validUntil: freezed == validUntil ? _self.validUntil : validUntil // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class ValidityStatus_ExpiresSoon extends ValidityStatus {
+  const ValidityStatus_ExpiresSoon({required this.validUntil}): super._();
+  
+
+ final  String validUntil;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ValidityStatus_ExpiresSoonCopyWith<ValidityStatus_ExpiresSoon> get copyWith => _$ValidityStatus_ExpiresSoonCopyWithImpl<ValidityStatus_ExpiresSoon>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_ExpiresSoon&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,validUntil);
+
+@override
+String toString() {
+  return 'ValidityStatus.expiresSoon(validUntil: $validUntil)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ValidityStatus_ExpiresSoonCopyWith<$Res> implements $ValidityStatusCopyWith<$Res> {
+  factory $ValidityStatus_ExpiresSoonCopyWith(ValidityStatus_ExpiresSoon value, $Res Function(ValidityStatus_ExpiresSoon) _then) = _$ValidityStatus_ExpiresSoonCopyWithImpl;
+@useResult
+$Res call({
+ String validUntil
+});
+
+
+
+
+}
+/// @nodoc
+class _$ValidityStatus_ExpiresSoonCopyWithImpl<$Res>
+    implements $ValidityStatus_ExpiresSoonCopyWith<$Res> {
+  _$ValidityStatus_ExpiresSoonCopyWithImpl(this._self, this._then);
+
+  final ValidityStatus_ExpiresSoon _self;
+  final $Res Function(ValidityStatus_ExpiresSoon) _then;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? validUntil = null,}) {
+  return _then(ValidityStatus_ExpiresSoon(
+validUntil: null == validUntil ? _self.validUntil : validUntil // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class ValidityStatus_Expired extends ValidityStatus {
+  const ValidityStatus_Expired({required this.validUntil}): super._();
+  
+
+ final  String validUntil;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ValidityStatus_ExpiredCopyWith<ValidityStatus_Expired> get copyWith => _$ValidityStatus_ExpiredCopyWithImpl<ValidityStatus_Expired>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_Expired&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,validUntil);
+
+@override
+String toString() {
+  return 'ValidityStatus.expired(validUntil: $validUntil)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ValidityStatus_ExpiredCopyWith<$Res> implements $ValidityStatusCopyWith<$Res> {
+  factory $ValidityStatus_ExpiredCopyWith(ValidityStatus_Expired value, $Res Function(ValidityStatus_Expired) _then) = _$ValidityStatus_ExpiredCopyWithImpl;
+@useResult
+$Res call({
+ String validUntil
+});
+
+
+
+
+}
+/// @nodoc
+class _$ValidityStatus_ExpiredCopyWithImpl<$Res>
+    implements $ValidityStatus_ExpiredCopyWith<$Res> {
+  _$ValidityStatus_ExpiredCopyWithImpl(this._self, this._then);
+
+  final ValidityStatus_Expired _self;
+  final $Res Function(ValidityStatus_Expired) _then;
+
+/// Create a copy of ValidityStatus
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? validUntil = null,}) {
+  return _then(ValidityStatus_Expired(
+validUntil: null == validUntil ? _self.validUntil : validUntil // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
 // dart format on

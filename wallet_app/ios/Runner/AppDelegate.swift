@@ -1,9 +1,10 @@
 import UIKit
 import PlatformSupport
 import Flutter
+import flutter_local_notifications
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var platformSupport: PlatformSupport?
 
   override func application(
@@ -17,8 +18,24 @@ import Flutter
     let dummy_frb = dummy_method_to_enforce_bundling_frb()
     print(dummy_frb)
 
-    GeneratedPluginRegistrant.register(with: self)
+    initializeLocalNotifications()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+    
+  fileprivate func initializeLocalNotifications() {
+    if #available(iOS 10.0, *) {
+      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+    }
+    // Make sure notifications don't persist through re-installs
+    let notificationInitializedKey = "local_notifications_initialized"
+    if (!UserDefaults.standard.bool(forKey: notificationInitializedKey)) {
+      UIApplication.shared.cancelAllLocalNotifications()
+      UserDefaults.standard.set(true, forKey: notificationInitializedKey)
+    }
+  }
+  
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
 }

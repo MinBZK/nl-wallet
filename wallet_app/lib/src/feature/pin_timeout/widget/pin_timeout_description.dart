@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/base_wallet_theme.dart';
@@ -62,7 +63,7 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
   }
 
   String _generateTimeLeft(BuildContext context) {
-    final diff = widget.expiryTime.difference(DateTime.now());
+    final diff = widget.expiryTime.difference(clock.now());
     if (diff.inSeconds > 60) {
       return context.l10n.generalMinutes(diff.inMinutes);
     } else {
@@ -71,7 +72,7 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
   }
 
   void _checkExpiry() {
-    final diff = widget.expiryTime.difference(DateTime.now());
+    final diff = widget.expiryTime.difference(clock.now());
     if (diff.inSeconds == 0 || diff.isNegative) widget.onExpire?.call();
   }
 }

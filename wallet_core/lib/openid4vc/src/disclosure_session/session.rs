@@ -14,8 +14,8 @@ use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
-use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
-use sd_jwt::sd_jwt::SdJwtPresentation;
+use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
+use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use utils::generator::Generator;
 use wscd::Poa;
 use wscd::wscd::JwtPoaInput;
@@ -90,7 +90,7 @@ where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,
     {
-        info!("disclose mdoc documents");
+        info!("disclose attestations");
         // TODO (PVW-4780): This method assumes that the attestations passed to it only contain those attributes that
         //                  were requested to be disclosed. As the `Wallet` already has to perform this operation in
         //                  order to show the disclosure to the user, we decided to have it pass those reduced versions
@@ -194,27 +194,28 @@ where
 
                 // Have the WSCD sign all of the unsigned presentations in one operation,
                 // producing a PoA if multiple unique keys are used for this.
-                let iat = time.generate();
-                let key_binding_builder = KeyBindingJwtBuilder::new(
-                    iat,
-                    self.auth_request.client_id.clone(),
-                    self.auth_request.nonce.clone(),
-                );
-                let result =
-                    SdJwtPresentation::sign_multiple(unsigned_presentations, key_binding_builder, wscd, poa_input)
-                        .await;
-                let (received_presentations, poa) = match result {
+                let key_binding_builder =
+                    KeyBindingJwtBuilder::new(self.auth_request.client_id.clone(), self.auth_request.nonce.clone());
+                let result = UnsignedSdJwtPresentation::sign_multiple(
+                    unsigned_presentations,
+                    key_binding_builder,
+                    wscd,
+                    poa_input,
+                    time,
+                )
+                .await;
+                let (signed_presentations, poa) = match result {
                     Ok(value) => value,
                     Err(error) => {
                         return Err((
                             self,
-                            DisclosureError::before_sharing(VpClientError::SdJwtPresentation(error).into()),
+                            DisclosureError::before_sharing(VpClientError::SdJwtSigning(error).into()),
                         ));
                     }
                 };
 
                 // Reconstruct a `HashMap` from the identifier and `SdJwtPresentation`s.
-                let mut received_presentations = VecDeque::from(received_presentations.into_inner());
+                let mut received_presentations = VecDeque::from(signed_presentations.into_inner());
                 let vp_token = id_and_counts
                     .into_iter()
                     .map(|(id, count)| {
@@ -225,7 +226,7 @@ where
                         // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
                         let presentations = received_presentations
                             .drain(..count.get())
-                            .map(|presentation| presentation.to_string())
+                            .map(|presentation| presentation.into_unverified())
                             .collect_vec()
                             .try_into()
                             .unwrap();
@@ -292,11 +293,12 @@ mod tests {
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use mdoc::holder::disclosure::PartialMdoc;
-    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt::builder::SignedSdJwt;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
 
+    use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::openid4vp::RequestUriMethod;
@@ -412,8 +414,8 @@ mod tests {
         let sd_jwt_public_key = *sd_jwt_key.verifying_key();
         let wscd = MockRemoteWscd::new(vec![sd_jwt_key]);
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key_pair, &sd_jwt_public_key);
-        let unsigned_sd_jwt_presentation = sd_jwt
+        let verified_sd_jwt = SignedSdJwt::pid_example(&issuer_key_pair, &sd_jwt_public_key).into_verified();
+        let unsigned_presentation = verified_sd_jwt
             .into_presentation_builder()
             .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
             .unwrap()
@@ -425,7 +427,7 @@ mod tests {
 
         let attestations = DisclosableAttestations::SdJwt(HashMap::from([(
             "sd_jwt_pid_example".try_into().unwrap(),
-            vec_nonempty![(unsigned_sd_jwt_presentation, "sd_jwt_key".to_string())],
+            vec_nonempty![(unsigned_presentation, "sd_jwt_key".to_string())],
         )]))
         .try_into()
         .unwrap();
@@ -478,9 +480,9 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError {
-                data_shared,
+                data_shared: DataDisclosed::NotDisclosed,
                 error: VpSessionError::Client(VpClientError::DeviceResponse(_))
-            } if !data_shared
+            }
         );
     }
 
@@ -501,9 +503,9 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError {
-                data_shared,
-                error: VpSessionError::Client(VpClientError::SdJwtPresentation(_))
-            } if !data_shared
+                data_shared: DataDisclosed::NotDisclosed,
+                error: VpSessionError::Client(VpClientError::SdJwtSigning(_))
+            }
         );
     }
 
@@ -528,9 +530,9 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError {
-                data_shared,
+                data_shared: DataDisclosed::NotDisclosed,
                 error: VpSessionError::Client(VpClientError::AuthResponseEncryption(_))
-            } if !data_shared
+            }
         );
     }
 
@@ -554,7 +556,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 1);
         assert_matches!(wallet_messages.last().unwrap(), WalletMessage::Disclosure(_));
 
-        assert!(error.data_shared);
+        assert!(error.data_shared == DataDisclosed::Disclosed);
 
         error.error
     }

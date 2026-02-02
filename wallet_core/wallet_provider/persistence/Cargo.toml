@@ -11,33 +11,44 @@ workspace = true
 doctest = false
 
 [[test]]
+name = "wallet_transfer"
+path = "tests/wallet_transfer.rs"
+required-features = ["db_test"]
+
+[[test]]
 name = "wallet_user"
 path = "tests/wallet_user.rs"
 required-features = ["db_test"]
 
 [[test]]
-name = "wallet_user_keys"
+name = "wallet_user_key"
 path = "tests/wallet_user_key.rs"
 required-features = ["db_test"]
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["mockall", "dep:rand_core", "wallet_provider_domain/mock"]
+mock = ["dep:mockall", "dep:rand_core", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "dep:ctor",
     "dep:rand_core",
     "dep:thiserror",
-    "tokio/macros",
-    "dep:tracing-subscriber",
     "sea-orm/debug-print",
+    "tokio/macros",
+    "tracing-subscriber/ansi",
+    "tracing-subscriber/env-filter",
+    "wallet_provider_database_settings/test",
     "wallet_provider_domain/mock",
+    "test",
 ]
+# Include code used for testing
+test = ["dep:rand_core", "hsm/mock", "wallet_provider_database_settings/test"]
 
 [dependencies]
-chrono = { workspace = true, features = ["std", "clock"] }
-derive_more = { workspace = true, features = ["from"] }
-p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
+chrono = { workspace = true, features = ["now"] }
+derive_more = { workspace = true, features = ["as_ref", "from"] }
+metrics.workspace = true
+p256 = { workspace = true, features = ["pkcs8"] }
 sea-orm = { workspace = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -45,27 +56,23 @@ sea-orm = { workspace = true, features = [
     "with-chrono",
     "with-uuid",
 ] }
-semver = { workspace = true }
-tokio = { workspace = true, features = ["parking_lot", "rt"] }
+semver.workspace = true
+tokio = { workspace = true, features = ["rt"] }
 tracing.workspace = true
+url.workspace = true
 uuid.workspace = true
 
 ctor = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, optional = true, features = [
-    "std",
-    "fmt",
-    "tracing-log",
-    "smallvec",
-    "parking_lot",
-    "ansi",
-] }
+tracing-subscriber = { workspace = true, optional = true }
 
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
+measure.path = "../../lib/measure"
+status_lists.path = "../../lib/status_lists"
 utils.path = "../../lib/utils"
 wallet_account.path = "../wallet_account"
 wallet_provider_database_settings.path = "../database_settings"

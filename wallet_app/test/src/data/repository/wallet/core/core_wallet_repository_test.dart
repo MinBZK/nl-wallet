@@ -4,8 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/repository/wallet/core/core_wallet_repository.dart';
-import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
-import 'package:wallet/src/util/mapper/pin/pin_validation_error_mapper.dart';
+import 'package:wallet/src/util/mapper/wallet/wallet_state_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet_core/core.dart';
 
@@ -40,7 +39,7 @@ void main() {
       );
     });
     when(core.lockWallet()).thenAnswer((realInvocation) async => mockLockedStream.add(true));
-    repo = CoreWalletRepository(core, PinValidationErrorMapper());
+    repo = CoreWalletRepository(core, WalletStateMapper());
   });
 
   group('locked state', () {
@@ -95,18 +94,6 @@ void main() {
     });
   });
 
-  group('pin validation', () {
-    test('checking invalid pin results in a thrown PinValidationError', () async {
-      when(core.isValidPin(any)).thenAnswer((realInvocation) async => PinValidationResult.TooFewUniqueDigits);
-      expect(() async => repo.validatePin('000000'), throwsA(isA<PinValidationError>()));
-    });
-
-    test('checking a valid pin completes without throwing', () async {
-      when(core.isValidPin(any)).thenAnswer((realInvocation) async => PinValidationResult.Ok);
-      expect(repo.validatePin('112233'), completes);
-    });
-  });
-
   group('reset wallet', () {
     test('wallet reset is passed on to core', () async {
       await repo.resetWallet();
@@ -156,6 +143,7 @@ void main() {
         displayMetadata: [DisplayMetadata(lang: 'nl', name: 'card name')],
         attributes: [],
         issuer: CoreMockData.organization,
+        validityStatus: ValidityStatus_Valid(validUntil: null),
       );
       when(core.observeCards()).thenAnswer((_) => Stream.value([samplePidCard]));
       final result = await repo.containsPid();
@@ -177,36 +165,6 @@ void main() {
 
   test('call to unlockWalletWithBiometrics throws when not registered', () async {
     await expectLater(() async => repo.unlockWalletWithBiometrics(), throwsA(isA<StateError>()));
-  });
-
-  test('call to checkPin is passed through to the core', () async {
-    when(core.isRegistered()).thenAnswer((_) async => true);
-    await repo.checkPin('123123');
-    verify(core.checkPin('123123')).called(1);
-  });
-
-  test('call to checkPin throws when not registered', () async {
-    await expectLater(() async => repo.checkPin('143245'), throwsA(isA<StateError>()));
-  });
-
-  test('call to changePin is passed through to the core', () async {
-    when(core.isRegistered()).thenAnswer((_) async => true);
-    await repo.changePin('123123', '321321');
-    verify(core.changePin('123123', '321321')).called(1);
-  });
-
-  test('call to changePin throws when not registered', () async {
-    await expectLater(() async => repo.changePin('143242', '324942'), throwsA(isA<StateError>()));
-  });
-
-  test('call to continueChangePin is passed through to the core', () async {
-    when(core.isRegistered()).thenAnswer((_) async => true);
-    await repo.continueChangePin('321321');
-    verify(core.continueChangePin('321321')).called(1);
-  });
-
-  test('call to continueChangePin throws when not registered', () async {
-    await expectLater(() async => repo.continueChangePin('324942'), throwsA(isA<StateError>()));
   });
 
   test('when observeCards returns an empty stream it will return false and not get stuck', () async {

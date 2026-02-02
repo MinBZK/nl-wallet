@@ -1,10 +1,5 @@
 //! Cryptographic utilities: SHA256, ECDSA, Diffie-Hellman, HKDF, and key conversion functions.
 
-use aes_gcm::Aes256Gcm;
-use aes_gcm::Key;
-use aes_gcm::KeyInit;
-use aes_gcm::aead::Aead;
-use aes_gcm::aead::Nonce;
 use ciborium::value::Value;
 use coset::CoseKeyBuilder;
 use coset::Label;
@@ -17,10 +12,7 @@ use p256::SecretKey;
 use p256::ecdh;
 use p256::ecdsa::VerifyingKey;
 use ring::hmac;
-use serde::Deserialize;
 use serde::Serialize;
-use serde::de::DeserializeOwned;
-use serde_bytes::ByteBuf;
 
 use crypto::utils::hkdf;
 use crypto::utils::sha256;
@@ -30,14 +22,9 @@ use crate::CipherSuiteIdentifier;
 use crate::Result;
 use crate::Security;
 use crate::SecurityKeyed;
-use crate::SessionData;
-use crate::SessionTranscript;
 use crate::utils::cose::CoseKey;
 use crate::utils::serialization::CborError;
-use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::cbor_serialize;
-
-use super::serialization::cbor_deserialize;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 pub enum CryptoError {
@@ -62,12 +49,6 @@ pub enum CryptoError {
     #[error("key parse failed: {0}")]
     #[category(pd)]
     KeyParseFailed(#[from] p256::ecdsa::Error),
-    #[error("AES encryption/decryption failed")]
-    #[category(critical)]
-    Aes,
-    #[error("AES encryption/decryption failed: missing ciphertext")]
-    #[category(critical)]
-    MissingCiphertext,
 }
 
 /// Computes the SHA256 of the CBOR encoding of the argument.
@@ -158,146 +139,5 @@ impl TryFrom<&Security> for PublicKey {
     fn try_from(value: &Security) -> std::result::Result<Self, Self::Error> {
         let key: VerifyingKey = (&value.0.e_sender_key_bytes.0).try_into()?;
         Ok(key.into())
-    }
-}
-
-/// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SessionKey {
-    #[debug(skip)]
-    key: ByteBuf,
-    user: SessionKeyUser,
-}
-
-/// Identifies which agent uses the [`SessionKey`] to encrypt its messages.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SessionKeyUser {
-    Reader,
-    Device,
-}
-
-impl SessionKey {
-    /// Return a new [`SessionKey`] derived using Diffie-Hellman and a Key Derivation Function (KDF),
-    /// as specified by the standard.
-    pub fn new(
-        privkey: &SecretKey,
-        pubkey: &PublicKey,
-        session_transcript: &SessionTranscript,
-        user: SessionKeyUser,
-    ) -> Result<Self> {
-        let dh = ecdh::diffie_hellman(privkey.to_nonzero_scalar(), pubkey.as_affine());
-        let salt = sha256(&cbor_serialize(&TaggedBytes(session_transcript))?);
-        let user_str = match user {
-            SessionKeyUser::Reader => "SKReader",
-            SessionKeyUser::Device => "SKDevice",
-        };
-        let key = hkdf(dh.raw_secret_bytes(), &salt, user_str, 32).map_err(|_| CryptoError::Hkdf)?;
-        let key = SessionKey {
-            key: ByteBuf::from(key),
-            user,
-        };
-        Ok(key)
-    }
-}
-
-impl SessionData {
-    /// Construct a nonce for AES GCM encryption as specified by the standard.
-    fn nonce(user: SessionKeyUser) -> Nonce<Aes256Gcm> {
-        let mut nonce = vec![0u8; 12];
-
-        if user == SessionKeyUser::Device {
-            nonce[7] = 1; // the 8th byte indicates the user (0 = reader, 1 = device)
-        }
-
-        // The final byte is the message count, starting at one.
-        // We will support sending a maximum of 1 message per sender.
-        nonce[11] = 1;
-
-        *Nonce::<Aes256Gcm>::from_slice(&nonce)
-    }
-
-    pub fn serialize_and_encrypt<T: Serialize>(data: &T, key: &SessionKey) -> Result<Self> {
-        Self::encrypt(&cbor_serialize(data)?, key)
-    }
-
-    pub fn encrypt(data: &[u8], key: &SessionKey) -> Result<Self> {
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key.key.as_bytes()));
-        let ciphertext = cipher
-            .encrypt(&Self::nonce(key.user), data)
-            .map_err(|_| CryptoError::Aes)?;
-
-        Ok(SessionData {
-            data: Some(ByteBuf::from(ciphertext)),
-            status: None,
-        })
-    }
-
-    pub fn decrypt(&self, key: &SessionKey) -> Result<Vec<u8>> {
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key.key.as_bytes()));
-        let plaintext = cipher
-            .decrypt(
-                &Self::nonce(key.user),
-                self.data.as_ref().ok_or(CryptoError::MissingCiphertext)?.as_bytes(),
-            )
-            .map_err(|_| CryptoError::Aes)?;
-        Ok(plaintext)
-    }
-
-    pub fn decrypt_and_deserialize<T: DeserializeOwned>(&self, key: &SessionKey) -> Result<T> {
-        let parsed = cbor_deserialize(self.decrypt(key)?.as_bytes())?;
-        Ok(parsed)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use p256::SecretKey;
-    use rand_core::OsRng;
-
-    use serde::Deserialize;
-    use serde::Serialize;
-
-    use crate::DeviceAuthenticationBytes;
-    use crate::SessionData;
-    use crate::examples::Example;
-
-    use super::SessionKey;
-    use super::SessionKeyUser;
-
-    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-    struct ToyMessage {
-        number: u8,
-        string: String,
-    }
-    impl Default for ToyMessage {
-        fn default() -> Self {
-            Self {
-                number: 42,
-                string: "Hello, world!".to_string(),
-            }
-        }
-    }
-
-    #[test]
-    fn session_data_encryption() {
-        let plaintext = ToyMessage::default();
-
-        let device_privkey = SecretKey::random(&mut OsRng);
-        let reader_pubkey = SecretKey::random(&mut OsRng).public_key();
-
-        let key = SessionKey::new(
-            &device_privkey,
-            &reader_pubkey,
-            &DeviceAuthenticationBytes::example().0.0.session_transcript,
-            SessionKeyUser::Device,
-        )
-        .unwrap();
-
-        let session_data = SessionData::serialize_and_encrypt(&plaintext, &key).unwrap();
-        assert!(session_data.data.is_some());
-        assert!(session_data.status.is_none());
-
-        let decrypted = session_data.decrypt_and_deserialize(&key).unwrap();
-        assert_eq!(plaintext, decrypted);
     }
 }

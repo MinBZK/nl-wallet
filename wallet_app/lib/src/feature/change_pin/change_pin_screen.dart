@@ -1,14 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../data/service/announcement_service.dart';
 import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/helper/announcements_helper.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
@@ -32,10 +31,7 @@ const _kSelectNewPinPageKey = ValueKey('select_new_pin_page');
 const _kConfirmNewPinPageKey = ValueKey('confirm_new_pin_page');
 
 class ChangePinScreen extends StatelessWidget {
-  @visibleForTesting
-  final bool forceAnnouncements;
-
-  const ChangePinScreen({this.forceAnnouncements = false, super.key});
+  const ChangePinScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -49,53 +45,57 @@ class ChangePinScreen extends StatelessWidget {
         key: const Key('changePinScreen'),
         body: SafeArea(
           child: BlocConsumer<ChangePinBloc, ChangePinState>(
-            listener: (BuildContext context, ChangePinState state) async {
-              final bloc = context.bloc;
-              unawaited(_runAnnouncements(context, state));
-              switch (state) {
-                case ChangePinGenericError():
-                  ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-                case ChangePinNetworkError():
-                  ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
-                case ChangePinSelectNewPinFailed():
-                  await PinValidationErrorDialog.show(
-                    context,
-                    state.reason,
-                  ).then((_) => bloc.add(PinBackspacePressed()));
-                case ChangePinConfirmNewPinFailed():
-                  await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
-                    bloc.add(state.retryAllowed ? PinBackspacePressed() : ChangePinRetryPressed());
-                  });
-                default:
-                  break;
-              }
-            },
-            builder: (context, state) {
-              final Widget result = switch (state) {
-                ChangePinInitial() => _buildEnterCurrentPinPage(context),
-                ChangePinSelectNewPinInProgress() => _buildSelectNewPinPage(
-                  context,
-                  enteredDigits: state.enteredDigits,
-                ),
-                ChangePinSelectNewPinFailed() => _buildSelectNewPinPage(context, enteredDigits: kPinDigits),
-                ChangePinConfirmNewPinInProgress() => _buildConfirmNewPinPage(
-                  context,
-                  enteredDigits: state.enteredDigits,
-                ),
-                ChangePinConfirmNewPinFailed() => _buildConfirmNewPinPage(context, enteredDigits: kPinDigits),
-                ChangePinUpdating() => _buildChangePinUpdating(context),
-                ChangePinCompleted() => _buildChangePinSuccess(context),
-                ChangePinGenericError() => _buildChangePinFailed(context),
-                ChangePinNetworkError() => _buildChangePinFailed(context),
-              };
-              return FakePagingAnimatedSwitcher(
-                animateBackwards: state.didGoBack,
-                child: result,
-              );
-            },
+            listener: _listenerForState,
+            builder: _builderForState,
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _listenerForState(BuildContext context, ChangePinState state) async {
+    final bloc = context.bloc;
+    unawaited(_runAnnouncements(context, state));
+    switch (state) {
+      case ChangePinGenericError():
+        ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
+      case ChangePinNetworkError():
+        ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
+      case ChangePinSelectNewPinFailed():
+        await PinValidationErrorDialog.show(
+          context,
+          state.reason,
+        ).then((_) => bloc.add(PinBackspacePressed()));
+      case ChangePinConfirmNewPinFailed():
+        await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
+          bloc.add(state.retryAllowed ? PinBackspacePressed() : ChangePinRetryPressed());
+        });
+      default:
+        break;
+    }
+  }
+
+  Widget _builderForState(BuildContext context, ChangePinState state) {
+    final Widget result = switch (state) {
+      ChangePinInitial() => _buildEnterCurrentPinPage(context),
+      ChangePinSelectNewPinInProgress() => _buildSelectNewPinPage(
+        context,
+        enteredDigits: state.enteredDigits,
+      ),
+      ChangePinSelectNewPinFailed() => _buildSelectNewPinPage(context, enteredDigits: kPinDigits),
+      ChangePinConfirmNewPinInProgress() => _buildConfirmNewPinPage(
+        context,
+        enteredDigits: state.enteredDigits,
+      ),
+      ChangePinConfirmNewPinFailed() => _buildConfirmNewPinPage(context, enteredDigits: kPinDigits),
+      ChangePinUpdating() => _buildChangePinUpdating(context),
+      ChangePinCompleted() => _buildChangePinSuccess(context),
+      ChangePinGenericError() => _buildChangePinFailed(context),
+      ChangePinNetworkError() => _buildChangePinFailed(context),
+    };
+    return FakePagingAnimatedSwitcher(
+      animateBackwards: state.didGoBack,
+      child: result,
     );
   }
 
@@ -198,24 +198,25 @@ class ChangePinScreen extends StatelessWidget {
   }
 
   Future<void> _runAnnouncements(BuildContext context, ChangePinState state) async {
-    if (!context.isScreenReaderEnabled && !forceAnnouncements) return;
+    final AnnouncementService announcementService = context.read();
+    if (!announcementService.announcementsEnabled) return; // Early return optimization
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
 
     if (state is ChangePinSelectNewPinInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
     if (state is ChangePinConfirmNewPinInProgress) {
       if (state.afterBackspacePressed) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
-        await SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+        await announcementService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+        await announcementService.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
   }

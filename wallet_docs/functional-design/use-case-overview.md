@@ -17,13 +17,16 @@ OPEN["<a href='use-cases/UC1.2_OpenTheApp.html'>1.2 Open the app</a>"]
 
 SETUP_PIN["<a href='use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html'>2.1 Setup PIN & biometrics</a>"]
 UNLOCK["<a href='use-cases/UC2.3_UnlockTheApp.html'>2.3 Unlock the app</a>"]
+RECOVER_PIN["<a href='use-cases/UC2.3.2_RecoverPIN.html'>2.3.2 Recover PIN</a>"]
 
 OBTAIN_PID["<a href='use-cases/UC3.1_ObtainPidFromProvider.html'>3.1 Obtain PID</a>"]
+WIPE["<a href='use-cases/UC9.4_WipeAllAppData.html'>9.4 Wipe app data</a>"]
 
 ALL_CARDS["<a href='use-cases/UC7.1_ShowAllAvailableCards.html'>7.1 Show all cards</a>"]
+TRANSFER["<a href='use-cases/UC9.10_TransferWallet.html'>9.10 Transfer wallet</a>"]
+END((" "))
 
 APP_INFO["<a href='use-cases/UC9.2_GetAppInformation.html'>9.2 Get app info</a>"]
-WIPE["<a href='use-cases/UC9.4_WipeAllAppData.html'>9.4 Wipe app data</a>"]
 
 OPEN --> UNLOCK
 OPEN --> INTRODUCE
@@ -31,13 +34,19 @@ OPEN --> INTRODUCE
 UNLOCK --> ALL_CARDS
 UNLOCK --> OBTAIN_PID
 UNLOCK --> APP_INFO
-UNLOCK --> WIPE
+UNLOCK --> RECOVER_PIN
 
 INTRODUCE --> SETUP_PIN
 
 OBTAIN_PID --> ALL_CARDS
+OBTAIN_PID --> TRANSFER
+OBTAIN_PID --> WIPE
 
 WIPE --> INTRODUCE
+
+TRANSFER --> END
+
+RECOVER_PIN --> ALL_CARDS
 
 SETUP_PIN --> OBTAIN_PID
 SETUP_PIN --> APP_INFO
@@ -71,6 +80,9 @@ MENU["<a href='use-cases/UC9.1_ShowAppMenu.html'>9.1 View app menu</a>"]
 APP_INFO["<a href='use-cases/UC9.2_GetAppInformation.html'>9.2 Get app info</a>"]
 QR["<a href='use-cases/UC9.9_ScanQR.html'>9.9 Scan QR</a>"]
 
+RECOVER_PIN["<a href='use-cases/UC2.3.2_RecoverPIN.html'>2.3.2 Recover PIN</a>"]
+RENEW_PID["<a href='use-cases/UC3.2_RenewPid.html'>3.3 Renew PID</a>"]
+
 START --> ALL_CARDS
 
 ALL_CARDS --> APP_TOUR
@@ -81,10 +93,15 @@ ALL_CARDS --> CARD
 ALL_CARDS --> APP_INFO
 
 OBTAIN_CARDS --> END
+OBTAIN_CARDS --> RECOVER_PIN
 
 SHARE --> END
+SHARE --> RECOVER_PIN
 
 LOGIN --> END
+LOGIN --> RECOVER_PIN
+
+RECOVER_PIN --> END
 
 QR --> OBTAIN_CARDS
 QR --> SHARE
@@ -95,6 +112,10 @@ ALL_HISTORY --> HISTORY_EVENT
 CARD_HISTORY --> HISTORY_EVENT
 
 CARD --> CARD_HISTORY
+CARD --> RENEW_PID
+
+RENEW_PID --> END
+RENEW_PID --> RECOVER_PIN
 
 ```
 

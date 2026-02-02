@@ -16,7 +16,11 @@ use wallet::errors::HistoryError;
 use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
+use wallet::errors::PinRecoveryError;
+use wallet::errors::RecoveryCodeError;
 use wallet::errors::ResetError;
+use wallet::errors::RevocationCodeError;
+use wallet::errors::TransferError;
 use wallet::errors::UpdatePolicyError;
 use wallet::errors::UriIdentificationError;
 use wallet::errors::WalletInitError;
@@ -81,6 +85,12 @@ enum FlutterApiErrorType {
     /// A remote session is cancelled.
     CancelledSession,
 
+    /// The wrong DigiD was used for PID renewal or PIN recovery.
+    WrongDigid,
+
+    /// DigiD authentication was cancelled.
+    DeniedDigid,
+
     /// Indicating something unexpected went wrong.
     Generic,
 }
@@ -134,6 +144,9 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
             .or_else(|e| e.downcast::<ChangePinError>().map(Self::from))
+            .or_else(|e| e.downcast::<PinRecoveryError>().map(Self::from))
+            .or_else(|e| e.downcast::<TransferError>().map(Self::from))
+            .or_else(|e| e.downcast::<RevocationCodeError>().map(Self::from))
     }
 }
 
@@ -238,6 +251,10 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            IssuanceError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
+            IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
+                FlutterApiErrorType::WrongDigid
+            }
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -309,6 +326,8 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
+            DisclosureError::NonSelectivelyDisclosableClaim(_, _)
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => FlutterApiErrorType::Verifier,
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -329,6 +348,8 @@ impl FlutterApiErrorFields for DisclosureError {
                 VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
                 VpMessageClientErrorType::Cancelled | VpMessageClientErrorType::Other => None,
             },
+            DisclosureError::NonSelectivelyDisclosableClaim(_, _)
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => Some(false),
             _ => None,
         };
         let return_url = self.return_url();
@@ -336,6 +357,10 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::VpVerifierServer { organization, .. } => organization
                 .as_ref()
                 .map(|organization| organization.display_name.clone()),
+            DisclosureError::NonSelectivelyDisclosableClaim(organization, _)
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _) => {
+                Some(organization.display_name.clone())
+            }
             _ => None,
         };
 
@@ -483,6 +508,64 @@ impl FlutterApiErrorFields for ChangePinError {
     }
 }
 
+impl FlutterApiErrorFields for PinRecoveryError {
+    fn typ(&self) -> FlutterApiErrorType {
+        if let Some(network_error) = detect_networking_error(self) {
+            return network_error;
+        }
+
+        match self {
+            PinRecoveryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
+            PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
+            PinRecoveryError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
+                FlutterApiErrorType::WrongDigid
+            }
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingPid)
+            | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode) => FlutterApiErrorType::Issuer,
+            PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        if let Self::Issuance(issuance_error) = self {
+            return issuance_error.data();
+        }
+
+        serde_json::Value::Null
+    }
+}
+
+impl FlutterApiErrorFields for TransferError {
+    fn typ(&self) -> FlutterApiErrorType {
+        if let Some(network_error) = detect_networking_error(self) {
+            return network_error;
+        }
+
+        match self {
+            TransferError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            TransferError::NotRegistered | TransferError::IllegalWalletState => FlutterApiErrorType::WalletState,
+            TransferError::Instruction(e) => FlutterApiErrorType::from(e),
+            TransferError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            TransferError::ChangePin(e) => e.typ(),
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for RevocationCodeError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            Self::NotRegistered | Self::PidPresent => FlutterApiErrorType::WalletState,
+            Self::PidRetrieval(_) => FlutterApiErrorType::Generic,
+            Self::Unlock(error) => error.typ(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::error::Error;
@@ -490,8 +573,10 @@ mod tests {
     use rstest::rstest;
 
     use serde_json::json;
+    use wallet::attestation_data::AttributeValue;
     use wallet::errors::DigidError;
     use wallet::errors::IssuanceError;
+    use wallet::errors::RecoveryCodeError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OidcError;
@@ -551,6 +636,14 @@ mod tests {
     #[case(
         IssuanceError::MissingSignature,
         FlutterApiErrorType::Generic,
+        serde_json::Value::Null
+    )]
+    #[case(
+        IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode {
+            expected: AttributeValue::Text("a".to_string()),
+            received: AttributeValue::Text("b".to_string())
+        }),
+        FlutterApiErrorType::WrongDigid,
         serde_json::Value::Null
     )]
     fn test_pid_issuance_error<E>(

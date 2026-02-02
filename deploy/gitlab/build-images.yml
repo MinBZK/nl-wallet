@@ -1,5 +1,5 @@
 .build-image:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
 
 build-images-tag:
   extends: .build-image
@@ -40,3 +40,10 @@ macos-image-trigger:
         file: .gitlab-ci.yml
   variables:
     WALLET_COMMIT: ${CI_COMMIT_SHA}
+
+digid-connector-image-trigger:
+  extends: .build-image
+  when: manual
+  allow_failure: true
+  trigger:
+    include: deploy/digid-connector/build.yml

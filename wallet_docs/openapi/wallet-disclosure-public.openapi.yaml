@@ -1,11 +1,11 @@
-openapi: '3.1.0'
+openapi: 3.1.1
 info:
   title: 'Wallet Server Disclosure API, Public Endpoint (Wallet)'
   description:
     The API for the verification_server's public endpoint. Not authenticated,
     reachable by wallet mobile app and relying party's application. It
     exposes the status, cancellation and OpenID4VP request/response functions.
-  version: '1.0.0'
+  version: 0.5.0-dev
 
 servers:
   - url: '{scheme}://{rp_ws_host}:{rp_ws_port}'
@@ -26,18 +26,8 @@ servers:
 paths:
   /disclosure/sessions/{session_token}:
     parameters:
-      - name: session_token
-        description: The unique identifier for the session
-        in: path
-        required: true
-        schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_token'
-      - name: session_type
-        description: The type of the session
-        in: query
-        required: false
-        schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_type'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_type'
     get:
       summary: Check the status of an existing session
       responses:
@@ -46,95 +36,80 @@ paths:
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_status'
-        404:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionStatus'
+        '404':
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
     delete:
       summary: Cancel a session
       responses:
-        204:
+        '204':
           description: Succesfully cancelled session
-        400:
+        '400':
           description: Attempted to cancel an already cancelled or expired session
-        404:
+        '404':
           description: Attempted to cancel a non-existing session
 
   /disclosure/sessions/{session_token}/request_uri:
     parameters:
-      - name: session_token
-        description: The unique identifier for the session
-        in: path
-        required: true
-        schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_token'
-      - name: session_type
-        description: The type of the session
-        in: query
-        required: false
-        schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_type'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_type'
       - name: ephemeral_id
         description: The ephemeral id
         in: query
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/ephemeral_id'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/EphemeralId'
       - name: time
         description: The time
         in: query
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/time'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/Time'
     post:
       summary: Do something with a request uri
       requestBody:
         content:
             application/x-www-form-urlencoded:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/wallet_nonce'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/WalletNonce'
       responses:
-        200:
+        '200':
           description: An oauth authz response
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/oauth_authz_data'
-        404:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/OauthAuthzData'
+        '404':
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
 
   /disclosure/sessions/{session_token}/response_uri:
     parameters:
-      - name: session_token
-        description: The unique identifier for the session
-        in: path
-        required: true
-        schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_token'
+      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
     post:
       summary: Do something with a response uri
       requestBody:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/vp_token'
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/VpToken'
       responses:
-        200:
+        '200':
           description: A redirect object
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/redirect_object'
-        404:
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/RedirectObject'
+        '404':
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'

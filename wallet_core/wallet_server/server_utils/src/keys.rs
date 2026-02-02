@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use p256::ecdsa;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
@@ -5,7 +7,6 @@ use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use ring::hmac::HMAC_SHA256;
 
-use crypto::keys::EcdsaKey;
 use crypto::keys::EcdsaKeySend;
 use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
@@ -17,6 +18,7 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 use crate::settings::PrivateKey;
 use crate::settings::SecretKey;
 
+#[derive(Debug, Clone)]
 pub enum PrivateKeyVariant {
     Software(SigningKey),
     Hsm(HsmEcdsaKey),
@@ -36,14 +38,14 @@ impl EcdsaKeySend for PrivateKeyVariant {
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         let verifying_key = match self {
             PrivateKeyVariant::Software(signing_key) => EcdsaKeySend::verifying_key(signing_key).await?,
-            PrivateKeyVariant::Hsm(hsm_key) => hsm_key.verifying_key().await?,
+            PrivateKeyVariant::Hsm(hsm_key) => EcdsaKeySend::verifying_key(hsm_key).await?,
         };
         Ok(verifying_key)
     }
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         let signature = match self {
             PrivateKeyVariant::Software(signing_key) => EcdsaKeySend::try_sign(signing_key, msg).await?,
-            PrivateKeyVariant::Hsm(hsm_key) => hsm_key.try_sign(msg).await?,
+            PrivateKeyVariant::Hsm(hsm_key) => EcdsaKeySend::try_sign(hsm_key, msg).await?,
         };
         Ok(signature)
     }
@@ -74,17 +76,36 @@ impl PrivateKeyVariant {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum SecretKeyVariantError {
+    #[error("HMAC verification failed")]
+    SoftwareVerification,
+    #[error("HSM error: {0}")]
+    Hsm(#[from] HsmError),
+}
+
 pub enum SecretKeyVariant {
     Software(hmac::Key),
     Hsm(HsmHmacKey),
 }
 
 impl SecretKeyVariant {
-    pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, HsmError> {
+    pub async fn sign_hmac(&self, data: &[u8]) -> Result<Vec<u8>, HsmError> {
         match self {
-            SecretKeyVariant::Software(key) => Ok(hmac::sign(key, msg).as_ref().to_vec()),
-            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(msg.to_vec()).await?),
+            SecretKeyVariant::Software(key) => Ok(hmac::sign(key, data).as_ref().to_vec()),
+            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(data).await?),
         }
+    }
+
+    pub async fn verify_hmac(&self, data: &[u8], tag: Cow<'_, [u8]>) -> Result<(), SecretKeyVariantError> {
+        match self {
+            SecretKeyVariant::Software(key) => {
+                hmac::verify(key, data, &tag).map_err(|_| SecretKeyVariantError::SoftwareVerification)?
+            }
+            SecretKeyVariant::Hsm(key) => key.verify_hmac(data, tag.into_owned()).await?,
+        };
+
+        Ok(())
     }
 }
 

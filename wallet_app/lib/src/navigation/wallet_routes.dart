@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
+import '../domain/model/result/application_error.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
 import '../feature/about/about_screen.dart';
 import '../feature/biometric_settings/biometric_settings_screen.dart';
 import '../feature/biometric_settings/bloc/biometric_settings_bloc.dart';
@@ -22,6 +24,7 @@ import '../feature/change_pin/change_pin_screen.dart';
 import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
+import '../feature/demo/demo_screen.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/forgot_pin/forgot_pin_screen.dart';
@@ -38,6 +41,11 @@ import '../feature/issuance/issuance_screen.dart';
 import '../feature/login/login_detail_screen.dart';
 import '../feature/menu/bloc/menu_bloc.dart';
 import '../feature/menu/menu_screen.dart';
+import '../feature/menu/sub_menu/contact/contact_screen.dart';
+import '../feature/menu/sub_menu/need_help/need_help_screen.dart';
+import '../feature/menu/sub_menu/settings/settings_screen.dart';
+import '../feature/notification/bloc/manage_notifications_bloc.dart';
+import '../feature/notification/manage_notifications_screen.dart';
 import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
 import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
 import '../feature/organization/detail/organization_detail_screen.dart';
@@ -54,7 +62,10 @@ import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
 import '../feature/recover_pin/recover_pin_screen.dart';
 import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
 import '../feature/renew_pid/renew_pid_screen.dart';
-import '../feature/settings/settings_screen.dart';
+import '../feature/review_revocation_code_screen/bloc/review_revocation_code_bloc.dart';
+import '../feature/review_revocation_code_screen/review_revocation_code_screen.dart';
+import '../feature/revocation/bloc/revocation_code_bloc.dart';
+import '../feature/revocation/revocation_code_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
 import '../feature/sign/bloc/sign_bloc.dart';
@@ -72,7 +83,8 @@ import '../feature/wallet/personalize/wallet_personalize_screen.dart';
 import '../feature/wallet_transfer_faq/wallet_transfer_faq_screen.dart';
 import '../feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
 import '../feature/wallet_transfer_source/wallet_transfer_source_screen.dart';
-import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
+import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart'
+    hide WalletTransferGenericError, WalletTransferUpdateStateEvent;
 import '../feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
 import '../util/cast_util.dart';
 import 'secured_page_route.dart';
@@ -90,7 +102,6 @@ class WalletRoutes {
     introductionPrivacyRoute,
     privacyPolicyRoute,
     aboutRoute,
-    setupSecurityRoute,
     pinRoute,
     pinTimeoutRoute,
     pinRecoveryRoute,
@@ -106,7 +117,9 @@ class WalletRoutes {
   static const cardHistoryRoute = '/card/history';
   static const changeLanguageRoute = '/language';
   static const changePinRoute = '/change_pin';
+  static const contactRoute = '/menu/contact';
   static const dashboardRoute = '/dashboard';
+  static const demoRoute = '/demo';
   static const disclosureRoute = '/disclosure';
   static const forgotPinRoute = '/forgot_pin';
   static const historyDetailRoute = '/history';
@@ -115,6 +128,7 @@ class WalletRoutes {
   static const issuanceRoute = '/issuance';
   static const loginDetailRoute = '/login_detail';
   static const menuRoute = '/menu';
+  static const needHelpRoute = '/menu/need_help';
   static const organizationDetailRoute = '/organization';
   static const pinBlockedRoute = '/pin/blocked';
   static const pinRoute = '/pin';
@@ -124,7 +138,9 @@ class WalletRoutes {
   static const privacyPolicyRoute = '/privacy_policy';
   static const qrRoute = '/qr';
   static const renewPidRoute = '/pid/renew';
-  static const settingsRoute = '/settings';
+  static const revocationCodeRoute = '/revocation_code';
+  static const reviewRevocationCodeRoute = '/review_revocation_code';
+  static const settingsRoute = '/menu/settings';
   static const setupSecurityRoute = '/security/setup';
   static const signRoute = '/sign';
   static const splashRoute = '/';
@@ -137,15 +153,66 @@ class WalletRoutes {
   static const walletTransferSourceRoute = '/wallet_transfer/source';
   static const walletTransferTargetRoute = '/wallet_transfer/target';
   static const walletTransferFaqRoute = '/settings/wallet_transfer_faq';
+  static const manageNotificationsRoute = '/settings/manage_notifications';
+
+  static final Map<String, WidgetBuilder Function(RouteSettings)> _routeBuilders = {
+    WalletRoutes.splashRoute: (_) => _createSplashScreenBuilder,
+    WalletRoutes.qrRoute: (_) => _createQrScreenBuilder,
+    WalletRoutes.introductionRoute: (_) => _createIntroductionScreenBuilder,
+    WalletRoutes.introductionPrivacyRoute: (_) => _createIntroductionPrivacyScreenBuilder,
+    WalletRoutes.aboutRoute: (_) => _createAboutScreenBuilder,
+    WalletRoutes.pinRoute: (_) => _createPinScreenBuilder,
+    WalletRoutes.setupSecurityRoute: (_) => _createSetupSecurityScreenBuilder,
+    WalletRoutes.menuRoute: (_) => _createMenuScreenBuilder,
+    WalletRoutes.dashboardRoute: _createDashboardScreenBuilder,
+    WalletRoutes.cardDetailRoute: _createCardDetailScreenBuilder,
+    WalletRoutes.cardDataRoute: _createCardDataScreenBuilder,
+    WalletRoutes.cardHistoryRoute: _createCardHistoryScreenBuilder,
+    WalletRoutes.demoRoute: (_) => _createDemoScreenBuilder,
+    WalletRoutes.contactRoute: (_) => _createContactScreenBuilder,
+    WalletRoutes.themeRoute: (_) => _createThemeScreenBuilder,
+    WalletRoutes.disclosureRoute: _createDisclosureScreenBuilder,
+    WalletRoutes.forgotPinRoute: _createForgotPinScreenBuilder,
+    WalletRoutes.policyRoute: _createPolicyScreenBuilder,
+    WalletRoutes.issuanceRoute: _createIssuanceScreenBuilder,
+    WalletRoutes.signRoute: _createSignScreenBuilder,
+    WalletRoutes.walletPersonalizeRoute: _createWalletPersonalizeScreenBuilder,
+    WalletRoutes.walletHistoryRoute: (_) => _createHistoryOverviewScreenBuilder,
+    WalletRoutes.historyDetailRoute: _createHistoryDetailScreenBuilder,
+    WalletRoutes.organizationDetailRoute: _createOrganizationDetailScreenBuilder,
+    WalletRoutes.changeLanguageRoute: (_) => _createChangeLanguageScreenBuilder,
+    WalletRoutes.changePinRoute: (_) => _createChangePinScreenBuilder,
+    WalletRoutes.pinRecoveryRoute: _createPinRecoveryScreenBuilder,
+    WalletRoutes.pinTimeoutRoute: _createPinTimeoutScreenBuilder,
+    WalletRoutes.pinBlockedRoute: _createPinBlockedScreenBuilder,
+    WalletRoutes.loginDetailRoute: _createLoginDetailScreenBuilder,
+    WalletRoutes.settingsRoute: (_) => _createSettingsScreenBuilder,
+    WalletRoutes.needHelpRoute: (_) => _createNeedHelpScreenBuilder,
+    WalletRoutes.biometricsSettingsRoute: (_) => _createBiometricsSettingsScreenBuilder,
+    WalletRoutes.privacyPolicyRoute: (_) => _createPrivacyPolicyScreenBuilder,
+    WalletRoutes.updateInfoRoute: (_) => _createUpdateInfoScreenBuilder,
+    WalletRoutes.tourOverviewRoute: (_) => _createTourOverviewScreenBuilder,
+    WalletRoutes.tourVideoRoute: _createTourVideoScreenBuilder,
+    WalletRoutes.renewPidRoute: _createRenewPidScreenBuilder,
+    WalletRoutes.revocationCodeRoute: (_) => _createRevocationCodeScreenBuilder,
+    WalletRoutes.reviewRevocationCodeRoute: (_) => _createReviewRevocationCodeScreenBuilder,
+    WalletRoutes.walletTransferSourceRoute: _createWalletTransferSourceRoute,
+    WalletRoutes.walletTransferTargetRoute: _createWalletTransferTargetRoute,
+    WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
+    WalletRoutes.manageNotificationsRoute: (_) => _createManageNotificationsScreenBuilder,
+  };
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
-    final WidgetBuilder builder = _widgetBuilderFactory(settings);
-    final pageTransition = _resolvePageTransition(settings);
+    final builderFactory = _routeBuilders[settings.name];
+    if (builderFactory == null) {
+      throw UnsupportedError('Unknown route: ${settings.name}');
+    }
+
+    final builder = builderFactory(settings);
     if (publicRoutes.contains(settings.name)) {
       return MaterialPageRoute(builder: builder, settings: settings);
-    } else {
-      return SecuredPageRoute(builder: builder, settings: settings, transition: pageTransition);
     }
+    return SecuredPageRoute(builder: builder, settings: settings, transition: _resolvePageTransition(settings));
   }
 
   static SecuredPageTransition _resolvePageTransition(RouteSettings settings) {
@@ -156,89 +223,6 @@ class WalletRoutes {
         return SecuredPageTransition.slideInFromBottom;
       default:
         return SecuredPageTransition.platform;
-    }
-  }
-
-  static WidgetBuilder _widgetBuilderFactory(RouteSettings settings) {
-    switch (settings.name) {
-      case WalletRoutes.splashRoute:
-        return _createSplashScreenBuilder;
-      case WalletRoutes.qrRoute:
-        return _createQrScreenBuilder;
-      case WalletRoutes.introductionRoute:
-        return _createIntroductionScreenBuilder;
-      case WalletRoutes.introductionPrivacyRoute:
-        return _createIntroductionPrivacyScreenBuilder;
-      case WalletRoutes.aboutRoute:
-        return _createAboutScreenBuilder;
-      case WalletRoutes.pinRoute:
-        return _createPinScreenBuilder;
-      case WalletRoutes.setupSecurityRoute:
-        return _createSetupSecurityScreenBuilder;
-      case WalletRoutes.menuRoute:
-        return _createMenuScreenBuilder;
-      case WalletRoutes.dashboardRoute:
-        return _createDashboardScreenBuilder(settings);
-      case WalletRoutes.cardDetailRoute:
-        return _createCardDetailScreenBuilder(settings);
-      case WalletRoutes.cardDataRoute:
-        return _createCardDataScreenBuilder(settings);
-      case WalletRoutes.cardHistoryRoute:
-        return _createCardHistoryScreenBuilder(settings);
-      case WalletRoutes.themeRoute:
-        return _createThemeScreenBuilder;
-      case WalletRoutes.disclosureRoute:
-        return _createDisclosureScreenBuilder(settings);
-      case WalletRoutes.forgotPinRoute:
-        return _createForgotPinScreenBuilder(settings);
-      case WalletRoutes.policyRoute:
-        return _createPolicyScreenBuilder(settings);
-      case WalletRoutes.issuanceRoute:
-        return _createIssuanceScreenBuilder(settings);
-      case WalletRoutes.signRoute:
-        return _createSignScreenBuilder(settings);
-      case WalletRoutes.walletPersonalizeRoute:
-        return _createWalletPersonalizeScreenBuilder(settings);
-      case WalletRoutes.walletHistoryRoute:
-        return _createHistoryOverviewScreenBuilder;
-      case WalletRoutes.historyDetailRoute:
-        return _createHistoryDetailScreenBuilder(settings);
-      case WalletRoutes.organizationDetailRoute:
-        return _createOrganizationDetailScreenBuilder(settings);
-      case WalletRoutes.changeLanguageRoute:
-        return _createChangeLanguageScreenBuilder;
-      case WalletRoutes.changePinRoute:
-        return _createChangePinScreenBuilder;
-      case WalletRoutes.pinRecoveryRoute:
-        return _createPinRecoveryScreenBuilder(settings);
-      case WalletRoutes.pinTimeoutRoute:
-        return _createPinTimeoutScreenBuilder(settings);
-      case WalletRoutes.pinBlockedRoute:
-        return _createPinBlockedScreenBuilder(settings);
-      case WalletRoutes.loginDetailRoute:
-        return _createLoginDetailScreenBuilder(settings);
-      case WalletRoutes.settingsRoute:
-        return _createSettingsScreenBuilder;
-      case WalletRoutes.biometricsSettingsRoute:
-        return _createBiometricsSettingsScreenBuilder;
-      case WalletRoutes.privacyPolicyRoute:
-        return _createPrivacyPolicyScreenBuilder;
-      case WalletRoutes.updateInfoRoute:
-        return _createUpdateInfoScreenBuilder;
-      case WalletRoutes.tourOverviewRoute:
-        return _createTourOverviewScreenBuilder;
-      case WalletRoutes.tourVideoRoute:
-        return _createTourVideoScreenBuilder(settings);
-      case WalletRoutes.renewPidRoute:
-        return _createRenewPidScreenBuilder(settings);
-      case WalletRoutes.walletTransferSourceRoute:
-        return _createWalletTransferSourceRoute(settings);
-      case WalletRoutes.walletTransferTargetRoute:
-        return _createWalletTransferTargetRoute(settings);
-      case WalletRoutes.walletTransferFaqRoute:
-        return _createWalletTransferFaqScreenBuilder;
-      default:
-        throw UnsupportedError('Unknown route: ${settings.name}');
     }
   }
 
@@ -293,7 +277,7 @@ WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
 
 Widget _createMenuScreenBuilder(BuildContext context) {
   return BlocProvider<MenuBloc>(
-    create: (context) => MenuBloc(context.read()),
+    create: (context) => MenuBloc(context.read(), context.read()),
     child: const MenuScreen(),
   );
 }
@@ -302,8 +286,9 @@ WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     final CardDetailScreenArgument argument = CardDetailScreen.getArgument(settings);
     return BlocProvider<CardDetailBloc>(
-      create: (context) => CardDetailBloc(context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
-      child: CardDetailScreen(cardTitle: argument.cardTitle.l10nValue(context)),
+      create: (context) =>
+          CardDetailBloc(context.read(), context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
+      child: CardDetailScreen(cardTitle: argument.cardTitle?.l10nValue(context)),
     );
   };
 }
@@ -490,6 +475,12 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
 
 Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();
 
+Widget _createNeedHelpScreenBuilder(BuildContext context) => const NeedHelpScreen();
+
+Widget _createContactScreenBuilder(BuildContext context) => const ContactScreen();
+
+Widget _createDemoScreenBuilder(BuildContext context) => const DemoScreen();
+
 Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvider<BiometricSettingsBloc>(
   create: (BuildContext context) {
     return BiometricSettingsBloc(
@@ -558,6 +549,7 @@ WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
           context.read(),
           context.read(),
           context.read(),
+          context.read(),
           continueFromDigiD: argument.peek() != null,
         );
         if (argument.peek() != null) bloc.add(RecoverPinContinuePinRecovery(argument.value!));
@@ -571,16 +563,28 @@ WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
 WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
   final argument = Consumable(tryCast<String>(settings.arguments));
   return (context) {
-    return BlocProvider<WalletTransferSourceBloc>(
-      create: (BuildContext context) {
-        final bloc = WalletTransferSourceBloc(
-          context.read(),
-          context.read(),
-          context.read(),
-        );
-        if (argument.peek() != null) bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
-        return bloc;
-      },
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<WalletTransferSourceBloc>(
+          create: (BuildContext context) {
+            final bloc = WalletTransferSourceBloc(
+              context.read(),
+              context.read(),
+              context.read(),
+              context.read(),
+              context.read(),
+            );
+            if (argument.peek() != null) {
+              bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
+            } else {
+              final state = WalletTransferGenericError(GenericError('No valid uri', sourceError: argument));
+              bloc.add(WalletTransferUpdateStateEvent(state));
+            }
+            return bloc;
+          },
+        ),
+        BlocProvider<PinBloc>(create: (BuildContext context) => PinBloc(context.read<ConfirmWalletTransferUseCase>())),
+      ],
       child: const WalletTransferSourceScreen(),
     );
   };
@@ -595,6 +599,8 @@ WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
           context.read(),
           context.read(),
           context.read(),
+          context.read(),
+          context.read(),
         );
       },
       child: const WalletTransferTargetScreen(),
@@ -603,3 +609,27 @@ WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
 }
 
 Widget _createWalletTransferFaqScreenBuilder(BuildContext context) => const WalletTransferFaqScreen();
+
+Widget _createRevocationCodeScreenBuilder(BuildContext context) => BlocProvider<RevocationCodeBloc>(
+  create: (BuildContext context) => RevocationCodeBloc(
+    context.read(),
+    context.read(),
+  )..add(const RevocationCodeLoadTriggered()),
+  child: const RevocationCodeScreen(),
+);
+
+Widget _createReviewRevocationCodeScreenBuilder(BuildContext context) => BlocProvider<ReviewRevocationCodeBloc>(
+  create: (BuildContext context) => ReviewRevocationCodeBloc(),
+  child: const ReviewRevocationCodeScreen(),
+);
+
+Widget _createManageNotificationsScreenBuilder(BuildContext context) => BlocProvider<ManageNotificationsBloc>(
+  create: (BuildContext context) => ManageNotificationsBloc(
+    context.read(),
+    context.read(),
+    context.read(),
+    context.read(),
+    context.read(),
+  )..add(const ManageNotificationsLoadTriggered()),
+  child: const ManageNotificationsScreen(),
+);

@@ -21,7 +21,7 @@ void main() {
       test(
         'CardDetailScreenArgument with a full card is (de)serialized correctly',
         () {
-          final expected = CardDetailScreenArgument.forCard(WalletMockData.card);
+          final expected = CardDetailScreenArgument.fromCard(WalletMockData.card);
           final serialized = expected.toJson();
           final result = CardDetailScreenArgument.fromJson(serialized);
           expect(result, expected);

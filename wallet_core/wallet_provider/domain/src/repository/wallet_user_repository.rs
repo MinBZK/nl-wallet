@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -10,7 +11,9 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 
+use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
+use crate::model::wallet_user::RevocationReason;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
@@ -25,6 +28,10 @@ type Result<T> = std::result::Result<T, PersistenceError>;
 pub trait WalletUserRepository {
     type TransactionType: Committable;
 
+    async fn list_wallet_user_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>>;
+
+    async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>>;
+
     async fn create_wallet_user(&self, transaction: &Self::TransactionType, user: WalletUserCreate) -> Result<Uuid>;
 
     async fn find_wallet_user_by_wallet_id(
@@ -32,6 +39,18 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_id: &str,
     ) -> Result<WalletUserQueryResult>;
+
+    async fn find_wallet_user_id_by_wallet_ids(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_ids: &HashSet<String>,
+    ) -> Result<HashMap<String, Uuid>>;
+
+    async fn find_wallet_user_id_by_revocation_code(
+        &self,
+        transaction: &Self::TransactionType,
+        revocation_code_hmac: &[u8],
+    ) -> Result<QueryResult<Uuid>>;
 
     async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
@@ -62,7 +81,30 @@ pub trait WalletUserRepository {
 
     async fn save_keys(&self, transaction: &Self::TransactionType, keys: WalletUserKeys) -> Result<()>;
 
-    async fn find_keys_by_identifiers(
+    async fn is_blocked_key(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<Option<bool>>;
+
+    async fn delete_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<()>;
+
+    async fn delete_all_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
+
+    async fn unblock_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<()>;
+
+    async fn find_active_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
@@ -88,12 +130,7 @@ pub trait WalletUserRepository {
         recovery_code: String,
     ) -> Result<()>;
 
-    async fn recover_pin_with_recovery_code(
-        &self,
-        transaction: &Self::TransactionType,
-        wallet_id: &str,
-        recovery_code: String,
-    ) -> Result<()>;
+    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
 
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
@@ -129,7 +166,7 @@ pub trait WalletUserRepository {
         destination_wallet_user_id: Uuid,
     ) -> Result<Option<Uuid>>;
 
-    async fn confirm_wallet_transfer(
+    async fn pair_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
         source_wallet_user_id: Uuid,
@@ -143,6 +180,21 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
         source_wallet_user_id: Option<Uuid>,
         destination_wallet_user_id: Uuid,
+        error: bool,
+    ) -> Result<()>;
+
+    async fn reset_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+        source_wallet_user_id: Option<Uuid>,
+        destination_wallet_user_id: Uuid,
+    ) -> Result<()>;
+
+    async fn confirm_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
     ) -> Result<()>;
 
     async fn store_wallet_transfer_data(
@@ -159,6 +211,19 @@ pub trait WalletUserRepository {
         source_wallet_user_id: Uuid,
         destination_wallet_user_id: Uuid,
     ) -> Result<()>;
+
+    async fn store_wua_id(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid, wua_id: Uuid)
+    -> Result<()>;
+
+    async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>>;
+
+    async fn revoke_wallet_users(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Vec<Uuid>,
+        revocation_reason: RevocationReason,
+        revocation_date_time: DateTime<Utc>,
+    ) -> Result<Vec<Uuid>>;
 }
 
 #[cfg(feature = "mock")]
@@ -166,7 +231,9 @@ pub mod mock {
     use uuid::Uuid;
     use uuid::uuid;
 
+    use crate::model::QueryResult;
     use crate::model::wallet_user;
+    use crate::model::wallet_user::WalletUserQueryResult;
 
     use super::super::transaction::mock::MockTransaction;
     use super::*;
@@ -175,6 +242,17 @@ pub mod mock {
 
     impl WalletUserRepository for WalletUserRepositoryStub {
         type TransactionType = MockTransaction;
+
+        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>> {
+            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
+        }
+
+        async fn list_wallet_user_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
+        }
 
         async fn create_wallet_user(
             &self,
@@ -189,9 +267,23 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
         ) -> Result<WalletUserQueryResult> {
-            Ok(WalletUserQueryResult::Found(Box::new(
-                wallet_user::mock::wallet_user_1(),
-            )))
+            Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
+        }
+
+        async fn find_wallet_user_id_by_wallet_ids(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_ids: &HashSet<String>,
+        ) -> Result<HashMap<String, Uuid>> {
+            Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
+        }
+
+        async fn find_wallet_user_id_by_revocation_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _revocation_code_hmac: &[u8],
+        ) -> Result<QueryResult<Uuid>> {
+            Ok(QueryResult::Found(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08").into()))
         }
 
         async fn clear_instruction_challenge(
@@ -243,7 +335,42 @@ pub mod mock {
             Ok(())
         }
 
-        async fn find_keys_by_identifiers(
+        async fn is_blocked_key(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<Option<bool>> {
+            Ok(Some(true))
+        }
+
+        async fn unblock_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn delete_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn delete_all_blocked_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn find_active_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
@@ -279,12 +406,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn recover_pin_with_recovery_code(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _recovery_code: String,
-        ) -> Result<()> {
+        async fn recover_pin(&self, _transaction: &Self::TransactionType, _wallet_user_id: Uuid) -> Result<()> {
             Ok(())
         }
 
@@ -332,7 +454,7 @@ pub mod mock {
             Ok(None)
         }
 
-        async fn confirm_wallet_transfer(
+        async fn pair_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
             _source_wallet_user_id: Uuid,
@@ -348,6 +470,25 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Option<Uuid>,
             _destination_wallet_user_id: Uuid,
+            _error: bool,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn reset_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+            _source_wallet_user_id: Option<Uuid>,
+            _destination_wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn confirm_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }
@@ -369,6 +510,35 @@ pub mod mock {
             _destination_wallet_user_id: Uuid,
         ) -> Result<()> {
             Ok(())
+        }
+
+        async fn store_wua_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _wua_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
+        }
+
+        async fn revoke_wallet_users(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Vec<Uuid>,
+            _revocation_reason: RevocationReason,
+            _revocation_date_time: DateTime<Utc>,
+        ) -> Result<Vec<Uuid>> {
+            Ok(vec![
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+            ])
         }
     }
 }

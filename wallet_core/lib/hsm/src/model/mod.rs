@@ -3,7 +3,6 @@ pub mod encrypter;
 pub mod wrapped_key;
 
 use std::error::Error;
-use std::sync::Arc;
 
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -18,9 +17,9 @@ pub trait Hsm {
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(), Self::Error>;
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error>;
     async fn delete_key(&self, identifier: &str) -> Result<(), Self::Error>;
-    async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error>;
-    async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Vec<u8>, Self::Error>;
-    async fn verify_hmac(&self, identifier: &str, data: Arc<Vec<u8>>, signature: Vec<u8>) -> Result<(), Self::Error>;
+    async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error>;
+    async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> Result<Vec<u8>, Self::Error>;
+    async fn verify_hmac(&self, identifier: &str, data: &[u8], signature: Vec<u8>) -> Result<(), Self::Error>;
     async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>, Self::Error>;
     async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error>;
 }
@@ -29,7 +28,6 @@ pub trait Hsm {
 pub mod mock {
     use std::error::Error;
     use std::marker::PhantomData;
-    use std::sync::Arc;
 
     use dashmap::DashMap;
     use hmac::Hmac;
@@ -59,15 +57,19 @@ pub mod mock {
     pub struct MockPkcs11Client<E>(DashMap<String, SigningKey>, DashMap<String, Vec<u8>>, PhantomData<E>);
 
     impl<E> MockPkcs11Client<E> {
-        pub fn get_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey, E> {
+        pub fn get_signing_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey, E> {
             let key_identifier = format!("{key_prefix}_{identifier}");
             let entry = self.0.get(&key_identifier).unwrap();
             let key = entry.value().clone();
             Ok(key)
         }
 
-        pub fn insert(&self, identifier: String, signing_key: SigningKey) -> Option<SigningKey> {
+        pub fn insert_signing_key(&self, identifier: String, signing_key: SigningKey) -> Option<SigningKey> {
             self.0.insert(identifier, signing_key)
+        }
+
+        pub fn remove_symmetric_key(&self, identifier: &str) -> Option<(String, Vec<u8>)> {
+            self.1.remove(identifier)
         }
     }
 
@@ -133,36 +135,31 @@ pub mod mock {
             Ok(())
         }
 
-        async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error> {
+        async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error> {
             let entry = self.0.get(identifier).unwrap();
             let key = entry.value();
 
-            let signature = Signer::sign(key, &data);
+            let signature = Signer::sign(key, data);
             Ok(signature)
         }
 
-        async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Vec<u8>, Self::Error> {
-            let entry = self.1.get(identifier).unwrap();
+        async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> Result<Vec<u8>, Self::Error> {
+            let entry = self.1.get(identifier).ok_or(MacError)?;
             let key = entry.value();
 
             let mut mac = HmacSha256::new_from_slice(key).unwrap();
-            mac.update(&data);
+            mac.update(data);
             let signature = mac.finalize().into_bytes();
 
             Ok(signature.to_vec())
         }
 
-        async fn verify_hmac(
-            &self,
-            identifier: &str,
-            data: Arc<Vec<u8>>,
-            signature: Vec<u8>,
-        ) -> Result<(), Self::Error> {
+        async fn verify_hmac(&self, identifier: &str, data: &[u8], signature: Vec<u8>) -> Result<(), Self::Error> {
             let entry = self.1.get(identifier).unwrap();
             let key = entry.value();
 
             let mut mac = HmacSha256::new_from_slice(key).unwrap();
-            mac.update(&data);
+            mac.update(data);
             Ok(mac.verify_slice(&signature)?)
         }
 
@@ -225,7 +222,7 @@ pub mod mock {
             &self,
             _private_key_handle: PrivateKeyHandle,
             _mechanism: crate::service::SigningMechanism,
-            _data: Arc<Vec<u8>>,
+            _data: &[u8],
         ) -> Result<Vec<u8>, HsmError> {
             todo!()
         }
@@ -234,7 +231,7 @@ pub mod mock {
             &self,
             _private_key_handle: PrivateKeyHandle,
             _mechanism: crate::service::SigningMechanism,
-            _data: Arc<Vec<u8>>,
+            _data: &[u8],
             _signature: Vec<u8>,
         ) -> Result<(), HsmError> {
             todo!()
@@ -288,10 +285,10 @@ pub mod mock {
             &self,
             _wrapping_key_identifier: &str,
             wrapped_key: WrappedKey,
-            data: Arc<Vec<u8>>,
+            data: &[u8],
         ) -> Result<Signature, HsmError> {
             let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
-            let signature = Signer::sign(&key, data.as_ref());
+            let signature = Signer::sign(&key, data);
             Ok(signature)
         }
     }

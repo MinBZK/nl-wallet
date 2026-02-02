@@ -22,15 +22,15 @@ required-features = ["integration"]
 
 [features]
 # Include implementations of the axum IntoResponse trait.
-axum = ["dep:axum"]
+axum = ["axum/json"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
-mock = ["dep:mockall", "wscd/mock", "crypto/generate", "mdoc/test"]
+mock = ["crypto/generate", "dep:mockall", "wscd/mock"]
 # Include miscellaneous test utilities
-test = ["jwt/test", "wscd/mock", "dep:assert_matches", "dep:parking_lot"]
+test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "wscd/mock"]
 # All features needed to run the integration test
-integration = ["mock", "test", "example_constructors", "attestation_data/test", "attestation_data/test_document"]
+integration = ["example_constructors", "mock", "test"]
 # Credential payload examples
 example_credential_payloads = []
 # Offers example constructors
@@ -43,47 +43,46 @@ async-trait.workspace = true
 base64.workspace = true
 biscuit.workspace = true
 cfg-if.workspace = true
-chrono = { workspace = true, features = ["std", "clock"] }
+chrono = { workspace = true, features = ["now"] }
 dashmap.workspace = true
 derive_more = { workspace = true, features = [
+    "as_ref",
+    "constructor",
     "debug",
     "display",
-    "constructor",
-    "as_ref",
     "from",
     "from_str",
     "into",
     "into_iterator",
 ] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
-http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
-jsonwebtoken.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
+p256 = { workspace = true, features = ["serde"] }
 rand_core.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
+reqwest.workspace = true
 ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with.workspace = true
+serde_with = { workspace = true, features = ["json"] }
 ssri.workspace = true
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt", "time"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["serde"] }
 
 assert_matches = { workspace = true, optional = true }
-axum = { workspace = true, optional = true, features = ["json"] }
+axum = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 
@@ -97,6 +96,7 @@ jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
+token_status_list = { path = "../token_status_list", features = ["verification"] }
 utils.path = "../utils"
 wscd.path = "../wscd"
 
@@ -105,19 +105,28 @@ assert_matches.workspace = true
 mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
-serde_bytes = { workspace = true, features = ["std"] }
+serde_bytes.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
+serial_test.workspace = true
 tracing-test.workspace = true
 ts-rs.workspace = true
 wiremock.workspace = true
 
-attestation_data = { path = "../attestation_data", features = ["generate", "mock", "example_credential_payloads"] }
+attestation_data = { path = "../attestation_data", features = [
+    "generate",
+    "mock",
+    "example_credential_payloads",
+    "test_credential",
+] }
+attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }
 crypto = { path = "../crypto", features = ["examples"] }
-dcql = { path = "../dcql", features = ["mock", "test_document"] }
+dcql = { path = "../dcql", features = ["mock"] }
+http.workspace = true
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
-mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }
-sd_jwt = { path = "../sd_jwt", features = ["examples"] }
+mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }
+sd_jwt = { path = "../sd_jwt", features = ["examples", "test"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
+token_status_list = { path = "../token_status_list", features = ["mock"] }
 utils = { path = "../utils", features = ["mock_time"] }
 wscd = { path = "../wscd", features = ["mock"] }
