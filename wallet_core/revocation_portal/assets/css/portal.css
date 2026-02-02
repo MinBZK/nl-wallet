@@ -15,21 +15,30 @@ body {
   color: var(--text-color);
   line-height: 1.5;
   background-color: #fff;
-  margin: 0;
-  padding: 20px;
   display: flex;
+  min-height: 100vh;
+  padding-bottom: 2.5rem;
   flex-direction: column;
   align-items: center;
+  gap: 2.5rem;
 }
 
 .container {
-  max-width: 600px;
-  margin: 0 auto;
+  display: flex;
+  max-width: 50rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding-top: 2.5rem;
 }
 
 .page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  align-self: stretch;
   text-align: left;
-  margin-bottom: 2rem;
 }
 
 .logo-icon-wrapper {
@@ -40,7 +49,6 @@ body {
   height: 64px;
   background: linear-gradient(180deg, #f8f9ff 0%, #eaecf6 100%);
   border-radius: 16px;
-  margin-bottom: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01); /* Softer shadow */
   box-sizing: border-box;
 }
@@ -50,8 +58,10 @@ body {
 }
 
 aside {
+  position: absolute;
   display: flex;
-  width: 100vw;
+  width: 100%;
+  box-sizing: border-box;
   flex-direction: row;
   justify-content: right;
   align-items: center;
@@ -60,16 +70,33 @@ aside {
   gap: 16px;
 }
 
+section.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  align-self: stretch;
+}
+
 h1 {
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
 }
 
-.illustration-container {
+h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+section.illustration {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  align-self: stretch;
   border-radius: 12px;
   text-align: center;
-  margin: 2rem 0;
 }
 
 .illustration {
@@ -77,10 +104,24 @@ h1 {
   height: auto;
 }
 
+.help-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  align-self: stretch;
+}
+
+hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
 fieldset {
   border: none;
   padding: 0;
-  margin: 2rem 0;
 }
 
 .step-title {
@@ -150,11 +191,19 @@ input.invalid:focus {
   display: block;
 }
 
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  align-self: stretch;
+}
+
 .form-actions {
   display: flex;
-  gap: 12px;
-  margin-top: 2rem;
-  padding-bottom: 2rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+  align-self: stretch;
 }
 
 .btn {
@@ -213,25 +262,6 @@ input.invalid:focus {
 
 .icon {
   margin-right: 8px;
-}
-
-.help-section {
-  margin-top: 2rem;
-}
-
-hr {
-  border: 0;
-  border-top: 1px solid #eee;
-  margin-bottom: 2rem;
-}
-
-h2 {
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-}
-
-p {
-  margin-bottom: 1rem;
 }
 
 .app-download-section {
