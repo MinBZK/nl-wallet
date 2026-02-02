@@ -217,7 +217,7 @@ workspace "Name" "NL-Wallet" {
 
     views {
         systemContext ws "AD1NL-Wallet" {
-            include u ws verifier issuerPid 
+            include u ws verifier issuerPid issuerPb
         }
 
         systemContext ws "B1PID-Issuer" {
@@ -226,18 +226,15 @@ workspace "Name" "NL-Wallet" {
 
         container ws "D2NL-WalletSystem" {
             include * platformServices
-            exclude ws.updateServer ws.revokeUi us issuerPb 
         }
 
         component ws.walletBackend "GD2NL-walletBackend" {
             include *
-            exclude ws.updateServer ws.revokeUi us issuerPb 
             
         }
 
         component ws.walletApp "HD2NL-WalletApp" {
             include * verifier ws.wab
-            exclude ws.updateServer ws.revokeUi us issuerPb 
         }
 
         systemContext issuerPb "ID3IssuerSoftwareSystem" {

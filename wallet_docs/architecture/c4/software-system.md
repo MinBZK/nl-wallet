@@ -33,8 +33,6 @@ Relations:
 The App database is an on-device store that is used for storing credentials, app configuration and user preferences. 
 Technology: sqlite (on Android/iOS)
 
-For a description of the database contained in the App database, please see [Information model](../information-model/information-model.md#App-database)
-
 Relations:
 - Wallet app uses the App database [I-101]
 
@@ -59,9 +57,10 @@ Relations:
 - [I-401] Reads from and writes to WP database (account data and WUA Status)
 - [I-402] Generates and publishes WUA status list
 - [I-403] Sends cryptographic instructions to HSM device to generate keys and perform signing operations
-- [I-404] Wallet Unit management functions for Wallet User Support
+- Wallet Unit management functions for Wallet User Support
 - [I-405] Request app integrity verdict from Google Play Integrity (Android only)
 - [I-406] Issue WUA to Wallet on activation
+- [I-407] Called by Wallet Revocation portal for wallet revocation
 
 ## 5. ConfigurationServer
 
@@ -97,8 +96,6 @@ Relations:
 
 The WP database contains user account data, and the statuses for issued Wallet Unit Attestations.
 
-For a description of the database contained in the App database, please see [Information model](../information-model/information-model.md#Wallet-Backend-database)
-
 
 Technology: postgres
 Relations:
@@ -112,3 +109,14 @@ Technology: (not specified)
 
 Interaction:
 - Receives instructions from WalletBackend to perform cryptographic operations (PKCS#11) [I-403]
+
+
+## 10. Wallet revocation portal
+
+Portal for Wallet Users and Wallet Support to revoke a wallet using the deletion code that is presented during onboarding.
+
+Technology: (web)
+
+Interaction:
+- Used by Users and Wallet Support
+- Calls WalletBackend to invoke revocation on the wallet account requested. [I-407]

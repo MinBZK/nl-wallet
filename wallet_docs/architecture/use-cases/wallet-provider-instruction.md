@@ -5,7 +5,7 @@ The wallet and WB support an instruction for each task that the wallet needs the
 The instruction signing process includes authenticating the wallet and user by the hardware bound private key and the PIN. 
 The following sequence diagram depicts this process.
 
-```{mermaid}
+``` {mermaid}
 sequenceDiagram
     actor user
     participant platform as Mobile Platform<br/> (SE/TEE)
@@ -52,7 +52,7 @@ sequenceDiagram
 
 The instruction verification and execution process in the Wallet Backend is detailed below.
 
-```mermaid
+``` {mermaid}
 sequenceDiagram
     participant wallet as Wallet App
     participant wallet_provider as Wallet Backend

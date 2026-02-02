@@ -129,7 +129,7 @@ sequenceDiagram
 ### Wallet App
 
 The wallet uses the Wallet Backend to generate attestation private keys and sign the issuer's nonce with them.
-It does this by sending a `PerformIssuance` or `PerformIssuanceWithWua` [instruction](../wallet-provider-instruction), depending on whether or not a PID is being issued (which requires a WUA).
+It does this by sending a `PerformIssuance` or `PerformIssuanceWithWua` [instruction](./wallet-provider-instruction.md), depending on whether or not a PID is being issued (which requires a WUA).
 Using one of these instructions, the App requests the Wallet Backend to provide a WUA and Proofs of Possession (PoPs) for the private keys by signing the `c_nonce` from the issuer.
 The following sequence diagram depicts how this happens.
 
