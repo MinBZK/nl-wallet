@@ -38,6 +38,7 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
                 .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
                 .setDigests(KeyProperties.DIGEST_SHA256)
                 .setStrongBoxBackedCompat(context, true)
+                .setDevicePropertiesAttestationIncluded(true)
                 .also { spec ->
                     challenge?.let {
                         spec.setAttestationChallenge(it.toByteArray())
