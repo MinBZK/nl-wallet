@@ -18,6 +18,7 @@ use axum_csrf::CsrfConfig;
 use axum_csrf::CsrfLayer;
 use axum_csrf::CsrfToken;
 use axum_csrf::Key;
+use axum_csrf::SameSite;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use itertools::Itertools;
@@ -79,7 +80,12 @@ where
 {
     let application_state = Arc::new(ApplicationState { revocation_client });
 
-    let csrf_config = CsrfConfig::default().with_key(Some(Key::from(cookie_encryption_key.as_ref())));
+    // Since localhost is considered a "Potentially trustworthy origin", we can always set the secure flag
+    let csrf_config = CsrfConfig::default()
+        .with_http_only(true)
+        .with_key(Some(Key::from(cookie_encryption_key.as_ref())))
+        .with_secure(true)
+        .with_cookie_same_site(SameSite::Strict);
 
     let mut app = Router::new()
         .route("/support/delete", get(index::<C>))

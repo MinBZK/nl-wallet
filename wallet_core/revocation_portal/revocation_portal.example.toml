@@ -1,3 +1,6 @@
+# Symmetric encryption key for encrypting the CSRF cookie
+cookie_encryption_key = "7eaf8b856fe5f34366c971a44a18543af62d2198ab6a107993e7d236f61b02a8371b9ae85fddfeb07b4d084ce4c61ae49ed6917fc516e5f550222e51fe04a1bd"
+
 [webserver]
 ip = '127.0.0.1'
 port = 8001
