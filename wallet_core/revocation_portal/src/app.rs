@@ -35,9 +35,9 @@ use crypto::utils::sha256;
 use http_utils::health::create_health_router;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
-use web_utils::LANGUAGE_JS_SHA256;
 use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;
+use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
 
 use crate::revocation_client::RevocationClient;

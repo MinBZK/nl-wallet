@@ -35,9 +35,9 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
+readable_identifier.path = "../readable_identifier"
 sd_jwt.path = "../../lib/sd_jwt"
 utils.path = "../../lib/utils"
-readable_identifier.path = "../readable_identifier"
 wscd.path = "../../lib/wscd"
 
 futures = { workspace = true, optional = true }
