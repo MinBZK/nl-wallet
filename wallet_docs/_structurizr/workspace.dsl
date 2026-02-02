@@ -45,23 +45,23 @@ workspace "Name" "NL-Wallet" {
 
        adminPortal = softwareSystem "Admin Portal" ""{ 
             tags "HostingPlatform"
-            -> ws.walletBackend "Manage vulnerable devices"
-            -> ws.walletBackend "Revoke wallet" 
+            -> ws.walletBackend "[A-104] Manage vulnerable devices"
+            -> ws.walletBackend "[A-103] Revoke wallet (admin request)" 
             -> ws.walletBackend.walletDenyList "Manage vulnerable devices"
         }
         ciCdPipeline = softwareSystem "CI/CD" "deployment"{ 
             tags "HostingPlatform"
-            -> ws.configurationServer "Maintain runtime config"
-            -> ws.updateServer.updatePolicy "Maintain updatepolicy"
+            -> ws.configurationServer "[A-101] Maintain runtime config"
+            -> ws.updateServer.updatePolicy "[A-102] Maintain updatepolicy"
         }
  
         healthMonitoring = softwareSystem "Monitoring" "health monitoring"{ 
             tags "HostingPlatform"
-            -> ws.walletBackend "Get health"
+            -> ws.walletBackend "[A-104] Get health"
         }
         performanceMetrics = softwareSystem "Performance monitoring" "Prometheus"{ 
             tags "HostingPlatform"
-            -> ws.walletBackend "Get metrics"
+            -> ws.walletBackend "[A-105] Get metrics"
         }
 
         secureElement = softwareSystem "Secure Element" "Secure Enclave, Android TEE/Strongbox" ""{
@@ -143,31 +143,31 @@ workspace "Name" "NL-Wallet" {
         ws -> digid "Start user authentication (onboarding and recovery)"
         ws -> verifier.ov "Present data"
         //issuerPb -> ws "Issue attestations" 
-        ws.walletApp -> platformServices "Request App/key attestation (Apple AppAttest)"
-        ws.walletBackend -> platformServices "Verify App attestation (Google Play Integrity)"
-        ws.walletApp -> digid "Start authentication for activation/recovery"
-        ws.walletBackend -> ws.db "Reads from and writes to"
+        ws.walletApp -> platformServices "[I-113] Request App/key attestation (Apple AppAttest)"
+        ws.walletBackend -> platformServices "[I-405] Verify App attestation (Google Play Integrity)"
+        ws.walletApp -> digid "[I-106] Start authentication for activation/recovery"
+        ws.walletBackend -> ws.db "[I-401] Reads from and writes to"
 
         ws.walletApp.appCore -> ws.walletApp.appGui "Exchange information from core to GUI"
         ws.walletApp.appGui -> ws.walletApp.appCore "Exchange information from GUI to core"
         ws.walletApp.appCore -> ws.walletApp.appPlatform "Use platform routines (iOS/Android)"
-        ws.walletApp.appCore -> ws.updateServer "Get update policies"
-        ws.walletApp.appCore -> ws.configurationServer "Get runtime configuration"
-        ws.walletApp.appCore -> ws.walletBackend.hsmInstructionClient "HSM-assisted operation (sign, generate key, PIN mgmt, recovery)"
+        ws.walletApp.appCore -> ws.updateServer "[I-105] Get update policies"
+        ws.walletApp.appCore -> ws.configurationServer "[I-104] Get runtime configuration"
+        ws.walletApp.appCore -> ws.walletBackend.hsmInstructionClient "[I-103] HSM-assisted operation (sign, generate key, PIN mgmt, recovery)"
         ws.walletBackend.hsmInstructionClient -> ws.walletBackend.walletAccountManager "account operations"
-        ws.walletApp.appCore -> ws.appDb "Store/retrieve attestations, logs, configuration"
-        ws.walletApp.appPlatform -> secureElement "Manage keys, signing ops"
-        ws.revokeUi -> ws.walletBackend.walletAccountManager "Revoke wallet"
+        ws.walletApp.appCore -> ws.appDb "[I-101] Store/retrieve attestations, logs, configuration"
+        ws.walletApp.appPlatform -> secureElement "[I-102] Manage keys, signing ops"
+        ws.revokeUi -> ws.walletBackend.walletAccountManager "[I-407] Revoke wallet (user request)"
         //PID issuer specific
-        ws.walletApp.appCore -> issuerPid.authServer "Wallet activation and PID issuance"
+        ws.walletApp.appCore -> issuerPid.authServer "[I-107] Wallet activation and PID issuance, [I-108] check PID status "
 
-        ws.walletBackend -> ws.walletHsm "Call HSM for assisted operation"
-        ws.walletBackend -> ws.statusList "Publish WUA statuslist" 
+        ws.walletBackend -> ws.walletHsm "[I-403] Call HSM for assisted operation"
+        ws.walletBackend -> ws.statusList "[I-402] Publish WUA statuslist" 
 
 
-        ws.walletApp -> issuerPb.vvPbi "Perform disclosure based issuance, Retrieve Status List"
+        ws.walletApp -> issuerPb.vvPbi "[I-109] Perform disclosure based issuance, [I-110] Retrieve Status List"
 
-        ws.walletApp -> verifier "Disclose attributes to verifier"
+        ws.walletApp -> verifier "[I-111] Disclose attributes to verifier"
 
         ws.walletBackend.walletAccountManager -> ws.walletBackend.walletStatusManager "Update WUA status"
         ws.walletBackend.walletStatusManager -> ws.statusList "Publish WUA statuslist"
@@ -178,7 +178,7 @@ workspace "Name" "NL-Wallet" {
         ws.walletBackend.walletStatusManager -> ws.db "Store/retrieve WUA data + status"
         ws.walletBackend.walletDenyList -> ws.db "Store/retrieve denylist"
         us -> ws.revokeUi "Revoke wallet"
-        issuerPid -> ws.statusList "Check wallet validity" 
+        issuerPid -> ws.statusList "[E-202] Check wallet validity" 
         issuerPid.vvPid -> ws.statusList "Get WUA status" 
 
         ws.walletApp.appCore -> issuerPid.statusList "Get attestation status list (PID)" 
