@@ -13,7 +13,7 @@
 
     if (val.length === 0) {
       activeMsg = requiredMsg;
-    } else if (val.length < 18) {
+    } else if (val.length !== 18) {
       activeMsg = lengthMsg;
     }
 
@@ -35,12 +35,20 @@
   input.addEventListener('input', (e) => {
     let val = e.target.value.toUpperCase();
     val = val.replace(/[IL]/g, '1').replace(/O/g, '0');
-    let rawValue = val.replace(ALLOWED_REGEX, '').substring(0, 18);
+    let rawValue = val.replace(ALLOWED_REGEX, '');
     const parts = rawValue.match(/.{1,4}/g);
-    e.target.value = parts ? parts.join('-') : rawValue;
+    let formatted = parts ? parts.join('-') : rawValue;
 
-    // Only show error on input if it was already showing (real-time correction)
-    validate(errorDisplay.classList.contains('visible'));
+    // Add trailing hyphen right after typing every 4th character
+    if (rawValue.length > 0 && rawValue.length < 18 && rawValue.length % 4 === 0) {
+      formatted += '-';
+    }
+
+    e.target.value = formatted;
+
+    // Show error immediately if too long, otherwise follow existing logic
+    const isTooLong = rawValue.length > 18;
+    validate(isTooLong || errorDisplay.classList.contains('visible'));
   });
 
   // Show error when the browser flags the field as invalid (e.g. on submit)
