@@ -108,6 +108,35 @@ where
 
 #[utoipa::path(
     post,
+    path = "/revoke-wallet-by-recovery-code/",
+    request_body(
+        content = String,
+        example = json!("54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"),
+    ),
+    responses(
+        (status = OK, description = "Successfully revoked the wallets."),
+    )
+)]
+async fn revoke_wallets_by_recovery_code<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(recovery_code): Json<String>,
+) -> Result<(), RevocationError>
+where
+    GRC: Send + Sync + 'static,
+    PIC: Send + Sync + 'static,
+{
+    wallet_provider_service::revocation::revoke_wallets_by_recovery_code(
+        &recovery_code,
+        &router_state.user_state,
+        &TimeGenerator,
+    )
+    .await?;
+
+    Ok(())
+}
+
+#[utoipa::path(
+    post,
     path = "/nuke/",
     responses(
         (status = OK, description = "Successfully revoked all wallets."),
@@ -159,6 +188,7 @@ where
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(revoke_wallets_by_id))
         .routes(routes!(revoke_wallet_by_revocation_code))
+        .routes(routes!(revoke_wallets_by_recovery_code))
         .routes(routes!(nuke));
 
     #[cfg(feature = "test_internal_ui")]

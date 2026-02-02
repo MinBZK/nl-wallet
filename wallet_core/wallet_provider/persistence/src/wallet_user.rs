@@ -381,6 +381,21 @@ where
     }
 }
 
+pub async fn find_wallet_user_ids_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<Vec<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .filter(wallet_user::Column::RecoveryCode.eq(recovery_code))
+        .into_tuple::<Uuid>()
+        .all(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
 where
     S: ConnectionTrait,
