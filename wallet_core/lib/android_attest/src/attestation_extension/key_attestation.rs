@@ -316,24 +316,12 @@ pub enum PatchLevelError {
 pub struct PatchLevelParsingError(pub u32);
 
 /// Decoded patch_level.
-/// Supports both YYYYMM and YYYYMMDD notations, including values 0 or 00 for MM and/or DD.
-///
-/// - os_patch_level: YYYYMM
-/// - vendor_patch_level: YYYYMMDD, but also found YYYYMM
-/// - boot_patch_level: YYYYMMDD, but also found YYYYMM
-///
-/// Exceptional cases:
-/// It is not possible to use a `Date` type for `PatchLevel`, because of the following finds
-/// in test data derived from Google source repositories and Android emulators.
-///
-/// - Sometimes DD is set to `00`, which is not a valid date
-/// - Sometimes the whole `PatchLevel` was set to `0`
+/// Supports only YYYYMM notation, including values 0 or 00 for MM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
 #[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct PatchLevel {
     pub year: u16,
     pub month: u8,
-    pub day: Option<u8>,
 }
 
 impl TryFrom<Integer> for PatchLevel {
@@ -348,6 +336,70 @@ impl TryFrom<Integer> for PatchLevel {
 }
 
 impl TryFrom<u32> for PatchLevel {
+    type Error = PatchLevelParsingError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value == 0 {
+            return Ok(Self::new(0, 0));
+        }
+        if !(10_000..=999_999).contains(&value) {
+            return Err(PatchLevelParsingError(value));
+        }
+
+        let month = value % 100;
+        let year = value / 100;
+
+        // unwraps are safe because of guards above
+        let patch_level = Self::new(year.try_into().unwrap(), month.try_into().unwrap());
+
+        Ok(patch_level)
+    }
+}
+
+impl From<PatchLevel> for u32 {
+    fn from(value: PatchLevel) -> Self {
+        Self::from(value.year) * 100 + Self::from(value.month)
+    }
+}
+
+impl From<PatchLevel> for Integer {
+    fn from(value: PatchLevel) -> Self {
+        u32::from(value).into()
+    }
+}
+
+/// Decoded patch_level, possibly with day.
+/// Supports both YYYYMM and YYYYMMDD notations, including values 0 or 00 for MM and/or DD.
+///
+/// - vendor_patch_level: YYYYMMDD, but also found YYYYMM
+/// - boot_patch_level: YYYYMMDD, but also found YYYYMM
+///
+/// Exceptional cases:
+/// It is not possible to use a `Date` type for `PatchLevel`, because of the following finds
+/// in test data derived from Google source repositories and Android emulators.
+///
+/// - Sometimes DD is set to `00`, which is not a valid date
+/// - Sometimes the whole `PatchLevel` was set to `0`
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+pub struct PatchLevelWithDay {
+    pub year: u16,
+    pub month: u8,
+    pub day: Option<u8>,
+}
+
+impl TryFrom<Integer> for PatchLevelWithDay {
+    type Error = PatchLevelError;
+
+    fn try_from(value: Integer) -> Result<Self, Self::Error> {
+        let number = u32::try_from(&value).map_err(|_| PatchLevelError::Conversion(value))?;
+        let patch_level = Self::try_from(number)?;
+
+        Ok(patch_level)
+    }
+}
+
+impl TryFrom<u32> for PatchLevelWithDay {
     type Error = PatchLevelParsingError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
@@ -383,9 +435,9 @@ impl TryFrom<u32> for PatchLevel {
     }
 }
 
-impl From<PatchLevel> for u32 {
-    fn from(value: PatchLevel) -> Self {
-        let year_and_month = Self::from(value.year) * 100 + Self::from(value.month);
+impl From<PatchLevelWithDay> for u32 {
+    fn from(value: PatchLevelWithDay) -> Self {
+        let year_and_month = PatchLevel::new(value.year, value.month).into();
 
         if let Some(day) = value.day {
             year_and_month * 100 + Self::from(day)
@@ -395,8 +447,8 @@ impl From<PatchLevel> for u32 {
     }
 }
 
-impl From<PatchLevel> for Integer {
-    fn from(value: PatchLevel) -> Self {
+impl From<PatchLevelWithDay> for Integer {
+    fn from(value: PatchLevelWithDay) -> Self {
         u32::from(value).into()
     }
 }
@@ -579,8 +631,8 @@ pub struct AuthorizationList {
     pub attestation_id_meid: Option<String>,
     pub attestation_id_manufacturer: Option<String>,
     pub attestation_id_model: Option<String>,
-    pub vendor_patch_level: Option<PatchLevel>,
-    pub boot_patch_level: Option<PatchLevel>,
+    pub vendor_patch_level: Option<PatchLevelWithDay>,
+    pub boot_patch_level: Option<PatchLevelWithDay>,
     pub device_unique_attestation: bool,
     pub attestation_id_second_imei: Option<String>,
     pub module_hash: Option<OctetString>,
@@ -951,22 +1003,42 @@ mod test {
     }
 
     #[rstest]
-    #[case(Integer::ZERO, Ok(PatchLevel::new(0, 0, None)))]
+    #[case(Integer::ZERO, Ok(PatchLevel::new(0, 0)))]
     #[case(2019.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(2019))))]
-    #[case(201907.into(), Ok(PatchLevel::new(2019, 7, None)))]
-    #[case(201913.into(), Ok(PatchLevel::new(2019, 13, None)))]
-    #[case(201900.into(), Ok(PatchLevel::new(2019, 0, None)))]
-    #[case(20190705.into(), Ok(PatchLevel::new(2019, 7, Some(5))))]
-    #[case(20191305.into(), Ok(PatchLevel::new(2019, 13, Some(5))))]
-    #[case(20190732.into(), Ok(PatchLevel::new(2019, 7, Some(32))))]
-    #[case(20190229.into(), Ok(PatchLevel::new(2019, 2, Some(29))))]
-    #[case(20190200.into(), Ok(PatchLevel::new(2019, 2, Some(0))))]
-    #[case(20190000.into(), Ok(PatchLevel::new(2019, 0, Some(0))))]
-    #[case(120190705.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(120190705))))]
+    #[case(201907.into(), Ok(PatchLevel::new(2019, 7)))]
+    #[case(201913.into(), Ok(PatchLevel::new(2019, 13)))]
+    #[case(201900.into(), Ok(PatchLevel::new(2019, 00)))]
+    #[case(20190705.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(20190705))))]
     #[case((-1).into(), Err(PatchLevelError::Conversion((-1).into())))]
     #[case((u64::from(u32::MAX) + 1).into(), Err(PatchLevelError::Conversion((u64::from(u32::MAX) + 1).into())))]
     fn patch_level(#[case] input: Integer, #[case] expected: Result<PatchLevel, PatchLevelError>) {
         let actual = PatchLevel::try_from(input.clone());
+
+        assert_eq!(actual, expected);
+
+        // Check that conversion back results in the input value.
+        if let Ok(patch_level) = actual {
+            assert_eq!(Integer::from(patch_level), input);
+        }
+    }
+
+    #[rstest]
+    #[case(Integer::ZERO, Ok(PatchLevelWithDay::new(0, 0, None)))]
+    #[case(2019.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(2019))))]
+    #[case(201907.into(), Ok(PatchLevelWithDay::new(2019, 7, None)))]
+    #[case(201913.into(), Ok(PatchLevelWithDay::new(2019, 13, None)))]
+    #[case(201900.into(), Ok(PatchLevelWithDay::new(2019, 0, None)))]
+    #[case(20190705.into(), Ok(PatchLevelWithDay::new(2019, 7, Some(5))))]
+    #[case(20191305.into(), Ok(PatchLevelWithDay::new(2019, 13, Some(5))))]
+    #[case(20190732.into(), Ok(PatchLevelWithDay::new(2019, 7, Some(32))))]
+    #[case(20190229.into(), Ok(PatchLevelWithDay::new(2019, 2, Some(29))))]
+    #[case(20190200.into(), Ok(PatchLevelWithDay::new(2019, 2, Some(0))))]
+    #[case(20190000.into(), Ok(PatchLevelWithDay::new(2019, 0, Some(0))))]
+    #[case(120190705.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(120190705))))]
+    #[case((-1).into(), Err(PatchLevelError::Conversion((-1).into())))]
+    #[case((u64::from(u32::MAX) + 1).into(), Err(PatchLevelError::Conversion((u64::from(u32::MAX) + 1).into())))]
+    fn patch_level_with_day(#[case] input: Integer, #[case] expected: Result<PatchLevelWithDay, PatchLevelError>) {
+        let actual = PatchLevelWithDay::try_from(input.clone());
 
         assert_eq!(actual, expected);
 
@@ -1144,7 +1216,7 @@ mod test {
                     ),
                 }),
                 os_version: Some(OsVersion { major: 13, minor: 0, sub_minor: 0}),
-                os_patch_level: Some(PatchLevel::new(2024, 3, None)),
+                os_patch_level: Some(PatchLevel::new(2024, 3)),
                 attestation_application_id: Some(AttestationApplicationId {
                     package_infos: SetOf::from_vec(vec![AttestationPackageInfo {
                         package_name: OctetString::copy_from_slice(
@@ -1164,8 +1236,8 @@ mod test {
                 attestation_id_meid: Some("attestation_id_meid".to_string()),
                 attestation_id_manufacturer: Some("attestation_id_manufacturer".to_string()),
                 attestation_id_model: Some("attestation_id_model".to_string()),
-                vendor_patch_level: Some(PatchLevel::new(0, 0, None)),
-                boot_patch_level: Some(PatchLevel::new(2024, 3, Some(1))),
+                vendor_patch_level: Some(PatchLevelWithDay::new(0, 0, None)),
+                boot_patch_level: Some(PatchLevelWithDay::new(2024, 3, Some(1))),
                 device_unique_attestation: true,
                 attestation_id_second_imei: Some("attestation_id_second_imei".to_string()),
                 module_hash: Some(OctetString::copy_from_slice(b"module_hash")),

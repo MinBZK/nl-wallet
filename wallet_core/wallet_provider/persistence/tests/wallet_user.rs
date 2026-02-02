@@ -351,7 +351,6 @@ async fn test_create_wallet_user_android_attestations() {
             os_patch_level == PatchLevel {
                 year: 2026,
                 month: 1,
-                day: None,
             }
     );
 }

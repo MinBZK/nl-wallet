@@ -68,11 +68,7 @@ where
                     minor: 2,
                     sub_minor: 1,
                 }),
-                os_patch_level: Some(PatchLevel {
-                    year: 2026,
-                    month: 1,
-                    day: None,
-                }),
+                os_patch_level: Some(PatchLevel { year: 2026, month: 1 }),
             },
         },
     };
