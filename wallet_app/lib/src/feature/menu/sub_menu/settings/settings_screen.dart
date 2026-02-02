@@ -101,6 +101,12 @@ class SettingsScreen extends StatelessWidget {
           onPressed: () => ResetWalletDialog.show(context),
         ),
         const Divider(),
+        MenuItem(
+          label: Text.rich(context.l10n.settingsScreenShowRevocationCodeCta.toTextSpan(context)),
+          leftIcon: const Icon(Icons.lock),
+          onPressed: () => Navigator.pushNamed(context, WalletRoutes.reviewRevocationCodeRoute),
+        ),
+        const Divider(),
         const SizedBox(height: 24),
       ],
     );

@@ -73,6 +73,7 @@ class WalletAssets {
   static const svg_move_source_success = 'assets/non-free/svg/NL_WALLET_move_source_success.svg';
   static const svg_move_destination_permission = 'assets/non-free/svg/NL_WALLET_move_destination_permission.svg';
   static const svg_move_destination_success = 'assets/non-free/svg/NL_WALLET_move_destination_success.svg';
+  static const svg_security_code = 'assets/non-free/svg/NL_WALLET_security_code.svg';
 
   static const svg_icon_face_id = 'assets/non-free/svg/icon_face_id.svg';
 
