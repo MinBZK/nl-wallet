@@ -969,7 +969,7 @@ mod test {
     #[case(999_999.into(), Ok((99, 99, 99)))]
     #[case(42.into(), Ok((0, 0, 42)))]
     #[case(Integer::ZERO, Ok((0, 0, 0)))]
-    #[case( 1_000_000.into(), Err(OsVersionError::Parsing(OsVersionParsingError(1_000_000))))]
+    #[case(1_000_000.into(), Err(OsVersionError::Parsing(OsVersionParsingError(1_000_000))))]
     #[case(4_040_003.into(), Err(OsVersionError::Parsing(OsVersionParsingError(4_040_003))))]
     #[case((-1).into(), Err(OsVersionError::Conversion((-1).into())))]
     #[case((u64::from(u32::MAX) + 1).into(), Err(OsVersionError::Conversion((u64::from(u32::MAX) + 1).into())))]
