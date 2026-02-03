@@ -47,10 +47,6 @@ body {
   justify-content: center;
   width: 64px;
   height: 64px;
-  background: linear-gradient(180deg, #f8f9ff 0%, #eaecf6 100%);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01); /* Softer shadow */
-  box-sizing: border-box;
 }
 
 .logo {

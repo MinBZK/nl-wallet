@@ -19,7 +19,7 @@
     <main class="container">
       <header class="page-header">
         <div class="logo-icon-wrapper">
-          <img src="/non-free/images/nl-wallet-trans.svg" alt="NL Wallet Logo" class="logo">
+          <img src="/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
         </div>
         <h1>{% block title %}{% endblock %}</h1>
       </header>
