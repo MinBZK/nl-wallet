@@ -44,7 +44,7 @@ where
     }
     .insert(db.connection())
     .await
-    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+    .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -74,7 +74,7 @@ where
         .into_tuple()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     let transfer_session = result.map(
         |(
@@ -117,7 +117,7 @@ where
         .into_tuple()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn update_transfer_state<S, T>(
@@ -137,7 +137,7 @@ where
         .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -163,7 +163,7 @@ where
         .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -189,7 +189,7 @@ where
         .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),

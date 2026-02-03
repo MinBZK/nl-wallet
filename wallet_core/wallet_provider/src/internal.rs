@@ -98,7 +98,7 @@ pub struct RevokeByRevocationCodeResponse {
     request_body(
         content = String,
         content_type = "application/json",
-        example = json!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
+        example = json!("C20C-KF0R-D32B-A5E3-2X"),
     ),
     responses(
         (status = OK, body = RevokeByRevocationCodeResponse, description = "Successfully revoked the wallet."),

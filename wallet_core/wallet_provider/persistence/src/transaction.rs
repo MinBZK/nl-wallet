@@ -35,7 +35,7 @@ impl Committable for Transaction {
             .expect("Wrapped transaction no longer exists")
             .commit()
             .await
-            .map_err(|e| PersistenceError::Transaction(e.into()))
+            .map_err(PersistenceError::Transaction)
     }
 }
 
@@ -47,7 +47,7 @@ impl TransactionStarter for Transaction {
             .begin()
             .await
             .map(Transaction::new)
-            .map_err(|e| PersistenceError::Transaction(e.into()))
+            .map_err(PersistenceError::Transaction)
     }
 }
 
@@ -70,5 +70,5 @@ pub async fn begin_transaction(db: &Db) -> Result<Transaction, PersistenceError>
         .begin()
         .await
         .map(Transaction::new)
-        .map_err(|e| PersistenceError::Transaction(e.into()))
+        .map_err(PersistenceError::Transaction)
 }
