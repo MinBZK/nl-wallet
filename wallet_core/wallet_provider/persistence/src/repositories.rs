@@ -493,7 +493,7 @@ pub mod mock {
     use hsm::model::encrypted::Encrypted;
     use hsm::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::model::QueryResult;
-    use wallet_provider_domain::model::wallet_user::AndroidAttestations;
+    use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::RevocationReason;
     use wallet_provider_domain::model::wallet_user::TransferSession;
@@ -822,7 +822,7 @@ pub mod mock {
                 attestation: match self.apple_assertion_counter {
                     Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
                     None => WalletUserAttestation::Android {
-                        attestations: AndroidAttestations::default(),
+                        identifiers: AndroidHardwareIdentifiers::default(),
                     },
                 },
                 state: self.state,

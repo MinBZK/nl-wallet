@@ -68,11 +68,11 @@ pub struct TransferSession {
 #[derive(Debug)]
 pub enum WalletUserAttestation {
     Apple { assertion_counter: AssertionCounter },
-    Android { attestations: AndroidAttestations },
+    Android { identifiers: AndroidHardwareIdentifiers },
 }
 
 #[derive(Debug, Default)]
-pub struct AndroidAttestations {
+pub struct AndroidHardwareIdentifiers {
     pub brand: Option<String>,
     pub model: Option<String>,
     pub os_version: Option<OsVersion>,
@@ -126,7 +126,7 @@ pub enum WalletUserAttestationCreate {
     Android {
         certificate_chain: Vec<Vec<u8>>,
         integrity_verdict_json: String,
-        attestations: AndroidAttestations,
+        identifiers: AndroidHardwareIdentifiers,
     },
 }
 
@@ -183,7 +183,7 @@ pub mod mock {
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypted::InitializationVector;
 
-    use super::AndroidAttestations;
+    use super::AndroidHardwareIdentifiers;
     use super::WalletUser;
     use super::WalletUserAttestation;
     use super::WalletUserState;
@@ -207,7 +207,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_challenge: None,
             instruction_sequence_number: 0,
             attestation: WalletUserAttestation::Android {
-                attestations: AndroidAttestations::default(),
+                identifiers: AndroidHardwareIdentifiers::default(),
             },
             state: WalletUserState::Active,
             revocation_code_hmac: random_bytes(32),

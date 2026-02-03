@@ -29,7 +29,7 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::QueryResult;
-use wallet_provider_domain::model::wallet_user::AndroidAttestations;
+use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::RevocationRegistration;
@@ -106,7 +106,7 @@ where
         WalletUserAttestationCreate::Android {
             certificate_chain,
             integrity_verdict_json,
-            attestations,
+            identifiers,
         } => {
             let id = Uuid::new_v4();
 
@@ -114,14 +114,14 @@ where
                 id: Set(id),
                 certificate_chain: Set(certificate_chain),
                 integrity_verdict_json: Set(integrity_verdict_json),
-                brand: Set(attestations.brand),
-                model: Set(attestations.model),
-                os_version: Set(attestations.os_version.map(|os_version| {
+                brand: Set(identifiers.brand),
+                model: Set(identifiers.model),
+                os_version: Set(identifiers.os_version.map(|os_version| {
                     u32::from(os_version)
                         .try_into()
                         .expect("OsVersion u32 should always fit in i32")
                 })),
-                os_patch_level: Set(attestations.os_patch_level.map(|os_patch_level| {
+                os_patch_level: Set(identifiers.os_patch_level.map(|os_patch_level| {
                     u32::from(os_patch_level)
                         .try_into()
                         .expect("PatchLevel u32 should always fit in i32")
@@ -297,7 +297,7 @@ where
             });
 
             WalletUserAttestation::Android {
-                attestations: AndroidAttestations {
+                identifiers: AndroidHardwareIdentifiers {
                     brand: model.android_brand,
                     model: model.android_device,
                     os_version,

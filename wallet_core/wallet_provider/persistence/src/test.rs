@@ -16,7 +16,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::mock::MockPkcs11Client;
 use wallet_provider_database_settings::Settings;
-use wallet_provider_domain::model::wallet_user::AndroidAttestations;
+use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::repository::PersistenceError;
@@ -60,7 +60,7 @@ where
         WalletDeviceVendor::Google => WalletUserAttestationCreate::Android {
             certificate_chain: vec![random_bytes(64)],
             integrity_verdict_json: "{}".to_string(),
-            attestations: AndroidAttestations {
+            identifiers: AndroidHardwareIdentifiers {
                 brand: Some("Brand Name".to_string()),
                 model: Some("Model Name".to_string()),
                 os_version: Some(OsVersion {

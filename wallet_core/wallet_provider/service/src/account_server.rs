@@ -99,7 +99,7 @@ use wallet_account::signed::SequenceNumberComparison;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
-use wallet_provider_domain::model::wallet_user::AndroidAttestations;
+use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -721,7 +721,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     .map(|_| WalletUserAttestationCreate::Android {
                         certificate_chain: certificate_chain.into_inner(),
                         integrity_verdict_json,
-                        attestations: AndroidAttestations {
+                        identifiers: AndroidHardwareIdentifiers {
                             brand: key_attestation.hardware_enforced.attestation_id_brand,
                             model: key_attestation.hardware_enforced.attestation_id_model,
                             os_version: key_attestation.hardware_enforced.os_version,

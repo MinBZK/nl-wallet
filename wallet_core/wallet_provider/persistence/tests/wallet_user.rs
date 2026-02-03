@@ -11,7 +11,7 @@ use hsm::model::encrypted::Encrypted;
 use utils::generator::Generator;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::QueryResult;
-use wallet_provider_domain::model::wallet_user::AndroidAttestations;
+use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
@@ -335,7 +335,7 @@ async fn test_create_wallet_user_android_attestations() {
     assert_matches!(
         wallet_user.attestation,
         WalletUserAttestation::Android {
-            attestations: AndroidAttestations {
+            identifiers: AndroidHardwareIdentifiers {
                 brand: Some(brand),
                 model: Some(model),
                 os_version: Some(os_version),
