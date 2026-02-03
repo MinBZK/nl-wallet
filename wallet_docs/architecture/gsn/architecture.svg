@@ -8,15 +8,6 @@
 <polyline fill-opacity="0" points="0 0, 10 4.5, 0 9, 0 0" stroke="black" stroke-width="1"/>
 </marker>
 </defs>
-<style type="text/css">
-svg { background-color: white;}
-
-/* CSS to invert SVG for dark mode */ 
-@media (prefers-color-scheme: dark) {
-    svg { filter: invert(100%); background-color: black; }
-}
-
-</style>
 <a href="rp_session.svg">
 <g class="gsn_module_ gsnelem gsnmodule" id="node_rp_session_attribute">
 <title>rp_session_attribute</title>
