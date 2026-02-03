@@ -11,19 +11,22 @@ The model decomposes this top-level goal into supporting sub-goals, assumptions,
 
 The goal is decomposed as follows:
 
-- [rp_session_attribute](./gsn/rp_session.svg): Relying Party establishes that the attribute is a factually correct statement about the user at LoA High. (Main goal) 
+- <a href="../_static/img/gsn/rp_session.svg">rp_session_attribute</a>: Relying Party establishes that the attribute is a factually correct statement about the user at LoA High. (Main goal)
 
 From the main goal, the following subgoals are identified:
 
-- [PID_issuer](./gsn/PID_issuer.gsn.svg): PID issuer issues at LoA High to wallets implementing Sole Control and ensures all issued attributes are factually correct during the lifetime of the attestations 
-- [sole_control_main](./gsn/sole-control.gsn.svg): Wallet offers PID issuer assurance that User will have sole control over the PID. 
-- [sole_control_2fa](./gsn/sole-control-2fa.gsn.svg): Wallet allows usage of PrivKey only after 2FA authentication of User
-- [sole_control_2fa_registration](./gsn/sole-control-2fa-registration.gsn.svg): Register possession & knowledge factors via enrollment message
+<!-- use HTML link so that sphinx doesn't copy these images to _downloads/<hash>/filename.svg,
+     as that breaks the internal links -->
+
+- <a href="../_static/img/gsn/PID_issuer.gsn.svg">PID_issuer</a>: PID issuer issues at LoA High to wallets implementing Sole Control and ensures all issued attributes are factually correct during the lifetime of the attestations
+- <a href="../_static/img/gsn/sole-control.gsn.svg">sole_control_main</a>: Wallet offers PID issuer assurance that User will have sole control over the PID.
+- <a href="../_static/img/gsn/sole-control-2fa.gsn.svg">sole_control_2fa</a>: Wallet allows usage of PrivKey only after 2FA authentication of User
+- <a href="../_static/img/gsn/sole-control-2fa-registration.gsn.svg">sole_control_2fa_registration</a>: Register possession & knowledge factors via enrollment message
 
 The figure below shows how the subgoals relate:
-![Overview](./gsn/architecture.svg)
+<img src="../_static/img/gsn/architecture.svg" alt="Overview">
 
 
 For convenience, an integral view is also provided:
 
-[Merged Diagram](./gsn/complete.svg): Main goal and subgoals from the sections above merged into this single diagram.
+<a href="../_static/img/gsn/complete.svg">Merged Diagram</a>: Main goal and subgoals from the sections above merged into this single diagram.
