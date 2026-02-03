@@ -256,7 +256,6 @@ mod tests {
     use axum::http::Request;
     use axum::http::StatusCode;
     use axum::http::header;
-    use chrono::DateTime;
     use chrono::TimeZone;
     use chrono::Utc;
     use rstest::rstest;
@@ -268,26 +267,10 @@ mod tests {
     use crypto::utils::random_bytes;
     use web_utils::language::Language;
 
-    use crate::DeletionCode;
-    use crate::revocation_client::RevocationError;
-    use crate::revocation_client::RevocationResult;
     use crate::revocation_client::tests::MockRevocationClient;
     use crate::translations::TRANSLATIONS;
 
     use super::*;
-
-    #[derive(Clone)]
-    struct FixedRevocationClient {
-        revoked_at: DateTime<Utc>,
-    }
-
-    impl RevocationClient for FixedRevocationClient {
-        async fn revoke(&self, _deletion_code: DeletionCode) -> Result<RevocationResult, RevocationError> {
-            Ok(RevocationResult {
-                revoked_at: self.revoked_at,
-            })
-        }
-    }
 
     async fn get_csrf_and_cookie(app: &mut Router) -> (String, String) {
         let response = app
@@ -542,7 +525,7 @@ mod tests {
         // (Still UTC, but a stable value keeps the test deterministic.)
         let revoked_at = Utc.with_ymd_and_hms(2026, 1, 2, 3, 4, 5).single().unwrap();
 
-        let client = FixedRevocationClient { revoked_at };
+        let client = MockRevocationClient::new_with_fixed_revoked_at(revoked_at);
         let mut app = create_router(&random_bytes(64).into(), false, client);
 
         let response = post_delete_with_lang(&mut app, "C20C-KF0R-D32B-A5E3-2X", lang_param).await;

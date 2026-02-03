@@ -37,11 +37,22 @@ pub mod tests {
     #[derive(Clone, Default)]
     pub struct MockRevocationClient {
         should_fail: bool,
+        revoked_at: Option<DateTime<Utc>>,
     }
 
     impl MockRevocationClient {
         pub fn new_failing() -> Self {
-            Self { should_fail: true }
+            Self {
+                should_fail: true,
+                revoked_at: None,
+            }
+        }
+
+        pub fn new_with_fixed_revoked_at(revoked_at: DateTime<Utc>) -> Self {
+            Self {
+                should_fail: false,
+                revoked_at: Some(revoked_at),
+            }
         }
     }
 
@@ -49,6 +60,8 @@ pub mod tests {
         async fn revoke(&self, _deletion_code: DeletionCode) -> Result<RevocationResult, RevocationError> {
             if self.should_fail {
                 Err(RevocationError::RevocationFailed)
+            } else if let Some(revoked_at) = self.revoked_at {
+                Ok(revoked_at.into())
             } else {
                 Ok(Utc::now().into())
             }
