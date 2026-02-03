@@ -81,21 +81,25 @@ We do most testing in an automated fashion using our CI/CD pipeline. There are
 however still a few things we confirm. Most notably:
 
 - Stable main pipeline (CI/CD pipeline for main is green)
-- Automated nightly E2E testsuite succesful
+- Automated nightly E2E testsuite successful
 - Manual E2E testsuite executed and green (there is a metric in our quality time
   instance that our software quality engineer uses for this, you can ask him for
   the link)
 - OSV scanner ran and results accepted (see `osv-scanner` job in pipeline)
 - ZAP scanner ran and results accepted (see ZAP in Quality Time)
+- Trivy scan ran and results accepted (See Check `trivy-scan` job in `Trigger vulnerability scanning` pipeline)
+- Dependency check ran and results accepted (see `dependency-check` job in pipeline)
+- SBOM uploaded to Dependency-track and results accepted (see `upload-sbom-to-dependency-track` job in pipeline)
 - No blocker or critical Sonar findings (you can check our Sonar instance for
   these findings, ask around for the link if you don't have it)
 - A11y scan that ran on Browserstack are evaluated and actual a11y issues are
   reported Jira as bugs.
+- Nightly performance test pipeline ran and results accepted
 
 The manual E2E tests are usually executed by the test automation engineer.
 
 The confirmation of the acceptability of the tests and any required reports is
-done by our software quality engineer. He will e-mail our shared e-mail account,
+done by our software quality manager. He will e-mail our shared e-mail account,
 the software delivery manager and the product owner with their approval and/or
 any remarks or findings.
 
@@ -292,6 +296,53 @@ is fully vetted by the operations team and deemed ready to run on our production
 backend. When the flag is removed (and so becomes a considered-stable release),
 don't forget to remove the `CONDITIONAL_PRE_RELEASE_WARNING` paragraph from the
 release description.
+
+## Release Checklists
+
+### Pre-Approval Checklist (Steps 1-4)
+
+The checklist below can be used to verify everything is in place before release approval can be 
+requested by the software quality engineer. Alternatively it can be used to explain possible exceptions 
+from the different aspects and steps.
+
+| Aspect/Step                                                  | Ok/Nok | Explain                                                                                          |
+|--------------------------------------------------------------|--------|--------------------------------------------------------------------------------------------------|
+| Jira release is green - all issues in Done state             |        | Verify progress bar on Jira releases page, check all issues are Done except release-related ones |
+| `nightly-git-jira-check` job log verified                    |        | Check job log for inconsistencies: wrong versions, multiple fixVersions, missing Jira keys       |
+| `verify-release-check` artifact reviewed and added to Jira   |        | Artifact with MRs missing Jira keys added to release ticket                                      |
+| Figma links updated in README.md                             |        | Obtain up-to-date links from UX team, create and merge MR                                        |
+| Main pipeline is stable and green                            |        | Verify CI/CD pipeline for main branch is green                                                   |
+| Automated nightly E2E testsuite successful                   |        | Check nightly E2E test results are green                                                         |
+| Manual E2E testsuite executed and green                      |        | Verify with test automation engineer, check Quality Time metric                                  |
+| OSV scanner ran and results accepted                         |        | Check `osv-scanner` job in pipeline                                                              |
+| Dependency check ran and results accepted                    |        | Check `dependency-check` job in pipeline                                                         |
+| SBOM uploaded to Dependency-track and results accepted       |        | Check `upload-sbom-to-dependency-track` job in pipeline                                          |
+| Trivy scan ran and results accepted                          |        | Check `trivy-scan` job in `Trigger vulnerability scanning` pipeline                              |
+| ZAP scanner ran and results accepted                         |        | Check ZAP results in Quality Time                                                                |
+| No blocker or critical Sonar findings                        |        | Check Sonar instance for blocker/critical findings                                               |
+| A11y scan evaluated and issues reported to Jira              |        | Verify Browserstack A11y scan results, actual issues reported as bugs                            |
+| `Nightly performance test` pipeline ran and results accepted |        | Check nightly performance test pipeline results                                                  |
+
+### Final Release Verification Checklist (Steps 5-10)
+
+Use this checklist to verify all steps have been completed after release execution:
+
+| Aspect/Step                                 | Ok/Nok | Explain                                                                             |
+|---------------------------------------------|--------|-------------------------------------------------------------------------------------|
+| Release version set and MR merged           |        | `version.sh -s vX.Y.Z` executed, MR merged successfully                             |
+| Release tag created and pushed              |        | `git tag vX.Y.Z` executed, tag pushed with `git push --tags`                        |
+| Development version set and MR merged       |        | `version.sh -s vX.Y.Z-dev` executed, MR merged quickly                              |
+| Main branch unfrozen after tagging          |        | GitLab protected branches settings reverted to original state                       |
+| All 6 build artifacts collected             |        | `create-release-artifacts` job executed, all zip files downloaded                   |
+| Release description created                 |        | All placeholders replaced: DAY, MONTH, YEAR, A.B.C, X.Y.Z, warnings, optional story |
+| Release notes file exists                   |        | `wallet_docs/release-notes/vX.Y.Z.md` file exists and is complete                   |
+| GitHub release created from correct tag     |        | Release created from vX.Y.Z tag                                                     |
+| GitHub release title correct                |        | Title format: "Wallet X.Y.Z" (without 'v' prefix)                                   |
+| All artifacts uploaded to GitHub release    |        | All 6 zip files uploaded to GitHub release                                          |
+| Release description added to GitHub release |        | Complete release description markdown inserted                                      |
+| Pre-release flag set                        |        | "Set as a pre-release" flag enabled                                                 |
+| GitHub release published                    |        | Release successfully published on GitHub                                            |
+
 
 ## References
 
