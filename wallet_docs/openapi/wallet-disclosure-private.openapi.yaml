@@ -6,7 +6,7 @@ info:
     authenticated, intended to be accessible only to the relying party's
     application. It is used for session initiation and disclosed attribute
     retrieval.
-  version: 0.4.0
+  version: 0.4.1-dev
 
 components:
   securitySchemes:
