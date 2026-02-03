@@ -115,6 +115,8 @@ impl DerX509CertificateChain {
                     .collect::<Vec<_>>()
                     .as_slice(),
                 UnixTime::since_unix_epoch(Duration::from_secs(timestamp)),
+                // For some reason, Apple stopped including the client_auth EKU in their certificates and
+                // replaced it with their own mystery EKU instead. For now, do no check the EKU at all.
                 NoopExtendedKeyUsageValidator,
                 None,
                 None,
