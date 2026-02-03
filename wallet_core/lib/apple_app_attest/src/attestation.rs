@@ -276,7 +276,7 @@ pub mod mock {
     use super::AttestationStatement;
 
     // This Extended Key Usage started appearing in Apple attestation certificates
-    // instead of client_auth (1.3.6.1.5.5.7.3.2) as of 2016-02-03.
+    // instead of client_auth (1.3.6.1.5.5.7.3.2) as of 2026-02-03.
     pub const APPLE_MYSTERY_EKU_OID: Oid = oid!(1.2.1608.423779.100.4.24);
 
     #[derive(Debug, Clone)]
