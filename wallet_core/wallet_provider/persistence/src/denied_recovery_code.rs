@@ -8,7 +8,7 @@ use wallet_provider_domain::repository::PersistenceError;
 use crate::PersistenceConnection;
 use crate::entity::denied_recovery_code;
 
-pub async fn create<S, T>(db: &T, recovery_code: String) -> Result<(), PersistenceError>
+pub async fn insert<S, T>(db: &T, recovery_code: String) -> Result<(), PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

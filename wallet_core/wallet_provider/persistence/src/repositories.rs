@@ -487,7 +487,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         recovery_code: String,
     ) -> Result<(), PersistenceError> {
-        denied_recovery_code::create(transaction, recovery_code).await
+        denied_recovery_code::insert(transaction, recovery_code).await
     }
 }
 
