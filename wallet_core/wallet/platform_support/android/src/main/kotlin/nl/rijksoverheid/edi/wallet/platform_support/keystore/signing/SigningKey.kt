@@ -2,6 +2,7 @@
 package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.content.Context
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
@@ -41,7 +42,7 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
                     .setDigests(KeyProperties.DIGEST_SHA256)
                     .setStrongBoxBackedCompat(context, true)
                     .also { spec ->
-                        if (includeDeviceProperties) {
+                        if (includeDeviceProperties && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             spec.setDevicePropertiesAttestationIncluded(true)
                         }
                     }
