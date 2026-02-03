@@ -2,6 +2,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Map;
 use serde_json::Value;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
@@ -25,6 +27,28 @@ pub enum AccountError {
     #[cfg_attr(feature = "client", category(expected))]
     AccountBlocked,
     InstructionValidation,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    SerializeDisplay,
+    DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
+    strum::EnumIter,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum RevocationReason {
+    // upon the explicit request of the User
+    UserRequest,
+    // can have several reasons
+    AdminRequest,
+    // the security of the Wallet Solution is breached or compromised
+    WalletSolutionCompromised,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
