@@ -252,6 +252,7 @@ pub mod mock {
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
+    use rcgen::ExtendedKeyUsagePurpose;
     use rcgen::IsCa;
     use rcgen::Issuer;
     use rcgen::KeyPair;
@@ -261,6 +262,8 @@ pub mod mock {
     use rustls_pki_types::TrustAnchor;
     use sha2::Digest;
     use sha2::Sha256;
+    use x509_parser::der_parser::Oid;
+    use x509_parser::der_parser::oid;
 
     use crate::app_identifier::AppIdentifier;
     use crate::auth_data::FullAuthenticatorDataWithSource;
@@ -271,6 +274,10 @@ pub mod mock {
     use super::AttestationEnvironment;
     use super::AttestationFormat;
     use super::AttestationStatement;
+
+    // This Extended Key Usage started appearing in Apple attestation certificates
+    // instead of client_auth (1.3.6.1.5.5.7.3.2) as of 2016-02-03.
+    pub const APPLE_MYSTERY_EKU_OID: Oid = oid!(1.2.1608.423779.100.4.24);
 
     #[derive(Debug, Clone)]
     pub struct MockAttestationCa {
@@ -401,6 +408,9 @@ pub mod mock {
             params.custom_extensions = vec![CustomExtension::from_oid_content(
                 &APPLE_ANONYMOUS_ATTESTATION_OID.iter().unwrap().collect::<Vec<_>>(),
                 extension_content,
+            )];
+            params.extended_key_usages = vec![ExtendedKeyUsagePurpose::Other(
+                APPLE_MYSTERY_EKU_OID.iter().unwrap().collect(),
             )];
             let certificate = ca.sign_with_params(&params, &key_pair);
 
