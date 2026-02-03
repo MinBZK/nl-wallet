@@ -181,7 +181,7 @@ build-verification-server-binary:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package verification_server --bin verification_server --no-default-features --features postgres
     # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
     - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "v0.4-stable" ]]; then
+      if [[ ${CI_COMMIT_BRANCH:-} == "release/v0.4" ]]; then
         cargo build --locked --target x86_64-unknown-linux-gnu --release --package verification_server --bin verification_server --no-default-features --features postgres
       fi
   artifacts:
@@ -196,7 +196,7 @@ build-issuance-server-binary:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package issuance_server --bin issuance_server --no-default-features --features postgres
     # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
     - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "v0.4-stable" ]]; then
+      if [[ ${CI_COMMIT_BRANCH:-} == "release/v0.4" ]]; then
         cargo build --locked --target x86_64-unknown-linux-gnu --release --package issuance_server --bin issuance_server --no-default-features --features postgres
       fi
   artifacts:
@@ -213,7 +213,7 @@ build-wallet-server-migrations-binaries:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "verification_server_migrations" --bin verification_server_migrations
     # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
     - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "v0.4-stable" ]]; then
+      if [[ ${CI_COMMIT_BRANCH:-} == "release/v0.4" ]]; then
         cargo build --locked --target x86_64-unknown-linux-gnu --release --package "issuance_server_migrations" --bin issuance_server_migrations
         cargo build --locked --target x86_64-unknown-linux-gnu --release --package "verification_server_migrations" --bin verification_server_migrations
       fi
