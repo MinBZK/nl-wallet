@@ -61,6 +61,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="system-context.html">System Context (C4)</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul>
@@ -70,10 +71,11 @@
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/pin-validation.html">Pin Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/wallet-provider-instruction.html">Wallet Provider instructions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul>
@@ -180,7 +182,7 @@
              
   <section id="software-system-overview">
 <h1>Software System overview<a class="headerlink" href="#software-system-overview" title="Link to this heading"></a></h1>
-<p>The container diagram shown in Figure 2 describes all applications and data stores (containers) that are part of the NL Wallet Software System. External systems that interact with the containers in the NL Wallet Software System are also shown. (See the Context chapter for description of the External systems.)</p>
+<p>The container diagram shown in Figure 2 describes all applications and data stores (containers) that are part of the NL Wallet Software System. External systems that interact with the containers in the NL Wallet Software System are also shown (gray). (See the <a class="reference internal" href="system-context.html"><span class="std std-doc">Context chapter</span></a> for a description of the External systems.)</p>
 <p><img alt="Context diagram" src="../../_images/D2NL-WalletSystem.png" /></p>
 <p><img alt="c4_legend" src="../../_images/D2NL-WalletSystem-key.png" /></p>
 <section id="wallet-app">
@@ -200,7 +202,6 @@ Technology: Android/iOS</p>
 <li><p>[I-109] Other Issuers, to retrieve other types of (PUB/Q)EAA credentials [E-301]</p></li>
 <li><p>[I-110] Retrieve Status List for revocation status of credentials from Other Issuers [E-302]</p></li>
 <li><p>[I-111] Verifiers, to present stored credentials [E-401]</p></li>
-<li><p>[I-112] Retrieve WUA Status List for revocation status of WUA</p></li>
 <li><p>[I-113] Request App Attest attestation from Apple (iOS only)</p></li>
 </ul>
 </section>
@@ -213,28 +214,30 @@ Technology: sqlite (on Android/iOS)</p>
 <li><p>Wallet app uses the App database [I-101]</p></li>
 </ul>
 </section>
-<section id="secure-element">
-<h2>3. Secure Element<a class="headerlink" href="#secure-element" title="Link to this heading"></a></h2>
-<p>The Secure Element is a tamper-resistant environment that stores cryptographic keys  and can perform actions using the stored cryptographic keys. It prevents the keys from being exposed to the rest of the system.</p>
+<section id="secure-element-external-container">
+<h2>3. Secure Element (external container)<a class="headerlink" href="#secure-element-external-container" title="Link to this heading"></a></h2>
+<p>The Secure Element is a tamper-resistant environment that stores cryptographic keys  and can perform actions using the stored cryptographic keys. It prevents the keys from being exposed to the rest of the system. Secure Element is considered external because they are provided by the mobile platform.</p>
 <p>Technology: Secure Enclave (iOS), Trusted Execution Enivornment (Android)</p>
 <p>Relations:</p>
 <ul class="simple">
 <li><p>Wallet app uses the Secure Element [I-102]</p></li>
 </ul>
 </section>
-<section id="walletbackend-wp">
-<h2>4. WalletBackend (WP)<a class="headerlink" href="#walletbackend-wp" title="Link to this heading"></a></h2>
+<section id="walletbackend">
+<h2>4. WalletBackend<a class="headerlink" href="#walletbackend" title="Link to this heading"></a></h2>
 <p>WalletBackend provides backend services to support the Wallet app. WalletBackend facilitates account management, Wallet Unit Attestation status management and offers an endpoint to the Wallet app to perform HSM-assisted operations.</p>
 <p>Technology: axum (rust)</p>
 <p>Relations:</p>
 <ul class="simple">
 <li><p>Used by Wallet App [I-103]</p></li>
-<li><p>[I-401] Reads from and writes to WP database (account data and WUA Status)</p></li>
+<li><p>[I-401] Reads from and writes to database (account data and WUA Status)</p></li>
 <li><p>[I-402] Generates and publishes WUA status list</p></li>
 <li><p>[I-403] Sends cryptographic instructions to HSM device to generate keys and perform signing operations</p></li>
-<li><p>[I-404] Wallet Unit management functions for Wallet User Support</p></li>
 <li><p>[I-405] Request app integrity verdict from Google Play Integrity (Android only)</p></li>
 <li><p>[I-406] Issue WUA to Wallet on activation</p></li>
+<li><p>[I-407] Called by Wallet Revocation portal for wallet revocation</p></li>
+<li><p>[A-103] Wallet Unit management functions for Wallet User Support</p></li>
+<li><p>[A-104] Manage vulnerable devices</p></li>
 </ul>
 </section>
 <section id="configurationserver">
@@ -244,16 +247,18 @@ Technology: sqlite (on Android/iOS)</p>
 <p>Relations:</p>
 <ul class="simple">
 <li><p>Serves configuration to Wallet app [I-104]</p></li>
-<li><p>Configuration is maintained by Wallet Technical Support</p></li>
+<li><p>Configuration is maintained by Wallet Technical Support [A-101]</p></li>
 </ul>
 </section>
 <section id="updateserver">
 <h2>6. UpdateServer<a class="headerlink" href="#updateserver" title="Link to this heading"></a></h2>
 <p>UpdateServer is a content server that serves the Update policy data that is used by the app. The update policy instructs the app to display update notifications to the end-user when appropriate.</p>
 <p>Technology: nginx (static)</p>
-<p>Relations:
-•	Serves update policy to Wallet app [I-105]
-•	Update policy is maintained by Wallet Technical Support</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>Serves update policy to Wallet app [I-105]</p></li>
+<li><p>Update policy is maintained by Wallet Technical Support [A-102]</p></li>
+</ul>
 </section>
 <section id="wua-status-list">
 <h2>7. WUA status list<a class="headerlink" href="#wua-status-list" title="Link to this heading"></a></h2>
@@ -262,13 +267,13 @@ Technology: sqlite (on Android/iOS)</p>
 <p>Relations:</p>
 <ul class="simple">
 <li><p>Store Status Lists that are generated by WalletBackend [I-402]</p></li>
-<li><p>Status List is consumed by Wallet app [I-112] and PID Issuer [E-202]</p></li>
+<li><p>Status List is consumed by PID Issuer [E-102]</p></li>
 </ul>
 </section>
-<section id="wp-database-accounts-wua-status">
-<h2>8. WP database (accounts, WUA status)<a class="headerlink" href="#wp-database-accounts-wua-status" title="Link to this heading"></a></h2>
-<p>The WP database contains user account data, and the statuses for issued Wallet Unit Attestations.
-Technology: postgres
+<section id="wb-database-accounts-wua-status">
+<h2>8. WB database (accounts, WUA status)<a class="headerlink" href="#wb-database-accounts-wua-status" title="Link to this heading"></a></h2>
+<p>The WB database contains user account data, and the statuses for issued Wallet Unit Attestations.</p>
+<p>Technology: postgres
 Relations:</p>
 <ul class="simple">
 <li><p>Accessed by WalletBackend  [I-401]</p></li>
@@ -281,6 +286,54 @@ Relations:</p>
 <p>Interaction:</p>
 <ul class="simple">
 <li><p>Receives instructions from WalletBackend to perform cryptographic operations (PKCS#11) [I-403]</p></li>
+</ul>
+</section>
+<section id="wallet-revocation-portal">
+<h2>10. Wallet revocation portal<a class="headerlink" href="#wallet-revocation-portal" title="Link to this heading"></a></h2>
+<p>Portal for Wallet Users and Wallet Support to revoke a wallet using the deletion code that is presented during onboarding.</p>
+<p>Technology: (web)</p>
+<p>Interaction:</p>
+<ul class="simple">
+<li><p>Used by Users and Wallet Support</p></li>
+<li><p>Calls WalletBackend to invoke revocation on the wallet account requested. [I-407]</p></li>
+</ul>
+</section>
+</section>
+<section id="external-systems-wallet-provider">
+<h1>External systems (Wallet Provider)<a class="headerlink" href="#external-systems-wallet-provider" title="Link to this heading"></a></h1>
+<p>The Wallet support organization has applications deployed that interact with the NL-Wallet containers for support, administration, and operations.</p>
+<section id="e1-ci-cd">
+<h2>E1. CI/CD<a class="headerlink" href="#e1-ci-cd" title="Link to this heading"></a></h2>
+<p>DevOps environment from which configuration artifacts are managed.</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>[A-101] Maintain runtime configuration and publish to ConfigurationServer</p></li>
+<li><p>[A-102] Maintain update policy and publish to UpdateServer</p></li>
+</ul>
+</section>
+<section id="e2-admin-portal">
+<h2>E2. Admin Portal<a class="headerlink" href="#e2-admin-portal" title="Link to this heading"></a></h2>
+<p>GUI for administrative roles in the support organization that provides access to support functions, like revocation and vulnerable device management.</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>[A-103] Revoke wallet by Wallet Provider</p></li>
+<li><p>[A-104] Manage list of vulnerable devices (devicetype, OS version, patchlevel)</p></li>
+</ul>
+</section>
+<section id="e3-monitoring">
+<h2>E3. Monitoring<a class="headerlink" href="#e3-monitoring" title="Link to this heading"></a></h2>
+<p>Consumer of health data for health monitoring.</p>
+<p>Relations</p>
+<ul class="simple">
+<li><p>[A-105] Retrieve health data from WalletBackend</p></li>
+</ul>
+</section>
+<section id="e4-performance-monitoring">
+<h2>E4. Performance Monitoring<a class="headerlink" href="#e4-performance-monitoring" title="Link to this heading"></a></h2>
+<p>Consumer and aggregator of performance data (for operations).</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>[A-106] Retrieve performance metrics from WalletBackend</p></li>
 </ul>
 </section>
 </section>

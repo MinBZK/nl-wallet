@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Components Overview &mdash; NL Wallet 0.5.0-dev documentation</title>
+  <title>Core Assurance Goal for the EUDI Wallet &mdash; NL Wallet 0.5.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=79eb5478" />
@@ -18,14 +18,6 @@
       <script src="../_static/documentation_options.js?v=af39ea96"></script>
       <script src="../_static/doctools.js?v=9a2dae69"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
-      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
-      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
-      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-      <script type="module">
-import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
-window.addEventListener("load", () => mermaid.run());
-</script>
       <script src="../_static/js/custom.js?v=48752f09"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../about.html" />
@@ -69,6 +61,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l1"><a class="reference internal" href="architecture-overview.html">Overview in C4</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="c4/system-context.html">System Context (C4)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul>
@@ -78,10 +71,11 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2"><a class="reference internal" href="use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/pin-validation.html">Pin Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/wallet-provider-instruction.html">Wallet Provider instructions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Components Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Core Assurance Goal for the EUDI Wallet</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul>
@@ -175,9 +169,9 @@ window.addEventListener("load", () => mermaid.run());
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Components Overview</li>
+      <li class="breadcrumb-item active">Core Assurance Goal for the EUDI Wallet</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/architecture/components-overview.md.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/architecture/gsn-overview.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -185,167 +179,30 @@ window.addEventListener("load", () => mermaid.run());
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="components-overview">
-<h1>Components Overview<a class="headerlink" href="#components-overview" title="Link to this heading"></a></h1>
-<p><em>Marked for deletion</em> (will be integrated in <a class="reference internal" href="c4/system-context.html"><span class="std std-doc">C4 Context Diagram</span></a> )</p>
-<p>The diagram below shows a global overview of how the components interact with
-each other. It contains some details about the application layer protocols and
-technologies used, but leaves out exact (data) flow and detailed steps. Arrow
-directions indicate which party initiated the interaction and not the flow of
-data.</p>
-<pre  class="mermaid">
-        graph
-    brp[&quot;`
-        BRP
-        _[Software system]_
-        Contains the personal data of people
-    `&quot;]
-    digid[&quot;`
-        DigiD
-        _[Software system]_
-    `&quot;]
-
-    relying_party[&quot;`
-        Relying Party
-    `&quot;]
-
-    wallet_app(&quot;`
-        Wallet App
-        _[Container: Flutter/Rust]_
-    `&quot;)
-
-    wallet_app -- &quot;`
-        Provides key instructions
-        _[JSON/HTTPS]_
-    `&quot;--&gt; wallet_provider
-
-    subgraph Wallet Provider
-        wallet_provider[&quot;`
-            Wallet Provider
-            _[Container: Rust (wallet_provider)]_
-        `&quot;]
-        wallet_provider_migrations[&quot;`
-            Wallet Provider Migrations
-            _[Container: Rust]_
-        `&quot;]
-        postgres[(&quot;`
-            Database
-            _[Container: Postgres]_
-        `&quot;)]
-        hsm[&quot;`
-            HSM
-            _[Container: SoftHSMv2]_
-        `&quot;]
-
-        wallet_provider -- &quot;`
-            Encrypts/decrypts/signs data
-            [PKCS#11]
-        `&quot; --&gt; hsm
-        wallet_provider -- &quot;`
-            Reads from/writes to
-            _[SQL/TCP]_
-        `&quot; --&gt; postgres
-        wallet_provider_migrations -- &quot;`
-            Manages schema
-            _[SQL/TCP]_
-        `&quot; --&gt; postgres
-    end
-
-    subgraph PID[PID Issuer]
-        digid_connector[&quot;`
-            DigiD connector
-            _[Container: Python]_
-        `&quot;]
-        pid_issuer[&quot;`
-            PID Issuer
-            _[Container: Rust (pid_issuer)]_
-        `&quot;]
-        cache[(&quot;`
-            Cache
-            _[Container: Postgres]_
-        `&quot;)]
-        issuer_migrations[&quot;`
-            Issuer Migrations
-            _[Container: Rust]_
-        `&quot;]
-
-        pid_issuer -- &quot;`
-            Gets BSN
-            _[JSON/HTTPS]_
-        `&quot; --&gt; digid_connector
-        issuer_migrations -- &quot;`
-            Manages schema
-            _[SQL/TCP]_
-        `&quot; --&gt; cache
-        pid_issuer -- &quot;`
-            Stores session
-            _[SQL/TCP]_
-        `&quot; --&gt; cache
-    end
-
-    subgraph RP[Relying Party]
-        relying_party_server[&quot;`
-            Relying Party Server
-            _[Container: Rust (verification_server)]_
-        `&quot;]
-        relying_party_migrations[&quot;`
-            Relying Party Migrations
-            _[Container: Rust]_
-        `&quot;]
-        cache_rp[(&quot;`
-            Cache
-            _[Container: Postgres]_
-        `&quot;)]
-        relying_party_server -- &quot;`
-            Stores session
-            _[SQL/TCP]_
-        `&quot;--&gt; cache_rp
-        relying_party_migrations -- &quot;`
-            Manages schema
-            _[SQL/TCP]_
-        `&quot; --&gt; cache_rp
-    end
-
-    wallet_app -- &quot;`
-        Authenticates user
-        _[OIDC/HTTPS]_
-    `&quot; --&gt; digid_connector
-    wallet_app -- &quot;`
-        Gets PID issued
-        _[OpenID4VCI/HTTPS]_
-    `&quot; --&gt; pid_issuer
-    wallet_app -- &quot;`
-        Gets session
-        _[OpenID4VCI/HTTPS]_
-    `&quot; --&gt; pid_issuer
-
-    digid_connector -- &quot;`
-        Identifies user
-        _[SAML/HTTPS]_
-    `&quot; --&gt; digid
-    pid_issuer -- &quot;`
-        Looks up PID attributes
-        _[JSON/HTTPS]_
-    `&quot; --&gt; brp
-
-    wallet_app -- &quot;`
-        Discloses attributes
-        _[MDOC/HTTPS]_
-    `&quot; --&gt; relying_party_server
-    wallet_app -- &quot;`
-        Gets session
-        _[MDOC/HTTPS]_
-    `&quot; --&gt; relying_party_server
-
-    relying_party -- &quot;`
-        Gets disclosed attributes
-        _[JSON/HTTPS_]
-    `&quot; --&gt; relying_party_server
-    relying_party -- &quot;`
-        Starts session
-        _[JSON/HTTPS_]
-    `&quot; --&gt; relying_party_server
-    </pre></section>
+  <section id="core-assurance-goal-for-the-eudi-wallet">
+<h1>Core Assurance Goal for the EUDI Wallet<a class="headerlink" href="#core-assurance-goal-for-the-eudi-wallet" title="Link to this heading"></a></h1>
+<p><em>“Relying Party (RP) establishes that the attribute (presented by Wallet) is a factually correct statement about the user at LoA High”</em> is the primary objective of the EUDI Wallet, as defined in the ARF.</p>
+<p>The ARF positions the wallet as an enabler of high-assurance attribute sharing. Accordingly, the RP’s justified confidence in the factual correctness of an attribute, rather than the mere secure transmission or presentation of data, is the decisive factor for trust at LoA High.</p>
+<p>The objective above is modeled using Goal Structuring Notation (GSN) to provide a structured, and auditable representation of the reasoning by which the Relying Party (RP) establishes its claim.</p>
+<p>The model decomposes this top-level goal into supporting sub-goals, assumptions, and solutions, demonstrating that the attribute has been correctly sourced, validated, and bound to the user identity.</p>
+<p>The goal is decomposed as follows:</p>
+<ul class="simple">
+<li><p><a href="../_static/img/gsn/rp_session.svg">rp_session_attribute</a>: Relying Party establishes that the attribute is a factually correct statement about the user at LoA High. (Main goal)</p></li>
+</ul>
+<p>From the main goal, the following subgoals are identified:</p>
+<!-- use HTML link so that sphinx doesn't copy these images to _downloads/<hash>/filename.svg,
+     as that breaks the internal links -->
+<ul class="simple">
+<li><p><a href="../_static/img/gsn/PID_issuer.gsn.svg">PID_issuer</a>: PID issuer issues at LoA High to wallets implementing Sole Control and ensures all issued attributes are factually correct during the lifetime of the attestations</p></li>
+<li><p><a href="../_static/img/gsn/sole-control.gsn.svg">sole_control_main</a>: Wallet offers PID issuer assurance that User will have sole control over the PID.</p></li>
+<li><p><a href="../_static/img/gsn/sole-control-2fa.gsn.svg">sole_control_2fa</a>: Wallet allows usage of PrivKey only after 2FA authentication of User</p></li>
+<li><p><a href="../_static/img/gsn/sole-control-2fa-registration.gsn.svg">sole_control_2fa_registration</a>: Register possession &amp; knowledge factors via enrollment message</p></li>
+</ul>
+<p>The figure below shows how the subgoals relate:
+<img alt="Overview" src="../_images/architecture.svg" /></p>
+<p>For convenience, an integral view is also provided:</p>
+<p><a href="../_static/img/gsn/complete.svg">Merged Diagram</a>: Main goal and subgoals from the sections above merged into this single diagram.</p>
+</section>
 
 
            </div>
@@ -378,11 +235,11 @@ data.</p>
     <div class="rst-other-versions">
         <dl>
             <dt>Releases</dt>
-            <dd><a href="../../v0.4.0/architecture/components-overview.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="components-overview.html">main</a></dd>
+            <dd><a href="gsn-overview.html">main</a></dd>
         </dl>
     </div>
 </div><script>

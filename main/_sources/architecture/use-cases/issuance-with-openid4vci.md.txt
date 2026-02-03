@@ -115,13 +115,54 @@ sequenceDiagram
     deactivate Wallet
     User->>-Wallet: approve with PIN
     activate Wallet
-        Wallet ->> WP: request PoPs with nonce<br/>(PerformIssuanceWithWua instruction)
-        WP ->> Wallet: Return WUA and Signed PoP and PoA
+        Wallet ->>+ WP: request PoPs with nonce<br/>(PerformIssuanceWithWua instruction)
+        WP ->>- Wallet: Return WUA and Signed PoP and PoA
         Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
         note over Wallet: WUA and PoA are included here
         WalletServer->>WalletServer: verify proofs,  WUA and PoA
         WalletServer->>-Wallet: attestations
     deactivate Wallet
+```
+
+## Key generation and usage during issuance
+
+### Wallet App
+
+The wallet uses the Wallet Backend to generate attestation private keys and sign the issuer's nonce with them.
+It does this by sending a `PerformIssuance` or `PerformIssuanceWithWua` [instruction](./wallet-provider-instruction.md), depending on whether or not a PID is being issued (which requires a WUA).
+Using one of these instructions, the App requests the Wallet Backend to provide a WUA and Proofs of Possession (PoPs) for the private keys by signing the `c_nonce` from the issuer.
+The following sequence diagram depicts how this happens.
+
+```{mermaid}
+sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    participant wallet as Wallet Core (App)
+    participant wallet_provider as Wallet Backend
+    participant hsm as WB HSM
+    participant db as WB Database
+
+    wallet->>+wallet_provider: instruction: perform_issuance[_with_wua](c_nonce, key_count)
+    wallet_provider->>wallet_provider: key_count++ if WUA is requested
+    wallet_provider ->>+ hsm: generateECDSAPrivateKeys(key_count)
+    hsm ->> hsm: generate ECDSA private keys<br/>encrypt each private key with attestationWrappingKey
+    hsm -->>- wallet_provider: encryptedECDSAPrivateKeys, ECDSAPublicKeys
+    wallet_provider ->>+ db : storeAttestationKeys(encryptedAttestationPrivateKeys, attestationPublicKeys)
+    db -->>- wallet_provider: OK
+    loop for every encryptedAttestationPrivateKey
+        wallet_provider ->>+ hsm: sign(encryptedAttestationPrivateKey, c_nonce)
+        hsm ->> hsm: Decrypt encryptedAttestationPrivateKey with attestationWrappingKey<br/>sign c_nonce with decrypted key
+        hsm -->>- wallet_provider: PoP
+    end
+    opt WUA requested
+        wallet_provider ->> wallet_provider: generateWUAContent()
+        wallet_provider ->>+ hsm: sign WUA content using wuaSigningPrivateKey 
+        hsm -->>- wallet_provider: WUA
+    end
+    opt More than 1 private key involved
+        wallet_provider ->>+ hsm: sign PoA for attestationPrivateKeys and possibly WUA
+        hsm -->>- wallet_provider: PoA
+    end
+    wallet_provider-->>-wallet: instruction response: PoPs, attestationPublicKeys, WUA (optional), PoA (optional)
 ```
 
 <!-- References -->

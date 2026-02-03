@@ -69,6 +69,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul class="current">
@@ -78,10 +79,11 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wallet-provider-instruction.html">Wallet Provider instructions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul>
@@ -288,14 +290,54 @@ field in the <code class="docutils literal notranslate"><span class="pre">wallet
     deactivate Wallet
     User-&gt;&gt;-Wallet: approve with PIN
     activate Wallet
-        Wallet -&gt;&gt; WP: request PoPs with nonce&lt;br/&gt;(PerformIssuanceWithWua instruction)
-        WP -&gt;&gt; Wallet: Return WUA and Signed PoP and PoA
+        Wallet -&gt;&gt;+ WP: request PoPs with nonce&lt;br/&gt;(PerformIssuanceWithWua instruction)
+        WP -&gt;&gt;- Wallet: Return WUA and Signed PoP and PoA
         Wallet-&gt;&gt;+WalletServer: POST /batch_credential(access_token, PoPs)
         note over Wallet: WUA and PoA are included here
         WalletServer-&gt;&gt;WalletServer: verify proofs,  WUA and PoA
         WalletServer-&gt;&gt;-Wallet: attestations
     deactivate Wallet
+    </pre></section>
+<section id="key-generation-and-usage-during-issuance">
+<h2>Key generation and usage during issuance<a class="headerlink" href="#key-generation-and-usage-during-issuance" title="Link to this heading"></a></h2>
+<section id="wallet-app">
+<h3>Wallet App<a class="headerlink" href="#wallet-app" title="Link to this heading"></a></h3>
+<p>The wallet uses the Wallet Backend to generate attestation private keys and sign the issuer’s nonce with them.
+It does this by sending a <code class="docutils literal notranslate"><span class="pre">PerformIssuance</span></code> or <code class="docutils literal notranslate"><span class="pre">PerformIssuanceWithWua</span></code> <a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc">instruction</span></a>, depending on whether or not a PID is being issued (which requires a WUA).
+Using one of these instructions, the App requests the Wallet Backend to provide a WUA and Proofs of Possession (PoPs) for the private keys by signing the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer.
+The following sequence diagram depicts how this happens.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    participant wallet as Wallet Core (App)
+    participant wallet_provider as Wallet Backend
+    participant hsm as WB HSM
+    participant db as WB Database
+
+    wallet-&gt;&gt;+wallet_provider: instruction: perform_issuance[_with_wua](c_nonce, key_count)
+    wallet_provider-&gt;&gt;wallet_provider: key_count++ if WUA is requested
+    wallet_provider -&gt;&gt;+ hsm: generateECDSAPrivateKeys(key_count)
+    hsm -&gt;&gt; hsm: generate ECDSA private keys&lt;br/&gt;encrypt each private key with attestationWrappingKey
+    hsm --&gt;&gt;- wallet_provider: encryptedECDSAPrivateKeys, ECDSAPublicKeys
+    wallet_provider -&gt;&gt;+ db : storeAttestationKeys(encryptedAttestationPrivateKeys, attestationPublicKeys)
+    db --&gt;&gt;- wallet_provider: OK
+    loop for every encryptedAttestationPrivateKey
+        wallet_provider -&gt;&gt;+ hsm: sign(encryptedAttestationPrivateKey, c_nonce)
+        hsm -&gt;&gt; hsm: Decrypt encryptedAttestationPrivateKey with attestationWrappingKey&lt;br/&gt;sign c_nonce with decrypted key
+        hsm --&gt;&gt;- wallet_provider: PoP
+    end
+    opt WUA requested
+        wallet_provider -&gt;&gt; wallet_provider: generateWUAContent()
+        wallet_provider -&gt;&gt;+ hsm: sign WUA content using wuaSigningPrivateKey 
+        hsm --&gt;&gt;- wallet_provider: WUA
+    end
+    opt More than 1 private key involved
+        wallet_provider -&gt;&gt;+ hsm: sign PoA for attestationPrivateKeys and possibly WUA
+        hsm --&gt;&gt;- wallet_provider: PoA
+    end
+    wallet_provider--&gt;&gt;-wallet: instruction response: PoPs, attestationPublicKeys, WUA (optional), PoA (optional)
     </pre><!-- References -->
+</section>
 </section>
 </section>
 

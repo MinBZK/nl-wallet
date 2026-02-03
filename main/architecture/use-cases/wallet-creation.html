@@ -31,7 +31,7 @@ window.addEventListener("load", () => mermaid.run());
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Wallet recovery" href="recovery_usecases.html" />
+    <link rel="next" title="Wallet Provider instructions" href="wallet-provider-instruction.html" />
     <link rel="prev" title="Pin Validation" href="pin-validation.html" /> 
 </head>
 
@@ -69,6 +69,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul class="current">
@@ -78,10 +79,11 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wallet-provider-instruction.html">Wallet Provider instructions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul>
@@ -188,89 +190,62 @@ window.addEventListener("load", () => mermaid.run());
              
   <section id="wallet-creation">
 <h1>Wallet Creation<a class="headerlink" href="#wallet-creation" title="Link to this heading"></a></h1>
-<p>The diagram below illustrates the Wallet creation process. Including certificate generation and registration with the <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>.</p>
-<section id="create-wallet-app">
-<h2>Create wallet (app)<a class="headerlink" href="#create-wallet-app" title="Link to this heading"></a></h2>
+<p>The diagram below illustrates the Wallet creation process, including certificate generation and registration with the Wallet Backend.</p>
+<section id="create-wallet">
+<h2>Create wallet<a class="headerlink" href="#create-wallet" title="Link to this heading"></a></h2>
 <pre  class="mermaid">
         sequenceDiagram
-    %% Force ordering by explicitly setting up participants
     actor user
-    participant platform
-    participant wallet_app
-    participant wallet_core
-    participant wallet_provider
-    title Create Wallet (app) [2.1]
+    participant platform as Mobile Platform&lt;br/&gt; (SE/TEE)
+    participant db as App Database
+    participant wallet_core as Wallet App
+    participant wallet_provider as Wallet Backend
+    participant hsm as WB HSM
+    participant wp_db as WB Database
+    title Create Wallet
 
-    user-&gt;&gt;wallet_app: provide valid pin
-    note over user, wallet_app: pin validity is guaranteed locally, see 3.1
-    activate user
-        wallet_app-&gt;&gt;wallet_core: register(pin)
-        wallet_core-&gt;&gt;wallet_provider: requestChallenge()
-        opt server error
-        wallet_provider--&gt;&gt;wallet_core: server error
-            wallet_core--&gt;&gt;wallet_app: error
-            wallet_app-&gt;&gt;user: show server error
-        end
-        note over wallet_provider,wallet_provider: see 2.2 for details
-        wallet_provider--&gt;&gt;wallet_core: challenge
-        activate wallet_core
-        critical key generation
-            option key setup (pin key)
-                wallet_core-&gt;&gt;wallet_core: generateSalt()
-                wallet_core-&gt;&gt;platform: store(salt)
-                platform-&gt;&gt;platform: generateHwBackedDbKey()
-                platform-&gt;&gt;platform: persistEncrypted(salt)
-            option key setup (hw key)
-                wallet_core-&gt;&gt;platform: generateHwKey()
-                note over platform, wallet_core: HW key = Hardware backed key
-        end
-        critical sign challenge
-            option sign with pin key
-                wallet_core-&gt;&gt;wallet_core: deriveEcdsaKeyPair(pin, salt)
-                wallet_core-&gt;&gt;wallet_core: signChallenge(ecdsaKey, challenge)
-            option sign with hw key
-                wallet_core-&gt;&gt;platform: signWithHwKey(pinSignedChallenge)
-                platform-&gt;&gt;platform: sign(hwKey, pinSignedChallenge)
-                platform--&gt;&gt;wallet_core: doubleSignedChallenge
-        end
-        wallet_core-&gt;&gt;platform: getHwPublicKey()
-        platform--&gt;&gt;wallet_core: hwPublicKey
-        wallet_core-&gt;&gt;+wallet_provider: createWallet(&lt;br/&gt;pinPubKey, hwPubKey&lt;br/&gt;doubleSignedChallenge&lt;br/&gt;)
-        deactivate wallet_core
-        wallet_provider-&gt;&gt;wallet_provider: createWallet()
-        opt server error
-            note over wallet_provider,user: same as server error above
-        end
-        note over wallet_provider,wallet_provider: see 2.2 for details
-        wallet_provider--&gt;&gt;-wallet_core: walletId, walletCertificate
-        wallet_core-&gt;&gt;platform: store(walletId, walletCert)
-        platform-&gt;&gt;platform: persist(walletId, walletCert)
-        wallet_core-&gt;&gt;wallet_app: registration success
-        wallet_app-&gt;&gt;user: render wallet created
-    deactivate user
-    </pre></section>
-<section id="create-wallet-server">
-<h2>Create wallet (server)<a class="headerlink" href="#create-wallet-server" title="Link to this heading"></a></h2>
-<p>High level overview of what happens inside the <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>.</p>
-<pre  class="mermaid">
-        sequenceDiagram
-    %% Force ordering by explicitly setting up participants
-    actor user
-    participant wallet_core
-    participant wallet_provider
-    participant hsm
-    title Create Wallet (server) [2.2]
-
-    wallet_core-&gt;&gt;+wallet_provider: requestChallenge()
-    note over wallet_core,wallet_provider: POST /enroll
-    wallet_provider-&gt;&gt;wallet_provider: generateChallenge()
-    wallet_provider--&gt;&gt;-wallet_core: challenge
-    wallet_core-&gt;&gt;+wallet_provider: createWallet(&lt;br/&gt;pinPubKey, pinSignedChallenge&lt;br/&gt;hWPubKey, hwSignedChallenge&lt;br/&gt;)
-    note over wallet_core,wallet_provider: POST /createwallet
-    wallet_provider-&gt;&gt;wallet_provider: verifySignedChallenge()
-    wallet_provider-&gt;&gt;wallet_provider: storePubKeys()
-    wallet_provider-&gt;&gt;wallet_provider: generateCertificate()
-    wallet_provider--&gt;&gt;-wallet_core: walletId, walletCertificate
+    user-&gt;&gt;wallet_core: provide valid pin
+    
+    activate wallet_core
+        wallet_core-&gt;&gt;+wallet_provider: requestChallenge()
+        
+        note over wallet_core,wallet_provider: POST /enroll
+        wallet_provider-&gt;&gt;wallet_provider: generate new walletID
+        wallet_provider -&gt;&gt;+ hsm: sign(walletID, WalletCertificateSigningPrivateKey)
+        hsm --&gt;&gt;- wallet_provider: challengeJWT
+        wallet_provider--&gt;&gt;-wallet_core: challengeJWT
+        
+        wallet_core-&gt;&gt;wallet_core: generateSalt()
+        wallet_core-&gt;&gt;+db: storeEncrypted(salt)
+        db--&gt;&gt;-wallet_core: OK
+        wallet_core-&gt;&gt;wallet_core: walletPINPrivateKey, walletPINPublicKey = deriveWalletPINKeyPair(pin, salt)
+        wallet_core-&gt;&gt;+platform: generateHwPrivateKey()
+        platform--&gt;&gt;-wallet_core: walletHwBoundPublicKey
+        wallet_core-&gt;&gt;wallet_core: perform key &amp; app attestation
+        wallet_core-&gt;&gt;wallet_core: pinSignedRegistrationMessage = sign({challengeJWT, walletPINPublicKey, walletHwBoundPublicKey, keyAttestation, appAttestation}, walletPINPrivateKey)
+        wallet_core-&gt;&gt;+platform: signWithHwKey(pinSignedRegistrationMessage)
+        platform--&gt;&gt;-wallet_core: doubleSignedRegistrationMessage
+        
+        wallet_core-&gt;&gt;+wallet_provider: createWallet(doubleSignedRegistrationMessage)
+        note over wallet_core,wallet_provider: POST /createwallet
+        wallet_provider-&gt;&gt;wallet_provider: walletHwBoundPublicKey, walletPINPublicKey = parsePinAndHwKeys(doubleSignedRegistrationMessage)
+        wallet_provider-&gt;&gt;wallet_provider: pinSignedRegistrationMessage = verifyHwSignature(doubleSignedRegistrationMessage, walletHwBoundPublicKey)
+        wallet_provider-&gt;&gt;wallet_provider: registrationMessage = verifyPINSignature(pinSignedRegistrationMessage, walletPINPublicKey)
+        wallet_provider-&gt;&gt;wallet_provider: verify(registrationMessage.challengeJWT, WalletCertificateSigningPublicKey)
+        wallet_provider-&gt;&gt;wallet_provider: verifyAppKeyAttestation(registrationMessage.appAttestation, registrationMessage.keyAttestation)
+        wallet_provider-&gt;&gt;+hsm: encrypt(walletPINPublicKey, PINPublicKeyEncryptionKey)
+        hsm-&gt;&gt;-wallet_provider: encryptedPINPublicKey
+        wallet_provider-&gt;&gt;+wp_db: storeNewUser(walletID, encryptedPINPublicKey, walletHwBoundPublicKey, keyAttestation, appAttestation)
+        wp_db--&gt;&gt;-wallet_provider: OK
+        wallet_provider-&gt;&gt;+hsm: HMAC(walletPINPublicKey, PINHMACKey)
+        hsm--&gt;&gt;-wallet_provider: PINPublicKeyHMAC
+        wallet_provider-&gt;&gt;+ hsm: sign({walletID, walletHwBoundPublicKey, PINPublicKeyHMAC}, walletCertificateSigningKey)
+        hsm -&gt;&gt;- wallet_provider: WBCertificate
+        wallet_provider--&gt;&gt;-wallet_core: WBCertificate
+        
+        wallet_core-&gt;&gt;+db: storeEncrypted(WBCertificate)
+        db--&gt;&gt;-wallet_core: OK
+    deactivate wallet_core
     </pre></section>
 </section>
 
@@ -279,7 +254,7 @@ window.addEventListener("load", () => mermaid.run());
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="pin-validation.html" class="btn btn-neutral float-left" title="Pin Validation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="recovery_usecases.html" class="btn btn-neutral float-right" title="Wallet recovery" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="wallet-provider-instruction.html" class="btn btn-neutral float-right" title="Wallet Provider instructions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -69,6 +69,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul class="current">
@@ -78,10 +79,11 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wallet-provider-instruction.html">Wallet Provider instructions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul>
@@ -188,8 +190,9 @@ window.addEventListener("load", () => mermaid.run());
              
   <section id="disclosure-with-openid4vp">
 <h1>Disclosure with OpenID4VP<a class="headerlink" href="#disclosure-with-openid4vp" title="Link to this heading"></a></h1>
-<p>We’ve implemented disclosure with <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html">OpenID4VP draft 20</a>, with
-Proof-of-Association (PoA) as a custom addition.</p>
+<p>This diagram shows how OpenID4VP is implemented in the NL Wallet Solution.
+This implementation is based on <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html">OpenID4VP draft 20</a>, with
+Proof of Association (PoA) as a custom addition.</p>
 <section id="how-disclosure-is-implemented">
 <h2>How disclosure is implemented<a class="headerlink" href="#how-disclosure-is-implemented" title="Link to this heading"></a></h2>
 <p>This diagram shows how OpenID4VP is implemented within the NL Wallet Solution.</p>
@@ -197,46 +200,83 @@ Proof-of-Association (PoA) as a custom addition.</p>
 Other Client Identifier Schemes are currently not supported.</p>
 <p>The reponse mode is <code class="docutils literal notranslate"><span class="pre">direct_post.jwt</span></code>. Other response modes are currently not
 supported. In more detail, the protocol works as follows:</p>
+<section id="disclosure-using-openid4vp">
+<h3>Disclosure using OpenID4VP<a class="headerlink" href="#disclosure-using-openid4vp" title="Link to this heading"></a></h3>
 <pre  class="mermaid">
         sequenceDiagram
     autonumber
 
     actor User
-    participant RP as Verifier
-    participant WalletServer as Verifier Endpoint ('OV')
     participant Wallet
-    User-&gt;&gt;RP: Start action to disclose attributes
-    RP-&gt;&gt;WalletServer: initiate transaction
-    WalletServer -&gt;&gt;RP: return session_token    
-    RP -&gt;&gt;+ Wallet: authorization request (request_uri) (open wallet through universal link or scan QR on another device)
-    Wallet -&gt;&gt; WalletServer: request Request Object (using request_uri)
-    note over WalletServer: Request Object (signed) also contains 'client_metadata',&lt;Br/&gt; including jwks with an ephemeral key for encrypting the authorization response
-    WalletServer -&gt;&gt; Wallet: response with (signed) Request Object
-    Wallet -&gt;&gt;+ User: request user consent for disclosure
-    User -&gt;&gt; Wallet: provide consent for disclosure of attributes (using PIN)
-    Wallet-&gt;&gt; WalletServer: authorization response (VP Token) (JWE using ephemeral key)
-    WalletServer -&gt;&gt;WalletServer: Validate VP Token
-    WalletServer -&gt;&gt; Wallet: authorization response (redirect_uri with session_token)
-    Wallet -&gt;&gt; RP: redirect to the redirect URI (session_token)
-    RP -&gt;&gt; WalletServer: fetch response data (session_token)
-    WalletServer -&gt;&gt; RP: response data (verified attributes)
+    participant RP as Verifier
+    participant WalletServer as Verifier Service ('OV')
+
+    User-&gt;&gt;RP: start action to disclose attributes
+    RP -&gt;&gt;+ WalletServer: initiate transaction
+    WalletServer --&gt;&gt;- RP: session_token
+    RP -&gt;&gt; Wallet: Authorization Request (request_uri) (opens wallet through Universal Link, or scan QR on another device)
+    activate Wallet
+        Wallet -&gt;&gt;+ WalletServer: retrieve Request Object (using request_uri)
+        note over WalletServer, Wallet: Request Object (signed) contains a.o. 'client_metadata',&lt;Br/&gt; including JWKs with an ephemeral public key for encrypting the authorization response
+        WalletServer --&gt;&gt;- Wallet: response with (signed) Request Object
+        Wallet -&gt;&gt;+ User: request user consent for disclosure
+        User -&gt;&gt;- Wallet: provide consent for disclosure of attributes (using PIN)
+
+        Wallet -&gt;&gt; Wallet: Sign PoPs (using Wallet Backend)
+
+        Wallet-&gt;&gt;+ WalletServer: POST Authorization Response (VP Token) with presentations (encrypted to ephemeral public key)
+        WalletServer -&gt;&gt; WalletServer: Decrypt VP Token&lt;br&gt;Verify contained attestations&lt;br&gt;Check that all requested attributes are received
+        WalletServer --&gt;&gt;- Wallet: Response Object (contains 'redirect_uri')
+    deactivate Wallet
+    Wallet -&gt;&gt;+ User: redirect user to 'redirect_uri'
+    User -&gt;&gt;- RP: proceed in verifier app/website
+    RP -&gt;&gt;+ WalletServer: fetch response data (session_token)
+    WalletServer --&gt;&gt;- RP: response data (verified attributes)
     </pre><ol class="arabic simple">
-<li><p>From Verifier’s website or app, user decides to start an action that requires disclosed attributes</p></li>
-<li><p>A request goes from Verifier App to OV to start a disclosure session</p></li>
-<li><p>OV returns <code class="docutils literal notranslate"><span class="pre">session_token</span></code> created for this session</p></li>
-<li><p>The OpenID4VP Authorization Request <code class="docutils literal notranslate"><span class="pre">request_uri</span></code> parameter is put in a UL or QR code, which is either opened or scanned by the Wallet.</p></li>
-<li><p>Wallet requests the request object from the given <code class="docutils literal notranslate"><span class="pre">request_uri</span></code>. The request object contains the <code class="docutils literal notranslate"><span class="pre">response_uri</span></code></p></li>
-<li><p>Verifier returns request object (signed)</p></li>
-<li><p>The requested attributes and the identity of the verifier are presented to the user for consent</p></li>
-<li><p>User provides consent (using PIN)</p></li>
-<li><p>Response is posted back to Verifier Endpoint (‘OV’) (endpoint address is supplied in <code class="docutils literal notranslate"><span class="pre">response_uri</span></code> within the Request Object)</p></li>
-<li><p>‘OV’ verifies the received VP Token</p></li>
-<li><p>Verifier endpoint returns a <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> back into the verfier’s website or app</p></li>
-<li><p>Redirect to verifier using <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>.</p></li>
-<li><p>Verifier’s website or app requests session results from ‘OV’ using <code class="docutils literal notranslate"><span class="pre">session_token</span></code></p></li>
-<li><p>‘OV’ returns session results</p></li>
+<li><p>From the Verifier’s website or app, the user decides to start an action that requires disclosed attributes.</p></li>
+<li><p>The Verifier sends the attributes to be disclosed to the OV to initiate a disclosure session.</p></li>
+<li><p>The OV returns a <code class="docutils literal notranslate"><span class="pre">session_token</span></code> created for this session.</p></li>
+<li><p>The OpenID4VP Authorization Request <code class="docutils literal notranslate"><span class="pre">request_uri</span></code> parameter is put in a Universal Link or QR code, which is either opened or scanned by the Wallet.</p></li>
+<li><p>The Wallet requests the Request Object from the given <code class="docutils literal notranslate"><span class="pre">request_uri</span></code>. The Request Object contains a.o. the <code class="docutils literal notranslate"><span class="pre">response_uri</span></code>, to which the wallet is to post the VP token later on, and an ephemeral public key to which the wallet can encrypt the VP token.</p></li>
+<li><p>The OV returns the (signed) Request Object.</p></li>
+<li><p>The Wallet presents the requested attributes and the identity of the verifier to the user for consent.</p></li>
+<li><p>The User provides consent (using their PIN).</p></li>
+<li><p>The Wallet collects the attributes to be sent and asks the Wallet Backend to sign the PoPs of the public keys of the attestations.</p></li>
+<li><p>The VP Token is posted back to the <code class="docutils literal notranslate"><span class="pre">response_uri</span></code> of the OV.</p></li>
+<li><p>The OV decrypts the received VP Token, verifies the contained attestations, and checks that it contains all requested attributes.</p></li>
+<li><p>The OV returns a <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> back into the verfier’s website or app to the Wallet.</p></li>
+<li><p>The Wallet redirects user to the Verifier using <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>.</p></li>
+<li><p>The User proceeds in the Verifier application.</p></li>
+<li><p>The Verifier’s website or app requests session results from the OV using <code class="docutils literal notranslate"><span class="pre">session_token</span></code>.</p></li>
+<li><p>The OV returns session results with the verified attributes.</p></li>
 </ol>
-<!-- References -->
+<section id="key-usage-during-dicslosure">
+<h4>Key usage during dicslosure<a class="headerlink" href="#key-usage-during-dicslosure" title="Link to this heading"></a></h4>
+<p>During disclosure, the Wallet will interact with the Wallet Backend to sign the Proofs of Possessions (PoPs) that will be sent to the Verifier (Step 7 in the previous diagram). The sequence diagram below describes this process in detail.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    participant Wallet as WalletApp (core)
+    participant WB as Wallet Backend 
+    participant HSM as HSM
+    participant DB as WB Database
+
+    Wallet -&gt;&gt;+ WB: instruction: Sign(message[], key_identifiers, [PoA nonce])
+    WB -&gt;&gt;+ DB: retrieve key(s) by key_identifiers
+    DB --&gt;&gt;- WB: wrapped_key(s) from account (from key_identifiers)
+    WB -&gt;&gt;+ HSM: sign message(s) using wrapped_key(s)
+    HSM -&gt;&gt; HSM: unwrap wrapped_key(s) using attestationWrappingKey and&lt;br/&gt; use unwrapped key (attestationPrivateKey) for signing message(s)
+    HSM -&gt;&gt;- WB: signed message
+    opt PoA requested (in case of multiple messages)
+        WB -&gt;&gt;+ HSM: sign PoAs for keys, using PoA nonce  
+        HSM --&gt;&gt;- WB: signed PoAs
+    end
+    WB --&gt;&gt;- Wallet: instruction response: signed messsage(s), PoA  
+
+    </pre><!-- References -->
+</section>
+</section>
 </section>
 </section>
 

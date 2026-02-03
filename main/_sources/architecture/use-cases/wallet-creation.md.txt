@@ -1,89 +1,60 @@
 # Wallet Creation
 
-The diagram below illustrates the Wallet creation process. Including certificate generation and registration with the `wallet_provider`.
+The diagram below illustrates the Wallet creation process, including certificate generation and registration with the Wallet Backend.
 
-## Create wallet (app)
-
-```{mermaid}
-sequenceDiagram
-    %% Force ordering by explicitly setting up participants
-    actor user
-    participant platform
-    participant wallet_app
-    participant wallet_core
-    participant wallet_provider
-    title Create Wallet (app) [2.1]
-
-    user->>wallet_app: provide valid pin
-    note over user, wallet_app: pin validity is guaranteed locally, see 3.1
-    activate user
-        wallet_app->>wallet_core: register(pin)
-        wallet_core->>wallet_provider: requestChallenge()
-        opt server error
-        wallet_provider-->>wallet_core: server error
-            wallet_core-->>wallet_app: error
-            wallet_app->>user: show server error
-        end
-        note over wallet_provider,wallet_provider: see 2.2 for details
-        wallet_provider-->>wallet_core: challenge
-        activate wallet_core
-        critical key generation
-            option key setup (pin key)
-                wallet_core->>wallet_core: generateSalt()
-                wallet_core->>platform: store(salt)
-                platform->>platform: generateHwBackedDbKey()
-                platform->>platform: persistEncrypted(salt)
-            option key setup (hw key)
-                wallet_core->>platform: generateHwKey()
-                note over platform, wallet_core: HW key = Hardware backed key
-        end
-        critical sign challenge
-            option sign with pin key
-                wallet_core->>wallet_core: deriveEcdsaKeyPair(pin, salt)
-                wallet_core->>wallet_core: signChallenge(ecdsaKey, challenge)
-            option sign with hw key
-                wallet_core->>platform: signWithHwKey(pinSignedChallenge)
-                platform->>platform: sign(hwKey, pinSignedChallenge)
-                platform-->>wallet_core: doubleSignedChallenge
-        end
-        wallet_core->>platform: getHwPublicKey()
-        platform-->>wallet_core: hwPublicKey
-        wallet_core->>+wallet_provider: createWallet(<br/>pinPubKey, hwPubKey<br/>doubleSignedChallenge<br/>)
-        deactivate wallet_core
-        wallet_provider->>wallet_provider: createWallet()
-        opt server error
-            note over wallet_provider,user: same as server error above
-        end
-        note over wallet_provider,wallet_provider: see 2.2 for details
-        wallet_provider-->>-wallet_core: walletId, walletCertificate
-        wallet_core->>platform: store(walletId, walletCert)
-        platform->>platform: persist(walletId, walletCert)
-        wallet_core->>wallet_app: registration success
-        wallet_app->>user: render wallet created
-    deactivate user
-```
-
-## Create wallet (server)
-
-High level overview of what happens inside the `wallet_provider`.
+## Create wallet
 
 ```{mermaid}
 sequenceDiagram
-    %% Force ordering by explicitly setting up participants
     actor user
-    participant wallet_core
-    participant wallet_provider
-    participant hsm
-    title Create Wallet (server) [2.2]
+    participant platform as Mobile Platform<br/> (SE/TEE)
+    participant db as App Database
+    participant wallet_core as Wallet App
+    participant wallet_provider as Wallet Backend
+    participant hsm as WB HSM
+    participant wp_db as WB Database
+    title Create Wallet
 
-    wallet_core->>+wallet_provider: requestChallenge()
-    note over wallet_core,wallet_provider: POST /enroll
-    wallet_provider->>wallet_provider: generateChallenge()
-    wallet_provider-->>-wallet_core: challenge
-    wallet_core->>+wallet_provider: createWallet(<br/>pinPubKey, pinSignedChallenge<br/>hWPubKey, hwSignedChallenge<br/>)
-    note over wallet_core,wallet_provider: POST /createwallet
-    wallet_provider->>wallet_provider: verifySignedChallenge()
-    wallet_provider->>wallet_provider: storePubKeys()
-    wallet_provider->>wallet_provider: generateCertificate()
-    wallet_provider-->>-wallet_core: walletId, walletCertificate
+    user->>wallet_core: provide valid pin
+    
+    activate wallet_core
+        wallet_core->>+wallet_provider: requestChallenge()
+        
+        note over wallet_core,wallet_provider: POST /enroll
+        wallet_provider->>wallet_provider: generate new walletID
+        wallet_provider ->>+ hsm: sign(walletID, WalletCertificateSigningPrivateKey)
+        hsm -->>- wallet_provider: challengeJWT
+        wallet_provider-->>-wallet_core: challengeJWT
+        
+        wallet_core->>wallet_core: generateSalt()
+        wallet_core->>+db: storeEncrypted(salt)
+        db-->>-wallet_core: OK
+        wallet_core->>wallet_core: walletPINPrivateKey, walletPINPublicKey = deriveWalletPINKeyPair(pin, salt)
+        wallet_core->>+platform: generateHwPrivateKey()
+        platform-->>-wallet_core: walletHwBoundPublicKey
+        wallet_core->>wallet_core: perform key & app attestation
+        wallet_core->>wallet_core: pinSignedRegistrationMessage = sign({challengeJWT, walletPINPublicKey, walletHwBoundPublicKey, keyAttestation, appAttestation}, walletPINPrivateKey)
+        wallet_core->>+platform: signWithHwKey(pinSignedRegistrationMessage)
+        platform-->>-wallet_core: doubleSignedRegistrationMessage
+        
+        wallet_core->>+wallet_provider: createWallet(doubleSignedRegistrationMessage)
+        note over wallet_core,wallet_provider: POST /createwallet
+        wallet_provider->>wallet_provider: walletHwBoundPublicKey, walletPINPublicKey = parsePinAndHwKeys(doubleSignedRegistrationMessage)
+        wallet_provider->>wallet_provider: pinSignedRegistrationMessage = verifyHwSignature(doubleSignedRegistrationMessage, walletHwBoundPublicKey)
+        wallet_provider->>wallet_provider: registrationMessage = verifyPINSignature(pinSignedRegistrationMessage, walletPINPublicKey)
+        wallet_provider->>wallet_provider: verify(registrationMessage.challengeJWT, WalletCertificateSigningPublicKey)
+        wallet_provider->>wallet_provider: verifyAppKeyAttestation(registrationMessage.appAttestation, registrationMessage.keyAttestation)
+        wallet_provider->>+hsm: encrypt(walletPINPublicKey, PINPublicKeyEncryptionKey)
+        hsm->>-wallet_provider: encryptedPINPublicKey
+        wallet_provider->>+wp_db: storeNewUser(walletID, encryptedPINPublicKey, walletHwBoundPublicKey, keyAttestation, appAttestation)
+        wp_db-->>-wallet_provider: OK
+        wallet_provider->>+hsm: HMAC(walletPINPublicKey, PINHMACKey)
+        hsm-->>-wallet_provider: PINPublicKeyHMAC
+        wallet_provider->>+ hsm: sign({walletID, walletHwBoundPublicKey, PINPublicKeyHMAC}, walletCertificateSigningKey)
+        hsm ->>- wallet_provider: WBCertificate
+        wallet_provider-->>-wallet_core: WBCertificate
+        
+        wallet_core->>+db: storeEncrypted(WBCertificate)
+        db-->>-wallet_core: OK
+    deactivate wallet_core
 ```
