@@ -1,6 +1,6 @@
 .clone-variables:
   before_script:
-    - git clone --depth 1 https://repo-variables-deploy-token:${REPO_VARIABLES_DEPLOY_TOKEN}@${CI_SERVER_HOST}/wallet/deploy-variables.git
+    - git clone --branch v0.4-stable --depth 1 https://repo-variables-deploy-token:${REPO_VARIABLES_DEPLOY_TOKEN}@${CI_SERVER_HOST}/wallet/deploy-variables.git
 
 .build-env:
   extends: .clone-variables
