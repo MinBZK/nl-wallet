@@ -8,7 +8,9 @@ use axum::Form;
 use axum::Router;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
+use axum::http::HeaderMap;
 use axum::http::StatusCode;
+use axum::http::header;
 use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Response;
@@ -67,11 +69,39 @@ pub static PORTAL_JS_SHA256: LazyLock<String> =
 pub static LOKALIZE_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/lokalize.js"))));
 
+pub const COMBINED_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
+
+pub static COMBINED_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(COMBINED_CSS.as_bytes())));
+
 #[derive(Deserialize)]
 struct DeleteForm {
     csrf_token: String,
     deletion_code: String,
     language: String,
+}
+
+/// Combined CSS, bundled at compile time
+/// Serve the combined CSS with caching headers
+async fn serve_combined_css(headers: HeaderMap) -> Response {
+    let etag = format!("\"{}\"", &*COMBINED_CSS_SHA256);
+
+    // Check If-None-Match header for conditional request
+    if let Some(if_none_match) = headers.get(header::IF_NONE_MATCH)
+        && if_none_match.as_bytes() == etag.as_bytes()
+    {
+        return (StatusCode::NOT_MODIFIED, [(header::ETAG, etag)]).into_response();
+    }
+
+    (
+        [
+            (header::CONTENT_TYPE, "text/css; charset=utf-8".to_string()),
+            (header::ETAG, etag),
+            (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
+        ],
+        COMBINED_CSS,
+    )
+        .into_response()
 }
 
 pub fn create_router<C>(cookie_encryption_key: &SymmetricKey, log_requests: bool, revocation_client: C) -> Router
@@ -90,6 +120,7 @@ where
     let mut app = Router::new()
         .route("/support/delete", get(index::<C>))
         .route("/support/delete", post(delete_wallet::<C>))
+        .route("/css/style.css", get(serve_combined_css))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -122,6 +153,7 @@ struct BaseTemplate<'a> {
     language_js_sha256: &'a str,
     portal_js_sha256: &'a str,
     lokalize_js_sha256: &'a str,
+    combined_css_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -159,6 +191,7 @@ async fn index<C: RevocationClient>(
         language_js_sha256: &LANGUAGE_JS_SHA256,
         portal_js_sha256: &PORTAL_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
+        combined_css_sha256: &COMBINED_CSS_SHA256,
     };
 
     let csrf_token = match token.authenticity_token() {
@@ -194,6 +227,7 @@ async fn delete_wallet<C: RevocationClient>(
         language_js_sha256: &LANGUAGE_JS_SHA256,
         portal_js_sha256: &PORTAL_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
+        combined_css_sha256: &COMBINED_CSS_SHA256,
     };
 
     if let Err(err) = token.verify(&delete_form.csrf_token) {
