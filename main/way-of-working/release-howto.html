@@ -255,20 +255,24 @@ update the README.</p>
 however still a few things we confirm. Most notably:</p>
 <ul class="simple">
 <li><p>Stable main pipeline (CI/CD pipeline for main is green)</p></li>
-<li><p>Automated nightly E2E testsuite succesful</p></li>
+<li><p>Automated nightly E2E testsuite successful</p></li>
 <li><p>Manual E2E testsuite executed and green (there is a metric in our quality time
 instance that our software quality engineer uses for this, you can ask him for
 the link)</p></li>
 <li><p>OSV scanner ran and results accepted (see <code class="docutils literal notranslate"><span class="pre">osv-scanner</span></code> job in pipeline)</p></li>
 <li><p>ZAP scanner ran and results accepted (see ZAP in Quality Time)</p></li>
+<li><p>Trivy scan ran and results accepted (See Check <code class="docutils literal notranslate"><span class="pre">trivy-scan</span></code> job in <code class="docutils literal notranslate"><span class="pre">Trigger</span> <span class="pre">vulnerability</span> <span class="pre">scanning</span></code> pipeline)</p></li>
+<li><p>Dependency check ran and results accepted (see <code class="docutils literal notranslate"><span class="pre">dependency-check</span></code> job in pipeline)</p></li>
+<li><p>SBOM uploaded to Dependency-track and results accepted (see <code class="docutils literal notranslate"><span class="pre">upload-sbom-to-dependency-track</span></code> job in pipeline)</p></li>
 <li><p>No blocker or critical Sonar findings (you can check our Sonar instance for
 these findings, ask around for the link if you don’t have it)</p></li>
 <li><p>A11y scan that ran on Browserstack are evaluated and actual a11y issues are
 reported Jira as bugs.</p></li>
+<li><p>Nightly performance test pipeline ran and results accepted</p></li>
 </ul>
 <p>The manual E2E tests are usually executed by the test automation engineer.</p>
 <p>The confirmation of the acceptability of the tests and any required reports is
-done by our software quality engineer. He will e-mail our shared e-mail account,
+done by our software quality manager. He will e-mail our shared e-mail account,
 the software delivery manager and the product owner with their approval and/or
 any remarks or findings.</p>
 <p>If there are any findings which can’t be accepted or worked around, they will
@@ -450,6 +454,151 @@ is fully vetted by the operations team and deemed ready to run on our production
 backend. When the flag is removed (and so becomes a considered-stable release),
 don’t forget to remove the <code class="docutils literal notranslate"><span class="pre">CONDITIONAL_PRE_RELEASE_WARNING</span></code> paragraph from the
 release description.</p>
+</section>
+</section>
+<section id="release-checklists">
+<h2>Release Checklists<a class="headerlink" href="#release-checklists" title="Link to this heading"></a></h2>
+<section id="pre-approval-checklist-steps-1-4">
+<h3>Pre-Approval Checklist (Steps 1-4)<a class="headerlink" href="#pre-approval-checklist-steps-1-4" title="Link to this heading"></a></h3>
+<p>The checklist below can be used to verify everything is in place before release approval can be
+requested by the software quality engineer. Alternatively it can be used to explain possible exceptions
+from the different aspects and steps.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect/Step</p></th>
+<th class="head"><p>Ok/Nok</p></th>
+<th class="head"><p>Explain</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Jira release is green - all issues in Done state</p></td>
+<td><p></p></td>
+<td><p>Verify progress bar on Jira releases page, check all issues are Done except release-related ones</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nightly-git-jira-check</span></code> job log verified</p></td>
+<td><p></p></td>
+<td><p>Check job log for inconsistencies: wrong versions, multiple fixVersions, missing Jira keys</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">verify-release-check</span></code> artifact reviewed and added to Jira</p></td>
+<td><p></p></td>
+<td><p>Artifact with MRs missing Jira keys added to release ticket</p></td>
+</tr>
+<tr class="row-odd"><td><p>Figma links updated in README.md</p></td>
+<td><p></p></td>
+<td><p>Obtain up-to-date links from UX team, create and merge MR</p></td>
+</tr>
+<tr class="row-even"><td><p>Main pipeline is stable and green</p></td>
+<td><p></p></td>
+<td><p>Verify CI/CD pipeline for main branch is green</p></td>
+</tr>
+<tr class="row-odd"><td><p>Automated nightly E2E testsuite successful</p></td>
+<td><p></p></td>
+<td><p>Check nightly E2E test results are green</p></td>
+</tr>
+<tr class="row-even"><td><p>Manual E2E testsuite executed and green</p></td>
+<td><p></p></td>
+<td><p>Verify with test automation engineer, check Quality Time metric</p></td>
+</tr>
+<tr class="row-odd"><td><p>OSV scanner ran and results accepted</p></td>
+<td><p></p></td>
+<td><p>Check <code class="docutils literal notranslate"><span class="pre">osv-scanner</span></code> job in pipeline</p></td>
+</tr>
+<tr class="row-even"><td><p>Dependency check ran and results accepted</p></td>
+<td><p></p></td>
+<td><p>Check <code class="docutils literal notranslate"><span class="pre">dependency-check</span></code> job in pipeline</p></td>
+</tr>
+<tr class="row-odd"><td><p>SBOM uploaded to Dependency-track and results accepted</p></td>
+<td><p></p></td>
+<td><p>Check <code class="docutils literal notranslate"><span class="pre">upload-sbom-to-dependency-track</span></code> job in pipeline</p></td>
+</tr>
+<tr class="row-even"><td><p>Trivy scan ran and results accepted</p></td>
+<td><p></p></td>
+<td><p>Check <code class="docutils literal notranslate"><span class="pre">trivy-scan</span></code> job in <code class="docutils literal notranslate"><span class="pre">Trigger</span> <span class="pre">vulnerability</span> <span class="pre">scanning</span></code> pipeline</p></td>
+</tr>
+<tr class="row-odd"><td><p>ZAP scanner ran and results accepted</p></td>
+<td><p></p></td>
+<td><p>Check ZAP results in Quality Time</p></td>
+</tr>
+<tr class="row-even"><td><p>No blocker or critical Sonar findings</p></td>
+<td><p></p></td>
+<td><p>Check Sonar instance for blocker/critical findings</p></td>
+</tr>
+<tr class="row-odd"><td><p>A11y scan evaluated and issues reported to Jira</p></td>
+<td><p></p></td>
+<td><p>Verify Browserstack A11y scan results, actual issues reported as bugs</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Nightly</span> <span class="pre">performance</span> <span class="pre">test</span></code> pipeline ran and results accepted</p></td>
+<td><p></p></td>
+<td><p>Check nightly performance test pipeline results</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="final-release-verification-checklist-steps-5-10">
+<h3>Final Release Verification Checklist (Steps 5-10)<a class="headerlink" href="#final-release-verification-checklist-steps-5-10" title="Link to this heading"></a></h3>
+<p>Use this checklist to verify all steps have been completed after release execution:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect/Step</p></th>
+<th class="head"><p>Ok/Nok</p></th>
+<th class="head"><p>Explain</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Release version set and MR merged</p></td>
+<td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">version.sh</span> <span class="pre">-s</span> <span class="pre">vX.Y.Z</span></code> executed, MR merged successfully</p></td>
+</tr>
+<tr class="row-odd"><td><p>Release tag created and pushed</p></td>
+<td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">vX.Y.Z</span></code> executed, tag pushed with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">--tags</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Development version set and MR merged</p></td>
+<td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">version.sh</span> <span class="pre">-s</span> <span class="pre">vX.Y.Z-dev</span></code> executed, MR merged quickly</p></td>
+</tr>
+<tr class="row-odd"><td><p>Main branch unfrozen after tagging</p></td>
+<td><p></p></td>
+<td><p>GitLab protected branches settings reverted to original state</p></td>
+</tr>
+<tr class="row-even"><td><p>All 6 build artifacts collected</p></td>
+<td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">create-release-artifacts</span></code> job executed, all zip files downloaded</p></td>
+</tr>
+<tr class="row-odd"><td><p>Release description created</p></td>
+<td><p></p></td>
+<td><p>All placeholders replaced: DAY, MONTH, YEAR, A.B.C, X.Y.Z, warnings, optional story</p></td>
+</tr>
+<tr class="row-even"><td><p>Release notes file exists</p></td>
+<td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wallet_docs/release-notes/vX.Y.Z.md</span></code> file exists and is complete</p></td>
+</tr>
+<tr class="row-odd"><td><p>GitHub release created from correct tag</p></td>
+<td><p></p></td>
+<td><p>Release created from vX.Y.Z tag</p></td>
+</tr>
+<tr class="row-even"><td><p>GitHub release title correct</p></td>
+<td><p></p></td>
+<td><p>Title format: “Wallet X.Y.Z” (without ‘v’ prefix)</p></td>
+</tr>
+<tr class="row-odd"><td><p>All artifacts uploaded to GitHub release</p></td>
+<td><p></p></td>
+<td><p>All 6 zip files uploaded to GitHub release</p></td>
+</tr>
+<tr class="row-even"><td><p>Release description added to GitHub release</p></td>
+<td><p></p></td>
+<td><p>Complete release description markdown inserted</p></td>
+</tr>
+<tr class="row-odd"><td><p>Pre-release flag set</p></td>
+<td><p></p></td>
+<td><p>“Set as a pre-release” flag enabled</p></td>
+</tr>
+<tr class="row-even"><td><p>GitHub release published</p></td>
+<td><p></p></td>
+<td><p>Release successfully published on GitHub</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 </section>
 <section id="references">
