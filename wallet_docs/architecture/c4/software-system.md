@@ -1,6 +1,7 @@
 # Software System overview
 
-The container diagram shown in Figure 2 describes all applications and data stores (containers) that are part of the NL Wallet Software System. External systems that interact with the containers in the NL Wallet Software System are also shown. (See the Context chapter for description of the External systems.)
+The container diagram shown in Figure 2 describes all applications and data stores (containers) that are part of the NL Wallet Software System. External systems that interact with the containers in the NL Wallet Software System are also shown (gray). (See the [Context chapter](./system-context.md) for a description of the External systems.)
+
 
 ![Context diagram](../../_static/img/diagrams/D2NL-WalletSystem.png)
 
@@ -56,10 +57,11 @@ Relations:
 - [I-401] Reads from and writes to database (account data and WUA Status)
 - [I-402] Generates and publishes WUA status list
 - [I-403] Sends cryptographic instructions to HSM device to generate keys and perform signing operations
-- Wallet Unit management functions for Wallet User Support
 - [I-405] Request app integrity verdict from Google Play Integrity (Android only)
 - [I-406] Issue WUA to Wallet on activation
 - [I-407] Called by Wallet Revocation portal for wallet revocation
+- [A-103] Wallet Unit management functions for Wallet User Support
+- [A-104] Manage vulnerable devices
 
 ## 5. ConfigurationServer
 
