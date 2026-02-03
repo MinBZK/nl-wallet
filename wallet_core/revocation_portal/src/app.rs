@@ -45,7 +45,6 @@ use web_utils::language::Language;
 use crate::revocation_client::RevocationClient;
 use crate::translations::TRANSLATIONS;
 use crate::translations::Words;
-use crate::translations::chrono_locale;
 
 struct ApplicationState<C> {
     revocation_client: C,
@@ -240,11 +239,11 @@ async fn delete_wallet<C: RevocationClient>(
             Ok(result) => {
                 let date = result
                     .revoked_at
-                    .format_localized(TRANSLATIONS[language].date_format, chrono_locale(language))
+                    .format_localized(TRANSLATIONS[language].date_format, language.chrono_locale())
                     .to_string();
                 let time = result
                     .revoked_at
-                    .format_localized(TRANSLATIONS[language].time_format, chrono_locale(language))
+                    .format_localized(TRANSLATIONS[language].time_format, language.chrono_locale())
                     .to_string();
 
                 SuccessTemplate {
@@ -578,10 +577,10 @@ mod tests {
 
         // 2) The handler formats localized date/time and interpolates them into a success message.
         let expected_date = revoked_at
-            .format_localized(TRANSLATIONS[language].date_format, chrono_locale(language))
+            .format_localized(TRANSLATIONS[language].date_format, language.chrono_locale())
             .to_string();
         let expected_time = revoked_at
-            .format_localized(TRANSLATIONS[language].time_format, chrono_locale(language))
+            .format_localized(TRANSLATIONS[language].time_format, language.chrono_locale())
             .to_string();
 
         assert!(

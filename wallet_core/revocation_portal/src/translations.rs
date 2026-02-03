@@ -18,13 +18,6 @@ impl<'a> Index<Language> for Translations<'a> {
     }
 }
 
-pub fn chrono_locale(language: Language) -> chrono::prelude::Locale {
-    match language {
-        Language::Nl => chrono::prelude::Locale::nl_NL,
-        Language::En => chrono::prelude::Locale::en_US,
-    }
-}
-
 pub const TRANSLATIONS: Translations = Translations {
     en: Words {
         en: "English",

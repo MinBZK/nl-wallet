@@ -15,6 +15,7 @@ accept-language.workspace = true
 anyhow.workspace = true
 axum.workspace = true
 base64.workspace = true
+chrono = { workspace = true, features = ["unstable-locales"] }
 derive_more = { workspace = true, features = ["as_ref", "debug", "from"] }
 serde = { workspace = true, features = ["derive"] }
 strum.workspace = true
