@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 examples = ["attestation_types/test_pid_constants"]
-example_credential_payloads = ["dep:rand_core"]
+example_credential_payloads = ["attestation_types/mock", "attestation_types/test_pid_constants", "dep:rand_core"]
 generate = ["crypto/generate", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 mock = [
     "attestation_types/test_pid_constants",
@@ -22,7 +22,7 @@ mock = [
     "example_credential_payloads",
     "mdoc/test",
 ]
-test_credential = ["dep:futures", "mock", "sd_jwt_vc_metadata/example_constructors", "utils/mock_time" ]
+test_credential = ["dep:futures", "mock", "sd_jwt_vc_metadata/example_constructors", "utils/mock_time"]
 
 [dependencies]
 chrono.workspace = true

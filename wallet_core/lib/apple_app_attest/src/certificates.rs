@@ -16,7 +16,8 @@ use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use rustls_pki_types::UnixTime;
 use webpki::EndEntityCert;
-use webpki::KeyUsage;
+use webpki::ExtendedKeyUsageValidator;
+use webpki::KeyPurposeIdIter;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
 use webpki::ring::ECDSA_P384_SHA256;
@@ -48,6 +49,16 @@ pub enum CertificateError {
     ExtensionExtraction(#[source] X509Error),
     #[error("parsing anonymous attestation certificate extension failed: {0}")]
     ExtensionParsing(#[source] rasn::error::DecodeError),
+}
+
+/// A type that implements [`ExtendedKeyUsageValidator`] by simply
+/// ignoring the extended key purpose values in a certificate.
+struct NoopExtendedKeyUsageValidator;
+
+impl ExtendedKeyUsageValidator for NoopExtendedKeyUsageValidator {
+    fn validate(&self, _iter: KeyPurposeIdIter<'_, '_>) -> Result<(), webpki::Error> {
+        Ok(())
+    }
 }
 
 #[nutype(
@@ -104,7 +115,9 @@ impl DerX509CertificateChain {
                     .collect::<Vec<_>>()
                     .as_slice(),
                 UnixTime::since_unix_epoch(Duration::from_secs(timestamp)),
-                KeyUsage::client_auth(),
+                // For some reason, Apple stopped including the client_auth EKU in their certificates and
+                // replaced it with their own mystery EKU instead. For now, do no check the EKU at all.
+                NoopExtendedKeyUsageValidator,
                 None,
                 None,
             )

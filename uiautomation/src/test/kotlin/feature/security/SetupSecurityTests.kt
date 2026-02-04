@@ -14,7 +14,7 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.issuance.PersonalizeInformScreen
 import screen.security.PinScreen
-import screen.security.RevocationCodeScreen
+import screen.security.RevocationCodeSetupScreen
 import screen.security.SecuritySetupCompletedScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -25,7 +25,7 @@ class SetupSecurityTests : TestBase() {
     private lateinit var aboutScreen: AboutScreen
     private lateinit var securitySetupCompletedScreen: SecuritySetupCompletedScreen
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
-    private lateinit var revocationCodeScreen: RevocationCodeScreen
+    private lateinit var revocationCodeSetupScreen: RevocationCodeSetupScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -35,7 +35,7 @@ class SetupSecurityTests : TestBase() {
         aboutScreen = AboutScreen()
         securitySetupCompletedScreen = SecuritySetupCompletedScreen()
         personalizeInformScreen = PersonalizeInformScreen()
-        revocationCodeScreen = RevocationCodeScreen()
+        revocationCodeSetupScreen = RevocationCodeSetupScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -62,10 +62,10 @@ class SetupSecurityTests : TestBase() {
         assertTrue(securitySetupCompletedScreen.visible(), "setup security completed screen is not visible")
 
         securitySetupCompletedScreen.clickNextButton()
-        assertTrue(revocationCodeScreen.visible(), "Revocation code screen is not visible")
-        assertTrue(revocationCodeScreen.getRevocationCode().length == 18, "Revocation code is not displayed correctly")
+        assertTrue(revocationCodeSetupScreen.visible(), "Revocation code screen is not visible")
+        assertTrue(revocationCodeSetupScreen.getRevocationCode().length == 18, "Revocation code is not displayed correctly")
 
-        revocationCodeScreen.confirmReceival()
+        revocationCodeSetupScreen.confirmReceival()
         assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
     }
 

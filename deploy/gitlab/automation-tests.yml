@@ -111,6 +111,11 @@ run-automation-security-tests:
   variables:
     TESTS: "suite.SecurityTestSuite"
 
+run-automation-revocation-tests:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "suite.RevocationTestSuite"
+
 run-automation-english-tests:
   extends: .run-automation-tests-common-setup
   script:
@@ -376,19 +381,65 @@ run-fallback-pages-browsertest-test-ont:
 
 run-performance-test-ont:
   extends: .env-k8s
-  rules: !reference [.default-branch, rules]
+  rules:
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-branch, rules]
   needs:
     - job: build-performance-test
       artifacts: true
     - job: deploy-apps-ont
       artifacts: false
-  script: wallet_core/tests_integration/run_performance_test.sh --skip-build
+      optional: true
+  script:
+    - START_TIME=$(date -u -d "-1 minute" "+%Y-%m-%d %H:%M:%S")
+    - echo "Performance test starting, query range begins at $START_TIME"
+    - wallet_core/tests_integration/run_performance_test.sh --skip-build 25
+    - END_TIME=$(date -u -d "+1 minute" "+%Y-%m-%d %H:%M:%S")
+    - echo "Performance test completed, query range ends at $END_TIME"
+    - echo "START_TIME=$START_TIME" > perf-test-timeframe.txt
+    - echo "END_TIME=$END_TIME" >> perf-test-timeframe.txt
+  artifacts:
+    paths:
+      - perf-test-timeframe.txt
+    when: on_success
   allow_failure: true
+
+retrieve-performance-test-results-ont:
+  extends: .env-k8s
+  rules:
+    - !reference [.on-schedule-nightly-performance-test, rules]
+  needs:
+    - job: run-performance-test-ont
+      artifacts: true
+  before_script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip3 install --no-cache-dir --upgrade pip
+    - pip3 install --no-cache-dir -r deploy/qa-util/requirements.txt
+  script:
+    - START_TIME=$(grep START_TIME perf-test-timeframe.txt | cut -d'=' -f2-)
+    - END_TIME=$(grep END_TIME perf-test-timeframe.txt | cut -d'=' -f2-)
+    - echo "Using START_TIME=${START_TIME} and END_TIME=${END_TIME}"
+    - |
+      python3 deploy/qa-util/generate-k6-summary-from-grafana.py \
+        --grafana-url "${SP_GRAFANA_TEST_API_URL}" \
+        --api-token "${SP_GRAFANA_TEST_API_KEY}" \
+        --start-time "$START_TIME" \
+        --end-time "$END_TIME" \
+        --output-file k6-summary.json
+  after_script:
+    - deploy/bin/store-artifact.sh k6-summary.json qt/quality-time/performance-results/k6-summary.json
+  artifacts:
+    paths:
+      - k6-summary.json
+    when: on_success
+  variables:
+    TESTS:
 
 extract-manual-test-set:
   rules: !reference [.default-branch, rules]
   script:
-    - ./deploy/test-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
+    - ./deploy/qa-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
   when: manual
   allow_failure: true
   artifacts:
@@ -405,4 +456,4 @@ ltc-coverage-check:
     - source venv/bin/activate
     - pip3 install --no-cache-dir --upgrade pip
   script:
-    - python3 deploy/test-util/traceability-check.py
+    - python3 deploy/qa-util/traceability-check.py

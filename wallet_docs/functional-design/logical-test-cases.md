@@ -888,3 +888,14 @@ instructs user to choose a new PIN
 **Given** user has completed remote PIN setup  
 **Then** system display a revocation code  
 **And** user has to confirm the revocation code is written to continue  
+
+---
+
+### LTC71
+
+#### View revocation code in settings
+
+**Given** user has completed PID setup and opened the app  
+**When** user selects 'View your deletion code' from the settings menu  
+**And** use confirms with PIN to view the revocation code  
+**Then** system displays the revocation code  

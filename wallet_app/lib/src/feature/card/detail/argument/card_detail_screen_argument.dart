@@ -13,7 +13,7 @@ abstract class CardDetailScreenArgument with _$CardDetailScreenArgument {
   const factory CardDetailScreenArgument({
     WalletCard? card,
     required String cardId,
-    @LocalizedTextConverter() required LocalizedText cardTitle,
+    @LocalizedTextConverter() LocalizedText? cardTitle,
   }) = _CardDetailScreenArgument;
 
   const CardDetailScreenArgument._();
@@ -35,7 +35,7 @@ abstract class CardDetailScreenArgument with _$CardDetailScreenArgument {
 
   /// Will load card details for the given attestationId. This implicitly disables the SharedElementTransition
   /// since the [WalletCard] is not immediately available to render on the [CardDetailScreen].
-  factory CardDetailScreenArgument.fromId(String attestationId, LocalizedText cardTitle) {
+  factory CardDetailScreenArgument.fromId(String attestationId, LocalizedText? cardTitle) {
     return CardDetailScreenArgument(
       cardId: attestationId,
       cardTitle: cardTitle,

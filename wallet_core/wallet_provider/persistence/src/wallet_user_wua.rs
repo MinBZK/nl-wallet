@@ -42,7 +42,10 @@ where
         .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
-pub async fn find_wua_ids_for_wallet_user<S, T>(db: &T, wallet_user_id: Uuid) -> Result<Vec<Uuid>, PersistenceError>
+pub async fn find_wua_ids_for_wallet_users<S, T>(
+    db: &T,
+    wallet_user_ids: Vec<Uuid>,
+) -> Result<Vec<Uuid>, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -50,7 +53,7 @@ where
     wallet_user_wua::Entity::find()
         .select_only()
         .column(wallet_user_wua::Column::WuaId)
-        .filter(wallet_user_wua::Column::WalletUserId.eq(wallet_user_id))
+        .filter(wallet_user_wua::Column::WalletUserId.is_in(wallet_user_ids))
         .into_tuple()
         .all(db.connection())
         .await

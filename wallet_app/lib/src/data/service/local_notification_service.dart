@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:fimber/fimber.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -9,8 +8,11 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../domain/model/notification/notification_channel.dart';
 import '../../domain/model/notification/os_notification.dart';
 import '../../domain/usecase/notification/observe_os_notifications_usecase.dart';
+import '../../util/builder/notification/notification_payload_parser.dart';
 import '../../util/extension/locale_extension.dart';
+import '../../util/extension/object_extension.dart';
 import '../store/active_locale_provider.dart';
+import 'navigation_service.dart';
 
 const kAndroidInitSettings = AndroidInitializationSettings('ic_notification');
 const kDarwinInitSettings = DarwinInitializationSettings(
@@ -29,12 +31,13 @@ const kDarwinInitSettings = DarwinInitializationSettings(
 /// to schedule or cancel notifications accordingly.
 class LocalNotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final NavigationService _navigationService;
   final ObserveOsNotificationsUseCase _observeOsNotificationsUseCase;
   final ActiveLocaleProvider _activeLocaleProvider;
 
   StreamSubscription? _notificationStreamSubscription;
 
-  LocalNotificationService(this._observeOsNotificationsUseCase, this._activeLocaleProvider) {
+  LocalNotificationService(this._observeOsNotificationsUseCase, this._activeLocaleProvider, this._navigationService) {
     // Initialize TimeZones, used when scheduling
     tz.initializeTimeZones();
     // Configure plugin initialization settings, mostly to avoid instantly requesting notifications
@@ -47,24 +50,29 @@ class LocalNotificationService {
         .initialize(
           initializationSettings,
           onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
-          onDidReceiveBackgroundNotificationResponse: onDidReceiveBackgroundNotificationResponse,
         )
         .then((_) {
           _notificationStreamSubscription = _observeOsNotificationsUseCase.invoke().listen(_onNotificationUpdate);
         });
+
+    /// Check if app was launched through notification, and handle accordingly
+    _plugin.getNotificationAppLaunchDetails().then((launchDetails) {
+      if (launchDetails?.didNotificationLaunchApp ?? false) {
+        _processPayload(launchDetails?.notificationResponse?.payload);
+      }
+    });
   }
 
   /// Callback for when a notification is tapped by the user while the app is in the foreground.
   void onDidReceiveNotificationResponse(NotificationResponse details) {
     Fimber.d('onDidReceiveNotificationResponse: ${details.id}:${details.payload}');
+    _processPayload(details.payload);
   }
 
-  /// Callback for when a notification is tapped by the user while the app is in the background.
-  ///
-  /// This method runs in a separate isolate.
-  @pragma('vm:entry-point')
-  static void onDidReceiveBackgroundNotificationResponse(NotificationResponse details) {
-    if (kDebugMode) print('onDidReceiveBackgroundNotificationResponse: ${details.id}:${details.payload}');
+  void _processPayload(String? payload) {
+    NotificationPayloadParser.parse(payload)?.let((navRequest) {
+      _navigationService.handleNavigationRequest(navRequest, queueIfNotReady: true);
+    });
   }
 
   /// Handles updates to the list of operating system notifications.
@@ -88,6 +96,7 @@ class LocalNotificationService {
               iOS: const DarwinNotificationDetails(presentAlert: true),
             ),
             androidScheduleMode: AndroidScheduleMode.inexact,
+            payload: notification.payload,
           )
           .onError(
             (ex, stack) {

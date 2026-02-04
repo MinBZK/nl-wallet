@@ -26,7 +26,7 @@ required-features = ["hsm_test"]
 [features]
 default = []
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
-test_admin_ui = ["utoipa-swagger-ui/axum", "token_status_list/axum"]
+test_internal_ui = ["utoipa-swagger-ui/axum", "token_status_list/axum"]
 # Allow software key attestation_datas coming from the android emulator.
 # This is DANGEROUS and should not be used in any production environment.
 allow_android_emulator_keys = ["android_attest/allow_emulator_keys"]
@@ -82,7 +82,7 @@ android_attest.path = "../lib/android_attest"
 apple_app_attest.path = "../lib/apple_app_attest"
 crypto = { path = "../lib/crypto" }
 health_checkers.path = "../lib/health_checkers"
-hsm = { path = "../lib/hsm", features = ["settings"] }
+hsm.path = "../lib/hsm"
 http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
 status_lists = { path = "../lib/status_lists", features = ["axum"] }
 utils = { path = "../lib/utils" }

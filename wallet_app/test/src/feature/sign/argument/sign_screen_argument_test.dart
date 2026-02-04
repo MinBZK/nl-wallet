@@ -9,8 +9,8 @@ void main() {
         mockSessionId: '1aef7',
         uri: 'https://example.org',
       );
-      final serialized = expected.toMap();
-      final result = SignScreenArgument.fromMap(serialized);
+      final serialized = expected.toJson();
+      final result = SignScreenArgument.fromJson(serialized);
       expect(result, expected);
     },
   );

@@ -1,4 +1,4 @@
-package feature.issuance
+package feature.revocation
 
 import helper.OrganizationAuthMetadataHelper
 import helper.RevocationHelper
@@ -84,9 +84,10 @@ class RevokeCardTests : TestBase() {
         indexWebPage.clickInsuranceButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
-        disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(DEFAULT_PIN)
-        assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Error screen is not visible")
+        assertTrue(
+            attributesMissingErrorScreen.attributesMissingMessageVisible(),
+            "Error screen is not visible"
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -123,7 +124,9 @@ class RevokeCardTests : TestBase() {
         indexWebPage.clickJobFinderButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
-        disclosureForIssuanceScreen.share()
-        assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Error screen is not visible")
+        assertTrue(
+            attributesMissingErrorScreen.attributesMissingMessageVisible(),
+            "Error screen is not visible"
+        )
     }
 }

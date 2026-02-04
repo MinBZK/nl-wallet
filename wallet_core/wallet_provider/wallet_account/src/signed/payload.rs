@@ -468,7 +468,7 @@ pub mod server {
     }
 }
 
-#[cfg(feature = "mock")]
+#[cfg(all(feature = "mock", feature = "server"))]
 pub mod mock {
     use serde::de::DeserializeOwned;
 

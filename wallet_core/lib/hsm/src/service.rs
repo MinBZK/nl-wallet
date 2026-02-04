@@ -37,6 +37,7 @@ use crate::model::Hsm;
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
 use crate::model::wrapped_key::WrappedKey;
+use crate::settings;
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum HsmError {
@@ -189,8 +190,7 @@ impl Pkcs11Hsm {
         Ok(Self { pool })
     }
 
-    #[cfg(feature = "settings")]
-    pub fn from_settings(settings: crate::settings::Hsm) -> Result<Self> {
+    pub fn from_settings(settings: settings::Hsm) -> Result<Self> {
         Pkcs11Hsm::new(
             settings.library_path,
             settings.user_pin,

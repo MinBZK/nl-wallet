@@ -57,15 +57,19 @@ pub mod mock {
     pub struct MockPkcs11Client<E>(DashMap<String, SigningKey>, DashMap<String, Vec<u8>>, PhantomData<E>);
 
     impl<E> MockPkcs11Client<E> {
-        pub fn get_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey, E> {
+        pub fn get_signing_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey, E> {
             let key_identifier = format!("{key_prefix}_{identifier}");
             let entry = self.0.get(&key_identifier).unwrap();
             let key = entry.value().clone();
             Ok(key)
         }
 
-        pub fn insert(&self, identifier: String, signing_key: SigningKey) -> Option<SigningKey> {
+        pub fn insert_signing_key(&self, identifier: String, signing_key: SigningKey) -> Option<SigningKey> {
             self.0.insert(identifier, signing_key)
+        }
+
+        pub fn remove_symmetric_key(&self, identifier: &str) -> Option<(String, Vec<u8>)> {
+            self.1.remove(identifier)
         }
     }
 
@@ -140,7 +144,7 @@ pub mod mock {
         }
 
         async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> Result<Vec<u8>, Self::Error> {
-            let entry = self.1.get(identifier).unwrap();
+            let entry = self.1.get(identifier).ok_or(MacError)?;
             let key = entry.value();
 
             let mut mac = HmacSha256::new_from_slice(key).unwrap();

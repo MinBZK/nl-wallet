@@ -325,7 +325,7 @@ class RenewPidScreen extends StatelessWidget {
     assert(Environment.mockRepositories, 'Mock login is intended for mock builds only');
     final success = await MockDigidScreen.mockLogin(context);
     if (success && context.mounted) {
-      await context.read<NavigationService>().handleNavigationRequest(PidRenewalNavigationRequest('renew_pid'));
+      await context.read<NavigationService>().handleNavigationRequest(NavigationRequest.pidRenewal('mock'));
     } else if (context.mounted) {
       context.bloc.add(
         const RenewPidLoginWithDigidFailed(

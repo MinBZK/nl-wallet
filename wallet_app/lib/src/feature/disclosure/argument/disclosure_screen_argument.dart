@@ -1,41 +1,14 @@
-import 'package:flutter/foundation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-@immutable
-class DisclosureScreenArgument {
-  static const _kUriKey = 'uri';
-  static const _kIsQrCodeKey = 'isQrCode';
+part 'disclosure_screen_argument.freezed.dart';
+part 'disclosure_screen_argument.g.dart';
 
-  final String uri;
-  final bool isQrCode;
+@freezed
+abstract class DisclosureScreenArgument with _$DisclosureScreenArgument {
+  const factory DisclosureScreenArgument({
+    required String uri,
+    required bool isQrCode,
+  }) = _DisclosureScreenArgument;
 
-  const DisclosureScreenArgument({required this.uri, required this.isQrCode});
-
-  Map<String, dynamic> toMap() {
-    return {
-      _kIsQrCodeKey: isQrCode,
-      _kUriKey: uri,
-    };
-  }
-
-  DisclosureScreenArgument.fromMap(Map<String, dynamic> map) : isQrCode = map[_kIsQrCodeKey], uri = map[_kUriKey];
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DisclosureScreenArgument &&
-          runtimeType == other.runtimeType &&
-          isQrCode == other.isQrCode &&
-          uri == other.uri;
-
-  @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    isQrCode,
-    uri,
-  );
-
-  @override
-  String toString() {
-    return 'DisclosureScreenArgument{uri: $uri, isQrCode: $isQrCode}';
-  }
+  factory DisclosureScreenArgument.fromJson(Map<String, dynamic> json) => _$DisclosureScreenArgumentFromJson(json);
 }

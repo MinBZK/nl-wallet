@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-01-16T11:04:25+01:00",
+    "@@last_modified": "2026-01-29T17:52:38+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1013,6 +1013,9 @@
     "loginDetailScreenCredentialsBody": "Only the following data is shared. No more.",
     "loginDetailScreenCredentialsTitle": "Login credentials",
     "loginDetailScreenTitle": "Information about logging in at {organization}",
+    "maintenanceScreenHeadline": "Sorry, you cannot use NL Wallet now",
+    "maintenanceScreenOvernightDescription": "The app is under maintenance from {startTime} on {startDate} to {endTime} on {endDate}.\n\nClose the app and try again later.",
+    "maintenanceScreenSameDayDescription": "The app is under maintenance from {startTime} to {endTime} on {date}.\n\nClose the app and try again later.",
     "manageNotificationsScreenDebugSubtitle": "Show OS notifications as exposed by the core, as well as scheduled and active notifications.",
     "manageNotificationsScreenDebugTitle": "Debug Screen",
     "manageNotificationsScreenDescription": "Get alerts about your cards changes, app updates, and other important messages.",
@@ -1364,6 +1367,12 @@
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",
+    "reviewRevocationCodeScreenDescription": "You use this code to delete your NL Wallet from a distance. For example if you lose this device or if it is stolen. This stops someone from using your wallet.",
+    "reviewRevocationCodeScreenSuccessCta": "I have written it down",
+    "reviewRevocationCodeScreenSuccessDescription": "Your 18 characters deletion code is:",
+    "reviewRevocationCodeScreenSuccessTitle": "Write down your deletion code",
+    "reviewRevocationCodeScreenTitle": "View your deletion code",
+    "reviewRevocationCodeScreenViewCta": "View",
     "revocationCodeScreenCodeFooter": "You can find the code later in Menu > Settings and Security > View your deletion code.",
     "revocationCodeScreenCodeHeader": "Your 18-digit deletion code is:",
     "revocationCodeScreenContinueCta": "I have written it down",
@@ -1390,6 +1399,7 @@
         }
     },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Not supported on this device",
+    "settingsScreenShowRevocationCodeCta": "View your deletion code",
     "settingsScreenTitle": "Settings",
     "settingsScreenTransferWalletCta": "Move NL Wallet",
     "setupBiometricsPageDescription": "You use your PIN code to share data. Face scan or fingerprint is only for opening the app faster.",

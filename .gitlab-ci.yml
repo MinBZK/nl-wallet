@@ -10,7 +10,7 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: 260109-aa17da78
+  BUILD_TAG: 260130-22e3a24c
   HSM_CLIENT_TAG: "2800ab75"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
@@ -26,7 +26,7 @@ variables:
       namespace: ${K8S_NAMESPACE}
 
 .env-macos-runner:
-  image: tahoe-wallet:0.3.0
+  image: tahoe-wallet:0.3.1
   tags:
     - macos
 
@@ -79,6 +79,18 @@ variables:
   rules:
     - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-rust-features-check:
+  rules:
+    - if:
+        $SCHEDULED == "rust-features-check" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH ==
+        $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "rust-features-check" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-nightly-performance-test:
+  rules:
+    - if: $SCHEDULED == "performance" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "performance" && $CI_PIPELINE_SOURCE == "parent_pipeline"
 
 .on-mock-build:
   rules:

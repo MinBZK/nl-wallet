@@ -1,5 +1,5 @@
 import '../../../domain/model/navigation/navigation_request.dart';
 
 abstract class UriRepository {
-  Future<NavigationRequest> processUri(Uri uri);
+  Future<NavigationRequest> processUri(Uri inputUri);
 }

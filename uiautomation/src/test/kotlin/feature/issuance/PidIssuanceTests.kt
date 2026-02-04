@@ -158,10 +158,8 @@ class PidIssuanceTests : TestBase() {
 
         PersonalizePidPreviewScreen().clickRejectButton()
         assertTrue(personalizePidDataIncorrectScreen.visible(), "personalize pid data incorrect screen is not visible")
-
-        personalizePidDataIncorrectScreen.clickBottomBackButton()
         personalizePidDataIncorrectScreen.clickBottomPrimaryButton()
-        assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
+        assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
