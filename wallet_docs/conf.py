@@ -9,7 +9,7 @@
 author = 'NL Wallet'
 project = author
 copyright = f"2025, {author}"
-version = '0.4.1-dev'
+version = '0.4.1'
 release = version
 
 # -- General configuration ---------------------------------------------------

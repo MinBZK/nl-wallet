@@ -5,7 +5,7 @@ info:
     The API for the verification_server's public endpoint. Not authenticated,
     reachable by wallet mobile app and relying party's application. It
     exposes the status, cancellation and OpenID4VP request/response functions.
-  version: 0.4.1-dev
+  version: 0.4.1
 
 servers:
   - url: '{scheme}://{rp_ws_host}:{rp_ws_port}'
