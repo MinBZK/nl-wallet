@@ -9,6 +9,7 @@ class SettingsScreen : MobileActions() {
     private val changeLanguageButton = l10n.getString("settingsScreenChangeLanguageCta")
     private val clearDataButton = l10n.getString("settingsScreenClearDataCta")
     private val backButton = l10n.getString("generalBottomBackCta")
+    private val revocationCodeButton = l10n.getString("settingsScreenShowRevocationCodeCta")
 
     fun visible() = elementWithTextVisible(screenTitle)
 
@@ -22,4 +23,6 @@ class SettingsScreen : MobileActions() {
     fun clickChangePinButton() = clickElementWithText(changePinButton)
 
     fun clickBackButton() = clickElementWithText(backButton)
+
+    fun clickRevocationCodeButton() = clickElementWithText(revocationCodeButton)
 }
