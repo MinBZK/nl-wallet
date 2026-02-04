@@ -111,6 +111,11 @@ run-automation-security-tests:
   variables:
     TESTS: "suite.SecurityTestSuite"
 
+run-automation-revocation-tests:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "suite.RevocationTestSuite"
+
 run-automation-english-tests:
   extends: .run-automation-tests-common-setup
   script:
