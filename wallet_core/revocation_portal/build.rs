@@ -2,14 +2,14 @@ use std::env;
 use std::fs;
 use std::path::Path;
 
-fn main() {
+fn combine_css() {
     let out_dir = env::var("OUT_DIR").unwrap();
 
     // Base path for shared CSS (web_utils)
     let web_utils_css = Path::new("../lib/web_utils/assets/css");
 
     // Local CSS
-    let local_css = Path::new("assets/css");
+    let local_css = Path::new("static/css");
 
     let css_sources: Vec<(&Path, &str)> = vec![
         (web_utils_css, "reset.css"),
@@ -33,4 +33,19 @@ fn main() {
 
     let dest_path = Path::new(&out_dir).join("style.css");
     fs::write(&dest_path, &combined).expect("Failed to write combined CSS");
+}
+
+fn main() {
+    web_utils::build::copy_static_assets(
+        &[
+            Path::new("static/images"),
+            Path::new("static/lokalize.js"),
+            Path::new("static/portal.js"),
+            Path::new("static/portal-ui.js"),
+            Path::new("../lib/web_utils/assets/"),
+        ],
+        Path::new("assets"),
+    );
+
+    combine_css();
 }

@@ -169,11 +169,8 @@ where
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path(Path::new("assets"))).fallback(
-                        ServiceBuilder::new()
-                            .service(ServeDir::new(prefix_local_path(Path::new("../lib/web_utils/assets"))))
-                            .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
-                    ),
+                    ServeDir::new(prefix_local_path(Path::new("assets")))
+                        .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
                 ),
         )
         .with_state(Arc::clone(&application_state))
@@ -631,6 +628,19 @@ mod tests {
             body_str.contains(&expected_time),
             "expected body to contain formatted time ({expected_time}), got:\n{body_str}"
         );
+    }
+
+    #[tokio::test]
+    async fn test_not_found_returns_404_and_error_template() {
+        let client = MockRevocationClient::default();
+        let app = create_router(&random_bytes(64).into(), false, client);
+
+        let response = app
+            .oneshot(Request::builder().uri("/non-existent").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
     async fn axum_body_bytes(body: axum::body::Body) -> Vec<u8> {

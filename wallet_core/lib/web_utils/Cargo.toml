@@ -10,6 +10,9 @@ workspace = true
 [lib]
 doctest = false
 
+[features]
+build = []
+
 [dependencies]
 accept-language.workspace = true
 anyhow.workspace = true
