@@ -6,7 +6,7 @@ fn combine_css() {
     let out_dir = env::var("OUT_DIR").unwrap();
 
     // Base path for shared CSS (web_utils)
-    let web_utils_css = Path::new("../lib/web_utils/assets/css");
+    let web_utils_css = Path::new("../lib/web_utils/static/css");
 
     // Local CSS
     let local_css = Path::new("static/css");
@@ -42,7 +42,7 @@ fn main() {
             Path::new("static/lokalize.js"),
             Path::new("static/portal.js"),
             Path::new("static/portal-ui.js"),
-            Path::new("../lib/web_utils/assets/"),
+            Path::new("../lib/web_utils/static/"),
         ],
         Path::new("assets"),
     );

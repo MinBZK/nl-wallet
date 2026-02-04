@@ -89,12 +89,8 @@ pub fn create_router(settings: Settings) -> Router {
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path(std::path::Path::new("assets"))).fallback(
-                        ServeDir::new(prefix_local_path(std::path::Path::new("../demo_utils/assets"))).fallback(
-                            ServeDir::new(prefix_local_path(std::path::Path::new("../../lib/web_utils/assets")))
-                                .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
-                        ),
-                    ),
+                    ServeDir::new(prefix_local_path(std::path::Path::new("assets")))
+                        .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
                 ),
         )
         .with_state(application_state)
@@ -207,7 +203,7 @@ struct UsecaseTemplate<'a> {
 }
 
 static USECASE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!("../assets/usecase.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!("../static/usecase.js"))));
 
 fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
     let mut start_url = public_url.join("/sessions");

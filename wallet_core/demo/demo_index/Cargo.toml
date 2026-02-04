@@ -30,3 +30,6 @@ http_utils.path = "../../lib/http_utils"
 server_utils.path = "../../wallet_server/server_utils"
 utils.path = "../../lib/utils"
 web_utils.path = "../../lib/web_utils"
+
+[build-dependencies]
+web_utils = { path = "../../lib/web_utils", features = ["build"] }
