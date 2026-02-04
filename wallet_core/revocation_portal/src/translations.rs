@@ -75,7 +75,8 @@ pub const TRANSLATIONS: Translations = Translations {
                                   {time}. Je wallet is stopgezet en niemand kan je wallet gebruiken",
         success_wallet_confirmation: "Als je wallet verbinding maakt met het internet, worden alle gegevens in je \
                                       wallet verwijderd.",
-        error_description: "Deze actie is niet gelukt. Dit kan verschillende redenen hebben. Probeer het opnieuw.",
+        error_description: "De wallet kon niet verwijderd worden. Dit kan verschillende redenen hebben. Probeer het \
+                            opnieuw.",
         cancel: "Annuleren",
         help_title: "Heb je vragen of hulp nodig?",
         need_help: "Hulp nodig?",
