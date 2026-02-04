@@ -14,7 +14,6 @@ impl MigrationTrait for Migration {
                     .table(StatusListFlag::Table)
                     .if_not_exists()
                     .col(text(StatusListFlag::Name).primary_key())
-                    .col(boolean(StatusListFlag::Value))
                     .to_owned(),
             )
             .await?;
@@ -27,5 +26,4 @@ impl MigrationTrait for Migration {
 pub enum StatusListFlag {
     Table,
     Name,
-    Value,
 }
