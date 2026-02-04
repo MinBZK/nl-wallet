@@ -101,6 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.11_ViewRevocationCode.html">Use Case 9.11 View revocation code in Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -1072,6 +1073,17 @@ instructs user to choose a new PIN</p>
 <p><strong>Given</strong> user has completed remote PIN setup<br />
 <strong>Then</strong> system display a revocation code<br />
 <strong>And</strong> user has to confirm the revocation code is written to continue</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ltc71">
+<h3>LTC71<a class="headerlink" href="#ltc71" title="Link to this heading"></a></h3>
+<section id="view-revocation-code-in-settings">
+<h4>View revocation code in settings<a class="headerlink" href="#view-revocation-code-in-settings" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has completed PID setup and opened the app<br />
+<strong>When</strong> user selects ‘View your deletion code’ from the settings menu<br />
+<strong>And</strong> use confirms with PIN to view the revocation code<br />
+<strong>Then</strong> system displays the revocation code</p>
 </section>
 </section>
 </section>
