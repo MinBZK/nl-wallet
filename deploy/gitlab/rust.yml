@@ -31,7 +31,6 @@ scheduled-check-rust-feature-powerset:
   extends: .rust
   rules:
     - !reference [.on-schedule-rust-features-check, rules]
-  when: manual
   before_script:
     - set -euxo pipefail
     - cd wallet_core
