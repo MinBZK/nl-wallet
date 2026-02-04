@@ -84,6 +84,7 @@ crypto = { path = "../lib/crypto" }
 health_checkers.path = "../lib/health_checkers"
 hsm.path = "../lib/hsm"
 http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
+readable_identifier.path = "readable_identifier"
 status_lists = { path = "../lib/status_lists", features = ["axum"] }
 utils = { path = "../lib/utils" }
 wallet_account = { path = "wallet_account", features = ["server"] }
