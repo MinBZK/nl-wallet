@@ -77,7 +77,7 @@ const EXTERNAL_ID_SIZE: usize = 12;
 /// Number of tries to create status list while obtaining a status claim.
 const IN_FLIGHT_CREATE_TRIES: usize = 5;
 
-/// Flag name to revoke all status lists
+/// Flag name (as a key) used in the database to revoke all status lists
 const FLAG_NAME_REVOKE_ALL: &str = "revoke_all";
 
 /// Maximal concurrent publish when revoke_all is called
@@ -1043,6 +1043,7 @@ where
         // First set revoke all to ensure new lists are also created with invalid status
         self.revoke_all_flag.set().await?;
 
+        let service = self.clone();
         let mut stream = status_list::Entity::find()
             .select_only()
             .select_column(status_list::Column::ExternalId)
@@ -1050,18 +1051,13 @@ where
             .into_tuple::<(String, i32)>()
             .stream(&self.connection)
             .await?
-            .map(|result| {
-                let service = self.clone();
-                async move {
-                    match result {
-                        Ok((external_id, size)) => {
-                            service
-                                .publish_status_list_all_revoked(&external_id, size as usize)
-                                .await
-                        }
-                        Err(err) => future::ready(Err(StatusListServiceError::Db(err))).await,
-                    }
+            .map(async |result| match result {
+                Ok((external_id, size)) => {
+                    service
+                        .publish_status_list_all_revoked(&external_id, size as usize)
+                        .await
                 }
+                Err(err) => future::ready(Err(StatusListServiceError::Db(err))).await,
             })
             .buffer_unordered(REVOKE_ALL_MAX_CONCURRENT);
 
