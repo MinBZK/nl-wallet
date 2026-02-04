@@ -1,0 +1,395 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disclosure-based Issuance &mdash; NL Wallet 0.4.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=79eb5478" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=c87aa342"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
+      <script src="../../_static/js/custom.js?v=48752f09"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Disclosure with OpenID4VP" href="disclosure-with-openid4vp.html" />
+    <link rel="prev" title="Software System overview" href="../c4/software-system.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.4.1.html">v0.4.1</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../architecture-overview.html">Overview in C4</a></li>
+      <li class="breadcrumb-item active">Disclosure-based Issuance</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/architecture/use-cases/disclosure-based-issuance.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="disclosure-based-issuance">
+<h1>Disclosure-based Issuance<a class="headerlink" href="#disclosure-based-issuance" title="Link to this heading"></a></h1>
+<p>Disclosure-based issuance allows an attestation issuer to issue attestations to
+a wallet based on the contents of attributes disclosed by that same wallet.</p>
+<p>The flow starts when the user scans a QR code, or taps on a UL, that starts the
+disclosure-based issuance flow.</p>
+<p>The wallet presents a disclosure screen to the user, which upon user consent is
+followed immediately by an issuance screen presenting the new attestations. In
+between the two screens, the issuer receives the disclosed attributes, and can
+use those to determine the contents of the attestation(s) to be issued.</p>
+<p>The issuer side of this functionality is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>
+binary, which is a part of the <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate.</p>
+<p>Technically, disclosure-based issuance works like this:</p>
+<ol class="arabic simple">
+<li><p>At the end of the disclosure session, the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> sends the
+disclosed attributes to a preconfigured HTTP endpoint, at which the issuer
+must run an HTTP server that must respond with the attestations to be
+issued. This server is called the <em>attestation server</em>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> starts an OpenID4VCI session in the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow">Pre-Authorized
+Code Flow</a>, puts the Pre-Authorized Code into an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer">OpenID4VCI Credential
+Offer</a>, and URL-encodes that into the <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> that gets sent to
+the wallet.</p></li>
+<li><p>Using the Credential Offer with the Pre-Authorized Code within it, the
+wallet performs the OpenID4VCI session with the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>.</p></li>
+</ol>
+<section id="attestation-server">
+<h2>Attestation server<a class="headerlink" href="#attestation-server" title="Link to this heading"></a></h2>
+<p>The <em>attestation server</em> exchanges disclosed attributes for attestations to be
+issued. It is contacted by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> during a disclosure-based
+issuance session to do this. Note that this server does not need to be reachable
+by the wallet, and it should probably not be connected to the internet directly.</p>
+<p>The <em>attestation server</em> receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>,
+containing a JSON structure of the same type as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code>
+endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (you can have a look at our
+<a class="reference internal" href="../../development/openapi-specifications.html"><span class="doc std std-doc">openapi specifications</span></a> too).</p>
+<p>Here’s an example of the JSON structure, which in Rust is an
+<code class="docutils literal notranslate"><span class="pre">Vec&lt;DisclosedAttestations&gt;</span></code>. For example:</p>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="nf">POST</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
+<span class="na">Accept</span><span class="o">:</span> <span class="l">*/*</span>
+<span class="na">Host</span><span class="o">:</span> <span class="l">localhost:51560</span>
+<span class="na">Content-Length</span><span class="o">:</span> <span class="l">267</span>
+
+<span class="p">[</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my_credential&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;attestations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;attestation_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;bsn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;999991772&quot;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;issuer_uri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://cert.issuer.example.com/&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;attestation_qualification&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;QEAA&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ca.pid.example.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;issuance_validity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;signed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T07:02:26Z&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;valid_from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T07:02:26Z&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;valid_until&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-15T07:02:26Z&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>The <em>attestation server</em> must respond with a JSON-serialized
+<code class="docutils literal notranslate"><span class="pre">Vec&lt;IssuableDocument&gt;</span></code>. For example:</p>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
+<span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
+
+<span class="p">[</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;attestation_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.degree&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;university&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example university&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;education&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example education&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;graduation_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1970-01-01&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;grade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;cum_laude&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>The JSON array may be empty (i.e. <code class="docutils literal notranslate"><span class="pre">[]</span></code>), to indicate that no attestations to be
+issued were found. In that case, the wallet will present a screen to the user
+explaining that there were no attestations found that can be issued.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">id</span></code> of the attestation is used to internally link the status claims of one
+or more status list to the attestation that will be issued. This <code class="docutils literal notranslate"><span class="pre">id</span></code> will not
+be included in the attestation. It can be used to revoke the attestation later.</p>
+</section>
+<section id="sequence-diagram">
+<h2>Sequence diagram<a class="headerlink" href="#sequence-diagram" title="Link to this heading"></a></h2>
+<p>This diagram shows how we compose OpenID4VP with OpenID4VCI in a pre-authorized
+code flow to issue attestations based on the contents of other attestations.</p>
+<p>The flow starts with the user scanning a QR code or tapping a UL that contains
+the URL to the disclosure-based issuer. When the wallet contacts the issuer
+using this URL, it starts a disclosure session requesting some preconfigured
+set of attributes that will allow it to determine the attributes that it wants
+to issue.</p>
+<p>For example, suppose the issuer wishes to issue academic degrees based on the
+user’s BSN; then it would preconfigure an Authorization Request that requests
+the BSN from the PID.</p>
+<p>After the user has disclosed the requested attributes, the issuer sends those to
+an internal endpoint that responds with the attestations to be issued. In the
+earlier mentioned example, this would be a database containing academic degrees
+indexed by BSNs.</p>
+<p>Finally, the issuer issues the attestations using OpenID4VCI in a pre-authorized
+code flow.</p>
+<p>During OpenID4VCI, the issuer requires the wallet to include the keys of the
+attestations that it disclosed earlier in its Proof of Association (PoA) when
+it sends its Proofs of Possession (PoPs) for the keys of the attestation
+(copies).</p>
+<p>This enforces that the newly issued attestations are bound to the same Wallet
+Secure Cryptographic Device (WSCD, see <a class="reference external" href="https://eudi.dev/latest/architecture-and-reference-framework-main/#43-reference-architecture">section 4.3.2, Components of a Wallet
+Unit</a>) as the one that disclosed the attestations in the first part of the
+protocol.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+    actor User
+    participant App as Wallet
+    participant Issuer as Disclosure-based issuer
+    participant IssuerDataProvider as Data provider
+
+    User-&gt;&gt;+App: Invoke UL (https://wallet_ul/disclosure_based_issuance)
+    App-&gt;&gt;+Issuer: POST to request URI [OpenID4VP]
+    Issuer-&gt;&gt;Issuer: Start disclosure session with preconfigured request
+    Issuer-&gt;&gt;-App: Authorization Request [OpenID4VP]
+
+    App -&gt;&gt;-User: Request approval for disclosure
+    User-&gt;&gt;+ App: Approve disclosure with PIN
+
+    App-&gt;&gt;+Issuer: Authorization Response [OpenID4VP] (including PoA) *
+    Issuer-&gt;&gt;Issuer: Verify disclosed attributes
+    Issuer-&gt;&gt;+IssuerDataProvider: Disclosed attributes
+    IssuerDataProvider-&gt;&gt;-Issuer: Respond with attestations to issue
+    Issuer-&gt;&gt;Issuer: Start issuance session
+    Issuer-&gt;&gt;Issuer: Create OpenID4VCI Credential Offer (pre-authorized code flow)
+    Issuer-&gt;&gt;-App: Redirect URI [OpenID4VP]
+
+    App-&gt;&gt;App: Parse Token Request from Credential Offer
+    App-&gt;&gt;+Issuer: Pre-authorized code [OpenID4VCI]
+    Issuer-&gt;&gt;-App: Access Token + attestation previews [OpenID4VCI]
+
+    App-&gt;&gt;-User: Request approval for attestations
+    User-&gt;&gt;+App: Approve attestation issuance with PIN
+
+    App-&gt;&gt;+Issuer: Access token [OpenID4VCI]
+    Issuer-&gt;&gt;Issuer: Enforce disclosed attestation keys in PoA (from Step 7 *)
+    Issuer-&gt;&gt;-App: Attestations [OpenID4VCI]
+    deactivate App
+    </pre><!-- References -->
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../c4/software-system.html" class="btn btn-neutral float-left" title="Software System overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="disclosure-with-openid4vp.html" class="btn btn-neutral float-right" title="Disclosure with OpenID4VP" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.4.1
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../../v0.4.0/architecture/use-cases/disclosure-based-issuance.html">v0.4.0</a></dd>
+            <dd><a href="disclosure-based-issuance.html">v0.4.1</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../main/architecture/use-cases/disclosure-based-issuance.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

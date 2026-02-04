@@ -1,0 +1,1394 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create a Verifier &mdash; NL Wallet 0.4.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=79eb5478" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=c87aa342"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Create an Issuer" href="create-an-issuer.html" />
+    <link rel="prev" title="Preparations" href="preparations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="preparations.html">Preparations</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/components-overview.html">Components Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.1.html">v0.4.1</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Create a Verifier</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/get-started/create-a-verifier.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="create-a-verifier">
+<h1>Create a Verifier<a class="headerlink" href="#create-a-verifier" title="Link to this heading"></a></h1>
+<p>You want to verify certain attributes of a natural person which can be disclosed
+to you by the NL Wallet.</p>
+<p>A verifier (also known as a “relying party” or an “ontvangde voorziening”,
+essentially an entity that wants to verify attestations presented by the
+NL Wallet) will want to have a global idea of what they needs to do when
+integrating their application with the NL Wallet environment.</p>
+<p>This document provides a global outline of components used, the necessary
+decisions, data, and certificate(s), and guides the setup of a so-called
+verifier/relying-party/ontvangende-voorziening plus integration thereof with
+their own frontend and backend.</p>
+<div class="admonition note">
+<p class="admonition-title">Open-source software</p>
+<p>Did you know that the NL Wallet platform is fully open-source? You can find
+<a class="reference external" href="https://github.com/MinBZK/nl-wallet">the project on GitHub</a>.</p>
+</div>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#what-we-re-going-to-cover" id="id1">What we’re going to cover</a></p></li>
+<li><p><a class="reference internal" href="#architecture-overview" id="id2">Architecture overview</a></p>
+<ul>
+<li><p><a class="reference internal" href="#platform-components-overview" id="id3">Platform components overview</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#creating-a-reader-authentication-document" id="id4">Creating a reader authentication document</a></p>
+<ul>
+<li><p><a class="reference internal" href="#decide-on-required-metadata-for-your-reader-auth" id="id5">Decide on required metadata for your reader_auth</a></p></li>
+<li><p><a class="reference internal" href="#decide-on-attributes-you-want-to-verify" id="id6">Decide on attributes you want to verify</a></p></li>
+<li><p><a class="reference internal" href="#creating-the-reader-auth-json-document" id="id7">Creating the reader_auth JSON document</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#creating-a-reader-certificate" id="id8">Creating a reader certificate</a></p></li>
+<li><p><a class="reference internal" href="#verification-server-setup" id="id9">Verification server setup</a></p>
+<ul>
+<li><p><a class="reference internal" href="#obtaining-the-software" id="id10">Obtaining the software</a></p></li>
+<li><p><a class="reference internal" href="#using-a-database-backend-optional" id="id11">Using a database backend (optional)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#setting-up-postgresql" id="id12">Setting up PostgreSQL</a></p></li>
+<li><p><a class="reference internal" href="#create-user-and-database" id="id13">Create user and database</a></p></li>
+<li><p><a class="reference internal" href="#apply-database-schema" id="id14">Apply database schema</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#creating-a-configuration" id="id15">Creating a configuration</a></p>
+<ul>
+<li><p><a class="reference internal" href="#logging-settings-optional" id="id16">Logging settings (optional)</a></p></li>
+<li><p><a class="reference internal" href="#the-ephemeral-id-secret" id="id17">The ephemeral ID secret</a></p></li>
+<li><p><a class="reference internal" href="#configuring-trust-anchors" id="id18">Configuring trust anchors</a></p></li>
+<li><p><a class="reference internal" href="#determine-public-url" id="id19">Determine public URL</a></p></li>
+<li><p><a class="reference internal" href="#universal-link-base-url" id="id20">Universal link base URL</a></p></li>
+<li><p><a class="reference internal" href="#access-restriction-settings-optional" id="id21">Access restriction settings (optional)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#configuring-allowed-client-ids" id="id22">Configuring allowed client IDs</a></p></li>
+<li><p><a class="reference internal" href="#configuring-cross-origin-resource-sharing" id="id23">Configuring cross-origin resource sharing</a></p></li>
+<li><p><a class="reference internal" href="#configuring-an-api-key" id="id24">Configuring an API key</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#configuring-listener-addresses-and-ports" id="id25">Configuring listener addresses and ports</a></p></li>
+<li><p><a class="reference internal" href="#the-storage-settings-optional" id="id26">The storage settings (optional)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#using-in-memory-session-state" id="id27">Using in-memory session state</a></p></li>
+<li><p><a class="reference internal" href="#using-database-persisted-session-state" id="id28">Using database persisted session state</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#configuring-a-hardware-security-module-optional" id="id29">Configuring a hardware security module (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-a-use-case" id="id30">Configuring a use case</a></p></li>
+<li><p><a class="reference internal" href="#writing-the-configuration-file" id="id31">Writing the configuration file</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#running-the-server-for-the-first-time" id="id32">Running the server for the first time</a></p></li>
+<li><p><a class="reference internal" href="#validating-your-setup" id="id33">Validating your setup</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#verifier-api-specifications" id="id34">Verifier API specifications</a></p></li>
+<li><p><a class="reference internal" href="#integrating-your-app-with-your-verification-server" id="id35">Integrating your app with your verification server</a></p></li>
+<li><p><a class="reference internal" href="#addendum" id="id36">Addendum</a></p>
+<ul>
+<li><p><a class="reference internal" href="#what-a-disclosure-session-looks-like" id="id37">What a disclosure session looks Like</a></p></li>
+<li><p><a class="reference internal" href="#cross-device-vs-same-device-flows" id="id38">Cross device vs. same device flows</a></p></li>
+<li><p><a class="reference internal" href="#requirements-applicable-to-your-application" id="id39">Requirements applicable to your application</a></p></li>
+</ul>
+</li>
+</ul>
+</nav>
+<section id="what-we-re-going-to-cover">
+<h2>What we’re going to cover<a class="headerlink" href="#what-we-re-going-to-cover" title="Link to this heading"></a></h2>
+<p>We’ll start with an overview of the system architecture, specifically its main
+components, and where to find more information.</p>
+<p>We’ll then cover the decisions you need to make regarding which attributes you
+want to verify.</p>
+<p>We’ll list required fields you need to construct a <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> which will
+become part of your reader certificate, as a X.509v3 custom extension, and we’ll
+show you how to create a reader certificate which contains the reader
+authentication JSON document.</p>
+<p>We’ll then guide you in setting up your own <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, and how to
+utilize the previously created reader certificate within a so-called use-case.</p>
+<p>Finally, we’ll show you how you can know that the things you’ve configured are
+actually working correctly and give you guidance on how to integrate with your
+own application.</p>
+<div class="admonition note">
+<p class="admonition-title">A note about names</p>
+<p>Due to how we build upon existing standards, and due to terminology used in
+other guidelines and architectures, a <code class="docutils literal notranslate"><span class="pre">verifier</span></code> is known by various other
+names. Verifier, Relying Party, Reception Service, Ontvangende Voorziening and
+their acronyms RP, OV, etc, by and large reference the same thing.</p>
+<p>In this document we use the name <code class="docutils literal notranslate"><span class="pre">verifier</span></code> primarily, unless we know that a
+document we reference uses one of these other names.</p>
+</div>
+</section>
+<section id="architecture-overview">
+<h2>Architecture overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h2>
+<p><img alt="Disclosure Components" src="../_images/disclosure-components.svg" /></p>
+<p>In the above diagram, we see the main components involved in a disclosure
+session. The main components described in the diagram are:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/digid">DigiD</a>: Digitale Identiteit, a digital identification system;</p></li>
+<li><p><a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/voorzieningen/bsnk-pp">Pseudonym Service</a>: A service that pseudonimizes BSN numbers;</p></li>
+<li><p><a class="reference external" href="https://www.rvig.nl/basisregistratie-personen">(BRP-V) Authentic Source</a>: A source of attributes, made accessible by a
+so-called Verstrekkende Voorziening (VV);</p></li>
+<li><p>VV: Verstrekkende Voorziening, an issuer, a party that issues attributes;</p></li>
+<li><p>OV: Ontvangende Voorziening, a verifier, a party that wants to verify
+attested attributes;</p></li>
+<li><p>Relying Party Application: An app running on-premises or in-cloud of the
+verifier that needs to do something with the result of a verification of
+attributes;</p></li>
+<li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_app">Wallet App</a>: The NL Wallet app running on a mobile device;</p></li>
+</ul>
+<p>Missing from the above diagram, but worth mentioning:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_web">Wallet Web</a> The frontend helper JavaScript/TypeScript library which helps
+verifiers integrate their application with the NL Wallet platform.</p></li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">Architecture documentation</p>
+<p>This document is about setting up a verifier. To have a broader view of the
+NL Wallet platform as a whole, you can have a look at the <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture
+Documents</a>.</p>
+</div>
+<section id="platform-components-overview">
+<h3>Platform components overview<a class="headerlink" href="#platform-components-overview" title="Link to this heading"></a></h3>
+<p>The NL Wallet platform consists of:</p>
+<ul class="simple">
+<li><p><strong>Issuers</strong>: (also known as Verstrekkende Voorzieningen), which can issue
+attested attributes;</p></li>
+<li><p><strong>Verifiers</strong>: (also known as Ontvangende Voorzieningen or Relying Parties),
+which can verify attested attributes they are interested in, and which this
+document is mainly about;</p></li>
+<li><p><strong>Backend</strong>: services that run in the NL Wallet datacenter(s) or cloud that
+facilitate various functions for the mobile app (usually not interacted with
+directly, by either Issuers or Verifiers);</p></li>
+<li><p><strong>App</strong>: the NL Wallet mobile app, which contains attested attributes,
+received from Issuers, and which it can disclose to Verifiers.</p></li>
+</ul>
+<p>Verifiers configure and maintain a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> on their own premises
+or cloud environments, which they integrate with their own application, and
+which interacts with the NL Wallet app, in order to verify attested attributes.</p>
+</section>
+</section>
+<section id="creating-a-reader-authentication-document">
+<h2>Creating a reader authentication document<a class="headerlink" href="#creating-a-reader-authentication-document" title="Link to this heading"></a></h2>
+<p>We’re going to create a so-called <code class="docutils literal notranslate"><span class="pre">reader_auth</span></code> document.</p>
+<p>The subsections below describe the decisions you need to make as a verifier with
+regards to attributes you want to verify, what data we require from you, how to
+create a reader certificate for your usecase (which is configured for usage
+within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> configuration).</p>
+<p>In this guide, we assume you have <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarded succesfully</span></a> - i.e., you are
+running your own CA and the public key of that CA has been shared with the
+operations team who will need to add your CA public key to the trust anchors of
+the app.</p>
+<div class="admonition note">
+<p class="admonition-title">Onboarding optional</p>
+<p>Do note that onboarding is not strictly necessary - you <em>can</em> follow all steps
+in this guide and observe things working in a local development environment -
+but when you want to test your verifier with the NL Wallet platform (i.e., our
+backend and mobile apps in our acceptance and pre-production environments), you
+do need to be onboarded to get access to those environments.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">This chapter is also a part of creating an issuer</p>
+<p>Note that when you’ve also <a class="reference internal" href="create-an-issuer.html"><span class="doc std std-doc">created an issuer</span></a>, this section will look
+familiar to you; that is because an issuer also needs a reader authentication
+document. This is because of how disclosure-based-issuance works: with
+disclosure-based-issuance, an issuer is essentially also a verifier (i.e., you
+disclose some attributes in order to obtain some new ones).</p>
+</div>
+<section id="decide-on-required-metadata-for-your-reader-auth">
+<h3>Decide on required metadata for your reader_auth<a class="headerlink" href="#decide-on-required-metadata-for-your-reader-auth" title="Link to this heading"></a></h3>
+<p>A reader certificate contains a bunch of metadata, which we store as a part
+of the certificate in a so-called X.509v3 extension. We use this data to know
+which attested attribute you want to verify, and to present a view of you, the
+verifier, in the NL Wallet app GUI.</p>
+<p><strong>ROOT</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Languages</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">purposeStatement</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
+<td><p>For what purpose are you attesting? Login? Age verification? etc.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">retentionPolicy</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Do you have an intent to retain data? For how long?</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sharingPolicy</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Do you have an intent to share data? With whom?</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">deletionPolicy</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Do you allow users to request deletion of their data, yes/no?</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.displayName</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
+<td><p>Name of the verifier as shown in the app app.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.legalName</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
+<td><p>Legal name of the verifier.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.description</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
+<td><p>Short one-sentence description or mission statement of the verifier.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.webUrl</span></code></p></td>
+<td><p>-</p></td>
+<td><p>The home URL of the verifier.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.city</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
+<td><p>The home city of the verifier.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.category</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
+<td><p>Bank, Municipality, Trading, Delivery Service, etc.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.logo.mimeType</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Logo mimetype, can be image/svg+xml, image/png or image/jpeg</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.logo.imageData</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Logo image data. When SVG, an escaped XML string, else base64</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.countryCode</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Two-letter country code of verifier residence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.kvk</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Chamber of commerce number of verifier.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.privacyPolicyUrl</span></code></p></td>
+<td><p>-</p></td>
+<td><p>Link to verifier’s privacy policy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code></p></td>
+<td><p>-</p></td>
+<td><p>List of attributes you want to verify.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note: In the <code class="docutils literal notranslate"><span class="pre">Languages</span></code> column where it says <code class="docutils literal notranslate"><span class="pre">nl+en</span></code> for example, please
+provide both Dutch and English values.</p>
+</section>
+<section id="decide-on-attributes-you-want-to-verify">
+<h3>Decide on attributes you want to verify<a class="headerlink" href="#decide-on-attributes-you-want-to-verify" title="Link to this heading"></a></h3>
+<p>You can verify any attribute (also known as a claim path) provided by any issuer
+on the plaform, but since we don’t have an issuer registry yet, you would need
+to know or otherwise get your hands on the JSON documents that define the claim
+paths that belong to a given <code class="docutils literal notranslate"><span class="pre">vct</span></code> (a Verifiable Credential Type).</p>
+<p>For our own issuer(s), you can have a look at our
+<a class="reference internal" href="../development/authorized-attributes.html"><span class="doc std std-doc">supported authorized attributes</span></a> document for an overview of claim paths
+you can use, and some background information on how the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code>
+object works.</p>
+</section>
+<section id="creating-the-reader-auth-json-document">
+<h3>Creating the reader_auth JSON document<a class="headerlink" href="#creating-the-reader-auth-json-document" title="Link to this heading"></a></h3>
+<p>When you’ve collected all the required metadata, you are ready to create the
+<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file. Here is an example for the municipality of Amsterdam:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;purposeStatement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Inloggen&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Login&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;retentionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;intentToRetain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxDurationInMinutes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">525600</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;sharingPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;intentToShare&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;deletionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;deleteable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;organization&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;City of Amsterdam&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;legalName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;City of Amsterdam&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alles wat we doen, doen we voor de stad en de Amsterdammers.&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Everything we do, we do for the city and the people of Amsterdam.&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;webUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.amsterdam.nl&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;city&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;logo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;mimeType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;image/svg+xml&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;imageData&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;svg width=\&quot;64\&quot; height=\&quot;64\&quot; viewBox=\&quot;0 0 64 64\&quot; fill=\&quot;none\&quot; xmlns=\&quot;http://www.w3.org/2000/svg\&quot;&gt;&lt;rect width=\&quot;64\&quot; height=\&quot;64\&quot; rx=\&quot;12\&quot; fill=\&quot;#FF0000\&quot;/&gt;&lt;path d=\&quot;M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\&quot; fill=\&quot;white\&quot;/&gt;&lt;/svg&gt;&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;countryCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;kvk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;34366966&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;privacyPolicyUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.amsterdam.nl/privacy&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;requestOriginBaseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.amsterdam.nl&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="p">[</span><span class="s2">&quot;bsn&quot;</span><span class="p">]</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Take the above example, make sure you’ve read the previous sections which
+explain what the different key/values mean, and (optionally) construct your
+own <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file (or copy it verbatim if you’re just testing). When
+we are going to creating the reader certificate in the next sections, we are
+going to need it at a specific location, so save it (inside the <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code>
+git directory):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">target</span><span class="o">/</span><span class="n">vs</span><span class="o">-</span><span class="n">config</span><span class="o">/</span><span class="n">reader_auth</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Screenshot showing how reader_auth.json data is displayed</p>
+<p>The data from <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> is used in various parts of the app. For
+illustrative purposes, see below a screenshot of a screen showing details
+about the municipality of Amsterdam:</p>
+<a class="reference internal image-reference" href="../_images/reader_auth_json_in_use.gif"><img alt="A screenshot showing reader_auth.json data used within the NL Wallet app." src="../_images/reader_auth_json_in_use.gif" style="width: 300px;" />
+</a>
+</div>
+</section>
+</section>
+<section id="creating-a-reader-certificate">
+<h2>Creating a reader certificate<a class="headerlink" href="#creating-a-reader-certificate" title="Link to this heading"></a></h2>
+<p>Let’s create the reader certificate. We’re going to clone the NL Wallet
+repository, enter its directory, set a target directory and specify an
+identifier (this identifies your organization, and should be in lowercase
+characters a-z, can end with numbers but may not begin with them).</p>
+<p>We then make sure the target directory exists, and invoke <code class="docutils literal notranslate"><span class="pre">cargo</span></code> (rust’s build
+tool) to in turn invoke <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> which creates the reader certificate and
+key.</p>
+<p>Finally, we invoke <code class="docutils literal notranslate"><span class="pre">openssl</span></code> to convert our PEM certificate and key into DER
+format.</p>
+<div class="admonition caution">
+<p class="admonition-title">Do you have a working toolchain?</p>
+<p>Make sure you have a working toolchain as documented in our GitHub project root
+<code class="docutils literal notranslate"><span class="pre">README.md</span></code> <a class="reference external" href="https://github.com/MinBZK/nl-wallet#user-content-development-requirements">here</a>. Specifically, you need to have <code class="docutils literal notranslate"><span class="pre">rust</span></code> and <code class="docutils literal notranslate"><span class="pre">openssl</span></code>
+installed and working.</p>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Did you create a reader_auth.json?</p>
+<p>You need a valid <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>, which you can base on the example shown in
+the <a class="reference internal" href="#creating-the-reader-auth-json-document">previous section</a>.</p>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Did you create your own CA?</p>
+<p>You need a CA certificate and key. By default, when you’re running locally, the
+<code class="docutils literal notranslate"><span class="pre">setup-devenv.sh</span></code> script will have created these for you. You can also opt to
+create your own custom self-signed CA certificate and key, which is documented
+in the <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">Create a CA</span></a> document, and which is required if you need to
+participate in the NL Wallet community platform.</p>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Do you intend to test your verifier on the NL Wallet platform?</p>
+<p>You can test your verifier locally (more or less exactly like we do with our
+<code class="docutils literal notranslate"><span class="pre">mock-relying-party</span></code> app) for which you don’t need anything except the code in
+our git repository. But if you want to test your verifier with the NL Wallet
+platform (i.e., the NL Wallet apps on our Test Flight and Play Store Beta
+environments plus backends), you will need to have succesfully completed the
+<a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process.</p>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Git clone and enter the nl-wallet repository if you haven&#39;t already done so.</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
+<span class="nb">cd</span><span class="w"> </span>nl-wallet
+
+<span class="c1"># Set and create target directory, identifier for your certificates.</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CA_DIR</span><span class="o">=</span>target/ca-cert
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config
+<span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Create the reader certificate using wallet_ca.</span>
+cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>reader<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--reader-auth-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader_auth.json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Convert certificate PEM to DER.</span>
+openssl<span class="w"> </span>x509<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
+
+<span class="c1"># Convert key PEM to DER.</span>
+openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-nocrypt<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
+</pre></div>
+</div>
+<p>The used CA public certificate (referenced in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> command)
+needs to be in the list of various so-called trust anchors. Specifically,
+issuers and verifiers, and the NL Wallet app itself need to know if this CA is
+a trusted CA, and our software “knows” that by checking its trust anchors.</p>
+<p>When you run locally, when using <code class="docutils literal notranslate"><span class="pre">setup-devenv.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">start-devenv.sh</span></code>, the
+generated CA certificate is automatically added to the trust anchors within the
+configuration files of <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>,
+<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, <code class="docutils literal notranslate"><span class="pre">demo_relying_party</span></code> and the NL Wallet app config.</p>
+<p>When you <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">create your own CA</span></a>, you need to make sure the public key of your
+CA is in the relevant trust anchor configuration settings. When you are a
+member of the <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">NL Wallet community</span></a>, and so using NL Wallet managed backend
+services and mobile apps, this is done for you (i.e., you just need to sign
+your reader certificate with your CA, which the <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility invocation
+above did for you, and during the NL Wallet community <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process
+you shared your CA certificate with the operations team who ensure your CA is
+in the various trust anchor lists).</p>
+<p>When you run locally, but with a manually created CA, you need to add the CA
+public certificate to your services and wallet app config yourself. When we
+generate the configuration later in this guide, we will do this automatically,
+provided you used the naming conventions we used in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code>
+invocations.</p>
+</section>
+<section id="verification-server-setup">
+<h2>Verification server setup<a class="headerlink" href="#verification-server-setup" title="Link to this heading"></a></h2>
+<p>After you have created a reader certificate following the previously documented
+steps, you are ready to setup and configure your <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
+<section id="obtaining-the-software">
+<h3>Obtaining the software<a class="headerlink" href="#obtaining-the-software" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> binary can be obtained by downloading a pre-compiled
+binary from our <a class="reference external" href="https://github.com/MinBZK/nl-wallet/releases">releases</a> page, or by compiling from source. To compile
+from source, make sure you have our git repository checked out and make sure
+you’ve <a class="reference external" href="https://github.com/MinBZK/nl-wallet#user-content-development-requirements">configured your local development environment</a>. Then:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+cargo<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--manifest-path<span class="w"> </span>wallet_core/Cargo.toml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--package<span class="w"> </span>verification_server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--bin<span class="w"> </span>verification_server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--locked<span class="w"> </span>--release
+</pre></div>
+</div>
+<p>The above command creates <code class="docutils literal notranslate"><span class="pre">wallet_core/target/release/verification_server</span></code>,
+which is a release binary for the platform you’re running on. Let’s copy that
+binary to our target config directory for usage later:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>target/vs-config
+cp<span class="w"> </span>wallet_core/target/release/verification_server<span class="w"> </span>target/vs-config
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">About default feature flags</p>
+<p>Note that since we don’t specify a <code class="docutils literal notranslate"><span class="pre">--features</span></code> argument in the above <code class="docutils literal notranslate"><span class="pre">cargo</span></code>
+command, the default feature flags apply. For <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, this
+happens to be just <code class="docutils literal notranslate"><span class="pre">postgres</span></code>. When you build for local development, the build
+script enables another feature flag called <code class="docutils literal notranslate"><span class="pre">allow_insecure_url</span></code>, which would
+allow you to talk to a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> using an (insecure) <code class="docutils literal notranslate"><span class="pre">http://</span></code> URL.</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Don’t allow insecure URLs on production-like environments</p>
+<p>Don’t enable <code class="docutils literal notranslate"><span class="pre">allow_insecure_url</span></code> on anything remotely production-like. To have
+an idea about why, have a look at the <a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html"><span class="doc std std-doc">disclosure flow diagram</span></a>. Where you
+see <code class="docutils literal notranslate"><span class="pre">request_uri</span></code> mentioned, is where you would potentially communicate without
+encryption, should you inadvertently have enabled this feature flag.</p>
+</div>
+</section>
+<section id="using-a-database-backend-optional">
+<h3>Using a database backend (optional)<a class="headerlink" href="#using-a-database-backend-optional" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, when compiled with the <code class="docutils literal notranslate"><span class="pre">postgres</span></code> feature flag
+(which is the default), can use a PostgreSQL database backend to store state.
+This is done by configuring a <code class="docutils literal notranslate"><span class="pre">postgres://</span></code> storage URL in the
+<code class="docutils literal notranslate"><span class="pre">verification_server.toml</span></code> configuration file. In this section, we’ll create a
+PostgreSQL database, configure credentials and configure the schema
+(tables, columns).</p>
+<div class="admonition tip">
+<p class="admonition-title">You can also run without a database backend</p>
+<p>Note that you can run <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> with a storage URL <code class="docutils literal notranslate"><span class="pre">memory://</span></code>
+(which is the default and makes the server store session state in memory).
+<strong>When using in-memory session state, on server shutdown or crash, any session
+state will be lost.</strong></p>
+</div>
+<section id="setting-up-postgresql">
+<h4>Setting up PostgreSQL<a class="headerlink" href="#setting-up-postgresql" title="Link to this heading"></a></h4>
+<p>You might already have a PostgreSQL database running, in which case you need the
+credentials of a database user with <code class="docutils literal notranslate"><span class="pre">createdb</span></code> and <code class="docutils literal notranslate"><span class="pre">createrole</span></code> role attributes,
+and the hostname of the system running the PostgreSQL database (can be localhost
+or any fully-qualified domain name).</p>
+<p>When you don’t have a PostgreSQL database service running, you can create one
+following the <a class="reference external" href="https://www.postgresql.org/download/">installation instructions</a> or you can use something like
+<a class="reference external" href="https://www.docker.com/">docker</a> to run a containerized PostgreSQL service, which we’ll document
+here.</p>
+<div class="admonition note">
+<p class="admonition-title">Use correct credentials and hostname in commands below</p>
+<p>When you decide to use your own previously configured PostgreSQL database
+service, make sure you don’t execute the <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span></code> command which creates
+a new PostgreSQL database service, and make sure you use the correct hostname,
+username an password values.</p>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Specify database hostname, superuser name and password for PostgreSQL itself</span>
+<span class="c1"># (change these if you&#39;re using you own previously created database service):</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PGHOST</span><span class="o">=</span>localhost
+<span class="nb">export</span><span class="w"> </span><span class="nv">PGPORT</span><span class="o">=</span><span class="m">5432</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PGUSER</span><span class="o">=</span>postgres
+<span class="nb">export</span><span class="w"> </span><span class="nv">PGPASSWORD</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+
+<span class="c1"># Specify database hostname, verification_server database name, user name and</span>
+<span class="c1"># password for verification_server:</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">DB_NAME</span><span class="o">=</span>verification_server
+<span class="nb">export</span><span class="w"> </span><span class="nv">DB_USERNAME</span><span class="o">=</span>wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">DB_PASSWORD</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>Let’s use Docker to run PostgreSQL, using a volume named <code class="docutils literal notranslate"><span class="pre">postgres</span></code> for the
+database storage. We’ll run in the background (the <code class="docutils literal notranslate"><span class="pre">--detach</span></code> option) and
+auto-clean up the running container after stop (<code class="docutils literal notranslate"><span class="pre">--rm</span></code>). We’re using the
+previously declared environment variables for hostname, user and password
+values:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run a Docker image named postgres, set superuser password to $PGPASSWORD.</span>
+docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>postgres<span class="w"> </span>--volume<span class="w"> </span>postgres:/var/lib/postgresql/data<span class="w"> </span><span class="se">\</span>
+--rm<span class="w">  </span>--detach<span class="w"> </span>--publish<span class="w"> </span><span class="nv">$PGPORT</span>:5432<span class="w"> </span>--env<span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$PGPASSWORD</span><span class="s2">&quot;</span><span class="w"> </span>postgres
+</pre></div>
+</div>
+<p>The next sections will use the environment variables declared previously (and
+whichever database they point to).</p>
+</section>
+<section id="create-user-and-database">
+<h4>Create user and database<a class="headerlink" href="#create-user-and-database" title="Link to this heading"></a></h4>
+<p>Next, we’ll create a user for the database and the database itself:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Below psql commands use PGHOST, PGPORT, PGUSER and PGPASSWORD to execute.</span>
+psql<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;create user </span><span class="nv">$DB_USERNAME</span><span class="s2"> with password &#39;</span><span class="nv">$DB_PASSWORD</span><span class="s2">&#39;;&quot;</span>
+psql<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;create database </span><span class="nv">$DB_NAME</span><span class="s2"> owner </span><span class="nv">$DB_USERNAME</span><span class="s2">;&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="apply-database-schema">
+<h4>Apply database schema<a class="headerlink" href="#apply-database-schema" title="Link to this heading"></a></h4>
+<p>To initialize the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> database schema, we will utilize the
+migration tool helper:</p>
+<div class="admonition danger">
+<p class="admonition-title">Applying the database schema using fresh is destructive</p>
+<p>Applying the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> database schema using the <code class="docutils literal notranslate"><span class="pre">fresh</span></code> argument is
+destructive! Any tables are cleared, data will be destroyed. Be sure you don’t
+run this on a currently operational production copy of <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.
+The migration tool also supports an ostensibly non-destructive argument <code class="docutils literal notranslate"><span class="pre">up</span></code>
+which would not re-initialize the entire database, but as of this writing
+(2025-09-09) we don’t yet guarantee that our database initialization scripts
+are non-changing, and hence, <code class="docutils literal notranslate"><span class="pre">up</span></code> might not work as intended.</p>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nv">DATABASE_URL</span><span class="o">=</span><span class="s2">&quot;postgres://</span><span class="nv">$DB_USERNAME</span><span class="s2">:</span><span class="nv">$DB_PASSWORD</span><span class="s2">@</span><span class="nv">$PGHOST</span><span class="s2">:</span><span class="nv">$PGPORT</span><span class="s2">/</span><span class="nv">$DB_NAME</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+cargo<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--manifest-path<span class="w"> </span>wallet_core/wallet_server/server_utils/migrations/Cargo.toml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--package<span class="w"> </span>verification_server_migrations<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--bin<span class="w"> </span>verification_server_migrations<span class="w"> </span>--<span class="w"> </span>fresh
+</pre></div>
+</div>
+<p>You can show the configuration by issuing the following (might be a good idea
+to keep this safe somewhere):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;\npostgres.host: &#39;</span><span class="nv">$PGHOST</span><span class="s2">&#39;\npostgres.port: &#39;</span><span class="nv">$PGPORT</span><span class="s2">&#39;\npostgres.user: &#39;</span><span class="nv">$PGUSER</span><span class="s2">&#39;\npostgres.pass: &#39;</span><span class="nv">$PGPASSWORD</span><span class="s2">&#39;\ndatabase.name: &#39;</span><span class="nv">$DB_NAME</span><span class="s2">&#39;\ndatabase.user: &#39;</span><span class="nv">$DB_USERNAME</span><span class="s2">&#39;\ndatabase.pass: &#39;</span><span class="nv">$DB_PASSWORD</span><span class="s2">&#39;\n&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="creating-a-configuration">
+<h3>Creating a configuration<a class="headerlink" href="#creating-a-configuration" title="Link to this heading"></a></h3>
+<p>Alright, you have a reader certificate, you have might have configured a
+database (optional), so you are now ready to create a <code class="docutils literal notranslate"><span class="pre">verification_server.toml</span></code>
+configuration file.</p>
+<div class="admonition note">
+<p class="admonition-title">Example configuration file</p>
+<p>For reference, we have an annotated <a class="reference external" href="https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_server/verification_server/verification_server.example.toml">example configuration file</a> which you
+can check for the various settings you can configure. We cover most (all?) of
+them here.</p>
+</div>
+<p>In the following sections we’ll create environment variables and configuration
+file parts for specific settings, which we will use later to construct the
+configuration file itself. In all code blocks we assume you are working within
+the <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> git repository (i,e., the <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">nl-wallet</span></code> is mostly informative).</p>
+<p>The order of the following sections is equal to how these settings are written
+in the resulting <a class="reference internal" href="#writing-the-configuration-file">verification_server.toml</a>.</p>
+<section id="logging-settings-optional">
+<h4>Logging settings (optional)<a class="headerlink" href="#logging-settings-optional" title="Link to this heading"></a></h4>
+<p>To configure request logging and specify if we want the log output in the JSON
+format, we set the following:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/01-logging-settings.toml&quot;</span>
+<span class="s">log_requests = true</span>
+<span class="s">structured_logging = false</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Optional runtime logging using env_logger</p>
+<p>In addition to the above, the NL Wallet uses <a class="reference external" href="https://docs.rs/env_logger/latest/env_logger/#enabling-logging">env_logger</a>, which means you
+can use the <code class="docutils literal notranslate"><span class="pre">RUST_LOG</span></code> environment variable when running <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
+later on. For example, to run with debug log output, you can prefix the command
+with the <code class="docutils literal notranslate"><span class="pre">RUST_LOG</span></code> environment variable: <code class="docutils literal notranslate"><span class="pre">RUST_LOG=debug</span> <span class="pre">./verification_server</span></code></p>
+</div>
+</section>
+<section id="the-ephemeral-id-secret">
+<h4>The ephemeral ID secret<a class="headerlink" href="#the-ephemeral-id-secret" title="Link to this heading"></a></h4>
+<p>The ephemeral ID secret is used for (rotating) QR code generation, and
+configured once in the <code class="docutils literal notranslate"><span class="pre">verification_server.toml</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/02-ephemeral-id-secret.toml&quot;</span>
+<span class="s">ephemeral_id_secret = &quot;$(dd if=/dev/urandom bs=64 count=1 | xxd -p | tr -d &#39;\n&#39;)&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+</section>
+<section id="configuring-trust-anchors">
+<h4>Configuring trust anchors<a class="headerlink" href="#configuring-trust-anchors" title="Link to this heading"></a></h4>
+<p>When you <a class="reference internal" href="#creating-a-reader-certificate">created a reader certificate</a>, you
+signed that certificate using a CA, either generated by the development setup
+script or specifically <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">created by you</span></a> as part of the (optional)
+<a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">community onboarding process</span></a>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> distinguishes two kinds of trust anchors:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code> - a string array of CA certificates which are
+considered trusted to sign issuer certificates, in DER format, base64
+encoded;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reader_trust_anchors</span></code> - a string array of CA certificates which are
+considered trusted to sign reader certificates, in DER format, base64
+encoded;</p></li>
+</ul>
+<p>The trust anchor arrays tell the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> which certificates it can
+trust. If a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> is presented with certificates signed by a CA
+that is not in its trust anchor arrays, operations will fail (by design).</p>
+<p>We need to trust our own CA, whether it is created by the development setup
+scripts or explicitly by you. The development scripts create a separate CA for
+issuers and readers (usually at <code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.issuer.crt.der</span></code> and
+<code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.reader.crt.der</span></code>). When you create and use your own
+CA for community development purposes as <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">documented here</span></a>, you can use that
+CA generally for signing both issuance and reader certificates, and hence, add
+it to both the issuer and reader trust anchors.</p>
+<p>The below code block will initialize the issuer and reader trust anchor
+environment variables with the CA certificates it can find, both generated by
+development scripts and any you created yourself, provided you <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">followed the CA
+creation instructions to the letter</span></a> and used the naming convention
+documented there which means you would have a <code class="docutils literal notranslate"><span class="pre">target/ca-cert</span></code> directory with
+your CA certificates in DER format there. The code block assumes you have the
+<code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> git repository checked out.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">VS_ISSUER_TRUST_ANCHORS</span><span class="o">=()</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">VS_READER_TRUST_ANCHORS</span><span class="o">=()</span>
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span>scripts/devenv/target/ca.issuer.crt.der<span class="w"> </span>target/ca-cert/ca.*.crt.der<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">[[</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">VS_ISSUER_TRUST_ANCHORS</span><span class="o">+=(</span><span class="k">$(</span>openssl<span class="w"> </span>base64<span class="w"> </span>-e<span class="w"> </span>-A<span class="w"> </span>-in<span class="w"> </span><span class="nv">$i</span><span class="k">)</span><span class="o">)</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+<span class="k">for</span><span class="w"> </span>r<span class="w"> </span><span class="k">in</span><span class="w"> </span>scripts/devenv/target/ca.reader.crt.der<span class="w"> </span>target/ca-cert/ca.*.crt.der<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">[[</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">$r</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">VS_READER_TRUST_ANCHORS</span><span class="o">+=(</span><span class="k">$(</span>openssl<span class="w"> </span>base64<span class="w"> </span>-e<span class="w"> </span>-A<span class="w"> </span>-in<span class="w"> </span><span class="nv">$r</span><span class="k">)</span><span class="o">)</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/03-trust-anchors.toml&quot;</span>
+<span class="s">issuer_trust_anchors = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${VS_ISSUER_TRUST_ANCHORS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
+<span class="s">reader_trust_anchors = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${VS_READER_TRUST_ANCHORS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
+<span class="s">EOF</span>
+<span class="nb">unset</span><span class="w"> </span>VS_ISSUER_TRUST_ANCHORS<span class="w"> </span>VS_READER_TRUST_ANCHORS
+</pre></div>
+</div>
+</section>
+<section id="determine-public-url">
+<h4>Determine public URL<a class="headerlink" href="#determine-public-url" title="Link to this heading"></a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">public_url</span></code> is the URL that is used by the NL Wallet app to reach the
+public address and port of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/04-public-url.toml&quot;</span>
+<span class="s">public_url = &quot;https://verify.example.com/&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Use a valid domain name here</p>
+<p>In the above, we use <code class="docutils literal notranslate"><span class="pre">verify.example.com</span></code> as the fully-qualified domain name.
+Technically, this domain needs not be world-reachable, but it does need to DNS
+resolve for the NL Wallet app and the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>. Make sure you use
+a domain that is yours and that you control.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">A note about allowed public URL schemes</p>
+<p>When you <a class="reference internal" href="#obtaining-the-software">built or otherwise obtained</a> the software,
+you did <strong>not</strong> specify the <code class="docutils literal notranslate"><span class="pre">allow_insecure_url</span></code> feature flag. This means you
+cannot specify an <code class="docutils literal notranslate"><span class="pre">http://</span></code> URL here, and <em>need</em> to specify an <code class="docutils literal notranslate"><span class="pre">https://</span></code> URL.</p>
+</div>
+</section>
+<section id="universal-link-base-url">
+<h4>Universal link base URL<a class="headerlink" href="#universal-link-base-url" title="Link to this heading"></a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> uses the universal link base URL to construct the
+correct environment-specific universal link. A universal link is used to to
+associate a specific domain name and/or part of an URL with a specific app on
+the mobile device. In our case, it results in the link provided by the
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> being handled by the NL Wallet app when a user clicks
+on the link or scans the QR code.</p>
+<p>A universal link base URL is usually associated with a specific backend
+environment like pre-production or testing. When you’re integrating with the
+NL Wallet platform, you would use a universal link base URL that was provided
+to you as part of our community <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/05-universal-link-base-url.toml&quot;</span>
+<span class="s">universal_link_base_url = &quot;https://app.example.com/ul/&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Make sure your domain is configured correctly</p>
+<p>You as the owner of the domain (<code class="docutils literal notranslate"><span class="pre">example.com</span></code> in the above example setting)
+need to make sure the domain is configured correctly for universal links to
+work correctly. On Apple iOS devices this is done with <a class="reference external" href="https://developer.apple.com/documentation/xcode/supporting-associated-domains">associated domains</a>.
+On Google Android this is configured using <a class="reference external" href="https://developer.android.com/training/app-links">app links</a>.</p>
+</div>
+</section>
+<section id="access-restriction-settings-optional">
+<h4>Access restriction settings (optional)<a class="headerlink" href="#access-restriction-settings-optional" title="Link to this heading"></a></h4>
+<p>There are various settings related to access restriction available. You can set
+an <code class="docutils literal notranslate"><span class="pre">api_key</span></code> to authenticate access to the requester API, you can configure
+cross-origin-resource-sharing (CORS) settings using the <code class="docutils literal notranslate"><span class="pre">allow_origins</span></code> option,
+and you can restrict which wallets are allowed to talk to you by configuring
+<code class="docutils literal notranslate"><span class="pre">wallet_client_ids</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Not mandatory, but nonetheless wise to configure</p>
+<p>These settings are not mandatory, but it is wise to configure these. Note that
+<code class="docutils literal notranslate"><span class="pre">api_key</span></code> <em>is</em> required when you don’t configure a requester interface. see the
+<a class="reference internal" href="#configuring-listener-addresses-and-ports">configuring listener addresses and ports</a>
+section for more information about configuring listeners.</p>
+</div>
+<p>In the following sections, we document each of these access restriction
+settings.</p>
+<section id="configuring-allowed-client-ids">
+<h5>Configuring allowed client IDs<a class="headerlink" href="#configuring-allowed-client-ids" title="Link to this heading"></a></h5>
+<p>You can restrict which NL Wallet apps are accepted by the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
+by configuring a <code class="docutils literal notranslate"><span class="pre">wallet_client_ids</span></code> array. The entries of this array would
+contain the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> value of a wallet implementation. This allows you to
+allow-list groups of wallet apps based on their <code class="docutils literal notranslate"><span class="pre">client_id</span></code> value. For example,
+for allowing apps that have <code class="docutils literal notranslate"><span class="pre">https://wallet.edi.rijksoverheid.nl</span></code> configured as
+<code class="docutils literal notranslate"><span class="pre">client_id</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">VS_WALLET_CLIENT_IDS</span><span class="o">=(</span><span class="s2">&quot;https://wallet.edi.rijksoverheid.nl&quot;</span><span class="o">)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/06-wallet-client-ids.toml&quot;</span>
+<span class="s">wallet_client_ids = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${VS_WALLET_CLIENT_IDS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
+<span class="s">EOF</span>
+<span class="nb">unset</span><span class="w"> </span>VS_WALLET_CLIENT_IDS
+</pre></div>
+</div>
+</section>
+<section id="configuring-cross-origin-resource-sharing">
+<h5>Configuring cross-origin resource sharing<a class="headerlink" href="#configuring-cross-origin-resource-sharing" title="Link to this heading"></a></h5>
+<p>To configure CORS, you need to add an <code class="docutils literal notranslate"><span class="pre">allow_origins</span></code> array with a list of all
+the origin URLs you want to allow. For example:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">VS_ALLOW_ORIGINS</span><span class="o">=(</span><span class="s2">&quot;https://example.com/&quot;</span><span class="o">)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/07-allow-origins.toml&quot;</span>
+<span class="s">allow_origins = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${VS_ALLOW_ORIGINS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
+<span class="s">EOF</span>
+<span class="nb">unset</span><span class="w"> </span>VS_ALLOW_ORIGINS
+</pre></div>
+</div>
+</section>
+<section id="configuring-an-api-key">
+<h5>Configuring an API key<a class="headerlink" href="#configuring-an-api-key" title="Link to this heading"></a></h5>
+<p>When you configure an <code class="docutils literal notranslate"><span class="pre">api_key</span></code>, requests to the requester API will need an
+<code class="docutils literal notranslate"><span class="pre">Authorization</span></code> HTTP header containing a bearer token which looks like this:
+<code class="docutils literal notranslate"><span class="pre">Bearer</span> <span class="pre">your_secret_key</span></code>.</p>
+<p>For example, to configure a random 32 character string as an api key:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/08-requester-api-key.toml&quot;</span>
+
+<span class="s">[internal_server.authentication]</span>
+<span class="s">api_key = &quot;$(tr -dc A-Za-z0-9 &lt;/dev/urandom | head -c 32)&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="configuring-listener-addresses-and-ports">
+<h4>Configuring listener addresses and ports<a class="headerlink" href="#configuring-listener-addresses-and-ports" title="Link to this heading"></a></h4>
+<p>The server can be configured to listen on a single IP address and port, or with
+a separate private (requester) and public (wallet) IP address and port. The
+private address can be internal and should be reachable to the application that
+integrates with the verifier. The public address needs to be reachable by apps
+like the NL Wallet mobile app.</p>
+<p>In our case, we’ll configure separate addresses and ports for the private and
+public interfaces:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/09-listener-addresses-and-ports.toml&quot;</span>
+
+<span class="s">[internal_server]</span>
+<span class="s">ip = &quot;10.11.12.13&quot;</span>
+<span class="s">port = 8002</span>
+
+<span class="s">[wallet_server]</span>
+<span class="s">ip = &quot;0.0.0.0&quot;</span>
+<span class="s">port = 8001</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Configure a correct and secure private IP address</p>
+<p>In the above configuration settings, we set <code class="docutils literal notranslate"><span class="pre">10.11.12.13</span></code> as the private address
+on which <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> will host its so-called “requester” interface.
+Make sure this is a valid address for your networking environment, and that it
+is hosted securely, and reachable by the application that needs to integrate
+with the verifier. Do not configure <code class="docutils literal notranslate"><span class="pre">0.0.0.0</span></code> as the private address, or if you
+have to, set an <code class="docutils literal notranslate"><span class="pre">api_key</span></code> so the private interface API is protected from
+unauthorized access.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Configure an API key when you use a single address and port</p>
+<p>In the above settings, we configure a separate private and public interface.
+Your application talks to the private address and port and the “outside” world
+talks to the public address and port.</p>
+<p>If you need to configure <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> to listen on a <em>single</em>
+address and port, you only configure the <code class="docutils literal notranslate"><span class="pre">[wallet_server]</span></code> section of the config
+file and leave out the <code class="docutils literal notranslate"><span class="pre">[internal_server]</span></code> section. In that case, you are
+<em>required</em> to configure an <code class="docutils literal notranslate"><span class="pre">api_key</span></code> under the <code class="docutils literal notranslate"><span class="pre">[internal_server.authentication]</span></code>
+section (note that API key configuration is optional when you have a separate
+private address and port configured). We cover configuration of an API key in
+the <a class="reference internal" href="#configuring-an-api-key">Configuring an API key</a> section.</p>
+</div>
+</section>
+<section id="the-storage-settings-optional">
+<h4>The storage settings (optional)<a class="headerlink" href="#the-storage-settings-optional" title="Link to this heading"></a></h4>
+<p>The default storage settings URL is <code class="docutils literal notranslate"><span class="pre">memory://</span></code>, which causes the server to
+store session state in-memory, which is ephemeral - i.e., on server crash or
+shutdown, any existing session state is lost. If you don’t have a <code class="docutils literal notranslate"><span class="pre">[storage]</span></code>
+section in your configuration, then <code class="docutils literal notranslate"><span class="pre">memory://</span></code> is used.</p>
+<section id="using-in-memory-session-state">
+<h5>Using in-memory session state<a class="headerlink" href="#using-in-memory-session-state" title="Link to this heading"></a></h5>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/10-storage-settings.toml&quot;</span>
+
+<span class="s">[storage]</span>
+<span class="s">url = &quot;memory://&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+</section>
+<section id="using-database-persisted-session-state">
+<h5>Using database persisted session state<a class="headerlink" href="#using-database-persisted-session-state" title="Link to this heading"></a></h5>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/10-storage-settings.toml&quot;</span>
+
+<span class="s">[storage]</span>
+<span class="s">url = &quot;postgres://$DB_USERNAME:$DB_PASSWORD@$PGHOST:$PGPORT/$DB_NAME&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Make sure database setting environment variables are set</p>
+<p>When you use the <code class="docutils literal notranslate"><span class="pre">postgres://</span></code> URL, you tell the server to store session state
+in a PostgreSQL database. In the above, we assume you still have the environment
+variables configured like we documented in the database configuration section
+(i.e., <a class="reference internal" href="#setting-up-postgresql">Using a database backend</a>).</p>
+</div>
+</section>
+</section>
+<section id="configuring-a-hardware-security-module-optional">
+<h4>Configuring a hardware security module (optional)<a class="headerlink" href="#configuring-a-hardware-security-module-optional" title="Link to this heading"></a></h4>
+<p>You can opt to use a hardware security module (HSM) to store private keys for
+use cases. To do so we need to configure a few things:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/11-hardware-security-module.toml&quot;</span>
+
+<span class="s">[hsm]</span>
+<span class="s">library_path = &quot;/path/to/some/pkcs11-compatible/library.so&quot;</span>
+<span class="s">user_pin = &quot;12345678&quot;</span>
+<span class="s">max_sessions = 3</span>
+<span class="s">max_session_lifetime_in_sec = 900</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Make sure you specify a correct library path</p>
+<p>The HSM functionality depends on a PKCS#11 compatible shared library which will
+have been provided by your HSM vendor. Technically you can also use any PKCS#11
+implementation here. For development purposes we test with the <a class="reference external" href="https://github.com/softhsm/SoftHSMv2">softhsm2</a>
+library, which is usually called something like <code class="docutils literal notranslate"><span class="pre">libsofthsm2.so</span></code> (the path
+location and filename extension differs per operating system and/or packaging
+environment).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Private key field needs to be a key label when using HSM type</p>
+<p>When using a hardware security module, the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> field of the use
+case needs to be the HSM key label.</p>
+<p>It is possible to use <em>both</em> hardware <em>and</em> software private keys in the same
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> instance. Simply make sure you set <code class="docutils literal notranslate"><span class="pre">private_key_type</span></code> to
+<code class="docutils literal notranslate"><span class="pre">hsm</span></code> for HSM managed keys and to <code class="docutils literal notranslate"><span class="pre">software</span></code> when using base64 encoded DER
+strings in the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> field.</p>
+</div>
+</section>
+<section id="configuring-a-use-case">
+<h4>Configuring a use case<a class="headerlink" href="#configuring-a-use-case" title="Link to this heading"></a></h4>
+<p>In the <a class="reference internal" href="#creating-a-reader-certificate">Creating a reader certificate</a> section
+we’ve created a reader certificate for your use case.</p>
+<p>We’ll assume your use case certificate is in the <code class="docutils literal notranslate"><span class="pre">DER</span></code> format, stored under
+<code class="docutils literal notranslate"><span class="pre">target/ca-cert</span></code> and named matching <code class="docutils literal notranslate"><span class="pre">reader.*.{crt,key}.der</span></code> (which it will be
+if you followed this guide to create them).</p>
+<p>You’ll have to come up with some name for your use case. In the settings below,
+we set the name <code class="docutils literal notranslate"><span class="pre">login-mijn-amsterdam</span></code>, which is in line with earlier examples
+used during the creation of the reader certificate. Note that the name is only
+used as an identifier, it can be freely chosen.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/12-use-case.toml&quot;</span>
+
+<span class="s">[usecases.login-mijn-amsterdam]</span>
+<span class="s">session_type_return_url = &quot;samedevice&quot;</span>
+<span class="s">certificate = &quot;$(cat target/ca-cert/reader.*.crt.der | openssl base64 -e -A)&quot;</span>
+<span class="s">private_key = &quot;$(cat target/ca-cert/reader.*.key.der | openssl base64 -e -A)&quot;</span>
+<span class="s">private_key_type = &quot;software&quot;</span>
+<span class="s">EOF</span>
+</pre></div>
+</div>
+</section>
+<section id="writing-the-configuration-file">
+<h4>Writing the configuration file<a class="headerlink" href="#writing-the-configuration-file" title="Link to this heading"></a></h4>
+<p>In the previous sections, you’ve created a bunch of partial configuration blocks
+which we will use in this section to generate our <code class="docutils literal notranslate"><span class="pre">verification_server.toml</span></code>
+configuration file. To generate our configuration file, issue the following
+command:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">&quot;</span>/parts/*.toml<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/verification_server.toml&quot;</span>
+</pre></div>
+</div>
+<p>You should now have a configuration file in the <code class="docutils literal notranslate"><span class="pre">$TARGET</span></code> directory called
+<code class="docutils literal notranslate"><span class="pre">verification_server.toml</span></code>. Feel free to check the file to see if everything
+looks like you’d expect.</p>
+</section>
+</section>
+<section id="running-the-server-for-the-first-time">
+<h3>Running the server for the first time<a class="headerlink" href="#running-the-server-for-the-first-time" title="Link to this heading"></a></h3>
+<p>In section <a class="reference internal" href="#obtaining-the-software">Obtaining the software</a> we have described
+how you can obtain the software. In this section, we assume you have a Linux
+AMD64 static executable called <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> that you can run. We’re
+going to <code class="docutils literal notranslate"><span class="pre">cd</span></code> into the <code class="docutils literal notranslate"><span class="pre">target/vs-config</span></code> directory, and we assume the binary
+exists there (it does if you <a class="reference internal" href="#obtaining-the-software">followed along</a>
+previously):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet/target/vs-config
+./verification_server
+</pre></div>
+</div>
+<p>If all went well, the server is now running and ready to serve requests. To test
+the service, you can send session initiation and status requests to it (check
+out the <a class="reference internal" href="#verifier-api-specifications">API specifications</a> section for how to do
+that).</p>
+<p>Make sure to consider your <a class="reference internal" href="#logging-settings-optional">logging settings</a> if you
+need to troubleshoot.</p>
+</section>
+<section id="validating-your-setup">
+<h3>Validating your setup<a class="headerlink" href="#validating-your-setup" title="Link to this heading"></a></h3>
+<p>During startup, the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> performs some checks on the
+configuration to prevent common configuration problems. Most notably the
+following checks are performed:</p>
+<ul class="simple">
+<li><p>Verify all use-case certificates are valid;</p></li>
+<li><p>Verify all use-case certificates are signed by any of the
+<code class="docutils literal notranslate"><span class="pre">reader_trust_anchors</span></code>;</p></li>
+<li><p>Verify all use-case certificates are reader-certificates, and contain the
+necessary Extended Key Usages and the <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>;</p></li>
+<li><p>Verify all use-case key-pairs are valid, i.e., the public and private keys
+should belong together;</p></li>
+</ul>
+<p>If this process discovers any configuration errors, the application will report
+an error and abort. For more insights into this process,
+<a class="reference internal" href="#logging-settings-optional">enable logging</a>.</p>
+</section>
+</section>
+<section id="verifier-api-specifications">
+<h2>Verifier API specifications<a class="headerlink" href="#verifier-api-specifications" title="Link to this heading"></a></h2>
+<p>The API specifications for the <a class="reference download internal" download="" href="../_downloads/7f35158ecf120abaffafc44f9a47febd/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">private</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">requester</span></code>) and
+<a class="reference download internal" download="" href="../_downloads/971cb4ae9ac0ff66a26e80f9a1b8766a/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">public</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">wallet</span></code>) endpoints are available in the
+<code class="docutils literal notranslate"><span class="pre">wallet_docs/openapi</span></code> part of of the git repository.</p>
+<p>Have a look at the <a class="reference internal" href="../development/openapi-specifications.html"><span class="doc std std-doc">OpenAPI Specifications</span></a> section to learn how to open and
+use these.</p>
+</section>
+<section id="integrating-your-app-with-your-verification-server">
+<h2>Integrating your app with your verification server<a class="headerlink" href="#integrating-your-app-with-your-verification-server" title="Link to this heading"></a></h2>
+<p>If you look at the previous disclosure flow diagram, on the left side, you see
+the “Relying Party Application”, which is an application you probably already
+have that you want to integrate with functionality the app provides (i.e., the
+verification of identity and/or certain specific attributes, in order to allow
+or disallow usage of (a part of) said application).</p>
+<p>To integrate with the verifier, you modify your frontend and backend app, using
+the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend library, integrating with your previously configured
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
+<p>In the disclosure flow diagram, on the right, where the “Relying Party
+Application” is shown, you see a four integration/call points: “Configure
+Verifier”, “Initiate Disclosure Session”, “Start Result Poll Loop” and “Retrieve
+OV Result”:</p>
+<ul class="simple">
+<li><p>Configuration of the verifier, executed manually by you, a one-time initial
+setup which is documented in this guide;</p></li>
+<li><p>Initiation of a disclosure session, executed by your backend application;</p></li>
+<li><p>The status check loop, executed by your frontend application, where we check
+for a status result, which indicates success or failure of the session.</p></li>
+<li><p>Result retrieval, executed by your backend, which is a final conditional step
+dependent on a succesful completion status, which contains the
+disclosed_attributes.</p></li>
+</ul>
+<p>The above is described in more detail in the previous section
+<a class="reference internal" href="#what-a-disclosure-session-looks-like">detailing an example disclosure flow</a>.</p>
+<p>It’s worth noting that the NL Wallet team has developed a JavaScript library
+(called <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>) that handles the status check loop and status return for
+you.</p>
+</section>
+<section id="addendum">
+<h2>Addendum<a class="headerlink" href="#addendum" title="Link to this heading"></a></h2>
+<p>Now that you can interact with the NL Wallet platform, you are ready to start
+working on integrating your own application.</p>
+<p>The previously configured <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, is a software component
+developed by the NL Wallet team which you as a verifier run on-premises or
+within your cloud environment in order to interact with the NL Wallet platform.</p>
+<p>In the following subsections we’ll give you a high-level overview of what a
+verifier looks like, how to integrate it with your application and some
+directions with regards to API specifications.</p>
+<section id="what-a-disclosure-session-looks-like">
+<h3>What a disclosure session looks Like<a class="headerlink" href="#what-a-disclosure-session-looks-like" title="Link to this heading"></a></h3>
+<p><img alt="Disclosure Flow" src="../_images/disclosure-flow.svg" /></p>
+<p>In the above flow diagram you see the components involved in a disclosure
+session. Except for the “PID Issuer (VV)” and the “Wallet App”, these run on
+premises or within cloud environment(s) of the verifier (i.e., you).</p>
+<p>Let’s walk through a typical (cross-device, note on same-device flows in
+following section) disclosure session (for full details, have a look at the
+VV/OV SAD and our <a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html"><span class="doc std std-doc">component interaction flow for disclosures</span></a>).</p>
+<p>Note the possible session states:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CREATED</span></code>: <em>session created</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WAITING_FOR_RESPONSE</span></code>: <em>waiting for user to scan or follow QR/UL</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DONE</span></code> <em>which has substates: <code class="docutils literal notranslate"><span class="pre">SUCCES</span></code>, <code class="docutils literal notranslate"><span class="pre">FAILED</span></code>, <code class="docutils literal notranslate"><span class="pre">CANCELED</span></code>, and <code class="docutils literal notranslate"><span class="pre">EXPIRED</span></code></em></p></li>
+</ul>
+<p>Note the “actors/components” we distinguish between:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code>: <em>user of the app, initiating an attribute disclosure session</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>: <em>the NL Wallet app, running on a users’ mobile phone</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verification_server</span></code>: <em>the verification_server component of the OV</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code>: <em>the (JavaScript/HTML/CSS) frontend of the verifier app</em>
+<em>can be-or-use previously mentioned <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> JavaScript helper library</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code>: <em>the (server) backend of the verifier application</em></p></li>
+</ul>
+<p>In the diagram, the <code class="docutils literal notranslate"><span class="pre">user</span></code> is the small stick-figure at the top, the actor who
+initiates some task they wants to accomplish. the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> is the blue box
+on the right. The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> is the big block in the middle (shown as
+“Verifier Service (Ontvangende Voorziening, OV)” containing the configuration,
+the verifier, and the validator components). The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> and <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code>
+are represented by the big orange/beige block on the left (shown as “Relying
+Party Application”).</p>
+<p>Overview of a flow for cross device attribute disclosure:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> initiates action (i.e., clicks a button on web page of verifier
+in their desktop or mobile webbrowser);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> receives action, asks <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> to initiate session;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> in turn calls <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> with a session
+initialization request, receiving a <code class="docutils literal notranslate"><span class="pre">session_url</span></code>, an <code class="docutils literal notranslate"><span class="pre">engagement_url</span></code>, and a
+<code class="docutils literal notranslate"><span class="pre">disclosed_attributes_url</span></code> as a response. The session initially has a
+<code class="docutils literal notranslate"><span class="pre">CREATED</span></code> status;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> keeps <code class="docutils literal notranslate"><span class="pre">disclosed_attributes_url</span></code> for itself, and returns
+<code class="docutils literal notranslate"><span class="pre">session_url</span></code> and <code class="docutils literal notranslate"><span class="pre">engagement_url</span></code> to <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> encodes a QR/UL (QR Code, universal link) using the
+<code class="docutils literal notranslate"><span class="pre">engagement_url</span></code> and displays this to the <code class="docutils literal notranslate"><span class="pre">user</span></code>;</p></li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">user</span></code> can now activate their <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> QR scanner and scan the QR or
+navigate to the universal link (UL). In parallel, <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> will poll the
+<code class="docutils literal notranslate"><span class="pre">session_url</span></code> which will change status due to action (or inaction) by the
+<code class="docutils literal notranslate"><span class="pre">user</span></code>. So, assuming everything goes fine:</p>
+<ol class="arabic simple" start="6">
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> polls <code class="docutils literal notranslate"><span class="pre">session_url</span></code> for status. It will re-poll for a
+configured time-limit when receiving a <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> or <code class="docutils literal notranslate"><span class="pre">WAITING_FOR_RESPONSE</span></code>
+status. The poll will terminate on <code class="docutils literal notranslate"><span class="pre">DONE</span></code>;</p></li>
+<li><p>After <code class="docutils literal notranslate"><span class="pre">user</span></code> completes the scanning of the QR or followed the universal link,
+<code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> parses/extracts the QR/UL and starts a device engagement session
+with <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, which in turn returns the verifier details
+and the requested attributes to the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>;</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> shows the verifier details and the requested attributes
+to the <code class="docutils literal notranslate"><span class="pre">user</span></code> and gives the <code class="docutils literal notranslate"><span class="pre">user</span></code> the option to consent or abort;</p></li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">user</span></code> can abort, which will terminate the session with a <code class="docutils literal notranslate"><span class="pre">CANCELED</span></code> status.
+The <code class="docutils literal notranslate"><span class="pre">user</span></code> can also wait too long, which would result in an <code class="docutils literal notranslate"><span class="pre">EXPIRED</span></code> status.
+The <code class="docutils literal notranslate"><span class="pre">FAILED</span></code> status can occur when other, infrastructural and/or network-related
+problems are encountered. Assuming the <code class="docutils literal notranslate"><span class="pre">user</span></code> consented, let’s continue:</p>
+<ol class="arabic simple" start="9">
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> sends a device response containing the disclosed attributes and
+proofs_of_possession to the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verification_server</span></code> validates if attributes are authentic and valid and if
+they belong together and returns an indication of success back to the
+<code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>, which in turn confirms the success by displaying a dialog to
+the <code class="docutils literal notranslate"><span class="pre">user</span></code>. <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> additionally updates the status of the
+session to <code class="docutils literal notranslate"><span class="pre">DONE</span></code> with the <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code> substate (assuming validation went
+fine);</p></li>
+<li><p>The poll running on the <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> will terminate due to the <code class="docutils literal notranslate"><span class="pre">DONE</span></code>
+session state;</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> returns the result of the session to the <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code>;</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> checks the status of the session. On <code class="docutils literal notranslate"><span class="pre">DONE</span></code> with substate
+<code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code>, it will call the associated <code class="docutils literal notranslate"><span class="pre">disclosed_attributes_url</span></code> which it
+kept around (saved) in step 4 to retrieve the disclosed attributes. When
+substate is not <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code>, it will not retrieve the disclosed attributes but
+invoke an error_handler of sorts (for example) which displays the error
+condition;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> handles disclosed attributes, returns status to <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code>
+(for example: user is authenticated, here have a token);</p></li>
+</ol>
+</section>
+<section id="cross-device-vs-same-device-flows">
+<h3>Cross device vs. same device flows<a class="headerlink" href="#cross-device-vs-same-device-flows" title="Link to this heading"></a></h3>
+<p>Same-device flows differ from cross-device flows in how the QR/UL is encoded.
+The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> detects the user-agent and from that determines if a
+Cross-device or Same-device flow is appropiate. When it encodes for a
+Same-device flow, the resulting Universal link can be directly opened by the
+<code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> on the same device, which then starts device engagement towards the
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (see step 7 above).</p>
+</section>
+<section id="requirements-applicable-to-your-application">
+<h3>Requirements applicable to your application<a class="headerlink" href="#requirements-applicable-to-your-application" title="Link to this heading"></a></h3>
+<p>Below you’ll find a list of things to know about the NL Wallet platform and more
+specifically, what you need to keep in mind when you integrate the usage of the
+app for identification or verification of attributes with your application:</p>
+<ul class="simple">
+<li><p>The NL Wallet app presents attestations using the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html">OpenID4VP</a> protocol
+standard using either the <a class="reference external" href="https://datatracker.ietf.org/doc/rfc9901/">SD-JWT</a> or the <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021 MDOC</a>
+credential format;</p></li>
+<li><p>Any disclosure session initiation request must include the reason why the
+verifier is requesting the attributes;</p></li>
+<li><p>A verifier <strong>MUST NOT</strong> track, in the broadest sense of the word;</p></li>
+<li><p>A verifier needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
+<a class="reference external" href="https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm">GDPR</a>;</p></li>
+<li><p>It is required to follow accessibility guidelines set forth in the <a class="reference external" href="https://www.w3.org/WAI/WCAG21/Understanding/intro">WCAG</a>;</p></li>
+<li><p>It is expected that you use the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend helper library;</p></li>
+<li><p>The standard buttons for login and sharing should be used, but one can use
+custom button text (within reason);</p></li>
+<li><p>Button styling and call-to-action can be customized by verifier;</p></li>
+<li><p>The text “NL Wallet” should always be visible in the call-to-action;</p></li>
+<li><p>Logo of “NL Wallet” should be visible next to the call-to-action.</p></li>
+</ul>
+<!-- References -->
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="preparations.html" class="btn btn-neutral float-left" title="Preparations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="create-an-issuer.html" class="btn btn-neutral float-right" title="Create an Issuer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.4.1
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../v0.4.0/get-started/create-a-verifier.html">v0.4.0</a></dd>
+            <dd><a href="create-a-verifier.html">v0.4.1</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../main/get-started/create-a-verifier.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

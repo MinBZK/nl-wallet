@@ -1,0 +1,154 @@
+# v0.3.0
+
+## Upgrading
+
+- This release makes key and app attestation mandatory for both the iOS and
+  Android app, which is preformed during registration with the Wallet Provider.
+  The wallet contains the following changes in order to implement this:
+    - The `wallet-config.json` needs to have a value for a new setting,
+      `google_cloud_project_number`. This value needs to be set to whatever the
+      project number is for the project configured in Play Integrity within the
+      Play Store Console for the wallet app.
+- The Wallet provider contains the following changes for iOS app and key
+  attestation:
+    - The signing of messages sent to the Wallet Provider has been amended to
+      support the specifics of iOS attested key usage. This is a backwards
+      incompatible change.
+    - A database table has been added to store Apple attested key information.
+    - The Wallet Provider configuration has been amended with an `ios` section,
+      containing the team and bundle identifiers of the Wallet app, as well as a
+      list of Apple Root CAs against which attestations are validated.
+- The Wallet provider contains the following changes for Android key and app
+  attestation:
+    - A database table has been added to store Android attested key and
+      integrity verdict information. Note that this also includes a
+      restructuring of the database tables, which is a backwards incompatible
+      change.
+    - The signing of messages sent to the Wallet Provider has been changed in a
+      way that is backwards incompatible.
+    - The Wallet Provider configuration has been amended with an `android`
+      section, which contains the following:
+        - A list of root CA public keys, against which the certificate chain
+          received during Android key attestation is validated. These can be
+          either RSA or ECDSA keys, encoded in PKCS 8 in a Base64 string.
+        - The package name of the Wallet app.
+        - A boolean to indicate whether to allow side loading the wallet app
+          when evaluating the integrity verdict as returned by Google.
+        - A path to a file containing the credentials for a Google Cloud service
+          account, which can be used to retrieve integrity verdicts.
+        - A list of hashes of the certificates under which the Wallet app is
+          published in the Play Store, against which the integrity verdict is
+          checked.
+- The embedded configuration server config and wallet config are now parsed and
+  validated at build time.
+    - This requires adding the `environment` property to the hosted
+      `wallet-config.json` for all environments.
+    - When running the app locally against a remote environment, the
+      `CONFIG_DEV` environment variable must be set to the remote environment.
+- The PID issuer now requires the configuration of Technical Attestation Schemas
+  (TAS). It looks for JSON files on the filesystem relative to the binary. The
+  names of the JSON files can be configured using the
+  `PID_ISSUER__ISSUER__METADATA` environment variable or through the
+  `issuer.metadata` key in the PID issuer TOML configuration. Note that TAS for
+  both the PID and address has been split into two (fictitious) metadata
+  documents for demonstration purposes.
+- The settings now use a `__` for the prefix separator.
+- The `issuer.` or `verifier.` prefixes of some of the items in the TOML
+  configuration file(s) of the `wallet_server` must be removed.
+- flutter_rust_bridge has been updated to 2.9.0, run
+  `cargo install flutter_rust_bridge_codegen` to update.
+
+## New features
+
+- Implement performing key and app attestation during registration in iOS app.
+- Implement performing key and app attestation during registration in the
+  Android app.
+- Add processing of Apple key and app attestations to the Wallet Provider.
+- Verification Server now requires that a Proof of Association is included when
+  attestations from multiple documents are submitted by the Wallet. The Wallet
+  includes the Proof of Association if this is the case.
+- Issue PID data based on a generic metadata format in the form of SD-JWT VC
+  Type Metadata.
+- Send the SD-JWT VC Type Metadata along with the credential previews and signed
+  mdocs from the issuer to the wallet.
+- Implement support for sending and validating a chain of SD-JWT VC Type
+  Metadata documents, where each document extends the previous, and normalizing
+  these documents for use in converting an attestation into its display
+  representation.
+- Add algorithm for unpacking mdoc namespaces to nested data structures for
+  verification against SD-JWT VC Type Metadata documents.
+- Validate attestations against their metadata in the issuer.
+- Add issuer_uri to MobileSecurityObject and verify it against the SAN DNS name
+  or URI in the issuer certificate.
+- Both the PID issuer server and the verification server now support HSM keys in
+  addition to software keys.
+- Add support for SD-JWT.
+- Add `attestationQualification` to Mdoc, configurable per attestation type.
+- Add support for optional `summary` field to the SD-JWT VC Type Metadata, to be
+  used to show a summary of attestations. Attestations should be referred to by
+  their `svg_id`.
+- Add a new `issuance_server` binary that can do disclosure based issuance of
+  attestations.
+- Support disclosure based issuance in the `wallet` crate.
+- Previewing the credential before issuance is now independent of the credential
+  format.
+- Add `demo_issuer` to demonstrate disclosure based issuance.
+- Add support for static Universal Links in `wallet_web`, to be used for
+  disclosure based issuance.
+- Add functionality for issuing, storing and viewing attestations in SD-JWT
+  format.
+
+## Code improvements
+
+- The part of `wallet_common` that implements communication between `wallet` and
+  `wallet_provider` has been split off into a separate `wallet_account` crate.
+  This new crate provides a `client` and `server` cargo feature, which allows
+  separating the dependency tree for the `wallet` and `wallet_provider`
+  respectively. This change also enables moving some other code from
+  `wallet_common` to `platform_support`.
+- The axum routers used by OpenID4VCI/OpenID4VP servers have been split off to a
+  new crate called `openid4vc_server`. This makes these routers more reusable.
+- The `wallet_server` crate has been split off into separate new crates for the
+  `pid_issuer` and `verification_server`.
+- Common utilities have been extracted from the `wallet_common` crate into new
+  crates:
+    - Proof of Association utilities: `poa`
+    - Json Web Tokens: `jwt`
+    - ECDSA keys and X.509 certificates: `crypto`
+    - HTTP client and server utilities: `http_utils`
+    - Attestation data types: `attestation_data`
+- `wallet_common` has been renamed to `utils`
+- Disclosure and Issuance errors report the organization of the verifier/issuer
+  when the error is caused by the remote party.
+
+## Wallet app improvements
+
+- Updated app theme; aligning Figma and Flutter text styles.
+- Accessibility improvements; improved focus indicators and talkback/voiceover
+  hints.
+- Dynamic cards; card backgrounds are now rendered using the `DisplayMetadata`
+  provided by the issuer. Currently only the 'simple' SD-JWT spec is supported.
+- Improved accuracy of the copy in the history detail screen; there is now a
+  subtle distinction between data 'may have been shared' and 'was not shared' in
+  error cases, this is based on the shared attestations field.
+- Inactivity warning dialog; The user is now presented with an inactivity
+  warning before locking the app.
+- Support disclosure based issuance flow.
+- Improve 'missing attributes' flow UI.
+- The app now shows a dedicated 'check url page' when the user performs a
+  cross device disclosure request.
+- Update to Flutter 3.32.1.
+- Renewed cards are now rendered separately during the issuance flow.
+- History renders dedicated 'renewed' events.
+- Add support for card selection during disclosure (pending wallet_core support).
+
+## Bug fixes
+
+- Fix house number in test data.
+- Do not panic in `gba_hca_converter` when house number parsing fails.
+
+## CI changes
+
+- Add MR template.
+- Change deployment files to use environment variables (except
+  demo-relying-party and private keys of pid-issuer).
