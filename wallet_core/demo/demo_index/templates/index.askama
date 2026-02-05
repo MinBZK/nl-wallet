@@ -2,8 +2,7 @@
 {%- import "../../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block styles %}
-<link rel="stylesheet" href="./css/index.css" />
-<link rel="stylesheet" href="./css/language_selector.css" />
+<link integrity="sha256-{{ base.combined_css_sha256 }}" rel="stylesheet" href="./css/style.css" />
 {% endblock %}
 
 {% block scripts %}

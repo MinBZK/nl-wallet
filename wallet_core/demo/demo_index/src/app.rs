@@ -12,6 +12,8 @@ use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use itertools::Itertools;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
@@ -21,6 +23,7 @@ use tower_http::trace::TraceLayer;
 
 use http_utils::health::create_health_router;
 use utils::path::prefix_local_path;
+use web_utils::css::serve_css;
 use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
@@ -35,14 +38,24 @@ struct ApplicationState {
     demo_services: Vec<DemoService>,
 }
 
+pub const COMBINED_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
+
+pub static COMBINED_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(COMBINED_CSS.as_bytes())));
+
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
     let script_src = format!("'sha256-{}'", *LANGUAGE_JS_SHA256);
+    let style_src = format!("'self' 'sha256-{}'", *COMBINED_CSS_SHA256);
 
     format!(
-        "default-src 'self'; script-src {script_src}; img-src 'self' data:; font-src 'self' data:; form-action \
-         'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+        "default-src 'self'; script-src {script_src}; style-src {style_src}; img-src 'self' data:; font-src 'self' \
+         data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
     )
 });
+
+async fn serve_combined_css(headers: axum::http::HeaderMap) -> Response {
+    serve_css(&headers, COMBINED_CSS, &COMBINED_CSS_SHA256)
+}
 
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
@@ -51,6 +64,7 @@ pub fn create_router(settings: Settings) -> Router {
 
     let mut app = Router::new()
         .route("/", get(index))
+        .route("/css/style.css", get(serve_combined_css))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -77,6 +91,7 @@ struct BaseTemplate<'a> {
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
     language_js_sha256: &'a str,
+    combined_css_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -94,6 +109,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -
             trans: &TRANSLATIONS[language],
             available_languages: &Language::iter().collect_vec(),
             language_js_sha256: &LANGUAGE_JS_SHA256,
+            combined_css_sha256: &COMBINED_CSS_SHA256,
         },
     }
     .into_response()

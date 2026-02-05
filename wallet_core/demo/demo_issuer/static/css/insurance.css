@@ -1,13 +1,3 @@
-@import url("./reset.css");
-@import url("./button-reset.css");
-@import url("./fonts.css");
-@import url("./common.css");
-@import url("./title_bar.css");
-@import url("./notification.css");
-@import url("./banner.css");
-@import url("./page.css");
-@import url("./buttons-after.css");
-
 :root {
   --primary-color: #188484;
   --hover-color: #004c4c;

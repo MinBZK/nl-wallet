@@ -17,7 +17,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
-use base64::prelude::*;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -29,6 +28,8 @@ use tracing::warn;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestation;
@@ -39,6 +40,7 @@ use http_utils::urls::SourceExpression;
 use openid4vc::server_state::SessionToken;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
+use web_utils::css::serve_css;
 use web_utils::error::Result;
 use web_utils::headers::cors_layer;
 use web_utils::headers::set_content_security_policy;
@@ -65,7 +67,48 @@ struct ApplicationState {
     usecases: HashMap<String, Usecase>,
 }
 
+pub const AMSTERDAM_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mijn_amsterdam.css"));
+pub const MONKEY_BIKE_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike.css"));
+pub const ONLINE_MARKETPLACE_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/online_marketplace.css"));
+pub const XYZ_BANK_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank.css"));
+pub const JOB_FINDER_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder.css"));
+
+pub static AMSTERDAM_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(AMSTERDAM_CSS.as_bytes())));
+
+pub static MONKEY_BIKE_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(MONKEY_BIKE_CSS.as_bytes())));
+
+pub static ONLINE_MARKETPLACE_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(ONLINE_MARKETPLACE_CSS.as_bytes())));
+
+pub static XYZ_BANK_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(XYZ_BANK_CSS.as_bytes())));
+
+pub static JOB_FINDER_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(JOB_FINDER_CSS.as_bytes())));
+
 static CSP_HEADER: OnceLock<String> = OnceLock::new();
+
+async fn serve_amsterdam_css(headers: axum::http::HeaderMap) -> Response {
+    serve_css(&headers, AMSTERDAM_CSS, &AMSTERDAM_CSS_SHA256)
+}
+
+async fn serve_monkey_bike_css(headers: axum::http::HeaderMap) -> Response {
+    serve_css(&headers, MONKEY_BIKE_CSS, &MONKEY_BIKE_CSS_SHA256)
+}
+
+async fn serve_online_marketplace_css(headers: axum::http::HeaderMap) -> Response {
+    serve_css(&headers, ONLINE_MARKETPLACE_CSS, &ONLINE_MARKETPLACE_CSS_SHA256)
+}
+
+async fn serve_xyz_bank_css(headers: axum::http::HeaderMap) -> Response {
+    serve_css(&headers, XYZ_BANK_CSS, &XYZ_BANK_CSS_SHA256)
+}
+
+async fn serve_job_finder_css(headers: axum::http::HeaderMap) -> Response {
+    serve_css(&headers, JOB_FINDER_CSS, &JOB_FINDER_CSS_SHA256)
+}
 
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
@@ -85,6 +128,11 @@ pub fn create_router(settings: Settings) -> Router {
         .route("/sessions", post(create_session))
         .route("/{usecase}/", get(usecase))
         .route(&format!("/{{usecase}}/{RETURN_URL_SEGMENT}"), get(disclosed_attributes))
+        .route("/css/mijn_amsterdam.css", get(serve_amsterdam_css))
+        .route("/css/monkey_bike.css", get(serve_monkey_bike_css))
+        .route("/css/online_marketplace.css", get(serve_online_marketplace_css))
+        .route("/css/xyz_bank.css", get(serve_xyz_bank_css))
+        .route("/css/job_finder.css", get(serve_job_finder_css))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -189,6 +237,11 @@ struct BaseTemplate<'a> {
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
     language_js_sha256: &'a str,
+    amsterdam_css_sha256: &'a str,
+    monkey_bike_css_sha256: &'a str,
+    online_marketplace_css_sha256: &'a str,
+    xyz_bank_css_sha256: &'a str,
+    job_finder_css_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -219,20 +272,26 @@ async fn usecase(
     language: Language,
 ) -> Response {
     let start_url = format_start_url(&state.public_url, language);
+    let base = BaseTemplate {
+        session_token: None,
+        nonce: None,
+        selected_lang: language,
+        trans: &TRANSLATIONS[language],
+        available_languages: &Language::iter().collect_vec(),
+        language_js_sha256: &LANGUAGE_JS_SHA256,
+        amsterdam_css_sha256: &AMSTERDAM_CSS_SHA256,
+        monkey_bike_css_sha256: &MONKEY_BIKE_CSS_SHA256,
+        online_marketplace_css_sha256: &ONLINE_MARKETPLACE_CSS_SHA256,
+        xyz_bank_css_sha256: &XYZ_BANK_CSS_SHA256,
+        job_finder_css_sha256: &JOB_FINDER_CSS_SHA256,
+    };
     UsecaseTemplate {
         usecase: &usecase,
         start_url,
         help_base_url: state.help_base_url.clone().into_inner(),
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_sha256: &WALLET_WEB_JS_SHA256,
-        base: BaseTemplate {
-            session_token: None,
-            nonce: None,
-            selected_lang: language,
-            trans: &TRANSLATIONS[language],
-            available_languages: &Language::iter().collect_vec(),
-            language_js_sha256: &LANGUAGE_JS_SHA256,
-        },
+        base,
     }
     .into_response()
 }
@@ -271,6 +330,11 @@ async fn disclosed_attributes(
         trans: &TRANSLATIONS[language],
         available_languages: &Language::iter().collect_vec(),
         language_js_sha256: &LANGUAGE_JS_SHA256,
+        amsterdam_css_sha256: &AMSTERDAM_CSS_SHA256,
+        monkey_bike_css_sha256: &MONKEY_BIKE_CSS_SHA256,
+        online_marketplace_css_sha256: &ONLINE_MARKETPLACE_CSS_SHA256,
+        xyz_bank_css_sha256: &XYZ_BANK_CSS_SHA256,
+        job_finder_css_sha256: &JOB_FINDER_CSS_SHA256,
     };
 
     match attributes {

@@ -7,19 +7,17 @@
 {%- import "components/products.askama" as products -%}
 
 {% block styles %}
-<link rel="stylesheet" href="../css/demo_bar.css" />
-<link rel="stylesheet" href="../css/language_selector.css" />
 {% match usecase %}
 {% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
-    <link rel="stylesheet" href="../css/mijn_amsterdam-return.css" />
+    <link integrity="sha256-{{ base.amsterdam_css_sha256 }}" rel="stylesheet" href="../css/mijn_amsterdam.css" />
 {% when "monkey_bike" %}
-    <link rel="stylesheet" href="../css/monkey_bike-return.css" />
+    <link integrity="sha256-{{ base.monkey_bike_css_sha256 }}" rel="stylesheet" href="../css/monkey_bike.css" />
 {% when "online_marketplace" %}
-    <link rel="stylesheet" href="../css/online_marketplace-return.css" />
+    <link integrity="sha256-{{ base.online_marketplace_css_sha256 }}" rel="stylesheet" href="../css/online_marketplace.css" />
 {% when "xyz_bank_mdoc" | "xyz_bank_sd_jwt" | "xyz_bank_sd_jwt_eu" %}
-    <link rel="stylesheet" href="../css/xyz_bank-return.css" />
+    <link integrity="sha256-{{ base.xyz_bank_css_sha256 }}" rel="stylesheet" href="../css/xyz_bank.css" />
 {% when "job_finder" %}
-    <link rel="stylesheet" href="../css/job_finder-return.css" />
+    <link integrity="sha256-{{ base.job_finder_css_sha256 }}" rel="stylesheet" href="../css/job_finder.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}

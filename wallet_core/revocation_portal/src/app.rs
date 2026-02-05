@@ -44,6 +44,7 @@ use crypto::utils::sha256;
 use http_utils::health::create_health_router;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
+use web_utils::css::serve_css;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
@@ -74,29 +75,6 @@ pub static COMBINED_CSS_SHA256: LazyLock<String> =
 struct DeleteForm {
     csrf_token: String,
     deletion_code: String,
-}
-
-/// Combined CSS, bundled at compile time
-/// Serve the combined CSS with caching headers
-async fn serve_combined_css(headers: HeaderMap) -> Response {
-    let etag = format!("\"{}\"", &*COMBINED_CSS_SHA256);
-
-    // Check If-None-Match header for conditional request
-    if let Some(if_none_match) = headers.get(header::IF_NONE_MATCH)
-        && if_none_match.as_bytes() == etag.as_bytes()
-    {
-        return (StatusCode::NOT_MODIFIED, [(header::ETAG, etag)]).into_response();
-    }
-
-    (
-        [
-            (header::CONTENT_TYPE, "text/css; charset=utf-8".to_string()),
-            (header::ETAG, etag),
-            (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
-        ],
-        COMBINED_CSS,
-    )
-        .into_response()
 }
 
 #[derive(Debug, Clone, AsRef, Display)]
@@ -218,6 +196,10 @@ struct SuccessTemplate<'a> {
     revoked_at_rfc3339: String,
     success_message: String,
     success_message_template: String,
+}
+
+async fn serve_combined_css(headers: HeaderMap) -> Response {
+    serve_css(&headers, COMBINED_CSS, &COMBINED_CSS_SHA256)
 }
 
 async fn index<C: RevocationClient>(
