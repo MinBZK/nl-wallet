@@ -25,7 +25,7 @@
   <img src="/images/index_illustration.svg" alt="" class="illustration">
 </section>
 
-<form method="post" action="/support/delete" class="delete-form">
+<form method="post" class="delete-form">
   <fieldset>
     <legend class="step-title">Step 1:</legend>
     <p class="step-description">{{ base.trans.delete_step1_instruction }}</p>
@@ -35,7 +35,6 @@
         {{ base.trans.delete_code_label }} <span class="required" aria-hidden="true">*</span>
       </label>
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <input type="hidden" name="language" value="{{ base.selected_lang }}">
       <input
         type="text"
         id="deletion-code"

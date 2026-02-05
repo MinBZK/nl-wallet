@@ -77,7 +77,6 @@ pub static COMBINED_CSS_SHA256: LazyLock<String> =
 struct DeleteForm {
     csrf_token: String,
     deletion_code: String,
-    language: String,
 }
 
 /// Combined CSS, bundled at compile time
@@ -217,8 +216,6 @@ async fn delete_wallet<C: RevocationClient>(
     token: CsrfToken,
     Form(delete_form): Form<DeleteForm>,
 ) -> Response {
-    let language = delete_form.language.parse().unwrap_or(language);
-
     let base = BaseTemplate {
         selected_lang: language,
         trans: &TRANSLATIONS[language],

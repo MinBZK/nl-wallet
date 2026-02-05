@@ -7,7 +7,11 @@
   --primary-color: #ab0065; /* Deep pink/magenta */
   --secondary-color: #383ede; /* The blue from the design */
   --primary-color-focused: #85004f;
-  --secondary-color-focused: rgba(127, 140, 176, 0.10);
+  --secondary-color-focused: #0c1195;
+
+  --cancel-color: #f3f3f3;
+  --cancel-color-focused: rgba(127, 140, 176, 0.10);
+
   --text-color: #191c1b;
   --border-color: #ccc;
   --error-color: #d32f2f;
@@ -231,7 +235,7 @@ form {
 }
 
 .btn-retry:hover {
-  opacity: 0.9;
+  background-color: var(--secondary-color-focused);
 }
 
 .btn-retry:active {
@@ -245,7 +249,7 @@ form {
 }
 
 .btn-cancel:hover {
-  background-color: #f0f4ff;
+  background-color: var(--cancel-color-focused);
 }
 
 .btn-cancel:active {
