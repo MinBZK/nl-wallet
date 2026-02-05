@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
@@ -22,7 +23,10 @@ class RequestNotificationPermissionSheet extends StatelessWidget {
         icon: Icons.check_outlined,
       ),
       onConfirmPressed: () {
-        context.read<RequestPermissionUseCase>().invoke(.notification);
+        final setPushNotificationsSettingUseCase = context.read<SetPushNotificationsSettingUseCase>();
+        context.read<RequestPermissionUseCase>().invoke(.notification).then((result) {
+          setPushNotificationsSettingUseCase.invoke(enabled: result.isGranted);
+        });
         Navigator.pop(context);
       },
       cancelButton: ConfirmSheetButtonStyle(

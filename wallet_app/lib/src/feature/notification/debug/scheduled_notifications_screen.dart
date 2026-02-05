@@ -69,7 +69,7 @@ class _ScheduledNotificationsScreenState extends State<ScheduledNotificationsScr
 
   Widget _buildCoreNotificationList() {
     return StreamBuilder(
-      stream: context.read<ObserveOsNotificationsUseCase>().invoke(),
+      stream: context.read<ObserveOsNotificationsUseCase>().invoke(respectUserSetting: false),
       builder: (context, state) {
         final notifications = state.data ?? [];
         if (notifications.isEmpty) {
@@ -81,9 +81,11 @@ class _ScheduledNotificationsScreenState extends State<ScheduledNotificationsScr
           );
         }
         return ListView.builder(
-          itemCount: notifications.length,
+          itemCount: notifications.length + 1,
+          padding: const EdgeInsets.symmetric(vertical: 16),
           itemBuilder: (context, index) {
-            final notification = notifications[index];
+            if (index == 0) return _buildCoreHeader();
+            final notification = notifications[index - 1];
             return ListItem.horizontal(
               label: Text(notification.title),
               subtitle: Column(
@@ -113,6 +115,17 @@ class _ScheduledNotificationsScreenState extends State<ScheduledNotificationsScr
     );
   }
 
+  Widget _buildCoreHeader() {
+    return ListItem.compact(
+      label: const Text('Core Notifications'),
+      subtitle: Text(
+        'These are the notifications as exposed by the wallet_core. Having them in this list does not mean they are scheduled by the system.',
+        style: context.textTheme.bodySmall,
+      ),
+      icon: const Icon(Icons.help_outline_outlined),
+    );
+  }
+
   Widget _buildPendingNotificationsList() {
     if (_pendingNotifications.isEmpty) {
       return const Center(
@@ -123,9 +136,11 @@ class _ScheduledNotificationsScreenState extends State<ScheduledNotificationsScr
       );
     }
     return ListView.builder(
-      itemCount: _pendingNotifications.length,
+      itemCount: _pendingNotifications.length + 1,
+      padding: const EdgeInsets.symmetric(vertical: 16),
       itemBuilder: (context, index) {
-        final notification = _pendingNotifications[index];
+        if (index == 0) return _buildPendingHeader();
+        final notification = _pendingNotifications[index - 1];
         return ListItem.horizontal(
           label: Text(notification.title ?? 'No title'),
           subtitle: Column(
@@ -149,6 +164,17 @@ class _ScheduledNotificationsScreenState extends State<ScheduledNotificationsScr
     );
   }
 
+  Widget _buildPendingHeader() {
+    return ListItem.compact(
+      label: const Text('Pending Notifications'),
+      subtitle: Text(
+        'These are the notifications have been scheduled by the system, they will be shown even when the app is in the background.',
+        style: context.textTheme.bodySmall,
+      ),
+      icon: const Icon(Icons.help_outline_outlined),
+    );
+  }
+
   Widget _buildActiveNotificationsList() {
     if (_activeNotifications.isEmpty) {
       return const Center(
@@ -159,9 +185,11 @@ class _ScheduledNotificationsScreenState extends State<ScheduledNotificationsScr
       );
     }
     return ListView.builder(
-      itemCount: _activeNotifications.length,
+      itemCount: _activeNotifications.length + 1,
+      padding: const EdgeInsets.symmetric(vertical: 16),
       itemBuilder: (context, index) {
-        final notification = _activeNotifications[index];
+        if (index == 0) return _buildActiveHeader();
+        final notification = _activeNotifications[index - 1];
         return ListItem.horizontal(
           label: Text(notification.title ?? 'No title'),
           subtitle: Column(
@@ -176,6 +204,17 @@ class _ScheduledNotificationsScreenState extends State<ScheduledNotificationsScr
           icon: const Icon(Icons.notifications_active),
         );
       },
+    );
+  }
+
+  Widget _buildActiveHeader() {
+    return ListItem.compact(
+      label: const Text('Active Notifications'),
+      subtitle: Text(
+        'These are the notifications that have been shown to the user, and are currently visible in the notification tray.',
+        style: context.textTheme.bodySmall,
+      ),
+      icon: const Icon(Icons.help_outline_outlined),
     );
   }
 }
