@@ -26,6 +26,8 @@ pub enum AccountError {
     PinTimeout(PinTimeoutData),
     #[cfg_attr(feature = "client", category(expected))]
     AccountBlocked,
+    #[cfg_attr(feature = "client", category(expected))]
+    AccountRevoked(RevocationReason),
     InstructionValidation,
 }
 
@@ -52,6 +54,11 @@ pub enum RevocationReason {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RevocationReasonData {
+    revocation_reason: RevocationReason,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IncorrectPinData {
     pub attempts_left_in_round: u8,
     pub is_final_round: bool,
@@ -69,6 +76,9 @@ impl From<AccountError> for Map<String, Value> {
         match value {
             AccountError::IncorrectPin(data) => serde_json::to_value(data).into(),
             AccountError::PinTimeout(data) => serde_json::to_value(data).into(),
+            AccountError::AccountRevoked(revocation_reason) => {
+                serde_json::to_value(RevocationReasonData { revocation_reason }).into()
+            }
             _ => None,
         }
         .transpose()
@@ -102,6 +112,9 @@ impl AccountError {
             AccountErrorType::PinTimeout => Self::PinTimeout(serde_json::from_value(data)?),
             AccountErrorType::AccountBlocked => Self::AccountBlocked,
             AccountErrorType::InstructionValidation => Self::InstructionValidation,
+            AccountErrorType::AccountRevoked => {
+                Self::AccountRevoked(serde_json::from_value::<RevocationReasonData>(data)?.revocation_reason)
+            }
         };
 
         Ok(account_error)
