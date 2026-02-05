@@ -775,6 +775,9 @@ async fn test_service_republish_status_list_with_revoke_all_set() {
 
     // Check if published list only contains invalid statuses
     assert_published_list(&config, &db_lists[0], 0..8).await;
+
+    // Set revoke all again to check for idempotency
+    revoke_all_flag.set().await.unwrap();
 }
 
 #[tokio::test]
@@ -788,8 +791,6 @@ async fn test_service_new_status_list_with_revoke_all_set() {
             .unwrap();
 
     // Set revoke all
-    revoke_all_flag.set().await.unwrap();
-    // Set revoke all again to check for idempotency
     revoke_all_flag.set().await.unwrap();
 
     // Create status claims for attestation to create new list
