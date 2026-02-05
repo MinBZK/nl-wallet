@@ -58,6 +58,17 @@ void main() {
       await screenMatchesGolden('review_revocation_code_success');
     });
 
+    testGoldens('ReviewRevocationCodeSuccess - Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const ReviewRevocationCodeScreen().withState<ReviewRevocationCodeBloc, ReviewRevocationCodeState>(
+          mockBloc,
+          const ReviewRevocationCodeSuccess(sampleRevocationCode),
+        ),
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('review_revocation_code_success.landscape');
+    });
+
     testGoldens('ReviewRevocationCodeSuccess - dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ReviewRevocationCodeScreen().withState<ReviewRevocationCodeBloc, ReviewRevocationCodeState>(
