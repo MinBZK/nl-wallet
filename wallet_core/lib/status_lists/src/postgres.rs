@@ -1061,12 +1061,14 @@ where
             })
             .buffer_unordered(REVOKE_ALL_MAX_CONCURRENT);
 
-        while let Some(result) = stream.next().await {
-            if let Err(err) = result {
+        let mut result = Ok(());
+        while let Some(job_result) = stream.next().await {
+            if let Err(err) = job_result {
                 tracing::error!("Error publishing list: {:?}", err);
+                result = Err(err);
             }
         }
-        Ok(())
+        result
     }
 }
 
