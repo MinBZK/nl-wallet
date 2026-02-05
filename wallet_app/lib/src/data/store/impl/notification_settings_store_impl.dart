@@ -33,7 +33,7 @@ class NotificationSettingsStoreImpl extends NotificationSettingsStore {
   @override
   Future<bool> getPushNotificationsEnabled() async {
     final preferences = await _preferences.call();
-    return preferences.getBool(_kPushNotificationsEnabledKey) ?? true;
+    return preferences.getBool(_kPushNotificationsEnabledKey) ?? false;
   }
 
   @override

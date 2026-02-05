@@ -21,7 +21,11 @@ class ManageNotificationsBloc extends Bloc<ManageNotificationsEvent, ManageNotif
   final SetPushNotificationsSettingUseCase _setShowNotificationsSettingUsecase;
   final AppLifecycleService _lifecycleService;
 
+  /// Subscription to the app lifecycle stream. Used to cancel the stream when the bloc is closed.
   late StreamSubscription _lifecycleSubscription;
+
+  /// Flag that indicates we redirected the user to the App's settings. Used in the onResume callback.
+  bool _didRedirectToSettings = false;
 
   ManageNotificationsBloc(
     this._checkPermissionUseCase,
@@ -32,17 +36,22 @@ class ManageNotificationsBloc extends Bloc<ManageNotificationsEvent, ManageNotif
   ) : super(const ManageNotificationsInitial()) {
     on<ManageNotificationsLoadTriggered>(_onRefresh);
     on<ManageNotificationsPushNotificationsToggled>(_onPushNotificationsToggled);
-    _lifecycleSubscription = _lifecycleService
-        .observe()
-        .skip(1)
-        .where((state) => state == .resumed)
-        .listen((_) => add(const ManageNotificationsLoadTriggered()));
+    _lifecycleSubscription = _lifecycleService.observe().skip(1).where((state) => state == .resumed).listen((_) {
+      add(ManageNotificationsLoadTriggered(isRefreshAfterSettingsRedirect: _didRedirectToSettings));
+      _didRedirectToSettings = false;
+    });
   }
 
   Future<void> _onRefresh(ManageNotificationsLoadTriggered event, Emitter<ManageNotificationsState> emit) async {
     final result = await _checkPermissionUseCase.invoke(.notification);
+
+    /// Check for the case where user was redirected to the settings to grant the permission
+    if (event.isRefreshAfterSettingsRedirect && result.isGranted) {
+      await _setShowNotificationsSettingUsecase.invoke(enabled: true);
+    }
+
+    /// Emit the current state
     final enabled = await _observeShowNotificationsSettingUsecase.invoke().first;
-    // Also set and check local flag, clear flag on app reset?
     emit(ManageNotificationsLoaded(pushEnabled: enabled && result.isGranted));
   }
 
@@ -58,26 +67,26 @@ class ManageNotificationsBloc extends Bloc<ManageNotificationsEvent, ManageNotif
       return;
     }
 
-    // Always (re)enable the internal setting
-    await _setShowNotificationsSettingUsecase.invoke(enabled: true);
-
     // Check if permission is already granted
     final result = await _checkPermissionUseCase.invoke(.notification);
     if (result.isGranted) {
-      // Permission already granted, simply update UI
+      // Permission already granted, update setting & ui
+      await _setShowNotificationsSettingUsecase.invoke(enabled: true);
       emit(const ManageNotificationsLoaded(pushEnabled: true));
       return;
     }
 
     // Check if it's permanently denied
     if (result.isPermanentlyDenied) {
-      // No way to resolve this in-app, redirect to settings, refreshes in onResume
+      // No way to resolve this in-app, redirect to settings, refresh in onResume.
       unawaited(AppSettings.openAppSettings(type: .notification));
+      _didRedirectToSettings = true;
       return;
     }
 
-    // Request in-app permission and emit result
+    // Request in-app permission and handle the result
     final requestResult = await _requestPermissionUseCase.invoke(.notification);
+    await _setShowNotificationsSettingUsecase.invoke(enabled: requestResult.isGranted);
     emit(ManageNotificationsLoaded(pushEnabled: requestResult.isGranted));
   }
 

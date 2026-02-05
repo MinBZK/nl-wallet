@@ -9,7 +9,12 @@ abstract class ManageNotificationsEvent extends Equatable {
 
 /// Request BLoC to refresh data
 class ManageNotificationsLoadTriggered extends ManageNotificationsEvent {
-  const ManageNotificationsLoadTriggered();
+  final bool isRefreshAfterSettingsRedirect;
+
+  const ManageNotificationsLoadTriggered({this.isRefreshAfterSettingsRedirect = false});
+
+  @override
+  List<Object?> get props => [isRefreshAfterSettingsRedirect];
 }
 
 /// Notify BLoC about user toggling the push settings switch

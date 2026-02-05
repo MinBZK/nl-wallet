@@ -27,7 +27,7 @@ void main() {
     requestPermissionUseCase = MockRequestPermissionUseCase();
     observePushNotificationsSettingUseCase = MockObservePushNotificationsSettingUseCase();
     setPushNotificationsSettingUseCase = MockSetPushNotificationsSettingUseCase();
-    lifecycleService = Mocks.create();
+    lifecycleService = AppLifecycleService();
 
     when(setPushNotificationsSettingUseCase.invoke(enabled: anyNamed('enabled'))).thenAnswer((_) async {});
 
@@ -173,7 +173,6 @@ void main() {
       act: (bloc) => bloc.add(const ManageNotificationsPushNotificationsToggled()),
       expect: () => [],
       verify: (_) {
-        verify(setPushNotificationsSettingUseCase.invoke(enabled: true));
         expect(methodCallLog, <String>['openSettings']);
       },
     );
@@ -199,8 +198,8 @@ void main() {
       act: (bloc) => bloc.add(const ManageNotificationsPushNotificationsToggled()),
       expect: () => [const ManageNotificationsLoaded(pushEnabled: true)],
       verify: (_) {
-        verify(setPushNotificationsSettingUseCase.invoke(enabled: true));
         verify(requestPermissionUseCase.invoke(Permission.notification));
+        verify(setPushNotificationsSettingUseCase.invoke(enabled: true));
       },
     );
 
@@ -225,8 +224,35 @@ void main() {
       act: (bloc) => bloc.add(const ManageNotificationsPushNotificationsToggled()),
       expect: () => [/* no state changer */],
       verify: (_) {
-        verify(setPushNotificationsSettingUseCase.invoke(enabled: true));
         verify(requestPermissionUseCase.invoke(Permission.notification));
+        verify(setPushNotificationsSettingUseCase.invoke(enabled: false));
+      },
+    );
+
+    blocTest(
+      'verify onResume triggers permission and settings check and emits result',
+      build: () => ManageNotificationsBloc(
+        checkPermissionUseCase,
+        requestPermissionUseCase,
+        observePushNotificationsSettingUseCase,
+        setPushNotificationsSettingUseCase,
+        lifecycleService,
+      ),
+      seed: () => const ManageNotificationsLoaded(pushEnabled: false),
+      setUp: () {
+        when(observePushNotificationsSettingUseCase.invoke()).thenAnswer((_) => Stream.value(true));
+        when(
+          checkPermissionUseCase.invoke(Permission.notification),
+        ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+        when(
+          requestPermissionUseCase.invoke(Permission.notification),
+        ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+      },
+      act: (bloc) => lifecycleService.notifyStateChanged(.resumed),
+      expect: () => [const ManageNotificationsLoaded(pushEnabled: true)],
+      verify: (_) {
+        verify(observePushNotificationsSettingUseCase.invoke());
+        verify(checkPermissionUseCase.invoke(Permission.notification));
       },
     );
   });
