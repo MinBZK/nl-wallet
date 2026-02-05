@@ -1,10 +1,6 @@
 {% extends "base.askama" %}
 {%- import "../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
-{% block title %}
-{{ base.trans.delete_title }}
-{% endblock %}
-
 {% block script %}
 <script integrity="sha256-{{ base.language_js_sha256 }}" src="../language.js" defer></script>
 {% endblock %}
@@ -15,6 +11,12 @@
 
 {% block content %}
 <section class="intro">
+  <div class="logo-icon-wrapper">
+    <img src="/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
+  </div>
+
+  <h1>{{ base.trans.delete_title }}</h1>
+
   <p>{{ base.trans.delete_description }}</p>
   <p>{{ base.trans.delete_warning }}</p>
 </section>
@@ -26,7 +28,7 @@
 <form method="post" action="/support/delete" class="delete-form">
   <fieldset>
     <legend class="step-title">Step 1:</legend>
-    <p>{{ base.trans.delete_step1_instruction }}</p>
+    <p class="step-description">{{ base.trans.delete_step1_instruction }}</p>
 
     <div class="form-group">
       <label for="deletion-code">
