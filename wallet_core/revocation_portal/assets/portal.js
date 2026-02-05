@@ -3,6 +3,10 @@
   const errorDisplay = document.getElementById('error-message');
   if (!input || !errorDisplay) return;
 
+  // Disable native pattern validation since JS handles it with better UX
+  input.removeAttribute('pattern');
+  input.removeAttribute('title');
+
   const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g;
 
   const validate = (showError = false) => {
