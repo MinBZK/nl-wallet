@@ -3,7 +3,7 @@ use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::*;
 
 use crate::m20250925_000002_create_attestation_batch::AttestationBatch;
-use crate::m20250925_000003_create_status_lists::StatusList;
+use crate::m20250925_000003_create_status_list::StatusList;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
