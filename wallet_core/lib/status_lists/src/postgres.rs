@@ -77,7 +77,7 @@ const EXTERNAL_ID_SIZE: usize = 12;
 /// Number of tries to create status list while obtaining a status claim.
 const IN_FLIGHT_CREATE_TRIES: usize = 5;
 
-/// Flag name (as a key) used in the database to revoke all status lists
+/// Flag name used in the database (as a key) to revoke all status lists
 const FLAG_NAME_REVOKE_ALL: &str = "revoke_all";
 
 /// Maximal concurrent publish when revoke_all is called
