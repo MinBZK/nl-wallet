@@ -76,12 +76,14 @@ impl StatusListTokenBuilder {
 }
 
 #[serde_as]
+#[serde_with::skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StatusListClaims {
     #[serde(with = "ts_seconds")]
     pub iat: DateTime<Utc>,
 
+    #[serde(default)]
     #[serde(with = "ts_seconds_option")]
     pub exp: Option<DateTime<Utc>>,
 
@@ -91,6 +93,7 @@ pub struct StatusListClaims {
 
     /// If present, MUST specify the maximum amount of time, in seconds, that the Status List Token can be cached by a
     /// consumer before a fresh copy SHOULD be retrieved.
+    #[serde(default)]
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub ttl: Option<Duration>,
 

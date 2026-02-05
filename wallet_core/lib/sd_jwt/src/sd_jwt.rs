@@ -829,7 +829,7 @@ mod examples {
                 iss: "https://cert.issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
                 exp: Some((time.generate() + Days::new(365)).into()),
-                nbf: Some((time.generate() - Days::new(365)).into()),
+                nbf: Some((std::cmp::max(time.generate() - Days::new(365), DateTime::UNIX_EPOCH)).into()),
                 attestation_qualification: Some(AttestationQualification::QEAA),
                 status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(json!({
@@ -978,7 +978,10 @@ mod test {
             .into_verified(&EcdsaDecodingKey::from(issuer_keypair.certificate().public_key()))
             .expect_err("should fail");
 
-        assert_matches!(err, DecoderError::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature);
+        assert_matches!(
+            err,
+            DecoderError::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature
+        );
     }
 
     #[test]
