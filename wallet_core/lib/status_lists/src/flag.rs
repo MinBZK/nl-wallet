@@ -4,10 +4,7 @@ use sea_orm::DatabaseConnection;
 use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
-use sea_orm::QuerySelect;
-use sea_orm::SelectColumns;
 use sea_orm::Set;
-use sea_orm::sea_query::Expr;
 
 use crate::entity::status_list_flag;
 
@@ -19,11 +16,8 @@ pub struct Flag {
 
 impl Flag {
     pub async fn is_set(&self) -> Result<bool, DbErr> {
-        let result: Option<bool> = status_list_flag::Entity::find()
-            .select_only()
-            .select_column_as(Expr::cust("true"), "found")
+        let result = status_list_flag::Entity::find()
             .filter(status_list_flag::Column::Name.eq(&self.name))
-            .into_tuple()
             .one(&self.connection)
             .await?;
 
