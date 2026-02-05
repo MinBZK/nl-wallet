@@ -382,10 +382,20 @@ impl<K> PostgresStatusListService<K> {
         config: StatusListConfig<K>,
     ) -> Result<Self, StatusListServiceError> {
         let revoke_all_flag = Flag::new(connection.clone(), FLAG_NAME_REVOKE_ALL.to_string());
-        Self::try_new_with_flag(connection, attestation_type, config, revoke_all_flag).await
+        Self::try_new_with_flag_inner(connection, attestation_type, config, revoke_all_flag).await
     }
 
+    #[cfg(feature = "test")]
     pub async fn try_new_with_flag(
+        connection: DatabaseConnection,
+        attestation_type: &str,
+        config: StatusListConfig<K>,
+        revoke_all_flag: Flag,
+    ) -> Result<Self, StatusListServiceError> {
+        Self::try_new_with_flag_inner(connection, attestation_type, config, revoke_all_flag).await
+    }
+
+    async fn try_new_with_flag_inner(
         connection: DatabaseConnection,
         attestation_type: &str,
         config: StatusListConfig<K>,
