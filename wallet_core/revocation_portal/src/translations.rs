@@ -56,7 +56,7 @@ pub const TRANSLATIONS: Translations = Translations {
     nl: Words {
         en: "English",
         nl: "Nederlands",
-        meta_title: "NL Wallet verwijder portaal",
+        meta_title: "NL Wallet verwijder-portaal",
         delete_title: "Wil je je NL Wallet verwijderen?",
         success_title: "Je NL Wallet is stopgezet",
         error_title: "Sorry, er gaat iets mis",
