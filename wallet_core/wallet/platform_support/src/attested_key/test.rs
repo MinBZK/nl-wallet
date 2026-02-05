@@ -189,13 +189,15 @@ pub async fn create_and_verify_attested_key<'a, H>(
             };
 
             log::info!("Invoke verify_google_key_attestation");
-            verify_google_key_attestation(
+            let (_leaf_cert, key_attestation) = verify_google_key_attestation(
                 &der_certificate_chain,
                 &android_test_data.root_public_keys,
                 &revocation_list,
                 &challenge,
             )
             .expect("could not verify attestation key certificate chain");
+
+            assert_eq!(key_attestation.attestation_challenge, challenge);
 
             log::info!("Sign payload with google key");
             let signature1 = key.try_sign(&payload).await.expect("could not sign payload");

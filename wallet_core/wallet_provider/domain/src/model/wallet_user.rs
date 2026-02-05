@@ -8,6 +8,8 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use uuid::Uuid;
 
+use android_attest::attestation_extension::key_attestation::OsVersion;
+use android_attest::attestation_extension::key_attestation::PatchLevel;
 use apple_app_attest::AssertionCounter;
 use crypto::p256_der::verifying_key_sha256;
 use hsm::model::encrypted::Encrypted;
@@ -66,7 +68,15 @@ pub struct TransferSession {
 #[derive(Debug)]
 pub enum WalletUserAttestation {
     Apple { assertion_counter: AssertionCounter },
-    Android,
+    Android { identifiers: AndroidHardwareIdentifiers },
+}
+
+#[derive(Debug, Default)]
+pub struct AndroidHardwareIdentifiers {
+    pub brand: Option<String>,
+    pub model: Option<String>,
+    pub os_version: Option<OsVersion>,
+    pub os_patch_level: Option<PatchLevel>,
 }
 
 impl WalletUser {
@@ -116,6 +126,7 @@ pub enum WalletUserAttestationCreate {
     Android {
         certificate_chain: Vec<Vec<u8>>,
         integrity_verdict_json: String,
+        identifiers: AndroidHardwareIdentifiers,
     },
 }
 
@@ -172,9 +183,10 @@ pub mod mock {
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypted::InitializationVector;
 
-    use crate::model::wallet_user::WalletUser;
-    use crate::model::wallet_user::WalletUserAttestation;
-    use crate::model::wallet_user::WalletUserState;
+    use super::AndroidHardwareIdentifiers;
+    use super::WalletUser;
+    use super::WalletUserAttestation;
+    use super::WalletUserState;
 
     pub fn wallet_user_1() -> WalletUser {
         WalletUser {
@@ -194,7 +206,9 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             last_unsuccessful_pin_entry: None,
             instruction_challenge: None,
             instruction_sequence_number: 0,
-            attestation: WalletUserAttestation::Android,
+            attestation: WalletUserAttestation::Android {
+                identifiers: AndroidHardwareIdentifiers::default(),
+            },
             state: WalletUserState::Active,
             revocation_code_hmac: random_bytes(32),
             revocation_registration: None,

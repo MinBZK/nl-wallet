@@ -8489,6 +8489,7 @@ dependencies = [
 name = "wallet_provider_domain"
 version = "0.5.0-dev"
 dependencies = [
+ "android_attest",
  "apple_app_attest",
  "chrono",
  "crypto",
@@ -8522,6 +8523,7 @@ dependencies = [
 name = "wallet_provider_persistence"
 version = "0.5.0-dev"
 dependencies = [
+ "android_attest",
  "apple_app_attest",
  "assert_matches",
  "chrono",

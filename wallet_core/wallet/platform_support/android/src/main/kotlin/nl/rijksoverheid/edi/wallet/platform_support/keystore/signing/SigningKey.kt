@@ -2,6 +2,7 @@
 package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.content.Context
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
@@ -19,6 +20,7 @@ import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
 import java.security.PrivateKey
+import java.security.ProviderException
 import java.security.Signature
 import java.security.UnrecoverableKeyException
 import java.security.spec.ECGenParameterSpec
@@ -34,22 +36,39 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             NoSuchAlgorithmException::class,
         )
         fun createKey(context: Context, keyAlias: String, challenge: List<UByte>? = null) {
-            val spec = KeyGenParameterSpec.Builder(keyAlias, KeyProperties.PURPOSE_SIGN)
-                .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
-                .setDigests(KeyProperties.DIGEST_SHA256)
-                .setStrongBoxBackedCompat(context, true)
-                .also { spec ->
-                    challenge?.let {
-                        spec.setAttestationChallenge(it.toByteArray())
+            fun buildSpec(includeDeviceProperties: Boolean): KeyGenParameterSpec {
+                return KeyGenParameterSpec.Builder(keyAlias, KeyProperties.PURPOSE_SIGN)
+                    .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+                    .setDigests(KeyProperties.DIGEST_SHA256)
+                    .setStrongBoxBackedCompat(context, true)
+                    .also { spec ->
+                        if (includeDeviceProperties && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            spec.setDevicePropertiesAttestationIncluded(true)
+                        }
                     }
-                }
+                    .also { spec ->
+                        challenge?.let {
+                            spec.setAttestationChallenge(it.toByteArray())
+                        }
+                    }
+                    .build()
+            }
 
-            KeyPairGenerator.getInstance(
-                KeyProperties.KEY_ALGORITHM_EC,
-                KEYSTORE_PROVIDER
-            ).apply {
-                initialize(spec.build())
-                generateKeyPair()
+            fun generateKey(spec: KeyGenParameterSpec) {
+                KeyPairGenerator.getInstance(
+                    KeyProperties.KEY_ALGORITHM_EC,
+                    KEYSTORE_PROVIDER
+                ).apply {
+                    initialize(spec)
+                    generateKeyPair()
+                }
+            }
+
+            try {
+                generateKey(buildSpec(includeDeviceProperties = true))
+            } catch (ex: ProviderException) {
+                // Fallback: retry without device properties attestation if not supported
+                generateKey(buildSpec(includeDeviceProperties = false))
             }
         }
     }

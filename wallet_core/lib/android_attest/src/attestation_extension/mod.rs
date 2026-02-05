@@ -61,6 +61,7 @@ mod tests {
     use super::key_attestation::KeyPurpose;
     use super::key_attestation::OsVersion;
     use super::key_attestation::PatchLevel;
+    use super::key_attestation::PatchLevelWithDay;
     use super::key_description::RootOfTrust;
     use super::key_description::SecurityLevel;
     use super::key_description::VerifiedBootState;
@@ -123,7 +124,7 @@ mod tests {
                     verified_boot_hash: OctetString::copy_from_slice(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
                 }.into(),
                 os_version: OsVersion::new(13, 0, 0).into(),
-                os_patch_level: PatchLevel::new(2024, 3, None).into(),
+                os_patch_level: PatchLevel::new(2024, 3).into(),
                 attestation_application_id: Some(
                     AttestationApplicationId {
                         package_infos: SetOf::from_vec(vec![
@@ -139,8 +140,8 @@ mod tests {
                         ]),
                     },
                 ),
-                vendor_patch_level: PatchLevel::new(0, 0, None).into(),
-                boot_patch_level: PatchLevel::new(2024, 3, 1.into()).into(),
+                vendor_patch_level: PatchLevelWithDay::new(0, 0, None).into(),
+                boot_patch_level: PatchLevelWithDay::new(2024, 3, 1.into()).into(),
                 ..Default::default()
             },
             hardware_enforced: AuthorizationList {
@@ -245,9 +246,9 @@ mod tests {
                 }
                 .into(),
                 os_version: OsVersion::new(0, 0, 0).into(),
-                os_patch_level: PatchLevel::new(2019, 7, None).into(),
-                vendor_patch_level: PatchLevel::new(2019, 7, 5.into()).into(),
-                boot_patch_level: PatchLevel::new(2019, 7, 0.into()).into(),
+                os_patch_level: PatchLevel::new(2019, 7).into(),
+                vendor_patch_level: PatchLevelWithDay::new(2019, 7, 5.into()).into(),
+                boot_patch_level: PatchLevelWithDay::new(2019, 7, 0.into()).into(),
                 ..Default::default()
             },
         }
@@ -350,9 +351,9 @@ mod tests {
                 }
                 .into(),
                 os_version: OsVersion::new(0, 0, 0).into(),
-                os_patch_level: PatchLevel::new(2019, 7, None).into(),
-                vendor_patch_level: PatchLevel::new(2019, 7, None).into(),
-                boot_patch_level: PatchLevel::new(2019, 7, None).into(),
+                os_patch_level: PatchLevel::new(2019, 7).into(),
+                vendor_patch_level: PatchLevelWithDay::new(2019, 7, None).into(),
+                boot_patch_level: PatchLevelWithDay::new(2019, 7, None).into(),
                 ..Default::default()
             },
         }

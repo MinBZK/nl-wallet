@@ -99,6 +99,7 @@ use wallet_account::signed::SequenceNumberComparison;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
+use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -639,7 +640,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     RSA_PKCS1_3072_8192_SHA384,
                 ];
 
-                let leaf_certificate = verify_google_key_attestation_with_params(
+                let (leaf_certificate, key_attestation) = verify_google_key_attestation_with_params(
                     &attested_key_chain,
                     &self.android_config.root_public_keys,
                     &crl,
@@ -720,6 +721,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     .map(|_| WalletUserAttestationCreate::Android {
                         certificate_chain: certificate_chain.into_inner(),
                         integrity_verdict_json,
+                        identifiers: AndroidHardwareIdentifiers {
+                            brand: key_attestation.hardware_enforced.attestation_id_brand,
+                            model: key_attestation.hardware_enforced.attestation_id_model,
+                            os_version: key_attestation.hardware_enforced.os_version,
+                            os_patch_level: key_attestation.hardware_enforced.os_patch_level,
+                        },
                     })
                     .map_err(RegistrationError::MessageValidation)?;
 
@@ -828,7 +835,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     assertion_counter,
                 )
                 .map(|(request, assertion_counter)| (request, Some(assertion_counter))),
-            WalletUserAttestation::Android => challenge_request
+            // TODO (PVW-5293): Block a device if its attestations match an entry in the deny list.
+            WalletUserAttestation::Android { .. } => challenge_request
                 .request
                 .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, &user.hw_pubkey)
                 .map(|request| (request, None)),
@@ -1477,7 +1485,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     &pin_pubkey,
                 )
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
-            WalletUserAttestation::Android => instruction
+            // TODO (PVW-5293): Block a device if its attestations match an entry in the deny list.
+            WalletUserAttestation::Android { .. } => instruction
                 .instruction
                 .parse_and_verify_google(
                     &challenge.bytes,
@@ -1516,7 +1525,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     assertion_counter,
                 )
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
-            WalletUserAttestation::Android => instruction
+            // TODO (PVW-5293): Block a device if its attestations match an entry in the deny list.
+            WalletUserAttestation::Android { .. } => instruction
                 .instruction
                 .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, &wallet_user.hw_pubkey)
                 .map(|parsed| (parsed, None)),
