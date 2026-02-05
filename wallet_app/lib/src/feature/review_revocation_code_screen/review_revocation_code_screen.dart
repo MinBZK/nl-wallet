@@ -12,6 +12,7 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/pin_header.dart';
+import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -89,10 +90,15 @@ class ReviewRevocationCodeScreen extends StatelessWidget {
   Widget _buildSuccess(BuildContext context, String revocationCode) {
     return TerminalPage(
       title: context.l10n.reviewRevocationCodeScreenSuccessTitle,
-      description: context.l10n.reviewRevocationCodeScreenSuccessDescription,
       illustration: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        child: RevocationCodeText(revocationCode: revocationCode),
+        child: Column(
+          children: [
+            BodyText(context.l10n.reviewRevocationCodeScreenSuccessDescription),
+            const SizedBox(height: 8),
+            RevocationCodeText(revocationCode: revocationCode),
+          ],
+        ),
       ),
       primaryButtonCta: context.l10n.reviewRevocationCodeScreenSuccessCta,
       onPrimaryPressed: () => context.read<ReviewRevocationCodeBloc>().add(const ReviewRevocationCodeRestartFlow()),

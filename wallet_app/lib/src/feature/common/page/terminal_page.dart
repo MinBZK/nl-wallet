@@ -13,7 +13,7 @@ import '../widget/wallet_scrollbar.dart';
 
 class TerminalPage extends StatelessWidget {
   final String title;
-  final String description;
+  final String? description;
   final String primaryButtonCta;
   final Widget? primaryButtonIcon;
   final VoidCallback onPrimaryPressed;
@@ -27,7 +27,7 @@ class TerminalPage extends StatelessWidget {
 
   const TerminalPage({
     required this.title,
-    required this.description,
+    this.description,
     required this.primaryButtonCta,
     required this.onPrimaryPressed,
     this.primaryButtonIcon = const Icon(Icons.arrow_forward_outlined),
@@ -79,11 +79,13 @@ class TerminalPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleText(title),
-              const SizedBox(height: 8),
-              ParagraphedList.splitContent(description),
-            ],
+            children: description == null
+                ? [TitleText(title)]
+                : [
+                    TitleText(title),
+                    const SizedBox(height: 8),
+                    ParagraphedList.splitContent(description!),
+                  ],
           ),
         ),
         const SizedBox(height: 24),
