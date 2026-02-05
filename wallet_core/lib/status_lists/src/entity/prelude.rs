@@ -4,4 +4,5 @@ pub use super::attestation_batch::Entity as AttestationBatch;
 pub use super::attestation_batch_list_indices::Entity as AttestationBatchListIndices;
 pub use super::attestation_type::Entity as AttestationType;
 pub use super::status_list::Entity as StatusList;
+pub use super::status_list_flag::Entity as StatusListFlag;
 pub use super::status_list_item::Entity as StatusListItem;
