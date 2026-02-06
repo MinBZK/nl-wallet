@@ -80,6 +80,7 @@ use utils::vec_at_least::VecNonEmpty;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::HwSignedInstruction;
@@ -101,7 +102,6 @@ use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -150,6 +150,8 @@ pub enum ChallengeError {
     WalletCertificate(#[from] WalletCertificateError),
     #[error("instruction sequence number validation failed")]
     SequenceNumberValidation,
+    #[error("account is revoked with reason: {0}")]
+    AccountIsRevoked(RevocationReason),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -822,6 +824,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         .await?;
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
+
+        if let Some(revocation) = &user.revocation_registration {
+            return Err(ChallengeError::AccountIsRevoked(revocation.reason));
+        }
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
         let (request, assertion_counter) = match user.attestation {
@@ -1910,6 +1916,7 @@ mod tests {
     use utils::vec_nonempty;
     use wallet_account::RevocationCode;
     use wallet_account::messages::errors::IncorrectPinData;
+    use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
@@ -1929,6 +1936,7 @@ mod tests {
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+    use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
     use wallet_provider_domain::repository::MockTransaction;
@@ -2172,6 +2180,7 @@ mod tests {
             apple_assertion_counter,
             state: WalletUserState::Active,
             revocation_code_hmac,
+            revocation_registration: None,
         };
 
         let user_state = mock::user_state(
@@ -2596,6 +2605,35 @@ mod tests {
         } else {
             panic!("user should be found")
         }
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn instruction_request_for_revoked_user_should_fail(
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
+    ) {
+        let (_setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
+            setup_and_do_registration(attestation_type).await;
+
+        user_state.repositories.revocation_registration = Some(RevocationRegistration {
+            reason: RevocationReason::AdminRequest,
+            date_time: Utc::now(),
+        });
+
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<CheckPin>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
+
+        let err = account_server
+            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, ChallengeError::AccountIsRevoked(RevocationReason::AdminRequest));
     }
 
     #[tokio::test]

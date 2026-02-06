@@ -14,10 +14,10 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use measure::measure;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
@@ -492,10 +492,11 @@ pub mod mock {
     use apple_app_attest::AssertionCounter;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::wrapped_key::WrappedKey;
+    use wallet_account::messages::errors::RevocationReason;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-    use wallet_provider_domain::model::wallet_user::RevocationReason;
+    use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
@@ -774,6 +775,7 @@ pub mod mock {
         pub apple_assertion_counter: Option<AssertionCounter>,
         pub state: WalletUserState,
         pub revocation_code_hmac: Vec<u8>,
+        pub revocation_registration: Option<RevocationRegistration>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -827,7 +829,7 @@ pub mod mock {
                 },
                 state: self.state,
                 revocation_code_hmac: self.revocation_code_hmac.clone(),
-                revocation_registration: None,
+                revocation_registration: self.revocation_registration,
                 recovery_code: None,
             })))
         }

@@ -372,6 +372,7 @@ mod tests {
                 apple_assertion_counter: None,
                 state: WalletUserState::Active,
                 revocation_code_hmac: random_bytes(32),
+                revocation_registration: None,
             },
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),

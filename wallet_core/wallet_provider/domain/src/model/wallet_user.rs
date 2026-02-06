@@ -4,8 +4,6 @@ use derive_more::Debug;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use serde::Serialize;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use uuid::Uuid;
 
 use android_attest::attestation_extension::key_attestation::OsVersion;
@@ -14,6 +12,7 @@ use apple_app_attest::AssertionCounter;
 use crypto::p256_der::verifying_key_sha256;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 
 use crate::model::QueryResult;
@@ -41,7 +40,7 @@ pub struct WalletUser {
     pub recovery_code: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct RevocationRegistration {
     pub reason: RevocationReason,
     pub date_time: DateTime<Utc>,
@@ -148,28 +147,6 @@ impl WalletUserKey {
     pub fn sha256_fingerprint(&self) -> String {
         verifying_key_sha256(self.key.public_key())
     }
-}
-
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    SerializeDisplay,
-    DeserializeFromStr,
-    strum::EnumString,
-    strum::Display,
-    strum::EnumIter,
-)]
-#[strum(serialize_all = "snake_case")]
-pub enum RevocationReason {
-    // upon the explicit request of the User
-    UserRequest,
-    // can have several reasons
-    AdminRequest,
-    // the security of the Wallet Solution is breached or compromised
-    WalletSolutionCompromised,
 }
 
 #[cfg(feature = "mock")]

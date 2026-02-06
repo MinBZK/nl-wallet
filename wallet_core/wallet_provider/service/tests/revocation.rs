@@ -31,7 +31,7 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::num::NonZeroU31;
 use utils::num::U31;
 use wallet_account::RevocationCode;
-use wallet_provider_domain::model::wallet_user::RevocationReason;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
