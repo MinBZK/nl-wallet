@@ -1,6 +1,6 @@
 {% extends "base.askama" %}
 
-{% block script %}
+{% block scripts %}
 <script integrity="sha256-{{ base.lokalize_js_sha256 }}" src="/lokalize.js" defer></script>
 {% endblock %}
 

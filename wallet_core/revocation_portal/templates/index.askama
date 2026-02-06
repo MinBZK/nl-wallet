@@ -1,7 +1,7 @@
 {% extends "base.askama" %}
 {%- import "../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
-{% block script %}
+{% block scripts %}
 <script integrity="sha256-{{ base.language_js_sha256 }}" src="../language.js" defer></script>
 {% endblock %}
 
