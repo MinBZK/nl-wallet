@@ -40,6 +40,7 @@ class SetupSecurityTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC51 Setup PIN, LTC70 Receive revocation code")
+    @Tags(Tag("onallandroids"))
     fun verifyChoosePinAndRevocationCodeScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")

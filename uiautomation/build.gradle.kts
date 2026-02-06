@@ -77,6 +77,20 @@ tasks.register<Test>("testA11yBatch2") {
     }
 }
 
+tasks.register<Test>("testA11yBatch3") {
+    useJUnitPlatform {
+        includeTags("a11yBatch3")
+        exclude("suite/**")
+    }
+}
+
+tasks.register<Test>("testAllAndroids") {
+    useJUnitPlatform {
+        includeTags("onallandroids")
+        exclude("suite/**")
+    }
+}
+
 tasks.withType<Test>().configureEach {
     jvmArgs("--add-modules=java.instrument")
     val testConfigMap = mapOf(
