@@ -1,5 +1,6 @@
 #[cfg(feature = "postgres")]
 pub mod postgres;
+
 #[cfg(feature = "postgres")]
 use postgres::PostgresSessionStore;
 

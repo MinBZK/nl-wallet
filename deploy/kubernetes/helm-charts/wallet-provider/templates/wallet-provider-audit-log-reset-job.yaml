@@ -1,0 +1,45 @@
+{{ if .Values.migration.reset }}
+{{ $name := include "common.names.fullname" . }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}-audit-log-reset
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  schedule: "0 0 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "common.labels.component" (list "migration" .) | nindent 12 }}
+            {{- with .Values.migration.labels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: {{ $name }}-audit-log-migrations
+              image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageAuditLogMigrations.repository }}:{{ .Values.image.tag }}"
+              args: ["fresh"]
+              {{- with .Values.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.auditLog.secretName }}
+                      key: url
+          restartPolicy: Never
+{{- end }}

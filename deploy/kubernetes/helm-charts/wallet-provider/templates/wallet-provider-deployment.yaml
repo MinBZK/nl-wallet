@@ -61,6 +61,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.database.secretName }}
                   key: url
+            - name: WALLET_PROVIDER__AUDIT_LOG__URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auditLog.secretName }}
+                  key: url
             - name: WALLET_PROVIDER__HSM__USER_PIN
               valueFrom:
                 secretKeyRef:

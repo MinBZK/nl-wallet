@@ -16,6 +16,9 @@ pid_issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 [database]
 url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider"
 
+[audit_log]
+url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider_audit_log"
+
 [wua_status_list]
 base_url = "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wua"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"

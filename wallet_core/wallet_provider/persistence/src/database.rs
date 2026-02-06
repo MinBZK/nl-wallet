@@ -13,7 +13,10 @@ use crate::PersistenceConnection;
 pub struct Db(DatabaseConnection);
 
 impl Db {
-    pub async fn new(database_url: Url, connection_options: ConnectionOptions) -> Result<Db, PersistenceError> {
+    pub async fn new_connection(
+        database_url: Url,
+        connection_options: ConnectionOptions,
+    ) -> Result<DatabaseConnection, PersistenceError> {
         let mut connect_options = sea_orm::ConnectOptions::new(database_url);
         connect_options
             .connect_timeout(connection_options.connect_timeout)
@@ -25,7 +28,15 @@ impl Db {
             .await
             .map_err(|e| PersistenceError::Connection(e.into()))?;
 
-        Ok(Db(db))
+        Ok(db)
+    }
+
+    pub async fn new(database_url: Url, connection_options: ConnectionOptions) -> Result<Db, PersistenceError> {
+        Db::new_connection(database_url, connection_options).await.map(Db)
+    }
+
+    pub fn to_connection(&self) -> DatabaseConnection {
+        self.0.clone()
     }
 }
 

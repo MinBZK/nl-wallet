@@ -35,6 +35,8 @@ create-deployment-ont:
       artifacts: false
     - job: build-wallet-provider-migrations-image
       artifacts: false
+    - job: build-audit-log-migrations-image
+      artifacts: false
     - job: build-demo-relying-party-image
       artifacts: false
     - job: build-demo-issuer-image
