@@ -28,7 +28,7 @@ impl ChangePinClientError for InstructionError {
             Self::Signing(_) => false,
             Self::InstructionResultValidation(_) => false,
             Self::StoreInstructionSequenceNumber(_) => false,
-            Self::Revoked(_) => false,
+            Self::AccountIsRevoked(_) => false,
         }
     }
 }

@@ -50,7 +50,7 @@ pub enum InstructionError {
     StoreInstructionSequenceNumber(#[from] StorageError),
     #[error("revoked with reason: {0}")]
     #[category(expected)]
-    Revoked(RevocationReason),
+    AccountIsRevoked(RevocationReason),
 }
 
 impl From<AccountProviderError> for InstructionError {
@@ -79,7 +79,7 @@ impl From<AccountProviderError> for InstructionError {
             AccountProviderError::Response(AccountProviderResponseError::Account(
                 AccountError::AccountRevoked(reason),
                 _,
-            )) => Self::Revoked(reason),
+            )) => Self::AccountIsRevoked(reason),
             value => Self::ServerError(value),
         }
     }
