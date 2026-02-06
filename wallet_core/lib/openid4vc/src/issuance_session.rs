@@ -141,6 +141,10 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
 
+    #[error("deferred issuance is not supported")]
+    #[category(expected)]
+    DeferredIssuanceUnsupported,
+
     #[error("received credential response: {actual:?}, expected type {expected}")]
     #[category(pd)]
     UnexpectedCredentialResponseType { expected: String, actual: Credential },
@@ -796,7 +800,9 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             let mut cred_copies = responses_and_pubkeys
                                 .drain(..copy_count)
                                 .map(|(cred_response, (pubkey, key_id))| {
-                                    let credential = cred_response.into_credential().expect("TODO: implement error");
+                                    let credential = cred_response
+                                        .into_credential()
+                                        .ok_or(IssuanceSessionError::DeferredIssuanceUnsupported)?;
 
                                     if credential.format() != *format {
                                         return Err(IssuanceSessionError::UnexpectedCredentialResponseType {
@@ -1100,6 +1106,7 @@ impl IssuanceState {
 mod tests {
     use std::num::NonZeroU8;
     use std::sync::Arc;
+    use std::time::Duration;
     use std::vec;
 
     use assert_matches::assert_matches;
@@ -1659,8 +1666,8 @@ mod tests {
         let mut mock_msg_client = mock_openid_message_client();
 
         mock_msg_client.expect_request_credential().return_once(
-            |_url, credential_requests, _dpop_header, _access_token_header| {
-                let response = signer.into_response_from_request(credential_requests);
+            |_url, credential_request, _dpop_header, _access_token_header| {
+                let response = signer.into_response_from_request(credential_request);
 
                 Ok(response)
             },
@@ -1679,6 +1686,50 @@ mod tests {
             error,
             IssuanceSessionError::TypeMetadataVerification(TypeMetadataChainError::ResourceIntegrity(_))
         );
+    }
+
+    #[rstest]
+    fn test_accept_issuance_deferred_issuance(#[values(false, true)] is_batch: bool) {
+        let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
+        let trust_anchor = signer.trust_anchor.clone();
+
+        let mut mock_msg_client = mock_openid_message_client();
+
+        let response = CredentialResponse::Deferred {
+            transaction_id: "12345".to_string(),
+            interval: Duration::from_hours(24),
+        };
+
+        let previews = if is_batch {
+            mock_msg_client.expect_request_credentials().return_once(
+                |_url, credential_requests, _dpop_header, _access_token_header| {
+                    let responses = CredentialResponses {
+                        credential_responses: vec![response; credential_requests.credential_requests.len().get()],
+                    };
+
+                    Ok(responses)
+                },
+            );
+
+            vec_nonempty![preview_data.clone(), preview_data]
+        } else {
+            mock_msg_client
+                .expect_request_credential()
+                .return_once(|_url, _credential_request, _dpop_header, _access_token_header| Ok(response));
+
+            vec_nonempty![preview_data]
+        };
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews),
+        }
+        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, IssuanceSessionError::DeferredIssuanceUnsupported);
     }
 
     fn mock_credential_response_credential() -> (
