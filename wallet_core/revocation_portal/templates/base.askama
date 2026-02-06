@@ -9,8 +9,8 @@
     <title>{{ base.trans.meta_title }}</title>
 
     <link integrity="sha256-{{ base.combined_css_sha256 }}" rel="stylesheet" href="/css/style.css" />
-
-    <script integrity="sha256-{{ base.portal_js_sha256 }}" src="/portal.js" defer></script>
+    <link integrity="sha256-{{ base.portal_js_sha256 }}" rel="modulepreload" href="/portal.js" />
+    <script integrity="sha256-{{ base.portal_ui_js_sha256 }}" src="/portal-ui.js" type="module"></script>
     {% block script %}{% endblock %}
   </head>
   <body>

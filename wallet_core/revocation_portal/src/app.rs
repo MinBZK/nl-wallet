@@ -51,10 +51,14 @@ struct ApplicationState<C> {
 }
 
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
-    let script_src = format!(
-        "'sha256-{}' 'sha256-{}' 'sha256-{}'",
-        *LANGUAGE_JS_SHA256, *PORTAL_JS_SHA256, *LOKALIZE_JS_SHA256
-    );
+    let script_src = [
+        &LANGUAGE_JS_SHA256,
+        &PORTAL_JS_SHA256,
+        &PORTAL_UI_JS_SHA256,
+        &LOKALIZE_JS_SHA256,
+    ]
+    .map(|sha| format!("'sha256-{}'", **sha))
+    .join(" ");
 
     format!(
         "default-src 'self'; script-src {script_src}; img-src 'self' data:; font-src 'self' data:; form-action \
@@ -64,6 +68,9 @@ static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
 
 pub static PORTAL_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal.js"))));
+
+pub static PORTAL_UI_JS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal-ui.js"))));
 
 pub static LOKALIZE_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/lokalize.js"))));
@@ -149,6 +156,7 @@ struct BaseTemplate<'a> {
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
     language_js_sha256: &'a str,
+    portal_ui_js_sha256: &'a str,
     portal_js_sha256: &'a str,
     lokalize_js_sha256: &'a str,
     combined_css_sha256: &'a str,
@@ -188,6 +196,7 @@ async fn index<C: RevocationClient>(
         available_languages: &Language::iter().collect_vec(),
         language_js_sha256: &LANGUAGE_JS_SHA256,
         portal_js_sha256: &PORTAL_JS_SHA256,
+        portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
         combined_css_sha256: &COMBINED_CSS_SHA256,
     };
@@ -222,6 +231,7 @@ async fn delete_wallet<C: RevocationClient>(
         available_languages: &Language::iter().collect_vec(),
         language_js_sha256: &LANGUAGE_JS_SHA256,
         portal_js_sha256: &PORTAL_JS_SHA256,
+        portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
         combined_css_sha256: &COMBINED_CSS_SHA256,
     };
@@ -334,17 +344,13 @@ mod tests {
     async fn post_delete_with_lang(app: &mut Router, deletion_code: &str, lang: &str) -> Response {
         let (token, cookie) = get_csrf_and_cookie(app).await;
 
-        let form = [
-            ("deletion_code", deletion_code),
-            ("csrf_token", &token),
-            ("language", lang),
-        ];
+        let form = [("deletion_code", deletion_code), ("csrf_token", &token)];
         let body = serde_urlencoded::to_string(form).unwrap();
 
         app.oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/support/delete")
+                .uri(format!("/support/delete?lang={lang}"))
                 .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
                 .header(header::COOKIE, cookie)
                 .body(Body::from(body))
@@ -391,14 +397,14 @@ mod tests {
 
         let (_token, cookie) = get_csrf_and_cookie(&mut app).await;
 
-        let form = [("deletion_code", "C20C-KF0R-D32B-A5E3-2X"), ("language", "nl")];
+        let form = [("deletion_code", "C20C-KF0R-D32B-A5E3-2X")];
         let body = serde_urlencoded::to_string(form).unwrap();
 
         let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/support/delete")
+                    .uri("/support/delete?lang=nl")
                     .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
                     .header(header::COOKIE, cookie)
                     .body(Body::from(body))
@@ -417,18 +423,14 @@ mod tests {
 
         let (token, _cookie) = get_csrf_and_cookie(&mut app).await;
 
-        let form = [
-            ("deletion_code", "C20C-KF0R-D32B-A5E3-2X"),
-            ("csrf_token", &token),
-            ("language", "nl"),
-        ];
+        let form = [("deletion_code", "C20C-KF0R-D32B-A5E3-2X"), ("csrf_token", &token)];
         let body = serde_urlencoded::to_string(form).unwrap();
 
         let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/support/delete")
+                    .uri("/support/delete?lang=nl")
                     .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
                     .body(Body::from(body))
                     .unwrap(),
@@ -449,7 +451,6 @@ mod tests {
         let form = [
             ("deletion_code", "C20C-KF0R-D32B-A5E3-2X"),
             ("csrf_token", "this_csrf_is_wrong"),
-            ("language", "nl"),
         ];
         let body = serde_urlencoded::to_string(form).unwrap();
 
@@ -457,7 +458,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/support/delete")
+                    .uri("/support/delete?lang=nl")
                     .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
                     .header(header::COOKIE, cookie)
                     .body(Body::from(body))

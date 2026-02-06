@@ -303,6 +303,7 @@ issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer" }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
+revocation_portal = { path = "../revocation_portal", features = ["integration_test"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }
 token_status_list = { path = "../lib/token_status_list", features = ["verification"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["test"] }

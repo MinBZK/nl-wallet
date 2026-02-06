@@ -7451,6 +7451,7 @@ dependencies = [
  "rand_core 0.6.4",
  "regex",
  "reqwest",
+ "revocation_portal",
  "ring",
  "rstest",
  "rustls",

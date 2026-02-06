@@ -1,66 +1,52 @@
-(function() {
-  const input = document.getElementById('deletion-code');
-  const errorDisplay = document.getElementById('error-message');
-  if (!input || !errorDisplay) return;
+export const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g;
 
-  // Disable native pattern validation since JS handles it with better UX
-  input.removeAttribute('pattern');
-  input.removeAttribute('title');
+/**
+ * Normalizes and formats a raw deletion code input string.
+ * - Converts to uppercase
+ * - Replaces confusable characters (I/L → 1, O → 0)
+ * - Strips invalid characters
+ * - Inserts hyphens every 4 characters
+ * - Adds a trailing hyphen at group boundaries (for live typing UX)
+ */
+export function formatDeletionCode(value) {
+  let val = value.toUpperCase();
+  val = val.replace(/[IL]/g, '1').replace(/O/g, '0');
+  const rawValue = val.replace(ALLOWED_REGEX, '');
+  const parts = rawValue.match(/.{1,4}/g);
+  let formatted = parts ? parts.join('-') : rawValue;
 
-  const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g;
+  const addTrailingHyphen = rawValue.length > 0 && rawValue.length < 18 && rawValue.length % 4 === 0;
+  if (addTrailingHyphen) {
+    formatted += '-';
+  }
 
-  const validate = (showError = false) => {
-    const val = input.value.replace(/-/g, '');
-    const requiredMsg = input.dataset.requiredMessage;
-    const lengthMsg = input.dataset.validationMessage;
-    let activeMsg = "";
+  return { formatted, rawValue, addTrailingHyphen };
+}
 
-    if (val.length === 0) {
-      activeMsg = requiredMsg;
-    } else if (val.length !== 18) {
-      activeMsg = lengthMsg;
-    }
+/**
+ * Calculates the correct cursor position in the formatted string,
+ * preserving the user's position relative to raw characters.
+ */
+export function calculateCursorPosition(oldVal, oldPos, formatted, rawValue, addTrailingHyphen) {
+  const rawPosBefore = oldVal.substring(0, oldPos).replace(/-/g, '').length;
+  const rawPosInNewValue = Math.min(rawPosBefore, rawValue.length);
+  let newPos = rawPosInNewValue + Math.floor(rawPosInNewValue / 4);
 
-    // Update custom validity (blocks form submission)
-    input.setCustomValidity(activeMsg);
+  if (addTrailingHyphen && rawPosBefore >= rawValue.length) {
+    newPos = formatted.length;
+  }
 
-    // Update our styled display
-    if (showError && activeMsg) {
-      errorDisplay.textContent = activeMsg;
-      errorDisplay.classList.add('visible');
-      input.classList.add('invalid');
-    } else {
-      errorDisplay.classList.remove('visible');
-      input.classList.remove('invalid');
-      errorDisplay.textContent = '';
-    }
-  };
+  return newPos;
+}
 
-  input.addEventListener('input', (e) => {
-    let val = e.target.value.toUpperCase();
-    val = val.replace(/[IL]/g, '1').replace(/O/g, '0');
-    let rawValue = val.replace(ALLOWED_REGEX, '');
-    const parts = rawValue.match(/.{1,4}/g);
-    let formatted = parts ? parts.join('-') : rawValue;
-
-    // Add trailing hyphen right after typing every 4th character
-    if (rawValue.length > 0 && rawValue.length < 18 && rawValue.length % 4 === 0) {
-      formatted += '-';
-    }
-
-    e.target.value = formatted;
-
-    // Show error immediately if too long, otherwise follow existing logic
-    const isTooLong = rawValue.length > 18;
-    validate(isTooLong || errorDisplay.classList.contains('visible'));
-  });
-
-  // Show error when the browser flags the field as invalid (e.g. on submit)
-  input.addEventListener('invalid', (e) => {
-    e.preventDefault(); // Stop native tooltip
-    validate(true);
-  });
-
-  // Initial check
-  validate(false);
-})();
+/**
+ * Returns a validation key for the raw (hyphen-stripped) deletion code.
+ * - 'required'       → empty input
+ * - 'invalid_length' → not exactly 18 characters
+ * - null             → valid
+ */
+export function validateDeletionCode(rawValue) {
+  if (rawValue.length === 0) return 'required';
+  if (rawValue.length !== 18) return 'invalid_length';
+  return null;
+}
