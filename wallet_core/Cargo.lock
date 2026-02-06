@@ -668,6 +668,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "audit_log"
+version = "0.5.0-dev"
+dependencies = [
+ "assert_matches",
+ "chrono",
+ "config",
+ "derive_more",
+ "rstest",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "utils",
+ "uuid",
+]
+
+[[package]]
+name = "audit_log_migrations"
+version = "0.5.0-dev"
+dependencies = [
+ "async-trait",
+ "sea-orm-migration",
+ "tokio",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8427,6 +8455,7 @@ version = "0.5.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
+ "audit_log",
  "axum",
  "axum-server",
  "cfg-if",
@@ -8449,6 +8478,7 @@ dependencies = [
  "rustix",
  "rustls",
  "serde",
+ "serde_json",
  "serde_with",
  "serial_test",
  "spki",
@@ -8561,6 +8591,7 @@ dependencies = [
  "assert_matches",
  "attestation_data",
  "attestation_types",
+ "audit_log",
  "base64 0.22.1",
  "chrono",
  "crypto",

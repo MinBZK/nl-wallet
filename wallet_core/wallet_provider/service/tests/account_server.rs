@@ -30,7 +30,6 @@ use wallet_provider_domain::model::TimeoutPinPolicy;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::db_from_env;
@@ -105,7 +104,7 @@ async fn do_registration(
     let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let key_pair = wua_issuer_ca.generate_status_list_mock().unwrap();
 
-    let db_connection = db.connection().to_owned();
+    let db_connection = db.to_connection();
     let wua_status_list_config = StatusListConfig {
         list_size: 100.try_into().unwrap(),
         create_threshold: 10.try_into().unwrap(),

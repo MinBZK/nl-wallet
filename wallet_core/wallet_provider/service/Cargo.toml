@@ -88,6 +88,7 @@ android_attest.path = "../../lib/android_attest"
 apple_app_attest.path = "../../lib/apple_app_attest"
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
+audit_log.path = "../audit_log"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 jwt.path = "../../lib/jwt"
@@ -117,6 +118,7 @@ android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../../lib/attestation_data", features = ["mock", "generate"] }
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
+audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 jwt = { path = "../../lib/jwt", features = ["test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }

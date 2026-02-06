@@ -62,6 +62,7 @@ regex.workspace = true
 rustix = { workspace = true, features = ["pipe", "stdio"] }
 rustls.workspace = true
 serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
 spki.workspace = true
 strum.workspace = true
@@ -70,7 +71,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["trace", "decompression-zstd"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
-uuid = { workspace = true, features = ["serde", "v4"] }
+uuid = { workspace = true, features = ["serde", "v4", "v7"] }
 utoipa.workspace = true
 utoipa-axum.workspace = true
 
@@ -80,6 +81,7 @@ utoipa-swagger-ui = { workspace = true, optional = true }
 
 android_attest.path = "../lib/android_attest"
 apple_app_attest.path = "../lib/apple_app_attest"
+audit_log.path = "audit_log"
 crypto = { path = "../lib/crypto" }
 health_checkers.path = "../lib/health_checkers"
 hsm.path = "../lib/hsm"

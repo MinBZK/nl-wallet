@@ -478,6 +478,11 @@ then
     fi
     if [[ $START == '0' ]]
     then
+        echo -e "${INFO}Running audit_log database migrations${NC}"
+        pushd "${WALLET_CORE_DIR}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider_audit_log" cargo run --package audit_log_migrations --bin audit_log_migrations -- fresh
+        popd
+
         echo -e "${INFO}Running wallet_provider database migrations${NC}"
         pushd "${WALLET_CORE_DIR}"
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider" cargo run --package wallet_provider_migrations --bin wallet_provider_migrations -- fresh

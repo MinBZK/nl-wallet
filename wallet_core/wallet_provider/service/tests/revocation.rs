@@ -14,6 +14,7 @@ use rstest::rstest;
 use uuid::Uuid;
 
 use attestation_types::status_claim::StatusClaim;
+use audit_log::model::mock::MockAuditLog;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_bytes;
 use crypto::utils::random_string;
@@ -37,7 +38,6 @@ use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
-use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::WalletDeviceVendor;
@@ -75,7 +75,7 @@ async fn setup_state(
         key_pair,
     };
 
-    let service = PostgresStatusListService::try_new(db.connection().clone(), &random_string(20), config)
+    let service = PostgresStatusListService::try_new(db.to_connection(), &random_string(20), config)
         .await
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap().into_iter())
@@ -316,9 +316,14 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
 
     let (wallet_ids_to_revoke, wallet_ids_not_to_revoke) = partition_by_indices(wallets, &indices_to_revoke);
     let wallet_ids_to_revoke = wallet_ids_to_revoke.into_iter().collect();
-    revoke_wallets_by_wallet_id(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
-        .await
-        .unwrap();
+    revoke_wallets_by_wallet_id(
+        &wallet_ids_to_revoke,
+        &user_state,
+        &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
+    )
+    .await
+    .unwrap();
     let (revoked_wua_ids, non_revoked_wua_ids) = partition_by_indices(wuas, &indices_to_revoke);
 
     let revoked_wua_ids = revoked_wua_ids.into_iter().flatten().collect_vec();
@@ -345,9 +350,14 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     .await;
 
     // verify idempotency
-    revoke_wallets_by_wallet_id(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
-        .await
-        .unwrap();
+    revoke_wallets_by_wallet_id(
+        &wallet_ids_to_revoke,
+        &user_state,
+        &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
+    )
+    .await
+    .unwrap();
     verify_revocation(
         wallet_ids_to_revoke.iter(),
         Some(RevocationReason::AdminRequest),
@@ -393,7 +403,7 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     )
     .await;
 
-    revoke_all_wallets(&user_state, &MockTimeGenerator::default())
+    revoke_all_wallets(&user_state, &MockTimeGenerator::default(), &MockAuditLog::default())
         .await
         .unwrap();
 
@@ -409,7 +419,7 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     .await;
 
     // verify idempotency
-    revoke_all_wallets(&user_state, &MockTimeGenerator::default())
+    revoke_all_wallets(&user_state, &MockTimeGenerator::default(), &MockAuditLog::default())
         .await
         .unwrap();
     verify_revocation(
@@ -444,9 +454,14 @@ async fn test_revoke_wallet_not_found() {
 
     let non_existing_wallet_id = "non_existing_wallet_id".to_owned();
     let wallet_ids_to_revoke = HashSet::from([non_existing_wallet_id.clone()]);
-    let err = revoke_wallets_by_wallet_id(&wallet_ids_to_revoke, &user_state, &MockTimeGenerator::default())
-        .await
-        .unwrap_err();
+    let err = revoke_wallets_by_wallet_id(
+        &wallet_ids_to_revoke,
+        &user_state,
+        &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
+    )
+    .await
+    .unwrap_err();
 
     assert!(matches!(err, RevocationError::WalletIdsNotFound(missing_ids) if missing_ids == wallet_ids_to_revoke));
 
@@ -457,6 +472,7 @@ async fn test_revoke_wallet_not_found() {
             .collect(),
         &user_state,
         &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
     )
     .await
     .unwrap_err();
@@ -500,6 +516,7 @@ async fn test_revoke_wallet_wua_error() {
         &wallets.iter().cloned().collect(),
         &user_state,
         &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
     )
     .await
     .unwrap_err();
@@ -552,6 +569,7 @@ async fn test_revoke_wallet_by_revocation_code() {
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
         &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
     )
     .await
     .unwrap();
@@ -573,6 +591,7 @@ async fn test_revoke_wallet_by_revocation_code() {
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
         &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
     )
     .await
     .unwrap();
@@ -605,6 +624,7 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
         &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
     )
     .await
     .unwrap_err();
@@ -643,6 +663,7 @@ async fn test_revoke_wallet_by_revocation_code_hsm_error() {
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
         &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
     )
     .await
     .unwrap_err();
@@ -680,6 +701,7 @@ async fn test_revoke_wallet_by_revocation_code_wua_error() {
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
         &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
     )
     .await
     .unwrap_err();

@@ -19,3 +19,6 @@ DATABASE_URL="postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/verificatio
 
 DATABASE_URL="postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider" \
     cargo run --manifest-path "$BASE_DIR/wallet_core/Cargo.toml" --bin wallet_provider_migrations -- $command
+
+DATABASE_URL="postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider_audit_log" \
+    cargo run --manifest-path "$BASE_DIR/wallet_core/Cargo.toml" --bin audit_log_migrations -- $command

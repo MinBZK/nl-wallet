@@ -61,7 +61,8 @@ pub async fn new_connection(url: Url) -> Result<DatabaseConnection, DbErr> {
         .sqlx_logging(true)
         .sqlx_logging_level(LevelFilter::Trace);
 
-    Database::connect(connection_options).await
+    let connection = Database::connect(connection_options).await?;
+    Ok(connection)
 }
 
 #[derive(Debug, Clone)]

@@ -11,15 +11,16 @@ use tracing::info;
 use uuid::Uuid;
 
 use android_attest::root_public_key::RootPublicKey;
+use audit_log::model::PostgresAuditLog;
 use crypto::keys::EcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionResultMessage;
-use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
@@ -42,6 +43,7 @@ use crate::settings::Settings;
 
 pub struct RouterState<GRC, PIC> {
     pub account_server: AccountServer<GRC, PIC>,
+    pub audit_log: PostgresAuditLog<UuidV7Generator>,
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
@@ -116,8 +118,16 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         // TODO refactor wallet_provider_database to generic database module to share with issuance server (PVW-5196)
         let db = Db::new(settings.database.url, settings.database.options).await?;
 
+        let audit_db = Db::new_connection(settings.audit_log.url, settings.audit_log.options).await?;
+
+        let audit_log = PostgresAuditLog {
+            db_connection: audit_db,
+            time_generator: TimeGenerator,
+            uuid_generator: UuidV7Generator,
+        };
+
         let status_list_service = PostgresStatusListService::try_new(
-            db.connection().to_owned(),
+            db.to_connection(),
             WUA_ATTESTATION_TYPE_IDENTIFIER,
             settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
         )
@@ -146,6 +156,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
 
         let state = RouterState {
             account_server,
+            audit_log,
             instruction_result_signing_key,
             certificate_signing_key,
             pin_policy,
@@ -225,5 +236,14 @@ impl<GRC, PIC> Generator<uuid::Uuid> for RouterState<GRC, PIC> {
 impl<GRC, PIC> Generator<DateTime<Utc>> for RouterState<GRC, PIC> {
     fn generate(&self) -> DateTime<Utc> {
         Utc::now()
+    }
+}
+
+// Time-Sortable and Index-Friendly Uuid generator
+pub struct UuidV7Generator;
+
+impl Generator<Uuid> for UuidV7Generator {
+    fn generate(&self) -> Uuid {
+        Uuid::now_v7()
     }
 }
