@@ -36,7 +36,7 @@ scheduled-check-rust-feature-powerset:
     - cd wallet_core
   script:
     # Run cargo check for every combination of features which includes default features and --no-default-features
-    - cargo hack check -feature-powerset --no-dev-deps
+    - cargo hack check --feature-powerset --no-dev-deps
 
 manual-check-rust-feature-powerset:
   rules: !reference [.default-or-merge-request, rules]
