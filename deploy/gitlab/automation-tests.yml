@@ -314,6 +314,7 @@ run-automation-smoke-test-ios-ont:
 
 run-test-on-all-android-devices:
   extends: .run-automation-tests-common-setup
+  rules: !reference [.default-branch, rules]
   when: manual
   script:
     - mv browserstack-config/browserstack-all-android.yml ./browserstack.yml
