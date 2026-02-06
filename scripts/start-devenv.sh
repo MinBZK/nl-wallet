@@ -53,7 +53,7 @@ Where:
     drp, demo_relying_party:    Start the demo_relying_party.
     di, demo_issuer:            Start the demo_issuer.
     dx, demo_index:             Start the demo_index.
-    rp, revocation_portal:      Start the revocation_portal.
+    rvp, revocation_portal:     Start the revocation_portal.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     static, static_server:      Start the static server
     ups, update_policy_server:  Start the update policy server
@@ -148,7 +148,7 @@ do
             DEMO_INDEX=0
             shift # past argument
             ;;
-        rp|revocation_portal)
+        rvp|revocation_portal)
             REVOCATION_PORTAL=0
             shift # past argument
             ;;
