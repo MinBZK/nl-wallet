@@ -55,6 +55,7 @@ use crate::CredentialErrorCode;
 use crate::ErrorResponse;
 use crate::Format;
 use crate::TokenErrorCode;
+use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequestType;
@@ -142,10 +143,7 @@ pub enum IssuanceSessionError {
 
     #[error("received credential response: {actual:?}, expected type {expected}")]
     #[category(pd)]
-    UnexpectedCredentialResponseType {
-        expected: String,
-        actual: CredentialResponse,
-    },
+    UnexpectedCredentialResponseType { expected: String, actual: Credential },
 
     #[error("error reading HTTP error: {0}")]
     #[category(pd)]
@@ -798,16 +796,18 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             let mut cred_copies = responses_and_pubkeys
                                 .drain(..copy_count)
                                 .map(|(cred_response, (pubkey, key_id))| {
-                                    if !cred_response.matches_format(*format) {
+                                    let credential = cred_response.into_credential().expect("TODO: implement error");
+
+                                    if credential.format() != *format {
                                         return Err(IssuanceSessionError::UnexpectedCredentialResponseType {
                                             expected: format.to_string(),
-                                            actual: cred_response.clone(),
+                                            actual: credential.clone(),
                                         });
                                     }
 
                                     // Convert the response into a credential, verifying it against both the
                                     // trust anchors and the credential preview we received in the preview.
-                                    cred_response.into_credential(key_id, &pubkey, preview, trust_anchors)
+                                    credential.into_issued_credential(key_id, &pubkey, preview, trust_anchors)
                                 })
                                 .collect::<Result<Vec<IssuedCredential>, _>>()?;
 
@@ -934,9 +934,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     }
 }
 
-impl CredentialResponse {
+impl Credential {
     /// Create a credential out of the credential response. Also verifies the credential.
-    fn into_credential(
+    fn into_issued_credential(
         self,
         key_identifier: String,
         verifying_key: &VerifyingKey,
@@ -944,7 +944,7 @@ impl CredentialResponse {
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<IssuedCredential, IssuanceSessionError> {
         match self {
-            CredentialResponse::MsoMdoc {
+            Self::MsoMdoc {
                 credential: issuer_signed,
             } => {
                 // Calculate the minimum of all the lengths of the random bytes
@@ -982,8 +982,10 @@ impl CredentialResponse {
 
                 Ok(IssuedCredential::MsoMdoc { mdoc })
             }
-            CredentialResponse::SdJwt { credential } => {
-                let sd_jwt = credential.into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)?;
+            Self::SdJwt {
+                credential: unverified_sd_jwt,
+            } => {
+                let sd_jwt = unverified_sd_jwt.into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)?;
                 let issued_credential_payload =
                     CredentialPayload::from_sd_jwt(sd_jwt.clone(), &preview.normalized_metadata)?;
 
@@ -1461,9 +1463,7 @@ mod tests {
                 .unwrap()
                 .unwrap();
 
-            CredentialResponse::MsoMdoc {
-                credential: Box::new(issuer_signed),
-            }
+            CredentialResponse::new_immediate(Credential::new_mdoc(issuer_signed))
         }
     }
 
@@ -1681,8 +1681,8 @@ mod tests {
         );
     }
 
-    fn mock_credential_response() -> (
-        CredentialResponse,
+    fn mock_credential_response_credential() -> (
+        Credential,
         NormalizedCredentialPreview,
         VerifyingKey,
         TrustAnchor<'static>,
@@ -1690,29 +1690,32 @@ mod tests {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
         let holder_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
-        let credential_response = signer.into_response_from_holder_pubkey(&holder_pubkey);
+        let credential_response = signer
+            .into_response_from_holder_pubkey(&holder_pubkey)
+            .into_credential()
+            .unwrap();
 
         (credential_response, preview_data, holder_pubkey, trust_anchor)
     }
 
     #[test]
     fn test_credential_response_into_mdoc() {
-        let (credential_response, preview_data, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, preview_data, holder_public_key, trust_anchor) = mock_credential_response_credential();
 
-        let _issued_credential = credential_response
-            .into_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
+        let _issued_credential = credential
+            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
             .expect("should be able to convert CredentialResponse into Mdoc");
     }
 
     #[test]
     fn test_credential_response_into_mdoc_public_key_mismatch_error() {
-        let (credential_response, preview_data, _, trust_anchor) = mock_credential_response();
+        let (credential, preview_data, _, trust_anchor) = mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
         let other_public_key = *SigningKey::random(&mut OsRng).verifying_key();
-        let error = credential_response
-            .into_credential("key_id".to_string(), &other_public_key, &preview_data, &[trust_anchor])
+        let error = credential
+            .into_issued_credential("key_id".to_string(), &other_public_key, &preview_data, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::PublicKeyMismatch);
@@ -1720,13 +1723,15 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_attribute_random_length_error() {
-        let (credential_response, preview_data, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, preview_data, holder_public_key, trust_anchor) = mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
         // that contains insufficient random data should fail.
-        let credential_response = match credential_response {
-            CredentialResponse::MsoMdoc { mut credential } => {
-                let name_spaces = credential.name_spaces.as_mut().unwrap();
+        let credential = match credential {
+            Credential::MsoMdoc {
+                credential: mut issuer_signed,
+            } => {
+                let name_spaces = issuer_signed.name_spaces.as_mut().unwrap();
 
                 name_spaces.modify_first_attributes(|attributes| {
                     let TaggedBytes(first_item) = attributes.first_mut().unwrap();
@@ -1734,13 +1739,13 @@ mod tests {
                     first_item.random = ByteBuf::from(b"12345");
                 });
 
-                CredentialResponse::MsoMdoc { credential }
+                Credential::new_mdoc(*issuer_signed)
             }
-            CredentialResponse::SdJwt { .. } => panic!("unsupported credential request format"),
+            Credential::SdJwt { .. } => panic!("unsupported credential request format"),
         };
 
-        let error = credential_response
-            .into_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
+        let error = credential
+            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(
@@ -1751,7 +1756,7 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error() {
-        let (credential_response, normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, normalized_preview, holder_public_key, trust_anchor) = mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
@@ -1766,8 +1771,8 @@ mod tests {
             ..normalized_preview
         };
 
-        let error = credential_response
-            .into_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
+        let error = credential
+            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::IssuerMismatch);
@@ -1775,12 +1780,12 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_mdoc_verification_error() {
-        let (credential_response, normalized_preview, holder_public_key, _) = mock_credential_response();
+        let (credential, normalized_preview, holder_public_key, _) = mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
-        let error = credential_response
-            .into_credential("key_id".to_string(), &holder_public_key, &normalized_preview, &[])
+        let error = credential
+            .into_issued_credential("key_id".to_string(), &holder_public_key, &normalized_preview, &[])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::MdocVerification(_));
@@ -1788,7 +1793,8 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
-        let (credential_response, mut normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, mut normalized_preview, holder_public_key, trust_anchor) =
+            mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.
@@ -1803,8 +1809,8 @@ mod tests {
         .attributes;
         normalized_preview.content.credential_payload.attributes = attributes;
 
-        let error = credential_response
-            .into_credential(
+        let error = credential
+            .into_issued_credential(
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
@@ -1817,14 +1823,15 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_issued_issuer_mismatch_error() {
-        let (credential_response, mut normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, mut normalized_preview, holder_public_key, trust_anchor) =
+            mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different `issuer_uri` in the preview than
         // contained within the response should fail.
         normalized_preview.content.credential_payload.issuer = "https://other-issuer.example.com".parse().unwrap();
 
-        let error = credential_response
-            .into_credential(
+        let error = credential
+            .into_issued_credential(
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
@@ -1837,14 +1844,15 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_issued_doctype_mismatch_error() {
-        let (credential_response, mut normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, mut normalized_preview, holder_public_key, trust_anchor) =
+            mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
         // within the response should fail.
         normalized_preview.content.credential_payload.attestation_type = String::from("other.attestation_type");
 
-        let error = credential_response
-            .into_credential(
+        let error = credential
+            .into_issued_credential(
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
@@ -1857,7 +1865,8 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_issued_validity_info_mismatch_error() {
-        let (credential_response, mut normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, mut normalized_preview, holder_public_key, trust_anchor) =
+            mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` with different expiration information in the preview than
         // contained within the response should fail.
@@ -1865,8 +1874,8 @@ mod tests {
         normalized_preview.content.credential_payload.not_before =
             Some((Utc::now() + chrono::Duration::days(1)).into());
 
-        let error = credential_response
-            .into_credential(
+        let error = credential
+            .into_issued_credential(
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
@@ -1879,14 +1888,15 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_mdoc_issued_attestation_qualification_mismatch_error() {
-        let (credential_response, mut normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
+        let (credential, mut normalized_preview, holder_public_key, trust_anchor) =
+            mock_credential_response_credential();
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
         // within the response should fail.
         normalized_preview.content.credential_payload.attestation_qualification = AttestationQualification::PubEAA;
 
-        let error = credential_response
-            .into_credential(
+        let error = credential
+            .into_issued_credential(
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
@@ -1978,11 +1988,8 @@ mod tests {
         );
         let sd_jwt: VerifiedSdJwt = signed_sd_jwt.into_verified();
 
-        let result = CredentialResponse::verify_claim_selective_disclosability(
-            &sd_jwt,
-            claim_to_verify.as_slice(),
-            &claims_metadata,
-        );
+        let result =
+            Credential::verify_claim_selective_disclosability(&sd_jwt, claim_to_verify.as_slice(), &claims_metadata);
 
         match expected {
             ExpectedResult::Ok => result.unwrap(),
