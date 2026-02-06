@@ -30,8 +30,7 @@
     "typescript-eslint": "^8.25.0"
   },
   "overrides": {
-    "backbone.marionette": {
-      "underscore": "^1.12.1"
-    }
+    "underscore": "^1.12.1",
+    "fast-xml-parser": "^5.3.4"
   }
 }
