@@ -291,12 +291,31 @@ form {
   width: auto;
 }
 
+.icon-arrow {
+  margin-right: 5px;
+  line-height: 1;
+}
+
 .help-link {
   color: var(--secondary-color);
   text-decoration: none;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
+}
+
+.help-link .icon-arrow {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+  -webkit-mask: url("/images/arrow_right_up.svg") no-repeat center / contain;
+  mask: url("/images/arrow_right_up.svg") no-repeat center / contain;
+  background-color: var(--secondary-color);
+  /* Hide the unicode arrow visually */
+  color: transparent;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .back-link {
@@ -307,7 +326,16 @@ form {
   align-items: center;
 }
 
-.icon-arrow {
-  margin-right: 5px;
-  line-height: 1;
+.back-link .icon-arrow {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+  -webkit-mask: url("/images/arrow_left.svg") no-repeat center / contain;
+  mask: url("/images/arrow_left.svg") no-repeat center / contain;
+  background-color: var(--secondary-color);
+  /* Hide the unicode arrow visually */
+  color: transparent;
+  overflow: hidden;
+  white-space: nowrap;
 }

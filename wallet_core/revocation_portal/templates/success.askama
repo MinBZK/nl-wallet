@@ -26,7 +26,7 @@
 </div>
 
 <a href="/support" class="back-link">
-  <span class="icon-arrow" aria-hidden="true">←</span> {{ base.trans.back_to_support }}
+  <span class="icon-arrow" aria-hidden="true"></span> {{ base.trans.back_to_support }}
 </a>
 
 <hr>
