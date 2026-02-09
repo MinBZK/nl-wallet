@@ -62,7 +62,7 @@ const appVersion = __APP_VERSION__
 
 // @font-face doesn't seem to be working in the shadow DOM, so we insert it into the parent
 // document instead.
-let fontFaceSheet = new CSSStyleSheet()
+const fontFaceSheet = new CSSStyleSheet()
 fontFaceSheet.replaceSync(`@font-face {
   font-family: "RO Sans";
   font-weight: normal;
