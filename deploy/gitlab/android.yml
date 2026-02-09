@@ -73,6 +73,7 @@ test-android:
         mock:"${APP_MOCK}" \
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
+        show_debug_options:true \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
     # Check for unsigned build, the build.gradle supports it, but we always want signed build from the CI
     - |

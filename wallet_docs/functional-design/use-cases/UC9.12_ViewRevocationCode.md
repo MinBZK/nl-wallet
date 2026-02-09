@@ -1,4 +1,4 @@
-# Use Case 9.11 View revocation code in Settings
+# Use Case 9.12 View revocation code in Settings
 
 ## Overview
 
@@ -11,8 +11,8 @@
 | **Triggered by**             | <ul><li>User selects 'About this app' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li></ul>                                 |
 | **Additional Documentation** | *None*                                                                                                                          |
 | **Possible errors**          | *None*                                                                                                                          |
-| **Logical Test Cases**       | <ul><li>[LTC71 View revocation code](../logical-test-cases.md#ltc71)</li></ul>                                                  |
- 
+| **Logical Test Cases**       | <ul><li>[LTC73 View revocation code](../logical-test-cases.md#ltc73)</li></ul>                                                  |
+
 ---
 
 ## Flow

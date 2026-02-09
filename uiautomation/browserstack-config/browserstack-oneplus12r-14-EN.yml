@@ -26,7 +26,7 @@ debug: true
 deviceLogs: true
 appiumLogs: true
 disableAnimations: true
-
+timezone: Amsterdam
 staticWebDriver: false
 
 accessibility: "${ENABLE_BROWSERSTACK_A11Y_CHECKS}"

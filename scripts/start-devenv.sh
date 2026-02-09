@@ -610,6 +610,7 @@ then
         cd "${BASE_DIR}"/wallet_app
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
+            --dart-define SHOW_DEBUG_OPTIONS=true \
             --dart-define ALLOW_INSECURE_URL=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \

@@ -26,5 +26,5 @@ debug: true
 deviceLogs: true
 appiumLogs: true
 disableAnimations: true
-
+timezone: Amsterdam
 staticWebDriver: false

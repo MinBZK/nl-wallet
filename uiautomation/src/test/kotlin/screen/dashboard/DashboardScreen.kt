@@ -10,6 +10,7 @@ class DashboardScreen : MobileActions() {
     private val scanQRButton = l10n.getString("menuScreenScanQrCta")
     private val appTourBannerTitle = l10n.getString("tourBannerTitle")
     private val revokedLabel = l10n.getString("cardStatusMetadataWalletItemRevoked")
+    private val cardRevocationBannerTitle = l10n.getString("cardRevocationBannerTitle")
 
     fun visible() = elementContainingTextVisible(menuButton) && elementWithTextVisible(scanQRButton)
 
@@ -43,5 +44,10 @@ class DashboardScreen : MobileActions() {
         scrollToElementContainingText(bottomCardDisplayName)
         val (_, addressY) = getTopLeftOfElementContainingText(bottomCardDisplayName)!!
         return pidY < addressY
+    }
+
+    fun tapRevocationNotification(cardDisplayName: String) {
+        scrollToElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
+        clickElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
     }
 }
