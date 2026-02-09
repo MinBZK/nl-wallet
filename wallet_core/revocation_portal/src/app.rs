@@ -6,12 +6,17 @@ use askama::Template;
 use askama_web::WebTemplate;
 use axum::Form;
 use axum::Router;
+use axum::body::Body;
+use axum::extract::FromRequestParts;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
 use axum::http::HeaderMap;
+use axum::http::Request;
 use axum::http::StatusCode;
 use axum::http::header;
+use axum::http::request::Parts;
 use axum::middleware;
+use axum::middleware::Next;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
@@ -23,6 +28,8 @@ use axum_csrf::Key;
 use axum_csrf::SameSite;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use derive_more::AsRef;
+use derive_more::Display;
 use itertools::Itertools;
 use serde::Deserialize;
 use strfmt::strfmt;
@@ -37,7 +44,6 @@ use crypto::utils::sha256;
 use http_utils::health::create_health_router;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
-use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
@@ -49,22 +55,6 @@ use crate::translations::Words;
 struct ApplicationState<C> {
     revocation_client: C,
 }
-
-static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
-    let script_src = [
-        &LANGUAGE_JS_SHA256,
-        &PORTAL_JS_SHA256,
-        &PORTAL_UI_JS_SHA256,
-        &LOKALIZE_JS_SHA256,
-    ]
-    .map(|sha| format!("'sha256-{}'", **sha))
-    .join(" ");
-
-    format!(
-        "default-src 'self'; script-src {script_src}; img-src 'self' data:; font-src 'self' data:; form-action \
-         'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
-    )
-});
 
 pub static PORTAL_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal.js"))));
@@ -109,6 +99,64 @@ async fn serve_combined_css(headers: HeaderMap) -> Response {
         .into_response()
 }
 
+#[derive(Debug, Clone, AsRef, Display)]
+pub struct Nonce(String);
+
+impl Default for Nonce {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Nonce {
+    pub fn new() -> Self {
+        Self(BASE64_STANDARD.encode(crypto::utils::random_bytes(16)))
+    }
+}
+
+impl<S> FromRequestParts<S> for Nonce
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        parts
+            .extensions
+            .get::<Nonce>()
+            .cloned()
+            .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "Nonce missing".to_string()))
+    }
+}
+
+async fn csp_middleware(mut req: Request<Body>, next: Next) -> Response {
+    let nonce = Nonce::new();
+    req.extensions_mut().insert(nonce.clone());
+
+    let mut response = next.run(req).await;
+
+    let script_src = [
+        &LANGUAGE_JS_SHA256,
+        &PORTAL_JS_SHA256,
+        &PORTAL_UI_JS_SHA256,
+        &LOKALIZE_JS_SHA256,
+    ]
+    .map(|sha| format!("'sha256-{}'", **sha))
+    .join(" ");
+
+    let csp = format!(
+        "default-src 'self'; script-src {script_src} 'nonce-{nonce}'; img-src 'self' data:; font-src 'self' data:; \
+         form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+    );
+
+    response.headers_mut().insert(
+        header::CONTENT_SECURITY_POLICY,
+        csp.parse().expect("csp header should be parseable"),
+    );
+
+    response
+}
+
 pub fn create_router<C>(cookie_encryption_key: &SymmetricKey, log_requests: bool, revocation_client: C) -> Router
 where
     C: RevocationClient + Clone + Sync + 'static,
@@ -140,9 +188,7 @@ where
         .with_state(Arc::clone(&application_state))
         .layer(CsrfLayer::new(csrf_config))
         .layer(TraceLayer::new_for_http())
-        .layer(middleware::from_fn(|req, next| {
-            set_content_security_policy(req, next, &CSP_HEADER)
-        }));
+        .layer(middleware::from_fn(csp_middleware));
 
     if log_requests {
         app = app.layer(axum::middleware::from_fn(log_request_response));
@@ -160,6 +206,7 @@ struct BaseTemplate<'a> {
     portal_js_sha256: &'a str,
     lokalize_js_sha256: &'a str,
     combined_css_sha256: &'a str,
+    nonce: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -187,6 +234,7 @@ struct SuccessTemplate<'a> {
 
 async fn index<C: RevocationClient>(
     State(_state): State<Arc<ApplicationState<C>>>,
+    nonce: Nonce,
     language: Language,
     token: CsrfToken,
 ) -> Response {
@@ -199,6 +247,7 @@ async fn index<C: RevocationClient>(
         portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
         combined_css_sha256: &COMBINED_CSS_SHA256,
+        nonce: nonce.as_ref(),
     };
 
     let csrf_token = match token.authenticity_token() {
@@ -221,6 +270,7 @@ async fn index<C: RevocationClient>(
 
 async fn delete_wallet<C: RevocationClient>(
     State(state): State<Arc<ApplicationState<C>>>,
+    nonce: Nonce,
     language: Language,
     token: CsrfToken,
     Form(delete_form): Form<DeleteForm>,
@@ -234,6 +284,7 @@ async fn delete_wallet<C: RevocationClient>(
         portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
         combined_css_sha256: &COMBINED_CSS_SHA256,
+        nonce: nonce.as_ref(),
     };
 
     if let Err(err) = token.verify(&delete_form.csrf_token) {

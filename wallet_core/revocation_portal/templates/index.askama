@@ -2,7 +2,7 @@
 {%- import "../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block scripts %}
-<script integrity="sha256-{{ base.language_js_sha256 }}" src="../language.js" defer></script>
+<script integrity="sha256-{{ base.language_js_sha256 }}" nonce="{{ base.nonce }}" src="../language.js" defer></script>
 {% endblock %}
 
 {% block aside %}
