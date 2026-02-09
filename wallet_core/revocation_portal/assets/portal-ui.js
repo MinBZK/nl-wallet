@@ -46,6 +46,29 @@ import { formatDeletionCode, calculateCursorPosition, validateDeletionCode } fro
     validate(rawValue.length > 18 || errorDisplay.classList.contains('visible'));
   });
 
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace') {
+      const { selectionStart, selectionEnd, value } = e.target;
+
+      // If it's a simple cursor (no selection) at the very end
+      // and the last character is a hyphen:
+      if (selectionStart === selectionEnd && selectionStart === value.length && value.endsWith('-')) {
+        e.preventDefault();
+        // Slice off the hyphen AND the character before it
+        const newValue = value.slice(0, -2);
+        const { formatted, rawValue, addTrailingHyphen } = formatDeletionCode(newValue);
+
+        e.target.value = formatted;
+
+        // Calculate position for the new state
+        const newPos = calculateCursorPosition(newValue, newValue.length, formatted, rawValue, addTrailingHyphen);
+        e.target.setSelectionRange(newPos, newPos);
+
+        validate(rawValue.length > 18 || errorDisplay.classList.contains('visible'));
+      }
+    }
+  });
+
   input.addEventListener('invalid', (e) => {
     e.preventDefault();
     validate(true);
