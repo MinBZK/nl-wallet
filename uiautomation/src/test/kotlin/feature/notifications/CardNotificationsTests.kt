@@ -134,7 +134,7 @@ class CardNotificationsTests : TestBase() {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
         val parsedDateTime = LocalDateTime.parse(dateString, formatter)
 
-        val zonedDateTime = ZonedDateTime.of(parsedDateTime, ZoneId.of("Europe/Amsterdam"))
+        val zonedDateTime = ZonedDateTime.of(parsedDateTime, ZoneId.systemDefault())
         val utcDateTime = zonedDateTime.toInstant().atZone(ZoneOffset.UTC)
 
         val isCorrectDate = utcDateTime.toLocalDate() == expectedDate

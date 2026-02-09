@@ -1,7 +1,6 @@
 import { cancelSession } from "@/api/cancel"
 import { createSession } from "@/api/session"
 import { getStatus } from "@/api/status"
-import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
 import DynamicWalletModal from "@/components/DynamicWalletModal.vue"
 import ModalFooter from "@/components/ModalFooter.vue"
