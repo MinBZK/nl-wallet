@@ -41,7 +41,7 @@
         name="deletion_code"
         required
         pattern="(?:[0-9A-HJ-NP-TV-Z]{18}|(?:[0-9A-HJ-NP-TV-Z]{4}-){4}[0-9A-HJ-NP-TV-Z]{2})"
-        title="e.g. C20C-KF0R-D32B-A5E3-2X"
+        title="C20C-KF0R-D32B-A5E3-2X"
         placeholder="C20C-KF0R-D32B-A5E3-2X"
         aria-describedby="code-instruction"
         data-validation-message="{{ base.trans.delete_code_invalid_length }}"
