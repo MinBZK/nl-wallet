@@ -222,7 +222,7 @@ form {
 }
 
 .btn-delete:hover {
-  background-color: #85004F;
+  background-color: var(--primary-color-focused);
 }
 
 .btn-delete:active {
