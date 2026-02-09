@@ -101,7 +101,8 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
-<li class="toctree-l2"><a class="reference internal" href="UC9.11_ViewRevocationCode.html">Use Case 9.11 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -120,6 +121,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../logical-test-cases.html">Logical Test Cases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
@@ -234,11 +236,11 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.1</strong></p></td>
-<td><p><strong>System displays screen ‘Dashboard’</strong><ul><li>Actions: Start App Tour (opt.), Scan QR, Activities, Cards, Menu, Help, About this app</li></ul></p></td>
+<td><p><strong>System displays screen ‘Dashboard’</strong><ul><li>Actions: Start App Tour (opt.), Scan QR, Activities, Cards, Menu, Help, About this app, Disable notifications (opt.), Enable notifications (opt.)</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1a</p></td>
-<td><p>User selects Start App Tour (only available when user did not select this before)</p></td>
+<td><p>User selects Start App Tour (Notification: <a class="reference internal" href="../notifications.html#app-tour"><span class="std std-ref">App tour</span></a>)</p></td>
 <td><p>Go to: <a class="reference internal" href="UC1.3_AppTour.html"><span class="std std-doc">UC1.3 App tour</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1b</p></td>
@@ -268,6 +270,30 @@
 <tr class="row-odd"><td><p>1.1h</p></td>
 <td><p>User selects any other dashboard action</p></td>
 <td><p>End</p></td>
+</tr>
+<tr class="row-even"><td><p>1.1a</p></td>
+<td><p>User selects Disable notifications (Notification: <a class="reference internal" href="../notifications.html#configure-notifications"><span class="std std-ref">Configure notifications</span></a>)<br>→ Notification dismissed</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.1a</p></td>
+<td><p>User selects Enable notifications (Notification: <a class="reference internal" href="../notifications.html#configure-notifications"><span class="std std-ref">Configure notifications</span></a>)</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>2</strong></p></td>
+<td><p><strong>USER ENABLES NOTIFICATIONS</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
+<td><p><strong>System displays splash screen &amp; OS asks permission to send notifications</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>2.1a</p></td>
+<td><p>User selects Allow<br>→ Notifications enabled</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>2.1b</p></td>
+<td><p>User selects Don’t allow<br>→ Notifications disabled</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>

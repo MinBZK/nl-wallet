@@ -101,7 +101,8 @@
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
-<li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.11_ViewRevocationCode.html">Use Case 9.11 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -120,6 +121,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="logical-test-cases.html">Logical Test Cases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
@@ -187,6 +189,8 @@
 <li><p><strong>Use Cases (UC)</strong> describes a case in which a user uses the system to achieve some goal.</p></li>
 <li><p><strong>Partial Flows (PF)</strong> describes a part of the interaction used in two or more use cases.</p></li>
 <li><p><strong>Logical Test Cases (LTC)</strong> describe the high level tests of the functionality.</p></li>
+<li><p><strong>Errors</strong> describes the different types of errors users can encounter, including causes and resolutions.</p></li>
+<li><p><strong>Notifications</strong> describes the different types of notifications users receive, including triggers, scheduling, and actions.</p></li>
 </ul>
 <section id="use-case-breakdown">
 <h2>Use Case breakdown<a class="headerlink" href="#use-case-breakdown" title="Link to this heading"></a></h2>
@@ -346,6 +350,28 @@
 Each UC and RF references the relevant LTC ID and title in the LTC field to ensure traceability and coverage.</p>
 <p>Format: Gherkin-style Given / When / Then (/ And) steps.
 Scope: Functional behavior as observable by the user or external systems. Non-functional tests (performance, accessibility, etc.) are out of scope here.</p>
+</section>
+<section id="errors">
+<h2>Errors<a class="headerlink" href="#errors" title="Link to this heading"></a></h2>
+<p>Errors describe the different types of error conditions that users may encounter while using the system. Each error type is documented with:</p>
+<ul class="simple">
+<li><p>A description of the error situation and when it may occur</p></li>
+<li><p>Possible causes (listed in order of likelihood)</p></li>
+<li><p>Suggested resolutions (listed in recommended order)</p></li>
+</ul>
+<p>Use cases reference specific error types in their “Possible errors” field to indicate which errors may be encountered during that interaction. The error documentation provides users and support teams with guidance on how to resolve issues.</p>
+</section>
+<section id="notifications">
+<h2>Notifications<a class="headerlink" href="#notifications" title="Link to this heading"></a></h2>
+<p>Notifications describe the different types of alerts and messages the system sends to inform users about important events or required actions. Each notification type is documented with:</p>
+<ul class="simple">
+<li><p>The trigger condition that causes the notification</p></li>
+<li><p>The schedule when it is displayed (immediate or at a specific time)</p></li>
+<li><p>The message content for both OS notifications (push) and in-app notifications</p></li>
+<li><p>The action taken when the user interacts with the notification</p></li>
+</ul>
+<p>Notifications are categorized by card type (PID or EAA) and by the event that triggers them (expires soon, expired, revoked, or corrupted) and other types of notifications.
+The use case descriptions in the functional design specify how these notifications integrate into user workflows.</p>
 </section>
 <section id="for-authors">
 <h2>For Authors<a class="headerlink" href="#for-authors" title="Link to this heading"></a></h2>

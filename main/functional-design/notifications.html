@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Use case overview &mdash; NL Wallet 0.5.0-dev documentation</title>
+  <title>Notifications &mdash; NL Wallet 0.5.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=79eb5478" />
@@ -18,21 +18,13 @@
       <script src="../_static/documentation_options.js?v=af39ea96"></script>
       <script src="../_static/doctools.js?v=9a2dae69"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
-      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
-      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
-      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-      <script type="module">
-import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
-window.addEventListener("load", () => mermaid.run());
-</script>
       <script src="../_static/js/custom.js?v=48752f09"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="About the Functional Design" href="functional-design.html" />
-    <link rel="prev" title="Core Assurance Goal for the EUDI Wallet" href="../architecture/gsn-overview.html" /> 
+    <link rel="next" title="Logical Test Cases" href="logical-test-cases.html" />
+    <link rel="prev" title="Errors" href="errors.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -87,7 +79,7 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="use-case-overview.html">Use case overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="functional-design.html">About the Functional Design</a></li>
 <li class="toctree-l1"><a class="reference internal" href="use-cases.html">Use Cases</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
@@ -129,7 +121,7 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="errors.html">Errors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notifications.html">Notifications</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="logical-test-cases.html">Logical Test Cases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
@@ -180,9 +172,9 @@ window.addEventListener("load", () => mermaid.run());
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Use case overview</li>
+      <li class="breadcrumb-item active">Notifications</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/functional-design/use-case-overview.md.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/functional-design/notifications.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -190,196 +182,251 @@ window.addEventListener("load", () => mermaid.run());
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="use-case-overview">
-<h1>Use case overview<a class="headerlink" href="#use-case-overview" title="Link to this heading"></a></h1>
-<p>The three flow diagrams present on this page display the relation between use cases. This relation is based
-on which use cases can be triggered by a given use case, therefore giving a representation
-on which flows a user can have between various use cases. For readability the relations
-between the various use cases are divided into 3 diagrams, one showing the use case flow
-for opening and onboarding the app, the second displays the use case flow from the app dashboard,
-and the third showing the use case flow from viewing the app menu.</p>
-<p><br><br></p>
-<section id="opening-and-onboarding-use-case-flow">
-<h2>Opening and onboarding use case flow<a class="headerlink" href="#opening-and-onboarding-use-case-flow" title="Link to this heading"></a></h2>
-<pre  class="mermaid">
-        flowchart LR
-INTRODUCE[&quot;&lt;a href='use-cases/UC1.1_IntroduceTheApp.html'&gt;1.1 Introduce the app&lt;/a&gt;&quot;]
-OPEN[&quot;&lt;a href='use-cases/UC1.2_OpenTheApp.html'&gt;1.2 Open the app&lt;/a&gt;&quot;]
-
-SETUP_PIN[&quot;&lt;a href='use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html'&gt;2.1 Setup PIN &amp; biometrics&lt;/a&gt;&quot;]
-UNLOCK[&quot;&lt;a href='use-cases/UC2.3_UnlockTheApp.html'&gt;2.3 Unlock the app&lt;/a&gt;&quot;]
-RECOVER_PIN[&quot;&lt;a href='use-cases/UC2.3.2_RecoverPIN.html'&gt;2.3.2 Recover PIN&lt;/a&gt;&quot;]
-
-OBTAIN_PID[&quot;&lt;a href='use-cases/UC3.1_ObtainPidFromProvider.html'&gt;3.1 Obtain PID&lt;/a&gt;&quot;]
-WIPE[&quot;&lt;a href='use-cases/UC9.4_WipeAllAppData.html'&gt;9.4 Wipe app data&lt;/a&gt;&quot;]
-
-ALL_CARDS[&quot;&lt;a href='use-cases/UC7.1_ShowAllAvailableCards.html'&gt;7.1 Show all cards&lt;/a&gt;&quot;]
-TRANSFER[&quot;&lt;a href='use-cases/UC9.10_TransferWallet.html'&gt;9.10 Transfer wallet&lt;/a&gt;&quot;]
-END((&quot; &quot;))
-
-APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
-
-OPEN --&gt; UNLOCK
-OPEN --&gt; INTRODUCE
-
-UNLOCK --&gt; ALL_CARDS
-UNLOCK --&gt; OBTAIN_PID
-UNLOCK --&gt; APP_INFO
-UNLOCK --&gt; RECOVER_PIN
-
-INTRODUCE --&gt; SETUP_PIN
-
-OBTAIN_PID --&gt; ALL_CARDS
-OBTAIN_PID --&gt; TRANSFER
-OBTAIN_PID --&gt; WIPE
-
-WIPE --&gt; INTRODUCE
-
-TRANSFER --&gt; END
-
-RECOVER_PIN --&gt; ALL_CARDS
-
-SETUP_PIN --&gt; OBTAIN_PID
-SETUP_PIN --&gt; APP_INFO
-
-    </pre><p><br><br><br></p>
+  <section id="notifications">
+<h1>Notifications<a class="headerlink" href="#notifications" title="Link to this heading"></a></h1>
+<p>This page describes the different types of notifications a user can receive when using NL Wallet. For each notification type, this page provides:</p>
+<ul class="simple">
+<li><p>The trigger condition that causes the notification to be displayed.</p></li>
+<li><p>The schedule when the notification is shown (immediate or at a specific time).</p></li>
+<li><p>The message content for both OS notifications (push notifications) and in-app notifications.</p></li>
+<li><p>The action taken when the user interacts with the notification.</p></li>
+</ul>
+<p>Notifications are categorized by card type (PID or EAA) and by the event that triggers them (expires soon, expired, revoked, or corrupted) and other types of notifications.
+The use case descriptions in the functional design specify how these notifications integrate into user workflows.</p>
+<hr class="docutils" />
+<section id="pid-personal-identity-document-notifications">
+<h2>PID (Personal Identity Document) Notifications<a class="headerlink" href="#pid-personal-identity-document-notifications" title="Link to this heading"></a></h2>
+<section id="pid-expires-soon">
+<h3>PID Expires Soon<a class="headerlink" href="#pid-expires-soon" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>Card will expire in 14 days</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>10:00 AM Dutch time</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p>In # days, your app will not working. Solve this in the app.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p><strong>In # days, your app will not be working</strong><br>Solve this in a few steps.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action</strong></p></td>
+<td><p><ul><li>Go to: <a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="dashboard-use-case-flow">
-<h2>Dashboard use case flow<a class="headerlink" href="#dashboard-use-case-flow" title="Link to this heading"></a></h2>
-<p>The two circle nodes in the flow diagram underneath depict the same point in the flow. When user reaches the second circle node
-the user will start again at the first circle node.</p>
-<pre  class="mermaid">
-        flowchart LR
-START((&quot; &quot;))
-END((&quot; &quot;))
-APP_TOUR[&quot;&lt;a href='use-cases/UC1.3_AppTour.html'&gt;1.3 Watch explainer videos&lt;/a&gt;&quot;]
-
-OBTAIN_CARDS[&quot;&lt;a href='use-cases/UC4.1_ObtainCardsFromEAAIssuer.html'&gt;4.1 Obtain EAA&lt;/a&gt;&quot;]
-
-SHARE[&quot;&lt;a href='use-cases/UC5.1_ShareDataWithRP.html'&gt;5.1 Share data with RP&lt;/a&gt;&quot;]
-LOGIN[&quot;&lt;a href='use-cases/UC5.2_LoginToApplicationOfRP.html'&gt;5.2 Log in to RP&lt;/a&gt;&quot;]
-
-ALL_HISTORY[&quot;&lt;a href='use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html'&gt;6.1 Browse app activity&lt;/a&gt;&quot;]
-CARD_HISTORY[&quot;&lt;a href='use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html'&gt;6.2 Browse card activity&lt;/a&gt;&quot;]
-HISTORY_EVENT[&quot;&lt;a href='use-cases/UC6.3_ShowHistoryEvent.html'&gt;6.3 View activity details&lt;/a&gt;&quot;]
-
-ALL_CARDS[&quot;&lt;a href='use-cases/UC7.1_ShowAllAvailableCards.html'&gt;7.1 Show all cards&lt;/a&gt;&quot;]
-CARD[&quot;&lt;a href='use-cases/UC7.2_ShowCardDetails.html'&gt;7.2 View card Details&lt;/a&gt;&quot;]
-
-MENU[&quot;&lt;a href='use-cases/UC9.1_ShowAppMenu.html'&gt;9.1 View app menu&lt;/a&gt;&quot;]
-APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
-QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;]
-
-RECOVER_PIN[&quot;&lt;a href='use-cases/UC2.3.2_RecoverPIN.html'&gt;2.3.2 Recover PIN&lt;/a&gt;&quot;]
-RENEW_PID[&quot;&lt;a href='use-cases/UC3.2_RenewPid.html'&gt;3.3 Renew PID&lt;/a&gt;&quot;]
-
-START --&gt; ALL_CARDS
-
-ALL_CARDS --&gt; APP_TOUR
-ALL_CARDS --&gt; MENU
-ALL_CARDS --&gt; QR
-ALL_CARDS --&gt; ALL_HISTORY
-ALL_CARDS --&gt; CARD
-ALL_CARDS --&gt; APP_INFO
-
-OBTAIN_CARDS --&gt; END
-OBTAIN_CARDS --&gt; RECOVER_PIN
-
-SHARE --&gt; END
-SHARE --&gt; RECOVER_PIN
-
-LOGIN --&gt; END
-LOGIN --&gt; RECOVER_PIN
-
-RECOVER_PIN --&gt; END
-
-QR --&gt; OBTAIN_CARDS
-QR --&gt; SHARE
-QR --&gt; LOGIN
-
-ALL_HISTORY --&gt; HISTORY_EVENT
-
-CARD_HISTORY --&gt; HISTORY_EVENT
-
-CARD --&gt; CARD_HISTORY
-CARD --&gt; RENEW_PID
-
-RENEW_PID --&gt; END
-RENEW_PID --&gt; RECOVER_PIN
-
-    </pre><p><br><br><br></p>
+<section id="pid-expired">
+<h3>PID Expired<a class="headerlink" href="#pid-expired" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>Card expiry date reached, user can not use the app</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>Immediate</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p>Attention: your NL Wallet does not work right now. Solve this in the app.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p><strong>Attention: your NL Wallet is not working right now</strong><br>Solve this in a few steps.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action</strong></p></td>
+<td><p><ul><li>Go to: <a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="menu-use-case-flow">
-<h2>Menu use case flow<a class="headerlink" href="#menu-use-case-flow" title="Link to this heading"></a></h2>
-<pre  class="mermaid">
-        flowchart LR
-ELLIP1[⋯]
-ELLIP2[⋯]
-ELLIP3[⋯]
-INTRODUCE[&quot;&lt;a href='use-cases/UC1.1_IntroduceTheApp.html'&gt;1.1 Introduce the app&lt;/a&gt;&quot;]
-APP_TOUR[&quot;&lt;a href='use-cases/UC1.3_AppTour.html'&gt;1.3 Watch explainer videos&lt;/a&gt;&quot;]
-
-TOGGLEBIO[&quot;&lt;a href='use-cases/UC2.2_ChangeBiometricUnlock.html'&gt;2.2 Toggle biometrics&lt;/a&gt;&quot;]
-UNLOCK[&quot;&lt;a href='use-cases/UC2.3_UnlockTheApp.html'&gt;2.3 Unlock the app&lt;/a&gt;&quot;]
-CHANGEPIN[&quot;&lt;a href='use-cases/UC2.6_ChangeRemotePIN.html'&gt;2.6 Change PIN&lt;/a&gt;&quot;]
-
-OBTAIN_CARDS[&quot;&lt;a href='use-cases/UC4.1_ObtainCardsFromEAAIssuer.html'&gt;4.1 Obtain EAA&lt;/a&gt;&quot;]
-
-SHARE[&quot;&lt;a href='use-cases/UC5.1_ShareDataWithRP.html'&gt;5.1 Share data with RP&lt;/a&gt;&quot;]
-LOGIN[&quot;&lt;a href='use-cases/UC5.2_LoginToApplicationOfRP.html'&gt;5.2 Log in to RP&lt;/a&gt;&quot;]
-
-ALL_HISTORY[&quot;&lt;a href='use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html'&gt;6.1 Browse app activity&lt;/a&gt;&quot;]
-HISTORY_EVENT[&quot;&lt;a href='use-cases/UC6.3_ShowHistoryEvent.html'&gt;6.3 View activity details&lt;/a&gt;&quot;]
-
-MENU[&quot;&lt;a href='use-cases/UC9.1_ShowAppMenu.html'&gt;9.1 View app menu&lt;/a&gt;&quot;]
-APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
-CHANGELANG[&quot;&lt;a href='use-cases/UC9.3_ChangeAppLanguage.html'&gt;9.3 Change app language&lt;/a&gt;&quot;]
-WIPE[&quot;&lt;a href='use-cases/UC9.4_WipeAllAppData.html'&gt;9.4 Wipe app data&lt;/a&gt;&quot;]
-HELP[&quot;&lt;a href='use-cases/UC9.6_GetHelp.html'&gt;9.6 Get help&lt;/a&gt;&quot;]
-LOGOUT[&quot;&lt;a href='use-cases/UC9.7_LogoutOffTheApp.html'&gt;9.7 Logout of app&lt;/a&gt;&quot;]
-QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;]
-
-WIPE --&gt; INTRODUCE
-
-OBTAIN_CARDS --&gt; ELLIP1
-
-SHARE --&gt; ELLIP2
-
-LOGIN --&gt; ELLIP3
-
-QR --&gt; OBTAIN_CARDS
-QR --&gt; SHARE
-QR --&gt; LOGIN
-
-MENU --&gt; APP_TOUR
-MENU --&gt; QR
-MENU --&gt; ALL_HISTORY
-MENU --&gt; APP_INFO
-MENU --&gt; LOGOUT
-MENU --&gt; HELP
-
-MENU --&gt; CHANGEPIN
-MENU --&gt; TOGGLEBIO
-MENU --&gt; CHANGELANG
-MENU --&gt; WIPE
-
-ALL_HISTORY --&gt; HISTORY_EVENT
-
-LOGOUT --&gt; UNLOCK
-
-classDef trans fill:transparent,stroke:transparent
-class ELLIP1 trans
-class ELLIP2 trans
-class ELLIP3 trans
-    </pre></section>
+<section id="pid-revoked">
+<h3>PID Revoked<a class="headerlink" href="#pid-revoked" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>Issuer revokes card, user can not use the app</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>Immediate</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p>Attention: your NL Wallet does not work right now. Solve this in the app.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p><strong>Attention: your NL Wallet is not working right now</strong><br>Solve this in a few steps.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action</strong></p></td>
+<td><p><ul><li>Go to: <a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="eaa-electronic-attestation-of-attributes-notifications">
+<h2>EAA (Electronic Attestation of Attributes) Notifications<a class="headerlink" href="#eaa-electronic-attestation-of-attributes-notifications" title="Link to this heading"></a></h2>
+<section id="eaa-expires-soon">
+<h3>EAA Expires Soon<a class="headerlink" href="#eaa-expires-soon" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>Card will expire in 14 days</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>10:00 AM Dutch time</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p>{Card} expires in # days. Replace this card if you still need it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p><strong>{Card} expires in # days</strong><br>Replace this card if you still need it.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action</strong></p></td>
+<td><p><ul><li>Go to: <a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="eaa-expired">
+<h3>EAA Expired<a class="headerlink" href="#eaa-expired" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>Card expiry date reached, user can still use the app</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>Immediate</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p>{Card} expired. Replace this card if you still need it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p><strong>{Card} expired</strong><br>Replace this card if you still need it.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action</strong></p></td>
+<td><p><ul><li>Go to: <a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="eaa-revoked">
+<h3>EAA Revoked<a class="headerlink" href="#eaa-revoked" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>Issuer revokes card, user can still use the app</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>Immediate</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p>{Card} withdrawn by issuer. Replace this card if you still need it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p><strong>{Card} withdrawn by issuer</strong><br>Replace this card if you still need it.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action</strong></p></td>
+<td><p><ul><li>Go to: <a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="other-notifications">
+<h2>Other Notifications<a class="headerlink" href="#other-notifications" title="Link to this heading"></a></h2>
+<section id="app-tour">
+<h3>App tour<a class="headerlink" href="#app-tour" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>First dashboard display</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>Show on the user’s first app dashboard visit</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p><em>None</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p>Discover everything in short videos</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action</strong></p></td>
+<td><p><ul><li>Go to: <a class="reference internal" href="use-cases/UC1.3_AppTour.html"><span class="std std-doc">UC1.3 App tour</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="configure-notifications">
+<h3>Configure notifications<a class="headerlink" href="#configure-notifications" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Trigger</strong></p></td>
+<td><p>Second dashboard display</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Schedule</strong></p></td>
+<td><p>Show on the user’s second app dashboard visit</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OS Notification</strong></p></td>
+<td><p><em>None</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>In-app Notification</strong></p></td>
+<td><p><strong>Do you want to get important updates</strong> <br> You will get message about your card changes, app updates, and other important messages. Even when you do not open the app.<br>You can turn this on or off later in Settings.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Action(s)</strong></p></td>
+<td><p><ul><li>Not now<br>→ Notification dismissed</li><li>Yes, turn it on<br>→ OS asks for permission</li></ul></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../architecture/gsn-overview.html" class="btn btn-neutral float-left" title="Core Assurance Goal for the EUDI Wallet" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="functional-design.html" class="btn btn-neutral float-right" title="About the Functional Design" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="errors.html" class="btn btn-neutral float-left" title="Errors" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="logical-test-cases.html" class="btn btn-neutral float-right" title="Logical Test Cases" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -405,12 +452,12 @@ class ELLIP3 trans
     <div class="rst-other-versions">
         <dl>
             <dt>Releases</dt>
-            <dd><a href="../../v0.4.0/functional-design/use-case-overview.html">v0.4.0</a></dd>
-            <dd><a href="../../v0.4.1/functional-design/use-case-overview.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="use-case-overview.html">main</a></dd>
+            <dd><a href="notifications.html">main</a></dd>
         </dl>
     </div>
 </div><script>

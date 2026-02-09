@@ -3,7 +3,9 @@
 The functional design (FD) describes the complete functional behaviour of the system, including every interaction with its users and external systems. It contains the following components:
 * **Use Cases (UC)** describes a case in which a user uses the system to achieve some goal.
 * **Partial Flows (PF)** describes a part of the interaction used in two or more use cases.
-* **Logical Test Cases (LTC)** describe the high level tests of the functionality. 
+* **Logical Test Cases (LTC)** describe the high level tests of the functionality.
+* **Errors** describes the different types of errors users can encounter, including causes and resolutions.
+* **Notifications** describes the different types of notifications users receive, including triggers, scheduling, and actions. 
 
 ## Use Case breakdown
 
@@ -113,6 +115,26 @@ Each UC and RF references the relevant LTC ID and title in the LTC field to ensu
 
 Format: Gherkin-style Given / When / Then (/ And) steps.
 Scope: Functional behavior as observable by the user or external systems. Non-functional tests (performance, accessibility, etc.) are out of scope here.
+
+## Errors
+
+Errors describe the different types of error conditions that users may encounter while using the system. Each error type is documented with:
+* A description of the error situation and when it may occur
+* Possible causes (listed in order of likelihood)
+* Suggested resolutions (listed in recommended order)
+
+Use cases reference specific error types in their "Possible errors" field to indicate which errors may be encountered during that interaction. The error documentation provides users and support teams with guidance on how to resolve issues.
+
+## Notifications
+
+Notifications describe the different types of alerts and messages the system sends to inform users about important events or required actions. Each notification type is documented with:
+* The trigger condition that causes the notification
+* The schedule when it is displayed (immediate or at a specific time)
+* The message content for both OS notifications (push) and in-app notifications
+* The action taken when the user interacts with the notification
+
+Notifications are categorized by card type (PID or EAA) and by the event that triggers them (expires soon, expired, revoked, or corrupted) and other types of notifications.
+The use case descriptions in the functional design specify how these notifications integrate into user workflows.
 
 ## For Authors
 
