@@ -44,7 +44,7 @@ pub type DeviceAuthenticationBytes<'a> = TaggedBytes<DeviceAuthentication<'a>>;
 /// See [`DeviceAuthentication`].
 // In production code, this struct is never deserialized.
 #[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
-#[derive(Serialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DeviceAuthenticationKeyed<'a> {
     pub device_authentication: RequiredValue<DeviceAuthenticationString>,
     pub session_transcript: Cow<'a, SessionTranscript>,
@@ -169,13 +169,13 @@ pub type DeviceEngagement = CborIntMap<Engagement>;
 pub type ReaderEngagement = CborIntMap<Engagement>;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Engagement {
     pub version: EngagementVersion,
     pub security: Option<Security>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum EngagementVersion {
     #[serde(rename = "1.0")]
     V1_0,
@@ -184,13 +184,13 @@ pub enum EngagementVersion {
 pub type Security = CborSeq<SecurityKeyed>;
 
 /// The ephemeral public key used for establishing an E2E encrypted protocol channel.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityKeyed {
     pub cipher_suite_identifier: CipherSuiteIdentifier,
     pub e_sender_key_bytes: ESenderKeyBytes,
 }
 
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[derive(Debug, Clone, Copy, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum CipherSuiteIdentifier {
     P256 = 1,
