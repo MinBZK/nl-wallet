@@ -5,10 +5,6 @@ import { formatDeletionCode, calculateCursorPosition, validateDeletionCode } fro
   const errorDisplay = document.getElementById('error-message');
   if (!input || !errorDisplay) return;
 
-  // Disable native pattern validation since JS handles it with better UX
-  input.removeAttribute('pattern');
-  input.removeAttribute('title');
-
   const validate = (showError = false) => {
     const { rawValue } = formatDeletionCode(input.value);
     const requiredMsg = input.dataset.requiredMessage;
