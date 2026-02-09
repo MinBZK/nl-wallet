@@ -65,8 +65,10 @@ sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true }
 assert_matches.workspace = true
 chrono = { workspace = true, features = ["now"] }
 hex-literal.workspace = true
+jsonwebtoken.workspace = true
 regex.workspace = true
 rstest.workspace = true
+serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_types = { path = "../attestation_types", features = ["mock", "test_pid_constants"] }

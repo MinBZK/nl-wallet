@@ -17,6 +17,8 @@ use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::engagement::DeviceAuthenticationBytes;
+use crate::iso::engagement::OID4VPHandoverInfo;
+use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 
@@ -220,6 +222,16 @@ impl Example for DeviceRequest {
          8b4efef6a1ef71ec4aae4e307206f9214930221009b94f0d739dfa84cca29efed529dd4838acfd8b6bee212dc6320c46feb839a35f658\
          401f3400069063c189138bdcd2f631427c589424113fc9ec26cebcacacfcdb9695d28e99953becabc4e30ab4efacc839a81f9159933d1\
          92527ee91b449bb7f80bf"
+    }
+}
+
+impl Example for CborSeq<OID4VPHandoverInfo<'_>> {
+    fn example_hex() -> &'static str {
+        // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-9
+        "847818783530395f73616e5f646e733a6578616d706c652e636f6d782b6578633767\
+         426b786a7831726463397564527276654b7653734a4971383061766c58654c486847\
+         7771744158204283ec927ae0f208daaa2d026a814f2b22dca52cf85ffa8f3f8626c6\
+         bd669047781c68747470733a2f2f6578616d706c652e636f6d2f726573706f6e7365"
     }
 }
 

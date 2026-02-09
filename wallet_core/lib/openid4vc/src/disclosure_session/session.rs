@@ -13,7 +13,6 @@ use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::iso::disclosure::DeviceResponse;
-use mdoc::iso::engagement::SessionTranscript;
 use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use utils::generator::Generator;
@@ -126,18 +125,11 @@ where
                     // type guarantees that it contains at least one attestation.
                     .unwrap();
 
-                let session_transcript = SessionTranscript::new_oid4vp(
-                    &self.auth_request.response_uri,
-                    &self.auth_request.client_id,
-                    self.auth_request.nonce.clone(),
-                    &encryption_nonce,
-                );
-
                 // Have the WSCD sign all of the partial mdocs in one operation,
                 // producing a PoA if multiple unique keys are used for this.
                 let result = DeviceResponse::sign_multiple_from_partial_mdocs(
                     partial_mdocs,
-                    &session_transcript,
+                    &self.auth_request.session_transcript(),
                     wscd,
                     poa_input,
                 )
@@ -301,6 +293,7 @@ mod tests {
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
+    use crate::openid4vp::JwePublicKey;
     use crate::openid4vp::RequestUriMethod;
     use crate::verifier::SessionType;
 
@@ -515,11 +508,16 @@ mod tests {
         let (requests, attestations, wscd) = setup_disclosure_mdoc();
         let (mut disclosure_session, _verifier_session) = setup_disclosure_session(None, requests);
 
-        disclosure_session
-            .auth_request
-            .encryption_pubkey
-            .set_parameter("kty", Some(json!("invalid_value")))
-            .unwrap();
+        let jwk_json = json!({
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "foo!",
+            "y": "bar!",
+            "alg": "ECDH-ES",
+        });
+
+        disclosure_session.auth_request.encryption_pubkey =
+            JwePublicKey::try_new(serde_json::from_value(jwk_json).unwrap()).unwrap();
 
         let (_disclosure_session, error) = disclosure_session
             .disclose(attestations, &wscd, &MockTimeGenerator::default())

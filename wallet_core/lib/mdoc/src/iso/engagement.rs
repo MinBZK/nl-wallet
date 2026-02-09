@@ -11,6 +11,7 @@ use std::fmt::Debug;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
+use serde_bytes::Bytes;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
@@ -25,6 +26,7 @@ use crate::utils::serialization;
 use crate::utils::serialization::CborIntMap;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::DeviceAuthenticationString;
+use crate::utils::serialization::OpenID4VPHandoverString;
 use crate::utils::serialization::RequiredValue;
 use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::cbor_serialize;
@@ -108,21 +110,22 @@ impl SessionTranscript {
         Ok(transcript)
     }
 
-    pub fn new_oid4vp(response_uri: &BaseUrl, client_id: &str, nonce: String, mdoc_nonce: &str) -> Self {
-        let handover = OID4VPHandover {
-            client_id_hash: ByteBuf::from(sha256(&cbor_serialize(&[client_id, mdoc_nonce]).unwrap())),
-            response_uri_hash: ByteBuf::from(sha256(
-                &cbor_serialize(&[&response_uri.to_string(), mdoc_nonce]).unwrap(),
-            )),
-            nonce,
+    pub fn new_oid4vp(client_id: &str, nonce: &str, jwk_thumbprint: Option<&[u8]>, response_uri: &BaseUrl) -> Self {
+        let info = OID4VPHandoverInfo {
+            client_id: Cow::Borrowed(client_id),
+            nonce: Cow::Borrowed(nonce),
+            jwk_thumbprint: jwk_thumbprint.map(|jwk| Cow::Borrowed(jwk.into())),
+            response_uri: Cow::Borrowed(response_uri.as_ref().as_str()),
         };
+        let handover = OID4VPHandover::new(&info);
 
-        SessionTranscriptKeyed {
+        let keyed = SessionTranscriptKeyed {
             device_engagement_bytes: None,
             ereader_key_bytes: None,
-            handover: Handover::Oid4vpHandover(handover.into()),
-        }
-        .into()
+            handover: Handover::Oid4vpHandover(CborSeq(handover)),
+        };
+
+        CborSeq(keyed)
     }
 }
 
@@ -137,6 +140,7 @@ pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 /// Serde's `untagged` enum representation ignores the enum variant name, and serializes instead
 /// the contained data of the enum variant. It is unfortunately not able to deserialize the `SchemeHandoverBytes`
 /// variant, so there is a custom deserializer in `serialization.rs`.
+#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum Handover {
@@ -147,19 +151,37 @@ pub enum Handover {
 
 #[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
 #[derive(Debug, Clone, Serialize)]
-pub struct OID4VPHandover {
-    /// Must be `SHA256(CBOR_encode([client_id, mdoc_nonce]))`
-    pub client_id_hash: ByteBuf,
-    /// Must be `SHA256(CBOR_encode([response_uri, mdoc_nonce]))`
-    pub response_uri_hash: ByteBuf,
-    pub nonce: String,
+pub struct NFCHandover {
+    pub handover_select_message: ByteBuf,
+    pub handover_request_message: Option<ByteBuf>,
 }
 
 #[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
 #[derive(Debug, Clone, Serialize)]
-pub struct NFCHandover {
-    pub handover_select_message: ByteBuf,
-    pub handover_request_message: Option<ByteBuf>,
+pub struct OID4VPHandover {
+    pub identifier: RequiredValue<OpenID4VPHandoverString>,
+    pub info_hash: ByteBuf,
+}
+
+impl OID4VPHandover {
+    fn new(info: &OID4VPHandoverInfo) -> Self {
+        let info_hash =
+            sha256(&cbor_serialize(&CborSeq(&info)).expect("OID4VPHandoverInfo should serialize to CBOR")).into();
+
+        Self {
+            identifier: Default::default(),
+            info_hash,
+        }
+    }
+}
+
+#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct OID4VPHandoverInfo<'a> {
+    pub client_id: Cow<'a, str>,
+    pub nonce: Cow<'a, str>,
+    pub jwk_thumbprint: Option<Cow<'a, Bytes>>,
+    pub response_uri: Cow<'a, str>,
 }
 
 /// Describes available methods for the RP to connect to the holder.
@@ -198,17 +220,17 @@ pub enum CipherSuiteIdentifier {
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(test)]
 mod test {
     use super::SessionTranscript;
 
     impl SessionTranscript {
         pub fn new_mock() -> Self {
             Self::new_oid4vp(
-                &"https://example.com".parse().unwrap(),
                 "client_id",
-                "nonce_1234".to_string(),
                 "mdoc_nonce_1234",
+                None,
+                &"https://example.com".parse().unwrap(),
             )
         }
     }
@@ -233,5 +255,72 @@ mod tests {
             serialization::cbor_serialize(&TaggedBytes(CborSeq(device_auth))).unwrap(),
             DeviceAuthenticationBytes::example_bts()
         );
+    }
+
+    mod openid4vp {
+        use std::sync::LazyLock;
+
+        use base64::prelude::*;
+        use hex_literal::hex;
+        use jsonwebtoken::jwk::{Jwk, ThumbprintHash};
+        use serde_json::json;
+
+        use super::*;
+
+        const EXAMPLE_CLIENT_ID: &str = "x509_san_dns:example.com";
+        const EXAMPLE_NONCE: &str = "exc7gBkxjx1rdc9udRrveKvSsJIq80avlXeLHhGwqtA";
+        const EXAMPLE_RESPONSE_URI: &str = "https://example.com/response";
+
+        static EXAMPLE_JWK_THUMBPRINT: LazyLock<Vec<u8>> = LazyLock::new(|| {
+            // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-7
+            let json = json!({
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "DxiH5Q4Yx3UrukE2lWCErq8N8bqC9CHLLrAwLz5BmE0",
+                "y": "XtLM4-3h5o3HUH0MHVJV0kyq0iBlrBwlh8qEDMZ4-Pc",
+                "use": "enc",
+                "alg": "ECDH-ES",
+                "kid": "1"
+            });
+
+            let jwk = serde_json::from_value::<Jwk>(json).unwrap();
+            BASE64_URL_SAFE_NO_PAD
+                .decode(jwk.thumbprint(ThumbprintHash::SHA256))
+                .unwrap()
+        });
+
+        // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-13
+        const EXAMPLE_SESSION_TRANSCRIPT_BYTES: [u8; 56] = hex!(
+            "83f6f682714f70656e494434565048616e646f7665725820048bc053c00442af9b8e\
+             ed494cefdd9d95240d254b046b11b68013722aad38ac"
+        );
+
+        #[test]
+        fn test_openid4vp_handover_info_serialization() {
+            let info = OID4VPHandoverInfo {
+                client_id: Cow::Borrowed(EXAMPLE_CLIENT_ID),
+                nonce: Cow::Borrowed(EXAMPLE_NONCE),
+                jwk_thumbprint: Some(Cow::Borrowed(EXAMPLE_JWK_THUMBPRINT.as_slice().into())),
+                response_uri: Cow::Borrowed(EXAMPLE_RESPONSE_URI),
+            };
+
+            let bytes = cbor_serialize(&CborSeq(info)).expect("OID4VPHandoverInfo should serialize successfully");
+
+            assert_eq!(bytes, CborSeq::<OID4VPHandoverInfo>::example_bts());
+        }
+
+        #[test]
+        fn test_session_transcript_new_oid4vp() {
+            let session_transcript = SessionTranscript::new_oid4vp(
+                EXAMPLE_CLIENT_ID,
+                EXAMPLE_NONCE,
+                Some(EXAMPLE_JWK_THUMBPRINT.as_slice()),
+                &EXAMPLE_RESPONSE_URI.parse().unwrap(),
+            );
+
+            let bytes = cbor_serialize(&session_transcript).expect("SessionTranscript should serialize successfully");
+
+            assert_eq!(bytes, EXAMPLE_SESSION_TRANSCRIPT_BYTES);
+        }
     }
 }

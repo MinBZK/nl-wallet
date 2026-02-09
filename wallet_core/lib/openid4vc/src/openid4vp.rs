@@ -1,4 +1,3 @@
-use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
@@ -403,7 +402,7 @@ impl VpAuthorizationRequest {
 pub struct NormalizedVpAuthorizationRequest {
     pub client_id: String,
     pub nonce: String,
-    pub encryption_pubkey: Jwk,
+    pub encryption_pubkey: JwePublicKey,
     pub response_uri: BaseUrl,
     pub credential_requests: NormalizedCredentialRequests,
     pub client_metadata: ClientMetadata,
@@ -420,8 +419,6 @@ impl NormalizedVpAuthorizationRequest {
         response_uri: BaseUrl,
         wallet_nonce: Option<String>,
     ) -> Result<Self, AuthRequestError> {
-        let encryption_pubkey = encryption_pubkey.into_inner();
-
         Ok(Self {
             client_id: String::from(
                 rp_certificate
@@ -435,7 +432,7 @@ impl NormalizedVpAuthorizationRequest {
             credential_requests,
             client_metadata: ClientMetadata {
                 jwks: VpJwks::Direct {
-                    keys: vec![encryption_pubkey.clone()],
+                    keys: vec![encryption_pubkey.into_inner()],
                 },
                 vp_formats: VpFormat::MsoMdoc {
                     alg: IndexSet::from([FormatAlg::ES256]),
@@ -446,6 +443,15 @@ impl NormalizedVpAuthorizationRequest {
             state: None,
             wallet_nonce,
         })
+    }
+
+    pub fn session_transcript(&self) -> SessionTranscript {
+        SessionTranscript::new_oid4vp(
+            &self.client_id,
+            &self.nonce,
+            Some(&self.encryption_pubkey.sha256_thumbprint_bytes()),
+            &self.response_uri,
+        )
     }
 }
 
@@ -550,12 +556,12 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
             return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
         }
         let jwk = jwks.first().unwrap().clone();
-        JwePublicKey::validate(&jwk)?;
+        let encryption_pubkey = JwePublicKey::try_new(jwk)?;
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id: vp_auth_request.oauth_request.client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
-            encryption_pubkey: jwk,
+            encryption_pubkey,
             credential_requests: vp_auth_request.dcql_query.try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
             client_metadata,
@@ -582,9 +588,6 @@ pub enum AuthResponseError {
         expected: Option<String>,
         found: Option<String>,
     },
-
-    #[error("missing apu field from JWE")]
-    MissingApu,
 
     #[error("failed to decode apu field from JWE")]
     Utf8(#[from] FromUtf8Error),
@@ -716,7 +719,7 @@ impl VpAuthorizationResponse {
 
         // The key the RP wants us to encrypt our response to.
         let encrypter = EcdhEsJweAlgorithm::EcdhEs
-            .encrypter_from_jwk(&auth_request.encryption_pubkey)
+            .encrypter_from_jwk(auth_request.encryption_pubkey.as_ref())
             .map_err(AuthResponseError::JwkConversion)?;
 
         let jwe = josekit::jwt::encode_with_encrypter(&payload, &header, &encrypter).map_err(AuthResponseError::Jwe)?;
@@ -738,13 +741,12 @@ impl VpAuthorizationResponse {
     where
         C: StatusListClient,
     {
-        let (response, encryption_nonce) = Self::decrypt(jwe, private_key)?;
+        let response = Self::decrypt(jwe, private_key)?;
 
         response
             .verify(
                 auth_request,
                 accepted_wallet_client_ids,
-                encryption_nonce.as_deref(),
                 time,
                 trust_anchors,
                 extending_vct_values,
@@ -754,22 +756,16 @@ impl VpAuthorizationResponse {
             .await
     }
 
-    fn decrypt(
-        jwe: &str,
-        private_key: &EcKeyPair,
-    ) -> Result<(VpAuthorizationResponse, Option<String>), AuthResponseError> {
+    fn decrypt(jwe: &str, private_key: &EcKeyPair) -> Result<VpAuthorizationResponse, AuthResponseError> {
         let decrypter = EcdhEsJweAlgorithm::EcdhEs
             .decrypter_from_jwk(&private_key.to_jwk_key_pair())
             .map_err(AuthResponseError::JwkConversion)?;
-        let (payload, header) = josekit::jwt::decode_with_decrypter(jwe, &decrypter).map_err(AuthResponseError::Jwe)?;
-
-        // Note that it is up to the holder to choose the contents of the `apv` and `apu` fields. We only need the `apu`
-        // value in case a credential in mdoc format was disclosed, as according to the ISO 18013-7 profile this value
-        // should be used when re-constructing the `SessionTranscript`.
-        let encryption_nonce = header.agreement_partyuinfo().map(String::from_utf8).transpose()?;
+        let (payload, _header) =
+            josekit::jwt::decode_with_decrypter(jwe, &decrypter).map_err(AuthResponseError::Jwe)?;
 
         let payload = serde_json::from_value(serde_json::Value::Object(payload.into()))?;
-        Ok((payload, encryption_nonce))
+
+        Ok(payload)
     }
 
     #[expect(clippy::too_many_arguments)]
@@ -777,7 +773,6 @@ impl VpAuthorizationResponse {
         self,
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
-        encryption_nonce: Option<&str>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         extending_vct_values: &impl ExtendingVctRetriever,
@@ -789,18 +784,10 @@ impl VpAuthorizationResponse {
     {
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
-        let session_transcript = encryption_nonce.map(|encryption_nonce| {
-            LazyCell::new(|| {
-                // Only one mdoc `SessionTranscript` is needed for the entire response.
-                // However, it may not be required, so initialize it lazily.
-                SessionTranscript::new_oid4vp(
-                    &auth_request.response_uri,
-                    &auth_request.client_id,
-                    auth_request.nonce.clone(),
-                    encryption_nonce,
-                )
-            })
-        });
+
+        // Only one mdoc `SessionTranscript` is needed for the entire response.
+        // However, it may not be required, so initialize it lazily.
+        let session_transcript = LazyLock::new(|| auth_request.session_transcript());
 
         let mut holder_public_keys: Vec<VerifyingKey> = Vec::new();
         let mut disclosed_attestations = HashMap::new();
@@ -808,12 +795,11 @@ impl VpAuthorizationResponse {
         for (id, presentation) in self.vp_token {
             let (attestations, public_keys) = match presentation {
                 VerifiablePresentation::MsoMdoc(device_responses) => {
-                    let session_transcript = session_transcript.as_deref().ok_or(AuthResponseError::MissingApu)?;
                     let (keys, attestations): (Vec<_>, Vec<_>) =
                         try_join_all(device_responses.iter().map(|device_response| async {
                             Self::mdoc_to_disclosed_attestation(
                                 device_response,
-                                session_transcript,
+                                &session_transcript,
                                 time,
                                 trust_anchors,
                                 revocation_verifier,
@@ -1046,7 +1032,6 @@ mod tests {
     use jwt::SignedJwt;
     use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
-    use mdoc::SessionTranscript;
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
@@ -1178,9 +1163,8 @@ mod tests {
         );
         let jwe = auth_response.encrypt(&auth_request, &encryption_nonce).unwrap();
 
-        let (decrypted, jwe_encryption_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey).unwrap();
+        let decrypted = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey).unwrap();
 
-        assert_eq!(jwe_encryption_nonce, Some(encryption_nonce));
         assert_eq!(decrypted.vp_token.len(), 1);
 
         let (decrypted_identifier, VerifiablePresentation::MsoMdoc(decrypted_device_responses)) =
@@ -1436,16 +1420,8 @@ mod tests {
     fn setup_mdoc_vp_token(
         auth_request: &NormalizedVpAuthorizationRequest,
         partial_mdocs: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
-        encryption_nonce: &str,
         wscd: &MockRemoteWscd,
     ) -> (HashMap<CredentialQueryIdentifier, VerifiablePresentation>, Option<Poa>) {
-        let session_transcript = SessionTranscript::new_oid4vp(
-            &auth_request.response_uri,
-            &auth_request.client_id,
-            auth_request.nonce.clone(),
-            encryption_nonce,
-        );
-
         let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
 
         let (query_ids, partial_mdocs) = partial_mdocs
@@ -1455,7 +1431,7 @@ mod tests {
 
         let (device_responses, poa) = DeviceResponse::sign_multiple_from_partial_mdocs(
             partial_mdocs.try_into().unwrap(),
-            &session_transcript,
+            &auth_request.session_transcript(),
             wscd,
             poa_input,
         )
@@ -1500,17 +1476,15 @@ mod tests {
         .unwrap();
 
         let wscd = MockRemoteWscd::new(vec![holder_key]);
-        let encryption_nonce = "encryption_nonce";
 
         let partial_mdocs = HashMap::from([("mdoc_0".parse().unwrap(), vec_nonempty![partial_mdoc])]);
-        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, encryption_nonce, &wscd);
+        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, &wscd);
         let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
 
         let attestations = auth_response
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
@@ -1621,7 +1595,6 @@ mod tests {
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                None,
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
@@ -1712,20 +1685,12 @@ mod tests {
         )
         .unwrap();
 
-        let encryption_nonce = "encryption_nonce";
-        let session_transcript = SessionTranscript::new_oid4vp(
-            &auth_request.response_uri,
-            &auth_request.client_id,
-            auth_request.nonce.clone(),
-            encryption_nonce,
-        );
-
         let wscd = MockRemoteWscd::new(vec![mdoc_holder_key.clone()]);
 
         let poa_input = JwtPoaInput::new(None, "".to_string());
         let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
             vec_nonempty![partial_mdoc],
-            &session_transcript,
+            &auth_request.session_transcript(),
             &wscd,
             poa_input,
         )
@@ -1788,7 +1753,6 @@ mod tests {
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
@@ -1829,17 +1793,15 @@ mod tests {
 
     #[test]
     fn test_verify_poa() {
-        let encryption_nonce = "encryption_nonce";
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let (auth_request, partial_mdocs, wscd) = setup_poa_test(&ca);
-        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, encryption_nonce, &wscd);
+        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, &wscd);
 
         let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
         auth_response
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
@@ -1854,46 +1816,16 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_apu() {
-        let encryption_nonce = "encryption_nonce";
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let (auth_request, partial_mdocs, wscd) = setup_poa_test(&ca);
-        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, encryption_nonce, &wscd);
-
-        let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
-        let error = auth_response
-            .verify(
-                &auth_request,
-                &[MOCK_WALLET_CLIENT_ID.to_string()],
-                None,
-                &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
-                &ExtendingVctRetrieverStub,
-                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock().unwrap(),
-                ))),
-                false,
-            )
-            .now_or_never()
-            .unwrap()
-            .expect_err("verifying authorization response should fail");
-
-        assert_matches!(error, AuthResponseError::MissingApu);
-    }
-
-    #[test]
     fn test_verify_missing_poa() {
-        let encryption_nonce = "encryption_nonce";
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let (auth_request, partial_mdocs, wscd) = setup_poa_test(&ca);
-        let (vp_token, _) = setup_mdoc_vp_token(&auth_request, partial_mdocs, encryption_nonce, &wscd);
+        let (vp_token, _) = setup_mdoc_vp_token(&auth_request, partial_mdocs, &wscd);
 
         let auth_response = VpAuthorizationResponse::new(vp_token, None, None);
         let error = auth_response
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
@@ -1911,10 +1843,9 @@ mod tests {
 
     #[test]
     fn test_verify_invalid_poa() {
-        let encryption_nonce = "encryption_nonce";
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let (auth_request, partial_mdocs, wscd) = setup_poa_test(&ca);
-        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, encryption_nonce, &wscd);
+        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, &wscd);
 
         let mut poa = poa.unwrap();
         poa.set_payload("edited".to_owned());
@@ -1924,7 +1855,6 @@ mod tests {
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
                 &ExtendingVctRetrieverStub,
