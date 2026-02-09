@@ -1,9 +1,9 @@
 apiVersion: v2
 type: application
-name: redis
+name: rdo-max
 version: 1.0.0
-appVersion: "7.2"
-description: A helm-chart for Redis.
+appVersion: "latest"
+description: A helm-chart for RDO Max (DigiD Connector).
 dependencies:
   - name: sp-common
     repository: "file://../sp-common"

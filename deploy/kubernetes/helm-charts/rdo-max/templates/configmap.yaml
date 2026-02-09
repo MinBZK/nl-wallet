@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "common.names.fullname" . }}-files
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+data:
+{{- if .Values.max.extraConfigFiles }}
+{{/* include extra config files from values.yaml */}}
+{{- range $path, $content := .Values.max.extraConfigFiles }}
+{{- $path | indent 2 }}: |-
+{{- $content | nindent 4 }}
+{{ end }}
+{{- end }}
+{{/* include static files, don't parse */}}
+{{- range $path, $_ :=  .Files.Glob  "static/*" }}
+{{- $path | base | indent 2 }}: |-
+{{- $.Files.Get $path | toString | nindent 4 }}
+{{ end }}
+{{/* include other files, parse as template */}}
+{{- range $path, $_ :=  .Files.Glob  "other/*" }}
+{{- $path | base | indent 2 }}: |-
+{{- tpl ($.Files.Get $path) $ | toString | nindent 4 }}
+{{ end }}

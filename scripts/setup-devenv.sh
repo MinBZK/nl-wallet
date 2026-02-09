@@ -205,7 +205,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   export DIGID_CA_CRT
 
   # Generate JWK from private RSA key of test_client.
-  CLIENT_PRIVKEY_JWK=$(docker compose run --rm app make --silent create-jwk)
+  CLIENT_PRIVKEY_JWK=$(docker compose run --rm "${DIGID_CONNECTOR_APPNAME}" make --silent create-jwk)
 
   # Remove the 'kid' json field, because the digid-connector does not send a JWE 'kid' header claim, which is required
   # if `kid` field is specified.
