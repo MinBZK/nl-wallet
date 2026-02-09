@@ -114,8 +114,8 @@ async fn csp_middleware(mut req: Request<Body>, next: Next) -> Response {
     let mut response = next.run(req).await;
 
     let csp = format!(
-        "default-src 'self'; script-src 'nonce-{nonce}'; img-src 'self' data:; font-src 'self' data:; form-action \
-         'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+        "default-src 'none'; script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; img-src 'self' data:; font-src \
+         'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
     );
 
     response.headers_mut().insert(
