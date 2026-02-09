@@ -135,18 +135,9 @@ async fn csp_middleware(mut req: Request<Body>, next: Next) -> Response {
 
     let mut response = next.run(req).await;
 
-    let script_src = [
-        &LANGUAGE_JS_SHA256,
-        &PORTAL_JS_SHA256,
-        &PORTAL_UI_JS_SHA256,
-        &LOKALIZE_JS_SHA256,
-    ]
-    .map(|sha| format!("'sha256-{}'", **sha))
-    .join(" ");
-
     let csp = format!(
-        "default-src 'self'; script-src {script_src} 'nonce-{nonce}'; img-src 'self' data:; font-src 'self' data:; \
-         form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+        "default-src 'self'; script-src 'nonce-{nonce}'; img-src 'self' data:; font-src 'self' data:; form-action \
+         'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
     );
 
     response.headers_mut().insert(
