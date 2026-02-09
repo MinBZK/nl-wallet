@@ -1,4 +1,4 @@
-export const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g;
+export const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g
 
 /**
  * Normalizes and formats a raw deletion code input string.
@@ -9,18 +9,18 @@ export const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g;
  * - Adds a trailing hyphen at group boundaries (for live typing UX)
  */
 export function formatDeletionCode(value) {
-  let val = value.toUpperCase();
-  val = val.replace(/[IL]/g, '1').replace(/O/g, '0');
-  const rawValue = val.replace(ALLOWED_REGEX, '');
-  const parts = rawValue.match(/.{1,4}/g);
-  let formatted = parts ? parts.join('-') : rawValue;
+  let val = value.toUpperCase()
+  val = val.replace(/[IL]/g, "1").replace(/O/g, "0")
+  const rawValue = val.replace(ALLOWED_REGEX, "")
+  const parts = rawValue.match(/.{1,4}/g)
+  let formatted = parts ? parts.join("-") : rawValue
 
-  const addTrailingHyphen = rawValue.length > 0 && rawValue.length < 18 && rawValue.length % 4 === 0;
+  const addTrailingHyphen = rawValue.length > 0 && rawValue.length < 18 && rawValue.length % 4 === 0
   if (addTrailingHyphen) {
-    formatted += '-';
+    formatted += "-"
   }
 
-  return { formatted, rawValue, addTrailingHyphen };
+  return { formatted, rawValue, addTrailingHyphen }
 }
 
 /**
@@ -28,15 +28,15 @@ export function formatDeletionCode(value) {
  * preserving the user's position relative to raw characters.
  */
 export function calculateCursorPosition(oldVal, oldPos, formatted, rawValue, addTrailingHyphen) {
-  const rawPosBefore = oldVal.substring(0, oldPos).replace(/-/g, '').length;
-  const rawPosInNewValue = Math.min(rawPosBefore, rawValue.length);
-  let newPos = rawPosInNewValue + Math.floor(rawPosInNewValue / 4);
+  const rawPosBefore = oldVal.substring(0, oldPos).replace(/-/g, "").length
+  const rawPosInNewValue = Math.min(rawPosBefore, rawValue.length)
+  let newPos = rawPosInNewValue + Math.floor(rawPosInNewValue / 4)
 
   if (addTrailingHyphen && rawPosBefore >= rawValue.length) {
-    newPos = formatted.length;
+    newPos = formatted.length
   }
 
-  return newPos;
+  return newPos
 }
 
 /**
@@ -46,7 +46,7 @@ export function calculateCursorPosition(oldVal, oldPos, formatted, rawValue, add
  * - null             → valid
  */
 export function validateDeletionCode(rawValue) {
-  if (rawValue.length === 0) return 'required';
-  if (rawValue.length !== 18) return 'invalid_length';
-  return null;
+  if (rawValue.length === 0) return "required"
+  if (rawValue.length !== 18) return "invalid_length"
+  return null
 }
