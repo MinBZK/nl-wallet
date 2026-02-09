@@ -2,6 +2,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use assert_matches::assert_matches;
+use audit_log::audited;
 use chrono::Utc;
 use config::Config;
 use config::File;
@@ -81,6 +82,15 @@ async fn setup_test_database(
     (connection, audit_log)
 }
 
+#[audited]
+async fn operation(
+    #[auditer] audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
+    is_success: bool,
+    #[audit] param1: &'static str,
+) -> Result<(), TestError> {
+    if is_success { Ok(()) } else { Err(TestError::Test) }
+}
+
 #[rstest]
 #[tokio::test]
 async fn test_audit(#[values(true, false)] is_success: bool) {
@@ -89,11 +99,7 @@ async fn test_audit(#[values(true, false)] is_success: bool) {
     let (connection, audit_log) = setup_test_database(correlation_id).await;
 
     // Perform audited test operation
-    let result: Result<(), TestError> = audit_log
-        .audit("operation".to_string(), json!({"param1": "input"}), async || {
-            if is_success { Ok(()) } else { Err(TestError::Test) }
-        })
-        .await;
+    let result: Result<(), TestError> = operation(&audit_log, is_success, "input").await;
 
     assert_eq!(result.is_ok(), is_success);
 

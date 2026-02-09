@@ -5,8 +5,8 @@ use chrono::Utc;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::json;
 
+use audit_log::audited;
 use audit_log::model::AuditLog;
 use audit_log::model::PostgresAuditLogError;
 use hsm::model::Hsm;
@@ -50,153 +50,136 @@ pub struct RevocationResult {
     revoked_at: DateTime<Utc>,
 }
 
+#[audited]
 pub async fn revoke_wallet_by_revocation_code<T, R, H>(
-    revocation_code: RevocationCode,
+    #[audit] revocation_code: RevocationCode,
     revocation_code_key_identifier: &str,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
-    audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
+    #[auditer] audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
 ) -> Result<RevocationResult, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Hsm<Error = HsmError>,
 {
-    audit_log
-        .audit(
-            "revoke_wallet_by_revocation_code",
-            json!({"revocation_code": revocation_code.to_string()}),
-            async || {
-                let revocation_reason = RevocationReason::UserRequest;
-                let revocation_date_time = time.generate();
+    let revocation_reason = RevocationReason::UserRequest;
+    let revocation_date_time = time.generate();
 
-                let revocation_code_hmac = user_state
-                    .wallet_user_hsm
-                    .sign_hmac(revocation_code_key_identifier, revocation_code.as_ref().as_bytes())
-                    .await
-                    .map_err(RevocationError::RevocationCodeHmac)?;
-
-                let tx = user_state.repositories.begin_transaction().await?;
-
-                let wallet_user_id_result = user_state
-                    .repositories
-                    .find_wallet_user_id_by_revocation_code(&tx, revocation_code_hmac.as_slice())
-                    .await?;
-
-                let QueryResult::Found(wallet_user_id) = wallet_user_id_result else {
-                    return Err(RevocationError::RevocationCodeNotFound(revocation_code.into()));
-                };
-
-                let wua_ids = user_state
-                    .repositories
-                    .revoke_wallet_users(&tx, vec![*wallet_user_id], revocation_reason, revocation_date_time)
-                    .await?;
-
-                tx.commit().await?;
-
-                user_state
-                    .status_list_service
-                    .revoke_attestation_batches(wua_ids)
-                    .await?;
-
-                Ok(RevocationResult {
-                    revoked_at: revocation_date_time,
-                })
-            },
-        )
+    let revocation_code_hmac = user_state
+        .wallet_user_hsm
+        .sign_hmac(revocation_code_key_identifier, revocation_code.as_ref().as_bytes())
         .await
+        .map_err(RevocationError::RevocationCodeHmac)?;
+
+    let tx = user_state.repositories.begin_transaction().await?;
+
+    let wallet_user_id_result = user_state
+        .repositories
+        .find_wallet_user_id_by_revocation_code(&tx, revocation_code_hmac.as_slice())
+        .await?;
+
+    let QueryResult::Found(wallet_user_id) = wallet_user_id_result else {
+        return Err(RevocationError::RevocationCodeNotFound(revocation_code.into()));
+    };
+
+    let wua_ids = user_state
+        .repositories
+        .revoke_wallet_users(&tx, vec![*wallet_user_id], revocation_reason, revocation_date_time)
+        .await?;
+
+    tx.commit().await?;
+
+    user_state
+        .status_list_service
+        .revoke_attestation_batches(wua_ids)
+        .await?;
+
+    Ok(RevocationResult {
+        revoked_at: revocation_date_time,
+    })
 }
 
+#[audited]
 pub async fn revoke_wallets_by_wallet_id<T, R, H>(
-    wallet_ids: &HashSet<String>,
+    #[audit] wallet_ids: &HashSet<String>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
-    audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
+    #[auditer] audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
 ) -> Result<(), RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    audit_log
-        .audit(
-            "revoke_wallets_by_wallet_id",
-            json!({"wallet_ids": wallet_ids}),
-            async || {
-                let revocation_reason = RevocationReason::AdminRequest;
-                let revocation_date_time = time.generate();
+    let revocation_reason = RevocationReason::AdminRequest;
+    let revocation_date_time = time.generate();
 
-                let tx = user_state.repositories.begin_transaction().await?;
+    let tx = user_state.repositories.begin_transaction().await?;
 
-                let found_wallets = user_state
-                    .repositories
-                    .find_wallet_user_id_by_wallet_ids(&tx, wallet_ids)
-                    .await?;
+    let found_wallets = user_state
+        .repositories
+        .find_wallet_user_id_by_wallet_ids(&tx, wallet_ids)
+        .await?;
 
-                if found_wallets.len() != wallet_ids.len() {
-                    let not_found_ids: HashSet<String> = wallet_ids
-                        .difference(&found_wallets.into_keys().collect())
-                        .cloned()
-                        .collect();
-                    return Err(RevocationError::WalletIdsNotFound(not_found_ids));
-                }
+    if found_wallets.len() != wallet_ids.len() {
+        let not_found_ids: HashSet<String> = wallet_ids
+            .difference(&found_wallets.into_keys().collect())
+            .cloned()
+            .collect();
+        return Err(RevocationError::WalletIdsNotFound(not_found_ids));
+    }
 
-                // revoke all users
-                let wua_ids = user_state
-                    .repositories
-                    .revoke_wallet_users(
-                        &tx,
-                        found_wallets.into_values().collect_vec(),
-                        revocation_reason,
-                        revocation_date_time,
-                    )
-                    .await?;
-
-                tx.commit().await?;
-
-                // Revoke WUA attestations of all successfully revoked wallets
-                user_state
-                    .status_list_service
-                    .revoke_attestation_batches(wua_ids)
-                    .await?;
-
-                Ok(())
-            },
+    // revoke all users
+    let wua_ids = user_state
+        .repositories
+        .revoke_wallet_users(
+            &tx,
+            found_wallets.into_values().collect_vec(),
+            revocation_reason,
+            revocation_date_time,
         )
-        .await
+        .await?;
+
+    tx.commit().await?;
+
+    // Revoke WUA attestations of all successfully revoked wallets
+    user_state
+        .status_list_service
+        .revoke_attestation_batches(wua_ids)
+        .await?;
+
+    Ok(())
 }
 
+#[audited]
 pub async fn revoke_all_wallets<T, R, H>(
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
-    audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
+    #[auditer] audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
 ) -> Result<(), RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    audit_log
-        .audit("revoke_all_wallets", json!({}), async || {
-            let revocation_reason = RevocationReason::WalletSolutionCompromised;
-            let revocation_date_time = time.generate();
+    let revocation_reason = RevocationReason::WalletSolutionCompromised;
+    let revocation_date_time = time.generate();
 
-            // TODO rewrite this method (PVW-5299)
-            let tx = user_state.repositories.begin_transaction().await?;
-            let wallet_user_ids = user_state.repositories.list_wallet_user_ids(&tx).await?;
-            let wua_ids = user_state
-                .repositories
-                .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
-                .await?;
-            tx.commit().await?;
+    // TODO rewrite this method (PVW-5299)
+    let tx = user_state.repositories.begin_transaction().await?;
+    let wallet_user_ids = user_state.repositories.list_wallet_user_ids(&tx).await?;
+    let wua_ids = user_state
+        .repositories
+        .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
+        .await?;
+    tx.commit().await?;
 
-            // TODO consider adding a `revoke_all` method to `StatusListRevocationService` for efficiency (PVW-5299)
-            user_state
-                .status_list_service
-                .revoke_attestation_batches(wua_ids)
-                .await?;
+    // TODO consider adding a `revoke_all` method to `StatusListRevocationService` for efficiency (PVW-5299)
+    user_state
+        .status_list_service
+        .revoke_attestation_batches(wua_ids)
+        .await?;
 
-            Ok(())
-        })
-        .await
+    Ok(())
 }
 
 pub async fn list_wallets<T, R, H>(

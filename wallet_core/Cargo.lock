@@ -672,6 +672,7 @@ name = "audit_log"
 version = "0.5.0-dev"
 dependencies = [
  "assert_matches",
+ "audit_log_macros",
  "chrono",
  "config",
  "derive_more",
@@ -682,8 +683,19 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tracing",
+ "tracing-test",
  "utils",
  "uuid",
+]
+
+[[package]]
+name = "audit_log_macros"
+version = "0.5.0-dev"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rstest",
+ "syn",
 ]
 
 [[package]]

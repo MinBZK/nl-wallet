@@ -146,7 +146,7 @@ where
     }
 }
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use std::marker::PhantomData;
 
