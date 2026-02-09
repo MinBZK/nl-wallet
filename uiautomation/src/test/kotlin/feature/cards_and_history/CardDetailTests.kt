@@ -51,7 +51,7 @@ class CardDetailTests : TestBase() {
         setUp(testInfo)
         assertAll(
             { assertTrue(cardDetailScreen.visible(), "card detail screen is not visible") },
-            { assertTrue(cardDetailScreen.cardFaceElements(), "card face for detail screen is not visible and/or correct") },
+            { assertTrue(cardDetailScreen.pidCardVisible(), "card face for detail screen is not visible and/or correct") },
             { assertTrue(cardDetailScreen.issuerAndHistoryStates(), "issuer and/or history state not not visible and/or correct") }
         )
 

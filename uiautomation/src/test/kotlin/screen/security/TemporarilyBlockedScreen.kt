@@ -13,7 +13,9 @@ class TemporarilyBlockedScreen : MobileActions() {
     fun forgotPinButtonVisible() = elementWithTextVisible(forgotPinButton)
 
     fun timeoutDurationLeftVisible(duration: String): Boolean {
-        val selector = l10n.getString("pinTimeoutScreenTimeoutCountdown").replace("{timeLeft}", duration + " " + l10n.translate(LocalizationHelper.Translation.SECONDS))
+        val seconds = duration.toIntOrNull() ?: 0
+        val timeLeft = l10n.getPluralString("generalSeconds", seconds, mapOf("seconds" to duration))
+        val selector = l10n.getString("pinTimeoutScreenTimeoutCountdown").replace("{timeLeft}", timeLeft)
         return elementWithTextVisible(selector);
     }
 }

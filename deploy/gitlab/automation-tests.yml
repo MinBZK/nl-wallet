@@ -112,6 +112,11 @@ run-automation-security-tests:
   variables:
     TESTS: "suite.SecurityTestSuite"
 
+run-automation-notifications-tests:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "suite.NotificationsTestSuite"
+
 run-automation-revocation-tests:
   extends: .run-automation-tests-default
   variables:

@@ -5,12 +5,12 @@ import util.MobileActions
 
 class CardIssuanceScreen : MobileActions() {
 
-    private val addCardButton = l10n.translate(LocalizationHelper.Translation.ADD_CARD)
-    private val add2CardsButton = l10n.translate(LocalizationHelper.Translation.ADD_2_CARDS)
+    private val addCardButton = l10n.getPluralString("issuanceReviewCardsPageAcceptCta", 1, mapOf("cards" to "1"))
+    private val add2CardsButton = l10n.getPluralString("issuanceReviewCardsPageAcceptCta", 2, mapOf("cards" to "2"))
     private val stopButton = l10n.getString("generalBottomBackCta")
     private val viewDetailsButton = l10n.getString("issuanceReviewCardsPageShowDetailsCta")
     private val dashboardButton = l10n.getString("issuanceSuccessPageCloseCta")
-    private val renewCardSectionTitle = l10n.translate(LocalizationHelper.Translation.RENEW_CARD)
+    private val renewCardSectionTitle = l10n.getPluralString("issuanceReviewCardsPageRenewSectionTitle", 1, mapOf("cards" to "1"))
 
     fun clickAddCardButton() {
         scrollToElementWithText(addCardButton)
