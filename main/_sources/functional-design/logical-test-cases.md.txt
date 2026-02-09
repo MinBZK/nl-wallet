@@ -10,13 +10,13 @@ or automated tests.
 
 #### PID issuance
 
-**Given** user has completed security setup
-**When** user authenticates at auth server
-**Then** system displays issued attributes to user for verification
-**When** user adds attributes
-**And** confirms using their PIN
-**Then** system displays message that wallet is created
-**And** provides a link to the dashboard
+**Given** user has completed security setup<br>
+**When** user authenticates at auth server<br>
+**Then** system displays issued attributes to user for verification<br>
+**When** user adds attributes<br>
+**And** confirms using their PIN<br>
+**Then** system displays message that wallet is created<br>
+**And** provides a link to the dashboard<br>
 
 ---
 
@@ -24,11 +24,11 @@ or automated tests.
 
 #### Issuance fails
 
-**Given** user has completed security setup
-**And** user authenticates at auth server
-**When** issuance fails
-**Then** system displays message that issuance failed
-**And** provides a link to try again
+**Given** user has completed security setup<br>
+**And** user authenticates at auth server<br>
+**When** issuance fails<br>
+**Then** system displays message that issuance failed<br>
+**And** provides a link to try again<br>
 
 ---
 
@@ -36,10 +36,10 @@ or automated tests.
 
 #### Authentication at auth server fails
 
-**Given** user has completed security setup
-**And** user authentication at auth server fails
-**Then** system displays message that authentication failed
-**And** provides a link to try again
+**Given** user has completed security setup<br>
+**And** user authentication at auth server fails<br>
+**Then** system displays message that authentication failed<br>
+**And** provides a link to try again<br>
 
 ---
 
@@ -47,11 +47,11 @@ or automated tests.
 
 #### Rejects issued attributes
 
-**Given** user has completed security setup
-**And** user authenticates at auth server
-**And** system displays issued attributes to user for verification
-**When** user rejects issued attributes
-**Then** provides a link to try again
+**Given** user has completed security setup<br>
+**And** user authenticates at auth server<br>
+**And** system displays issued attributes to user for verification<br>
+**When** user rejects issued attributes<br>
+**Then** provides a link to try again<br>
 
 ---
 
@@ -59,15 +59,15 @@ or automated tests.
 
 #### Disclosure based Issuance
 
-**Given** user has completed PID setup and opened the app
-**When** user invokes a universal link from a (Q)EAA issuer
-**Then** system requests approval for disclosure
-**When** user approves with PIN
-**Then** system validates PIN and proceeds
-**And** system requests approval for attestations
-**When** user approves with PIN
-**Then** system issues card and displays it to user
-**And** provides a link to the dashboard
+**Given** user has completed PID setup and opened the app<br>
+**When** user invokes a universal link from a (Q)EAA issuer<br>
+**Then** system requests approval for disclosure<br>
+**When** user approves with PIN<br>
+**Then** system validates PIN and proceeds<br>
+**And** system requests approval for attestations<br>
+**When** user approves with PIN<br>
+**Then** system issues card and displays it to user<br>
+**And** provides a link to the dashboard<br>
 
 
 ---
@@ -76,8 +76,8 @@ or automated tests.
 
 #### Invalid universal link
 
-**Given** user invokes an invalid universal link
-**Then** system informs user link is not recognized
+**Given** user invokes an invalid universal link<br>
+**Then** system informs user link is not recognized<br>
 
 ---
 
@@ -87,16 +87,16 @@ or automated tests.
 
 #### Cross-device generic issuance
 
-**Given** user is on a device with wallet installed
-**When** relying party presents a QR code
-**And** user scans it with wallet
-**Then** system requests approval for disclosure
-**When** user approves with PIN
-**Then** system validates PIN and proceeds
-**And** system requests approval for attestations
-**When** user approves with PIN
-**Then** system issues card and displays it to user
-**And** provides a link to the dashboard
+**Given** user is on a device with wallet installed<br>
+**When** relying party presents a QR code<br>
+**And** user scans it with wallet<br>
+**Then** system requests approval for disclosure<br>
+**When** user approves with PIN<br>
+**Then** system validates PIN and proceeds<br>
+**And** system requests approval for attestations<br>
+**When** user approves with PIN<br>
+**Then** system issues card and displays it to user<br>
+**And** provides a link to the dashboard<br>
 
 ---
 
@@ -104,10 +104,10 @@ or automated tests.
 
 #### Reject disclosure of attributes
 
-**Given** user starts card issuance
-**When** system asks for disclosure consent
-**And** user selects 'stop'
-**Then** system confirms cancellation
+**Given** user starts card issuance<br>
+**When** system asks for disclosure consent<br>
+**And** user selects 'stop'<br>
+**Then** system confirms cancellation<br>
 
 ---
 
@@ -115,9 +115,9 @@ or automated tests.
 
 #### No cards to be issued
 
-**Given** user has no cards to be issued available at EAA issuer
-**When** user performs disclosure based issuance to retrieve cards
-**Then** system displays error message that no cards are available for issuance
+**Given** user has no cards to be issued available at EAA issuer<br>
+**When** user performs disclosure based issuance to retrieve cards<br>
+**Then** system displays error message that no cards are available for issuance<br>
 
 ---
 
@@ -126,11 +126,11 @@ or automated tests.
 #### Wallet does not contain requested attributes
 
 **Given** wallet does not contain attributes to fulfill a disclosure request
-from an issuer
-**When** user invokes a universal link from a (Q)EAA issuer
-**Then** System displays an error message with instructions
-**When** user selects 'see details'
-**Then** system displays a bottom sheet with app information
+from an issuer<br>
+**When** user invokes a universal link from a (Q)EAA issuer<br>
+**Then** System displays an error message with instructions<br>
+**When** user selects 'see details'<br>
+**Then** system displays a bottom sheet with app information<br>
 
 ---
 
@@ -138,17 +138,17 @@ from an issuer
 
 #### Renew card
 
-**Given** user has an EAA card in its wallet
-**When** user invokes a universal link from issuer of card
-**Then** system requests approval for disclosure
-**When** user approves with PIN
-**Then** system validates PIN and proceeds
-**And** system requests approval card renewal
-**When** user approves with PIN
-**Then** system renews card
-**And** provides a link to the dashboard
-**And** merges history of old and new cards
-**And** adds a card renewel event to the history
+**Given** user has an EAA card in its wallet<br>
+**When** user invokes a universal link from issuer of card<br>
+**Then** system requests approval for disclosure<br>
+**When** user approves with PIN<br>
+**Then** system validates PIN and proceeds<br>
+**And** system requests approval card renewal<br>
+**When** user approves with PIN<br>
+**Then** system renews card<br>
+**And** provides a link to the dashboard<br>
+**And** merges history of old and new cards<br>
+**And** adds a card renewel event to the history<br>
 
 ---
 
@@ -156,10 +156,10 @@ from an issuer
 
 #### View introduction
 
-**Given** the app is opened
-**And** user has not completed introduction
-**When** user navigates through the introduction screens
-**Then** system displays set pin screen
+**Given** the app is opened<br>
+**And** user has not completed introduction<br>
+**When** user navigates through the introduction screens<br>
+**Then** system displays set pin screen<br>
 
 ---
 
@@ -167,10 +167,10 @@ from an issuer
 
 #### Skip introduction
 
-**Given** the app is opened
-**And** user has not completed introduction
-**When** user skips the introduction screens
-**Then** systems displays the privacy introduction screen
+**Given** the app is opened<br>
+**And** user has not completed introduction<br>
+**When** user skips the introduction screens<br>
+**Then** systems displays the privacy introduction screen<br>
 
 ---
 
@@ -178,16 +178,16 @@ from an issuer
 
 #### View app tour
 
-**Given** user has not closed app after obtaining PID
-**When** user views the app dashboard
-**Then** system displays a non-dismissible banner
-**When** user views the menu
-**Then** system displays an app tour menu item
-**When** user selects app tour
-**Then** system displays an app tour overview with a list of video items
-**When** user selects a video
-**Then** system opens the videoplayer
-**And** videoplayer contains correct controls
+**Given** user has not closed app after obtaining PID<br>
+**When** user views the app dashboard<br>
+**Then** system displays a non-dismissible banner<br>
+**When** user views the menu<br>
+**Then** system displays an app tour menu item<br>
+**When** user selects app tour<br>
+**Then** system displays an app tour overview with a list of video items<br>
+**When** user selects a video<br>
+**Then** system opens the videoplayer<br>
+**And** videoplayer contains correct controls<br>
 
 ---
 
@@ -195,12 +195,12 @@ from an issuer
 
 #### Share data
 
-**Given** user has completed PID setup and opened the app
-**When** user starts disclosure process at relying party
-**Then** system requests user consent
-**When** user approves with PIN
-**Then** system discloses attributes to relying party
-**And** system displays data shared message
+**Given** user has completed PID setup and opened the app<br>
+**When** user starts disclosure process at relying party<br>
+**Then** system requests user consent<br>
+**When** user approves with PIN<br>
+**Then** system discloses attributes to relying party<br>
+**And** system displays data shared message<br>
 
 ---
 
@@ -210,13 +210,13 @@ from an issuer
 
 #### Cross-device share data
 
-**Given** user starts disclosure on a non-mobile device
-**When** user scans QR code with wallet
-**Then** system validates relying party URL
-**When** user confirms to proceed
-**And** approves disclosure with PIN
-**Then** system completes disclosure
-**And** displays a success message
+**Given** user starts disclosure on a non-mobile device<br>
+**When** user scans QR code with wallet<br>
+**Then** system validates relying party URL<br>
+**When** user confirms to proceed<br>
+**And** approves disclosure with PIN<br>
+**Then** system completes disclosure<br>
+**And** displays a success message<br>
 
 ---
 
@@ -224,12 +224,12 @@ from an issuer
 
 #### Decline consent to share data
 
-**Given** user is shown consent screen
-**When** user selects 'Stop'
-**Then** system confirms cancellation
-**When** user confirms
-**Then** system displays the stopped screen
-**And** provides a link to the dashboard
+**Given** user is shown consent screen<br>
+**When** user selects 'Stop'<br>
+**Then** system confirms cancellation<br>
+**When** user confirms<br>
+**Then** system displays the stopped screen<br>
+**And** provides a link to the dashboard<br>
 
 ---
 
@@ -237,12 +237,12 @@ from an issuer
 
 #### RP Login
 
-**Given** user has completed PID setup and opened the app
-**When** user starts login process at relying party
-**Then** system requests consent to disclose BSN
-**When** user approves with PIN
-**Then** system discloses BSN to relying party
-**And** relying pary displays login success message
+**Given** user has completed PID setup and opened the app<br>
+**When** user starts login process at relying party<br>
+**Then** system requests consent to disclose BSN<br>
+**When** user approves with PIN<br>
+**Then** system discloses BSN to relying party<br>
+**And** relying pary displays login success message<br>
 
 ---
 
@@ -252,13 +252,13 @@ from an issuer
 
 #### Cross-device login
 
-**Given** user starts login on a non-mobile device
-**When** user scans QR code with wallet
-**Then** system validates relying party URL
-**When** user confirms to continue
-**And** approves disclosure with PIN
-**Then** login is completed
-**And** system displays success message
+**Given** user starts login on a non-mobile device<br>
+**When** user scans QR code with wallet<br>
+**Then** system validates relying party URL<br>
+**When** user confirms to continue<br>
+**And** approves disclosure with PIN<br>
+**Then** login is completed<br>
+**And** system displays success message<br>
 
 ---
 
@@ -266,11 +266,11 @@ from an issuer
 
 #### Disclosure fails
 
-**Given** user has completed security setup
-**When** user starts a disclosure flow
-**And** disclosure fails
-**And** system displays message disclosure failed
-**And** provides a link to try again
+**Given** user has completed security setup<br>
+**When** user starts a disclosure flow<br>
+**And** disclosure fails<br>
+**And** system displays message disclosure failed<br>
+**And** provides a link to try again<br>
 
 ---
 
@@ -278,11 +278,11 @@ from an issuer
 
 #### Delete App data
 
-**Given** user has completed PID setup and opened the app
-**When** user selects 'Remove data' from the settings menu
-**Then** system displays a prompt with 'Cancel' and 'Yes, Delete' options
-**When** user selects 'Yes, Delete'
-**Then** system displays the introduction screen
+**Given** user has completed PID setup and opened the app<br>
+**When** user selects 'Remove data' from the settings menu<br>
+**Then** system displays a prompt with 'Cancel' and 'Yes, Delete' options<br>
+**When** user selects 'Yes, Delete'<br>
+**Then** system displays the introduction screen<br>
 
 ---
 
@@ -290,14 +290,14 @@ from an issuer
 
 #### View activity list
 
-**Given** user has completed PID setup and opened the app
-**When** user selects 'activities' from settings or dashboard
-**Then** system displays list of all usage and management activities
-**When** user selects an activity
-**Then** system displays details for the selected activity
-**When** user navigates back
-**And** user selects 'About Organization'
-**Then** system displays information about the organization
+**Given** user has completed PID setup and opened the app<br>
+**When** user selects 'activities' from settings or dashboard<br>
+**Then** system displays list of all usage and management activities<br>
+**When** user selects an activity<br>
+**Then** system displays details for the selected activity<br>
+**When** user navigates back<br>
+**And** user selects 'About Organization'<br>
+**Then** system displays information about the organization<br>
 
 ---
 
@@ -305,14 +305,14 @@ from an issuer
 
 #### View card-specific activity list
 
-**Given** user has completed PID setup and opened the app
-**When** user selects 'activities' on card details screen
-**Then** system displays list of activities related to the selected card
-**When** user selects an activity
-**Then** system displays details for the selected activity
-**When** user navigates back
-**And** user selects 'About Organization'
-**Then** system displays organization information
+**Given** user has completed PID setup and opened the app<br>
+**When** user selects 'activities' on card details screen<br>
+**Then** system displays list of activities related to the selected card<br>
+**When** user selects an activity<br>
+**Then** system displays details for the selected activity<br>
+**When** user navigates back<br>
+**And** user selects 'About Organization'<br>
+**Then** system displays organization information<br>
 
 ---
 
@@ -320,10 +320,10 @@ from an issuer
 
 #### View all available cards
 
-**Given** user has completed PID setup and unlocked the app
+**Given** user has completed PID setup and unlocked the app<br>
 **When** user completes one of the relevant flows (unlock app, obtain PID, or
-obtain card)
-**Then** system displays all cards currently available in the app
+obtain card)<br>
+**Then** system displays all cards currently available in the app<br>
 
 ---
 
@@ -331,17 +331,17 @@ obtain card)
 
 #### View Card Details
 
-**Given** dashboard is opened
-**When** user selects a card
-**Then** system displays the card details
-**When** user selects card attributes
-**Then** system displays the card attributes
-**When** user navigates back
-**And** user selects card history
-**Then** system displays the card history
-**When** user navigates back
-**And** user selects organization
-**Then** system displays the organization
+**Given** dashboard is opened<br>
+**When** user selects a card<br>
+**Then** system displays the card details<br>
+**When** user selects card attributes<br>
+**Then** system displays the card attributes<br>
+**When** user navigates back<br>
+**And** user selects card history<br>
+**Then** system displays the card history<br>
+**When** user navigates back<br>
+**And** user selects organization<br>
+**Then** system displays the organization<br>
 
 ---
 
@@ -349,9 +349,9 @@ obtain card)
 
 #### Show app menu
 
-**Given** user has completed PID setup and opened the app
-**When** user selects 'menu' on the dashboard
-**Then** system displays all app menu items
+**Given** user has completed PID setup and opened the app<br>
+**When** user selects 'menu' on the dashboard<br>
+**Then** system displays all app menu items<br>
 
 ---
 
@@ -359,11 +359,11 @@ obtain card)
 
 #### View settings menu
 
-**Given** app menu is shown
-**When** user selects 'Settings'
-**Then** system displays settings menu items
-**When** user navigates back
-**Then** system displays app menu items
+**Given** app menu is shown<br>
+**When** user selects 'Settings'<br>
+**Then** system displays settings menu items<br>
+**When** user navigates back<br>
+**Then** system displays app menu items<br>
 
 ---
 
@@ -371,8 +371,8 @@ obtain card)
 
 #### View app information
 
-**Given** user selects app information
-**Then** system displays the About App screen
+**Given** user selects app information<br>
+**Then** system displays the About App screen<br>
 
 ---
 
@@ -380,11 +380,11 @@ obtain card)
 
 #### View privacy statement
 
-**Given** About App screen is shown
-**When** user selects 'Privacy Statement'
-**Then** system displays the Privacy Statement screen
-**When** user navigates back
-**Then** system displays the About App screen again
+**Given** About App screen is shown<br>
+**When** user selects 'Privacy Statement'<br>
+**Then** system displays the Privacy Statement screen<br>
+**When** user navigates back<br>
+**Then** system displays the About App screen again<br>
 
 ---
 
@@ -392,12 +392,12 @@ obtain card)
 
 #### Select a new language
 
-**Given** system displays language selection screen
-**When** user selects a non-active language
-**Then** system updates the UI to the selected language
-**And** displays the updated language as active
-**When** user navigates back
-**Then** system displays the settings menu in the selected language
+**Given** system displays language selection screen<br>
+**When** user selects a non-active language<br>
+**Then** system updates the UI to the selected language<br>
+**And** displays the updated language as active<br>
+**When** user navigates back<br>
+**Then** system displays the settings menu in the selected language<br>
 
 ---
 
@@ -405,9 +405,9 @@ obtain card)
 
 #### Get help
 
-**Given** system displays a PIN screen
-**When** user selects 'help'
-**Then** system displays get help screen
+**Given** system displays a PIN screen<br>
+**When** user selects 'help'<br>
+**Then** system displays get help screen<br>
 
 ---
 
@@ -415,12 +415,12 @@ obtain card)
 
 #### Open closed app
 
-**Given** the app is installed
-**And** wallet is registered
-**When** user opens the app
-**Then** system displays splash screen
-**And** system determines if wallet is registered
-**And** system displays the dashboard
+**Given** the app is installed<br>
+**And** wallet is registered<br>
+**When** user opens the app<br>
+**Then** system displays splash screen<br>
+**And** system determines if wallet is registered<br>
+**And** system displays the dashboard<br>
 
 ---
 
@@ -428,11 +428,11 @@ obtain card)
 
 #### Open app via universal link
 
-**Given** the app is installed
-**And** wallet is registered
-**When** user opens the app by following a universal link
-**Then** system validates the universal link
-**And** app is opened
+**Given** the app is installed<br>
+**And** wallet is registered<br>
+**When** user opens the app by following a universal link<br>
+**Then** system validates the universal link<br>
+**And** app is opened<br>
 
 ---
 
@@ -440,9 +440,9 @@ obtain card)
 
 #### Open app with unregistered wallet
 
-**Given** the app is installed
-**When** user opens the app
-**Then** system displays introduction screen
+**Given** the app is installed<br>
+**When** user opens the app<br>
+**Then** system displays introduction screen<br>
 
 ---
 
@@ -450,10 +450,10 @@ obtain card)
 
 ####  Invoke universal link when app is not installed
 
-**Given** user invokes a universal link
-**And** the app is not installed
-**Then** system navigates user to fallback page
-**And** system displays message to install the app
+**Given** user invokes a universal link<br>
+**And** the app is not installed<br>
+**Then** system navigates user to fallback page<br>
+**And** system displays message to install the app<br>
 
 ---
 
@@ -461,8 +461,8 @@ obtain card)
 
 #### Open universal link via external QR scanner
 
-**Given** user invokes a universal link using an external QR scanner
-**Then** system displays message to rescan the QR code using the in-app scanner
+**Given** user invokes a universal link using an external QR scanner<br>
+**Then** system displays message to rescan the QR code using the in-app scanner<br>
 
 ---
 
@@ -470,11 +470,11 @@ obtain card)
 
 #### Unlock app with correct PIN
 
-**Given** user has completed setup of remote PIN and biometrics
-**When** user opens the app
-**Then** system displays PIN screen
-**When** user enters correct PIN
-**Then** system displays dashboard
+**Given** user has completed setup of remote PIN and biometrics<br>
+**When** user opens the app<br>
+**Then** system displays PIN screen<br>
+**When** user enters correct PIN<br>
+**Then** system displays dashboard<br>
 
 ---
 
@@ -484,11 +484,11 @@ obtain card)
 
 #### Unlock app with biometric
 
-**Given** user has completed setup of remote PIN and biometrics
-**When** user opens the app
-**Then** system requests biometric
-**When** user enters valid biometric
-**Then** system displays dashboard
+**Given** user has completed setup of remote PIN and biometrics<br>
+**When** user opens the app<br>
+**Then** system requests biometric<br>
+**When** user enters valid biometric<br>
+**Then** system displays dashboard<br>
 
 ---
 
@@ -498,11 +498,11 @@ obtain card)
 
 #### Unlock app with invalid biometric
 
-**Given** user has completed setup of remote PIN and biometrics
-**When** user opens the app
-**Then** system requests biometric
-**When** user enters invalid biometric
-**Then** device gives option to try again
+**Given** user has completed setup of remote PIN and biometrics<br>
+**When** user opens the app<br>
+**Then** system requests biometric<br>
+**When** user enters invalid biometric<br>
+**Then** device gives option to try again<br>
 
 ---
 
@@ -510,11 +510,11 @@ obtain card)
 
 #### Unlock app with invalid PIN
 
-**Given** user has completed setup of remote PIN and biometrics
-**When** user opens the app
-**Then** system displays PIN screen
-**When** user enters invalid PIN
-**Then** system handles it according to PIN retry policy
+**Given** user has completed setup of remote PIN and biometrics<br>
+**When** user opens the app<br>
+**Then** system displays PIN screen<br>
+**When** user enters invalid PIN<br>
+**Then** system handles it according to PIN retry policy<br>
 
 ---
 
@@ -522,10 +522,10 @@ obtain card)
 
 #### Recover PIN
 
-**Given** user start PIN recovery
-**When** user changes PIN successfully
-**Then** user can use new PIN
-**And** user can not use old PIN
+**Given** user start PIN recovery<br>
+**When** user changes PIN successfully<br>
+**Then** user can use new PIN<br>
+**And** user can not use old PIN<br>
 
 ---
 
@@ -533,11 +533,11 @@ obtain card)
 
 #### App update is available
 
-**Given** the app is installed
-**And** an app update is available
-**When** user opens the app
+**Given** the app is installed<br>
+**And** an app update is available<br>
+**When** user opens the app<br>
 **Then** System displays a message on update informing user that an update
-is available and offers instructions on how to update
+is available and offers instructions on how to update<br>
 
 ---
 
@@ -545,12 +545,12 @@ is available and offers instructions on how to update
 
 #### Current app version is blocked
 
-**Given** the app is installed
-**And** an app update is available
-**And** current app version is blocked
-**When** user opens the app
+**Given** the app is installed<br>
+**And** an app update is available<br>
+**And** current app version is blocked<br>
+**When** user opens the app<br>
 **Then** System displays a message on update informing user that current app
-version is blocked and offers instructions on how to update
+version is blocked and offers instructions on how to update<br>
 
 ---
 
@@ -558,9 +558,9 @@ version is blocked and offers instructions on how to update
 
 #### Wallet not created when universal link is invoked
 
-**Given** user invokes a universal link
-**And** wallet is not created
-**Then** System shows introduction screen
+**Given** user invokes a universal link<br>
+**And** wallet is not created<br>
+**Then** System shows introduction screen<br>
 
 ---
 
@@ -568,10 +568,10 @@ version is blocked and offers instructions on how to update
 
 #### Change PIN
 
-**When** user changes the PIN code
-**Then** the change is successful
-**And** old PIN is unusable
-**And** new PIN is usable
+**When** user changes the PIN code<br>
+**Then** the change is successful<br>
+**And** old PIN is unusable<br>
+**And** new PIN is usable<br>
 
 ---
 
@@ -579,11 +579,11 @@ version is blocked and offers instructions on how to update
 
 #### PIN is invalid timeout
 
-**Scenario Outline:**
-**Given** system allows 4 rounds of 4 attempts each
+**Scenario Outline:**<br>
+**Given** system allows 4 rounds of 4 attempts each<br>
 **And** user enters their PIN invalid for all `<Y>` attempts in round
-`<round>`
-**Then** system introduces a timeout of `<Z{i}>` for that round
+`<round>`<br>
+**Then** system introduces a timeout of `<Z{i}>` for that round<br>
 
 **Examples:**
 
@@ -599,10 +599,10 @@ version is blocked and offers instructions on how to update
 
 #### PIN is invalid Block
 
-**Given** system allows 4 rounds of 4 attempts each
+**Given** system allows 4 rounds of 4 attempts each<br>
 **And** user enters their PIN invalid for all attempts in all 4
-rounds
-**Then** system blocks access
+rounds<br>
+**Then** system blocks access<br>
 
 ---
 
@@ -610,10 +610,10 @@ rounds
 
 #### PIN entries do not match, try again
 
-**Given** user enters the correct current PIN
-**When** user does an invalid confirmation
+**Given** user enters the correct current PIN<br>
+**When** user does an invalid confirmation<br>
 **Then** system displays a message that the PIN entries are not equal and
-offers user to try again
+offers user to try again<br>
 
 ---
 
@@ -621,10 +621,10 @@ offers user to try again
 
 #### PIN entries do not match, choose new PIN
 
-**Given** user enters PIN
-**When** user does an invalid confirmation
+**Given** user enters PIN<br>
+**When** user does an invalid confirmation<br>
 **Then** system displays a message that the PIN entries are not equal and
-instructs user to choose a new PIN
+instructs user to choose a new PIN<br>
 
 ---
 
@@ -632,11 +632,11 @@ instructs user to choose a new PIN
 
 #### PIN entry does not conform to policy
 
-**Scenario Outline:**
-**Given** user enters the correct current PIN
-**When** user enters a PIN `<pin>` that does not conform to policy
+**Scenario Outline:**<br>
+**Given** user enters the correct current PIN<br>
+**When** user enters a PIN `<pin>` that does not conform to policy<br>
 **Then** system displays a message that the PIN entry is not conformant and
-instructs user to choose a new PIN
+instructs user to choose a new PIN<br>
 
 **Examples:**
 
@@ -652,10 +652,10 @@ instructs user to choose a new PIN
 
 #### Setup PIN
 
-**Given** user completed introduction
-**When** user enters a valid pin
-**And** user confirms pin
-**Then** remote pin is configured
+**Given** user completed introduction<br>
+**When** user enters a valid pin<br>
+**And** user confirms pin<br>
+**Then** remote pin is configured<br>
 
 ---
 
@@ -665,9 +665,9 @@ instructs user to choose a new PIN
 
 #### Setup PIN fails device does not pass app and key attestation
 
-**Given** device can not pass app and key attestation
-**When** user sets up a remote PIN
-**Then** System displays message that device is not supported
+**Given** device can not pass app and key attestation<br>
+**When** user sets up a remote PIN<br>
+**Then** System displays message that device is not supported<br>
 
 ---
 
@@ -675,10 +675,10 @@ instructs user to choose a new PIN
 
 #### Logout from menu
 
-**Given** user has completed PID setup and opened the app
-**When** user selects 'Logout' from the menu
-**Then** system logs out user
-**And** displays the PIN screen
+**Given** user has completed PID setup and opened the app<br>
+**When** user selects 'Logout' from the menu<br>
+**Then** system logs out user<br>
+**And** displays the PIN screen<br>
 
 ---
 
@@ -686,11 +686,11 @@ instructs user to choose a new PIN
 
 #### Logout due to inactivity
 
-**Given** user is inactive for warning timeout Z
-**Then** system displays inactivity prompt
-**When** user remains inactive for X - Z minutes
-**Then** system logs out user
-**And** displays the PIN screen
+**Given** user is inactive for warning timeout Z<br>
+**Then** system displays inactivity prompt<br>
+**When** user remains inactive for X - Z minutes<br>
+**Then** system logs out user<br>
+**And** displays the PIN screen<br>
 
 ---
 
@@ -698,10 +698,10 @@ instructs user to choose a new PIN
 
 #### Logout due to background timeout
 
-**Given** user puts the app in the background
-**When** background timeout Y elapses
-**Then** system logs out user
-**And** app remains in the background
+**Given** user puts the app in the background<br>
+**When** background timeout Y elapses<br>
+**Then** system logs out user<br>
+**And** app remains in the background<br>
 
 ---
 
@@ -709,10 +709,10 @@ instructs user to choose a new PIN
 
 #### Confirm logout on inactivity prompt
 
-**Given** system displays inactivity prompt
-**When** user selects 'Log out'
-**Then** system logs out user
-**And** displays the PIN screen
+**Given** system displays inactivity prompt<br>
+**When** user selects 'Log out'<br>
+**Then** system logs out user<br>
+**And** displays the PIN screen<br>
 
 ---
 
@@ -720,10 +720,10 @@ instructs user to choose a new PIN
 
 #### Dismiss inactivity prompt
 
-**Given** system displays inactivity prompt
-**When** user selects 'Yes, continue'
-**Then** prompt is dismissed
-**And** system displays the currently active screen
+**Given** system displays inactivity prompt<br>
+**When** user selects 'Yes, continue'<br>
+**Then** prompt is dismissed<br>
+**And** system displays the currently active screen<br>
 
 ---
 
@@ -733,10 +733,10 @@ instructs user to choose a new PIN
 
 #### Skip setting up biometrics
 
-**Given** user has set up pin
-**And** device supports biometrics
-**When** user skips setting up biometrics
-**Then** system displays message wallet is secured by pin
+**Given** user has set up pin<br>
+**And** device supports biometrics<br>
+**When** user skips setting up biometrics<br>
+**Then** system displays message wallet is secured by pin<br>
 
 ---
 
@@ -746,9 +746,9 @@ instructs user to choose a new PIN
 
 #### Device does not support biometrics
 
-**Given** device does not support biometrics
-**When** user open apps settings menu
-**Then** system does not display biometric configuration option
+**Given** device does not support biometrics<br>
+**When** user open apps settings menu<br>
+**Then** system does not display biometric configuration option<br>
 
 ---
 
@@ -758,10 +758,10 @@ instructs user to choose a new PIN
 
 #### Disable biometrics
 
-**Given** user has enabled biometrics
-**When** user disables biometrics
-**Then** biometrics is disabled
-**And** user can not use biometric login
+**Given** user has enabled biometrics<br>
+**When** user disables biometrics<br>
+**Then** biometrics is disabled<br>
+**And** user can not use biometric login<br>
 
 ---
 
@@ -771,14 +771,14 @@ instructs user to choose a new PIN
 
 #### Setup biometrics in settings
 
-**Given** user has not enabled biometrics
-**And** device supports biometrics
-**When** user enables biometrics
-**Then** system requests pin
-**When** user enters pin
-**And** user enter biometric
-**Then** biometrics is enabled
-**And** user can use biometric login
+**Given** user has not enabled biometrics<br>
+**And** device supports biometrics<br>
+**When** user enables biometrics<br>
+**Then** system requests pin<br>
+**When** user enters pin<br>
+**And** user enter biometric<br>
+**Then** biometrics is enabled<br>
+**And** user can use biometric login<br>
 
 ---
 
@@ -788,13 +788,13 @@ instructs user to choose a new PIN
 
 #### Transfer wallet
 
-**Given** user has an existing active source wallet
-**And** user has completed PID issuance on its destination wallet
-**When** user completes wallet transfer
-**Then** the destination wallet contains the data of the source wallet
-**And** the destination wallet is active
-**And** the source wallet does not contain data
-**And** the source wallet is inactive
+**Given** user has an existing active source wallet<br>
+**And** user has completed PID issuance on its destination wallet<br>
+**When** user completes wallet transfer<br>
+**Then** the destination wallet contains the data of the source wallet<br>
+**And** the destination wallet is active<br>
+**And** the source wallet does not contain data<br>
+**And** the source wallet is inactive<br>
 
 ---
 
@@ -804,11 +804,11 @@ instructs user to choose a new PIN
 
 #### Stop transfer flow on source device
 
-**Given** user has an existing active source wallet
-**And** user has completed PID issuance on its destination wallet
-**When** user aborts wallet transfer on the source device
-**Then** the source wallet displays the dashboard screen
-**And** user is prompted on the destination device to try again
+**Given** user has an existing active source wallet<br>
+**And** user has completed PID issuance on its destination wallet<br>
+**When** user aborts wallet transfer on the source device<br>
+**Then** the source wallet displays the dashboard screen<br>
+**And** user is prompted on the destination device to try again<br>
 
 ---
 
@@ -818,11 +818,11 @@ instructs user to choose a new PIN
 
 #### Stop transfer flow on destination device
 
-**Given** user has an existing active source wallet
-**And** user has completed PID issuance on its destination wallet
-**When** user aborts wallet transfer on the destination device
-**Then** user is prompted on the destination device to try again
-**And** the source wallet displays the dashboard screen
+**Given** user has an existing active source wallet<br>
+**And** user has completed PID issuance on its destination wallet<br>
+**When** user aborts wallet transfer on the destination device<br>
+**Then** user is prompted on the destination device to try again<br>
+**And** the source wallet displays the dashboard screen<br>
 
 ---
 
@@ -830,11 +830,11 @@ instructs user to choose a new PIN
 
 #### Select another card to be disclosed
 
-**Given** user has multiple cards that can fulfill a disclosure request
-**When** user starts disclosure
-**Then** system offers user option to select another card
-**When** user selects a card
-**Then** the requested attributes are disclosed from the previously selected card
+**Given** user has multiple cards that can fulfill a disclosure request<br>
+**When** user starts disclosure<br>
+**Then** system offers user option to select another card<br>
+**When** user selects a card<br>
+**Then** the requested attributes are disclosed from the previously selected card<br>
 
 ---
 
@@ -842,10 +842,10 @@ instructs user to choose a new PIN
 
 #### Renew PID
 
-**Given** user has issued PID
-**When** user renews PID
-**Then** PID is renewed
-**And** a card renewal event is added to the history
+**Given** user has issued PID<br>
+**When** user renews PID<br>
+**Then** PID is renewed<br>
+**And** a card renewal event is added to the history<br>
 
 ---
 
@@ -853,10 +853,10 @@ instructs user to choose a new PIN
 
 #### Revoke PID
 
-**Given** user has issued PID
-**When** PID is revoked
-**Then** PID card is displayed as revoked
-**And** PID cannot be presented anymore
+**Given** user has issued PID<br>
+**When** PID is revoked<br>
+**Then** PID card is displayed as revoked<br>
+**And** PID cannot be presented anymore<br>
 
 ---
 
@@ -864,10 +864,10 @@ instructs user to choose a new PIN
 
 #### Revoke EAA Card
 
-**Given** user has an EAA card in its wallet
-**When** EAA card is revoked
-**Then** EAA card is displayed as revoked
-**And** EAA card cannot be presented anymore
+**Given** user has an EAA card in its wallet<br>
+**When** EAA card is revoked<br>
+**Then** EAA card is displayed as revoked<br>
+**And** EAA card cannot be presented anymore<br>
 
 ---
 
@@ -875,9 +875,9 @@ instructs user to choose a new PIN
 
 #### Universal link is invoked while wallet is not personalized
 
-**Given** user is performing app personalization
-**When** user invokes a universal link
-**Then** System displays message informing the user that personalization should be completed first
+**Given** user is performing app personalization<br>
+**When** user invokes a universal link<br>
+**Then** System displays message informing the user that personalization should be completed first<br>
 
 ---
 
@@ -885,9 +885,9 @@ instructs user to choose a new PIN
 
 #### Receive revocation code
 
-**Given** user has completed remote PIN setup
-**Then** system display a revocation code
-**And** user has to confirm the revocation code is written to continue
+**Given** user has completed remote PIN setup<br>
+**Then** system display a revocation code<br>
+**And** user has to confirm the revocation code is written to continue<br>
 
 ---
 
@@ -895,14 +895,14 @@ instructs user to choose a new PIN
 
 #### System sends notifications for card status changes
 
-**Given** a <card_type> card exists in the wallet
-**And** the card <scenario>
-**Then** the system displays an in-app notification at <schedule>
-**And** the system sends a push notification at <schedule>
-**And** the in-app notification contains "<in_app_message>"
-**And** the push notification contains "<push_message>"
-**When** the user selects the notification
-**Then** the system displays the card details screen
+**Given** a <card_type> card exists in the wallet<br>
+**And** the card <scenario><br>
+**Then** the system displays an in-app notification at <schedule><br>
+**And** the system sends a push notification at <schedule><br>
+**And** the in-app notification contains "<in_app_message>"<br>
+**And** the push notification contains "<push_message>"<br>
+**When** the user selects the notification<br>
+**Then** the system displays the card details screen<br>
 
 Cases:
 
@@ -921,10 +921,10 @@ Cases:
 
 #### Configure notifications
 
-**Given** notifications are turned off
-**And** OS notifications are not scheduled
-**When** user enables notifications
-**Then** OS notifications are scheduled
+**Given** notifications are turned off<br>
+**And** OS notifications are not scheduled<br>
+**When** user enables notifications<br>
+**Then** OS notifications are scheduled<br>
 
 ---
 
@@ -932,7 +932,7 @@ Cases:
 
 #### View revocation code in settings
 
-**Given** user has completed PID setup and opened the app
-**When** user selects 'View your deletion code' from the settings menu
-**And** use confirms with PIN to view the revocation code
-**Then** system displays the revocation code
+**Given** user has completed PID setup and opened the app<br>
+**When** user selects 'View your deletion code' from the settings menu<br>
+**And** use confirms with PIN to view the revocation code<br>
+**Then** system displays the revocation code<br>
