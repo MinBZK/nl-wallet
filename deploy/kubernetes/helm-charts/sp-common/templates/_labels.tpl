@@ -3,11 +3,11 @@
 Kubernetes standard labels
 */}}
 {{- define "common.labels.standard.name" -}}
-app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+app.kubernetes.io/name: {{ .Chart.Name }}
 {{- end -}}
 
 {{- define "common.labels.standard.release.name" -}}
-app.kubernetes.io/instance: "{{ .Release.Name }}"
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
 {{- define "common.labels.standard.release.service" -}}

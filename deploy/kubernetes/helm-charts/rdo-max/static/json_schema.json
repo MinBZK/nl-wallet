@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://localhost:8006/json-schema.json",
+  "title": "userinfo",
+  "description": "JSON Schema for the userinfo endpoint",
+  "type": "object",
+  "properties": {
+    "initials": {
+      "type": "string",
+      "description": "The Initials of the Subject"
+    },
+    "surname": {
+      "type": "string",
+      "description": "The Surname of the Subject"
+    },
+    "surname_prefix": {
+      "type": "string",
+      "description": "The Surname Prefix of the Subject"
+    },
+    "uzi_id": {
+      "type": "string",
+      "description": "The UZI number of the Subject"
+    },
+    "relations": {
+      "type": "array",
+      "description": "The relations of the Subject",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entity_name": {
+            "type": "string",
+            "description": "The name of the relationl"
+          },
+          "roles": {
+            "type": "array",
+            "description": "The roles of the subject for this relation",
+            "items": {
+              "type": "string",
+              "properties": {
+                "rolecode": {
+                  "type": "string",
+                  "description": "The rolecode of this relation"
+                }
+              },
+              "required": [
+                "rolecode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "entity_name",
+          "roles"
+        ]
+      }
+    },
+    "loa_uzi": {
+      "type": "string",
+      "description": "The level of assurance of the credentials stored at UZI"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "The id of the session created at the Issuer."
+    },
+    "loa_authn": {
+      "type": "string",
+      "description": "The level of assurance of the authentication performed at the Issuer."
+    },
+    "iss": {
+      "type": "string",
+      "description": "The identifier of the Issuer of the userinfo."
+    },
+    "aud": {
+      "type": "string",
+      "description": "The audience(s) that the userinfo is intended for."
+    },
+    "nbf": {
+      "type": "integer",
+      "description": "The time before which the userinfo MUST NOT be accepted for processing."
+    },
+    "exp": {
+      "type": "integer",
+      "description": "The time on or after which the userinfo MUST NOT be accepted for processing."
+    },
+    "x5c": {
+      "type": "string",
+      "description": "The client pubkey used for authentication."
+    }
+  },
+  "required": [
+    "initials",
+    "surname",
+    "surname_prefix",
+    "uzi_id",
+    "relations",
+    "loa_uzi",
+    "session_id",
+    "loa_authn",
+    "iss",
+    "aud",
+    "nbf",
+    "exp",
+    "x5c"
+  ]
+}

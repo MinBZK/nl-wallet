@@ -1,19 +1,50 @@
-nameOverride: ""
-fullnameOverride: ""
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
 
-replicaCount: 1
-minReadySeconds: 2
-
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag
+##
 image:
   repository: "redis"
-  tag: ""
   pullPolicy: IfNotPresent
+  tag: "7.2"
 
+## @section Image pull secrets
+## Secrets for pulling images from private registries
+## @param imagePullSecrets Array of secret names for private registries
+##
 imagePullSecrets: []
 
-service:
-  port: 6379
+## @section Common parameters
+## String to partially override the chart's fullname template
+## @param fullnameOverride String to completely override chart's fullname
+## @param nameOverride String to partially override chart's fullname
+##
+fullnameOverride: ""
+nameOverride: ""
 
+## @section Annotations and labels
+## Additional annotations and labels
+## @param extraAnnotations Additional annotations for the statefulset
+## @param extraPodLabels Additional labels for the pods
+##
+extraAnnotations: {}
+extraPodLabels: {}
+
+## @section Resource requests and limits
+## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
+##
 resources:
   requests:
     cpu: "100m"
@@ -22,24 +53,28 @@ resources:
     cpu: "400m"
     memory: "256Mi"
 
-securityContext:
-  runAsUser: null
+## @section Redis server configuration
+## @param redis.server.port Port used to serve Redis
+## @param redis.server.logLevel One of warning, verbose, notice, debug
+## @param redis.server.appendOnly Enable (yes) or disable (no) the append-only file
+## @param redis.server.save Save the dataset every N seconds if there are at least M changes
+## @param redis.server.initialKeys Collection of key/values to insert
+##
+redis:
+  server:
+    port: 6379
+    logLevel: "warning"
+    appendOnly: "no"
+    save: ""
+    initialKeys: {}
 
-redisConfig:
-  appendonly: "yes"
-  save: ""
-  loglevel: "warning"
-  initialKeys: []
-
+## @section Persistence configuration
+## Parameters for the persistence storage
+## @param persistence.enabled Enable or disable persistent storage
+## @param persistence.storageClass Storage class name
+## @param persistence.size Size of the persistent storage
+##
 persistence:
-  enabled: true
-  storageClassName: ""
-  accessModes:
-    - ReadWriteOnce
-  size: 1Gi
-
-networkPolicy:
   enabled: false
-  ingressFromSelector: {}
-
-tierLabel: ""
+  storageClass: ""
+  size: 1Gi

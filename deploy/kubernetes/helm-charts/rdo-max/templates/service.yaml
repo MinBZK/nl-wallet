@@ -8,6 +8,6 @@ spec:
   selector:
   {{- include "common.labels.selectorLabels" . | nindent 4 }}
   ports:
-  - name: redis
-    port: {{ .Values.redis.server.port }}
-    targetPort: redis
+  - name: max
+    port: {{ .Values.max.config.asgi.port }}
+    targetPort: max

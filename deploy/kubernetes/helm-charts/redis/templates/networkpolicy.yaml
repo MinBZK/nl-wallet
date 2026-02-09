@@ -1,20 +1,17 @@
-{{- if .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "redis.fullname" . }}-ingress
+  name: {{ include "common.names.fullname" . }}
   labels:
-    {{- include "redis.labels" . | nindent 4 }}
-    app: redis
+  {{- include "common.labels.standard" . | nindent 4 }}
 spec:
   ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              {{- toYaml .Values.networkPolicy.ingressFromSelector | nindent 14 }}
+  - from:
+    - podSelector:
+        matchLabels:
+          redis: allow
   podSelector:
     matchLabels:
-      app: redis
+    {{- include "common.labels.selectorLabels" . | nindent 6 }}
   policyTypes:
-    - Ingress
-{{- end }}
+  - Ingress

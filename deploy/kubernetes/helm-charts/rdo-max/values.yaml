@@ -1,0 +1,308 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## Number of replicas
+## @param replicaCount Number of replicas
+##
+replicaCount: 1
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag
+##
+image:
+  repository: max
+  pullPolicy: IfNotPresent
+  tag: latest
+
+## @section Image pull secrets
+## Secrets for pulling images from private registries
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Common parameters
+## String to partially override the chart's fullname template
+## @param fullnameOverride String to completely override chart's fullname
+## @param nameOverride String to partially override chart's fullname
+##
+fullnameOverride: ""
+nameOverride: ""
+
+## @section Annotations and labels
+## Additional annotations and labels
+## @param extraAnnotations Additional annotations for the deployment
+## @param extraPodLabels Additional labels for the pods
+##
+extraAnnotations: {}
+extraPodLabels: {}
+
+## @section Resource requests and limits
+## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
+##
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+## @section Max server configuration
+## @param max.home The location within the container image where the RDO Max application resides. Usually /app, /max or /src
+## @param max.config.app.environment Possible values are: development, production
+## @param max.config.app.userInfoService Possible userinfo providing services are: cc, cibg, eherkenning
+## @param max.config.app.externalBaseUrl External url for RDO Max without trailing slash
+## @param max.config.app.sessionUrl Used by the ExternalSessionService to communicate with an external session server
+## @param max.config.app.mockedUziDataFilePath Used to provide fake UZI data during development when using DigiD Mock
+## @param max.config.app.logLevel Possible values are: debug, info, warning, error, critical
+## @param max.config.app.loginMethodsFilePath Where to find login_methods.json, which defines available authentication methods
+## @param max.config.app.jsonSchemaPath Where to find json_schema.json, describes the structure of userinfo responses
+## @param max.config.app.redirectType Possible values are http, html. Use HTTP-based, or HTML-based redirects
+## @param max.config.app.userAuthenticationSymKey NaCl Symmetric encryption key used for encrypting the authentication cache
+## @param max.config.app.externalHttpRequestsTimeoutSeconds How long to wait for external HTTP requests to finish
+## @param max.config.app.versionFilePath Where to find the file with version information
+## @param max.config.app.languagePath Path to the translation file of the configured language
+## @param max.config.app.includeLogMessageInErrorResponse When True, the internal log message (detailed technical error info) is appended to the user-facing error_description. When False, only the generic error description is shown
+## @param max.config.jwe.signingCertificatePath The certificate used for signing, included in the token so recipients can verify the signature, i.e., for creating JSON Web Encryption tokens
+## @param max.config.jwe.signingPrivateKeyPath The private key used for signing, for creating JSON Web Encryption tokens
+## @param max.config.jwt.sessionIssuer The iss claim in the JSON Web Token, identifies the token creator
+## @param max.config.jwt.sessionAudience The aud claim in the JSON Web Token, identifies the intended recipient
+## @param max.config.jwt.sessionSigningCertificatePath Certificate included in the JSON Web Token, so the session server can verify the signature
+## @param max.config.jwt.sessionSigningPrivateKeyPath Private key used to sign the JSON Web Token
+## @param max.config.asgi.host The hostname or IP address RDO Max listens on
+## @param max.config.asgi.port The TCP port RDO Max listens on
+## @param max.config.asgi.reload When True, RDO Max watches for file changes and automatically restarts the server when code is modified, ignores workers and always runs with a single process
+## @param max.config.asgi.reloadIncludes Lets you specify explicitly which file patterns to watch for changes. If unset, defaults to *.py
+## @param max.config.asgi.workers Controls the number of worker processes to spawn, where each worker is a separate OS process handling requests independently
+## @param max.config.asgi.useSsl Enable SSL/TLS for RDO Max, could be disabled if serving through an ingress or gateway on Kubernetes
+## @param max.config.asgi.sslBaseDirectory Base directory where SSL/TLS certificates are stored
+## @param max.config.asgi.sslServerCertificateFile The certificate file, in PEM format, for RDO Max
+## @param max.config.asgi.sslServerPrivateKeyFile The private key file, in PEM format, for RDO Max
+## @param max.config.oidc.certificatesDirectory Points to a directory containing .crt files that get loaded and added to the JWKS endpoint, which allows clients obtain these certificates, to verify tokens signed by RDO Max
+## @param max.config.oidc.rsaCertificatePath RSA Certificate used to derive the key ID (kid)
+## @param max.config.oidc.rsaPrivateKeyPath Private RSA key used to sign OIDC tokens (ID tokens, access tokens)
+## @param max.config.oidc.issuerUrl The canonical URL that identifies RDO Max as an OIDC provider
+## @param max.config.oidc.authorizeEndPoint Authorize endpoint, usually /authorize
+## @param max.config.oidc.jwksEndpoint JWKS endpoint, usually /jwks
+## @param max.config.oidc.accessTokenEndPoint Access token endpoint, usually /token
+## @param max.config.oidc.userInfoEndPoint Userinfo endpoint, usually /userinfo
+## @param max.config.oidc.scopesSupported Can be openid and/or authorization_by_proxy, can be a string list separated by comma. The authorization_by_proxy setting enables "machtiging", where one entity acts on behalf of another. Appears in the /.well-known/openid-configuration response, letting clients know which scopes are available
+## @param max.config.oidc.clientsFile Indicates where to find the clients.json file. Clients are the applications (relying parties) that use Max as their OIDC identity provider. Think of them as "allowed apps" that can redirect users to RDO Max for authentication
+## @param max.config.oidc.subjectIdHashSalt Makes the hash unpredictable. Used to generate pairwise subject identifiers, which are unique user IDs that differ per client
+## @param max.config.oidc.jwtExpirationDuration Sets the expiration time (in seconds) for JWT/JWE tokens that RDO Max issues
+## @param max.config.oidc.jwtNbfLag Sets the nbf (not before) claim, a small window to account for clock skew between servers
+## @param max.config.oidc.allowWildcardRedirectUri When True, a client can have `"redirect_uris": ["*"]`, and any redirect URI will be accepted. Only works when environment is not production
+## @param max.config.oidc.client.loginRedirectUrl Where to redirect to when login is required. Usually /login/oidc/start
+## @param max.config.saml.identityProvidersBasePath The base path where IdP's are defined
+## @param max.config.saml.xmlTemplatesPath Where to find XML templates
+## @param max.config.saml.htmlTemplatesPath Where to find HTML templates
+## @param max.config.saml.baseIssuer The base issuer address, usually in the hostname:port format
+## @param max.config.saml.verifierCa Can be true (uses system default CA bundle), false, which disables SSL verification in Python's requests library, and a path to either a CA certificate or a directory with CA certificates
+## @param max.config.saml.idp.entityId The IdP entity ID. Could also come from the entityID attribute in the XML IdP metadata, specified by metadata_path
+## @param max.config.saml.idp.metaDataPath Where to find the IdP metadata XML. Can be an URL also, but there is no special handling for timeouts, retries, or custom settings for SSL verification; if the URL is slow or unreachable, the application might block or fail
+## @param max.config.saml.idp.ssoUrl The Single Sign-On Service URL is the IdP's endpoint where RDO Max sends users to authenticate
+## @param max.config.saml.idp.ssoBinding Determines how RDO Max redirects users, usually some SAML namespace prefix followed by HTTP-POST or HTTP-Redirect
+## @param max.config.saml.sp.certificatePath When resolving artifacts, this certificate (and the private key below) are used for mutual TLS to the IdP. The certificate is also included in SP metadata so the IdP knows how to verify RDO Max's signatures and encrypt data for RDO Max. The IdP must trust this certificate/key pair
+## @param max.config.saml.sp.privateKeyPath AuthnRequests and ArtifactResolve requests are signed with this private key. The private key also decrypts encrypted SAML assertions from the IdP. The IdP must trust this certificate/key pair
+## @param max.config.saml.sp.entityId RDO Max's unique identifier as a SAML Service Provider. Used in outgoing SAML requests (AuthnRequest). Also for validating incoming responses, where it matches the audience in the response matches the entityId. Also used in SP metadata
+## @param max.config.saml.sp.nameIdFormat Specifies how the user identifier (NameID) in responses should be formatted. Usually has some SAML namespace prefix followed by unspecified, transient, persistent or emailAddress
+## @param max.config.saml.sp.acsUrl The endpoint where Max receives SAML responses from the Identity Provider, i.e., the Assertion Consumer Service (ACS) URL
+## @param max.config.saml.sp.acsBinding The SAML protocol binding, i.e., how the response is delivered, Usually some SAML namespace prefix followed by HTTP-Artifact, HTTP-POST or HTTP-Redirect
+## @param max.config.saml.sp.serviceName Name of the service provider
+## @param max.config.saml.sp.serviceDescription Description of the service provider
+## @param max.config.saml.sp.requestedAttributes[0].name Usually urn:nl-eid-gdi:1.0:ServiceUUID
+## @param max.config.saml.sp.requestedAttributes[0].nameFormat Optional SAML name format indicator for the attribute
+## @param max.config.saml.sp.requestedAttributes[0].friendlyName Optional SAML friendly name of the attribute
+## @param max.config.saml.sp.requestedAttributes[0].isRequired Signifies this attribute is required in the response
+## @param max.config.saml.sp.requestedAttributes[0].attributeValue When you register Max as a service with DigiD/TVS, you receive a ServiceUUID that uniquely identifies your service. That should be this value
+## @param max.config.saml.metaData.organization.en-US.name US English name of the organization
+## @param max.config.saml.metaData.organization.en-US.displayName US English friendly display name of the organization
+## @param max.config.saml.metaData.organization.en-US.url US English URL of the organization
+## @param max.config.saml.metaData.contact.technical.givenName Name of the technical contact
+## @param max.config.saml.metaData.contact.technical.emailAddress E-mail address of the technical contact
+## @param max.config.redis.host The hostname or IP address of the Redis server
+## @param max.config.redis.port The TCP port of the Redis server
+## @param max.config.redis.enableDebugger Starts a background thread that monitors Redis key expiration to detect unused cached values. Tracks retrieved values by storing a copy under a retrieved: prefixed key (with a longer TTL). Listens for expiration events, by subscribing to Redis keyspace notifications. Detects unretrieved values. When a key expires, it checks if the retrieved: copy exists. If not, logs a debug message
+## @param max.config.redis.useSsl Enable SSL/TLS client configuration for interacting with Redis
+## @param max.config.redis.sslClientCertificateFile Client certificate to use when connecting to Redis
+## @param max.config.redis.sslClientPrivateKeyFile Client private key to use when connecting to Redis
+## @param max.config.redis.sslCaCertificateFile CA certificate to use when validating Redis server authenticity
+## @param max.config.redis.objectTtl Sefines how long (in seconds) data lives in Redis before it expires. The default is 600
+## @param max.config.redis.defaultCacheNameSpace Default prefix for the cache namespace
+## @param max.config.redis.tokenNameSpace Default prefix for the token namespace
+## @param max.config.redis.refreshTokenNameSpace Default prefix for the refresh token namespace
+## @param max.config.redis.subjectIdentifierNameSpace Default prefix for the subject identifier namespace
+## @param max.config.redis.codeNameSpace Default prefix for the code namespace
+## @param max.extraConfigFiles.clients.json Default clients.json configuration file
+## @param max.extraConfigFiles.login_methods.json Default login_methods.json configuration file
+## @param max.secret.certificateName Name of the certificate within the secret
+## @param max.secret.privateKeyName Name of the private key within the secret
+## @param max.secret.secretName Name of the secret in Kubernetes
+max:
+  home: /max
+  config:
+    app:
+      environment: development
+      userInfoService: cc
+      externalBaseUrl: https://localhost:8006
+      sessionUrl: https://localhost:8006/session
+      mockedUziDataFilePath: none
+      logLevel: debug
+      loginMethodsFilePath: login_methods.json
+      jsonSchemaPath: config/json_schema.json
+      redirectType: http
+      userAuthenticationSymKey: "0000000000000000000000000000000000000000000000000000000000000000"
+      externalHttpRequestsTimeoutSeconds: 15
+      versionFilePath: static/version.json
+      languagePath: lang/nl.json
+      includeLogMessageInErrorResponse: true
+    jwe:
+      signingCertificatePath: secrets/userinfo/jwe_sign.crt
+      signingPrivateKeyPath: secrets/userinfo/jwe_sign.key
+    jwt:
+      sessionIssuer: nl-rdo-max
+      sessionAudience: nl-uzi-login-controller
+      sessionSigningCertificatePath: secrets/userinfo/jwe_sign.crt
+      sessionSigningPrivateKeyPath: secrets/userinfo/jwe_sign.key
+    asgi:
+      host: 0.0.0.0
+      port: 8006
+      reload: false
+      reloadIncludes: "*.conf"
+      workers: 1
+      useSsl: true
+      sslBaseDirectory: secrets/ssl
+      sslServerCertificateFile: server.crt
+      sslServerPrivateKeyFile: server.key
+    oidc:
+      certificatesDirectory: secrets/oidc/jwks-certs
+      rsaCertificatePath: secrets/oidc/selfsigned.crt
+      rsaPrivateKeyPath: secrets/oidc/selfsigned.key
+      issuerUrl: https://localhost:8006
+      authorizeEndPoint: /authorize
+      jwksEndpoint: /jwks
+      accessTokenEndPoint: /token
+      userInfoEndPoint: /userinfo
+      scopesSupported: openid
+      clientsFile: clients.json
+      subjectIdHashSalt: somesalt
+      jwtExpirationDuration: 60
+      jwtNbfLag: 10
+      allowWildcardRedirectUri: false
+      client:
+        loginRedirectUrl: http://localhost:8001/login/oidc/start
+    saml:
+      identityProvidersBasePath: saml
+      xmlTemplatesPath: saml/templates/xml
+      htmlTemplatesPath: saml/templates/html
+      baseIssuer: localhost:8007
+      verifierCa: saml/digid/PrivateRootCA-G1.pem
+      idp:
+        entityId: idp_entity_id
+        metaDataPath: saml/digid/metadata/idp_metadata.xml
+        ssoUrl: https://preprod1.digid.nl/saml/idp/request_authentication
+        ssoBinding: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect
+      sp:
+        certificatePath: saml/digid/certs/sp.crt
+        privateKeyPath: saml/digid/certs/sp.key
+        entityId: https://localhost:8006
+        nameIdFormat: urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified
+        acsUrl: https://localhost:8006/acs
+        acsBinding: urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact
+        serviceName: "NL Wallet"
+        serviceDescription: "NL Wallet Login"
+        requestedAttributes:
+          - name: "urn:nl-eid-gdi:1.0:ServiceUUID"
+            nameFormat: ""
+            friendlyName: ""
+            isRequired: true
+            attributeValue: [384a7c30-97b2-41e1-899f-3949c2542ae8]
+      metaData:
+        organization:
+          en-US:
+            name: "NL Wallet"
+            displayName: "NL Wallet"
+            url: "https://github.com/minbzk/nl-wallet"
+        contact:
+          technical:
+            givenName: "Nobody"
+            emailAddress: "nobody@example.com"
+    redis:
+      host: redis
+      port: 6379
+      enableDebugger: false
+      useSsl: false
+      sslClientCertificateFile: ""
+      sslClientPrivateKeyFile: ""
+      sslCaCertificateFile: ""
+      objectTtl: 600
+      defaultCacheNameSpace: max
+      tokenNameSpace: tvs_token
+      refreshTokenNameSpace: tvs_refresh_token
+      subjectIdentifierNameSpace: tvs_sub_id
+      codeNameSpace: tvs_auth_code
+  extraConfigFiles:
+    clients.json: |-
+      {
+        "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9": {
+          "name": "NL Wallet",
+          "external_id": "87654321",
+          "external_ids": ["87654321"],
+          "token_endpoint_auth_method": "none",
+          "redirect_uris": [
+            "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid/",
+            "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid"
+          ],
+          "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
+          "response_types": ["code"],
+          "pubkey_type": "RSA",
+          "client_authentication_method": "none",
+          "client_certificate_path": "secrets/clients/test_client/test_client.crt"
+        }
+      }
+
+    login_methods.json: |-
+      [
+        {
+          "name": "digid_mock",
+          "logo": "static/img/digid-logo.svg",
+          "text": "Inloggen met DigiD mock",
+          "type": "specific"
+        }
+      ]
+
+  secret:
+    certificateName: sp.crt
+    privateKeyName: sp.key
+    secretName: max-app-secret
+
+## @section Ingress parameters
+## Parameters for the ingress configuration
+## @param ingress.enabled Enable or disable the ingress
+## @param ingress.className Ingress class name
+## @param ingress.hostName Hostname for the ingress
+## @param ingress.contextPath Optional context path for the ingress
+## @param ingress.tlsSecretName Name of the TLS secret for the ingress
+## @param ingress.labels Additional labels for the ingress
+## @param ingress.annotations Additional annotations for the ingress
+##
+ingress:
+  enabled: true
+  className: "nginx"
+  hostName: null
+  contextPath: null
+  tlsSecretName: null
+  labels: {}
+  annotations: {}
