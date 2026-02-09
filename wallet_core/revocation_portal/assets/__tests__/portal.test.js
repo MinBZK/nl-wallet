@@ -64,7 +64,6 @@ describe('formatDeletionCode', () => {
 
   it('formats input that already contains hyphens', () => {
     const { formatted } = formatDeletionCode('C20C-KF0R');
-    // Hyphens are not in the allowed charset, so they get stripped before reformatting
     expect(formatted).toBe('C20C-KF0R-');
   });
 });
