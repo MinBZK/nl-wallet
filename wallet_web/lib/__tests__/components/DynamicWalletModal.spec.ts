@@ -1,8 +1,10 @@
+import { cancelSession } from "@/api/cancel"
 import { createSession } from "@/api/session"
 import { getStatus } from "@/api/status"
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
 import DynamicWalletModal from "@/components/DynamicWalletModal.vue"
+import ModalFooter from "@/components/ModalFooter.vue"
 import type { ErrorType } from "@/models/state"
 
 import { translations, translationsKey } from "@/util/translations"
@@ -35,24 +37,6 @@ describe("DynamicWalletModal", () => {
     expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
     await vi.advanceTimersToNextTimerAsync()
     expect(wrapper.find("[data-testid=loading]").exists()).toBe(false)
-  })
-
-  it("should show qr code directly for desktop mode", async () => {
-    const wrapper = mount(DynamicWalletModal, {
-      props: {
-        startUrl: new URL("http://localhost/sessions"),
-        usecase: "test123",
-        helpBaseUrl: new URL("https://example.com"),
-      },
-      global: {
-        provide: {
-          [isMobileKey as symbol]: false,
-          [translationsKey as symbol]: translations("nl"),
-        },
-      },
-    })
-    await vi.advanceTimersToNextTimerAsync()
-    expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
   })
 
   it("should show loading screen after choosing", async () => {
@@ -210,23 +194,6 @@ describe("DynamicWalletModal", () => {
         })
       },
     )
-  })
-
-  it("should ask where the wallet is for mobile mode", async () => {
-    const wrapper = mount(DynamicWalletModal, {
-      props: {
-        startUrl: new URL("http://localhost/sessions"),
-        usecase: "test123",
-        helpBaseUrl: new URL("https://example.com"),
-      },
-      global: {
-        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
-      },
-    })
-    await flushPromises()
-    const choice = wrapper.getComponent(DeviceChoice)
-
-    expect(choice.find("[data-testid=device_choice]").exists()).toBe(true)
   })
 
   it("should have anchor for same device flow", async () => {
@@ -454,5 +421,224 @@ describe("DynamicWalletModal", () => {
     await wrapper.find("[data-testid=retry_button]").trigger("click")
 
     expect(wrapper.find("[data-testid=device_choice]").exists()).toBe(true)
+  })
+
+  describe("close function behavior", () => {
+    it("should emit success event when closing from success state", async () => {
+      const wrapper = mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
+        global: {
+          provide: { [isMobileKey as symbol]: false, [translationsKey as symbol]: translations("nl") },
+        },
+      })
+
+      await vi.mocked(getStatus).withImplementation(
+        async () => ({
+          status: "DONE",
+          ul: new URL("example://app.example.com/-/"),
+        }),
+        async () => {
+          await vi.advanceTimersToNextTimerAsync()
+          await vi.advanceTimersToNextTimerAsync()
+
+          await wrapper.find("[data-testid=close_button]").trigger("click")
+
+          expect(wrapper.emitted("success")).toBeTruthy()
+          expect(wrapper.emitted("success")![0]).toEqual(["mkwL0sHfP2cLJcRMuDzCHXEofujk9nnl", "cross_device"])
+        },
+      )
+    })
+
+    it("should emit failed event when closing from error state", async () => {
+      const wrapper = mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
+      })
+      await flushPromises()
+
+      vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+      await vi.advanceTimersToNextTimerAsync()
+      await vi.advanceTimersToNextTimerAsync()
+
+      expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+
+      await wrapper.find("[data-testid=close_button]").trigger("click")
+
+      expect(wrapper.emitted("failed")).toBeTruthy()
+      expect(wrapper.emitted("failed")![0]).toEqual(["mkwL0sHfP2cLJcRMuDzCHXEofujk9nnl", "cross_device"])
+    })
+  })
+
+  describe("stop and cancel session", () => {
+    it("should call cancelSession when stopping from created state", async () => {
+      vi.clearAllMocks()
+
+      const wrapper = mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
+      })
+      await flushPromises()
+      await vi.advanceTimersToNextTimerAsync()
+
+      expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+
+      await wrapper.find("[data-testid=close_button]").trigger("click")
+      await flushPromises()
+
+      expect(vi.mocked(cancelSession)).toHaveBeenCalled()
+      expect(wrapper.emitted("close")).toBeTruthy()
+    })
+  })
+
+  describe("cleanup on unmount", () => {
+    it("should cancel polling when component is unmounted", async () => {
+      const clearTimeoutSpy = vi.spyOn(global, "clearTimeout")
+
+      const wrapper = mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
+      })
+      await flushPromises()
+      await vi.advanceTimersToNextTimerAsync()
+
+      wrapper.unmount()
+
+      expect(clearTimeoutSpy).toHaveBeenCalled()
+      clearTimeoutSpy.mockRestore()
+    })
+  })
+
+  describe("custom poll interval", () => {
+    it("should use custom poll interval when provided", async () => {
+      vi.clearAllMocks()
+
+      const customInterval = 5000
+      mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+          pollIntervalInMs: customInterval,
+        },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
+      })
+      await flushPromises()
+      await vi.advanceTimersToNextTimerAsync()
+
+      vi.clearAllMocks()
+
+      await vi.advanceTimersByTimeAsync(customInterval)
+
+      expect(vi.mocked(getStatus)).toHaveBeenCalled()
+    })
+  })
+
+  describe("close function", () => {
+    it("should emit close when closing during creating state", async () => {
+      vi.mocked(createSession).mockImplementationOnce(async () => {
+        await new Promise((r) => setTimeout(r, 10000))
+        return {
+          status_url: new URL("http://localhost/status"),
+          session_token: "token",
+        }
+      })
+
+      const wrapper = mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
+      })
+
+      expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
+
+      const footer = wrapper.findComponent(ModalFooter)
+      footer.vm.$emit("close")
+
+      expect(wrapper.emitted("close")).toBeTruthy()
+    })
+
+    it("should emit close when closing during loading state", async () => {
+      const wrapper = mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
+        global: {
+          provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
+        },
+      })
+      await flushPromises()
+
+      await vi.mocked(getStatus).withImplementation(
+        async () => {
+          await new Promise((r) => setTimeout(r, 10000))
+          return {
+            status: "CREATED",
+            ul: new URL("example://app.example.com/-/"),
+          }
+        },
+        async () => {
+          await wrapper.find("[data-testid=cross_device_button]").trigger("click")
+
+          expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
+
+          const footer = wrapper.findComponent(ModalFooter)
+          footer.vm.$emit("close")
+
+          expect(wrapper.emitted("close")).toBeTruthy()
+        },
+      )
+    })
+
+    it("should set error state when closing from in-progress state", async () => {
+      const wrapper = mount(DynamicWalletModal, {
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
+      })
+      await flushPromises()
+
+      await vi.mocked(getStatus).withImplementation(
+        async () => ({ status: "WAITING_FOR_RESPONSE" }),
+        async () => {
+          await vi.advanceTimersToNextTimerAsync()
+          await vi.advanceTimersToNextTimerAsync()
+
+          await vi.waitFor(async () => {
+            expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(true)
+
+            const footer = wrapper.findComponent(ModalFooter)
+            footer.vm.$emit("close")
+
+            await vi.advanceTimersToNextTimerAsync()
+
+            expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+          })
+        },
+      )
+    })
   })
 })
