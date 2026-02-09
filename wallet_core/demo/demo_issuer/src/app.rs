@@ -24,14 +24,9 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
-use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestations;
-use demo_utils::error::Result;
-use demo_utils::headers::set_content_security_policy;
-use demo_utils::headers::set_static_cache_control;
-use demo_utils::language::Language;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
@@ -41,6 +36,11 @@ use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
+use web_utils::error::Result;
+use web_utils::headers::set_content_security_policy;
+use web_utils::headers::set_static_cache_control;
+use web_utils::language::LANGUAGE_JS_SHA256;
+use web_utils::language::Language;
 
 use crate::settings::Settings;
 use crate::settings::Usecase;
@@ -79,11 +79,10 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
                     ServeDir::new(prefix_local_path(std::path::Path::new("assets"))).fallback(
-                        ServiceBuilder::new()
-                            .service(ServeDir::new(prefix_local_path(std::path::Path::new(
-                                "../demo_utils/assets",
-                            ))))
-                            .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ServeDir::new(prefix_local_path(std::path::Path::new("../demo_utils/assets"))).fallback(
+                            ServeDir::new(prefix_local_path(std::path::Path::new("../../lib/web_utils/assets")))
+                                .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ),
                     ),
                 ),
         )
@@ -223,7 +222,7 @@ async fn attestation(
                 .map(|doc| {
                     let (attestation_type, attribute) = doc.into();
                     IssuableDocument::try_new_with_random_id(attestation_type, attribute)
-                        .map_err(|err| demo_utils::error::Error::from(anyhow::Error::from(err)))
+                        .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
                 })
                 .collect::<Result<Vec<_>>>()
                 .unwrap()

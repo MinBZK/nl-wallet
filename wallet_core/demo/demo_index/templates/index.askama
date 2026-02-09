@@ -1,8 +1,9 @@
 {% extends "../../demo_utils/templates/base.askama" %}
-{%- import "../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
+{%- import "../../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block styles %}
 <link rel="stylesheet" href="./css/index.css" />
+<link rel="stylesheet" href="./css/language_selector.css" />
 {% endblock %}
 
 {% block scripts %}
@@ -10,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<aside>{% call demo_bar::lang_selector(base.selected_lang, base.trans, base.available_languages, demo_utils::OPTION_STR_NONE, demo_utils::OPTION_STR_NONE) %}</aside>
+<aside>{% call languages::lang_selector(base.selected_lang, base.trans, base.available_languages, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}</aside>
 <header><!-- just the logo --></header>
 <main>
     <section>

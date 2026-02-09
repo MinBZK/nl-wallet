@@ -5,6 +5,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="../css/demo_bar.css" />
+<link rel="stylesheet" href="../css/language_selector.css" />
 {% match usecase %}
 {% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
     <link rel="stylesheet" href="../css/mijn_amsterdam-index.css" />

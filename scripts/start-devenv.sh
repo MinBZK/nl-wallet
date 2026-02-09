@@ -53,6 +53,7 @@ Where:
     drp, demo_relying_party:    Start the demo_relying_party.
     di, demo_issuer:            Start the demo_issuer.
     dx, demo_index:             Start the demo_index.
+    rvp, revocation_portal:     Start the revocation_portal.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     static, static_server:      Start the static server
     ups, update_policy_server:  Start the update policy server
@@ -83,6 +84,7 @@ have cargo
 DEMO_RELYING_PARTY=1
 DEMO_ISSUER=1
 DEMO_INDEX=1
+REVOCATION_PORTAL=1
 WALLET_PROVIDER=1
 VERIFICATION_SERVER=1
 ISSUANCE_SERVER=1
@@ -146,6 +148,10 @@ do
             DEMO_INDEX=0
             shift # past argument
             ;;
+        rvp|revocation_portal)
+            REVOCATION_PORTAL=0
+            shift # past argument
+            ;;
         digid|digid_connector)
             DIGID_CONNECTOR=0
             shift # past argument
@@ -180,6 +186,7 @@ do
             DEMO_RELYING_PARTY=0
             DEMO_INDEX=0
             DEMO_ISSUER=0
+            REVOCATION_PORTAL=0
             VERIFICATION_SERVER=0
             ISSUANCE_SERVER=0
             PID_ISSUER=0
@@ -196,6 +203,7 @@ do
             DEMO_RELYING_PARTY=0
             DEMO_INDEX=0
             DEMO_ISSUER=0
+            REVOCATION_PORTAL=0
             VERIFICATION_SERVER=0
             ISSUANCE_SERVER=0
             PID_ISSUER=0
@@ -526,6 +534,7 @@ fi
 
 ########################################################################
 # Manage update_policy_server
+########################################################################
 
 if [[ $UPDATE_POLICY_SERVER == '0' ]]
 then
@@ -545,6 +554,31 @@ then
         RUST_LOG=debug cargo run --package update_policy_server --bin update_policy_server > "${TARGET_DIR}/update_policy_server.log" 2>&1 &
 
         echo -e "update_policy_server logs can be found at ${CYAN}${TARGET_DIR}/update_policy_server.log${NC}"
+    fi
+fi
+
+########################################################################
+# Manage revocation_portal
+########################################################################
+
+if [[ $REVOCATION_PORTAL == '0' ]]
+then
+    echo
+    echo -e "${SECTION}Manage revocation_portal${NC}"
+
+    cd "${REVOCATION_PORTAL_DIR}"
+
+    if [[ $STOP == '0' ]]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}revocation_portal${NC}"
+        killall revocation_portal || true
+    fi
+    if [[ $START == '0' ]]
+    then
+        echo -e "${INFO}Start ${ORANGE}revocation_portal${NC}"
+        RUST_LOG=debug cargo run --package revocation_portal --bin revocation_portal > "${TARGET_DIR}/revocation_portal.log" 2>&1 &
+
+        echo -e "revocation_portal logs can be found at ${CYAN}${TARGET_DIR}/revocation_portal.log${NC}"
     fi
 fi
 

@@ -1,5 +1,3 @@
-use core::result::Result as StdResult;
-
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
@@ -17,4 +15,4 @@ impl IntoResponse for Error {
     }
 }
 
-pub type Result<T> = StdResult<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;

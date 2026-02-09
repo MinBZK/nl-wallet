@@ -12,7 +12,6 @@ use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
-use demo_utils::headers::set_content_security_policy;
 use itertools::Itertools;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
@@ -20,11 +19,12 @@ use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-use demo_utils::LANGUAGE_JS_SHA256;
-use demo_utils::headers::set_static_cache_control;
-use demo_utils::language::Language;
 use http_utils::health::create_health_router;
 use utils::path::prefix_local_path;
+use web_utils::headers::set_content_security_policy;
+use web_utils::headers::set_static_cache_control;
+use web_utils::language::LANGUAGE_JS_SHA256;
+use web_utils::language::Language;
 
 use crate::settings::DemoService;
 use crate::settings::Settings;
@@ -56,9 +56,10 @@ pub fn create_router(settings: Settings) -> Router {
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
                     ServeDir::new(prefix_local_path(Path::new("assets"))).fallback(
-                        ServiceBuilder::new()
-                            .service(ServeDir::new(prefix_local_path(Path::new("../demo_utils/assets"))))
-                            .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ServeDir::new(prefix_local_path(Path::new("../demo_utils/assets"))).fallback(
+                            ServeDir::new(prefix_local_path(Path::new("../../lib/web_utils/assets")))
+                                .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ),
                     ),
                 ),
         )

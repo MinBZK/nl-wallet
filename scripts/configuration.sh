@@ -14,6 +14,7 @@ WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 DEMO_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/demo/demo_relying_party"
 DEMO_ISSUER_DIR="${WALLET_CORE_DIR}/demo/demo_issuer"
 DEMO_INDEX_DIR="${WALLET_CORE_DIR}/demo/demo_index"
+REVOCATION_PORTAL_DIR="${WALLET_CORE_DIR}/revocation_portal"
 STATIC_SERVER_DIR="${WALLET_CORE_DIR}/static_server"
 UPS_DIR="${WALLET_CORE_DIR}/update_policy/server"
 GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
@@ -53,6 +54,8 @@ export VERIFICATION_SERVER_IS_PORT=3012
 
 export BRP_SERVER_PORT=3013
 export GBA_HC_CONV_PORT=3014
+
+export REVOCATION_PORTAL_PORT=3020
 
 export RDO_MAX_PORT=8006
 

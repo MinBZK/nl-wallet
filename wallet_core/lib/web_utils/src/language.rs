@@ -1,12 +1,21 @@
+use std::sync::LazyLock;
+
 use axum::extract::FromRequestParts;
 use axum::extract::Query;
 use axum::http::HeaderMap;
 use axum::http::header::ACCEPT_LANGUAGE;
 use axum::http::request::Parts;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+
+use crypto::utils::sha256;
+
+pub static LANGUAGE_JS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/language.js"))));
 
 #[derive(
     Debug,
@@ -31,6 +40,13 @@ pub enum Language {
 }
 
 impl Language {
+    pub fn chrono_locale(&self) -> chrono::prelude::Locale {
+        match self {
+            Language::Nl => chrono::prelude::Locale::nl_NL,
+            Language::En => chrono::prelude::Locale::en_US,
+        }
+    }
+
     fn parse(s: &str) -> Option<Self> {
         match s.split('-').next() {
             Some("en") => Some(Language::En),

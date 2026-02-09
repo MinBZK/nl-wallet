@@ -35,6 +35,7 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
+readable_identifier.path = "../readable_identifier"
 sd_jwt.path = "../../lib/sd_jwt"
 utils.path = "../../lib/utils"
 wscd.path = "../../lib/wscd"
@@ -45,8 +46,8 @@ rustls-pki-types = { workspace = true, optional = true }
 
 android_attest = { path = "../../lib/android_attest", optional = true }
 apple_app_attest = { path = "../../lib/apple_app_attest", optional = true }
-platform_support = { path = "../../wallet/platform_support", optional = true }
 error_category = { path = "../../lib/error_category", optional = true }
+platform_support = { path = "../../wallet/platform_support", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

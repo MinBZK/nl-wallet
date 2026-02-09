@@ -461,6 +461,17 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 
+
+########################################################################
+# Configure revocation_portal
+########################################################################
+
+REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY=$(openssl rand -hex 64)
+export REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY
+
+render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
+
+
 ########################################################################
 # Configure update-policy-server
 ########################################################################

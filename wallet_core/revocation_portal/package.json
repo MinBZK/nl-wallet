@@ -1,0 +1,11 @@
+{
+  "name": "revocation-portal-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.0"
+  }
+}
