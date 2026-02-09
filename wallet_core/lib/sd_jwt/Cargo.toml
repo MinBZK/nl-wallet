@@ -19,7 +19,7 @@ examples = [
     "attestation_types/mock",
     "attestation_types/test_pid_constants",
     "token_status_list/mock",
-    "utils/mock_time"
+    "utils/mock_time",
 ]
 mock = []
 test = ["dep:futures"]
@@ -55,7 +55,7 @@ utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
-attestation_types = { path = "../attestation_types", features = ["mock"] }
+attestation_types = { path = "../attestation_types", features = ["mock", "test_pid_constants"] }
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from_str", "unwrap"] }
 futures.workspace = true

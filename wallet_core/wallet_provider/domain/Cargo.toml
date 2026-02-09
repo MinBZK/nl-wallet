@@ -29,6 +29,7 @@ uuid = { workspace = true, features = ["v4"] }
 hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 
+android_attest.path = "../../lib/android_attest"
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 utils.path = "../../lib/utils"

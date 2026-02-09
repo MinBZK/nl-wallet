@@ -80,6 +80,7 @@ use utils::vec_at_least::VecNonEmpty;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::HwSignedInstruction;
@@ -99,8 +100,8 @@ use wallet_account::signed::SequenceNumberComparison;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
+use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::RevocationReason;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -149,6 +150,8 @@ pub enum ChallengeError {
     WalletCertificate(#[from] WalletCertificateError),
     #[error("instruction sequence number validation failed")]
     SequenceNumberValidation,
+    #[error("account is revoked with reason: {0}")]
+    AccountIsRevoked(RevocationReason),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -639,7 +642,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     RSA_PKCS1_3072_8192_SHA384,
                 ];
 
-                let leaf_certificate = verify_google_key_attestation_with_params(
+                let (leaf_certificate, key_attestation) = verify_google_key_attestation_with_params(
                     &attested_key_chain,
                     &self.android_config.root_public_keys,
                     &crl,
@@ -720,6 +723,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     .map(|_| WalletUserAttestationCreate::Android {
                         certificate_chain: certificate_chain.into_inner(),
                         integrity_verdict_json,
+                        identifiers: AndroidHardwareIdentifiers {
+                            brand: key_attestation.hardware_enforced.attestation_id_brand,
+                            model: key_attestation.hardware_enforced.attestation_id_model,
+                            os_version: key_attestation.hardware_enforced.os_version,
+                            os_patch_level: key_attestation.hardware_enforced.os_patch_level,
+                        },
                     })
                     .map_err(RegistrationError::MessageValidation)?;
 
@@ -816,6 +825,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
 
+        if let Some(revocation) = &user.revocation_registration {
+            return Err(ChallengeError::AccountIsRevoked(revocation.reason));
+        }
+
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
         let (request, assertion_counter) = match user.attestation {
             WalletUserAttestation::Apple { assertion_counter } => challenge_request
@@ -828,7 +841,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     assertion_counter,
                 )
                 .map(|(request, assertion_counter)| (request, Some(assertion_counter))),
-            WalletUserAttestation::Android => challenge_request
+            // TODO (PVW-5293): Block a device if its attestations match an entry in the deny list.
+            WalletUserAttestation::Android { .. } => challenge_request
                 .request
                 .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, &user.hw_pubkey)
                 .map(|request| (request, None)),
@@ -1477,7 +1491,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     &pin_pubkey,
                 )
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
-            WalletUserAttestation::Android => instruction
+            // TODO (PVW-5293): Block a device if its attestations match an entry in the deny list.
+            WalletUserAttestation::Android { .. } => instruction
                 .instruction
                 .parse_and_verify_google(
                     &challenge.bytes,
@@ -1516,7 +1531,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     assertion_counter,
                 )
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
-            WalletUserAttestation::Android => instruction
+            // TODO (PVW-5293): Block a device if its attestations match an entry in the deny list.
+            WalletUserAttestation::Android { .. } => instruction
                 .instruction
                 .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, &wallet_user.hw_pubkey)
                 .map(|parsed| (parsed, None)),
@@ -1900,6 +1916,7 @@ mod tests {
     use utils::vec_nonempty;
     use wallet_account::RevocationCode;
     use wallet_account::messages::errors::IncorrectPinData;
+    use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
@@ -1919,6 +1936,7 @@ mod tests {
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+    use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
     use wallet_provider_domain::repository::MockTransaction;
@@ -2162,6 +2180,7 @@ mod tests {
             apple_assertion_counter,
             state: WalletUserState::Active,
             revocation_code_hmac,
+            revocation_registration: None,
         };
 
         let user_state = mock::user_state(
@@ -2586,6 +2605,35 @@ mod tests {
         } else {
             panic!("user should be found")
         }
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn instruction_request_for_revoked_user_should_fail(
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
+    ) {
+        let (_setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
+            setup_and_do_registration(attestation_type).await;
+
+        user_state.repositories.revocation_registration = Some(RevocationRegistration {
+            reason: RevocationReason::AdminRequest,
+            date_time: Utc::now(),
+        });
+
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<CheckPin>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
+
+        let err = account_server
+            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, ChallengeError::AccountIsRevoked(RevocationReason::AdminRequest));
     }
 
     #[tokio::test]

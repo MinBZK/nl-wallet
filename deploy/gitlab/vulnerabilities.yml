@@ -86,6 +86,7 @@ rust-audit:
       "nl-wallet-demo-relying-party"
       "nl-wallet-demo-issuer"
       "nl-wallet-provider-migrations"
+      "nl-audit-log-migrations"
       "nl-wallet-provider"
       "nl-wallet-verification-server-migrations"
       "nl-wallet-verification-server"
@@ -158,6 +159,9 @@ trivy-publish:
       artifacts: false
       optional: true
     - job: build-wallet-provider-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-audit-log-migrations-image
       artifacts: false
       optional: true
     - job: build-demo-relying-party-image

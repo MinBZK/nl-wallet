@@ -1,0 +1,42 @@
+[package]
+name = "audit_log"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[features]
+mock = []
+
+[dependencies]
+chrono.workspace = true
+derive_more = { workspace = true, features = ["display"] }
+sea-orm = { workspace = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-json",
+    "with-uuid",
+] }
+thiserror.workspace = true
+tracing = { workspace = true, features = ["log"] }
+uuid.workspace = true
+
+utils.path = "../../lib/utils"
+
+[dev-dependencies]
+assert_matches.workspace = true
+config = { workspace = true, features = ["toml"] }
+rstest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["macros"] }
+uuid = { workspace = true, features = ["v4"] }
+
+utils = { path = "../../lib/utils", features = ["mock_time"] }

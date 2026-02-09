@@ -68,6 +68,7 @@ test-ios:
         fake_attestation:"${FAKE_ATTESTATION:-false}" \
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
+        show_debug_options:true \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
     # Sign
     - |

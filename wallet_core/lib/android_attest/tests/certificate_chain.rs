@@ -87,7 +87,9 @@ fn perform_google_key_attestation(
         revocation_list,
         attestation_challenge,
     )
-    .map(|_| ())
+    .map(|(_leaf_cert, key_attestation)| {
+        assert_eq!(key_attestation.attestation_challenge.as_ref(), attestation_challenge);
+    })
 }
 
 #[test]
@@ -272,7 +274,7 @@ fn test_google_key_attestation_signature_algorithm_with_null_parameters() {
     ];
 
     // Verify the attested key
-    verify_google_key_attestation_with_params(
+    let (_leaf_cert, key_attestation) = verify_google_key_attestation_with_params(
         &certificate_chain,
         &root_public_keys,
         revocation_list,
@@ -281,4 +283,6 @@ fn test_google_key_attestation_signature_algorithm_with_null_parameters() {
         Utc::now(),
     )
     .expect("valid certificate chain");
+
+    assert_eq!(key_attestation.attestation_challenge.as_ref(), attestation_challenge);
 }

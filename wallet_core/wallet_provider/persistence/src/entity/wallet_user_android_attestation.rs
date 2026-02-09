@@ -9,6 +9,10 @@ pub struct Model {
     pub id: Uuid,
     pub certificate_chain: Vec<Vec<u8>>,
     pub integrity_verdict_json: String,
+    pub brand: Option<String>,
+    pub model: Option<String>,
+    pub os_version: Option<i32>,
+    pub os_patch_level: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

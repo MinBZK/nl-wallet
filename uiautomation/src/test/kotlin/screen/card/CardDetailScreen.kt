@@ -16,7 +16,7 @@ class CardDetailScreen : MobileActions() {
 
     fun visible() = elementContainingTextVisible(cardDetailScreenCardDataCta)
 
-    fun cardFaceElements() = elementContainingTextVisible(pidIdTitleText)
+    fun pidCardVisible() = elementContainingTextVisible(pidIdTitleText)
 
     fun issuerAndHistoryStates() = elementContainingTextVisible(cardIssuerStateText) && elementContainingTextVisible(cardHistoryStateText)
 

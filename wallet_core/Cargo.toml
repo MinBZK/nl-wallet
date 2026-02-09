@@ -43,6 +43,8 @@ members = [
     "wallet/platform_support",
     "wallet_ca",
     "wallet_provider",
+    "wallet_provider/audit_log",
+    "wallet_provider/audit_log/migrations",
     "wallet_provider/database_settings",
     "wallet_provider/domain",
     "wallet_provider/migrations",

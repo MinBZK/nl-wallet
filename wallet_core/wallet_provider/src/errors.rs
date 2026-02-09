@@ -49,6 +49,7 @@ impl HttpJsonErrorType for WalletProviderErrorType {
             AccountErrorType::PinTimeout => "PIN checking is currently in timeout",
             AccountErrorType::AccountBlocked => "The requested account is blocked",
             AccountErrorType::InstructionValidation => "Could not validate instruction",
+            AccountErrorType::AccountRevoked => "Account has been revoked",
         };
 
         title.to_string()
@@ -64,6 +65,7 @@ impl HttpJsonErrorType for WalletProviderErrorType {
             AccountErrorType::PinTimeout => StatusCode::FORBIDDEN,
             AccountErrorType::AccountBlocked => StatusCode::UNAUTHORIZED,
             AccountErrorType::InstructionValidation => StatusCode::FORBIDDEN,
+            AccountErrorType::AccountRevoked => StatusCode::UNAUTHORIZED,
         }
     }
 }

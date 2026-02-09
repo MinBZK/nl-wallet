@@ -2,6 +2,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Map;
 use serde_json::Value;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
@@ -24,7 +26,36 @@ pub enum AccountError {
     PinTimeout(PinTimeoutData),
     #[cfg_attr(feature = "client", category(expected))]
     AccountBlocked,
+    #[cfg_attr(feature = "client", category(expected))]
+    AccountRevoked(RevocationReason),
     InstructionValidation,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    SerializeDisplay,
+    DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
+    strum::EnumIter,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum RevocationReason {
+    // upon the explicit request of the User
+    UserRequest,
+    // can have several reasons
+    AdminRequest,
+    // the security of the Wallet Solution is breached or compromised
+    WalletSolutionCompromised,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RevocationReasonData {
+    revocation_reason: RevocationReason,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +76,9 @@ impl From<AccountError> for Map<String, Value> {
         match value {
             AccountError::IncorrectPin(data) => serde_json::to_value(data).into(),
             AccountError::PinTimeout(data) => serde_json::to_value(data).into(),
+            AccountError::AccountRevoked(revocation_reason) => {
+                serde_json::to_value(RevocationReasonData { revocation_reason }).into()
+            }
             _ => None,
         }
         .transpose()
@@ -78,6 +112,9 @@ impl AccountError {
             AccountErrorType::PinTimeout => Self::PinTimeout(serde_json::from_value(data)?),
             AccountErrorType::AccountBlocked => Self::AccountBlocked,
             AccountErrorType::InstructionValidation => Self::InstructionValidation,
+            AccountErrorType::AccountRevoked => {
+                Self::AccountRevoked(serde_json::from_value::<RevocationReasonData>(data)?.revocation_reason)
+            }
         };
 
         Ok(account_error)

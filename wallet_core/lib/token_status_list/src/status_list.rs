@@ -138,6 +138,22 @@ impl StatusList {
 }
 
 impl PackedStatusList {
+    pub fn new(len: usize) -> PackedStatusList {
+        let bits = Bits::One;
+        PackedStatusList {
+            bits,
+            lst: vec![0; bits.packed_len(len)],
+        }
+    }
+
+    pub fn all_invalid(len: usize) -> PackedStatusList {
+        let bits = Bits::One;
+        PackedStatusList {
+            bits,
+            lst: vec![0xff; bits.packed_len(len)],
+        }
+    }
+
     pub fn bits(&self) -> &Bits {
         &self.bits
     }
@@ -468,5 +484,22 @@ pub mod test {
         let packed = FOUR_BIT_STATUS_LIST.to_owned().pack();
         let unpacked = packed.partial_unpack(&indices);
         assert_eq!(unpacked, expected);
+    }
+
+    #[test]
+    fn test_packed_status_list_new() {
+        let packed = PackedStatusList::new(15);
+        let unpacked = packed.unpack();
+        assert_eq!(unpacked.len, 16);
+        assert_eq!(unpacked.sparse, HashMap::default());
+    }
+
+    #[test]
+    fn test_packed_status_all_invalid() {
+        let packed = PackedStatusList::all_invalid(15);
+        let unpacked = packed.unpack();
+        assert_eq!(unpacked.len, 16);
+        let expected_sparse = (0..16).map(|i| (i, StatusType::Invalid)).collect::<HashMap<_, _, _>>();
+        assert_eq!(unpacked.sparse, expected_sparse);
     }
 }

@@ -17,6 +17,10 @@ impl MigrationTrait for Migration {
                     // This data is stored as a string, so that the original JSON response
                     // body as returned by the Google Play Integrity API can be preserved.
                     .col(string(WalletUserAndroidAttestation::IntegrityVerdictJson))
+                    .col(string_null(WalletUserAndroidAttestation::Brand))
+                    .col(string_null(WalletUserAndroidAttestation::Model))
+                    .col(integer_null(WalletUserAndroidAttestation::OsVersion))
+                    .col(integer_null(WalletUserAndroidAttestation::OsPatchLevel))
                     .to_owned(),
             )
             .await?;
@@ -31,4 +35,8 @@ pub enum WalletUserAndroidAttestation {
     Id,
     CertificateChain,
     IntegrityVerdictJson,
+    Brand,
+    Model,
+    OsVersion,
+    OsPatchLevel,
 }

@@ -396,7 +396,7 @@ then
         mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "postgres,test_internal_ui" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "test_internal_ui" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
@@ -427,7 +427,7 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
-        RUST_LOG=debug cargo run --package verification_server --no-default-features --features "allow_insecure_url,postgres" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package verification_server --no-default-features --features "allow_insecure_url" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
 
         echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/demo_rp_verification_server.log${NC}"
     fi
@@ -462,7 +462,7 @@ then
         mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
-        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "allow_insecure_url,postgres,test_internal_ui" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "allow_insecure_url,test_internal_ui" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
 
         echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
     fi
@@ -486,6 +486,11 @@ then
     fi
     if [[ $START == '0' ]]
     then
+        echo -e "${INFO}Running audit_log database migrations${NC}"
+        pushd "${WALLET_CORE_DIR}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider_audit_log" cargo run --package audit_log_migrations --bin audit_log_migrations -- fresh
+        popd
+
         echo -e "${INFO}Running wallet_provider database migrations${NC}"
         pushd "${WALLET_CORE_DIR}"
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider" cargo run --package wallet_provider_migrations --bin wallet_provider_migrations -- fresh
@@ -639,6 +644,7 @@ then
         cd "${BASE_DIR}"/wallet_app
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
+            --dart-define SHOW_DEBUG_OPTIONS=true \
             --dart-define ALLOW_INSECURE_URL=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \

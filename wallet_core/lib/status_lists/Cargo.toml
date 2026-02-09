@@ -36,14 +36,15 @@ axum = [
     "utoipa/uuid",
     "token_status_list/axum",
 ]
-db_test = ["axum", "dep:reqwest", "health_checkers/test_settings"]
+db_test = ["axum", "dep:reqwest", "health_checkers/test_settings", "test"]
+test = []
 # Enable additional test API endpoints
 test_api = ["axum"]
 
 [dependencies]
 anyhow.workspace = true
 chrono = { workspace = true, features = ["now"] }
-derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into_iterator"] }
+derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "from", "into_iterator"] }
 futures.workspace = true
 itertools.workspace = true
 metrics.workspace = true

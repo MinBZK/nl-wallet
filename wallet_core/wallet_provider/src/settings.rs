@@ -51,6 +51,7 @@ pub struct Settings {
     pub wua_valid_days: u64,
     pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
     pub database: DatabaseSettings,
+    pub audit_log: DatabaseSettings,
     pub webserver: Webserver,
     pub tls_config: Option<TlsServerConfig>,
     pub hsm: Hsm,

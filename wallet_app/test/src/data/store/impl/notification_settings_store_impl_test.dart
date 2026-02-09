@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wallet/src/data/store/impl/notification_settings_store_impl.dart';
 import 'package:wallet/src/data/store/notification_settings_store.dart';
 
+const kInitialPushNotificationsEnabledValue = false;
+
 void main() {
   late NotificationSettingsStore notificationSettingsStore;
   late SharedPreferences mockSharedPreferences;
@@ -43,9 +45,9 @@ void main() {
     expect(result, isNull);
   });
 
-  test('getPushNotificationsEnabled should return true by default', () async {
+  test('getPushNotificationsEnabled should return false by default', () async {
     final result = await notificationSettingsStore.getPushNotificationsEnabled();
-    expect(result, true);
+    expect(result, kInitialPushNotificationsEnabledValue);
   });
 
   test('setPushNotificationsEnabled and getPushNotificationsEnabled should work correctly', () async {
@@ -63,15 +65,15 @@ void main() {
     final stream = notificationSettingsStore.observePushNotificationsEnabled();
 
     // Expect initial value
-    expect(stream, emits(true));
+    expect(stream, emits(kInitialPushNotificationsEnabledValue));
 
     // Set new value and expect it to be emitted
     final subscription = stream.skip(1).listen((event) {
-      expect(event, false);
+      expect(event, true);
       completer.complete();
     });
 
-    await notificationSettingsStore.setPushNotificationsEnabled(enabled: false);
+    await notificationSettingsStore.setPushNotificationsEnabled(enabled: true);
     await completer.future;
     await subscription.cancel();
   });
@@ -89,10 +91,16 @@ void main() {
       }
     });
 
-    await notificationSettingsStore.setPushNotificationsEnabled(enabled: true); // Set the same (initial) value again
-    await notificationSettingsStore.setPushNotificationsEnabled(enabled: true); // Set the same (initial) value again
-    await notificationSettingsStore.setPushNotificationsEnabled(enabled: true); // Set the same (initial) value again
-    await notificationSettingsStore.setPushNotificationsEnabled(enabled: false);
+    await notificationSettingsStore.setPushNotificationsEnabled(
+      enabled: kInitialPushNotificationsEnabledValue,
+    ); // Set the same (initial) value again
+    await notificationSettingsStore.setPushNotificationsEnabled(
+      enabled: kInitialPushNotificationsEnabledValue,
+    ); // Set the same (initial) value again
+    await notificationSettingsStore.setPushNotificationsEnabled(
+      enabled: kInitialPushNotificationsEnabledValue,
+    ); // Set the same (initial) value again
+    await notificationSettingsStore.setPushNotificationsEnabled(enabled: true);
     await completer.future;
     expect(emissionCount, 2); // Should only have emitted twice (initial and the change)
     await subscription.cancel();

@@ -37,6 +37,14 @@ imageMigrations:
   repository: null
   pullPolicy: IfNotPresent
 
+## @section Audit Log Image migration parameters
+## @param imageAuditLogMigrations.repository Repository for the migration container image
+## @param imageAuditLogMigrations.pullPolicy Image pull policy for the migration container
+##
+imageAuditLogMigrations:
+  repository: null
+  pullPolicy: IfNotPresent
+
 ## @section Annotations and labels
 ## Additional annotations and labels
 ## @param extraAnnotations Additional annotations for the deployment
@@ -127,10 +135,16 @@ resources:
     cpu: "400m"
     memory: "64Mi"
 
-## section Database parameters
+## @section Database parameters
 ## Parameters for database configuration
 ## @param database.secretName The secret name that contains the connection url for the database
 database:
+  secretName: null
+
+## @section Audit Log Database parameters
+## Parameters for database configuration
+## @param auditLog.secretName The secret name that contains the connection url for the database
+auditLog:
   secretName: null
 
 ## @section HSM parameters

@@ -22,7 +22,7 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
   );
 
   @override
-  Stream<List<OsNotification>> invoke() {
+  Stream<List<OsNotification>> invoke({bool respectUserSetting = true}) {
     final notificationStream = _notificationRepository.observeNotifications().map(
       (input) {
         // Filter out notifications which target the [Os].
@@ -43,6 +43,8 @@ class ObserveOsNotificationsUseCaseImpl extends ObserveOsNotificationsUseCase {
         ).toList();
       },
     );
+
+    if (!respectUserSetting) return notificationStream;
 
     // Only emit [OsNotification]s when push notification setting is enabled
     return _notificationRepository.observePushNotificationsEnabled().switchMap(

@@ -10,6 +10,7 @@ use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::entity::wallet_transfer;
+use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::wallet_transfer::create_transfer_session;
 use wallet_provider_persistence::wallet_transfer::find_transfer_session_by_transfer_session_id;
 use wallet_provider_persistence::wallet_transfer::find_transfer_session_id_by_destination_wallet_user_id;
@@ -21,7 +22,7 @@ pub mod common;
 
 #[tokio::test]
 async fn test_create_transfer_session() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
         .await
@@ -49,7 +50,7 @@ async fn test_create_transfer_session() {
 
 #[tokio::test]
 async fn test_find_transfer_session_by_transfer_session_id() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
         .await
@@ -89,7 +90,7 @@ async fn test_find_transfer_session_by_transfer_session_id() {
 
 #[tokio::test]
 async fn test_find_transfer_session_id_by_destination_wallet_user_id() {
-    let (db, wallet_user_id, _, _) = common::create_test_user().await;
+    let (db, wallet_user_id, _, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
 
     let transfer_session_id = Uuid::new_v4();
 
@@ -113,7 +114,7 @@ async fn test_find_transfer_session_id_by_destination_wallet_user_id() {
 
 #[tokio::test]
 async fn test_update_transfer_state() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
         .await
@@ -160,7 +161,7 @@ async fn test_update_transfer_state() {
 
 #[tokio::test]
 async fn test_set_wallet_transfer_data() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
         .await

@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:local_auth/local_auth.dart';
@@ -24,6 +25,7 @@ import 'package:wallet/src/data/service/announcement_service.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/auto_lock_service.dart';
 import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
+import 'package:wallet/src/data/service/local_notification_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
@@ -162,6 +164,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<AnnouncementService>()])
 @GenerateNiceMocks([MockSpec<NotificationSettingsStore>()])
 @GenerateNiceMocks([MockSpec<RevocationCodeStore>()])
+@GenerateNiceMocks([MockSpec<FlutterLocalNotificationsPlugin>()])
+@GenerateNiceMocks([MockSpec<LocalNotificationService>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])

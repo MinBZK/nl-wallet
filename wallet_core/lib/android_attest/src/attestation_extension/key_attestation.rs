@@ -8,6 +8,7 @@
 
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::string::FromUtf8Error;
 use std::time::Duration;
 
 use bitflags::bitflags;
@@ -217,7 +218,7 @@ pub enum KeyOrigin {
 
 integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
 #[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct OsVersion {
     pub major: u8,
@@ -227,31 +228,58 @@ pub struct OsVersion {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum OsVersionError {
-    #[error("could not convert Integer to usize: {0}")]
-    IntegerConversion(Integer),
-    #[error("not a valid OsVersion: ")]
-    InvalidOsVersion(usize),
+    #[error("could not convert Integer to u32: {0}")]
+    Conversion(Integer),
+    #[error("{0}")]
+    Parsing(#[from] OsVersionParsingError),
 }
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("not a valid OsVersion: {0}")]
+pub struct OsVersionParsingError(pub u32);
 
 impl TryFrom<Integer> for OsVersion {
     type Error = OsVersionError;
 
     fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        let version: usize = (&value)
-            .try_into()
-            .map_err(|_| OsVersionError::IntegerConversion(value))?;
-        let major = version / 10_000;
+        let number = u32::try_from(&value).map_err(|_| OsVersionError::Conversion(value))?;
+        let os_version = Self::try_from(number)?;
+
+        Ok(os_version)
+    }
+}
+
+impl TryFrom<u32> for OsVersion {
+    type Error = OsVersionParsingError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        let major = value / 10_000;
         if major >= 100 {
-            return Err(OsVersionError::InvalidOsVersion(version));
+            return Err(OsVersionParsingError(value));
         }
-        let minor = version / 100 % 100;
-        let sub_minor = version % 100;
+        let minor = value / 100 % 100;
+        let sub_minor = value % 100;
+
         // unwraps are safe because of guards above
-        Ok(OsVersion {
+        let os_version = Self {
             major: major.try_into().unwrap(),
             minor: minor.try_into().unwrap(),
             sub_minor: sub_minor.try_into().unwrap(),
-        })
+        };
+
+        Ok(os_version)
+    }
+}
+
+impl From<OsVersion> for u32 {
+    fn from(value: OsVersion) -> Self {
+        10_000 * Self::from(value.major) + 100 * Self::from(value.minor) + Self::from(value.sub_minor)
+    }
+}
+
+impl From<OsVersion> for Integer {
+    fn from(value: OsVersion) -> Self {
+        u32::from(value).into()
     }
 }
 
@@ -277,16 +305,72 @@ fn duration_from_seconds(source: Integer) -> Result<Duration, Integer> {
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum PatchLevelError {
-    #[error("conversion error from: {0}")]
+    #[error("could not convert Integer to u32: {0}")]
     Conversion(Integer),
-    #[error("invalid date: {0}")]
-    InvalidDate(Integer),
+    #[error("{0}")]
+    Parsing(#[from] PatchLevelParsingError),
 }
 
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("not a valid PatchLevel: {0}")]
+pub struct PatchLevelParsingError(pub u32);
+
 /// Decoded patch_level.
+/// Supports only YYYYMM notation, including values 0 or 00 for MM.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+pub struct PatchLevel {
+    pub year: u16,
+    pub month: u8,
+}
+
+impl TryFrom<Integer> for PatchLevel {
+    type Error = PatchLevelError;
+
+    fn try_from(value: Integer) -> Result<Self, Self::Error> {
+        let number = u32::try_from(&value).map_err(|_| PatchLevelError::Conversion(value))?;
+        let patch_level = Self::try_from(number)?;
+
+        Ok(patch_level)
+    }
+}
+
+impl TryFrom<u32> for PatchLevel {
+    type Error = PatchLevelParsingError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value == 0 {
+            return Ok(Self::new(0, 0));
+        }
+        if !(10_000..=999_999).contains(&value) {
+            return Err(PatchLevelParsingError(value));
+        }
+
+        let month = value % 100;
+        let year = value / 100;
+
+        // unwraps are safe because of guards above
+        let patch_level = Self::new(year.try_into().unwrap(), month.try_into().unwrap());
+
+        Ok(patch_level)
+    }
+}
+
+impl From<PatchLevel> for u32 {
+    fn from(value: PatchLevel) -> Self {
+        Self::from(value.year) * 100 + Self::from(value.month)
+    }
+}
+
+impl From<PatchLevel> for Integer {
+    fn from(value: PatchLevel) -> Self {
+        u32::from(value).into()
+    }
+}
+
+/// Decoded patch_level, possibly with day.
 /// Supports both YYYYMM and YYYYMMDD notations, including values 0 or 00 for MM and/or DD.
 ///
-/// - os_patch_level: YYYYMM
 /// - vendor_patch_level: YYYYMMDD, but also found YYYYMM
 /// - boot_patch_level: YYYYMMDD, but also found YYYYMM
 ///
@@ -296,43 +380,76 @@ pub enum PatchLevelError {
 ///
 /// - Sometimes DD is set to `00`, which is not a valid date
 /// - Sometimes the whole `PatchLevel` was set to `0`
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
 #[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
-pub struct PatchLevel {
-    year: u16,
-    month: u8,
-    day: Option<u8>,
+pub struct PatchLevelWithDay {
+    pub year: u16,
+    pub month: u8,
+    pub day: Option<u8>,
 }
 
-impl TryFrom<Integer> for PatchLevel {
+impl TryFrom<Integer> for PatchLevelWithDay {
     type Error = PatchLevelError;
 
     fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        let mut rest: usize = (&value)
-            .try_into()
-            .map_err(|_| PatchLevelError::Conversion(value.clone()))?;
+        let number = u32::try_from(&value).map_err(|_| PatchLevelError::Conversion(value))?;
+        let patch_level = Self::try_from(number)?;
 
-        if rest == 0 {
-            return Ok(PatchLevel::new(0, 0, None));
-        } else if rest < 10_000 {
-            return Err(PatchLevelError::InvalidDate(value));
+        Ok(patch_level)
+    }
+}
+
+impl TryFrom<u32> for PatchLevelWithDay {
+    type Error = PatchLevelParsingError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value == 0 {
+            return Ok(Self::new(0, 0, None));
+        }
+        if value < 10_000 {
+            return Err(PatchLevelParsingError(value));
         }
 
-        let first = rest % 100;
-        rest /= 100;
+        let first = value % 100;
+        let mut rest = value / 100;
 
-        let result = if rest < 10_000 {
-            PatchLevel::new(rest as u16, first as u8, None)
+        // unwraps are safe because of guards above
+        let patch_level = if rest < 10_000 {
+            Self::new(rest.try_into().unwrap(), first.try_into().unwrap(), None)
         } else {
             let second = rest % 100;
             rest /= 100;
+
             if rest > 10_000 {
-                return Err(PatchLevelError::InvalidDate(value));
+                return Err(PatchLevelParsingError(value));
             }
-            PatchLevel::new(rest as u16, second as u8, Some(first as u8))
+
+            Self::new(
+                rest.try_into().unwrap(),
+                second.try_into().unwrap(),
+                Some(first.try_into().unwrap()),
+            )
         };
 
-        Ok(result)
+        Ok(patch_level)
+    }
+}
+
+impl From<PatchLevelWithDay> for u32 {
+    fn from(value: PatchLevelWithDay) -> Self {
+        let year_and_month = PatchLevel::new(value.year, value.month).into();
+
+        if let Some(day) = value.day {
+            year_and_month * 100 + Self::from(day)
+        } else {
+            year_and_month
+        }
+    }
+}
+
+impl From<PatchLevelWithDay> for Integer {
+    fn from(value: PatchLevelWithDay) -> Self {
+        u32::from(value).into()
     }
 }
 
@@ -506,18 +623,18 @@ pub struct AuthorizationList {
     pub os_version: Option<OsVersion>,
     pub os_patch_level: Option<PatchLevel>,
     pub attestation_application_id: Option<AttestationApplicationId>,
-    pub attestation_id_brand: Option<OctetString>,
-    pub attestation_id_device: Option<OctetString>,
-    pub attestation_id_product: Option<OctetString>,
-    pub attestation_id_serial: Option<OctetString>,
-    pub attestation_id_imei: Option<OctetString>,
-    pub attestation_id_meid: Option<OctetString>,
-    pub attestation_id_manufacturer: Option<OctetString>,
-    pub attestation_id_model: Option<OctetString>,
-    pub vendor_patch_level: Option<PatchLevel>,
-    pub boot_patch_level: Option<PatchLevel>,
+    pub attestation_id_brand: Option<String>,
+    pub attestation_id_device: Option<String>,
+    pub attestation_id_product: Option<String>,
+    pub attestation_id_serial: Option<String>,
+    pub attestation_id_imei: Option<String>,
+    pub attestation_id_meid: Option<String>,
+    pub attestation_id_manufacturer: Option<String>,
+    pub attestation_id_model: Option<String>,
+    pub vendor_patch_level: Option<PatchLevelWithDay>,
+    pub boot_patch_level: Option<PatchLevelWithDay>,
     pub device_unique_attestation: bool,
-    pub attestation_id_second_imei: Option<OctetString>,
+    pub attestation_id_second_imei: Option<String>,
     pub module_hash: Option<OctetString>,
 }
 
@@ -559,6 +676,24 @@ pub enum AuthorizationListFieldError {
     BootPatchLevel(#[source] PatchLevelError),
     #[error("invalid attestation_application_id field: {0}")]
     AttestationApplicationId(#[source] DecodeError),
+    #[error("invalid attestation_id_brand field: {0}")]
+    AttestationIdBrand(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_device field: {0}")]
+    AttestationIdDevice(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_product field: {0}")]
+    AttestationIdProduct(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_serial field: {0}")]
+    AttestationIdSerial(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_imei field: {0}")]
+    AttestationIdImei(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_meid field: {0}")]
+    AttestationIdMeid(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_manufacturer field: {0}")]
+    AttestationIdManufacturer(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_model field: {0}")]
+    AttestationIdModel(#[source] FromUtf8Error),
+    #[error("invalid attestation_id_second_imei field: {0}")]
+    AttestationIdSecondImei(#[source] FromUtf8Error),
     #[error("invalid usage_count_limit field: {0}")]
     UsageCountLimit(Integer),
     #[error("invalid key_size field: {0}")]
@@ -645,14 +780,46 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map(|bytes| rasn::der::decode(&bytes))
                 .transpose()
                 .map_err(AuthorizationListFieldError::AttestationApplicationId)?,
-            attestation_id_brand: source.attestation_id_brand,
-            attestation_id_device: source.attestation_id_device,
-            attestation_id_product: source.attestation_id_product,
-            attestation_id_serial: source.attestation_id_serial,
-            attestation_id_imei: source.attestation_id_imei,
-            attestation_id_meid: source.attestation_id_meid,
-            attestation_id_manufacturer: source.attestation_id_manufacturer,
-            attestation_id_model: source.attestation_id_model,
+            attestation_id_brand: source
+                .attestation_id_brand
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdBrand)?,
+            attestation_id_device: source
+                .attestation_id_device
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdDevice)?,
+            attestation_id_product: source
+                .attestation_id_product
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdProduct)?,
+            attestation_id_serial: source
+                .attestation_id_serial
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdSerial)?,
+            attestation_id_imei: source
+                .attestation_id_imei
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdImei)?,
+            attestation_id_meid: source
+                .attestation_id_meid
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdMeid)?,
+            attestation_id_manufacturer: source
+                .attestation_id_manufacturer
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdManufacturer)?,
+            attestation_id_model: source
+                .attestation_id_model
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdModel)?,
             vendor_patch_level: source
                 .vendor_patch_level
                 .map(TryFrom::try_from)
@@ -664,7 +831,11 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .transpose()
                 .map_err(AuthorizationListFieldError::BootPatchLevel)?,
             device_unique_attestation: source.device_unique_attestation.is_some(),
-            attestation_id_second_imei: source.attestation_id_second_imei,
+            attestation_id_second_imei: source
+                .attestation_id_second_imei
+                .map(|bytes| String::from_utf8(bytes.into()))
+                .transpose()
+                .map_err(AuthorizationListFieldError::AttestationIdSecondImei)?,
             module_hash: source.module_hash,
         };
 
@@ -796,25 +967,29 @@ mod test {
     #[rstest]
     #[case(40_003.into(), Ok((4, 0, 3)))]
     #[case(999_999.into(), Ok((99, 99, 99)))]
-    #[case(
-        1_000_000.into(),
-        Err(OsVersionError::InvalidOsVersion(1_000_000))
-    )]
-    #[case(
-        4_040_003.into(),
-        Err(OsVersionError::InvalidOsVersion(4_040_003))
-    )]
+    #[case(42.into(), Ok((0, 0, 42)))]
+    #[case(Integer::ZERO, Ok((0, 0, 0)))]
+    #[case(1_000_000.into(), Err(OsVersionError::Parsing(OsVersionParsingError(1_000_000))))]
+    #[case(4_040_003.into(), Err(OsVersionError::Parsing(OsVersionParsingError(4_040_003))))]
+    #[case((-1).into(), Err(OsVersionError::Conversion((-1).into())))]
+    #[case((u64::from(u32::MAX) + 1).into(), Err(OsVersionError::Conversion((u64::from(u32::MAX) + 1).into())))]
     fn os_version(#[case] input: Integer, #[case] expected: Result<(u8, u8, u8), OsVersionError>) {
-        let actual = OsVersion::try_from(input);
+        let actual = OsVersion::try_from(input.clone());
+
         assert_eq!(actual.is_ok(), expected.is_ok());
-        match (actual, expected) {
+        match (&actual, &expected) {
             (Err(e1), Err(e2)) => assert_eq!(e1, e2),
             (Ok(version), Ok((major, minor, bugfix))) => {
-                assert_eq!(version.major, major);
-                assert_eq!(version.minor, minor);
-                assert_eq!(version.sub_minor, bugfix);
+                assert_eq!(version.major, *major);
+                assert_eq!(version.minor, *minor);
+                assert_eq!(version.sub_minor, *bugfix);
             }
             _ => unreachable!(),
+        }
+
+        // Check that conversion back results in the input value.
+        if let Ok(os_version) = actual {
+            assert_eq!(Integer::from(os_version), input);
         }
     }
 
@@ -828,24 +1003,49 @@ mod test {
     }
 
     #[rstest]
-    #[case(Integer::ZERO, Ok(PatchLevel::new(0, 0, None)))]
-    #[case(
-        2019.into(),
-        Err(PatchLevelError::InvalidDate(2019.into()))
-    )]
-    #[case(201907.into(), Ok(PatchLevel::new(2019, 7, None)))]
-    #[case(201913.into(), Ok(PatchLevel::new(2019, 13, None)))]
-    #[case(20190705.into(), Ok(PatchLevel::new(2019, 7, Some(5))))]
-    #[case(20191305.into(), Ok(PatchLevel::new(2019, 13, Some(5))))]
-    #[case(20190732.into(), Ok(PatchLevel::new(2019, 7, Some(32))))]
-    #[case(20190229.into(), Ok(PatchLevel::new(2019, 2, Some(29))))]
-    #[case(
-        120190705.into(),
-        Err(PatchLevelError::InvalidDate(120190705.into()))
-    )]
+    #[case(Integer::ZERO, Ok(PatchLevel::new(0, 0)))]
+    #[case(2019.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(2019))))]
+    #[case(201907.into(), Ok(PatchLevel::new(2019, 7)))]
+    #[case(201913.into(), Ok(PatchLevel::new(2019, 13)))]
+    #[case(201900.into(), Ok(PatchLevel::new(2019, 00)))]
+    #[case(20190705.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(20190705))))]
+    #[case((-1).into(), Err(PatchLevelError::Conversion((-1).into())))]
+    #[case((u64::from(u32::MAX) + 1).into(), Err(PatchLevelError::Conversion((u64::from(u32::MAX) + 1).into())))]
     fn patch_level(#[case] input: Integer, #[case] expected: Result<PatchLevel, PatchLevelError>) {
-        let actual: Result<PatchLevel, PatchLevelError> = input.try_into();
+        let actual = PatchLevel::try_from(input.clone());
+
         assert_eq!(actual, expected);
+
+        // Check that conversion back results in the input value.
+        if let Ok(patch_level) = actual {
+            assert_eq!(Integer::from(patch_level), input);
+        }
+    }
+
+    #[rstest]
+    #[case(Integer::ZERO, Ok(PatchLevelWithDay::new(0, 0, None)))]
+    #[case(2019.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(2019))))]
+    #[case(201907.into(), Ok(PatchLevelWithDay::new(2019, 7, None)))]
+    #[case(201913.into(), Ok(PatchLevelWithDay::new(2019, 13, None)))]
+    #[case(201900.into(), Ok(PatchLevelWithDay::new(2019, 0, None)))]
+    #[case(20190705.into(), Ok(PatchLevelWithDay::new(2019, 7, Some(5))))]
+    #[case(20191305.into(), Ok(PatchLevelWithDay::new(2019, 13, Some(5))))]
+    #[case(20190732.into(), Ok(PatchLevelWithDay::new(2019, 7, Some(32))))]
+    #[case(20190229.into(), Ok(PatchLevelWithDay::new(2019, 2, Some(29))))]
+    #[case(20190200.into(), Ok(PatchLevelWithDay::new(2019, 2, Some(0))))]
+    #[case(20190000.into(), Ok(PatchLevelWithDay::new(2019, 0, Some(0))))]
+    #[case(120190705.into(), Err(PatchLevelError::Parsing(PatchLevelParsingError(120190705))))]
+    #[case((-1).into(), Err(PatchLevelError::Conversion((-1).into())))]
+    #[case((u64::from(u32::MAX) + 1).into(), Err(PatchLevelError::Conversion((u64::from(u32::MAX) + 1).into())))]
+    fn patch_level_with_day(#[case] input: Integer, #[case] expected: Result<PatchLevelWithDay, PatchLevelError>) {
+        let actual = PatchLevelWithDay::try_from(input.clone());
+
+        assert_eq!(actual, expected);
+
+        // Check that conversion back results in the input value.
+        if let Ok(patch_level) = actual {
+            assert_eq!(Integer::from(patch_level), input);
+        }
     }
 
     #[rstest]
@@ -1016,7 +1216,7 @@ mod test {
                     ),
                 }),
                 os_version: Some(OsVersion { major: 13, minor: 0, sub_minor: 0}),
-                os_patch_level: Some(PatchLevel::new(2024, 3, None)),
+                os_patch_level: Some(PatchLevel::new(2024, 3)),
                 attestation_application_id: Some(AttestationApplicationId {
                     package_infos: SetOf::from_vec(vec![AttestationPackageInfo {
                         package_name: OctetString::copy_from_slice(
@@ -1028,18 +1228,18 @@ mod test {
                         OctetString::copy_from_slice(b"\xd3\xa5O\x11T\xc2ZZ\xb3\xf1%(\xdc\xc3r.\x0b\x8e\n\xd8\x11\xd42T\x84\xb7\xb2+\x0e\x8a\x1f\xe3"),
                     ]),
                 }),
-                attestation_id_brand: Some(OctetString::copy_from_slice(b"attestation_id_brand")),
-                attestation_id_device: Some(OctetString::copy_from_slice(b"attestation_id_device")),
-                attestation_id_product: Some(OctetString::copy_from_slice(b"attestation_id_product")),
-                attestation_id_serial: Some(OctetString::copy_from_slice(b"attestation_id_serial")),
-                attestation_id_imei: Some(OctetString::copy_from_slice(b"attestation_id_imei")),
-                attestation_id_meid: Some(OctetString::copy_from_slice(b"attestation_id_meid")),
-                attestation_id_manufacturer: Some(OctetString::copy_from_slice(b"attestation_id_manufacturer")),
-                attestation_id_model: Some(OctetString::copy_from_slice(b"attestation_id_model")),
-                vendor_patch_level: Some(PatchLevel::new(0, 0, None)),
-                boot_patch_level: Some(PatchLevel::new(2024, 3, Some(1))),
+                attestation_id_brand: Some("attestation_id_brand".to_string()),
+                attestation_id_device: Some("attestation_id_device".to_string()),
+                attestation_id_product: Some("attestation_id_product".to_string()),
+                attestation_id_serial: Some("attestation_id_serial".to_string()),
+                attestation_id_imei: Some("attestation_id_imei".to_string()),
+                attestation_id_meid: Some("attestation_id_meid".to_string()),
+                attestation_id_manufacturer: Some("attestation_id_manufacturer".to_string()),
+                attestation_id_model: Some("attestation_id_model".to_string()),
+                vendor_patch_level: Some(PatchLevelWithDay::new(0, 0, None)),
+                boot_patch_level: Some(PatchLevelWithDay::new(2024, 3, Some(1))),
                 device_unique_attestation: true,
-                attestation_id_second_imei: Some(OctetString::copy_from_slice(b"attestation_id_second_imei")),
+                attestation_id_second_imei: Some("attestation_id_second_imei".to_string()),
                 module_hash: Some(OctetString::copy_from_slice(b"module_hash")),
             },
             hardware_enforced: AuthorizationList::default(),

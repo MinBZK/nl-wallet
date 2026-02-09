@@ -23,6 +23,7 @@ use x509_parser::prelude::X509Error;
 use crate::android_crl::RevocationStatusList;
 use crate::attestation_extension::KeyAttestationExtension;
 use crate::attestation_extension::KeyAttestationExtensionError;
+use crate::attestation_extension::key_attestation::KeyAttestation;
 use crate::attestation_extension::key_attestation::KeyAttestationVerificationError;
 use crate::root_public_key::RootPublicKey;
 use crate::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
@@ -56,7 +57,7 @@ pub fn verify_google_key_attestation<'a>(
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
-) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
+) -> Result<(X509Certificate<'a>, KeyAttestation), GoogleKeyAttestationError> {
     let supported_sig_algs = vec![
         ECDSA_P256_SHA256,
         ECDSA_P256_SHA256_WITH_NULL_PARAMETERS,
@@ -99,7 +100,7 @@ pub fn verify_google_key_attestation_with_params<'a>(
     attestation_challenge: &[u8],
     supported_sig_algs: &[&'a dyn SignatureVerificationAlgorithm],
     time: DateTime<Utc>,
-) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
+) -> Result<(X509Certificate<'a>, KeyAttestation), GoogleKeyAttestationError> {
     assert!(certificate_chain.len() >= 2);
 
     let timestamp = time
@@ -170,7 +171,7 @@ pub fn verify_google_key_attestation_with_params<'a>(
     //    of values that you expect the hardware-backed key to contain.
     key_attestation.verify(attestation_challenge)?;
 
-    Ok(x509_certificates.pop().unwrap())
+    Ok((x509_certificates.pop().unwrap(), key_attestation))
 }
 
 fn verify_google_attestation_certificate_chain<'a>(

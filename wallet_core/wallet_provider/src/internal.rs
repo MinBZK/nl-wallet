@@ -46,6 +46,7 @@ impl IntoResponse for RevocationError {
     path = "/revoke-wallets-by-id/",
     request_body(
         content = Vec<String>,
+        content_type = "application/json",
         example = json!([
             "dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ",
         ]),
@@ -66,6 +67,7 @@ where
         &wallet_ids,
         &router_state.user_state,
         &TimeGenerator,
+        &router_state.audit_log,
     )
     .await?)
 }
@@ -75,6 +77,7 @@ where
     path = "/revoke-wallet-by-revocation-code/",
     request_body(
         content = String,
+        content_type = "application/json",
         example = json!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
     ),
     responses(
@@ -96,6 +99,7 @@ where
         &router_state.account_server.keys.revocation_code_key_identifier,
         &router_state.user_state,
         &TimeGenerator,
+        &router_state.audit_log,
     )
     .await?;
 
@@ -114,7 +118,12 @@ where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
-    Ok(wallet_provider_service::revocation::revoke_all_wallets(&router_state.user_state, &TimeGenerator).await?)
+    Ok(wallet_provider_service::revocation::revoke_all_wallets(
+        &router_state.user_state,
+        &TimeGenerator,
+        &router_state.audit_log,
+    )
+    .await?)
 }
 
 #[cfg(feature = "test_internal_ui")]

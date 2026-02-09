@@ -56,6 +56,15 @@ build-wallet-provider-migrations-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider-migrations
 
+build-audit-log-migrations-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-audit-log-migrations-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/audit_log/migrations/Dockerfile
+    DOCKER_IMAGE_NAME: nl-audit-log-migrations
+
 build-demo-relying-party-image:
   extends: .build-docker-image
   needs:

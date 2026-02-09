@@ -1,0 +1,17 @@
+[package]
+name = "audit_log_migrations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "audit_log_migrations"
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

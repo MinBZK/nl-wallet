@@ -109,7 +109,7 @@ fn test_google_registration() {
         .collect::<Vec<_>>();
     let root_public_keys = vec![RootPublicKey::Rsa(attested_ca_chain.root_public_key.clone())];
 
-    let certificate = verify_google_key_attestation(
+    let (leaf_certificate, _key_attestation) = verify_google_key_attestation(
         &der_certificate_chain,
         &root_public_keys,
         &RevocationStatusList::default(),
@@ -117,7 +117,7 @@ fn test_google_registration() {
     )
     .unwrap();
 
-    let attested_public_key = VerifyingKey::from_public_key_der(certificate.public_key().raw).unwrap();
+    let attested_public_key = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw).unwrap();
 
     // The Wallet Provider takes the public keys from the message and verifies the signatures.
     msg.parse_and_verify_google(

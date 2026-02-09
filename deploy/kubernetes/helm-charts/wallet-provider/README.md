@@ -33,6 +33,13 @@
 | `imageMigrations.repository` | Repository for the migration container image  | `nil`          |
 | `imageMigrations.pullPolicy` | Image pull policy for the migration container | `IfNotPresent` |
 
+### Audit Log Image migration parameters
+
+| Name                                 | Description                                   | Value          |
+| ------------------------------------ | --------------------------------------------- | -------------- |
+| `imageAuditLogMigrations.repository` | Repository for the migration container image  | `nil`          |
+| `imageAuditLogMigrations.pullPolicy` | Image pull policy for the migration container | `IfNotPresent` |
+
 ### Annotations and labels
 
 | Name               | Description                               | Value |
@@ -58,6 +65,17 @@
 | ----------------- | ----------------------------------- | ----- |
 | `securityContext` | Security context for the containers | `{}`  |
 
+### Ingress internal parameters
+
+| Name                            | Description                                     | Value   |
+| ------------------------------- | ----------------------------------------------- | ------- |
+| `ingressInternal.enabled`       | Enable or disable the internal ingress          | `false` |
+| `ingressInternal.className`     | Ingress class name                              | `nginx` |
+| `ingressInternal.hostname`      | Hostname for the internal ingress               | `nil`   |
+| `ingressInternal.tlsSecretName` | Name of the TLS secret for the internal ingress | `nil`   |
+| `ingressInternal.labels`        | Additional labels for the internal ingress      | `{}`    |
+| `ingressInternal.annotations`   | Additional annotations for the internal ingress | `{}`    |
+
 ### Ingress parameters
 
 | Name                    | Description                                              | Value   |
@@ -82,13 +100,24 @@
 
 ### Resource requests and limits
 
-| Name                        | Description                                                       | Value  |
-| --------------------------- | ----------------------------------------------------------------- | ------ |
-| `resources.requests.cpu`    | CPU request                                                       | `100m` |
-| `resources.requests.memory` | Memory request                                                    | `32Mi` |
-| `resources.limits.cpu`      | CPU limit                                                         | `400m` |
-| `resources.limits.memory`   | Memory limit                                                      | `64Mi` |
-| `database.secretName`       | The secret name that contains the connection url for the database | `nil`  |
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `100m` |
+| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.limits.cpu`      | CPU limit      | `400m` |
+| `resources.limits.memory`   | Memory limit   | `64Mi` |
+
+### Database parameters
+
+| Name                  | Description                                                       | Value |
+| --------------------- | ----------------------------------------------------------------- | ----- |
+| `database.secretName` | The secret name that contains the connection url for the database | `nil` |
+
+### Audit Log Database parameters
+
+| Name                  | Description                                                       | Value |
+| --------------------- | ----------------------------------------------------------------- | ----- |
+| `auditLog.secretName` | The secret name that contains the connection url for the database | `nil` |
 
 ### HSM parameters
 

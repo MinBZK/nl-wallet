@@ -42,7 +42,7 @@ db_test = [
     "test",
 ]
 # Include code used for testing
-test = ["dep:rand_core", "hsm/mock", "wallet_provider_database_settings/test"]
+test = ["dep:android_attest", "dep:rand_core", "hsm/mock", "wallet_provider_database_settings/test"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
@@ -77,6 +77,8 @@ utils.path = "../../lib/utils"
 wallet_account.path = "../wallet_account"
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"
+
+android_attest = { path = "../../lib/android_attest", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

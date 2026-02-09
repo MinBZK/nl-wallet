@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/permission/permission_check_result.dart';
+import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
 import 'package:wallet/src/feature/notification/sheet/request_notification_permission_sheet.dart';
 
@@ -14,9 +16,11 @@ import '../../../test_util/test_utils.dart';
 
 void main() {
   late MockRequestPermissionUseCase requestPermissionUseCase;
+  late MockSetPushNotificationsSettingUseCase setPushNotificationsSettingUseCase;
 
   setUp(() {
     requestPermissionUseCase = MockRequestPermissionUseCase();
+    setPushNotificationsSettingUseCase = MockSetPushNotificationsSettingUseCase();
   });
 
   group('goldens', () {
@@ -51,19 +55,91 @@ void main() {
   });
 
   group('actions', () {
-    testWidgets('tapping allow calls use case', (tester) async {
+    testWidgets(
+      'tapping allow in dialog triggers the permission usecase, when permission is granted the setting is set to true',
+      (
+        tester,
+      ) async {
+        when(
+          requestPermissionUseCase.invoke(.notification),
+        ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+
+        await tester.pumpWidgetWithAppWrapper(
+          const RequestNotificationPermissionSheet(),
+          providers: [
+            RepositoryProvider<RequestPermissionUseCase>.value(value: requestPermissionUseCase),
+            RepositoryProvider<SetPushNotificationsSettingUseCase>.value(value: setPushNotificationsSettingUseCase),
+          ],
+        );
+
+        final l10n = await TestUtils.englishLocalizations;
+        final allowButtonFinder = find.text(l10n.requestNotificationPermissionSheetPositiveCta);
+        expect(allowButtonFinder, findsOneWidget);
+        await tester.tap(allowButtonFinder);
+        await tester.pump();
+
+        // Verify that permission is requested
+        verify(requestPermissionUseCase.invoke(.notification)).called(1);
+        // Verify the user setting is set when permission is granted
+        verify(setPushNotificationsSettingUseCase.invoke(enabled: true)).called(1);
+      },
+    );
+
+    testWidgets(
+      'tapping allow in dialog triggers the permission usecase, when permission is NOT granted the setting is set to false',
+      (
+        tester,
+      ) async {
+        when(
+          requestPermissionUseCase.invoke(.notification),
+        ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
+
+        await tester.pumpWidgetWithAppWrapper(
+          const RequestNotificationPermissionSheet(),
+          providers: [
+            RepositoryProvider<RequestPermissionUseCase>.value(value: requestPermissionUseCase),
+            RepositoryProvider<SetPushNotificationsSettingUseCase>.value(value: setPushNotificationsSettingUseCase),
+          ],
+        );
+
+        final l10n = await TestUtils.englishLocalizations;
+        final allowButtonFinder = find.text(l10n.requestNotificationPermissionSheetPositiveCta);
+        expect(allowButtonFinder, findsOneWidget);
+        await tester.tap(allowButtonFinder);
+        await tester.pump();
+
+        // Verify that permission is requested
+        verify(requestPermissionUseCase.invoke(.notification)).called(1);
+        // Verify the user setting is set when permission is granted
+        verify(setPushNotificationsSettingUseCase.invoke(enabled: false)).called(1);
+      },
+    );
+
+    testWidgets('tapping dismiss in dialog does not trigger the permission request usecase', (
+      tester,
+    ) async {
+      when(
+        requestPermissionUseCase.invoke(.notification),
+      ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
+
       await tester.pumpWidgetWithAppWrapper(
         const RequestNotificationPermissionSheet(),
-        providers: [RepositoryProvider<RequestPermissionUseCase>.value(value: requestPermissionUseCase)],
+        providers: [
+          RepositoryProvider<RequestPermissionUseCase>.value(value: requestPermissionUseCase),
+          RepositoryProvider<SetPushNotificationsSettingUseCase>.value(value: setPushNotificationsSettingUseCase),
+        ],
       );
 
       final l10n = await TestUtils.englishLocalizations;
-      final allowButtonFinder = find.text(l10n.requestNotificationPermissionSheetPositiveCta);
+      final allowButtonFinder = find.text(l10n.requestNotificationPermissionSheetNegativeCta);
       expect(allowButtonFinder, findsOneWidget);
       await tester.tap(allowButtonFinder);
       await tester.pump();
 
-      verify(requestPermissionUseCase.invoke(.notification)).called(1);
+      // Verify that permission is NOT requested
+      verifyNever(requestPermissionUseCase.invoke(.notification));
+      // Verify the user setting is NOT set when permission is granted
+      verifyNever(setPushNotificationsSettingUseCase.invoke(enabled: anyNamed('enabled')));
     });
   });
 }

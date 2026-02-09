@@ -36,7 +36,7 @@ scheduled-check-rust-feature-powerset:
     - cd wallet_core
   script:
     # Run cargo check for every combination of features which includes default features and --no-default-features
-    - cargo hack check -feature-powerset --no-dev-deps
+    - cargo hack check --feature-powerset --no-dev-deps
 
 manual-check-rust-feature-powerset:
   rules: !reference [.default-or-merge-request, rules]
@@ -68,7 +68,7 @@ test-rust:
       variables:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_provider_audit_log,verification_server,issuance_server,pid_issuer"
   script:
     - ./scripts/setup-devenv.sh
     - ./scripts/migrate-db.sh fresh
@@ -137,7 +137,7 @@ test-sea-orm-generate-entity:
       variables:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_provider_audit_log,verification_server,issuance_server,pid_issuer"
   script:
     - ./scripts/migrate-db.sh fresh
     - ./scripts/generate-db-entity.sh
@@ -196,6 +196,15 @@ build-wallet-provider-migrations-binary:
     name: wallet_provider_migrations
     paths:
       - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_provider_migrations
+
+build-audit-log-migrations-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "audit_log_migrations" --bin audit_log_migrations
+  artifacts:
+    name: audit_log_migrations
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-musl/release/audit_log_migrations
 
 build-pid-issuer-binary:
   extends: .build-binary
