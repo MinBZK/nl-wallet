@@ -32,6 +32,7 @@ use serde_with::skip_serializing_none;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
+use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
@@ -234,7 +235,7 @@ pub struct WalletRequest {
 
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
-    validate(predicate = |u| JwePublicKey::validate(u).is_ok()),
+    validate(with = Self::validate, error = AuthRequestValidationError),
 )]
 pub struct JwePublicKey(Jwk);
 
@@ -257,7 +258,31 @@ impl JwePublicKey {
             });
         }
 
+        // Validate the presence of the curve coordinates.
+        for field in ["x", "y"] {
+            if !jwk.parameter(field).is_some_and(|value| value.is_string()) {
+                return Err(AuthRequestValidationError::UnsupportedJwk {
+                    field,
+                    expected: "<a string>",
+                    found: jwk.parameter(field).cloned(),
+                });
+            }
+        }
+
         Ok(())
+    }
+
+    /// Generate the bytes of a RFC 7638 compliant SHA-256 thumbprint, without URL-safe Base64 encoding.
+    /// Unfortunately, `josekit` does not include this future, so we have to generate it ourselves.
+    pub fn sha256_thumbprint_bytes(&self) -> Vec<u8> {
+        // These values are guaranteed to exist by this type's validation.
+        let (x, y) = ["x", "y"]
+            .iter()
+            .map(|field| self.as_ref().parameter(field).unwrap().as_str().unwrap())
+            .collect_tuple()
+            .unwrap();
+
+        sha256(format!(r#"{{"crv":"P-256","kty":"EC","x":"{x}","y":"{y}"}}"#).as_bytes())
     }
 }
 
@@ -993,8 +1018,10 @@ mod tests {
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use itertools::Itertools;
+    use josekit::jwk::Jwk;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use josekit::jwk::alg::ed::EdCurve;
     use rstest::rstest;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
@@ -1044,9 +1071,42 @@ mod tests {
     use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::NormalizedVpAuthorizationRequest;
 
+    use super::AuthRequestValidationError;
+    use super::JwePublicKey;
     use super::VerifiablePresentation;
     use super::VpAuthorizationRequest;
     use super::VpAuthorizationResponse;
+
+    #[rstest]
+    #[case::ed(Jwk::generate_ed_key(EdCurve::Ed25519).unwrap(), "kty")]
+    #[case::p384(Jwk::generate_ec_key(EcCurve::P384).unwrap(), "crv")]
+    #[case::coordinates(serde_json::from_value(json!({"kty":"EC","crv":"P-256"})).unwrap(), "x")]
+    fn test_jwe_public_key_validation(#[case] jwk: Jwk, #[case] expected_field: &str) {
+        let error = JwePublicKey::try_new(jwk).expect_err("JwePublicKey validation should fail");
+
+        assert_matches!(error, AuthRequestValidationError::UnsupportedJwk { field, .. } if field == expected_field);
+    }
+
+    #[test]
+    fn test_jwe_public_key_sha256_thumbprint_bytes() {
+        // Source (edited): https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-7
+        let jwk = JwePublicKey::try_new(
+            serde_json::from_value(json!({
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "DxiH5Q4Yx3UrukE2lWCErq8N8bqC9CHLLrAwLz5BmE0",
+                "y": "XtLM4-3h5o3HUH0MHVJV0kyq0iBlrBwlh8qEDMZ4-Pc"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-9
+        let expected_thumbprint =
+            hex::decode("4283ec927ae0f208daaa2d026a814f2b22dca52cf85ffa8f3f8626c6bd669047").unwrap();
+
+        assert_eq!(jwk.sha256_thumbprint_bytes(), expected_thumbprint);
+    }
 
     #[test]
     fn test_vp_authorization_error_code_serialization() {
