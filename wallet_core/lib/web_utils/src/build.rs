@@ -8,7 +8,7 @@ use std::process::Command;
 
 /// Copies files and directories recursively to the destination using `cp -R`.
 ///
-/// This function also emits `cargo:rerun-if-changed` directives for each source.
+/// This function also emits `cargo::rerun-if-changed` directives for each source.
 ///
 /// # Panics
 ///
@@ -20,7 +20,7 @@ pub fn copy_static_assets(sources: &[&Path], dest: &Path) {
     }
 
     for source in sources {
-        println!("cargo:rerun-if-changed={}", source.display());
+        println!("cargo::rerun-if-changed={}", source.display());
 
         let status = Command::new("cp")
             .arg("-R")
@@ -37,7 +37,7 @@ pub fn copy_static_assets(sources: &[&Path], dest: &Path) {
 
 /// Combines multiple CSS files into a single file.
 ///
-/// This function also emits `cargo:rerun-if-changed` directives for each source file.
+/// This function also emits `cargo::rerun-if-changed` directives for each source file.
 ///
 /// # Panics
 ///
@@ -47,7 +47,7 @@ pub fn combine_css(sources: &[&Path], dest: &Path) {
     let mut combined = String::new();
 
     for path in sources {
-        println!("cargo:rerun-if-changed={}", path.display());
+        println!("cargo::rerun-if-changed={}", path.display());
 
         let content = fs::read_to_string(path).unwrap_or_else(|e| panic!("Failed to read {}: {}", path.display(), e));
 
