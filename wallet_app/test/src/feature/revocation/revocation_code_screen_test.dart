@@ -22,7 +22,7 @@ void main() {
       await screenMatchesGolden('revocation_code_initial.light');
     });
 
-    testGoldens('ltc70 RevocationCodeLoadSuccess', (tester) async {
+    testGoldens('RevocationCodeLoadSuccess', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RevocationCodeScreen().withState<RevocationCodeBloc, RevocationCodeState>(
           MockRevocationCodeBloc(),
@@ -32,7 +32,7 @@ void main() {
       await screenMatchesGolden('revocation_code_load_success.light');
     });
 
-    testGoldens('ltc70 RevocationCodeLoadSuccess - dark', (tester) async {
+    testGoldens('RevocationCodeLoadSuccess - dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RevocationCodeScreen().withState<RevocationCodeBloc, RevocationCodeState>(
           MockRevocationCodeBloc(),
@@ -43,7 +43,7 @@ void main() {
       await screenMatchesGolden('revocation_code_load_success.dark');
     });
 
-    testGoldens('ltc70 RevocationCodeLoadSuccess - 2x - dark', (tester) async {
+    testGoldens('RevocationCodeLoadSuccess - 2x - dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RevocationCodeScreen().withState<RevocationCodeBloc, RevocationCodeState>(
           MockRevocationCodeBloc(),
@@ -55,7 +55,7 @@ void main() {
       await screenMatchesGolden('revocation_code_load_success.dark.scaled');
     });
 
-    testGoldens('ltc70 RevocationCodeLoadSuccess - landscape - 2x', (tester) async {
+    testGoldens('RevocationCodeLoadSuccess - landscape - 2x', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RevocationCodeScreen().withState<RevocationCodeBloc, RevocationCodeState>(
           MockRevocationCodeBloc(),

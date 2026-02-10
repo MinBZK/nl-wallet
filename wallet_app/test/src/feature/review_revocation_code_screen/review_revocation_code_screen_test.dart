@@ -25,7 +25,7 @@ void main() {
       mockGetRevocationCodeUseCase = MockGetRevocationCodeUseCase();
     });
 
-    testGoldens('ltc73 ReviewRevocationCodeInitial', (tester) async {
+    testGoldens('ReviewRevocationCodeInitial', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ReviewRevocationCodeScreen().withState<ReviewRevocationCodeBloc, ReviewRevocationCodeState>(
           mockBloc,
@@ -35,7 +35,7 @@ void main() {
       await screenMatchesGolden('review_revocation_code_initial');
     });
 
-    testGoldens('ltc73 ReviewRevocationCodeProvidePin', (tester) async {
+    testGoldens('ReviewRevocationCodeProvidePin', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         RepositoryProvider<GetRevocationCodeUseCase>.value(
           value: mockGetRevocationCodeUseCase,
@@ -48,7 +48,7 @@ void main() {
       await screenMatchesGolden('review_revocation_code_provide_pin');
     });
 
-    testGoldens('ltc73 ReviewRevocationCodeSuccess', (tester) async {
+    testGoldens('ReviewRevocationCodeSuccess', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ReviewRevocationCodeScreen().withState<ReviewRevocationCodeBloc, ReviewRevocationCodeState>(
           mockBloc,
@@ -58,7 +58,7 @@ void main() {
       await screenMatchesGolden('review_revocation_code_success');
     });
 
-    testGoldens('ltc73 ReviewRevocationCodeSuccess - Landscape', (tester) async {
+    testGoldens('ReviewRevocationCodeSuccess - Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ReviewRevocationCodeScreen().withState<ReviewRevocationCodeBloc, ReviewRevocationCodeState>(
           mockBloc,
@@ -69,7 +69,7 @@ void main() {
       await screenMatchesGolden('review_revocation_code_success.landscape');
     });
 
-    testGoldens('ltc73 ReviewRevocationCodeSuccess - dark', (tester) async {
+    testGoldens('ReviewRevocationCodeSuccess - dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ReviewRevocationCodeScreen().withState<ReviewRevocationCodeBloc, ReviewRevocationCodeState>(
           mockBloc,

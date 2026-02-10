@@ -20,7 +20,7 @@ void main() {
   });
 
   group('goldens', () {
-    testGoldens('ltc72 ManageNotificationsScreen light enabled', (tester) async {
+    testGoldens('ManageNotificationsScreen light enabled', (tester) async {
       when(() => manageNotificationsBloc.state).thenReturn(const ManageNotificationsLoaded(pushEnabled: true));
 
       await tester.pumpWidgetWithAppWrapper(
@@ -33,7 +33,7 @@ void main() {
       await screenMatchesGolden('manage_notifications/light_enabled');
     });
 
-    testGoldens('ltc72 ManageNotificationsScreen light disabled - scaled', (tester) async {
+    testGoldens('ManageNotificationsScreen light disabled - scaled', (tester) async {
       when(() => manageNotificationsBloc.state).thenReturn(const ManageNotificationsLoaded(pushEnabled: false));
 
       await tester.pumpWidgetWithAppWrapper(
@@ -47,7 +47,7 @@ void main() {
       await screenMatchesGolden('manage_notifications/light_disabled.scaled');
     });
 
-    testGoldens('ltc72 ManageNotificationsScreen dark enabled', (tester) async {
+    testGoldens('ManageNotificationsScreen dark enabled', (tester) async {
       when(() => manageNotificationsBloc.state).thenReturn(const ManageNotificationsLoaded(pushEnabled: true));
 
       await tester.pumpWidgetWithAppWrapper(
@@ -61,7 +61,7 @@ void main() {
       await screenMatchesGolden('manage_notifications/dark_enabled');
     });
 
-    testGoldens('ltc72 ManageNotificationsScreen dark disabled landscape', (tester) async {
+    testGoldens('ManageNotificationsScreen dark disabled landscape', (tester) async {
       when(() => manageNotificationsBloc.state).thenReturn(const ManageNotificationsLoaded(pushEnabled: false));
 
       await tester.pumpWidgetWithAppWrapper(
