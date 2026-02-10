@@ -489,6 +489,15 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         denied_recovery_code::insert(transaction, recovery_code).await
     }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn is_recovery_code_on_deny_list(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &str,
+    ) -> Result<bool, PersistenceError> {
+        denied_recovery_code::exists(transaction, recovery_code).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -786,6 +795,12 @@ pub mod mock {
                 transaction: &MockTransaction,
                 recovery_code: String,
             ) -> Result<(), PersistenceError>;
+
+            async fn is_recovery_code_on_deny_list(
+                &self,
+                transaction: &MockTransaction,
+                recovery_code: &str,
+            ) -> Result<bool, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -1175,6 +1190,14 @@ pub mod mock {
             _recovery_code: String,
         ) -> Result<(), PersistenceError> {
             Ok(())
+        }
+
+        async fn is_recovery_code_on_deny_list(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &str,
+        ) -> Result<bool, PersistenceError> {
+            Ok(false)
         }
     }
 

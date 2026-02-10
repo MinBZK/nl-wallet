@@ -161,7 +161,7 @@ async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, pub
 }
 
 async fn verify_revocation(
-    wallet_ids: impl IntoIterator<Item = &String>,
+    wallet_ids: impl IntoIterator<Item = impl AsRef<str>>,
     expected_revocation_reason: Option<RevocationReason>,
     wua_id_and_claim: impl IntoIterator<Item = &(Uuid, StatusClaim)>,
     publish_dir: Option<&PublishDir>,
@@ -176,7 +176,7 @@ async fn verify_revocation(
     // verify wallet revocation
     join_all(wallet_ids.into_iter().map(async |wallet_id| {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
-        let wallet_user = wallet_user::find_wallet_user_by_wallet_id(&tx, wallet_id)
+        let wallet_user = wallet_user::find_wallet_user_by_wallet_id(&tx, wallet_id.as_ref())
             .await
             .unwrap()
             .unwrap_found();
@@ -640,7 +640,15 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
 
     // sanity: nothing should have been revoked
     // (we don't have wallet ids here; verify via WUA status still valid)
-    verify_revocation(&[], None, &wuas, Some(&publish_dir), &user_state, StatusType::Valid).await;
+    verify_revocation(
+        std::iter::empty::<String>(),
+        None,
+        &wuas,
+        Some(&publish_dir),
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
 }
 
 #[tokio::test]

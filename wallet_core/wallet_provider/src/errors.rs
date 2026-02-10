@@ -14,8 +14,10 @@ use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_service::account_server::ChallengeError;
 use wallet_provider_service::account_server::InstructionError;
+use wallet_provider_service::account_server::InstructionValidationError;
 use wallet_provider_service::account_server::RegistrationError;
 use wallet_provider_service::account_server::WalletCertificateError;
 use wallet_provider_service::wua_issuer::HsmWuaIssuerError;
@@ -96,6 +98,10 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::IncorrectPin(data) => Self::IncorrectPin(data),
                 InstructionError::PinTimeout(data) => Self::PinTimeout(data),
                 InstructionError::AccountBlocked => Self::AccountBlocked,
+                InstructionError::Validation(InstructionValidationError::AccountIsRevoked(reason)) => {
+                    Self::AccountRevoked(reason)
+                }
+                InstructionError::RecoveryCodeOnDenyList(_) => Self::AccountRevoked(RevocationReason::AdminRequest),
                 InstructionError::Validation(_)
                 | InstructionError::NonExistingKey(_)
                 | InstructionError::UnknownPidAttestationType(_)

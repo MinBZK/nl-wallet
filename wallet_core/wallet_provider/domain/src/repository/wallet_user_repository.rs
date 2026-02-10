@@ -236,6 +236,12 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         recovery_code: String,
     ) -> Result<()>;
+
+    async fn is_recovery_code_on_deny_list(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &str,
+    ) -> Result<bool>;
 }
 
 #[cfg(feature = "mock")]
@@ -567,6 +573,14 @@ pub mod mock {
             _recovery_code: String,
         ) -> Result<()> {
             Ok(())
+        }
+
+        async fn is_recovery_code_on_deny_list(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &str,
+        ) -> Result<bool> {
+            Ok(false)
         }
     }
 }
