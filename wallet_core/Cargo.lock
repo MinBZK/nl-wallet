@@ -7453,6 +7453,7 @@ dependencies = [
  "assert_matches",
  "attestation_data",
  "attestation_types",
+ "audit_log",
  "axum",
  "axum-server",
  "crypto",
