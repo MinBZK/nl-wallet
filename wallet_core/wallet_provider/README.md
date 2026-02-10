@@ -10,6 +10,7 @@ To setup a local database using `psql`:
 
 ```sql
 create database wallet_provider;
+create database wallet_provider_audit_log;
 \c wallet_provider
 create extension if not exists "uuid-ossp" with schema public;
 ```
