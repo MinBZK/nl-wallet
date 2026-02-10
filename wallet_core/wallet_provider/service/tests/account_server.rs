@@ -45,6 +45,7 @@ use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
 use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
+use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
 use wallet_provider_service::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
@@ -61,7 +62,13 @@ async fn do_registration(
     WalletCertificate,
     MockHardwareKey,
     WalletCertificateClaims,
-    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>>,
+    UserState<
+        Repositories,
+        StubWalletFlags,
+        MockPkcs11Client<HsmError>,
+        MockWuaIssuer,
+        PostgresStatusListService<SigningKey>,
+    >,
 ) {
     let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let key_pair = wua_issuer_ca.generate_status_list_mock().unwrap();

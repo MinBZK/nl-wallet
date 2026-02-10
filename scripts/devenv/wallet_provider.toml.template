@@ -5,6 +5,9 @@ attestation_wrapping_key_identifier = "attestation_wrapping_key"
 pin_pubkey_encryption_key_identifier = "pin_pubkey_encryption_key"
 pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protection_key"
 
+# Refresh delay in seconds for background job that refreshes flags
+# flags_refresh_delay_in_seconds = 300
+
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
 

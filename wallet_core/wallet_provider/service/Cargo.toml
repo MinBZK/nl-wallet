@@ -68,6 +68,7 @@ derive_more = { workspace = true, features = ["constructor", "into"] }
 futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
+parking_lot = { workspace = true }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 semver.workspace = true
@@ -77,6 +78,7 @@ serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tracing.workspace = true
+tokio.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 trait-variant.workspace = true
 

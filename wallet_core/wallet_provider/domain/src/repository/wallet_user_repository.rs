@@ -256,8 +256,6 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         recovery_code: &RecoveryCode,
     ) -> Result<bool>;
-
-    async fn solution_is_revoked(&self) -> Result<bool>;
 }
 
 #[cfg(feature = "mock")]
@@ -616,10 +614,6 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _recovery_code: &RecoveryCode,
         ) -> Result<bool> {
-            Ok(false)
-        }
-
-        async fn solution_is_revoked(&self) -> Result<bool> {
             Ok(false)
         }
     }

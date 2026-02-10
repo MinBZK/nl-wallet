@@ -16,6 +16,7 @@ use hsm::model::wrapped_key::WrappedKey;
 use measure::measure;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
+use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::TransferSession;
@@ -27,18 +28,20 @@ use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletFlagRepository;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::database::Db;
 use crate::recovery_code;
 use crate::transaction;
 use crate::transaction::Transaction;
+use crate::wallet_flag;
 use crate::wallet_transfer;
 use crate::wallet_user;
 use crate::wallet_user_key;
 use crate::wallet_user_wua;
 
-#[derive(From, AsRef)]
+#[derive(Clone, From, AsRef)]
 pub struct Repositories(Db);
 
 impl TransactionStarter for Repositories {
@@ -46,6 +49,23 @@ impl TransactionStarter for Repositories {
 
     async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError> {
         transaction::begin_transaction(&self.0).await
+    }
+}
+
+impl WalletFlagRepository for Repositories {
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn fetch_flags(&self) -> Result<Vec<(WalletFlag, bool)>, PersistenceError> {
+        wallet_flag::list_wallet_flags(&self.0).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn set_flag(&self, flag: WalletFlag) -> Result<(), PersistenceError> {
+        wallet_flag::set_wallet_flag(&self.0, flag, true).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn clear_flag(&self, flag: WalletFlag) -> Result<(), PersistenceError> {
+        wallet_flag::set_wallet_flag(&self.0, flag, false).await
     }
 }
 
@@ -520,11 +540,6 @@ impl WalletUserRepository for Repositories {
     ) -> Result<bool, PersistenceError> {
         recovery_code::set_allowed(transaction, recovery_code).await
     }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn solution_is_revoked(&self) -> Result<bool, PersistenceError> {
-        Ok(false)
-    }
 }
 
 #[cfg(feature = "mock")]
@@ -535,6 +550,7 @@ pub mod mock {
 
     use chrono::DateTime;
     use chrono::Utc;
+    use dashmap::DashMap;
     use mockall;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -548,6 +564,7 @@ pub mod mock {
     use hsm::model::wrapped_key::WrappedKey;
     use wallet_account::messages::errors::RevocationReason;
     use wallet_provider_domain::model::QueryResult;
+    use wallet_provider_domain::model::wallet_flag::WalletFlag;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
@@ -841,8 +858,6 @@ pub mod mock {
                 transaction: &MockTransaction,
                 recovery_code: &RecoveryCode,
             ) -> Result<bool, PersistenceError>;
-
-            async fn solution_is_revoked(&self) -> Result<bool, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -863,7 +878,7 @@ pub mod mock {
         pub state: WalletUserState,
         pub revocation_code_hmac: Vec<u8>,
         pub revocation_registration: Option<RevocationRegistration>,
-        pub solution_revoked: bool,
+        pub flags: DashMap<WalletFlag, bool>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -1291,10 +1306,6 @@ pub mod mock {
             _recovery_code: &RecoveryCode,
         ) -> Result<bool, PersistenceError> {
             Ok(false)
-        }
-
-        async fn solution_is_revoked(&self) -> Result<bool, PersistenceError> {
-            Ok(self.solution_revoked)
         }
     }
 

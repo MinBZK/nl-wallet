@@ -52,6 +52,7 @@ use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
+use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::revocation::RevocationError;
 use wallet_provider_service::revocation::revoke_all_wallets;
 use wallet_provider_service::revocation::revoke_wallet_by_revocation_code;
@@ -64,7 +65,13 @@ use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
 async fn setup_state(
     db_setup: &DbSetup,
     publish_dir: PublishDir,
-) -> UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>> {
+) -> UserState<
+    Repositories,
+    StubWalletFlags,
+    MockPkcs11Client<HsmError>,
+    MockWuaIssuer,
+    PostgresStatusListService<SigningKey>,
+> {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db: Db = db_from_setup(db_setup).await;
 
@@ -103,6 +110,7 @@ async fn register_wallets_with_wuas(
     wuas_per_wallet: Vec<usize>,
     user_state: &UserState<
         Repositories,
+        StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
         PostgresStatusListService<SigningKey>,
@@ -171,6 +179,7 @@ async fn verify_revocation(
     publish_dir: Option<&PublishDir>,
     user_state: &UserState<
         Repositories,
+        StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
         PostgresStatusListService<SigningKey>,
@@ -234,6 +243,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
     wuas_per_wallet: Vec<usize>,
     user_state: &UserState<
         Repositories,
+        StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
         PostgresStatusListService<SigningKey>,
@@ -577,7 +587,7 @@ async fn test_revoke_wallet_by_revocation_code() {
 
     // revoke the wallet; use a fixed time so we can assert on the return value
     let first_time_gen = MockTimeGenerator::epoch();
-    let revocation_date_time = revoke_wallet_by_revocation_code::<_, _, _>(
+    let revocation_date_time = revoke_wallet_by_revocation_code::<_, _, _, _>(
         revocation_code.clone(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -601,7 +611,7 @@ async fn test_revoke_wallet_by_revocation_code() {
     // verify idempotency: revoking again with a *different* time should return the originally
     // stored datetime, not the new one
     let second_time_gen = MockTimeGenerator::default();
-    let idempotent_date_time = revoke_wallet_by_revocation_code(
+    let idempotent_date_time = revoke_wallet_by_revocation_code::<_, _, _, _>(
         revocation_code,
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -638,7 +648,7 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
 
     let bogus_code = RevocationCode::new_random();
 
-    let err = revoke_wallet_by_revocation_code(
+    let err = revoke_wallet_by_revocation_code::<_, _, _, _>(
         bogus_code.clone(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -678,7 +688,7 @@ async fn test_revoke_wallet_by_revocation_code_hsm_error() {
         .wallet_user_hsm
         .remove_symmetric_key(REVOCATION_CODE_KEY_IDENTIFIER);
 
-    let err = revoke_wallet_by_revocation_code(
+    let err = revoke_wallet_by_revocation_code::<_, _, _, _>(
         RevocationCode::new_random(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -718,7 +728,7 @@ async fn test_revoke_wallet_by_revocation_code_wua_error() {
 
     let (_wallet_id, revocation_code) = wallets_with_codes.into_iter().exactly_one().unwrap();
 
-    let err = revoke_wallet_by_revocation_code(
+    let err = revoke_wallet_by_revocation_code::<_, _, _, _>(
         revocation_code,
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,

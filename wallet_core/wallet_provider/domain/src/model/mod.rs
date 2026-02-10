@@ -1,5 +1,6 @@
 pub mod hsm;
 pub mod pin_policy;
+pub mod wallet_flag;
 pub mod wallet_user;
 
 #[cfg(feature = "mock")]

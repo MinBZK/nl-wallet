@@ -58,10 +58,10 @@ impl FromAuditLogError for RevocationError {
 }
 
 #[audited]
-pub async fn revoke_wallet_by_revocation_code<T, R, H>(
+pub async fn revoke_wallet_by_revocation_code<T, R, F, H>(
     #[audit] revocation_code: RevocationCode,
     revocation_code_key_identifier: &str,
-    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<DateTime<Utc>, RevocationError>
@@ -115,9 +115,9 @@ where
 }
 
 #[audited]
-pub async fn revoke_wallets_by_recovery_code<T, R, H>(
+pub async fn revoke_wallets_by_recovery_code<T, R, F, H>(
     #[audit] recovery_code: &RecoveryCode,
-    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<usize, RevocationError>
@@ -158,9 +158,9 @@ where
 }
 
 #[audited]
-pub async fn revoke_wallets_by_wallet_id<T, R, H>(
+pub async fn revoke_wallets_by_wallet_id<T, R, F, H>(
     #[audit] wallet_ids: &HashSet<WalletId>,
-    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
@@ -209,8 +209,8 @@ where
 }
 
 #[audited]
-pub async fn revoke_all_wallets<T, R, H>(
-    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+pub async fn revoke_all_wallets<T, R, F, H>(
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
@@ -239,8 +239,8 @@ where
     Ok(())
 }
 
-pub async fn list_wallets<T, R, H>(
-    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+pub async fn list_wallets<T, R, F, H>(
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
 ) -> Result<Vec<WalletUserIsRevoked>, RevocationError>
 where
     T: Committable,
@@ -254,8 +254,8 @@ where
     Ok(wallet_ids)
 }
 
-pub async fn list_denied_recovery_codes<T, R, H>(
-    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+pub async fn list_denied_recovery_codes<T, R, F, H>(
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
 ) -> Result<Vec<RecoveryCode>, RevocationError>
 where
     T: Committable,
@@ -269,8 +269,8 @@ where
     Ok(wallet_ids)
 }
 
-pub async fn remove_denied_recovery_code<T, R, H>(
-    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+pub async fn remove_denied_recovery_code<T, R, F, H>(
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
     recovery_code: &RecoveryCode,
 ) -> Result<(), RevocationError>
 where
