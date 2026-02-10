@@ -63,20 +63,24 @@ class RevokeCardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC67 Revoke PID card")
+    @DisplayName("LTC67 LTC71 Revoke PID card")
     fun verifyPidRevocation(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.closeApp()
         revocationHelper.revokeAllNonRevokedPids()
         dashboardScreen.openApp()
         pinScreen.enterPin(DEFAULT_PIN)
-        assertTrue(dashboardScreen.cardRevocationVisible(tasData.getPidDisplayName()))
+        assertTrue(dashboardScreen.cardRevocationVisible(tasData.getPidDisplayName()), "Card revocation not visible")
 
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         cardDetailScreen.clickCardDataButton()
-        assertTrue(cardDataScreen.revocationMessageVisible())
+        assertTrue(cardDataScreen.revocationMessageVisible(), "Card revocation not visible")
 
         cardDataScreen.clickBottomBackButton()
+        cardDetailScreen.clickBottomBackButton()
+        dashboardScreen.tapRevocationNotification(tasData.getPidDisplayName())
+        assertTrue(cardDetailScreen.pidCardVisible(), "Card detail screen for PID issuer not visible")
+
         cardDetailScreen.clickBottomBackButton()
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
@@ -117,6 +121,10 @@ class RevokeCardTests : TestBase() {
         assertTrue(cardDataScreen.revocationMessageVisible())
 
         cardDataScreen.clickBottomBackButton()
+        cardDetailScreen.clickBottomBackButton()
+        dashboardScreen.tapRevocationNotification(tasData.getDiplomaDisplayName())
+        assertTrue(cardDetailScreen.visible(), "Card detail screen not visible")
+
         cardDetailScreen.clickBottomBackButton()
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()

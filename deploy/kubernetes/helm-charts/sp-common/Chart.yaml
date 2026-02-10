@@ -1,7 +1,5 @@
 apiVersion: v2
-name: sp-common
-description: A library for grouping common logic between charts.
-
 type: library
-
+name: sp-common
 version: 1.3.1
+description: A library for grouping common logic between charts.

@@ -1,0 +1,10 @@
+apiVersion: v2
+type: application
+name: rdo-max
+version: 1.0.0
+appVersion: "latest"
+description: A helm-chart for RDO Max (DigiD Connector).
+dependencies:
+  - name: sp-common
+    repository: "file://../sp-common"
+    version: 1.x.x

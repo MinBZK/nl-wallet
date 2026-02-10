@@ -164,6 +164,32 @@ open class MobileActions {
         }
     }
 
+    fun scrollDown(pixels: Int, durationMs: Int = 300) {
+        val driver = when (val platform = platformName()) {
+            "ANDROID" -> driver as AndroidDriver
+            "IOS" -> driver as IOSDriver
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+
+        val size = driver.manage().window().size
+        val width = size.width
+        val height = size.height
+
+        val startX = width / 2
+        val startY = (height * 0.60).toInt()
+        val endX   = startX
+        val endY   = startY - pixels  // Scroll down by moving finger up
+
+        val finger = PointerInput(PointerInput.Kind.TOUCH, "finger")
+        val swipe = org.openqa.selenium.interactions.Sequence(finger, 1)
+            .addAction(finger.createPointerMove(Duration.ZERO, Origin.viewport(), startX, startY))
+            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
+            .addAction(finger.createPointerMove(Duration.ofMillis(durationMs.toLong()), Origin.viewport(), endX, endY))
+            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()))
+
+        driver.perform(listOf(swipe))
+    }
+
     fun scrollToEndOfScreen(durationMs: Int = 300) {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
@@ -261,6 +287,14 @@ open class MobileActions {
     }
 
     fun platformName() = driver.capabilities.platformName?.name ?: throw IllegalStateException("No platform name")
+
+    fun getElementText(element: WebElement): String {
+        return when (platformName()) {
+            "ANDROID" -> element.getAttribute("contentDescription")
+            "IOS" -> element.getAttribute("name")
+            else -> element.text
+        } ?: element.text
+    }
 
     fun disableInternetConnection() {
         if (testConfig.remote) {
