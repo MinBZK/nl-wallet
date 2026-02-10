@@ -1,8 +1,10 @@
+use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 
 use assert_matches::assert_matches;
 use audit_log::audited;
+use audit_log::model::FromAuditLogError;
 use chrono::Utc;
 use config::Config;
 use config::File;
@@ -25,7 +27,6 @@ use utils::path::prefix_local_path;
 use audit_log::entity;
 use audit_log::model::AuditLog;
 use audit_log::model::PostgresAuditLog;
-use audit_log::model::PostgresAuditLogError;
 
 #[derive(Debug, Clone, Deserialize)]
 struct TestSettings {
@@ -52,9 +53,15 @@ impl Generator<Uuid> for MockUuid {
 #[derive(Debug, thiserror::Error)]
 enum TestError {
     #[error("audit error: {0}")]
-    AuditLog(#[from] PostgresAuditLogError),
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
     #[error("test error")]
     Test,
+}
+
+impl FromAuditLogError for TestError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+        TestError::AuditLog(audit_log_error)
+    }
 }
 
 async fn setup_test_database(
@@ -84,7 +91,7 @@ async fn setup_test_database(
 
 #[audited]
 async fn operation(
-    #[auditer] audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
+    #[auditer] audit_log: &impl AuditLog,
     is_success: bool,
     #[audit] param1: &'static str,
 ) -> Result<(), TestError> {
