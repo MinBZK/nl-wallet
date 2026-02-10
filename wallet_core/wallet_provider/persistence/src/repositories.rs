@@ -876,6 +876,7 @@ pub mod mock {
                 revocation_code_hmac: self.revocation_code_hmac.clone(),
                 revocation_registration: self.revocation_registration,
                 recovery_code: None,
+                recovery_code_on_deny_list: false,
             })))
         }
 

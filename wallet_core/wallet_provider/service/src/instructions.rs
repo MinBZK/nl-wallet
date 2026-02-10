@@ -29,6 +29,7 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
+use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
@@ -96,13 +97,14 @@ fn validate_wallet_user_not_transferred(wallet_user: &WalletUser) -> Result<(), 
 
 fn validate_wallet_user_not_revoked(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     match wallet_user.state {
-        WalletUserState::Revoked => Err(InstructionValidationError::AccountIsRevoked(
-            wallet_user
+        WalletUserState::Revoked => Err(InstructionValidationError::AccountRevoked(AccountRevokedData {
+            revocation_reason: wallet_user
                 .revocation_registration
                 .as_ref()
                 .expect("should be set when state is revoked")
                 .reason,
-        )),
+            can_register_new_account: !wallet_user.recovery_code_on_deny_list,
+        })),
         _ => Ok(()),
     }
 }
@@ -2265,7 +2267,7 @@ mod tests {
 
             assert_matches!(
                 result,
-                Err(InstructionValidationError::AccountIsRevoked(revocation_reason)) if revocation_reason == reason
+                Err(InstructionValidationError::AccountRevoked(data)) if data.revocation_reason == reason && data.can_register_new_account
             );
         }
     }

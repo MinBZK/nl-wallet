@@ -78,6 +78,7 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::RevocationCode;
+use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
 use wallet_account::messages::errors::RevocationReason;
@@ -345,8 +346,8 @@ pub enum InstructionValidationError {
     #[error("account is transferred")]
     AccountIsTransferred,
 
-    #[error("account is revoked with reason: {0}")]
-    AccountIsRevoked(RevocationReason),
+    #[error("account is revoked with data: {0:?}")]
+    AccountRevoked(AccountRevokedData),
 
     #[error("recovery code is missing")]
     MissingRecoveryCode,
