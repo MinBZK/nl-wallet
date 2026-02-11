@@ -5,17 +5,23 @@ use std::path::Path;
 fn main() {
     let is_release = env::var("PROFILE").unwrap_or_else(|_| "debug".to_string()) == "release";
 
+    // These directories are merged from multiple crates, so they must be copies
     web_utils::build::copy_static_assets(
         &[
             Path::new("static/non-free"),
-            Path::new("static/usecase.js"),
             Path::new("../demo_utils/static/images"),
             Path::new("../demo_utils/static/non-free"),
             Path::new("../../lib/web_utils/static/images"),
             Path::new("../../lib/web_utils/static/non-free"),
-            Path::new("../../lib/web_utils/static/language.js"),
         ],
         Path::new("assets"),
+    );
+
+    // Single-source files can be symlinks for instant dev updates
+    force_symlink(Path::new("../static/usecase.js"), Path::new("assets/usecase.js"));
+    force_symlink(
+        Path::new("../../../lib/web_utils/static/language.js"),
+        Path::new("assets/language.js"),
     );
 
     // In development mode, copy CSS files preserving directory structure so the browser
