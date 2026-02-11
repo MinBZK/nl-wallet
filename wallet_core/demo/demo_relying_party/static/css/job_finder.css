@@ -1,3 +1,13 @@
+@import url("../../../../lib/web_utils/static/css/reset.css");
+@import url("../../../../lib/web_utils/static/css/button-reset.css");
+@import url("../../../../lib/web_utils/static/css/fonts.css");
+@import url("../../../../lib/web_utils/static/css/language_selector.css");
+@import url("../../../demo_utils/static/css/demo_bar.css");
+@import url("../../../demo_utils/static/css/common.css");
+@import url("../../../demo_utils/static/css/title_bar.css");
+@import url("../../../demo_utils/static/css/notification.css");
+@import url("../../../demo_utils/static/css/container.css");
+
 :root {
   --primary-color: #288b36;
   --hover-color: #0bbb52;
@@ -14,8 +24,4 @@ header h1 span.part {
 
 header h1::before {
   display: none;
-}
-
-.buttons button > span {
-  background: #1b363e;
 }

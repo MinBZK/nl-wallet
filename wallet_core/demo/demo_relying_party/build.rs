@@ -47,33 +47,22 @@ fn main() {
         force_symlink(Path::new("../../../images"), Path::new("assets/lib/web_utils/static/images"));
     }
 
-    combine_mijn_amsterdam_css();
-    combine_mijn_amsterdam_return_css();
-    combine_monkey_bike_css();
-    combine_online_marketplace_css();
-    combine_xyz_bank_css();
-    combine_job_finder_css();
+    for entry in [
+        "mijn_amsterdam-index",
+        "mijn_amsterdam-return",
+        "monkey_bike-index",
+        "monkey_bike-return",
+        "online_marketplace-index",
+        "online_marketplace-return",
+        "xyz_bank-index",
+        "xyz_bank-return",
+        "job_finder-index",
+        "job_finder-return",
+    ] {
+        combine_usecase_css(entry);
+    }
 }
 
-fn combine_mijn_amsterdam_css() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("mijn_amsterdam.css");
-
-    web_utils::build::combine_css_with_imports(
-        Path::new("static/css/mijn_amsterdam-index.css"),
-        &dest_path,
-    );
-}
-
-fn combine_mijn_amsterdam_return_css() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("mijn_amsterdam_return.css");
-
-    web_utils::build::combine_css_with_imports(
-        Path::new("static/css/mijn_amsterdam-return.css"),
-        &dest_path,
-    );
-}
 
 /// Creates a symlink, removing any existing file, symlink, or directory at the link path.
 fn force_symlink(target: &Path, link: &Path) {
@@ -88,91 +77,12 @@ fn force_symlink(target: &Path, link: &Path) {
         .unwrap_or_else(|e| panic!("Failed to create symlink {} -> {}: {}", link.display(), target.display(), e));
 }
 
-fn combine_monkey_bike_css() {
+fn combine_usecase_css(entry_name: &str) {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("monkey_bike.css");
+    let dest_path = Path::new(&out_dir).join(format!("{entry_name}.css"));
 
-    web_utils::build::combine_css(
-        &[
-            Path::new("../../lib/web_utils/static/css/reset.css"),
-            Path::new("../../lib/web_utils/static/css/button-reset.css"),
-            Path::new("../../lib/web_utils/static/css/fonts.css"),
-            Path::new("../../lib/web_utils/static/css/language_selector.css"),
-            Path::new("../demo_utils/static/css/demo_bar.css"),
-            Path::new("../demo_utils/static/css/common.css"),
-            Path::new("../demo_utils/static/css/notification.css"),
-            Path::new("../demo_utils/static/css/page.css"),
-            Path::new("../demo_utils/static/css/buttons-before.css"),
-            Path::new("static/css/monkey_bike.css"),
-            Path::new("static/css/title_alt.css"),
-            Path::new("static/css/card.css"),
-        ],
-        &dest_path,
-    );
-}
-
-fn combine_online_marketplace_css() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("online_marketplace.css");
-
-    web_utils::build::combine_css(
-        &[
-            Path::new("../../lib/web_utils/static/css/reset.css"),
-            Path::new("../../lib/web_utils/static/css/button-reset.css"),
-            Path::new("../../lib/web_utils/static/css/fonts.css"),
-            Path::new("../../lib/web_utils/static/css/language_selector.css"),
-            Path::new("../demo_utils/static/css/demo_bar.css"),
-            Path::new("../demo_utils/static/css/common.css"),
-            Path::new("../demo_utils/static/css/notification.css"),
-            Path::new("../demo_utils/static/css/buttons-before.css"),
-            Path::new("static/css/title_alt.css"),
-            Path::new("static/css/card.css"),
-            Path::new("static/css/online_marketplace.css"),
-        ],
-        &dest_path,
-    );
-}
-
-fn combine_xyz_bank_css() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("xyz_bank.css");
-
-    web_utils::build::combine_css(
-        &[
-            Path::new("../../lib/web_utils/static/css/reset.css"),
-            Path::new("../../lib/web_utils/static/css/button-reset.css"),
-            Path::new("../../lib/web_utils/static/css/fonts.css"),
-            Path::new("../../lib/web_utils/static/css/language_selector.css"),
-            Path::new("../demo_utils/static/css/demo_bar.css"),
-            Path::new("../demo_utils/static/css/common.css"),
-            Path::new("../demo_utils/static/css/title_bar.css"),
-            Path::new("../demo_utils/static/css/notification.css"),
-            Path::new("../demo_utils/static/css/container.css"),
-            Path::new("../demo_utils/static/css/buttons-after.css"),
-            Path::new("static/css/xyz_bank.css"),
-        ],
-        &dest_path,
-    );
-}
-
-fn combine_job_finder_css() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("job_finder.css");
-
-    web_utils::build::combine_css(
-        &[
-            Path::new("../../lib/web_utils/static/css/reset.css"),
-            Path::new("../../lib/web_utils/static/css/button-reset.css"),
-            Path::new("../../lib/web_utils/static/css/fonts.css"),
-            Path::new("../../lib/web_utils/static/css/language_selector.css"),
-            Path::new("../demo_utils/static/css/demo_bar.css"),
-            Path::new("../demo_utils/static/css/common.css"),
-            Path::new("../demo_utils/static/css/title_bar.css"),
-            Path::new("../demo_utils/static/css/notification.css"),
-            Path::new("../demo_utils/static/css/container.css"),
-            Path::new("../demo_utils/static/css/buttons-after.css"),
-            Path::new("static/css/job_finder.css"),
-        ],
+    web_utils::build::combine_css_with_imports(
+        &Path::new("static/css").join(format!("{entry_name}.css")),
         &dest_path,
     );
 }

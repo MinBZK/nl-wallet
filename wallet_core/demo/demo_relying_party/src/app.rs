@@ -40,7 +40,6 @@ use http_utils::urls::SourceExpression;
 use openid4vc::server_state::SessionToken;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
-use web_utils::css::serve_css;
 use web_utils::error::Result;
 use web_utils::headers::cors_layer;
 use web_utils::headers::set_content_security_policy;
@@ -67,69 +66,33 @@ struct ApplicationState {
     usecases: HashMap<String, Usecase>,
 }
 
-pub const AMSTERDAM_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mijn_amsterdam.css"));
-pub const AMSTERDAM_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mijn_amsterdam_return.css"));
-pub const MONKEY_BIKE_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike.css"));
-pub const ONLINE_MARKETPLACE_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/online_marketplace.css"));
-pub const XYZ_BANK_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank.css"));
-pub const JOB_FINDER_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder.css"));
-
-pub static MONKEY_BIKE_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(MONKEY_BIKE_CSS.as_bytes())));
-
-pub static ONLINE_MARKETPLACE_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(ONLINE_MARKETPLACE_CSS.as_bytes())));
-
-pub static XYZ_BANK_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(XYZ_BANK_CSS.as_bytes())));
-
-pub static JOB_FINDER_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(JOB_FINDER_CSS.as_bytes())));
+// Bundled CSS constants - placeholders in dev mode, full bundles in release mode.
+// In dev mode, CSS is served from the filesystem via ServeDir.
+pub const AMSTERDAM_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mijn_amsterdam-index.css"));
+pub const AMSTERDAM_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mijn_amsterdam-return.css"));
+pub const MONKEY_BIKE_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike-index.css"));
+pub const MONKEY_BIKE_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike-return.css"));
+pub const ONLINE_MARKETPLACE_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/online_marketplace-index.css"));
+pub const ONLINE_MARKETPLACE_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/online_marketplace-return.css"));
+pub const XYZ_BANK_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank-index.css"));
+pub const XYZ_BANK_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank-return.css"));
+pub const JOB_FINDER_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-index.css"));
+pub const JOB_FINDER_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-return.css"));
 
 static CSP_HEADER: OnceLock<String> = OnceLock::new();
 
-// Only used in release mode - in debug mode, CSS is served from filesystem via ServeDir
+/// Serves a bundled CSS file with caching headers. Only used in release mode.
 #[cfg(not(debug_assertions))]
-async fn serve_amsterdam_css(_headers: axum::http::HeaderMap) -> Response {
+fn serve_bundled_css(css: &'static str) -> Response {
     use axum::http::header;
     (
         [
             (header::CONTENT_TYPE, "text/css; charset=utf-8".to_string()),
             (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
         ],
-        AMSTERDAM_CSS,
+        css,
     )
         .into_response()
-}
-
-// Only used in release mode - in debug mode, CSS is served from filesystem via ServeDir
-#[cfg(not(debug_assertions))]
-async fn serve_amsterdam_return_css(_headers: axum::http::HeaderMap) -> Response {
-    use axum::http::header;
-    (
-        [
-            (header::CONTENT_TYPE, "text/css; charset=utf-8".to_string()),
-            (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
-        ],
-        AMSTERDAM_RETURN_CSS,
-    )
-        .into_response()
-}
-
-async fn serve_monkey_bike_css(headers: axum::http::HeaderMap) -> Response {
-    serve_css(&headers, MONKEY_BIKE_CSS, &MONKEY_BIKE_CSS_SHA256)
-}
-
-async fn serve_online_marketplace_css(headers: axum::http::HeaderMap) -> Response {
-    serve_css(&headers, ONLINE_MARKETPLACE_CSS, &ONLINE_MARKETPLACE_CSS_SHA256)
-}
-
-async fn serve_xyz_bank_css(headers: axum::http::HeaderMap) -> Response {
-    serve_css(&headers, XYZ_BANK_CSS, &XYZ_BANK_CSS_SHA256)
-}
-
-async fn serve_job_finder_css(headers: axum::http::HeaderMap) -> Response {
-    serve_css(&headers, JOB_FINDER_CSS, &JOB_FINDER_CSS_SHA256)
 }
 
 pub fn create_router(settings: Settings) -> Router {
@@ -146,27 +109,25 @@ pub fn create_router(settings: Settings) -> Router {
         .connect_src
         .unwrap_or(ConnectSource::List(vec![SourceExpression::SelfSource]))
         .to_string();
-    #[cfg(not(debug_assertions))]
     let app = Router::new()
         .route("/sessions", post(create_session))
         .route("/{usecase}/", get(usecase))
-        .route(&format!("/{{usecase}}/{RETURN_URL_SEGMENT}"), get(disclosed_attributes))
-        .route("/static/css/mijn_amsterdam-index.css", get(serve_amsterdam_css))
-        .route("/static/css/mijn_amsterdam-return.css", get(serve_amsterdam_return_css))
-        .route("/css/monkey_bike.css", get(serve_monkey_bike_css))
-        .route("/css/online_marketplace.css", get(serve_online_marketplace_css))
-        .route("/css/xyz_bank.css", get(serve_xyz_bank_css))
-        .route("/css/job_finder.css", get(serve_job_finder_css));
+        .route(&format!("/{{usecase}}/{RETURN_URL_SEGMENT}"), get(disclosed_attributes));
 
-    #[cfg(debug_assertions)]
-    let app = Router::new()
-        .route("/sessions", post(create_session))
-        .route("/{usecase}/", get(usecase))
-        .route(&format!("/{{usecase}}/{RETURN_URL_SEGMENT}"), get(disclosed_attributes))
-        .route("/css/monkey_bike.css", get(serve_monkey_bike_css))
-        .route("/css/online_marketplace.css", get(serve_online_marketplace_css))
-        .route("/css/xyz_bank.css", get(serve_xyz_bank_css))
-        .route("/css/job_finder.css", get(serve_job_finder_css));
+    // In release mode, serve bundled CSS from route handlers.
+    // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
+    #[cfg(not(debug_assertions))]
+    let app = app
+        .route("/static/css/mijn_amsterdam-index.css", get(|| async { serve_bundled_css(AMSTERDAM_INDEX_CSS) }))
+        .route("/static/css/mijn_amsterdam-return.css", get(|| async { serve_bundled_css(AMSTERDAM_RETURN_CSS) }))
+        .route("/static/css/monkey_bike-index.css", get(|| async { serve_bundled_css(MONKEY_BIKE_INDEX_CSS) }))
+        .route("/static/css/monkey_bike-return.css", get(|| async { serve_bundled_css(MONKEY_BIKE_RETURN_CSS) }))
+        .route("/static/css/online_marketplace-index.css", get(|| async { serve_bundled_css(ONLINE_MARKETPLACE_INDEX_CSS) }))
+        .route("/static/css/online_marketplace-return.css", get(|| async { serve_bundled_css(ONLINE_MARKETPLACE_RETURN_CSS) }))
+        .route("/static/css/xyz_bank-index.css", get(|| async { serve_bundled_css(XYZ_BANK_INDEX_CSS) }))
+        .route("/static/css/xyz_bank-return.css", get(|| async { serve_bundled_css(XYZ_BANK_RETURN_CSS) }))
+        .route("/static/css/job_finder-index.css", get(|| async { serve_bundled_css(JOB_FINDER_INDEX_CSS) }))
+        .route("/static/css/job_finder-return.css", get(|| async { serve_bundled_css(JOB_FINDER_RETURN_CSS) }));
 
     let mut app = app
         .fallback_service(
@@ -273,10 +234,6 @@ struct BaseTemplate<'a> {
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
     language_js_sha256: &'a str,
-    monkey_bike_css_sha256: &'a str,
-    online_marketplace_css_sha256: &'a str,
-    xyz_bank_css_sha256: &'a str,
-    job_finder_css_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -314,10 +271,6 @@ async fn usecase(
         trans: &TRANSLATIONS[language],
         available_languages: &Language::iter().collect_vec(),
         language_js_sha256: &LANGUAGE_JS_SHA256,
-        monkey_bike_css_sha256: &MONKEY_BIKE_CSS_SHA256,
-        online_marketplace_css_sha256: &ONLINE_MARKETPLACE_CSS_SHA256,
-        xyz_bank_css_sha256: &XYZ_BANK_CSS_SHA256,
-        job_finder_css_sha256: &JOB_FINDER_CSS_SHA256,
     };
     UsecaseTemplate {
         usecase: &usecase,
@@ -364,10 +317,6 @@ async fn disclosed_attributes(
         trans: &TRANSLATIONS[language],
         available_languages: &Language::iter().collect_vec(),
         language_js_sha256: &LANGUAGE_JS_SHA256,
-        monkey_bike_css_sha256: &MONKEY_BIKE_CSS_SHA256,
-        online_marketplace_css_sha256: &ONLINE_MARKETPLACE_CSS_SHA256,
-        xyz_bank_css_sha256: &XYZ_BANK_CSS_SHA256,
-        job_finder_css_sha256: &JOB_FINDER_CSS_SHA256,
     };
 
     match attributes {

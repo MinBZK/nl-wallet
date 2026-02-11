@@ -11,13 +11,13 @@
 {% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
     <link rel="stylesheet" href="../static/css/mijn_amsterdam-return.css" />
 {% when "monkey_bike" %}
-    <link integrity="sha256-{{ base.monkey_bike_css_sha256 }}" rel="stylesheet" href="../css/monkey_bike.css" />
+    <link rel="stylesheet" href="../static/css/monkey_bike-return.css" />
 {% when "online_marketplace" %}
-    <link integrity="sha256-{{ base.online_marketplace_css_sha256 }}" rel="stylesheet" href="../css/online_marketplace.css" />
+    <link rel="stylesheet" href="../static/css/online_marketplace-return.css" />
 {% when "xyz_bank_mdoc" | "xyz_bank_sd_jwt" | "xyz_bank_sd_jwt_eu" %}
-    <link integrity="sha256-{{ base.xyz_bank_css_sha256 }}" rel="stylesheet" href="../css/xyz_bank.css" />
+    <link rel="stylesheet" href="../static/css/xyz_bank-return.css" />
 {% when "job_finder" %}
-    <link integrity="sha256-{{ base.job_finder_css_sha256 }}" rel="stylesheet" href="../css/job_finder.css" />
+    <link rel="stylesheet" href="../static/css/job_finder-return.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
