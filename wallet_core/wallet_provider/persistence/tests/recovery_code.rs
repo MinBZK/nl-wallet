@@ -152,9 +152,9 @@ async fn test_remove_recovery_code() {
 
     let db = db_from_env().await.expect("Could not connect to database");
 
-    recovery_code::remove(&db, recovery_code.clone())
+    recovery_code::set_allowed(&db, &recovery_code)
         .await
-        .expect("should be able to remove non-denied recovery code");
+        .expect("should be able to set non-denied recovery code to allowed");
 
     recovery_code::insert(&db, recovery_code.clone())
         .await
@@ -163,17 +163,17 @@ async fn test_remove_recovery_code() {
     let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
     assert!(is_denied);
 
-    recovery_code::remove(&db, recovery_code.clone())
+    recovery_code::set_allowed(&db, &recovery_code)
         .await
-        .expect("should be able to remove denied recovery code");
+        .expect("should be able to set denied recovery code to allowed");
 
     let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
     assert!(!is_denied);
 
     // verify idempotency
-    recovery_code::remove(&db, recovery_code.clone())
+    recovery_code::set_allowed(&db, &recovery_code)
         .await
-        .expect("should be able to remove non-denied recovery code");
+        .expect("should be able to set non-denied recovery code to allowed");
 
     let is_denied = recovery_code::is_denied(&db, recovery_code).await.unwrap();
     assert!(!is_denied);
@@ -231,9 +231,9 @@ async fn test_list_recovery_code() {
     );
 
     // removing the first should result in only the second being listed
-    recovery_code::remove(&db, recovery_code.clone())
+    recovery_code::set_allowed(&db, &recovery_code)
         .await
-        .expect("should be able to remove denied recovery code");
+        .expect("should be able to set denied recovery code to allowed");
 
     let recovery_codes = recovery_code::list(&db)
         .await
@@ -242,9 +242,9 @@ async fn test_list_recovery_code() {
     assert!(recovery_codes.contains(&another_recovery_code));
 
     // removing the second should result in an empty list
-    recovery_code::remove(&db, another_recovery_code.clone())
+    recovery_code::set_allowed(&db, &another_recovery_code)
         .await
-        .expect("should be able to remove another denied recovery code");
+        .expect("should be able to set another denied recovery code to allowed");
 
     let recovery_codes = recovery_code::list(&db)
         .await

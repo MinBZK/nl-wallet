@@ -3,8 +3,10 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::Router;
+use axum::extract::Path;
 use axum::extract::State;
 use axum::response::IntoResponse;
+use axum::response::NoContent;
 use axum::response::Response;
 use chrono::DateTime;
 use chrono::Utc;
@@ -208,6 +210,68 @@ where
     ))
 }
 
+#[utoipa::path(
+    get,
+    path = "/deny-list/",
+    responses(
+        (
+            status = OK,
+            body = Vec<String>,
+            description = "Successfully listed the denied recovery codes.",
+            example = json!([
+                "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526",
+                "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+            ])
+        ),
+    )
+)]
+async fn list_denied_recovery_codes<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+) -> Result<Json<Vec<String>>, RevocationError>
+where
+    GRC: Send + Sync + 'static,
+    PIC: Send + Sync + 'static,
+{
+    Ok(Json(
+        wallet_provider_service::revocation::list_denied_recovery_codes(&router_state.user_state).await?,
+    ))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/deny-list/{recovery-code}",
+    params(
+         (
+             "recovery-code" = String,
+             Path,
+             description = "The recovery code to remove from the deny list.",
+             example = "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"
+         ),
+    ),
+    responses(
+        (
+            status = NO_CONTENT,
+            description = "Successfully removed recovery code from the deny list.",
+        ),
+        (
+            status = NOT_FOUND,
+            description = "The recovery code was not on the deny list.",
+        ),
+    )
+)]
+async fn remove_denied_recovery_code<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+    Path(recovery_code): Path<String>,
+) -> Result<NoContent, RevocationError>
+where
+    GRC: Send + Sync + 'static,
+    PIC: Send + Sync + 'static,
+{
+    wallet_provider_service::revocation::remove_denied_recovery_code(&router_state.user_state, &recovery_code).await?;
+
+    Ok(NoContent)
+}
+
 pub fn internal_router<GRC, PIC>(state: Arc<RouterState<GRC, PIC>>) -> (Router, utoipa::openapi::OpenApi)
 where
     PIC: Send + Sync + 'static,
@@ -217,7 +281,9 @@ where
         .routes(routes!(revoke_wallets_by_id))
         .routes(routes!(revoke_wallet_by_revocation_code))
         .routes(routes!(revoke_wallets_by_recovery_code))
-        .routes(routes!(nuke));
+        .routes(routes!(nuke))
+        .routes(routes!(list_denied_recovery_codes))
+        .routes(routes!(remove_denied_recovery_code));
 
     #[cfg(feature = "test_internal_ui")]
     let router = router.routes(routes!(list_wallets));

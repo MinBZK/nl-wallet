@@ -37,7 +37,7 @@ pub enum RevocationError {
     #[error("error signing hmac for revocation code: {0}")]
     RevocationCodeHmac(#[source] HsmError),
 
-    #[error("no wallet found with recovation code: {0}")]
+    #[error("recovation code not found: {0}")]
     RevocationCodeNotFound(String),
 
     #[error("error while auditing: {0}")]
@@ -236,4 +236,42 @@ where
     tx.commit().await?;
 
     Ok(wallet_ids)
+}
+
+pub async fn list_denied_recovery_codes<T, R, H>(
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+) -> Result<Vec<String>, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
+    let tx = user_state.repositories.begin_transaction().await?;
+    let wallet_ids = user_state.repositories.list_denied_recovery_codes(&tx).await?;
+
+    tx.commit().await?;
+
+    Ok(wallet_ids)
+}
+
+pub async fn remove_denied_recovery_code<T, R, H>(
+    user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
+    recovery_code: &str,
+) -> Result<(), RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
+    let tx = user_state.repositories.begin_transaction().await?;
+    let removed = user_state
+        .repositories
+        .remove_recovery_code_from_deny_list(&tx, recovery_code)
+        .await?;
+
+    tx.commit().await?;
+
+    if !removed {
+        return Err(RevocationError::RevocationCodeNotFound(recovery_code.to_owned()));
+    }
+
+    Ok(())
 }
