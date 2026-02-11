@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-build = []
+build = ["dep:lightningcss"]
 
 [dependencies]
 accept-language.workspace = true
@@ -25,6 +25,8 @@ strum.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
 tower-http = { workspace = true, features = ["cors"] }
 tracing.workspace = true
+
+lightningcss = { workspace = true, optional = true, features = ["bundler"] }
 
 crypto.path = "../../lib/crypto"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }

@@ -9,7 +9,7 @@
 {% block styles %}
 {% match usecase %}
 {% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
-    <link integrity="sha256-{{ base.amsterdam_css_sha256 }}" rel="stylesheet" href="../css/mijn_amsterdam.css" />
+    <link rel="stylesheet" href="../static/css/mijn_amsterdam-return.css" />
 {% when "monkey_bike" %}
     <link integrity="sha256-{{ base.monkey_bike_css_sha256 }}" rel="stylesheet" href="../css/monkey_bike.css" />
 {% when "online_marketplace" %}
