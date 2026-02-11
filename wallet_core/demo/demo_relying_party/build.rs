@@ -35,16 +35,31 @@ fn main() {
 
         // Symlink CSS directories to source so changes are reflected immediately without rebuild
         force_symlink(Path::new("../../static/css"), Path::new("assets/static/css"));
-        force_symlink(Path::new("../../../../demo_utils/static/css"), Path::new("assets/demo_utils/static/css"));
-        force_symlink(Path::new("../../../../../../lib/web_utils/static/css"), Path::new("assets/lib/web_utils/static/css"));
+        force_symlink(
+            Path::new("../../../../demo_utils/static/css"),
+            Path::new("assets/demo_utils/static/css"),
+        );
+        force_symlink(
+            Path::new("../../../../../../lib/web_utils/static/css"),
+            Path::new("assets/lib/web_utils/static/css"),
+        );
 
         // Symlink non-free/ and images/ so url() paths like ../non-free/images/x.svg resolve to merged assets
         force_symlink(Path::new("../non-free"), Path::new("assets/static/non-free"));
         force_symlink(Path::new("../images"), Path::new("assets/static/images"));
-        force_symlink(Path::new("../../non-free"), Path::new("assets/demo_utils/static/non-free"));
+        force_symlink(
+            Path::new("../../non-free"),
+            Path::new("assets/demo_utils/static/non-free"),
+        );
         force_symlink(Path::new("../../images"), Path::new("assets/demo_utils/static/images"));
-        force_symlink(Path::new("../../../non-free"), Path::new("assets/lib/web_utils/static/non-free"));
-        force_symlink(Path::new("../../../images"), Path::new("assets/lib/web_utils/static/images"));
+        force_symlink(
+            Path::new("../../../non-free"),
+            Path::new("assets/lib/web_utils/static/non-free"),
+        );
+        force_symlink(
+            Path::new("../../../images"),
+            Path::new("assets/lib/web_utils/static/images"),
+        );
     }
 
     for entry in [
@@ -63,7 +78,6 @@ fn main() {
     }
 }
 
-
 /// Creates a symlink, removing any existing file, symlink, or directory at the link path.
 fn force_symlink(target: &Path, link: &Path) {
     if let Ok(meta) = link.symlink_metadata() {
@@ -73,16 +87,19 @@ fn force_symlink(target: &Path, link: &Path) {
             fs::remove_file(link).unwrap_or_else(|e| panic!("Failed to remove {}: {}", link.display(), e));
         }
     }
-    std::os::unix::fs::symlink(target, link)
-        .unwrap_or_else(|e| panic!("Failed to create symlink {} -> {}: {}", link.display(), target.display(), e));
+    std::os::unix::fs::symlink(target, link).unwrap_or_else(|e| {
+        panic!(
+            "Failed to create symlink {} -> {}: {}",
+            link.display(),
+            target.display(),
+            e
+        )
+    });
 }
 
 fn combine_usecase_css(entry_name: &str) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join(format!("{entry_name}.css"));
 
-    web_utils::build::combine_css_with_imports(
-        &Path::new("static/css").join(format!("{entry_name}.css")),
-        &dest_path,
-    );
+    web_utils::build::combine_css_with_imports(&Path::new("static/css").join(format!("{entry_name}.css")), &dest_path);
 }

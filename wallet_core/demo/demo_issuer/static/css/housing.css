@@ -1,3 +1,15 @@
+@import url("../../../../lib/web_utils/static/css/button-reset.css");
+@import url("../../../../lib/web_utils/static/css/fonts.css");
+@import url("../../../../lib/web_utils/static/css/language_selector.css");
+@import url("../../../../lib/web_utils/static/css/reset.css");
+@import url("../../../demo_utils/static/css/demo_bar.css");
+@import url("../../../demo_utils/static/css/common.css");
+@import url("../../../demo_utils/static/css/title_bar.css");
+@import url("../../../demo_utils/static/css/notification.css");
+@import url("../../../demo_utils/static/css/page.css");
+@import url("../../../demo_utils/static/css/buttons-after.css");
+@import url("./banner.css");
+
 :root {
   --primary-color: #188484;
   --hover-color: #004c4c;

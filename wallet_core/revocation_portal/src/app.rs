@@ -10,7 +10,6 @@ use axum::body::Body;
 use axum::extract::FromRequestParts;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
-use axum::http::HeaderMap;
 use axum::http::Request;
 use axum::http::StatusCode;
 use axum::http::header;
@@ -44,7 +43,7 @@ use crypto::utils::sha256;
 use http_utils::health::create_health_router;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
-use web_utils::css::serve_css;
+use web_utils::css::serve_bundled_css;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
@@ -198,8 +197,8 @@ struct SuccessTemplate<'a> {
     success_message_template: String,
 }
 
-async fn serve_combined_css(headers: HeaderMap) -> Response {
-    serve_css(&headers, COMBINED_CSS, &COMBINED_CSS_SHA256)
+async fn serve_combined_css(headers: axum::http::HeaderMap) -> Response {
+    serve_bundled_css(&headers, COMBINED_CSS)
 }
 
 async fn index<C: RevocationClient>(

@@ -73,27 +73,14 @@ pub const AMSTERDAM_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/m
 pub const MONKEY_BIKE_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike-index.css"));
 pub const MONKEY_BIKE_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike-return.css"));
 pub const ONLINE_MARKETPLACE_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/online_marketplace-index.css"));
-pub const ONLINE_MARKETPLACE_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/online_marketplace-return.css"));
+pub const ONLINE_MARKETPLACE_RETURN_CSS: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/online_marketplace-return.css"));
 pub const XYZ_BANK_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank-index.css"));
 pub const XYZ_BANK_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank-return.css"));
 pub const JOB_FINDER_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-index.css"));
 pub const JOB_FINDER_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-return.css"));
 
 static CSP_HEADER: OnceLock<String> = OnceLock::new();
-
-/// Serves a bundled CSS file with caching headers. Only used in release mode.
-#[cfg(not(debug_assertions))]
-fn serve_bundled_css(css: &'static str) -> Response {
-    use axum::http::header;
-    (
-        [
-            (header::CONTENT_TYPE, "text/css; charset=utf-8".to_string()),
-            (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
-        ],
-        css,
-    )
-        .into_response()
-}
 
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
@@ -118,16 +105,52 @@ pub fn create_router(settings: Settings) -> Router {
     // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
     #[cfg(not(debug_assertions))]
     let app = app
-        .route("/static/css/mijn_amsterdam-index.css", get(|| async { serve_bundled_css(AMSTERDAM_INDEX_CSS) }))
-        .route("/static/css/mijn_amsterdam-return.css", get(|| async { serve_bundled_css(AMSTERDAM_RETURN_CSS) }))
-        .route("/static/css/monkey_bike-index.css", get(|| async { serve_bundled_css(MONKEY_BIKE_INDEX_CSS) }))
-        .route("/static/css/monkey_bike-return.css", get(|| async { serve_bundled_css(MONKEY_BIKE_RETURN_CSS) }))
-        .route("/static/css/online_marketplace-index.css", get(|| async { serve_bundled_css(ONLINE_MARKETPLACE_INDEX_CSS) }))
-        .route("/static/css/online_marketplace-return.css", get(|| async { serve_bundled_css(ONLINE_MARKETPLACE_RETURN_CSS) }))
-        .route("/static/css/xyz_bank-index.css", get(|| async { serve_bundled_css(XYZ_BANK_INDEX_CSS) }))
-        .route("/static/css/xyz_bank-return.css", get(|| async { serve_bundled_css(XYZ_BANK_RETURN_CSS) }))
-        .route("/static/css/job_finder-index.css", get(|| async { serve_bundled_css(JOB_FINDER_INDEX_CSS) }))
-        .route("/static/css/job_finder-return.css", get(|| async { serve_bundled_css(JOB_FINDER_RETURN_CSS) }));
+        .route(
+            "/static/css/mijn_amsterdam-index.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, AMSTERDAM_INDEX_CSS) }),
+        )
+        .route(
+            "/static/css/mijn_amsterdam-return.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, AMSTERDAM_RETURN_CSS) }),
+        )
+        .route(
+            "/static/css/monkey_bike-index.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, MONKEY_BIKE_INDEX_CSS) }),
+        )
+        .route(
+            "/static/css/monkey_bike-return.css",
+            get(
+                |h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, MONKEY_BIKE_RETURN_CSS) },
+            ),
+        )
+        .route(
+            "/static/css/online_marketplace-index.css",
+            get(|h: axum::http::HeaderMap| async move {
+                web_utils::css::serve_bundled_css(&h, ONLINE_MARKETPLACE_INDEX_CSS)
+            }),
+        )
+        .route(
+            "/static/css/online_marketplace-return.css",
+            get(|h: axum::http::HeaderMap| async move {
+                web_utils::css::serve_bundled_css(&h, ONLINE_MARKETPLACE_RETURN_CSS)
+            }),
+        )
+        .route(
+            "/static/css/xyz_bank-index.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, XYZ_BANK_INDEX_CSS) }),
+        )
+        .route(
+            "/static/css/xyz_bank-return.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, XYZ_BANK_RETURN_CSS) }),
+        )
+        .route(
+            "/static/css/job_finder-index.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, JOB_FINDER_INDEX_CSS) }),
+        )
+        .route(
+            "/static/css/job_finder-return.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, JOB_FINDER_RETURN_CSS) }),
+        );
 
     let mut app = app
         .fallback_service(

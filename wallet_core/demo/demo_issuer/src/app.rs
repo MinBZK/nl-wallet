@@ -24,8 +24,6 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestations;
@@ -38,7 +36,6 @@ use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
-use web_utils::css::serve_css;
 use web_utils::error::Result;
 use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;
@@ -57,18 +54,11 @@ struct ApplicationState {
     help_base_url: BaseUrl,
 }
 
+// Bundled CSS constants - placeholders in dev mode, full bundles in release mode.
+// In dev mode, CSS is served from the filesystem via ServeDir.
 pub const HOUSING_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/housing.css"));
 pub const INSURANCE_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/insurance.css"));
-pub const UNIVERISTY_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/university.css"));
-
-pub static HOUSING_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(HOUSING_CSS.as_bytes())));
-
-pub static INSURANCE_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(INSURANCE_CSS.as_bytes())));
-
-pub static UNIVERISTY_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(UNIVERISTY_CSS.as_bytes())));
+pub const UNIVERSITY_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/university.css"));
 
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
     let script_src = format!("'sha256-{}' 'sha256-{}'", *LANGUAGE_JS_SHA256, *WALLET_WEB_JS_SHA256);
@@ -80,18 +70,6 @@ static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
     )
 });
 
-async fn serve_housing_css(headers: axum::http::HeaderMap) -> Response {
-    serve_css(&headers, HOUSING_CSS, &HOUSING_CSS_SHA256)
-}
-
-async fn serve_insurance_css(headers: axum::http::HeaderMap) -> Response {
-    serve_css(&headers, INSURANCE_CSS, &INSURANCE_CSS_SHA256)
-}
-
-async fn serve_university_css(headers: axum::http::HeaderMap) -> Response {
-    serve_css(&headers, UNIVERISTY_CSS, &UNIVERISTY_CSS_SHA256)
-}
-
 pub fn create_routers(settings: Settings) -> (Router, Router) {
     let application_state = Arc::new(ApplicationState {
         usecases: settings.usecases,
@@ -100,11 +78,26 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         help_base_url: settings.help_base_url,
     });
 
-    let mut app = Router::new()
-        .route("/{usecase}/", get(usecase))
-        .route("/css/housing.css", get(serve_housing_css))
-        .route("/css/insurance.css", get(serve_insurance_css))
-        .route("/css/university.css", get(serve_university_css))
+    let app = Router::new().route("/{usecase}/", get(usecase));
+
+    // In release mode, serve bundled CSS from route handlers.
+    // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
+    #[cfg(not(debug_assertions))]
+    let app = app
+        .route(
+            "/static/css/housing.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, HOUSING_CSS) }),
+        )
+        .route(
+            "/static/css/insurance.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, INSURANCE_CSS) }),
+        )
+        .route(
+            "/static/css/university.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, UNIVERSITY_CSS) }),
+        );
+
+    let mut app = app
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -146,9 +139,6 @@ struct UsecaseTemplate<'a> {
     cross_device_ul: Url,
     help_base_url: Url,
     wallet_web_sha256: &'a str,
-    university_css_sha256: &'a str,
-    insurance_css_sha256: &'a str,
-    housing_css_sha256: &'a str,
     base: BaseTemplate<'a>,
 }
 
@@ -204,9 +194,6 @@ async fn usecase(
         cross_device_ul: universal_links.get(&SessionType::CrossDevice).unwrap().to_owned(),
         help_base_url: state.help_base_url.clone().into_inner(),
         wallet_web_sha256: &WALLET_WEB_JS_SHA256,
-        housing_css_sha256: &HOUSING_CSS_SHA256,
-        insurance_css_sha256: &INSURANCE_CSS_SHA256,
-        university_css_sha256: &UNIVERISTY_CSS_SHA256,
         base: BaseTemplate {
             selected_lang: language,
             trans: &TRANSLATIONS[language],

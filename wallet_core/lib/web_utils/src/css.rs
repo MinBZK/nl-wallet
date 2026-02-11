@@ -3,18 +3,17 @@ use axum::http::StatusCode;
 use axum::http::header;
 use axum::response::IntoResponse;
 use axum::response::Response;
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 
-/// Serve CSS content with ETag and cache control headers.
-///
-/// # Arguments
-///
-/// * `headers` - Request headers to check for `If-None-Match`.
-/// * `content` - The CSS content to serve.
-/// * `sha256_hash` - The base64-encoded SHA256 hash of the CSS content, used as the ETag.
-pub fn serve_css(headers: &HeaderMap, content: &'static str, sha256_hash: &str) -> Response {
-    let etag = format!("\"{}\"", sha256_hash);
+use crypto::utils::sha256;
 
-    // Check If-None-Match header for conditional request
+/// Serves bundled CSS content with ETag-based caching.
+///
+/// Returns 304 Not Modified if the client's `If-None-Match` header matches the content hash.
+pub fn serve_bundled_css(headers: &HeaderMap, css: &'static str) -> Response {
+    let etag = format!("\"{}\"", BASE64_STANDARD.encode(sha256(css.as_bytes())));
+
     if let Some(if_none_match) = headers.get(header::IF_NONE_MATCH)
         && if_none_match.as_bytes() == etag.as_bytes()
     {
@@ -25,9 +24,9 @@ pub fn serve_css(headers: &HeaderMap, content: &'static str, sha256_hash: &str) 
         [
             (header::CONTENT_TYPE, "text/css; charset=utf-8".to_string()),
             (header::ETAG, etag),
-            (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
+            (header::CACHE_CONTROL, "public, max-age=604800".to_string()),
         ],
-        content,
+        css,
     )
         .into_response()
 }

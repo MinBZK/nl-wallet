@@ -7,11 +7,11 @@
 {% block styles %}
 {% match usecase %}
 {% when "university_mdoc" | "university_sd_jwt" %}
-    <link integrity="sha256-{{ university_css_sha256 }}" rel="stylesheet" href="../css/university.css" />
+    <link rel="stylesheet" href="../static/css/university.css" />
 {% when "insurance" %}
-    <link integrity="sha256-{{ insurance_css_sha256 }}" rel="stylesheet" href="../css/insurance.css" />
+    <link rel="stylesheet" href="../static/css/insurance.css" />
 {% when "housing" %}
-    <link integrity="sha256-{{ housing_css_sha256 }}" rel="stylesheet" href="../css/housing.css" />
+    <link rel="stylesheet" href="../static/css/housing.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}

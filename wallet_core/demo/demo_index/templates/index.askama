@@ -2,7 +2,7 @@
 {%- import "../../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block styles %}
-<link integrity="sha256-{{ base.combined_css_sha256 }}" rel="stylesheet" href="./css/style.css" />
+<link rel="stylesheet" href="./static/css/nav.css" />
 {% endblock %}
 
 {% block scripts %}
