@@ -4,7 +4,7 @@ The following is a non-exhaustive list of references to specifications used in
 this project:
 
 ## Protocols
-- [OpenID4VCI](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html) - OpenID for Verifiable Credential Issuance
+- [OpenID4VCI](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html) - OpenID for Verifiable Credential Issuance
   - [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html) - OpenID Connect Core
   - [OAuth](https://datatracker.ietf.org/doc/html/rfc6749) - The OAuth 2.0 Authorization Framework
   - [Oauth-BearerToken](https://www.rfc-editor.org/rfc/rfc6750.html) - The OAuth 2.0 Authorization Framework: Bearer Token Usage
