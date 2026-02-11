@@ -20,22 +20,22 @@ async fn test_insert_recovery_code() {
     let db = db_from_env().await.expect("Could not connect to database");
 
     // verify it does not exist before insertion
-    let exists = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
-    assert!(!exists);
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(!is_denied);
 
     recovery_code::insert(&db, recovery_code.clone())
         .await
         .expect("should be able to insert recovery code");
 
-    let exists = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
-    assert!(exists);
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(is_denied);
 
     // verify idempotency
     recovery_code::insert(&db, recovery_code.clone())
         .await
         .expect("should be able to insert recovery code");
-    let exists = recovery_code::is_denied(&db, recovery_code).await.unwrap();
-    assert!(exists);
+    let is_denied = recovery_code::is_denied(&db, recovery_code).await.unwrap();
+    assert!(is_denied);
 }
 
 #[tokio::test]
@@ -96,8 +96,8 @@ async fn test_recovery_code_repeatable_reads() {
     let recovery_code = random_string(64);
 
     // Ensure the code is not present before starting the test
-    let exists = recovery_code::is_denied(&*db, recovery_code.clone()).await.unwrap();
-    assert!(!exists, "Recovery code should not exist before the test starts");
+    let is_denied = recovery_code::is_denied(&*db, recovery_code.clone()).await.unwrap();
+    assert!(!is_denied, "Recovery code should not exist before the test starts");
 
     // Spawn the reader task which starts a transaction and does two reads with a sleep in between.
     let db_clone = Arc::clone(&db);
@@ -144,4 +144,115 @@ async fn test_recovery_code_repeatable_reads() {
 
     // The test should fail if the two reads differ
     assert_eq!(first, second, "Detected non-repeatable read for the same recovery code",);
+}
+
+#[tokio::test]
+async fn test_remove_recovery_code() {
+    let recovery_code = random_string(64);
+
+    let db = db_from_env().await.expect("Could not connect to database");
+
+    recovery_code::remove(&db, recovery_code.clone())
+        .await
+        .expect("should be able to remove non-denied recovery code");
+
+    recovery_code::insert(&db, recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(is_denied);
+
+    recovery_code::remove(&db, recovery_code.clone())
+        .await
+        .expect("should be able to remove denied recovery code");
+
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(!is_denied);
+
+    // verify idempotency
+    recovery_code::remove(&db, recovery_code.clone())
+        .await
+        .expect("should be able to remove non-denied recovery code");
+
+    let is_denied = recovery_code::is_denied(&db, recovery_code).await.unwrap();
+    assert!(!is_denied);
+}
+
+#[tokio::test]
+async fn test_list_recovery_code() {
+    let db = db_from_env().await.expect("Could not connect to database");
+
+    // start with a clean slate
+    recovery_code::truncate(&db).await.unwrap();
+
+    let recovery_code = random_string(64);
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(recovery_codes.is_empty());
+
+    recovery_code::insert(&db, recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(recovery_codes.contains(&recovery_code));
+
+    // inserting the same code again should not create duplicates
+    recovery_code::insert(&db, recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(recovery_codes.contains(&recovery_code));
+
+    // inserting another should result in both being listed
+    let another_recovery_code = random_string(64);
+    recovery_code::insert(&db, another_recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(
+        [&recovery_code, &another_recovery_code]
+            .iter()
+            .all(|code| recovery_codes.contains(code))
+    );
+
+    // removing the first should result in only the second being listed
+    recovery_code::remove(&db, recovery_code.clone())
+        .await
+        .expect("should be able to remove denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+    assert!(!recovery_codes.contains(&recovery_code));
+    assert!(recovery_codes.contains(&another_recovery_code));
+
+    // removing the second should result in an empty list
+    recovery_code::remove(&db, another_recovery_code.clone())
+        .await
+        .expect("should be able to remove another denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(
+        [&recovery_code, &another_recovery_code]
+            .iter()
+            .all(|code| !recovery_codes.contains(code))
+    );
 }
