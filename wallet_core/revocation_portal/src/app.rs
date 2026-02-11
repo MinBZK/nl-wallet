@@ -43,7 +43,6 @@ use crypto::utils::sha256;
 use http_utils::health::create_health_router;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
-use web_utils::css::serve_bundled_css;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
@@ -65,10 +64,9 @@ pub static PORTAL_UI_JS_SHA256: LazyLock<String> =
 pub static LOKALIZE_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/lokalize.js"))));
 
-pub const COMBINED_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
-
-pub static COMBINED_CSS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(COMBINED_CSS.as_bytes())));
+// Bundled CSS constant - placeholder in dev mode, full bundle in release mode.
+// In dev mode, CSS is served from the filesystem via ServeDir.
+pub const PORTAL_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
 
 #[derive(Deserialize)]
 struct DeleteForm {
@@ -113,8 +111,8 @@ async fn csp_middleware(mut req: Request<Body>, next: Next) -> Response {
     let mut response = next.run(req).await;
 
     let csp = format!(
-        "default-src 'none'; script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; img-src 'self' data:; font-src \
-         'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+        "default-src 'none'; script-src 'nonce-{nonce}'; style-src 'self' 'nonce-{nonce}'; img-src 'self' data:; \
+         font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
     );
 
     response.headers_mut().insert(
@@ -138,10 +136,19 @@ where
         .with_secure(true)
         .with_cookie_same_site(SameSite::Strict);
 
-    let mut app = Router::new()
+    let app = Router::new()
         .route("/support/delete", get(index::<C>))
-        .route("/support/delete", post(delete_wallet::<C>))
-        .route("/css/style.css", get(serve_combined_css))
+        .route("/support/delete", post(delete_wallet::<C>));
+
+    // In release mode, serve bundled CSS from route handlers.
+    // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
+    #[cfg(not(debug_assertions))]
+    let app = app.route(
+        "/static/css/portal.css",
+        get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, PORTAL_CSS) }),
+    );
+
+    let mut app = app
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -170,7 +177,6 @@ struct BaseTemplate<'a> {
     portal_ui_js_sha256: &'a str,
     portal_js_sha256: &'a str,
     lokalize_js_sha256: &'a str,
-    combined_css_sha256: &'a str,
     nonce: &'a str,
 }
 
@@ -197,10 +203,6 @@ struct SuccessTemplate<'a> {
     success_message_template: String,
 }
 
-async fn serve_combined_css(headers: axum::http::HeaderMap) -> Response {
-    serve_bundled_css(&headers, COMBINED_CSS)
-}
-
 async fn index<C: RevocationClient>(
     State(_state): State<Arc<ApplicationState<C>>>,
     nonce: Nonce,
@@ -215,7 +217,6 @@ async fn index<C: RevocationClient>(
         portal_js_sha256: &PORTAL_JS_SHA256,
         portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
-        combined_css_sha256: &COMBINED_CSS_SHA256,
         nonce: nonce.as_ref(),
     };
 
@@ -252,7 +253,6 @@ async fn delete_wallet<C: RevocationClient>(
         portal_js_sha256: &PORTAL_JS_SHA256,
         portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
-        combined_css_sha256: &COMBINED_CSS_SHA256,
         nonce: nonce.as_ref(),
     };
 

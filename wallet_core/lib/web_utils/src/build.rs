@@ -76,8 +76,8 @@ fn write_to_file(dest: &Path, content: &str) {
 ///
 /// This function processes CSS files differently based on the build profile:
 /// - **Release builds**: Resolves all @import statements and minifies the result into a single file
-/// - **Development builds**: Writes a placeholder so `include_str!` compiles. CSS is served directly
-///   from the filesystem at runtime, with the browser resolving @import statements.
+/// - **Development builds**: Writes a placeholder so `include_str!` compiles. CSS is served directly from the
+///   filesystem at runtime, with the browser resolving @import statements.
 ///
 /// # Arguments
 ///
@@ -104,11 +104,8 @@ pub fn combine_css_with_imports(entry_file: &Path, dest: &Path) {
 
     // Use the bundler to resolve @import statements
     let fs = lightningcss::bundler::FileProvider::new();
-    let mut bundler = lightningcss::bundler::Bundler::new(
-        &fs,
-        None,
-        lightningcss::stylesheet::ParserOptions::default(),
-    );
+    let mut bundler =
+        lightningcss::bundler::Bundler::new(&fs, None, lightningcss::stylesheet::ParserOptions::default());
 
     let mut stylesheet = bundler
         .bundle(&abs_entry_file)
