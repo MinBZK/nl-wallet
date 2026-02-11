@@ -1584,6 +1584,9 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
+            .expect_is_recovery_code_on_deny_list()
+            .returning(|_, _| Ok(false));
+        wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
@@ -1633,6 +1636,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_is_recovery_code_on_deny_list()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
@@ -1686,6 +1692,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_is_recovery_code_on_deny_list()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
@@ -1749,6 +1758,9 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
+            .expect_is_recovery_code_on_deny_list()
+            .returning(|_, _| Ok(false));
+        wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
@@ -1802,6 +1814,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_is_recovery_code_on_deny_list()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(true));
