@@ -16,6 +16,7 @@ use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
+use crate::model::wallet_user::WalletUserIsRevoked;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
 use crate::model::wallet_user::WalletUserState;
@@ -30,7 +31,7 @@ pub trait WalletUserRepository {
 
     async fn list_wallet_user_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>>;
 
-    async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>>;
+    async fn list_wallets(&self, transaction: &Self::TransactionType) -> Result<Vec<WalletUserIsRevoked>>;
 
     async fn create_wallet_user(&self, transaction: &Self::TransactionType, user: WalletUserCreate) -> Result<Uuid>;
 
@@ -265,8 +266,11 @@ pub mod mock {
             ])
         }
 
-        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>> {
-            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
+        async fn list_wallets(&self, _transaction: &Self::TransactionType) -> Result<Vec<WalletUserIsRevoked>> {
+            Ok(vec![
+                wallet_user::mock::wallet_user_1().into(),
+                wallet_user::mock::wallet_user_with_id("wallet-456".to_owned()).into(),
+            ])
         }
 
         async fn create_wallet_user(

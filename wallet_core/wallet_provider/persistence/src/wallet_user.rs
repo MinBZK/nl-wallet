@@ -22,6 +22,7 @@ use sea_orm::prelude::Expr;
 use sea_orm::sea_query::IntoIden;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
+use sea_orm::sea_query::SelectStatement;
 use sea_orm::sea_query::SimpleExpr;
 use uuid::Uuid;
 
@@ -37,6 +38,7 @@ use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
@@ -50,18 +52,74 @@ use crate::entity::wallet_user_instruction_challenge;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-pub async fn list_wallet_ids<S, T>(db: &T) -> Result<Vec<String>>
+fn recovery_code_is_denied_statement() -> SelectStatement {
+    Query::select()
+        .column(recovery_code::Column::IsDenied)
+        .from(recovery_code::Entity)
+        .and_where(
+            Expr::col((recovery_code::Entity, recovery_code::Column::RecoveryCode))
+                .eq(Expr::col((wallet_user::Entity, wallet_user::Column::RecoveryCode))),
+        )
+        .and_where(Expr::col((recovery_code::Entity, recovery_code::Column::IsDenied)).eq(true))
+        .take()
+}
+
+#[derive(FromQueryResult)]
+#[sea_orm(entity = "wallet_user::Entity")]
+pub struct WalletUserStateModel {
+    pub wallet_id: String,
+    pub state: String,
+    pub revocation_reason: Option<String>,
+    pub revocation_date_time: Option<DateTimeWithTimeZone>,
+    pub recovery_code: Option<String>,
+    pub recovery_code_is_denied: bool,
+}
+
+pub async fn list_wallets<S, T>(db: &T) -> Result<Vec<WalletUserIsRevoked>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user::Entity::find()
+    Ok(wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::WalletId)
-        .into_tuple()
+        .column(wallet_user::Column::State)
+        .column(wallet_user::Column::RevocationReason)
+        .column(wallet_user::Column::RevocationDateTime)
+        .column(wallet_user::Column::RecoveryCode)
+        .expr_as(
+            Expr::exists(recovery_code_is_denied_statement()),
+            "recovery_code_is_denied",
+        )
+        .into_model::<WalletUserStateModel>()
         .all(db.connection())
         .await
-        .map_err(PersistenceError::Execution)
+        .map_err(PersistenceError::Execution)?
+        .into_iter()
+        .map(|model| {
+            let state = model
+                .state
+                .parse()
+                .expect("parsing the wallet user state from the database should always succeed");
+
+            let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
+                (Some(reason), Some(date_time)) => Some(RevocationRegistration {
+                    reason: reason.parse().unwrap(),
+                    date_time: date_time.into(),
+                }),
+                (None, None) => None,
+                _ => panic!("every reason should have a registered datetime"),
+            };
+
+            WalletUserIsRevoked {
+                wallet_id: model.wallet_id,
+                recovery_code: model.recovery_code,
+                state,
+                revocation_registration,
+                can_register_new_wallet: !model.recovery_code_is_denied,
+            }
+        })
+        .collect())
 }
 
 pub async fn list_wallet_user_ids<S, T>(db: &T) -> Result<Vec<Uuid>>
@@ -197,16 +255,6 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let is_denied_query = Query::select()
-        .column(recovery_code::Column::IsDenied)
-        .from(recovery_code::Entity)
-        .and_where(
-            Expr::col((recovery_code::Entity, recovery_code::Column::RecoveryCode))
-                .eq(Expr::col((wallet_user::Entity, wallet_user::Column::RecoveryCode))),
-        )
-        .and_where(Expr::col((recovery_code::Entity, recovery_code::Column::IsDenied)).eq(true))
-        .take();
-
     let Some(model) = wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::State)
@@ -223,7 +271,10 @@ where
         .column(wallet_user::Column::RevocationReason)
         .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
-        .expr_as(Expr::exists(is_denied_query), "recovery_code_is_denied")
+        .expr_as(
+            Expr::exists(recovery_code_is_denied_statement()),
+            "recovery_code_is_denied",
+        )
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,

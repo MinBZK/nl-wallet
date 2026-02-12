@@ -15,6 +15,7 @@ use utils::generator::Generator;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
+use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -225,13 +226,13 @@ where
 
 pub async fn list_wallets<T, R, H>(
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
-) -> Result<Vec<String>, RevocationError>
+) -> Result<Vec<WalletUserIsRevoked>, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     let tx = user_state.repositories.begin_transaction().await?;
-    let wallet_ids = user_state.repositories.list_wallet_ids(&tx).await?;
+    let wallet_ids = user_state.repositories.list_wallets(&tx).await?;
 
     tx.commit().await?;
 

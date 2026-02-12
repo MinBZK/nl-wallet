@@ -20,6 +20,7 @@ client = ["dep:error_category", "dep:futures", "dep:platform_support", "p256/pem
 server = ["dep:apple_app_attest", "p256/pem"]
 integration_test = ["android_attest/mock", "client", "dep:rustls-pki-types", "server"]
 mock = []
+utoipa = ["dep:utoipa"]
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
@@ -43,6 +44,7 @@ wscd.path = "../../lib/wscd"
 futures = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
 
 android_attest = { path = "../../lib/android_attest", optional = true }
 apple_app_attest = { path = "../../lib/apple_app_attest", optional = true }

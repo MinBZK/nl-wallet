@@ -20,6 +20,8 @@ use utoipa_axum::routes;
 
 use readable_identifier::ReadableIdentifierParseError;
 use utils::generator::TimeGenerator;
+#[cfg(feature = "test_internal_ui")]
+use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 
 use crate::router_state::RouterState;
 
@@ -192,21 +194,30 @@ where
     responses(
         (
             status = OK,
-            body = Vec<String>,
-            description = "Successfully listed the registered wallet IDs.",
-            example = json!([ "dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ" ])
+            body = Vec<WalletUserIsRevoked>,
+            description = "Successfully listed the registered wallets.",
         ),
     )
 )]
 async fn list_wallets<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-) -> Result<Json<Vec<String>>, RevocationError>
+) -> Result<Json<Vec<WalletUserIsRevoked>>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
     Ok(Json(
-        wallet_provider_service::revocation::list_wallets(&router_state.user_state).await?,
+        wallet_provider_service::revocation::list_wallets(&router_state.user_state)
+            .await?
+            .into_iter()
+            .map(|w| WalletUserIsRevoked {
+                wallet_id: w.wallet_id,
+                recovery_code: w.recovery_code,
+                state: w.state,
+                revocation_registration: w.revocation_registration,
+                can_register_new_wallet: w.can_register_new_wallet,
+            })
+            .collect(),
     ))
 }
 

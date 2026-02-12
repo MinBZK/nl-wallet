@@ -20,6 +20,7 @@ use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
@@ -56,8 +57,11 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
-        wallet_user::list_wallet_ids(transaction).await
+    async fn list_wallets(
+        &self,
+        transaction: &Self::TransactionType,
+    ) -> Result<Vec<WalletUserIsRevoked>, PersistenceError> {
+        wallet_user::list_wallets(transaction).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -545,9 +549,12 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+    use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
+    use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
+    use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
@@ -560,10 +567,10 @@ pub mod mock {
         impl WalletUserRepository for TransactionalWalletUserRepository {
             type TransactionType = MockTransaction;
 
-            async fn list_wallet_ids(
+            async fn list_wallets(
                 &self,
                 transaction: &MockTransaction,
-            ) -> Result<Vec<String>, PersistenceError>;
+            ) -> Result<Vec<WalletUserIsRevoked>, PersistenceError>;
 
             async fn list_wallet_user_ids(
                 &self,
@@ -861,8 +868,14 @@ pub mod mock {
             ])
         }
 
-        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
-            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
+        async fn list_wallets(
+            &self,
+            _transaction: &Self::TransactionType,
+        ) -> Result<Vec<WalletUserIsRevoked>, PersistenceError> {
+            Ok(vec![
+                wallet_user_1().into(),
+                wallet_user_with_id("wallet-456".to_owned()).into(),
+            ])
         }
 
         async fn create_wallet_user(

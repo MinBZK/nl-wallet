@@ -3,6 +3,7 @@ use chrono::Utc;
 use derive_more::Debug;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
+use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -41,7 +42,8 @@ pub struct WalletUser {
     pub recovery_code_is_denied: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct RevocationRegistration {
     pub reason: RevocationReason,
     pub date_time: DateTime<Utc>,
@@ -106,8 +108,9 @@ pub struct WalletUserCreate {
     pub revocation_code_hmac: Vec<u8>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum WalletUserState {
     Active,
     Blocked,
@@ -150,6 +153,33 @@ impl WalletUserKey {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+pub struct WalletUserIsRevoked {
+    #[cfg_attr(feature = "utoipa", schema(examples("dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ")))]
+    pub wallet_id: String,
+    #[cfg_attr(
+        feature = "utoipa",
+        schema(examples("54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"))
+    )]
+    pub recovery_code: Option<String>,
+    pub state: WalletUserState,
+    pub revocation_registration: Option<RevocationRegistration>,
+    pub can_register_new_wallet: bool,
+}
+
+impl From<WalletUser> for WalletUserIsRevoked {
+    fn from(wallet_user: WalletUser) -> Self {
+        Self {
+            wallet_id: wallet_user.wallet_id,
+            recovery_code: wallet_user.recovery_code,
+            state: wallet_user.state,
+            revocation_registration: wallet_user.revocation_registration,
+            can_register_new_wallet: !wallet_user.recovery_code_is_denied,
+        }
+    }
+}
+
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::str::FromStr;
@@ -167,9 +197,13 @@ pub mod mock {
     use super::WalletUserState;
 
     pub fn wallet_user_1() -> WalletUser {
+        wallet_user_with_id("wallet_123".to_owned())
+    }
+
+    pub fn wallet_user_with_id(wallet_id: String) -> WalletUser {
         WalletUser {
             id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-            wallet_id: "wallet_123".to_string(),
+            wallet_id,
             hw_pubkey: VerifyingKey::from_str(
                 r#"-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhaPRcKTAS30m0409bpOzQLfLNOh5
