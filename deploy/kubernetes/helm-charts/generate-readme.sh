@@ -13,7 +13,9 @@ else
     exit 1
 fi
 
-for values_file in $(find "$BASE_DIR" -type f -name 'values.yaml'); do
-    echo "$(basename "$(dirname "$values_file")")"
-    $GENERATOR -r "$(dirname "$values_file")/README.md" -v "$values_file"
-done
+find "$BASE_DIR" -type f -name 'values.yaml' -print0 |
+  while IFS= read -r -d '' values_file; do
+    chart_dir="$(dirname -- "$values_file")"
+    basename -- "$chart_dir"
+    "$GENERATOR" -r "$chart_dir/README.md" -v "$values_file"
+  done
