@@ -55,6 +55,7 @@ use wscd::Poa;
 use wscd::PoaVerificationError;
 
 use crate::Format;
+use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
@@ -1304,9 +1305,7 @@ impl CredentialResponse {
             .into_signed_mdoc(&attestation_config.key_pair)
             .await?;
 
-        Ok(CredentialResponse::MsoMdoc {
-            credential: Box::new(issuer_signed),
-        })
+        Ok(CredentialResponse::new_immediate(Credential::new_mdoc(issuer_signed)))
     }
 
     async fn new_for_sd_jwt(
@@ -1317,9 +1316,9 @@ impl CredentialResponse {
             .into_signed_sd_jwt(&attestation_config.metadata, &attestation_config.key_pair)
             .await?;
 
-        Ok(CredentialResponse::SdJwt {
-            credential: signed_sd_jwt.into_unverified(),
-        })
+        Ok(CredentialResponse::new_immediate(Credential::new_sd_jwt(
+            signed_sd_jwt.into_unverified(),
+        )))
     }
 }
 
