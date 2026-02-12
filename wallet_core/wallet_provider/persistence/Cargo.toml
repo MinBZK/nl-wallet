@@ -53,7 +53,15 @@ db_test = [
     "test",
 ]
 # Include code used for testing
-test = ["dep:android_attest", "dep:db_test", "dep:rand_core", "hsm/mock"]
+test = [
+    "async-dropper/simple",
+    "dep:async-trait",
+    "dep:android_attest",
+    "dep:db_test",
+    "dep:rand_core",
+    "dep:status_lists",
+    "hsm/mock"
+]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
@@ -75,6 +83,8 @@ tracing.workspace = true
 url.workspace = true
 uuid.workspace = true
 
+async-dropper = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
@@ -92,6 +102,7 @@ wallet_provider_domain.path = "../domain"
 
 android_attest = { path = "../../lib/android_attest", optional = true }
 db_test = { path = "../../lib/db_test", optional = true }
+status_lists = { path = "../../lib/status_lists", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

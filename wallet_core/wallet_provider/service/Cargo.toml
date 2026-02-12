@@ -78,7 +78,7 @@ serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tracing.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["sync"] }
 uuid = { workspace = true, features = ["v4"] }
 trait-variant.workspace = true
 

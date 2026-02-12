@@ -167,22 +167,19 @@ where
 
 #[utoipa::path(
     post,
-    path = "/nuke/",
+    path = "/revoke-solution/",
     responses(
-        (status = OK, description = "Successfully revoked all wallets."),
+        (status = OK, description = "Successfully revoked wallet solution."),
     )
 )]
-async fn nuke<GRC, PIC>(State(router_state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(), RevocationError>
+async fn revoke_solution<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
-    Ok(wallet_provider_service::revocation::revoke_all_wallets(
-        &router_state.user_state,
-        &TimeGenerator,
-        &router_state.audit_log,
-    )
-    .await?)
+    Ok(wallet_provider_service::revocation::revoke_solution(&router_state.user_state, &router_state.audit_log).await?)
 }
 
 #[cfg(feature = "test_internal_ui")]
@@ -285,7 +282,7 @@ where
         .routes(routes!(revoke_wallets_by_id))
         .routes(routes!(revoke_wallet_by_revocation_code))
         .routes(routes!(revoke_wallets_by_recovery_code))
-        .routes(routes!(nuke))
+        .routes(routes!(revoke_solution))
         .routes(routes!(list_denied_recovery_codes))
         .routes(routes!(remove_denied_recovery_code));
 

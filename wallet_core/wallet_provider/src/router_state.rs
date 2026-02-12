@@ -161,6 +161,9 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             settings.attestation_wrapping_key_identifier.clone(),
         );
 
+        let flags = WalletRepoFlags::new(repositories.clone(), settings.flags_refresh_delay);
+        flags.start_refresh_job();
+
         let state = RouterState {
             account_server,
             audit_log,
@@ -169,8 +172,8 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             pin_policy,
             max_transfer_upload_size_in_bytes: settings.max_transfer_upload_size_in_bytes,
             user_state: UserState {
-                flags: WalletRepoFlags::new(repositories.clone(), settings.flags_refresh_delay),
                 repositories,
+                flags,
                 wallet_user_hsm,
                 wua_issuer,
                 wua_validity: Days::new(settings.wua_valid_days),

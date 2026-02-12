@@ -25,12 +25,16 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::account_server::UserState;
+use crate::flags::WalletFlags;
 use crate::wua_issuer::WuaIssuer;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RevocationError {
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
+
+    #[error("flag error: {0}")]
+    Flag(#[from] Box<dyn std::error::Error + Send + Sync>),
 
     #[error("error revoking WUA: {0}")]
     WuaRevocation(#[from] token_status_list::status_list_service::RevocationError),
@@ -209,33 +213,19 @@ where
 }
 
 #[audited]
-pub async fn revoke_all_wallets<T, R, F, H>(
+pub async fn revoke_solution<R, F, H>(
     user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
-    time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
 where
-    T: Committable,
-    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    F: WalletFlags,
 {
-    let revocation_reason = RevocationReason::WalletSolutionCompromised;
-    let revocation_date_time = time.generate();
-
-    // TODO rewrite this method (PVW-5299)
-    let tx = user_state.repositories.begin_transaction().await?;
-    let wallet_user_ids = user_state.repositories.list_wallet_user_ids(&tx).await?;
-    let wua_ids = user_state
-        .repositories
-        .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
-        .await?;
-    tx.commit().await?;
-
-    // TODO consider adding a `revoke_all` method to `StatusListRevocationService` for efficiency (PVW-5299)
     user_state
-        .status_list_service
-        .revoke_attestation_batches(wua_ids)
-        .await?;
-
+        .flags
+        .set_solution_revoked()
+        .await
+        .map_err(|err| RevocationError::Flag(Box::new(err)))?;
+    user_state.status_list_service.revoke_all().await?;
     Ok(())
 }
 
