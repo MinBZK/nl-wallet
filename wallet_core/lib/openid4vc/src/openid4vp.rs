@@ -12,10 +12,10 @@ use itertools::Itertools;
 use josekit::JoseError;
 use josekit::jwe::JweHeader;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
+use josekit::jwe::alg::ecdh_es::EcdhEsJweEncrypter;
 use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwt::JwtPayload;
-use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -232,17 +232,39 @@ pub struct WalletRequest {
     pub wallet_nonce: Option<String>,
 }
 
-#[nutype(
-    derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
-    validate(with = Self::validate, error = AuthRequestValidationError),
-)]
-pub struct JwePublicKey(Jwk);
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)] // might leak sensitive data
+pub enum JwePublicKeyError {
+    #[error("unsupported JWK: expected {expected}, found {found:?} in {field}")]
+    UnsupportedJwk {
+        field: &'static str,
+        expected: &'static str,
+        found: Option<serde_json::Value>,
+    },
+
+    #[error("error parsing JWK: {0}")]
+    JwkParsing(#[source] JoseError),
+}
+
+/// Wraps a [`Jwk`], performs validation on it and ensures that this contains a EC public key on the P256 curve.
+/// Unfortunately, `josekit` actually does little validation when deserializing its `Jwk` type, opting instead to
+/// perform validations when this type is used. Since this goes counter to our principle of validating on input and
+/// failing early, we eagerly create a [`EcdhEsJweEncrypter`] here, which is where `josekit` actually performs the
+/// requisite validations on the contents of the JWK.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(try_from = "Jwk")]
+pub struct JwePublicKey {
+    #[serde(flatten)]
+    jwk: Jwk,
+    #[serde(skip)]
+    encrypter: EcdhEsJweEncrypter,
+}
 
 impl JwePublicKey {
-    fn validate(jwk: &Jwk) -> Result<(), AuthRequestValidationError> {
+    pub fn try_new(jwk: Jwk) -> Result<Self, JwePublicKeyError> {
         // Avoid jwk.key_type() which panics if `kty` is not set.
         if jwk.parameter("kty").and_then(serde_json::Value::as_str) != Some("EC") {
-            return Err(AuthRequestValidationError::UnsupportedJwk {
+            return Err(JwePublicKeyError::UnsupportedJwk {
                 field: "kty",
                 expected: "EC",
                 found: jwk.parameter("kty").cloned(),
@@ -250,25 +272,28 @@ impl JwePublicKey {
         }
 
         if jwk.curve() != Some("P-256") {
-            return Err(AuthRequestValidationError::UnsupportedJwk {
+            return Err(JwePublicKeyError::UnsupportedJwk {
                 field: "crv",
                 expected: "P-256",
                 found: jwk.curve().map(serde_json::Value::from),
             });
         }
 
-        // Validate the presence of the curve coordinates.
-        for field in ["x", "y"] {
-            if !jwk.parameter(field).is_some_and(|value| value.is_string()) {
-                return Err(AuthRequestValidationError::UnsupportedJwk {
-                    field,
-                    expected: "<a string>",
-                    found: jwk.parameter(field).cloned(),
-                });
-            }
-        }
+        let encrypter = EcdhEsJweAlgorithm::EcdhEs
+            .encrypter_from_jwk(&jwk)
+            .map_err(JwePublicKeyError::JwkParsing)?;
 
-        Ok(())
+        let jwe_pubkey = Self { jwk, encrypter };
+
+        Ok(jwe_pubkey)
+    }
+
+    pub fn jwk(&self) -> &Jwk {
+        &self.jwk
+    }
+
+    pub fn encrypter(&self) -> &EcdhEsJweEncrypter {
+        &self.encrypter
     }
 
     /// Generate the bytes of a RFC 7638 compliant SHA-256 thumbprint, without URL-safe Base64 encoding.
@@ -277,11 +302,19 @@ impl JwePublicKey {
         // These values are guaranteed to exist by this type's validation.
         let (x, y) = ["x", "y"]
             .iter()
-            .map(|field| self.as_ref().parameter(field).unwrap().as_str().unwrap())
+            .map(|field| self.jwk.parameter(field).unwrap().as_str().unwrap())
             .collect_tuple()
             .unwrap();
 
         sha256(format!(r#"{{"crv":"P-256","kty":"EC","x":"{x}","y":"{y}"}}"#).as_bytes())
+    }
+}
+
+impl TryFrom<Jwk> for JwePublicKey {
+    type Error = JwePublicKeyError;
+
+    fn try_from(value: Jwk) -> Result<Self, Self::Error> {
+        Self::try_new(value)
     }
 }
 
@@ -307,13 +340,9 @@ pub enum AuthRequestValidationError {
     #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
     #[category(critical)]
     UnexpectedJwkAmount(usize),
-    #[error("unsupported JWK: expected {expected}, found {found:?} in {field}")]
-    #[category(pd)] // might leak sensitive data
-    UnsupportedJwk {
-        field: &'static str,
-        expected: &'static str,
-        found: Option<serde_json::Value>,
-    },
+    #[error("{0}")]
+    #[category(pd)]
+    Jwk(#[from] JwePublicKeyError),
     #[error("unsupported DCQL query: {0}")]
     UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
     #[error(
@@ -419,6 +448,8 @@ impl NormalizedVpAuthorizationRequest {
         response_uri: BaseUrl,
         wallet_nonce: Option<String>,
     ) -> Result<Self, AuthRequestError> {
+        let jwk = encryption_pubkey.jwk().clone();
+
         Ok(Self {
             client_id: String::from(
                 rp_certificate
@@ -427,13 +458,11 @@ impl NormalizedVpAuthorizationRequest {
                     .ok_or(AuthRequestError::MissingSAN)?,
             ),
             nonce,
-            encryption_pubkey: encryption_pubkey.clone(),
+            encryption_pubkey,
             response_uri,
             credential_requests,
             client_metadata: ClientMetadata {
-                jwks: VpJwks::Direct {
-                    keys: vec![encryption_pubkey.into_inner()],
-                },
+                jwks: VpJwks::Direct { keys: vec![jwk] },
                 vp_formats: VpFormat::MsoMdoc {
                     alg: IndexSet::from([FormatAlg::ES256]),
                 },
@@ -577,9 +606,6 @@ pub enum AuthResponseError {
     #[error("error (de)serializing JWE payload: {0}")]
     Json(#[from] serde_json::Error),
 
-    #[error("error parsing JWK: {0}")]
-    JwkConversion(#[source] JoseError),
-
     #[error("error encrypting/decrypting JWE: {0}")]
     Jwe(#[source] JoseError),
 
@@ -716,12 +742,10 @@ impl VpAuthorizationResponse {
         };
         let payload = JwtPayload::from_map(payload).unwrap();
 
-        // The key the RP wants us to encrypt our response to.
-        let encrypter = EcdhEsJweAlgorithm::EcdhEs
-            .encrypter_from_jwk(auth_request.encryption_pubkey.as_ref())
-            .map_err(AuthResponseError::JwkConversion)?;
+        // Encrypt the response with the encrypter that was already created from the JWK.
+        let jwe = josekit::jwt::encode_with_encrypter(&payload, &header, auth_request.encryption_pubkey.encrypter())
+            .map_err(AuthResponseError::Jwe)?;
 
-        let jwe = josekit::jwt::encode_with_encrypter(&payload, &header, &encrypter).map_err(AuthResponseError::Jwe)?;
         Ok(jwe)
     }
 
@@ -758,7 +782,7 @@ impl VpAuthorizationResponse {
     fn decrypt(jwe: &str, private_key: &EcKeyPair) -> Result<VpAuthorizationResponse, AuthResponseError> {
         let decrypter = EcdhEsJweAlgorithm::EcdhEs
             .decrypter_from_jwk(&private_key.to_jwk_key_pair())
-            .map_err(AuthResponseError::JwkConversion)?;
+            .expect("should be able to create EcdhEsJweDecrypter from EcKeyPair");
         let (payload, _header) =
             josekit::jwt::decode_with_decrypter(jwe, &decrypter).map_err(AuthResponseError::Jwe)?;
 
@@ -1052,23 +1076,44 @@ mod tests {
     use crate::VpAuthorizationErrorCode;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::openid4vp::AuthResponseError;
-    use crate::openid4vp::NormalizedVpAuthorizationRequest;
 
-    use super::AuthRequestValidationError;
+    use super::AuthResponseError;
     use super::JwePublicKey;
+    use super::JwePublicKeyError;
+    use super::NormalizedVpAuthorizationRequest;
     use super::VerifiablePresentation;
     use super::VpAuthorizationRequest;
     use super::VpAuthorizationResponse;
 
+    enum ExpectedJwePublicKeyError {
+        UnsupportedJwk { field: &'static str },
+        JwkParsing,
+    }
+
     #[rstest]
-    #[case::ed(Jwk::generate_ed_key(EdCurve::Ed25519).unwrap(), "kty")]
-    #[case::p384(Jwk::generate_ec_key(EcCurve::P384).unwrap(), "crv")]
-    #[case::coordinates(serde_json::from_value(json!({"kty":"EC","crv":"P-256"})).unwrap(), "x")]
-    fn test_jwe_public_key_validation(#[case] jwk: Jwk, #[case] expected_field: &str) {
+    #[case::ed(
+        Jwk::generate_ed_key(EdCurve::Ed25519).unwrap(),
+        ExpectedJwePublicKeyError::UnsupportedJwk { field: "kty" }
+    )]
+    #[case::p384(
+        Jwk::generate_ec_key(EcCurve::P384).unwrap(),
+        ExpectedJwePublicKeyError::UnsupportedJwk { field: "crv" }
+    )]
+    #[case::coordinates(
+        serde_json::from_value(json!({"kty":"EC","crv":"P-256"})).unwrap(),
+        ExpectedJwePublicKeyError::JwkParsing
+    )]
+    fn test_jwe_public_key_validation(#[case] jwk: Jwk, #[case] expected_error: ExpectedJwePublicKeyError) {
         let error = JwePublicKey::try_new(jwk).expect_err("JwePublicKey validation should fail");
 
-        assert_matches!(error, AuthRequestValidationError::UnsupportedJwk { field, .. } if field == expected_field);
+        match expected_error {
+            ExpectedJwePublicKeyError::UnsupportedJwk { field: expected_field } => {
+                assert_matches!(error, JwePublicKeyError::UnsupportedJwk { field, .. } if field == expected_field);
+            }
+            ExpectedJwePublicKeyError::JwkParsing => {
+                assert_matches!(error, JwePublicKeyError::JwkParsing(_));
+            }
+        }
     }
 
     #[test]

@@ -274,7 +274,6 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use rstest::rstest;
     use serde::de::Error;
-    use serde_json::json;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_types::claim_path::ClaimPath;
@@ -293,7 +292,6 @@ mod tests {
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
-    use crate::openid4vp::JwePublicKey;
     use crate::openid4vp::RequestUriMethod;
     use crate::verifier::SessionType;
 
@@ -498,38 +496,6 @@ mod tests {
             DisclosureError {
                 data_shared: DataDisclosed::NotDisclosed,
                 error: VpSessionError::Client(VpClientError::SdJwtSigning(_))
-            }
-        );
-    }
-
-    #[test]
-    fn test_disclosure_session_disclose_error_auth_response_encryption() {
-        // Calling `VPDisclosureSession::disclose()` with a malformed encryption key should result in an error.
-        let (requests, attestations, wscd) = setup_disclosure_mdoc();
-        let (mut disclosure_session, _verifier_session) = setup_disclosure_session(None, requests);
-
-        let jwk_json = json!({
-            "kty": "EC",
-            "crv": "P-256",
-            "x": "foo!",
-            "y": "bar!",
-            "alg": "ECDH-ES",
-        });
-
-        disclosure_session.auth_request.encryption_pubkey =
-            JwePublicKey::try_new(serde_json::from_value(jwk_json).unwrap()).unwrap();
-
-        let (_disclosure_session, error) = disclosure_session
-            .disclose(attestations, &wscd, &MockTimeGenerator::default())
-            .now_or_never()
-            .unwrap()
-            .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
-
-        assert_matches!(
-            error,
-            DisclosureError {
-                data_shared: DataDisclosed::NotDisclosed,
-                error: VpSessionError::Client(VpClientError::AuthResponseEncryption(_))
             }
         );
     }
