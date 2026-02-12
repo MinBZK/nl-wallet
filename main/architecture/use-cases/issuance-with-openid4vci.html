@@ -193,7 +193,7 @@ window.addEventListener("load", () => mermaid.run());
              
   <section id="issuance-with-openid4vci">
 <h1>Issuance with OpenID4VCI<a class="headerlink" href="#issuance-with-openid4vci" title="Link to this heading"></a></h1>
-<p>We’ve implemented issuance with <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html">OpenID4VCI draft 13</a>, with attestation
+<p>We’ve implemented issuance with <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI draft 13</a>, with attestation
 preview as a custom addition.</p>
 <p>We currently (2025-12-11) have two issuance implementations: The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>,
 a specialized issuer specifically for Dutch <a class="reference external" href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook">PID</a>s, which this page is about,
@@ -203,8 +203,8 @@ kinds of things (which you can <a class="reference internal" href="disclosure-ba
 <h2>PID issuance<a class="headerlink" href="#pid-issuance" title="Link to this heading"></a></h2>
 <p>PID issuance is done by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> which is a part of the
 <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate. It is created to issue <a class="reference external" href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook">PID</a>s specifically.</p>
-<p>This diagram below shows how the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> uses <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html">OpenID4VCI</a> in a
-<a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> to issue a [PID] to the wallet.</p>
+<p>This diagram below shows how the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> uses <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI</a> in a
+<a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> to issue a [PID] to the wallet.</p>
 <p>Using this protocol, the wallet starts a normal OpenID Connect session at an
 <code class="docutils literal notranslate"><span class="pre">AuthServer</span></code> (which is a so-called <a class="reference external" href="https://openid.net/developers/how-connect-works">OpenID Provider</a>; in the case of the NL
 Wallet, this usually means <a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/digid">DigiD</a> through <a class="reference external" href="https://github.com/minvws/nl-rdo-max">nl-rdo-max</a>), from which it
