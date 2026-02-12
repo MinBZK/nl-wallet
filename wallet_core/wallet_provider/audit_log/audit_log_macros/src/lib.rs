@@ -123,7 +123,7 @@ fn audited_inner(mut input: ItemFn) -> syn::Result<proc_macro2::TokenStream> {
         }
     }
 
-    // Require #[auditer] parameter exists
+    // Require that the #[auditer] parameter exists
     let audit_log_ident = auditer_ident.ok_or_else(|| {
         syn::Error::new_spanned(&input.sig, "exactly one parameter must be annotated with #[auditer]")
     })?;
@@ -194,7 +194,7 @@ fn generate_parameter_struct(
 fn generate_field_initialization(p: &AuditParam) -> proc_macro2::TokenStream {
     let ident = &p.ident;
     if matches!(p.ty.as_ref(), syn::Type::Reference(_)) {
-        quote! { #ident: #ident }
+        quote! { #ident }
     } else {
         quote! { #ident: &#ident }
     }
