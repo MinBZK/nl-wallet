@@ -135,8 +135,8 @@ impl CredentialResponse {
         }
     }
 
-    // TODO (PVW-5554): Replace this with into_credentials().
-    pub fn into_credential(self) -> Option<Credential> {
+    // TODO (PVW-5554): Replace this with into_immediate_credential().
+    pub fn into_immediate_credential(self) -> Option<Credential> {
         match self {
             Self::Immediate { credentials, .. } => Some(credentials.into_first()),
             Self::Deferred { .. } => None,
@@ -385,7 +385,7 @@ mod tests {
             CredentialResponse::Immediate { credentials, notification_id: None } if credentials.len().get() == 1
         );
 
-        let credential = response.clone().into_credential().unwrap();
+        let credential = response.clone().into_immediate_credential().unwrap();
         assert_eq!(credential.format(), Format::SdJwt);
         assert_matches!(credential, Credential::SdJwt { .. });
 
@@ -426,7 +426,7 @@ mod tests {
             } if credentials.len().get() == 1 && notification_id == "3fwe98js"
         );
 
-        let credential = response.clone().into_credential().unwrap();
+        let credential = response.clone().into_immediate_credential().unwrap();
         assert_eq!(credential.format(), Format::MsoMdoc);
         assert_matches!(credential, Credential::MsoMdoc { .. });
 

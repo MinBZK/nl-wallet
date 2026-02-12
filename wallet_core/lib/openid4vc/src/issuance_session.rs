@@ -801,7 +801,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                                 .drain(..copy_count)
                                 .map(|(cred_response, (pubkey, key_id))| {
                                     let credential = cred_response
-                                        .into_credential()
+                                        .into_immediate_credential()
                                         .ok_or(IssuanceSessionError::DeferredIssuanceUnsupported)?;
 
                                     if credential.format() != *format {
@@ -1743,7 +1743,7 @@ mod tests {
         let holder_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
         let credential_response = signer
             .into_response_from_holder_pubkey(&holder_pubkey)
-            .into_credential()
+            .into_immediate_credential()
             .unwrap();
 
         (credential_response, preview_data, holder_pubkey, trust_anchor)
