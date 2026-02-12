@@ -52,6 +52,16 @@
   </suppress>
   <!-- End group: [MEDIUM] -->
 
+  <!-- Start group: [MEDIUM] -->
+  <suppress>
+     <notes><![CDATA[
+     The vulnerability cannot happen as there are no user controlled URI paths.
+     ]]></notes>
+     <packageUrl regex="true">^pkg:gem/faraday@.*$</packageUrl>
+     <vulnerabilityName>CVE-2026-25765</vulnerabilityName>
+  </suppress>
+  <!-- End group: [MEDIUM] -->
+
   <!-- Start group: [LOW] -->
   <suppress>
     <notes><![CDATA[
