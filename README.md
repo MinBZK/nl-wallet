@@ -411,7 +411,7 @@ psql -h localhost -U postgres -c "create database pid_issuer owner wallet;"
 psql -h localhost -U postgres -c "create database issuance_server owner wallet;"
 psql -h localhost -U postgres -c "create database verification_server owner wallet;"
 psql -h localhost -U postgres -c "create database wallet_provider owner wallet;"
-psql -h localhost -U postgres -d wallet_provider -c "create extension \"uuid-ossp\" schema public;"
+psql -h localhost -U postgres -c "create database wallet_provider_audit_log owner wallet;"
 ```
 
 We need to set `DB_USERNAME` and `DB_PASSWORD`, which are used by the

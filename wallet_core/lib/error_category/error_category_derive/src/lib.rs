@@ -449,7 +449,7 @@ fn category_code(category: &MetaList) -> Result<TokenStream> {
 }
 
 /// Construct error message for invalid category `cat`.
-fn invalid_category_error(cat: &String) -> String {
+fn invalid_category_error(cat: &str) -> String {
     format!(
         "expected any of {:?}, got {:?}",
         vec![EXPECTED, CRITICAL, PD, DEFER, UNEXPECTED],

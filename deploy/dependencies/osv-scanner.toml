@@ -12,3 +12,8 @@ reason = "This is a transitive dependency that is no longer maintained but used 
 id = "RUSTSEC-2025-0141"
 ignoreUntil = 2026-07-01
 reason = "`bincode` is a transitive dependency that is no longer maintained but considered complete and used by `http-cache`. Waiting for `http-cache` to find alternatives."
+
+[[IgnoredVulns]]
+id = "GHSA-33mh-2634-fwr2"
+ignoreUntil = 2026-07-01
+reason = "The vulnerability cannot happen as there are no user controlled URI paths."

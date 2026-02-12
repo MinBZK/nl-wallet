@@ -60,7 +60,7 @@ class ViewRevocationCodeTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC71 View revocation code in settings")
+    @DisplayName("LTC73 View revocation code in settings")
     fun verifyEeaCardRevocation(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.RevocationCode)
