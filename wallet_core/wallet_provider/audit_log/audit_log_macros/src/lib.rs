@@ -152,7 +152,8 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
     // Generate code
     let fn_name_str = input.sig.ident.to_string();
     let struct_name = format_ident!("AuditParameters");
-    let (struct_def, struct_init) = generate_parameter_struct(&struct_name, &audit_params);
+    let lifetimes = lifetimes_from_iter(audit_params.iter().map(|p| p.ty.as_ref()))?;
+    let (struct_def, struct_init) = generate_parameter_struct(&struct_name, &audit_params, &lifetimes);
 
     let vis = &input.vis;
     let sig = remove_parameter_attributes(input.sig.clone());
@@ -180,7 +181,7 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
     Ok(output)
 }
 
-// Strip #[auditor] and #[audit] attributes from function parameters
+/// Strips `#[auditor]` and `#[audit]` attributes from function parameters.
 fn remove_parameter_attributes(mut sig: syn::Signature) -> syn::Signature {
     sig.inputs
         .iter_mut()
@@ -201,6 +202,7 @@ fn remove_parameter_attributes(mut sig: syn::Signature) -> syn::Signature {
 fn generate_parameter_struct(
     struct_name: &syn::Ident,
     audit_params: &[AuditParam],
+    lifetimes: &[&syn::Lifetime],
 ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
     // For each audit parameter, determine the struct field type and initializer.
     // If the parameter is already a reference (`&T`), use `&'__audit T` as the
@@ -211,12 +213,21 @@ fn generate_parameter_struct(
     let field_defs: Vec<_> = audit_params.iter().map(generate_field_definition).collect();
     let field_inits: Vec<_> = audit_params.iter().map(generate_field_initialization).collect();
 
-    // Only include the lifetime parameter when there are fields that use it.
-    let lifetime = (!audit_params.is_empty()).then(|| quote! { <'__audit> });
+    let lifetimes = if !audit_params.is_empty() || !lifetimes.is_empty() {
+        let lifetime = (!audit_params.is_empty()).then(|| quote! { '__audit });
+        // collect all lifetimes
+        let lifetimes = lifetime
+            .into_iter()
+            .chain(lifetimes.iter().unique().map(|lifetime| quote! { #lifetime }));
+        // Wrap lifetimes with `<` and `>`
+        Some(quote! { < #(#lifetimes,)* > })
+    } else {
+        None
+    };
 
     let def = quote! {
         #[derive(::serde::Serialize)]
-        struct #struct_name #lifetime {
+        struct #struct_name #lifetimes {
             #(#field_defs,)*
         }
     };
@@ -305,6 +316,102 @@ fn classify_param(pat_type: &syn::PatType) -> syn::Result<ParamRole> {
     }
 
     Ok(roles.into_iter().next().unwrap_or(ParamRole::Plain))
+}
+
+/// Recursively collects all lifetimes from a [`syn::Type`].
+fn lifetimes(syn_type: &syn::Type) -> syn::Result<Vec<&syn::Lifetime>> {
+    match syn_type {
+        syn::Type::Array(type_array) => lifetimes(&type_array.elem),
+        syn::Type::Group(type_group) => lifetimes(&type_group.elem),
+        syn::Type::ImplTrait(type_impl_trait) => Ok(type_impl_trait
+            .bounds
+            .iter()
+            .flat_map(lifetime_from_bound)
+            .collect_vec()),
+        syn::Type::Paren(type_paren) => lifetimes(&type_paren.elem),
+        syn::Type::Path(type_path) => lifetimes_from_path(type_path),
+        syn::Type::Ptr(type_ptr) => lifetimes(&type_ptr.elem),
+        syn::Type::Reference(type_reference) => lifetimes(&type_reference.elem),
+        syn::Type::Slice(type_slice) => lifetimes(&type_slice.elem),
+        syn::Type::TraitObject(type_trait_object) => Ok(type_trait_object
+            .bounds
+            .iter()
+            .flat_map(lifetime_from_bound)
+            .collect_vec()),
+        syn::Type::Tuple(type_tuple) => lifetimes_from_iter(type_tuple.elems.iter()),
+        _ => Err(syn::Error::new_spanned(
+            syn_type,
+            format!("type cannot be audited: {syn_type:?}"),
+        )),
+    }
+}
+
+/// Collects all lifetimes from a [`syn::TypePath`], including generic arguments and qualified self types.
+fn lifetimes_from_path(type_path: &syn::TypePath) -> Result<Vec<&syn::Lifetime>, syn::Error> {
+    let direct_lifetimes = type_path.path.segments.iter().flat_map(|seg| match &seg.arguments {
+        syn::PathArguments::AngleBracketed(args) => args
+            .args
+            .iter()
+            .filter_map(|arg| match arg {
+                syn::GenericArgument::Lifetime(lt) => Some(lt),
+                _ => None,
+            })
+            .collect_vec(),
+        _ => vec![],
+    });
+
+    let nested_types = type_path
+        .qself
+        .iter()
+        .map(|q| q.ty.as_ref())
+        .chain(type_path.path.segments.iter().flat_map(|seg| {
+            match &seg.arguments {
+                syn::PathArguments::AngleBracketed(args) => args
+                    .args
+                    .iter()
+                    .filter_map(|arg| match arg {
+                        syn::GenericArgument::Type(ty) => Some(ty),
+                        _ => None,
+                    })
+                    .collect_vec(),
+                syn::PathArguments::Parenthesized(args) => args
+                    .inputs
+                    .iter()
+                    .chain(match &args.output {
+                        syn::ReturnType::Type(_, ty) => Some(ty.as_ref()),
+                        syn::ReturnType::Default => None,
+                    })
+                    .collect_vec(),
+                syn::PathArguments::None => vec![],
+            }
+        }));
+
+    let nested_lifetimes = lifetimes_from_iter(nested_types)?;
+
+    Ok(direct_lifetimes.chain(nested_lifetimes).collect())
+}
+
+/// Collects all lifetimes from an iterator of [`syn::Type`]s, combining any errors.
+fn lifetimes_from_iter<'a>(iter: impl Iterator<Item = &'a syn::Type>) -> syn::Result<Vec<&'a syn::Lifetime>> {
+    let (lifetimes, errors): (Vec<_>, Vec<syn::Error>) = iter.map(lifetimes).partition_result();
+
+    // If there are any errors, combine and return them.
+    if let Some(error) = errors.into_iter().reduce(|mut acc, error| {
+        acc.combine(error);
+        acc
+    }) {
+        return Err(error);
+    }
+
+    Ok(lifetimes.into_iter().flatten().collect())
+}
+
+/// Extracts a lifetime from a [`syn::TypeParamBound`], if it is a lifetime bound.
+fn lifetime_from_bound(bound: &syn::TypeParamBound) -> Vec<&syn::Lifetime> {
+    match bound {
+        syn::TypeParamBound::Lifetime(lt) => vec![lt],
+        _ => vec![],
+    }
 }
 
 #[cfg(test)]

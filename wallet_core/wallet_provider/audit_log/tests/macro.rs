@@ -9,6 +9,12 @@ use audit_log_macros::audited;
 #[derive(Debug, Serialize)]
 struct MyType;
 
+#[derive(Clone, Debug, Serialize)]
+struct MyTypeWithReferences<'a, 'b> {
+    ref_1: &'a String,
+    ref_2: &'b String,
+}
+
 #[derive(Debug, thiserror::Error)]
 enum MyError {
     #[error("audit error: {0}")]
@@ -42,6 +48,18 @@ async fn test_no_audit_params(#[auditor] auditor: &MockAuditLog) -> Result<(), M
     Ok(())
 }
 
+#[audited]
+async fn test_operation_with_references<'a, 'b, 'c>(
+    #[audit] one: MyTypeWithReferences<'a, 'b>,
+    #[audit] two: MyTypeWithReferences<'b, 'c>,
+    #[audit] three: &'b MyTypeWithReferences<'a, 'c>,
+    #[audit] four: &'a MyTypeWithReferences<'c, 'b>,
+    #[auditor] auditor: &MockAuditLog,
+) -> Result<(), MyError> {
+    tracing::debug!("performed test operation with referenced types: {one:?}, {two:?}, {three:?}, {four:?}");
+    Ok(())
+}
+
 #[tokio::test]
 #[tracing_test::traced_test]
 async fn test_macro_no_audit_params() {
@@ -64,4 +82,29 @@ async fn test_macro() {
     assert!(logs_contain(
         "performed test operation with input: string_input, str_input, MyType, MyType"
     ));
+}
+
+#[tokio::test]
+#[tracing_test::traced_test]
+async fn test_macro_operations_with_references() {
+    let audit_log = MockAuditLog;
+
+    let some_string = String::from("some string");
+    let another_string = String::from("another string");
+
+    let one = MyTypeWithReferences {
+        ref_1: &some_string,
+        ref_2: &another_string,
+    };
+
+    let two = MyTypeWithReferences {
+        ref_1: &another_string,
+        ref_2: &some_string,
+    };
+
+    test_operation_with_references(one.clone(), two.clone(), &one, &two, &audit_log)
+        .await
+        .expect("success");
+
+    assert!(logs_contain("performed test operation with referenced types"));
 }
