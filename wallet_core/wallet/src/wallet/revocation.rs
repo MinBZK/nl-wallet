@@ -213,17 +213,16 @@ where
             let notifications: Vec<(i32, NotificationType)> = attestations
                 .iter()
                 .filter(|attestation| {
-                    revocation_status_by_attestation_id.contains_key(&attestation.attestation_copy_id())
+                    revocation_status_by_attestation_id
+                        .get(&attestation.attestation_copy_id())
+                        .is_some_and(|status| *status == RevocationStatus::Revoked)
                 })
                 .map(|attestation| {
-                    (
-                        random(),
-                        NotificationType::Revoked {
-                            attestation: attestation
-                                .clone()
-                                .into_attestation_presentation(&config.pid_attributes),
-                        },
-                    )
+                    let attestation = attestation
+                        .clone()
+                        .into_attestation_presentation(&config.pid_attributes);
+
+                    (random(), NotificationType::Revoked { attestation })
                 })
                 .collect();
 
@@ -309,6 +308,190 @@ mod tests {
         }
     }
 
+    /// Shared setup for revocation tests
+    async fn setup_revocation_test_env() -> (Arc<TestConfigRepo>, Arc<MockStatusListClient>, MockStorage, Uuid, Uuid) {
+        let ca = Ca::generate("test", Default::default()).unwrap();
+        let keypair = ca.generate_status_list_mock().unwrap();
+
+        let mut wallet_config = default_wallet_config();
+        wallet_config.issuer_trust_anchors = vec![ca.borrowing_trust_anchor().clone()];
+        let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
+
+        let (_, _, status_list_token) = create_status_list_token(&keypair, None, None).await;
+        let mut mock_status_list_client = MockStatusListClient::new();
+        mock_status_list_client
+            .expect_fetch()
+            .returning(move |_| Ok(status_list_token.clone()));
+
+        let mut storage = MockStorage::new();
+        storage.expect_state().returning(|| Ok(StorageState::Opened));
+
+        let revocation_id_1 = Uuid::new_v4();
+        let revocation_id_2 = Uuid::new_v4();
+
+        let test_revocation_info = vec![
+            RevocationInfo::new(
+                revocation_id_1,
+                StatusClaim::new_mock(),
+                keypair.certificate().distinguished_name_canonical().unwrap(),
+            ),
+            RevocationInfo::new(
+                revocation_id_2,
+                StatusClaim::StatusList(StatusListClaim {
+                    idx: 3,
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                }),
+                keypair.certificate().distinguished_name_canonical().unwrap(),
+            ),
+        ];
+
+        storage
+            .expect_fetch_all_revocation_info()
+            .returning(move |_: &MockTimeGenerator| Ok(test_revocation_info.clone()));
+
+        let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
+        let attestations = vec![
+            StoredAttestationCopy::new(
+                Uuid::new_v4(),
+                revocation_id_1,
+                ValidityWindow::new_valid_mock(),
+                StoredAttestation::SdJwt {
+                    key_identifier: random_string(16),
+                    sd_jwt: sd_jwt.clone(),
+                },
+                sd_jwt_metadata.clone(),
+                Some(RevocationStatus::Valid),
+            ),
+            StoredAttestationCopy::new(
+                Uuid::new_v4(),
+                revocation_id_2,
+                ValidityWindow::new_valid_mock(),
+                StoredAttestation::SdJwt {
+                    key_identifier: random_string(16),
+                    sd_jwt,
+                },
+                sd_jwt_metadata,
+                Some(RevocationStatus::Revoked),
+            ),
+        ];
+
+        storage
+            .expect_fetch_unique_attestations()
+            .returning(move || Ok(attestations.clone()));
+
+        (
+            config_repo,
+            Arc::new(mock_status_list_client),
+            storage,
+            revocation_id_1,
+            revocation_id_2,
+        )
+    }
+
+    #[tokio::test]
+    async fn should_update_storage_with_revocation_statuses() {
+        // Pause time so we can advance it manually
+        time::pause();
+
+        let (config_repo, status_list_client, mut storage, _, _) = setup_revocation_test_env().await;
+
+        let update_count = Arc::new(AtomicU64::new(0));
+        let update_counter = Arc::clone(&update_count);
+
+        storage.expect_update_revocation_statuses().returning(move |updates| {
+            update_counter.fetch_add(1, Ordering::SeqCst);
+            assert_eq!(
+                vec![RevocationStatus::Valid, RevocationStatus::Revoked],
+                updates.into_iter().map(|(_, status)| status).collect_vec()
+            );
+            Ok(())
+        });
+
+        let storage = Arc::new(RwLock::new(storage));
+        let context = RevocationTaskContext {
+            config_repo,
+            status_list_client,
+            storage,
+            attestations_callback: Arc::default(),
+            direct_notifications_callback: Arc::new(Mutex::new(Some(Arc::new(|_| Box::pin(async {}))))),
+            scheduled_notifications_callback: Arc::default(),
+        };
+
+        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
+            context,
+            MockTimeGenerator::new(Utc::now()),
+            Duration::from_millis(100),
+        );
+
+        // Advance time to trigger checks
+        for _ in 0..30 {
+            time::advance(Duration::from_millis(10)).await;
+        }
+
+        assert!(
+            update_count.load(Ordering::SeqCst) > 0,
+            "Should have updated revocation statuses"
+        );
+
+        abort_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn should_only_send_direct_notifications_for_revoked_attestations() {
+        // Pause time so we can advance it manually
+        time::pause();
+
+        let (config_repo, status_list_client, mut storage, _, _) = setup_revocation_test_env().await;
+        storage.expect_update_revocation_statuses().returning(|_| Ok(()));
+        let storage = Arc::new(RwLock::new(storage));
+
+        let notification_counts: Arc<Mutex<Vec<usize>>> = Arc::default();
+        let counts_clone = Arc::clone(&notification_counts);
+
+        let notifications_callback: DirectNotificationsCallback = Arc::new(move |notifications| {
+            let counts = Arc::clone(&counts_clone);
+            Box::pin(async move {
+                counts.lock().push(notifications.len());
+            })
+        });
+
+        let context = RevocationTaskContext {
+            config_repo,
+            status_list_client,
+            storage,
+            attestations_callback: Arc::default(),
+            direct_notifications_callback: Arc::new(Mutex::new(Some(notifications_callback))),
+            scheduled_notifications_callback: Arc::default(),
+        };
+
+        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
+            context,
+            MockTimeGenerator::new(Utc::now()),
+            Duration::from_millis(100),
+        );
+
+        // Advance time to trigger checks
+        for _ in 0..30 {
+            time::advance(Duration::from_millis(10)).await;
+        }
+
+        abort_handle.abort();
+
+        let counts = notification_counts.lock().clone();
+        assert!(
+            !counts.is_empty(),
+            "Should have received at least one batch of notifications"
+        );
+
+        for count in counts {
+            assert_eq!(
+                count, 1,
+                "Expected only 1 notification (the revoked one), but got {count}. Non-revoked attestations should not \
+                 trigger direct notifications."
+            );
+        }
+    }
+
     #[tokio::test]
     async fn should_check_revocation_periodically() {
         // Pause time so we can advance it manually
@@ -326,58 +509,36 @@ mod tests {
         storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
         let storage = Arc::new(RwLock::new(storage));
 
-        let attestations_callback = Arc::new(Mutex::new(None));
+        let callback = Arc::new(Mutex::new(None));
         let time_generator = MockTimeGenerator::new(Utc::now());
         let check_interval = Duration::from_millis(100);
 
-        let attestations_counter = Arc::new(AtomicU64::new(0));
-        let attestations_callback_counter = Arc::clone(&attestations_counter);
-        let attestations_callback_fn: AttestationsCallback = Box::new(move |_| {
-            attestations_callback_counter.fetch_add(1, Ordering::SeqCst);
+        let counter = Arc::new(AtomicU64::new(0));
+        let callback_counter = Arc::clone(&counter);
+
+        let callback_fn: AttestationsCallback = Box::new(move |_| {
+            callback_counter.fetch_add(1, Ordering::SeqCst);
         });
 
-        let direct_notifications_callback = Arc::new(Mutex::new(None));
-        let direct_notifications_counter = Arc::new(AtomicU64::new(0));
-        let direct_notifications_callback_counter = Arc::clone(&direct_notifications_counter);
-        let direct_notifications_callback_fn: DirectNotificationsCallback = Arc::new(move |_| {
-            let counter = Arc::clone(&direct_notifications_callback_counter);
-            Box::pin(async move {
-                counter.fetch_add(1, Ordering::SeqCst);
-            })
-        });
+        let notifications_callback = Arc::default();
 
-        let scheduled_notifications_callback = Arc::new(Mutex::new(None));
-        let scheduled_notifications_counter = Arc::new(AtomicU64::new(0));
-        let scheduled_notifications_callback_counter = Arc::clone(&scheduled_notifications_counter);
-        let scheduled_notifications_callback_fn: ScheduledNotificationsCallback = Box::new(move |_| {
-            scheduled_notifications_callback_counter.fetch_add(1, Ordering::SeqCst);
-        });
-
-        // Register callbacks to track updates
-        attestations_callback.lock().replace(attestations_callback_fn);
-        direct_notifications_callback
-            .lock()
-            .replace(direct_notifications_callback_fn);
-        scheduled_notifications_callback
-            .lock()
-            .replace(scheduled_notifications_callback_fn);
+        // Register callback to track updates
+        callback.lock().replace(callback_fn);
 
         let context = RevocationTaskContext {
             config_repo,
             status_list_client: Arc::clone(&status_list_client),
             storage: Arc::clone(&storage),
-            attestations_callback: Arc::clone(&attestations_callback),
-            direct_notifications_callback: Arc::clone(&direct_notifications_callback),
-            scheduled_notifications_callback: Arc::clone(&scheduled_notifications_callback),
+            attestations_callback: Arc::clone(&callback),
+            direct_notifications_callback: Arc::clone(&notifications_callback),
+            scheduled_notifications_callback: Arc::default(),
         };
 
         let abort_handle =
             TestWalletMockStorage::<TestConfigRepo>::spawn_revocation_checks(context, time_generator, check_interval);
 
         // Initially no checks should have occurred
-        assert_eq!(0, attestations_counter.load(Ordering::SeqCst));
-        assert_eq!(0, direct_notifications_counter.load(Ordering::SeqCst));
-        assert_eq!(0, scheduled_notifications_counter.load(Ordering::SeqCst));
+        assert_eq!(0, counter.load(Ordering::SeqCst));
 
         // Advance time 10 times by 10 ms - should trigger first check
         for _ in 0..10 {
@@ -385,21 +546,15 @@ mod tests {
         }
 
         // Should have performed at least one check
-        assert!(attestations_counter.load(Ordering::SeqCst) >= 1);
+        assert!(counter.load(Ordering::SeqCst) >= 1);
 
         // Advance time 20 times by 10 ms - should trigger 2 more checks
         for _ in 0..20 {
             time::advance(Duration::from_millis(10)).await;
         }
 
-        let final_count = attestations_counter.load(Ordering::SeqCst);
+        let final_count = counter.load(Ordering::SeqCst);
         assert!(final_count >= 3, "Expected at least 3 checks, got {}", final_count);
-
-        // Since nothing is revoked, no notifications should have been emitted
-        assert_eq!(0, direct_notifications_counter.load(Ordering::SeqCst));
-
-        // Scheduled notifications should have been emitted
-        assert!(scheduled_notifications_counter.load(Ordering::SeqCst) >= 3);
 
         abort_handle.abort();
     }
@@ -470,135 +625,5 @@ mod tests {
             counter.load(Ordering::SeqCst),
             "Count should not change after abort"
         );
-    }
-
-    #[tokio::test]
-    async fn should_update_storage_with_revocation_statuses() {
-        // Pause time so we can advance it manually
-        time::pause();
-
-        let ca = Ca::generate("test", Default::default()).unwrap();
-        let keypair = ca.generate_status_list_mock().unwrap();
-
-        let mut wallet_config = default_wallet_config();
-        wallet_config.issuer_trust_anchors = vec![ca.borrowing_trust_anchor().clone()];
-        let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
-
-        let (_, _, status_list_token) = create_status_list_token(&keypair, None, None).await;
-        let mut mock_status_list_client = MockStatusListClient::new();
-        mock_status_list_client
-            .expect_fetch()
-            .returning(move |_| Ok(status_list_token.clone()));
-        let status_list_client = Arc::new(mock_status_list_client);
-
-        let update_count = Arc::new(AtomicU64::new(0));
-        let update_counter = Arc::clone(&update_count);
-
-        let mut storage = MockStorage::new();
-        storage.expect_state().returning(|| Ok(StorageState::Opened));
-
-        let revocation_info_id_1 = Uuid::new_v4();
-        let revocation_info_id_2 = Uuid::new_v4();
-        let test_revocation_info = vec![
-            RevocationInfo::new(
-                revocation_info_id_1,
-                StatusClaim::new_mock(),
-                keypair.certificate().distinguished_name_canonical().unwrap(),
-            ),
-            RevocationInfo::new(
-                revocation_info_id_2,
-                StatusClaim::StatusList(StatusListClaim {
-                    idx: 3,
-                    uri: "https://example.com/statuslists/1".parse().unwrap(),
-                }),
-                keypair.certificate().distinguished_name_canonical().unwrap(),
-            ),
-        ];
-
-        storage
-            .expect_fetch_all_revocation_info()
-            .returning(move |_: &MockTimeGenerator| Ok(test_revocation_info.clone()));
-        storage.expect_update_revocation_statuses().returning(move |updates| {
-            update_counter.fetch_add(1, Ordering::SeqCst);
-            assert_eq!(
-                vec![RevocationStatus::Valid, RevocationStatus::Revoked],
-                updates.into_iter().map(|(_, status)| status).collect_vec()
-            );
-            Ok(())
-        });
-
-        let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
-        let attestations = vec![
-            StoredAttestationCopy::new(
-                Uuid::new_v4(),
-                revocation_info_id_1,
-                ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
-                    key_identifier: random_string(16),
-                    sd_jwt: sd_jwt.clone(),
-                },
-                sd_jwt_metadata.clone(),
-                Some(RevocationStatus::Valid),
-            ),
-            StoredAttestationCopy::new(
-                Uuid::new_v4(),
-                revocation_info_id_2,
-                ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
-                    key_identifier: random_string(16),
-                    sd_jwt,
-                },
-                sd_jwt_metadata,
-                Some(RevocationStatus::Revoked),
-            ),
-        ];
-        storage
-            .expect_fetch_unique_attestations()
-            .returning(move || Ok(attestations.clone()));
-        let storage = Arc::new(RwLock::new(storage));
-
-        let time_generator = MockTimeGenerator::new(Utc::now());
-        let check_interval = Duration::from_millis(100);
-
-        let attestations_callback = Arc::default();
-
-        let notifications_counter = Arc::new(AtomicU64::new(0));
-        let notifications_callback_counter = Arc::clone(&notifications_counter);
-        let notifications_callback_fn: DirectNotificationsCallback = Arc::new(move |_| {
-            let counter = Arc::clone(&notifications_callback_counter);
-            Box::pin(async move {
-                counter.fetch_add(1, Ordering::SeqCst);
-            })
-        });
-        let notifications_callback = Arc::new(Mutex::new(Some(notifications_callback_fn)));
-
-        let context = RevocationTaskContext {
-            config_repo,
-            status_list_client: Arc::clone(&status_list_client),
-            storage: Arc::clone(&storage),
-            attestations_callback: Arc::clone(&attestations_callback),
-            direct_notifications_callback: Arc::clone(&notifications_callback),
-            scheduled_notifications_callback: Arc::default(),
-        };
-
-        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(context, time_generator, check_interval);
-
-        // Advance time to trigger checks
-        for _ in 0..30 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-
-        // Should have called update_revocation_statuses
-        assert!(
-            update_count.load(Ordering::SeqCst) > 0,
-            "Should have updated revocation statuses"
-        );
-
-        assert!(
-            notifications_counter.load(Ordering::SeqCst) >= 1,
-            "Should have sent revocation notifications"
-        );
-
-        abort_handle.abort();
     }
 }

@@ -60,6 +60,7 @@ import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_acti
 import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/set_direct_os_notification_callback_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
@@ -244,6 +245,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<SetRevocationCodeSavedUseCase>()])
 @GenerateNiceMocks([MockSpec<GetRevocationCodeUseCase>()])
 @GenerateNiceMocks([MockSpec<GetRegistrationRevocationCodeUseCase>()])
+@GenerateNiceMocks([MockSpec<SetDirectOsNotificationCallbackUsecase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants

@@ -8,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../domain/model/notification/notification_channel.dart';
 import '../../domain/model/notification/os_notification.dart';
 import '../../domain/usecase/notification/observe_os_notifications_usecase.dart';
+import '../../domain/usecase/notification/set_direct_os_notification_callback_usecase.dart';
 import '../../util/builder/notification/notification_payload_parser.dart';
 import '../../util/extension/locale_extension.dart';
 import '../../util/extension/object_extension.dart';
@@ -24,43 +25,55 @@ const kDarwinInitSettings = DarwinInitializationSettings(
   requestProvidesAppNotificationSettings: false,
 );
 
+/// A function that provides an instance of [FlutterLocalNotificationsPlugin]. Useful for testing.
+typedef LocalNotificationsPluginProvider = FlutterLocalNotificationsPlugin Function();
+
 /// A service responsible for scheduling and managing local device notifications.
 ///
 /// This service initializes the `flutter_local_notifications` plugin, sets up
 /// platform-specific configurations, and listens for updates from [ObserveOsNotificationsUseCase]
 /// to schedule or cancel notifications accordingly.
 class LocalNotificationService {
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  late FlutterLocalNotificationsPlugin _plugin;
   final NavigationService _navigationService;
   final ObserveOsNotificationsUseCase _observeOsNotificationsUseCase;
+  final SetDirectOsNotificationCallbackUsecase _setDirectOsNotificationCallbackUsecase;
   final ActiveLocaleProvider _activeLocaleProvider;
 
   StreamSubscription? _notificationStreamSubscription;
 
-  LocalNotificationService(this._observeOsNotificationsUseCase, this._activeLocaleProvider, this._navigationService) {
+  LocalNotificationService(
+    this._observeOsNotificationsUseCase,
+    this._setDirectOsNotificationCallbackUsecase,
+    this._activeLocaleProvider,
+    this._navigationService, {
+    LocalNotificationsPluginProvider? factory,
+  }) {
+    // Resolve the plugin, fall back to default implementation
+    _plugin = factory?.call() ?? FlutterLocalNotificationsPlugin();
     // Initialize TimeZones, used when scheduling
     tz.initializeTimeZones();
-    // Configure plugin initialization settings, mostly to avoid instantly requesting notifications
-    final InitializationSettings initializationSettings = const InitializationSettings(
-      android: kAndroidInitSettings,
-      iOS: kDarwinInitSettings,
+
+    _initPlugin();
+  }
+
+  Future<void> _initPlugin() async {
+    await _plugin.initialize(
+      const InitializationSettings(android: kAndroidInitSettings, iOS: kDarwinInitSettings),
+      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
     );
 
-    _plugin
-        .initialize(
-          initializationSettings,
-          onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
-        )
-        .then((_) {
-          _notificationStreamSubscription = _observeOsNotificationsUseCase.invoke().listen(_onNotificationUpdate);
-        });
+    /// Set observer to handle 'scheduled' os notifications
+    _notificationStreamSubscription = _observeOsNotificationsUseCase.invoke().listen(_onNotificationUpdate);
+
+    /// Set callback to handle 'direct' os notifications
+    _setDirectOsNotificationCallbackUsecase.invoke(_onDirectNotification);
 
     /// Check if app was launched through notification, and handle accordingly
-    _plugin.getNotificationAppLaunchDetails().then((launchDetails) {
-      if (launchDetails?.didNotificationLaunchApp ?? false) {
-        _processPayload(launchDetails?.notificationResponse?.payload);
-      }
-    });
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp ?? false) {
+      _processPayload(launchDetails?.notificationResponse?.payload);
+    }
   }
 
   /// Callback for when a notification is tapped by the user while the app is in the foreground.
@@ -105,6 +118,14 @@ class LocalNotificationService {
           );
     }
     Fimber.d('Finished (re)scheduling ${notifications.length} notifications');
+  }
+
+  void _onDirectNotification(OsNotification notification) {
+    final details = NotificationDetails(
+      android: _resolveAndroidDetails(notification.channel),
+      iOS: const DarwinNotificationDetails(presentAlert: true),
+    );
+    _plugin.show(notification.id, notification.title, notification.body, details, payload: notification.payload);
   }
 
   AndroidNotificationDetails? _resolveAndroidDetails(NotificationChannel channel) {
