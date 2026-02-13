@@ -506,6 +506,17 @@ mod tests {
         }
     }
 
+    fn type_inference() -> ItemFn {
+        syn::parse_quote! {
+            async fn both_attrs(
+                #[audit] param: _,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
     #[rstest]
     #[case::non_async_function(non_async_function(), "#[audited] can only be applied to async functions")]
     #[case::missing_auditor(
@@ -530,6 +541,7 @@ mod tests {
         double_auditor_on_same_param(),
         "found multiple #[auditor] and/or #[audit] attributes on a single parameter, only a single is allowed"
     )]
+    #[case::type_inference(type_inference(), "type cannot be audited")]
     fn test_audited_inner_rejects(#[case] input: ItemFn, #[case] expected_error: &str) {
         let err = audited_inner(&input).unwrap_err();
         assert_eq!(err.to_string(), expected_error);
@@ -555,10 +567,90 @@ mod tests {
         }
     }
 
+    fn with_lifetime_in_audit_param() -> ItemFn {
+        syn::parse_quote! {
+            async fn with_lifetimes<'a>(
+                #[audit] name: Cow<'a, str>,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
+    fn with_multiple_lifetimes_in_audit_params() -> ItemFn {
+        syn::parse_quote! {
+            async fn with_multi_lifetimes<'a, 'b>(
+                #[audit] first: Cow<'a, str>,
+                #[audit] second: Cow<'b, str>,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
+    fn with_nested_lifetimes_in_audit_param() -> ItemFn {
+        syn::parse_quote! {
+            async fn with_nested_lifetimes<'a, 'b>(
+                #[audit] data: HashMap<Cow<'a, str>, Vec<Cow<'b, str>>>,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
+    fn with_reference_to_type_with_lifetimes() -> ItemFn {
+        syn::parse_quote! {
+            async fn with_ref_lifetimes<'a, 'b>(
+                #[audit] data: &MyType<'a, 'b>,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
     #[rstest]
     #[case::no_audit_params(no_audit_params())]
     #[case::with_audit_params(with_audit_params())]
+    #[case::with_lifetime_in_audit_param(with_lifetime_in_audit_param())]
+    #[case::with_multiple_lifetimes(with_multiple_lifetimes_in_audit_params())]
+    #[case::with_nested_lifetimes(with_nested_lifetimes_in_audit_param())]
+    #[case::with_reference_to_type_with_lifetimes(with_reference_to_type_with_lifetimes())]
     fn audited_inner_succeeds(#[case] input: ItemFn) {
         assert!(audited_inner(&input).is_ok());
+    }
+
+    fn assert_lifetime_strs(ty: &syn::Type, expected: &[&str]) {
+        let result = lifetimes(ty).unwrap();
+        let strs: Vec<_> = result.iter().map(|lt| lt.to_string()).collect();
+        assert_eq!(strs, expected);
+    }
+
+    #[rstest]
+    #[case::simple_path("String", &[])]
+    #[case::path_with_one_lifetime("Cow<'a, str>", &["'a"])]
+    #[case::path_with_multiple_lifetimes("MyType<'a, 'b, 'c>", &["'a", "'b", "'c"])]
+    #[case::reference_to_simple_type("&str", &[])]
+    #[case::reference_to_type_with_lifetimes("&MyType<'a, 'b>", &["'a", "'b"])]
+    #[case::nested_generics("Vec<Cow<'a, str>>", &["'a"])]
+    #[case::tuple("(Cow<'a, str>, Cow<'b, str>)", &["'a", "'b"])]
+    #[case::array("[Cow<'a, str>; 3]", &["'a"])]
+    #[case::slice("[Cow<'a, str>]", &["'a"])]
+    #[case::deeply_nested("HashMap<Cow<'a, str>, Vec<Cow<'b, str>>>", &["'a", "'b"])]
+    #[case::trait_object("dyn Trait + 'a", &["'a"])]
+    #[case::impl_trait("impl Trait + 'a", &["'a"])]
+    fn test_lifetimes_extraction(#[case] type_str: &str, #[case] expected: &[&str]) {
+        let ty: syn::Type = syn::parse_str(type_str).unwrap();
+        assert_lifetime_strs(&ty, expected);
+    }
+
+    #[rstest]
+    #[case::inferred_type("_")]
+    fn test_lifetimes_extraction_rejects(#[case] type_str: &str) {
+        let ty: syn::Type = syn::parse_str(type_str).unwrap();
+        assert!(lifetimes(&ty).is_err());
     }
 }
