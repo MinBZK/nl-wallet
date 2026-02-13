@@ -775,7 +775,6 @@ export namespace qrcodegen {
 
   // Appends the given number of low-order bits of the given value
   // to the given buffer. Requires 0 <= len <= 31 and 0 <= val < 2^len.
-  // eslint-disable-next-line no-inner-declarations
   function appendBits(val: int, len: int, bb: Array<bit>): void {
     if (len < 0 || len > 31 || val >>> len != 0) {
       throw new RangeError("Value out of range")
@@ -790,13 +789,11 @@ export namespace qrcodegen {
   }
 
   // Returns true iff the i'th bit of x is set to 1.
-  // eslint-disable-next-line no-inner-declarations
   function getBit(x: int, i: int): boolean {
     return ((x >>> i) & 1) != 0
   }
 
   // Throws an exception if the given condition is false.
-  // eslint-disable-next-line no-inner-declarations
   function assert(cond: boolean): void {
     if (!cond) {
       throw new Error("Assertion error")

@@ -57,7 +57,6 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
-use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::PartialMdoc;
 use openid4vc::ErrorResponse;
 use openid4vc::GetRequestErrorCode;
@@ -212,19 +211,17 @@ fn disclosure_jwe(
     let auth_request = auth_request.validate(&cert, None).unwrap();
 
     // Compute the disclosure.
-    let session_transcript = SessionTranscript::new_oid4vp(
-        &auth_request.response_uri,
-        &auth_request.client_id,
-        auth_request.nonce.clone(),
-        &encryption_nonce,
-    );
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
     let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
-    let (device_responses, poa) =
-        DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, &wscd, poa_input)
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+    let (device_responses, poa) = DeviceResponse::sign_multiple_from_partial_mdocs(
+        partial_mdocs,
+        &auth_request.session_transcript(),
+        &wscd,
+        poa_input,
+    )
+    .now_or_never()
+    .unwrap()
+    .unwrap();
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(

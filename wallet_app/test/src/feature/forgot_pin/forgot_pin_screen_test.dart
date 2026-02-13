@@ -30,6 +30,16 @@ void main() {
       await screenMatchesGolden('light');
     });
 
+    testGoldens('ltc41 forgot pin light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const ForgotPinScreen(useCloseButton: true),
+        providers: [
+          RepositoryProvider<IsWalletInitializedWithPidUseCase>(create: (_) => mockIsWalletInitializedWithPidUseCase),
+        ],
+      );
+      await screenMatchesGolden('light.close_variant');
+    });
+
     testGoldens('ltc41 forgot pin dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const ForgotPinScreen(),

@@ -11,6 +11,7 @@ use reqwest::Certificate;
 use reqwest::Identity;
 use tracing::info;
 
+use crypto::SymmetricKey;
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;
 use utils::path::prefix_local_path;
@@ -20,7 +21,6 @@ use crate::gba::encryption::decrypt_bytes_from_dir;
 use crate::gba::error::Error;
 use crate::haal_centraal::Bsn;
 use crate::settings::ClientAuthentication;
-use crate::settings::SymmetricKey;
 
 #[trait_variant::make(Send)]
 pub trait GbavClient {

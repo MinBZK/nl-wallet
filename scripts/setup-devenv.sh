@@ -205,7 +205,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   export DIGID_CA_CRT
 
   # Generate JWK from private RSA key of test_client.
-  CLIENT_PRIVKEY_JWK=$(docker compose run --rm app make --silent create-jwk)
+  CLIENT_PRIVKEY_JWK=$(docker compose run --rm "${DIGID_CONNECTOR_APPNAME}" make --silent create-jwk)
 
   # Remove the 'kid' json field, because the digid-connector does not send a JWE 'kid' header claim, which is required
   # if `kid` field is specified.
@@ -460,6 +460,17 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
+
+
+########################################################################
+# Configure revocation_portal
+########################################################################
+
+REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY=$(openssl rand -hex 64)
+export REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY
+
+render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
+
 
 ########################################################################
 # Configure update-policy-server

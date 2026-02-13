@@ -29,7 +29,9 @@ members = [
     "lib/status_lists/migrations",
     "lib/token_status_list",
     "lib/utils",
+    "lib/web_utils",
     "lib/wscd",
+    "revocation_portal",
     "static_server",
     "tests_integration",
     "update_policy/model",
@@ -48,6 +50,7 @@ members = [
     "wallet_provider/domain",
     "wallet_provider/migrations",
     "wallet_provider/persistence",
+    "wallet_provider/readable_identifier",
     "wallet_provider/service",
     "wallet_provider/wallet_account",
     "wallet_server/issuance_server",
@@ -196,6 +199,7 @@ rustls = { version = "0.23.35", default-features = false, features = ["logging",
 rustls-pki-types = { version = "1.13.1", features = ["std"] }
 rustls-webpki = { version = "0.103.8", features = ["ring"] }
 sanitize-filename = "0.6.0"
+scraper = "0.25.0"
 sea-orm = { version = "1.1.19", default-features = false }
 sea-orm-migration = { version = "1.1.19", default-features = false }
 sec1 = "0.7.3"

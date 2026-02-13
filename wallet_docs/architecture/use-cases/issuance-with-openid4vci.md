@@ -168,8 +168,8 @@ sequenceDiagram
 <!-- References -->
 
 [1]: https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook
-[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html
-[3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html#name-pre-authorized-code-flow
+[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
+[3]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow
 [4]: https://openid.net/developers/how-connect-works
 [5]: https://www.logius.nl/onze-dienstverlening/toegang/digid
 [6]: https://github.com/minvws/nl-rdo-max

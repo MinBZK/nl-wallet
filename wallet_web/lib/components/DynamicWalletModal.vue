@@ -71,7 +71,7 @@ const startSession = async () => {
   try {
     modalState.value = { kind: "creating" }
 
-    let response = await createSession(props.startUrl, {
+    const response = await createSession(props.startUrl, {
       usecase: props.usecase,
     })
     await checkStatus({
@@ -90,7 +90,7 @@ const startSession = async () => {
 
 const checkStatus = async (session: Session) => {
   try {
-    let statusResponse = await getStatus(session.statusUrl, session.sessionType)
+    const statusResponse = await getStatus(session.statusUrl, session.sessionType)
 
     switch (statusResponse.status) {
       case "CREATED":
@@ -155,7 +155,7 @@ const handleChoice = async (choice: SessionType) => {
   if (modalState.value.kind === "created") {
     cancelPolling()
 
-    let session: Session = {
+    const session: Session = {
       statusUrl: modalState.value.session.statusUrl,
       sessionType: choice,
       sessionToken: modalState.value.session.sessionToken,
@@ -201,7 +201,7 @@ const close = async () => {
 
 const stop = async () => {
   if (modalState.value.kind === "created" || modalState.value.kind === "confirm-stop") {
-    let kind = modalState.value.kind
+    const kind = modalState.value.kind
 
     modalState.value = {
       kind: "loading",

@@ -1,65 +1,89 @@
 # Redis Helm Chart
 
 This chart deploys a standalone Redis instance using a StatefulSet and an 
-optional PVC. You can set a list of key/values to initialize with, using
-`redisConfig.initialKeys`. Lastly, you can enable a network policy and
-optionally set a `tierLabel`.
+optional PVC.
 
-## Values
+## Parameters
 
-| Key                               | Type   | Default           | Description                                         |
-|-----------------------------------|--------|-------------------|-----------------------------------------------------|
-| nameOverride                      | string | ""                | Override chart name, if used, set repository too.   |
-| fullnameOverride                  | string | ""                | Override full release name.                         |
-| replicaCount                      | int    | 1                 | Number of replicas.                                 |
-| minReadySeconds                   | int    | 2                 | Minimum ready seconds for StatefulSet.              |
-| image.repository                  | string | ""                | Redis image repository; defaults to `Chart.Name`    |
-| image.tag                         | string | ""                | Redis image tag; defaults to `Chart.appVersion`     |
-| image.pullPolicy                  | string | "IfNotPresent"    | Image pull policy.                                  |
-| imagePullSecrets                  | list   | []                | Image pull secrets.                                 |
-| service.port                      | int    | 6379              | Service port.                                       |
-| resources                         | object | see values.yaml   | Container resource requests/limits.                 |
-| securityContext.runAsUser         | int    | null              | Run container as specific UID.                      |
-| redisConfig.appendonly            | string | "yes"             | Enables Append-Only File persistence.               |
-| redisConfig.save                  | string | ""                | "seconds changes" pairs for snapshot intervals.     |
-| redisConfig.loglevel              | string | "warning"         | Redis log level.                                    |
-| redisConfig.initialKeys           | list   | []                | Do `redis-cli set` for each `"key value"`.          |
-| persistence.enabled               | bool   | false             | Enable PVC creation.                                |
-| persistence.storageClassName      | string | ""                | StorageClass name for PVC; leave unset for default. |
-| persistence.accessModes           | list   | ["ReadWriteOnce"] | PVC access modes.                                   |
-| persistence.size                  | string | "1Gi"             | PVC size.                                           |
-| networkPolicy.enabled             | bool   | false             | Enable NetworkPolicy.                               |
-| networkPolicy.ingressFromSelector | object | {}                | Pod selector labels allowed to access Redis.        |
-| tierLabel                         | string | ""                | Optional `tier` label specification.                |
+### Global parameters
+
+| Name                   | Description                  | Value |
+| ---------------------- | ---------------------------- | ----- |
+| `global.imageRegistry` | Global Docker image registry | `""`  |
+
+### Image parameters
+
+| Name               | Description                        | Value          |
+| ------------------ | ---------------------------------- | -------------- |
+| `image.repository` | Repository for the container image | `redis`        |
+| `image.pullPolicy` | Image pull policy                  | `IfNotPresent` |
+| `image.tag`        | Image tag                          | `7.2`          |
+
+### Image pull secrets
+
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
+
+### Common parameters
+
+| Name               | Description                                    | Value |
+| ------------------ | ---------------------------------------------- | ----- |
+| `fullnameOverride` | String to completely override chart's fullname | `""`  |
+| `nameOverride`     | String to partially override chart's fullname  | `""`  |
+
+### Annotations and labels
+
+| Name               | Description                               | Value |
+| ------------------ | ----------------------------------------- | ----- |
+| `extraAnnotations` | Additional annotations for the deployment | `{}`  |
+| `extraPodLabels`   | Additional labels for the pods            | `{}`  |
+
+### Resource requests and limits
+
+| Name                        | Description    | Value   |
+| --------------------------- | -------------- | ------- |
+| `resources.requests.cpu`    | CPU request    | `100m`  |
+| `resources.requests.memory` | Memory request | `128Mi` |
+| `resources.limits.cpu`      | CPU limit      | `400m`  |
+| `resources.limits.memory`   | Memory limit   | `256Mi` |
+
+### Redis server configuration
+
+| Name                       | Description                                                      | Value     |
+| -------------------------- | ---------------------------------------------------------------- | --------- |
+| `redis.server.port`        | Port used to serve Redis                                         | `6379`    |
+| `redis.server.logLevel`    | One of warning, verbose, notice, debug                           | `warning` |
+| `redis.server.appendOnly`  | Enable (yes) or disable (no) the append-only file                | `no`      |
+| `redis.server.save`        | Save the dataset every N seconds if there are at least M changes | `""`      |
+| `redis.server.initialKeys` | Collection of key/values to insert                               | `{}`      |
+
+### Persistence configuration
+
+| Name                       | Description                          | Value   |
+| -------------------------- | ------------------------------------ | ------- |
+| `persistence.enabled`      | Enable or disable persistent storage | `false` |
+| `persistence.storageClass` | Storage class name                   | `""`    |
+| `persistence.size`         | Size of the persistent storage       | `1Gi`   |
 
 ## Installation
 
 On a locally running single-node cluster, not using a PVC:
 
 ```shell
-helm install redis charts/redis \
-  --set redisConfig.initialKeys[0]="foo:some_key bar"
+helm install redis . \
+  --set extraAnnotations.some-annotation=foo \
+  --set redis.server.initialKeys.foo:some_identifier=bar
 ```
 
 Locally with PVC:
 
 ```shell
-helm install redis charts/redis \
+helm install redis . \
   --set persistence.enabled=true \
   --set persistence.storageClassName=local-path \
-  --set redisConfig.initialKeys[0]="foo:some_key bar"
-```
-
-On an enterprisey Kubernetes environment with PVC, NetworkPolicy and tierLabel:
-
-```shell
-helm install redis charts/redis \
-  --set persistence.enabled=true \
-  --set persistence.storageClassName=expensive-storage \
-  --set networkPolicy.enabled=true \
-  --set networkPolicy.ingressFromSelector.something-this-or-that=allow \
-  --set tierLabel=a-silly-tiering-label \
-  --set redisConfig.initialKeys[0]="foo:another_key baz"
+  --set extraAnnotations.some-annotation=foo \
+  --set redis.server.initialKeys.foo:some_identifier=bar
 ```
 
 ## Connect
@@ -69,8 +93,8 @@ You can connect to the redis service using `kubectl port-forward` and either
 
 ```shell
 # directly on the pod:
-kubectl exec redis-0 -- redis-cli get foo:some_key
+kubectl exec redis-0 -- redis-cli get foo:some_identifier
 # or from the host using port forwarding:
 kubectl port-forward service/redis 6379:6379
-redis-cli -h localhost -p 6379 get foo:some_key
+redis-cli -h localhost -p 6379 get foo:some_identifier
 ```

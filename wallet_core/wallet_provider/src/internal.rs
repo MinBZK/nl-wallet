@@ -12,8 +12,8 @@ use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
+use readable_identifier::ReadableIdentifierParseError;
 use utils::generator::TimeGenerator;
-use wallet_account::readable_identifier::ReadableIdentifierParseError;
 use wallet_provider_service::revocation::RevocationResult;
 
 use crate::router_state::RouterState;

@@ -6,14 +6,11 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto_common::Key;
-use crypto_common::KeySizeUser;
-use derive_more::From;
 use serde::Deserialize;
-use serde::de;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use crypto::SymmetricKey;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
 use utils::path::prefix_local_path;
@@ -72,29 +69,6 @@ impl HttpGbavClient {
             settings.ca_api_key,
         )
         .await
-    }
-}
-
-#[derive(From)]
-pub struct SymmetricKey {
-    bytes: Vec<u8>,
-}
-
-impl SymmetricKey {
-    pub fn key<B>(&self) -> &Key<B>
-    where
-        B: KeySizeUser,
-    {
-        Key::<B>::from_slice(self.bytes.as_slice())
-    }
-}
-
-impl<'de> Deserialize<'de> for SymmetricKey {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        String::deserialize(deserializer)
-            .map(hex::decode)?
-            .map(Into::into)
-            .map_err(de::Error::custom)
     }
 }
 

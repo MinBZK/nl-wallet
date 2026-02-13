@@ -29,16 +29,9 @@ use tracing::warn;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
-use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestation;
-use demo_utils::error::Result;
-use demo_utils::headers::cors_layer;
-use demo_utils::headers::set_content_security_policy;
-use demo_utils::headers::set_static_cache_control;
-use demo_utils::language::Language;
-use demo_utils::language::LanguageParam;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::ConnectSource;
@@ -46,6 +39,13 @@ use http_utils::urls::SourceExpression;
 use openid4vc::server_state::SessionToken;
 use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
+use web_utils::error::Result;
+use web_utils::headers::cors_layer;
+use web_utils::headers::set_content_security_policy;
+use web_utils::headers::set_static_cache_control;
+use web_utils::language::LANGUAGE_JS_SHA256;
+use web_utils::language::Language;
+use web_utils::language::LanguageParam;
 
 use crate::client::WalletServerClient;
 use crate::settings::ReturnUrlMode;
@@ -90,11 +90,10 @@ pub fn create_router(settings: Settings) -> Router {
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
                     ServeDir::new(prefix_local_path(std::path::Path::new("assets"))).fallback(
-                        ServiceBuilder::new()
-                            .service(ServeDir::new(prefix_local_path(std::path::Path::new(
-                                "../demo_utils/assets",
-                            ))))
-                            .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ServeDir::new(prefix_local_path(std::path::Path::new("../demo_utils/assets"))).fallback(
+                            ServeDir::new(prefix_local_path(std::path::Path::new("../../lib/web_utils/assets")))
+                                .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ),
                     ),
                 ),
         )

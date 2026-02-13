@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="{{ base.selected_lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1"
+    />
+    <title>{{ base.trans.meta_title }}</title>
+
+    <link integrity="sha256-{{ base.combined_css_sha256 }}" rel="stylesheet" href="/css/style.css" />
+    <link integrity="sha256-{{ base.portal_js_sha256 }}" nonce="{{ base.nonce }}" rel="modulepreload" href="/portal.js" />
+    <script integrity="sha256-{{ base.portal_ui_js_sha256 }}" nonce="{{ base.nonce }}" src="/portal-ui.js" type="module"></script>
+    {% block scripts %}{% endblock %}
+  </head>
+  <body>
+    <aside>{% block aside %}{% endblock %}</aside>
+
+    <main class="container">
+      {% block content %}{% endblock %}
+
+      <footer class="help-section">
+        <hr>
+        <p>{{ base.trans.help_title }}</p>
+        <a href="/help" class="help-link">
+          <span class="icon-arrow">↗</span> {{ base.trans.need_help }}
+        </a>
+      </footer>
+    </main>
+  </body>
+</html>

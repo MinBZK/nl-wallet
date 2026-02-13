@@ -12,16 +12,19 @@ import '../../../../mocks/wallet_mocks.mocks.dart';
 void main() {
   late MockTypedWalletCore mockCore;
   late MockMapper<core.AppNotification, AppNotification> mockNotificationMapper;
+  late MockMapper<core.NotificationType, NotificationType> mockNotificationTypeMapper;
   late MockNotificationSettingsStore mockNotificationSettingsStore;
   late NotificationRepository notificationRepository;
 
   setUp(() {
     mockCore = MockTypedWalletCore();
     mockNotificationMapper = MockMapper<core.AppNotification, AppNotification>();
+    mockNotificationTypeMapper = MockMapper<core.NotificationType, NotificationType>();
     mockNotificationSettingsStore = MockNotificationSettingsStore();
     notificationRepository = NotificationRepositoryImpl(
       mockCore,
       mockNotificationMapper,
+      mockNotificationTypeMapper,
       mockNotificationSettingsStore,
     );
   });
@@ -130,6 +133,39 @@ void main() {
 
         verify(mockNotificationSettingsStore.observePushNotificationsEnabled()).called(1);
         verifyNoMoreInteractions(mockNotificationSettingsStore);
+      });
+    });
+
+    group('setDirectNotificationCallback', () {
+      test('should call core.setupNotificationCallback and map the results when triggered', () {
+        // Arrange
+        const int notificationId = 1;
+        const coreType = core.NotificationType_CardExpired(card: CoreMockData.attestation);
+        final appType = NotificationType.cardExpired(card: WalletMockData.card);
+
+        int? capturedId;
+        NotificationType? capturedType;
+
+        // Act
+        notificationRepository.setDirectNotificationCallback((id, type) {
+          capturedId = id;
+          capturedType = type;
+        });
+
+        // Verify the repository registered the callback with core
+        final captured = verify(mockCore.setupNotificationCallback(captureAny)).captured;
+        final capturedCallback = captured.first as void Function(List<(int, core.NotificationType)>);
+
+        // Mock the mapper's behavior for when the callback is triggered
+        when(mockNotificationTypeMapper.map(coreType)).thenReturn(appType);
+
+        // Simulate core triggering the callback
+        capturedCallback([(notificationId, coreType)]);
+
+        // Assert
+        expect(capturedId, notificationId);
+        expect(capturedType, appType);
+        verify(mockNotificationTypeMapper.map(coreType)).called(1);
       });
     });
   });

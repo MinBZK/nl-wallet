@@ -17,6 +17,12 @@ required-features = ["mock"]
 
 [features]
 mock = []
+db_test = []
+
+[[test]]
+name = "db_test"
+path = "tests/db_test.rs"
+required-features = ["db_test"]
 
 [dependencies]
 chrono.workspace = true

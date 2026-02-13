@@ -1,0 +1,71 @@
+{
+  "saml_specification_version": 3.7,
+  "verify_ssl": "{{ .Values.max.config.saml.verifierCa }}",
+  "sp": {
+    "cert_path": "{{ .Values.max.config.saml.sp.certificatePath }}",
+    "key_path": "{{ .Values.max.config.saml.sp.privateKeyPath }}",
+    "entityId": "{{ .Values.max.config.saml.sp.entityId }}",
+    "NameIDFormat": "{{ .Values.max.config.saml.sp.nameIdFormat }}",
+    "assertionConsumerService": {
+      "url": "{{ .Values.max.config.saml.sp.acsUrl }}",
+      "binding": "{{ .Values.max.config.saml.sp.acsBinding }}"
+    },
+    "attributeConsumingService": {
+      "serviceName": "{{ .Values.max.config.saml.sp.serviceName }}",
+      "serviceDescription": "{{ .Values.max.config.saml.sp.serviceDescription }}",
+      "requestedAttributes": {{- .Values.max.config.saml.sp.requestedAttributes | toPrettyJson | nindent 8 }}
+    }
+  },
+  "idp": {
+    "entityId": "{{ .Values.max.config.saml.idp.entityId }}",
+    "metadata_path": "{{ .Values.max.config.saml.idp.metaDataPath }}",
+    "certFingerprint": {{ .Files.Get "static/saml-digid-preprod-idp-certificate-fingerprint.string" | splitList "\n" | first | quote }},
+    "singleSignOnService": {
+      "url": "{{ .Values.max.config.saml.idp.ssoUrl }}",
+      "binding": "{{ .Values.max.config.saml.idp.ssoBinding }}"
+    }
+  },
+  "security": {
+    "nameIdEncrypted": false,
+    "authnRequestsSigned": true,
+    "logoutRequestSigned": true,
+    "logoutResponseSigned": false,
+    "signMetadata": true,
+    "wantMessagesSigned": true,
+    "wantAssertionsSigned": true,
+    "wantNameId": true,
+    "wantNameIdEncrypted": false,
+    "wantAssertionsEncrypted": false,
+    "requestedAuthnContext": [
+      "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
+    ],
+    "requestedAuthnContextComparison": "minimum",
+    "allowSingleLabelDomains": false,
+    "signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+    "digestAlgorithm": "http://www.w3.org/2001/04/xmlenc#sha256",
+    "allowScoping": false
+  },
+  "organization": {
+    {{- $organizations := keys .Values.max.config.saml.metaData.organization }}
+    {{- range $index, $language := $organizations }}
+    {{- $organization := get $.Values.max.config.saml.metaData.organization $language }}
+    {{- if $index }},{{ end }}
+      {{ $language | quote }}: {
+        "name": {{ $organization.name | quote }},
+        "displayname": {{ $organization.displayName | quote }},
+        "url": {{ $organization.url | quote }}
+      }
+    {{- end }}
+  },
+  "contactPerson": {
+    {{- $contacts := keys .Values.max.config.saml.metaData.contact }}
+    {{- range $index, $contactType := $contacts }}
+    {{- $contact := get $.Values.max.config.saml.metaData.contact $contactType }}
+    {{- if $index }},{{ end }}
+      {{ $contactType | quote }}: {
+        "givenName": {{ $contact.givenName | quote }},
+        "emailAddress": {{ $contact.emailAddress | quote }}
+      }
+    {{- end }}
+  }
+}

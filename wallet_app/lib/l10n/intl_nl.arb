@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-02-03T11:38:58+01:00",
+    "@@last_modified": "2026-02-12T10:09:22+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1363,7 +1363,7 @@
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
     "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
-    "reviewRevocationCodeScreenDescription": "Je gebruikt deze code om je NL Wallet op afstand te verwijderen. Bijvoorbeeld als je dit apparaat kwijtraakt of als het wordt gestolen. Zo voorkom je dat iemand deze wallet gebruikt. ",
+    "reviewRevocationCodeScreenDescription": "Je gebruikt deze code om je NL Wallet op afstand te verwijderen. Bijvoorbeeld als je dit apparaat kwijtraakt of als het wordt gestolen. Zo voorkom je dat iemand deze wallet gebruikt.\n\nDeel deze verwijder-code met niemand.",
     "reviewRevocationCodeScreenSuccessCta": "Ik heb het opgeschreven",
     "reviewRevocationCodeScreenSuccessDescription": "Je 18-tekens verwijder-code is:",
     "reviewRevocationCodeScreenSuccessTitle": "Schrijf nu je verwijder-code op",
@@ -1372,7 +1372,7 @@
     "revocationCodeScreenCodeFooter": "Je vindt de code later terug in Menu > Instellingen en beveiliging > Bekijk je verwijder-code.",
     "revocationCodeScreenCodeHeader": "Je 18-tekens verwijder-code is:",
     "revocationCodeScreenContinueCta": "Ik heb het opgeschreven",
-    "revocationCodeScreenDescription": "Je gebruikt deze code om je NL Wallet op afstand te verwijderen. Bijvoorbeeld als je dit apparaat kwijtraakt of als het wordt gestolen. Zo voorkom je dat iemand deze wallet gebruikt. ",
+    "revocationCodeScreenDescription": "Je gebruikt deze code om je NL Wallet op afstand te verwijderen. Bijvoorbeeld als je dit apparaat kwijtraakt of als het wordt gestolen. Zo voorkom je dat iemand deze wallet gebruikt.\n\nDeel deze verwijder-code met niemand.",
     "revocationCodeScreenTitle": "Schrijf nu je verwijder-code op",
     "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je de NL Wallet niet op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig. Bekijk de hulppagina voor meer informatie.",
     "rootDetectedScreenTitle": "Je apparaat is niet veilig",
@@ -1482,6 +1482,32 @@
     "stopDigidLoginDialogPositiveCta": "INLOGGEN STOPPEN",
     "stopDigidLoginDialogSubtitle": "Als je stopt, moet je opnieuw beginnen.",
     "stopDigidLoginDialogTitle": "DigiD inloggen stoppen?",
+    "stopToResetPinDialogCancelCta": "Nee",
+    "stopToResetPinDialogConfirmCta": "Ja, Stop",
+    "stopToResetPinDialogDescriptionDisclosureVariant": "Als je stopt, worden er geen gegevens gedeeld met {organisation}\n\nJe kunt daarna een nieuwe pincode maken.",
+    "@stopToResetPinDialogDescriptionDisclosureVariant": {
+        "placeholders": {
+            "organisation": {
+                "example": "Relying Party",
+                "type": "String"
+            }
+        }
+    },
+    "stopToResetPinDialogDescriptionIssuanceVariant": "Als je stopt, wordt er geen kaart(en) toegevoegd aan je NL Wallet.\n\nJe kunt daarna een nieuwe pincode maken.",
+    "stopToResetPinDialogDescriptionLoginVariant": "Als je stopt, log je niet in bij {organisation}.\n\nJe kunt daarna een nieuwe pincode maken.",
+    "@stopToResetPinDialogDescriptionLoginVariant": {
+        "placeholders": {
+            "organisation": {
+                "example": "Relying Party",
+                "type": "String"
+            }
+        }
+    },
+    "stopToResetPinDialogDescriptionTransferVariant": "Als je stopt, wordt je NL Wallet niet verplaatst naar je andere apparaat.\n\nJe kunt daarna een nieuwe pincode maken.",
+    "stopToResetPinDialogTitleDisclosureVariant": "Stop met gegevens delen om een nieuwe pincode te maken.",
+    "stopToResetPinDialogTitleIssuanceVariant": "Stop met kaart toevoegen om een nieuwe pincode te maken.",
+    "stopToResetPinDialogTitleLoginVariant": "Stop met inloggen om een nieuwe pincode te maken.",
+    "stopToResetPinDialogTitleTransferVariant": "Stop met NL Wallet verplaatsen om een nieuwe pincode te maken.",
     "tourBannerTitle": "Ontdek alles in korte video's",
     "tourOverviewScreenItemWCAGLabel": "Speel \"{name}\" video af",
     "tourOverviewScreenSubtitle": "Ontdek in korte video's hoe de app werkt.",
@@ -1638,8 +1664,6 @@
     "walletTransferSourceStopSheetCancelCta": "Nee",
     "walletTransferSourceStopSheetConfirmCta": "Ja, stop",
     "walletTransferSourceStopSheetDescription": "Als je stopt, worden er geen gegevens verplaatst naar jouw andere apparaat.",
-    "walletTransferSourceStopSheetForgotPinVariantDescription": "Je wilt een nieuwe pincode aanmaken. Hierdoor wordt het verplaatsen stopgezet en er wordt geen data naar je andere apparaat verplaatst.\n\nNadat je een nieuwe pincode hebt aangemaakt, kun je het verplaatsen van de NL Wallet opnieuw starten.",
-    "walletTransferSourceStopSheetForgotPinVariantTitle": "Stoppen met overzetten om een nieuwe pincode aan te maken?",
     "walletTransferSourceStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
     "walletTransferTargetOptOutDialogDescription": "Er wordt een nieuwe NL Wallet aangemaakt op dit apparaat. NL Wallet-apps zijn niet met elkaar verbonden.",
     "walletTransferTargetOptOutDialogTitle": "Nieuwe NL Wallet aanmaken?",

@@ -152,12 +152,13 @@ fake_digid = ["dep:reqwest", "http_utils/client", "dep:url", "dep:wallet_configu
 
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
+    "audit_log?/db_test",
     "health_checkers?/db_test",
     "pid_issuer?/db_test",
+    "status_lists?/db_test",
+    "verification_server?/db_test",
     "wallet_provider_persistence?/db_test",
     "wallet_provider_service?/db_test",
-    "verification_server?/db_test",
-    "status_lists?/db_test",
 ]
 
 # Include and run test that depend on a configured HSM
@@ -262,6 +263,7 @@ android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 attestation_data = { path = "../lib/attestation_data", optional = true }
 attestation_types = { path = "../lib/attestation_types", optional = true }
+audit_log = { path = "../wallet_provider/audit_log", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
 dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
@@ -303,6 +305,7 @@ issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer" }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
+revocation_portal = { path = "../revocation_portal", features = ["integration_test"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }
 token_status_list = { path = "../lib/token_status_list", features = ["verification"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["test"] }
