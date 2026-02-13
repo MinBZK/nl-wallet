@@ -13,9 +13,9 @@ use syn::parse_macro_input;
 /// `AuditLog` implementor. Zero or more parameters may be annotated with
 /// `#[audit]` to include them in the JSON parameters passed to the audit log.
 ///
-/// The macro generates a struct named `{FunctionName}AuditParameters` (in
-/// CamelCase) with a field for each `#[audit]` parameter, derives
-/// `serde::Serialize`, and uses `serde_json::to_value()` to produce the JSON.
+/// The macro generates a struct named `AuditParameters` with a field for each
+/// `#[audit]` parameter, derives `serde::Serialize`, and uses
+/// `serde_json::to_value()` to produce the JSON.
 ///
 /// # Example
 ///
@@ -46,11 +46,11 @@ use syn::parse_macro_input;
 ///     audit_log: &impl AuditLog,
 /// ) -> Result<(), RevocationError> {
 ///     #[derive(::serde::Serialize)]
-///     struct RevokeWalletAuditParameters<'__audit> {
+///     struct AuditParameters<'__audit> {
 ///         wallet_id: &'__audit str,
 ///     }
 ///     let __audit_params_json = {
-///         let __audit_params = RevokeWalletAuditParameters { wallet_id: wallet_id };
+///         let __audit_params = AuditParameters { wallet_id: wallet_id };
 ///         ::serde_json::to_value(__audit_params)
 ///             .expect("audit parameters should serialize to JSON")
 ///     };
@@ -74,18 +74,6 @@ pub fn audited(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 const AUDITOR: &str = "auditor";
 const AUDIT: &str = "audit";
-
-/// Converts a `snake_case` string to `CamelCase`.
-fn snake_to_camel_case(s: &str) -> String {
-    s.split('_')
-        .filter_map(|word| {
-            let mut chars = word.chars();
-            chars
-                .next()
-                .map(|first| first.to_uppercase().collect::<String>() + chars.as_str())
-        })
-        .collect()
-}
 
 #[derive(Debug, PartialEq)]
 struct AuditParam {
@@ -163,7 +151,7 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
 
     // Generate code
     let fn_name_str = input.sig.ident.to_string();
-    let struct_name = format_ident!("{}AuditParameters", snake_to_camel_case(&fn_name_str));
+    let struct_name = format_ident!("AuditParameters");
     let (struct_def, struct_init) = generate_parameter_struct(&struct_name, &audit_params);
 
     let vis = &input.vis;
@@ -324,16 +312,6 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-
-    #[rstest]
-    #[case::converts_simple_name("hello_world", "HelloWorld")]
-    #[case::converts_single_word("hello", "Hello")]
-    #[case::handles_empty_string("", "")]
-    #[case::handles_leading_underscores("__leading", "Leading")]
-    #[case::handles_consecutive_underscores("a__b", "AB")]
-    fn snake_to_camel_case_handles(#[case] input: &str, #[case] expected: &str) {
-        assert_eq!(snake_to_camel_case(input), expected);
-    }
 
     fn non_async_function() -> ItemFn {
         syn::parse_quote! {
