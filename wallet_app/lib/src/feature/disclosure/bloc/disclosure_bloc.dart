@@ -259,6 +259,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureConfirmPin(
           relyingParty: relyingParty!,
+          isLoginFlow: isLoginFlow,
           isCrossDevice: isCrossDeviceFlow,
           selectedIndices: selectedIndices,
         ),
