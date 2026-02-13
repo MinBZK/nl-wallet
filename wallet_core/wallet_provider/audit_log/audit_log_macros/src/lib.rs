@@ -351,10 +351,7 @@ fn lifetimes(syn_type: &syn::Type) -> syn::Result<Vec<&syn::Lifetime>> {
             .flat_map(lifetime_from_bound)
             .collect_vec()),
         syn::Type::Tuple(type_tuple) => lifetimes_from_iter(type_tuple.elems.iter()),
-        _ => Err(syn::Error::new_spanned(
-            syn_type,
-            format!("type cannot be audited: {syn_type:?}"),
-        )),
+        _ => Err(syn::Error::new_spanned(syn_type, "type cannot be audited")),
     }
 }
 
