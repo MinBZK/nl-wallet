@@ -91,7 +91,7 @@ async fn setup_test_database(
 
 #[audited]
 async fn operation(
-    #[auditer] audit_log: &impl AuditLog,
+    #[auditor] audit_log: &impl AuditLog,
     is_success: bool,
     #[audit] param1: &'static str,
 ) -> Result<(), TestError> {

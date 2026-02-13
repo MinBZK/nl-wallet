@@ -4,7 +4,6 @@ use derive_more::Display;
 use derive_more::Into;
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
-use serde::Deserialize;
 use serde::Serialize;
 
 const CROCKFORD_ALPHABET: &[u8] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -30,7 +29,7 @@ pub enum ReadableIdentifierParseError {
 ///   [`FromStr`] implementation, which ignores `-` characters, converts
 ///   certain similar characters to either `0` or `1` and convert all
 ///   characters to uppercase.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Into, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Into, Serialize)]
 pub struct ReadableIdentifier<const LEN: usize>(String);
 
 impl<const LEN: usize> ReadableIdentifier<LEN> {

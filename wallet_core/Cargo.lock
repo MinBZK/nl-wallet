@@ -692,9 +692,13 @@ dependencies = [
 name = "audit_log_macros"
 version = "0.5.0-dev"
 dependencies = [
+ "audit_log",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "rstest",
+ "serde",
+ "serde_json",
  "syn",
 ]
 

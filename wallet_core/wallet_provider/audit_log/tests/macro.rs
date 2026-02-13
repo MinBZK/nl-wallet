@@ -27,7 +27,7 @@ async fn test_operation<'a, 'b>(
     #[audit] str_input: &'a str,
     #[audit] my_type_input: MyType,
     #[audit] my_type_ref_input: &'b MyType,
-    #[auditer] auditer: &MockAuditLog,
+    #[auditor] auditor: &MockAuditLog,
     _ignored: (),
 ) -> Result<(), MyError> {
     tracing::debug!(
@@ -37,7 +37,7 @@ async fn test_operation<'a, 'b>(
 }
 
 #[audited]
-async fn test_no_audit_params(#[auditer] auditer: &MockAuditLog) -> Result<(), MyError> {
+async fn test_no_audit_params(#[auditor] auditor: &MockAuditLog) -> Result<(), MyError> {
     tracing::debug!("performed operation without audit params");
     Ok(())
 }
@@ -60,11 +60,6 @@ async fn test_macro() {
     test_operation("string_input".to_string(), "str_input", MyType, &MyType, &audit_log, ())
         .await
         .expect("success");
-
-    logs_assert(|logs| {
-        dbg!(&logs);
-        Ok(())
-    });
 
     assert!(logs_contain(
         "performed test operation with input: string_input, str_input, MyType, MyType"

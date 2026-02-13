@@ -63,7 +63,7 @@ pub async fn revoke_wallet_by_revocation_code<T, R, H>(
     revocation_code_key_identifier: &str,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
-    #[auditer] audit_log: &impl AuditLog,
+    #[auditor] audit_log: &impl AuditLog,
 ) -> Result<RevocationResult, RevocationError>
 where
     T: Committable,
@@ -112,7 +112,7 @@ pub async fn revoke_wallets_by_wallet_id<T, R, H>(
     #[audit] wallet_ids: &HashSet<String>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
-    #[auditer] audit_log: &impl AuditLog,
+    #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
 where
     T: Committable,
@@ -162,7 +162,7 @@ where
 pub async fn revoke_all_wallets<T, R, H>(
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
-    #[auditer] audit_log: &impl AuditLog,
+    #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
 where
     T: Committable,

@@ -147,7 +147,7 @@ where
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(feature = "mock")]
 pub mod mock {
     use std::convert::Infallible;
 
@@ -155,7 +155,6 @@ pub mod mock {
 
     use crate::model::AuditLog;
 
-    #[derive(Default)]
     pub struct MockAuditLog;
 
     impl AuditLog for MockAuditLog {
