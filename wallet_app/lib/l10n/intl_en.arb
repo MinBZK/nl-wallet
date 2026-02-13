@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-02-03T11:38:58+01:00",
+    "@@last_modified": "2026-02-12T10:09:22+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1367,7 +1367,7 @@
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",
-    "reviewRevocationCodeScreenDescription": "You use this code to delete your NL Wallet from a distance. For example if you lose this device or if it is stolen. This stops someone from using your wallet.",
+    "reviewRevocationCodeScreenDescription": "You use this code to delete your NL Wallet from a distance. For example if you lose this device or if it is stolen. This stops someone from using your wallet.\n\nDo not share this deletion code with anyone!",
     "reviewRevocationCodeScreenSuccessCta": "I have written it down",
     "reviewRevocationCodeScreenSuccessDescription": "Your 18 characters deletion code is:",
     "reviewRevocationCodeScreenSuccessTitle": "Write down your deletion code",
@@ -1376,7 +1376,7 @@
     "revocationCodeScreenCodeFooter": "You can find the code later in Menu > Settings and Security > View your deletion code.",
     "revocationCodeScreenCodeHeader": "Your 18-digit deletion code is:",
     "revocationCodeScreenContinueCta": "I have written it down",
-    "revocationCodeScreenDescription": "You use this code to delete your NL Wallet from a distance. For example if you lose this device or if it is stolen. This stops someone from using your wallet.",
+    "revocationCodeScreenDescription": "You use this code to delete your NL Wallet from a distance. For example if you lose this device or if it is stolen. This stops someone from using your wallet.\n\nDo not share this deletion code to anyone!",
     "revocationCodeScreenTitle": "Write down your deletion code now",
     "rootDetectedScreenDescription": "To protect your data, you can not use NL Wallet on this device. \n\nThis device is not in its original state, which makes it not secure. See the help page for more information.",
     "rootDetectedScreenTitle": "Your device is not secure",
@@ -1486,6 +1486,32 @@
     "stopDigidLoginDialogPositiveCta": "STOP LOGIN",
     "stopDigidLoginDialogSubtitle": "If you stop, you'll need to start over.",
     "stopDigidLoginDialogTitle": "Stop DigiD login?",
+    "stopToResetPinDialogCancelCta": "No",
+    "stopToResetPinDialogConfirmCta": "Yes, Stop",
+    "stopToResetPinDialogDescriptionDisclosureVariant": "If you stop, no data will be shared with {organisation}\n\nYou can then create a new PIN",
+    "@stopToResetPinDialogDescriptionDisclosureVariant": {
+        "placeholders": {
+            "organisation": {
+                "example": "Relying Party",
+                "type": "String"
+            }
+        }
+    },
+    "stopToResetPinDialogDescriptionIssuanceVariant": "If you stop, no card(s) will be added to your NL Wallet.\n\nYou can then create a new PIN",
+    "stopToResetPinDialogDescriptionLoginVariant": "If you stop, you will not log in to {organisation}.\n\nYou can then create a new PIN",
+    "@stopToResetPinDialogDescriptionLoginVariant": {
+        "placeholders": {
+            "organisation": {
+                "example": "Relying Party",
+                "type": "String"
+            }
+        }
+    },
+    "stopToResetPinDialogDescriptionTransferVariant": "If you stop, your NL Wallet will not be moved to your other device.\n\nYou can then create a new PIN",
+    "stopToResetPinDialogTitleDisclosureVariant": "Stop sharing details to create a new PIN",
+    "stopToResetPinDialogTitleIssuanceVariant": "Stop adding card to create a new PIN",
+    "stopToResetPinDialogTitleLoginVariant": "Stop logging in to create a new PIN",
+    "stopToResetPinDialogTitleTransferVariant": "Stop moving NL Wallet to create a new PIN",
     "tourBannerTitle": "Discover everything in short videos",
     "tourOverviewScreenItemWCAGLabel": "Play video \"{name}\"",
     "tourOverviewScreenSubtitle": "Discover how the app works in short videos.",
@@ -1642,8 +1668,6 @@
     "walletTransferSourceStopSheetCancelCta": "No",
     "walletTransferSourceStopSheetConfirmCta": "Yes, stop",
     "walletTransferSourceStopSheetDescription": "If you stop, no data will be moved to your other device.",
-    "walletTransferSourceStopSheetForgotPinVariantDescription": "You want to create a new PIN. This will stop the transfer and no data will be moved to your other device.\n\nAfter you create a new PIN, you can start moving the NL Wallet again.",
-    "walletTransferSourceStopSheetForgotPinVariantTitle": "Stop moving to create a new PIN?",
     "walletTransferSourceStopSheetTitle": "Are you sure you want to stop?",
     "walletTransferTargetOptOutDialogDescription": "A new NL Wallet will be created on this device. NL Wallet apps are not connected.",
     "walletTransferTargetOptOutDialogTitle": "Create new NL Wallet?",

@@ -75,6 +75,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   ) : super(const DisclosureInitial()) {
     on<DisclosureSessionStarted>(_onSessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
+    on<DisclosureCancelRequested>(_onCancelRequested);
     on<DisclosureBackPressed>(_onBackPressed);
     on<DisclosureUrlApproved>(_onUrlApproved);
     on<DisclosureShareRequestedCardsApproved>(_onShareRequestedCardsApproved);
@@ -150,6 +151,14 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           ),
         );
     }
+  }
+
+  Future<void> _onCancelRequested(DisclosureCancelRequested event, Emitter<DisclosureState> emit) async {
+    final cancelResult = await _cancelDisclosureUseCase.invoke();
+    await cancelResult.process(
+      onSuccess: (returnUrl) => Fimber.d('Disclosure session cancelled'),
+      onError: (error) => Fimber.e('Failed to cancel session', ex: error),
+    );
   }
 
   Future<void> _onStopRequested(DisclosureStopRequested event, Emitter<DisclosureState> emit) async {
@@ -353,6 +362,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   Future<void> close() async {
     _startDisclosureResult = null;
     _cardRequestsSelectionCache = null;
+    // Note: We explicitly do not cancel the session here. This fixes PVW-5430
     await super.close();
   }
 }
