@@ -8,6 +8,9 @@ pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protect
 # Refresh delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
 
+# Indicates if the revoke-solution API endpoint should be enabled
+revoke_solution_enabled = true
+
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
 

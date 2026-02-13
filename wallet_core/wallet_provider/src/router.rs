@@ -92,7 +92,7 @@ type Result<T> = std::result::Result<T, WalletProviderError>;
 #[openapi(info(title = "Wallet provider API"))]
 struct ApiDocs;
 
-pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>) -> Router
+pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>, revoke_solution_enabled: bool) -> Router
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
@@ -193,7 +193,7 @@ where
                 .with_state(Arc::clone(&state)),
         );
 
-    let (internal_router, internal_openapi) = internal::internal_router(state);
+    let (internal_router, internal_openapi) = internal::internal_router(state, revoke_solution_enabled);
     let router = router.nest("/internal", internal_router.layer(TraceLayer::new_for_http()));
     let openapi = ApiDocs::openapi().nest("/internal", internal_openapi);
 

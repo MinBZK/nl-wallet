@@ -28,6 +28,9 @@ wua_issuer_identifier = "wua-issuer.example.com"
 # Refresh delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
 
+# Indicates if the revoke-solution API endpoint should be enabled
+#revoke_solution_enabled = false
+
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
 
