@@ -222,6 +222,9 @@ revoke their wallet.</p></li>
 <li><p>The Wallet Provider will write audit logs for all admin operations to another
 PostgreSQL database, which must be configured in the Wallet Provider settings
 at <code class="docutils literal notranslate"><span class="pre">audit_log.url</span></code>.</p></li>
+<li><p>Before entering the ‘forgot pin’ flow from a disclosure/issuance/transfer
+session, the user is now preemptively informed that doing so will cause the
+active session will be aborted.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
