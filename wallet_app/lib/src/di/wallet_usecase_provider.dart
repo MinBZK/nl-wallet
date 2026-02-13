@@ -45,6 +45,8 @@ import '../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../domain/usecase/issuance/impl/cancel_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/start_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/start_issuance_usecase.dart';
+import '../domain/usecase/maintenance/impl/observe_maintenance_state_usecase_impl.dart';
+import '../domain/usecase/maintenance/observe_maintenance_state_usecase.dart';
 import '../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import '../domain/usecase/navigation/impl/check_navigation_prerequisites_usecase_impl.dart';
 import '../domain/usecase/navigation/impl/perform_pre_navigation_actions_usecase_impl.dart';
@@ -244,6 +246,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ResetWalletUseCase>(
           create: (context) => ResetWalletUseCaseImpl(context.read(), SharedPreferences.getInstance),
+        ),
+        RepositoryProvider<ObserveMaintenanceStateUseCase>(
+          create: (context) => ObserveMaintenanceStateUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CheckNavigationPrerequisitesUseCase>(
           create: (context) => CheckNavigationPrerequisitesUseCaseImpl(context.read()),

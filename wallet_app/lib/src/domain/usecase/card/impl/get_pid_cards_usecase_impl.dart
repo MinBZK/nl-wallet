@@ -19,7 +19,7 @@ class GetPidCardsUseCaseImpl extends GetPidCardsUseCase {
     return tryCatch(
       () async {
         final cards = await _walletCardRepository.readAll();
-        final config = await _configurationRepository.appConfiguration.first;
+        final config = await _configurationRepository.observeAppConfiguration.first;
         final pidCards = cards.where((card) => config.pidAttestationTypes.contains(card.attestationType));
         return pidCards.toList();
       },

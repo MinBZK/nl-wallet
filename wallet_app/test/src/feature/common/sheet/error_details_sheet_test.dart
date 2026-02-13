@@ -26,7 +26,7 @@ void main() {
     getVersionStringUseCase = MockGetVersionStringUseCase();
     when(getVersionStringUseCase.invoke()).thenAnswer((_) async => const Result.success('1.0'));
     configurationRepository = MockConfigurationRepository();
-    when(configurationRepository.appConfiguration).thenAnswer(
+    when(configurationRepository.observeAppConfiguration).thenAnswer(
       (_) => Stream.value(
         const FlutterAppConfiguration(
           idleLockTimeout: Duration.zero,
@@ -34,6 +34,7 @@ void main() {
           backgroundLockTimeout: Duration.zero,
           staticAssetsBaseUrl: 'https://example.com/',
           pidAttestationTypes: ['com.example.attestationType'],
+          maintenanceWindow: null,
           version: '1337',
           environment: 'test',
         ),

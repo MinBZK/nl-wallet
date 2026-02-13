@@ -9,6 +9,8 @@ import '../domain/model/attribute/attribute.dart';
 import '../domain/model/card/metadata/card_display_metadata.dart';
 import '../domain/model/card/status/card_status.dart';
 import '../domain/model/card/wallet_card.dart';
+import '../domain/model/configuration/flutter_app_configuration.dart';
+import '../domain/model/configuration/maintenance_window.dart';
 import '../domain/model/disclosure/disclosure_session_type.dart';
 import '../domain/model/document.dart';
 import '../domain/model/event/wallet_event.dart';
@@ -27,6 +29,8 @@ import '../util/mapper/card/attribute/missing_attribute_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/metadata_mapper.dart';
 import '../util/mapper/card/status/card_status_mapper.dart';
+import '../util/mapper/configuration/flutter_app_configuration_mapper.dart';
+import '../util/mapper/configuration/maintenance_window_mapper.dart';
 import '../util/mapper/context_mapper.dart';
 import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
 import '../util/mapper/disclosure/disclosure_type_mapper.dart';
@@ -61,6 +65,14 @@ class WalletMapperProvider extends StatelessWidget {
         ),
         RepositoryProvider<Mapper<core.Image, AppImageData>>(
           create: (context) => ImageMapper(),
+        ),
+
+        /// Configuration
+        RepositoryProvider<Mapper<(String, String)?, MaintenanceWindow?>>(
+          create: (context) => MaintenanceWindowMapper(),
+        ),
+        RepositoryProvider<Mapper<core.FlutterConfiguration, FlutterAppConfiguration>>(
+          create: (context) => FlutterAppConfigurationMapper(context.read()),
         ),
 
         /// Card attribute mappers
