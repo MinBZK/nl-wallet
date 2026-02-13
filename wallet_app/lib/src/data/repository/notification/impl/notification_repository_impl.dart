@@ -9,11 +9,13 @@ import '../notification_repository.dart';
 class NotificationRepositoryImpl implements NotificationRepository {
   final TypedWalletCore _core;
   final Mapper<core.AppNotification, AppNotification> _notificationMapper;
+  final Mapper<core.NotificationType, NotificationType> _notificationTypeMapper;
   final NotificationSettingsStore _notificationSettingsStore;
 
   NotificationRepositoryImpl(
     this._core,
     this._notificationMapper,
+    this._notificationTypeMapper,
     this._notificationSettingsStore,
   );
 
@@ -33,4 +35,17 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Stream<bool> observePushNotificationsEnabled() => _notificationSettingsStore.observePushNotificationsEnabled();
+
+  @override
+  Future<bool> arePushNotificationsEnabled() async => _notificationSettingsStore.getPushNotificationsEnabled();
+
+  @override
+  void setDirectNotificationCallback(Function(int, NotificationType) callback) {
+    _core.setupNotificationCallback((items) {
+      for (final tuple in items) {
+        final (id, type) = tuple;
+        callback(id, _notificationTypeMapper.map(type));
+      }
+    });
+  }
 }

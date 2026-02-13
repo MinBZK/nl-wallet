@@ -614,6 +614,7 @@ then
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \
             --dart-define SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT}" \
+            --dart-define SHOW_DEBUG_OPTIONS=true \
             --dart-define DEMO_INDEX_URL="http://localhost:${DEMO_INDEX_PORT}/"
     fi
 fi

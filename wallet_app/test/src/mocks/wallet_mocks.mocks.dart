@@ -107,6 +107,7 @@ import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_acti
 import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart' as _i146;
 import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart' as _i148;
 import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart' as _i152;
+import 'package:wallet/src/domain/usecase/notification/set_direct_os_notification_callback_usecase.dart' as _i158;
 import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart' as _i153;
 import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart' as _i145;
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart' as _i114;
@@ -2489,6 +2490,23 @@ class MockNotificationRepository extends _i1.Mock implements _i42.NotificationRe
             returnValueForMissingStub: _i10.Stream<bool>.empty(),
           )
           as _i10.Stream<bool>);
+
+  @override
+  _i10.Future<bool> arePushNotificationsEnabled() =>
+      (super.noSuchMethod(
+            Invocation.method(#arePushNotificationsEnabled, []),
+            returnValue: _i10.Future<bool>.value(false),
+            returnValueForMissingStub: _i10.Future<bool>.value(false),
+          )
+          as _i10.Future<bool>);
+
+  @override
+  void setDirectNotificationCallback(
+    dynamic Function(int, _i43.NotificationType)? callback,
+  ) => super.noSuchMethod(
+    Invocation.method(#setDirectNotificationCallback, [callback]),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [RevocationRepository].
@@ -2564,6 +2582,14 @@ class MockTypedWalletCore extends _i1.Mock implements _i45.TypedWalletCore {
             returnValueForMissingStub: _i10.Stream<bool>.empty(),
           )
           as _i10.Stream<bool>);
+
+  @override
+  void setupNotificationCallback(
+    _i10.FutureOr<void> Function(List<(int, _i26.NotificationType)>)? callback,
+  ) => super.noSuchMethod(
+    Invocation.method(#setupNotificationCallback, [callback]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   _i10.Future<_i26.PinValidationResult> isValidPin(String? pin) =>
@@ -7134,6 +7160,40 @@ class MockGetRegistrationRevocationCodeUseCase extends _i1.Mock implements _i157
             ),
           )
           as _i10.Future<_i73.Result<String>>);
+
+  @override
+  _i10.Future<_i73.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#tryCatch, [future, errorDescription]),
+            returnValue: _i10.Future<_i73.Result<T>>.value(
+              _i14.dummyValue<_i73.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i73.Result<T>>.value(
+              _i14.dummyValue<_i73.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+          )
+          as _i10.Future<_i73.Result<T>>);
+}
+
+/// A class which mocks [SetDirectOsNotificationCallbackUsecase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSetDirectOsNotificationCallbackUsecase extends _i1.Mock
+    implements _i158.SetDirectOsNotificationCallbackUsecase {
+  @override
+  void invoke(dynamic Function(_i149.OsNotification)? callback) => super.noSuchMethod(
+    Invocation.method(#invoke, [callback]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   _i10.Future<_i73.Result<T>> tryCatch<T>(

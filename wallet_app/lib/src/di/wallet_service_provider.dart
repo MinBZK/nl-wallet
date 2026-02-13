@@ -70,7 +70,7 @@ class WalletServiceProvider extends StatelessWidget {
         ),
         RepositoryProvider<AnnouncementService>(create: AnnouncementService.new),
         RepositoryProvider<LocalNotificationService>(
-          create: (context) => LocalNotificationService(context.read(), context.read(), context.read()),
+          create: (context) => LocalNotificationService(context.read(), context.read(), context.read(), context.read()),
           lazy: false,
         ),
         RepositoryProvider<AppEventCoordinator>(
