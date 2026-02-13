@@ -243,8 +243,10 @@ Widget _createIntroductionScreenBuilder(BuildContext context) => const Introduct
 
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
 
-WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) =>
-    (context) => const ForgotPinScreen();
+WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) => (context) {
+  final argument = ForgotPinScreen.getArgument(settings);
+  return ForgotPinScreen(useCloseButton: argument.useCloseButton);
+};
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 

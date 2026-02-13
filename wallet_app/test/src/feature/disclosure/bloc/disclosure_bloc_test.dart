@@ -180,6 +180,13 @@ void main() {
   );
 
   blocTest(
+    'when BLoC receives DisclosureCancelRequested event, the active session is cancelled',
+    build: create,
+    act: (bloc) => bloc.add(const DisclosureCancelRequested()),
+    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(1),
+  );
+
+  blocTest(
     'when the user stops disclosure while checking the organization for missing attributes, the bloc emits DisclosureStopped and cancels disclosure',
     setUp: () {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {

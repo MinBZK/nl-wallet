@@ -11,6 +11,7 @@ import '../../pin/pin_page.dart';
 class IssuanceConfirmPinForIssuancePage extends StatelessWidget {
   final OnPinValidatedCallback<String?> onPinValidated;
   final OnPinErrorCallback onConfirmWithPinFailed;
+  final VoidCallback? onForgotPinPressed;
   final String? title;
   final List<WalletCard> cards;
 
@@ -21,6 +22,7 @@ class IssuanceConfirmPinForIssuancePage extends StatelessWidget {
     required this.onPinValidated,
     required this.onConfirmWithPinFailed,
     required this.cards,
+    this.onForgotPinPressed,
     this.title,
     this.bloc,
     super.key,
@@ -36,6 +38,7 @@ class IssuanceConfirmPinForIssuancePage extends StatelessWidget {
         },
         onPinValidated: (result) => onPinValidated.call(result as String?),
         onPinError: onConfirmWithPinFailed,
+        onForgotPinPressed: onForgotPinPressed,
       ),
     );
   }
