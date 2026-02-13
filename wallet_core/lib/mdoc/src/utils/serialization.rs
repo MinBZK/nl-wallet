@@ -252,27 +252,6 @@ where
     }
 }
 
-// We can't derive `Deserialize` with the `untagged` Serde enum deserializer, because unfortunately it is not able to
-// distinguish between the `NfcHandover` and `Oid4vpHandover` variants.
-// For the other direction (serializing), however, the `untagged` enum serializer is used and works fine.
-// Note that this implementation is only ever used to deserialize the examples from the spec in `examples.rs`.
-// For each variant a unit test is included to check that serializing and deserializing agree with each other.
-#[cfg(any(test, feature = "examples"))]
-impl<'de> Deserialize<'de> for Handover {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let val = Value::deserialize(deserializer)?;
-        match val {
-            Value::Null => Ok(Handover::QrHandover),
-            Value::Array(ref bts_vec) => match bts_vec.len() {
-                1 | 2 => Ok(Handover::NfcHandover(val.deserialized().map_err(de::Error::custom)?)),
-                3 => Ok(Handover::Oid4vpHandover(val.deserialized().map_err(de::Error::custom)?)),
-                _ => Err(de::Error::custom("CBOR array had unexpected length")),
-            },
-            _ => Err(de::Error::custom("CBOR value of unexpected type")),
-        }
-    }
-}
-
 /// Wrapper around `T`, representing a fixed constant. `T` which must implement `RequiredValueTrait`.
 /// Implements serde (de)serialization as follows:
 /// * During serialization, always serializes to `T::required_value()`.
@@ -340,6 +319,13 @@ pub struct ReaderAuthenticationString;
 impl RequiredValueTrait for ReaderAuthenticationString {
     type Type = Cow<'static, str>;
     const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("ReaderAuthentication");
+}
+
+#[derive(Debug, Clone)]
+pub struct OpenID4VPHandoverString;
+impl RequiredValueTrait for OpenID4VPHandoverString {
+    type Type = Cow<'static, str>;
+    const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("OpenID4VPHandover");
 }
 
 // Don't (de)serialize the CBOR tag when we serialize to JSON
@@ -424,7 +410,7 @@ mod tests {
 
     // For each of the `Handover` variants, we manually construct the CBOR structure as defined by the specs
     // (ISO 18013-5 and OpenID4VP), and check that (1) this correctly deserializes to the expected
-    // variant and (2) serializing it back yields identical CBOR. This tests not only that the manual Deserialize
+    // variant and (2) serializing it back yields identical CBOR. This tests not only that the derived Deserialize
     // implementation agrees with the derived Serialize implementation but also that both of these align with
     // the specs.
 
@@ -460,16 +446,12 @@ mod tests {
     #[test]
     fn test_handover_serialization_openid4vp() {
         // The OpenID4VP handover is structured as an array of bytes/bytes/text.
-        let oid4vp_handover_cbor = Array(vec![
-            Bytes(b"bytes1".to_vec()),
-            Bytes(b"bytes2".to_vec()),
-            Text("nonce".to_string()),
-        ]);
+        let oid4vp_handover_cbor = Array(vec![Text("OpenID4VPHandover".to_string()), Bytes(b"bytes".to_vec())]);
 
         let oid4vp_handover: Handover = oid4vp_handover_cbor.deserialized().unwrap();
         assert_matches!(
             &oid4vp_handover,
-            Handover::Oid4vpHandover(CborSeq(OID4VPHandover { nonce, ..})) if nonce == "nonce"
+            Handover::Oid4vpHandover(CborSeq(OID4VPHandover { info_hash, ..})) if info_hash == b"bytes"
         );
 
         assert_eq!(Value::serialized(&oid4vp_handover).unwrap(), oid4vp_handover_cbor);

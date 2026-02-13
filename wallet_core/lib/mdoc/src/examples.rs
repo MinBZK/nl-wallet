@@ -17,6 +17,8 @@ use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::engagement::DeviceAuthenticationBytes;
+use crate::iso::engagement::OID4VPHandoverInfo;
+use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 
@@ -45,19 +47,17 @@ impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
     }
 }
 
-// This requires the type name twice in impls, see below.
-// If we could use Deserialize as a supertrait instead that would not be necesarry, but that seems impossible.
-pub trait Example<T>
-where
-    T: DeserializeOwned + Serialize + Sized,
-{
+pub trait Example {
     fn example_hex() -> &'static str;
 
     fn example_bts() -> Vec<u8> {
         hex::decode(Self::example_hex()).expect("hex decode failed")
     }
 
-    fn example() -> T {
+    fn example() -> Self
+    where
+        Self: DeserializeOwned + Serialize + Sized,
+    {
         let bts = Self::example_bts();
         let deserialized = cbor_deserialize(bts.as_slice()).expect("example deserialization failed");
 
@@ -98,7 +98,7 @@ mod test {
     }
 }
 
-impl Example<DeviceResponse> for DeviceResponse {
+impl Example for DeviceResponse {
     fn example_hex() -> &'static str {
         "a36776657273696f6e63312e3069646f63756d656e747381a367646f6354797065756f72672e69736f2e31383031332e352e312e6d444c\
          6c6973737565725369676e6564a26a6e616d65537061636573a1716f72672e69736f2e31383031332e352e3186d8185863a46864696765\
@@ -168,7 +168,7 @@ impl Example<DeviceResponse> for DeviceResponse {
     }
 }
 
-impl Example<DeviceAuthenticationBytes<'_>> for DeviceAuthenticationBytes<'_> {
+impl Example for DeviceAuthenticationBytes<'_> {
     fn example_hex() -> &'static str {
         "d818590271847444657669636541757468656e7469636174696f6e83d8185858a20063312e30018201d818584ba4010220012158205a8\
          8d182bce5f42efa59943f33359d2e8a968ff289d93e5fa444b624343167fe225820b16e8cf858ddc7690407ba61d4c338237a8cfcf3de\
@@ -186,7 +186,7 @@ impl Example<DeviceAuthenticationBytes<'_>> for DeviceAuthenticationBytes<'_> {
 }
 
 #[cfg(test)]
-impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
+impl Example for ReaderAuthenticationBytes<'_> {
     fn example_hex() -> &'static str {
         "d8185902ee837452656164657241757468656e7469636174696f6e83d8185858a20063312e30018201d818584ba4010220012158205a8\
          8d182bce5f42efa59943f33359d2e8a968ff289d93e5fa444b624343167fe225820b16e8cf858ddc7690407ba61d4c338237a8cfcf3de\
@@ -206,7 +206,7 @@ impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
 }
 
 #[cfg(test)]
-impl Example<DeviceRequest> for DeviceRequest {
+impl Example for DeviceRequest {
     fn example_hex() -> &'static str {
         "a26776657273696f6e63312e306b646f63526571756573747381a26c6974656d7352657175657374d8185893a267646f6354797065756\
          f72672e69736f2e31383031332e352e312e6d444c6a6e616d65537061636573a1716f72672e69736f2e31383031332e352e31a66b6661\
@@ -222,6 +222,16 @@ impl Example<DeviceRequest> for DeviceRequest {
          8b4efef6a1ef71ec4aae4e307206f9214930221009b94f0d739dfa84cca29efed529dd4838acfd8b6bee212dc6320c46feb839a35f658\
          401f3400069063c189138bdcd2f631427c589424113fc9ec26cebcacacfcdb9695d28e99953becabc4e30ab4efacc839a81f9159933d1\
          92527ee91b449bb7f80bf"
+    }
+}
+
+impl Example for CborSeq<OID4VPHandoverInfo<'_>> {
+    fn example_hex() -> &'static str {
+        // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-9
+        "847818783530395f73616e5f646e733a6578616d706c652e636f6d782b6578633767\
+         426b786a7831726463397564527276654b7653734a4971383061766c58654c486847\
+         7771744158204283ec927ae0f208daaa2d026a814f2b22dca52cf85ffa8f3f8626c6\
+         bd669047781c68747470733a2f2f6578616d706c652e636f6d2f726573706f6e7365"
     }
 }
 
