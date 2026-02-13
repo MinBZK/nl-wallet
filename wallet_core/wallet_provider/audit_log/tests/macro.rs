@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::error::Error;
 
+use assert_matches::assert_matches;
 use audit_log::model::FromAuditLogError;
 use serde::Serialize;
 
@@ -18,12 +20,12 @@ struct MyTypeWithReferences<'a, 'b> {
 #[derive(Debug, thiserror::Error)]
 enum MyError {
     #[error("audit error: {0}")]
-    Audit(Box<dyn Error + Send + Sync>),
+    Audit(String),
 }
 
 impl FromAuditLogError for MyError {
     fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
-        Self::Audit(audit_log_error)
+        Self::Audit(audit_log_error.to_string())
     }
 }
 
@@ -57,6 +59,14 @@ async fn test_operation_with_references<'a, 'b, 'c>(
     #[auditor] auditor: &MockAuditLog,
 ) -> Result<(), MyError> {
     tracing::debug!("performed test operation with referenced types: {one:?}, {two:?}, {three:?}, {four:?}");
+    Ok(())
+}
+
+type MyMap = HashMap<(String, String), MyType>;
+
+#[audited]
+async fn test_operation_invalid_json(#[audit] param: MyMap, #[auditor] auditor: &MockAuditLog) -> Result<(), MyError> {
+    tracing::debug!("this should not end up in the logs");
     Ok(())
 }
 
@@ -107,4 +117,26 @@ async fn test_macro_operations_with_references() {
         .expect("success");
 
     assert!(logs_contain("performed test operation with referenced types"));
+}
+
+#[tokio::test]
+#[tracing_test::traced_test]
+async fn test_macro_operation_invalid_json() {
+    let audit_log = MockAuditLog;
+
+    let hashmap = HashMap::from_iter([(("one".to_string(), "two".to_string()), MyType)]);
+
+    let error = test_operation_invalid_json(hashmap, &audit_log)
+        .await
+        .expect_err("should fail");
+
+    logs_assert(|logs| {
+        if !logs.is_empty() {
+            Err("logs should be empty".to_string())
+        } else {
+            Ok(())
+        }
+    });
+
+    assert_matches!(error, MyError::Audit(error) if error == "key must be a string");
 }

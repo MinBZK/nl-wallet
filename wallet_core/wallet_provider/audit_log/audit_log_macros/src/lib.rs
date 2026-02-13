@@ -24,7 +24,9 @@ use syn::parse_macro_input;
 /// # use audit_log_macros::audited;
 /// # struct DbErr;
 /// # struct RevocationError;
-/// # impl audit_log::model::FromAuditLogError for RevocationError { fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self } }
+/// # impl audit_log::model::FromAuditLogError for RevocationError {
+/// #     fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self }
+/// # }
 /// #[audited]
 /// pub async fn revoke_wallet(
 ///     #[audit] wallet_id: &str,
@@ -40,7 +42,9 @@ use syn::parse_macro_input;
 /// # use audit_log::model::AuditLog;
 /// # struct DbErr;
 /// # struct RevocationError;
-/// # impl audit_log::model::FromAuditLogError for RevocationError { fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self } }
+/// # impl audit_log::model::FromAuditLogError for RevocationError {
+/// #     fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self }
+/// # }
 /// pub async fn revoke_wallet(
 ///     wallet_id: &str,
 ///     audit_log: &impl AuditLog,
@@ -51,8 +55,12 @@ use syn::parse_macro_input;
 ///     }
 ///     let __audit_params_json = {
 ///         let __audit_params = AuditParameters { wallet_id: wallet_id };
-///         ::serde_json::to_value(__audit_params)
-///             .expect("audit parameters should serialize to JSON")
+///         match ::serde_json::to_value(__audit_params) {
+///             Ok(params) => params,
+///             Err(error) => {
+///                 return Err(audit_log::model::FromAuditLogError::from_audit_log_error(Box::new(error)));
+///             }
+///         }
 ///     };
 ///     audit_log::model::AuditLog::audit(
 ///         audit_log,
@@ -166,8 +174,12 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
             #struct_def
             let __audit_params_json = {
                 #struct_init
-                ::serde_json::to_value(__audit_params)
-                    .expect("audit parameters should serialize to JSON")
+                match ::serde_json::to_value(__audit_params) {
+                    Ok(params) => params,
+                    Err(error) => {
+                        return Err(audit_log::model::FromAuditLogError::from_audit_log_error(Box::new(error)));
+                    }
+                }
             };
             ::audit_log::model::AuditLog::audit(
                 #audit_log_ident,
