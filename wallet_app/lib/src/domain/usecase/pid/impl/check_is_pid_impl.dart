@@ -12,7 +12,7 @@ class CheckIsPidUseCaseImpl extends CheckIsPidUseCase {
   Future<Result<bool>> invoke(WalletCard card) {
     return tryCatch(
       () async {
-        final appConfig = await _configurationRepository.appConfiguration.first;
+        final appConfig = await _configurationRepository.observeAppConfiguration.first;
         return appConfig.pidAttestationTypes.contains(card.attestationType);
       },
       'Failed to check if ${card.attestationId} is PID',

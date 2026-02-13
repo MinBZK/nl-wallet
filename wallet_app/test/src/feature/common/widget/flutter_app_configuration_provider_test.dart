@@ -10,6 +10,7 @@ void main() {
     backgroundLockTimeout: Duration(seconds: 20),
     staticAssetsBaseUrl: 'https://example.com/',
     pidAttestationTypes: ['com.example.attestationType'],
+    maintenanceWindow: null,
     version: '0',
     environment: 'test',
   );
@@ -22,6 +23,7 @@ void main() {
         backgroundLockTimeout: Duration(seconds: 20),
         staticAssetsBaseUrl: 'https://example.com/',
         pidAttestationTypes: ['com.example.attestationType'],
+        maintenanceWindow: null,
         version: '0',
         environment: 'test',
       );
@@ -36,6 +38,7 @@ void main() {
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
+        maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
       );
@@ -45,6 +48,7 @@ void main() {
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
+        maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
       );
@@ -54,6 +58,7 @@ void main() {
         backgroundLockTimeout: const Duration(hours: 1337),
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
+        maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
       );
@@ -63,6 +68,7 @@ void main() {
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: 'https://other.example.com/',
         pidAttestationTypes: ['com.example.attestationType'],
+        maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
       );
@@ -72,6 +78,7 @@ void main() {
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         pidAttestationTypes: ['com.example.attestationType'],
+        maintenanceWindow: null,
         version: '1337',
         environment: defaultMockConfig.environment,
       );
@@ -110,6 +117,7 @@ void main() {
       backgroundLockTimeout: Duration(seconds: 5),
       staticAssetsBaseUrl: 'https://example.com/',
       pidAttestationTypes: ['com.example.attestationType'],
+      maintenanceWindow: null,
       version: '0',
       environment: 'test',
     );

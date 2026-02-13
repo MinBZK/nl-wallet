@@ -6,6 +6,8 @@ import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart
 import 'package:wallet/src/domain/model/card/metadata/card_rendering.dart';
 import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
+import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/domain/model/configuration/maintenance_window.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/document.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
@@ -24,6 +26,20 @@ abstract class WalletMockData {
   static final DateTime validFrom = DateTime(2050, 5, 1, 17, 25);
   static final DateTime validUntil = DateTime(2025, 5, 1, 17, 25);
   static final CardStatus status = CardStatusValid(validUntil: validUntil);
+
+  static FlutterAppConfiguration flutterAppConfiguration = FlutterAppConfiguration(
+    idleLockTimeout: const Duration(seconds: 300),
+    idleWarningTimeout: const Duration(seconds: 60),
+    backgroundLockTimeout: const Duration(seconds: 600),
+    staticAssetsBaseUrl: 'https://example.com/',
+    pidAttestationTypes: ['urn:eudi:pid:nl:1'],
+    maintenanceWindow: MaintenanceWindow(
+      startDateTime: DateTime(2025, 1, 15, 10, 0),
+      endDateTime: DateTime(2025, 1, 15, 11, 0),
+    ),
+    version: '1.0.0',
+    environment: 'production',
+  );
 
   static WalletCard card = WalletCard(
     attestationId: 'id',
