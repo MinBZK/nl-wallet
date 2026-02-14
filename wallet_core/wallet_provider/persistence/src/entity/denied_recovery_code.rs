@@ -9,6 +9,7 @@ pub struct Model {
     pub id: i32,
     #[sea_orm(unique)]
     pub recovery_code: String,
+    pub is_denied: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -15,6 +15,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(pk_auto(DeniedRecoveryCode::Id))
                     .col(string(DeniedRecoveryCode::RecoveryCode))
+                    .col(boolean(DeniedRecoveryCode::IsDenied).default(false))
                     .index(
                         Index::create()
                             .unique()
@@ -23,7 +24,20 @@ impl MigrationTrait for Migration {
                     )
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .table(DeniedRecoveryCode::Table)
+                    .name("denied_recovery_code_is_denied")
+                    .col(DeniedRecoveryCode::IsDenied)
+                    .and_where(Expr::col(DeniedRecoveryCode::IsDenied).eq(true))
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -32,4 +46,5 @@ pub enum DeniedRecoveryCode {
     Table,
     Id,
     RecoveryCode,
+    IsDenied,
 }

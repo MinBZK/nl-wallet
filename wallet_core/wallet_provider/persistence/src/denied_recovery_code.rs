@@ -1,8 +1,6 @@
 use sea_orm::ActiveValue::NotSet;
-use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
-use sea_orm::QueryFilter;
 use sea_orm::Set;
 use sea_orm::sea_query::OnConflict;
 use wallet_provider_domain::repository::PersistenceError;
@@ -18,15 +16,15 @@ where
     let model = denied_recovery_code::ActiveModel {
         id: NotSet,
         recovery_code: Set(recovery_code),
+        is_denied: Set(true),
     };
+
     denied_recovery_code::Entity::insert(model)
         .on_conflict(
-            // this is to support idempotency; a recovery code can only be on the list once
             OnConflict::column(denied_recovery_code::Column::RecoveryCode)
-                .do_nothing()
+                .update_column(denied_recovery_code::Column::IsDenied)
                 .to_owned(),
         )
-        .on_empty_do_nothing()
         .exec(db.connection())
         .await
         .map_err(PersistenceError::Execution)?;
@@ -34,15 +32,27 @@ where
     Ok(())
 }
 
-pub async fn exists<S, T>(db: &T, recovery_code: &str) -> Result<bool, PersistenceError>
+pub async fn exists<S, T>(db: &T, recovery_code: String) -> Result<bool, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    Ok(denied_recovery_code::Entity::find()
-        .filter(denied_recovery_code::Column::RecoveryCode.eq(recovery_code))
-        .one(db.connection())
+    let model = denied_recovery_code::ActiveModel {
+        id: NotSet,
+        recovery_code: Set(recovery_code),
+        is_denied: Set(false),
+    };
+
+    let result = denied_recovery_code::Entity::insert(model)
+        .on_conflict(
+            OnConflict::column(denied_recovery_code::Column::RecoveryCode)
+                // hack to get a lock on the row
+                .update_column(denied_recovery_code::Column::RecoveryCode)
+                .to_owned(),
+        )
+        .exec_with_returning(db.connection())
         .await
-        .map_err(PersistenceError::Execution)?
-        .is_some())
+        .map_err(PersistenceError::Execution)?;
+
+    Ok(result.is_denied)
 }

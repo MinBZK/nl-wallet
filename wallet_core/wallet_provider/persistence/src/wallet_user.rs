@@ -197,13 +197,14 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let exists_query = Query::select()
-        .column(denied_recovery_code::Column::Id)
+    let is_denied_query = Query::select()
+        .column(denied_recovery_code::Column::IsDenied)
         .from(denied_recovery_code::Entity)
         .and_where(
             Expr::col((denied_recovery_code::Entity, denied_recovery_code::Column::RecoveryCode))
                 .eq(Expr::col((wallet_user::Entity, wallet_user::Column::RecoveryCode))),
         )
+        .and_where(Expr::col((denied_recovery_code::Entity, denied_recovery_code::Column::IsDenied)).eq(true))
         .take();
 
     let Some(model) = wallet_user::Entity::find()
@@ -222,7 +223,7 @@ where
         .column(wallet_user::Column::RevocationReason)
         .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
-        .expr_as(Expr::exists(exists_query), "recovery_code_on_deny_list")
+        .expr_as(Expr::exists(is_denied_query), "recovery_code_on_deny_list")
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,

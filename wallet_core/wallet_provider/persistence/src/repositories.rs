@@ -494,7 +494,7 @@ impl WalletUserRepository for Repositories {
     async fn is_recovery_code_on_deny_list(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: &str,
+        recovery_code: String,
     ) -> Result<bool, PersistenceError> {
         denied_recovery_code::exists(transaction, recovery_code).await
     }
@@ -799,7 +799,7 @@ pub mod mock {
             async fn is_recovery_code_on_deny_list(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: &str,
+                recovery_code: String,
             ) -> Result<bool, PersistenceError>;
         }
 
@@ -1196,7 +1196,7 @@ pub mod mock {
         async fn is_recovery_code_on_deny_list(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &str,
+            _recovery_code: String,
         ) -> Result<bool, PersistenceError> {
             Ok(false)
         }

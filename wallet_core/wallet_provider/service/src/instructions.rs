@@ -780,7 +780,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         // Verify that the recovery code is not on the deny list, if it is, immediately revoke the wallet
         if user_state
             .repositories
-            .is_recovery_code_on_deny_list(&tx, &recovery_code)
+            .is_recovery_code_on_deny_list(&tx, recovery_code.clone())
             .await?
         {
             user_state
