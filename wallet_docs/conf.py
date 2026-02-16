@@ -77,7 +77,7 @@ smv_branch_whitelist = r'^main$'
 linkcheck_report_timeouts_as_broken = False
 linkcheck_ignore = [
     r'(?i)^https?://localhost(?::\d{1,5})?(?:[/?#].*)?$',
-    r'https://www\.iso\.org/obp/',
+    r'https://www\.iso\.org/',
     r'https://www\.tweedekamer\.nl/kamerstukken/brieven_regering/detail\?did=2022D32577&amp;id=2022Z15589'
 ]
 
