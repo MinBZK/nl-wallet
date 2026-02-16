@@ -508,7 +508,7 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn remove_recovery_code_from_deny_list(
+    async fn allow_recovery_code(
         &self,
         transaction: &Self::TransactionType,
         recovery_code: &str,
@@ -821,7 +821,7 @@ pub mod mock {
 
             async fn list_denied_recovery_codes(&self, transaction: &MockTransaction) -> Result<Vec<String>, PersistenceError>;
 
-            async fn remove_recovery_code_from_deny_list(
+            async fn allow_recovery_code(
                 &self,
                 transaction: &MockTransaction,
                 recovery_code: &str,
@@ -1233,7 +1233,7 @@ pub mod mock {
             Ok(vec![])
         }
 
-        async fn remove_recovery_code_from_deny_list(
+        async fn allow_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: &str,

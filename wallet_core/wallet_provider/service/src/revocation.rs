@@ -262,10 +262,7 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     let tx = user_state.repositories.begin_transaction().await?;
-    let removed = user_state
-        .repositories
-        .remove_recovery_code_from_deny_list(&tx, recovery_code)
-        .await?;
+    let removed = user_state.repositories.allow_recovery_code(&tx, recovery_code).await?;
 
     tx.commit().await?;
 

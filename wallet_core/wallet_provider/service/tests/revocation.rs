@@ -852,7 +852,7 @@ async fn test_list_and_remove_denied_recovery_codes_service() {
     let tx = user_state.repositories.begin_transaction().await.unwrap();
     user_state
         .repositories
-        .add_recovery_code_to_deny_list(&tx, recovery_code.clone())
+        .deny_recovery_code(&tx, recovery_code.clone())
         .await
         .unwrap();
     tx.commit().await.unwrap();
