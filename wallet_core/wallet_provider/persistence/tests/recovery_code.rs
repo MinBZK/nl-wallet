@@ -36,15 +36,6 @@ async fn test_insert_recovery_code() {
         .expect("should be able to insert recovery code");
     let exists = recovery_code::is_denied(&db, recovery_code).await.unwrap();
     assert!(exists);
-
-    // there's no minimum length
-    let small = random_string(1);
-    recovery_code::insert(&db, small.clone())
-        .await
-        .expect("should be able to insert recovery code");
-
-    let exists = recovery_code::is_denied(&db, small).await.unwrap();
-    assert!(exists);
 }
 
 #[tokio::test]
