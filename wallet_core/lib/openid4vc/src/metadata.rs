@@ -27,7 +27,7 @@ use crate::issuer_identifier::CredentialIssuerIdentifier;
 /// contain [`IssuerData`]. If a field is present in the JWT then the same field in `issuer_config` should be
 /// disregarded.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssuerMetadata {
     #[serde(flatten)]
     pub issuer_config: IssuerData,
@@ -83,7 +83,7 @@ impl IssuerMetadata {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssuerData {
     /// The Credential Issuer's identifier, as defined in Section 12.2.1.
     pub credential_issuer: CredentialIssuerIdentifier,
@@ -157,7 +157,7 @@ impl IssuerData {
 }
 
 /// Claims of a JWT containing [`IssuerData`].
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssuerDataClaims {
     /// Issuer of this JWT
     pub iss: String,
@@ -175,7 +175,7 @@ pub struct IssuerDataClaims {
 // For now we use plain strings for the first two fields below so the wallet can deserialize values that the issuer
 // sends. When we implement credential response encryption we should replace these with an enum listing implemented
 // algorithms.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialResponseEncryption {
     /// Array containing a list of the JWE [RFC7516] encryption algorithms (`alg` values) [RFC7518] supported by the
     /// Credential and Batch Credential Endpoint to encode the Credential or Batch Credential Response in a JWT
@@ -195,7 +195,7 @@ pub struct CredentialResponseEncryption {
 
 /// Display properties of a Credential Issuer for a certain language.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssuerDisplay {
     /// A language identifier, and a name in that language.
     #[serde(flatten)]
@@ -207,14 +207,14 @@ pub struct IssuerDisplay {
 
 /// A language identifier, and a name in that language.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NameLocale {
     pub name: Option<String>,
     pub locale: Option<String>,
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Logo {
     /// A URI where the Wallet can obtain the logo of the Credential Issuer. The Wallet needs
     /// to determine the scheme, since the URI value could use the `https:` scheme, the `data:` scheme, etc.
@@ -225,7 +225,7 @@ pub struct Logo {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialMetadata {
     /// Format of this Credential, i.e., `jwt_vc_json` or `ldp_vc`. Depending on the format value, may contain further
     /// elements defining the type and (optionally) particular claims the Credential MAY contain and information about
@@ -269,7 +269,7 @@ pub struct CredentialMetadata {
 /// elements defining the type and (optionally) particular claims the Credential MAY contain and information about how
 /// to display the Credential.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialFormat {
     MsoMdoc {
@@ -295,7 +295,7 @@ pub enum CredentialFormat {
 
 /// Metadata of an mdoc attribute.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MsoMdocClaim {
     /// Boolean which, when set to true, indicates that the Credential Issuer will always include this claim in the
     /// issued Credential. If set to `false`, the claim is not included in the issued Credential if the wallet did not
@@ -319,7 +319,7 @@ pub struct MsoMdocClaim {
 /// When the Cryptographic Binding Method is a DID, valid values are a `did:` prefix followed by a method-name using a
 /// syntax as defined in Section 3.1 of [DID-Core], but without a `:` and method-specific-id. For example, support for
 /// the DID method with a method-name "example" would be represented by `did:example`.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CryptographicBindingMethod {
     Jwk,
@@ -331,7 +331,7 @@ pub enum CryptographicBindingMethod {
 }
 
 /// Algorithms that the Issuer uses to sign the issued Credential.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CredentialSigningAlg {
     ES256,
 
@@ -341,7 +341,7 @@ pub enum CredentialSigningAlg {
 }
 
 /// Key proof type(s) that the Credential Issuer supports.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProofType {
     Jwt,
@@ -354,7 +354,7 @@ pub enum ProofType {
 }
 
 /// Metadata of individual key proof type(s) that the Credential Issuer supports.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProofTypeData {
     /// Array of case sensitive strings that identify the algorithms that the Issuer supports for this proof type.
     /// The Wallet uses one of them to sign the proof.
@@ -362,7 +362,7 @@ pub struct ProofTypeData {
 }
 
 /// Algorithms that the Issuer supports for a proof type. The Wallet uses one of them to sign the proof.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofSigningAlg {
     ES256,
 
@@ -373,7 +373,7 @@ pub enum ProofSigningAlg {
 
 /// Display properties of a supported Credential for a certain language.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialDisplay {
     /// String value of a display name for the Credential.
     pub name: String,
@@ -455,7 +455,7 @@ impl CredentialMetadata {
 }
 
 /// Object with information about the background image of the Credential.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackgroundImage {
     /// String value that contains a URI where the Wallet can obtain the background image of the Credential from the
     /// Credential Issuer. The Wallet needs to determine the scheme, since the URI value could use the `https:` scheme,
