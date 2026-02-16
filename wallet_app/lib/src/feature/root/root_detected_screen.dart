@@ -75,7 +75,7 @@ class RootDetectedScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: PrimaryButton(
-              onPressed: () => SystemChannels.platform.invokeMethod<void>('SystemNavigator.pop', true),
+              onPressed: () => SystemNavigator.pop(animated: true),
               icon: const Icon(Icons.close_outlined),
               iconPosition: IconPosition.start,
               mainAxisAlignment: MainAxisAlignment.center,

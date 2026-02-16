@@ -8851,6 +8851,7 @@ dependencies = [
  "hsm",
  "p256",
  "rand 0.8.5",
+ "sea-orm",
  "semver",
  "serde",
  "serde_with",

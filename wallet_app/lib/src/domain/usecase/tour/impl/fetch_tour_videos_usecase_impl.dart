@@ -25,7 +25,7 @@ class FetchTourVideosUseCaseImpl extends FetchTourVideosUseCase {
   /// in [WalletAssets.video_slugs] and constructs a [TourVideo] object for each.
   @override
   Future<Result<List<TourVideo>>> invoke() async {
-    final config = await _configurationRepository.appConfiguration.first;
+    final config = await _configurationRepository.observeAppConfiguration.first;
     final baseUrl = config.staticAssetsBaseUrl;
 
     // Generate tour videos with localized content for all supported locales

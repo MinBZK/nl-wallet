@@ -89,7 +89,10 @@ class WalletRepositoryProvider extends StatelessWidget {
           ),
         ),
         RepositoryProvider<ConfigurationRepository>(
-          create: (context) => ConfigurationRepositoryImpl(context.read()),
+          create: (context) => ConfigurationRepositoryImpl(
+            context.read(),
+            context.read(),
+          ),
         ),
         RepositoryProvider<QrRepository>(
           create: (context) => CoreQrRepository(context.read()),

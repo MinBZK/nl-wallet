@@ -28,6 +28,7 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::database::Db;
+use crate::recovery_code;
 use crate::transaction;
 use crate::transaction::Transaction;
 use crate::wallet_transfer;
@@ -50,13 +51,13 @@ impl WalletUserRepository for Repositories {
     type TransactionType = Transaction;
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
-        wallet_user::list_wallet_ids(transaction).await
+    async fn list_wallet_user_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
+        wallet_user::list_wallet_user_ids(transaction).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_wallet_user_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
-        wallet_user::list_wallet_user_ids(transaction).await
+    async fn list_wallet_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
+        wallet_user::list_wallet_ids(transaction).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -93,6 +94,14 @@ impl WalletUserRepository for Repositories {
         revocation_code_hmac: &[u8],
     ) -> Result<QueryResult<Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_id_by_revocation_code(transaction, revocation_code_hmac).await
+    }
+
+    async fn find_wallet_user_ids_by_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &str,
+    ) -> Result<Vec<Uuid>, PersistenceError> {
+        wallet_user::find_wallet_user_ids_by_recovery_code(transaction, recovery_code).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -171,16 +180,6 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn unblock_blocked_keys_in_batch(
-        &self,
-        transaction: &Self::TransactionType,
-        wallet_user_id: Uuid,
-        key: VerifyingKey,
-    ) -> Result<(), PersistenceError> {
-        wallet_user_key::unblock_blocked_keys_in_same_batch(transaction, wallet_user_id, key).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn delete_blocked_keys_in_batch(
         &self,
         transaction: &Self::TransactionType,
@@ -197,6 +196,16 @@ impl WalletUserRepository for Repositories {
         wallet_user_id: Uuid,
     ) -> Result<(), PersistenceError> {
         wallet_user_key::delete_all_blocked_keys(transaction, wallet_user_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn unblock_blocked_keys_in_batch(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key: VerifyingKey,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::unblock_blocked_keys_in_same_batch(transaction, wallet_user_id, key).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -471,6 +480,24 @@ impl WalletUserRepository for Repositories {
         .await?;
         wallet_user_wua::find_wua_ids_for_wallet_users(transaction, wallet_user_ids).await
     }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn deny_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: String,
+    ) -> Result<(), PersistenceError> {
+        recovery_code::insert(transaction, recovery_code).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn recovery_code_is_denied(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: String,
+    ) -> Result<bool, PersistenceError> {
+        recovery_code::is_denied(transaction, recovery_code).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -549,6 +576,12 @@ pub mod mock {
                 _transaction: &MockTransaction,
                 _revocation_code_hmac: &[u8],
             ) -> Result<QueryResult<Uuid>, PersistenceError>;
+
+            async fn find_wallet_user_ids_by_recovery_code(
+                &self,
+                _transaction: &MockTransaction,
+                _recovery_code: &str,
+            ) -> Result<Vec<Uuid>, PersistenceError>;
 
             async fn register_unsuccessful_pin_entry(
                 &self,
@@ -756,6 +789,18 @@ pub mod mock {
                 revocation_reason: RevocationReason,
                 revocation_date_time: DateTime<Utc>
             ) -> Result<Vec<Uuid>, PersistenceError>;
+
+            async fn deny_recovery_code(
+                &self,
+                transaction: &MockTransaction,
+                recovery_code: String,
+            ) -> Result<(), PersistenceError>;
+
+            async fn recovery_code_is_denied(
+                &self,
+                transaction: &MockTransaction,
+                recovery_code: String,
+            ) -> Result<bool, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -781,10 +826,6 @@ pub mod mock {
     impl WalletUserRepository for WalletUserTestRepo {
         type TransactionType = MockTransaction;
 
-        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
-            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
-        }
-
         async fn list_wallet_user_ids(
             &self,
             _transaction: &Self::TransactionType,
@@ -793,6 +834,10 @@ pub mod mock {
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
             ])
+        }
+
+        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>, PersistenceError> {
+            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
         }
 
         async fn create_wallet_user(
@@ -831,6 +876,7 @@ pub mod mock {
                 revocation_code_hmac: self.revocation_code_hmac.clone(),
                 revocation_registration: self.revocation_registration,
                 recovery_code: None,
+                recovery_code_is_denied: false,
             })))
         }
 
@@ -848,6 +894,14 @@ pub mod mock {
             _revocation_code_hmac: &[u8],
         ) -> Result<QueryResult<Uuid>, PersistenceError> {
             Ok(QueryResult::Found(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08").into()))
+        }
+
+        async fn find_wallet_user_ids_by_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &str,
+        ) -> Result<Vec<Uuid>, PersistenceError> {
+            Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
         }
 
         async fn clear_instruction_challenge(
@@ -912,15 +966,6 @@ pub mod mock {
             Ok(Some(true))
         }
 
-        async fn unblock_blocked_keys_in_batch(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_user_id: Uuid,
-            _key: VerifyingKey,
-        ) -> Result<(), PersistenceError> {
-            Ok(())
-        }
-
         async fn delete_blocked_keys_in_batch(
             &self,
             _transaction: &Self::TransactionType,
@@ -934,6 +979,15 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn unblock_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
@@ -1129,6 +1183,22 @@ pub mod mock {
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
             ])
+        }
+
+        async fn deny_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: String,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn recovery_code_is_denied(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: String,
+        ) -> Result<bool, PersistenceError> {
+            Ok(false)
         }
     }
 

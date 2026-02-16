@@ -6,7 +6,11 @@ use axum::Router;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::response::Response;
+use chrono::DateTime;
+use chrono::Utc;
 use http::StatusCode;
+use serde::Deserialize;
+use serde::Serialize;
 use tracing::warn;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
@@ -14,7 +18,6 @@ use utoipa_axum::routes;
 
 use readable_identifier::ReadableIdentifierParseError;
 use utils::generator::TimeGenerator;
-use wallet_provider_service::revocation::RevocationResult;
 
 use crate::router_state::RouterState;
 
@@ -31,10 +34,21 @@ pub enum RevocationError {
     RevocationCodeParsing(#[from] ReadableIdentifierParseError),
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, utoipa::ToSchema)]
+struct NotFoundResponse {
+    missing_wallet_ids: HashSet<String>,
+}
+
 impl IntoResponse for RevocationError {
     fn into_response(self) -> Response {
         warn!("error result: {:?}", self);
         match self {
+            Self::RevocationService(wallet_provider_service::revocation::RevocationError::RevocationCodeNotFound(
+                _,
+            )) => StatusCode::NOT_FOUND.into_response(),
+            Self::RevocationService(wallet_provider_service::revocation::RevocationError::WalletIdsNotFound(
+                missing_wallet_ids,
+            )) => (StatusCode::NOT_FOUND, Json(NotFoundResponse { missing_wallet_ids })).into_response(),
             Self::RevocationService(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
             Self::RevocationCodeParsing(_) => StatusCode::BAD_REQUEST.into_response(),
         }
@@ -53,6 +67,7 @@ impl IntoResponse for RevocationError {
     ),
     responses(
         (status = OK, description = "Successfully revoked the provided wallet IDs."),
+        (status = NOT_FOUND, body = NotFoundResponse, description = "One or more wallet IDs were not found."),
     )
 )]
 async fn revoke_wallets_by_id<GRC, PIC>(
@@ -72,29 +87,35 @@ where
     .await?)
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, utoipa::ToSchema)]
+pub struct RevokeByRevocationCodeResponse {
+    revoked_at: DateTime<Utc>,
+}
+
 #[utoipa::path(
     post,
     path = "/revoke-wallet-by-revocation-code/",
     request_body(
         content = String,
         content_type = "application/json",
-        example = json!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
+        example = json!("C20C-KF0R-D32B-A5E3-2X"),
     ),
     responses(
-        (status = OK, description = "Successfully revoked the wallet."),
+        (status = OK, body = RevokeByRevocationCodeResponse, description = "Successfully revoked the wallet."),
+        (status = NOT_FOUND, description = "No wallet found for the provided revocation code.")
     )
 )]
 async fn revoke_wallet_by_revocation_code<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
     Json(revocation_code): Json<String>,
-) -> Result<Json<RevocationResult>, RevocationError>
+) -> Result<Json<RevokeByRevocationCodeResponse>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
     let revocation_code = revocation_code.parse()?;
 
-    let revocation_result = wallet_provider_service::revocation::revoke_wallet_by_revocation_code(
+    let revoked_at = wallet_provider_service::revocation::revoke_wallet_by_revocation_code(
         revocation_code,
         &router_state.account_server.keys.revocation_code_key_identifier,
         &router_state.user_state,
@@ -103,7 +124,43 @@ where
     )
     .await?;
 
-    Ok(revocation_result.into())
+    Ok(Json(RevokeByRevocationCodeResponse { revoked_at }))
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, utoipa::ToSchema)]
+pub struct RevokeByRecoveryCodeResponse {
+    found_wallet_count: usize,
+}
+
+#[utoipa::path(
+    post,
+    path = "/revoke-wallet-by-recovery-code/",
+    request_body(
+        content = String,
+        content_type = "application/json",
+        example = json!("54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"),
+    ),
+    responses(
+        (status = OK, body = RevokeByRecoveryCodeResponse, description = "Successfully revoked the wallets."),
+    )
+)]
+async fn revoke_wallets_by_recovery_code<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(recovery_code): Json<String>,
+) -> Result<Json<RevokeByRecoveryCodeResponse>, RevocationError>
+where
+    GRC: Send + Sync + 'static,
+    PIC: Send + Sync + 'static,
+{
+    let found_wallet_count = wallet_provider_service::revocation::revoke_wallets_by_recovery_code(
+        &recovery_code,
+        &router_state.user_state,
+        &TimeGenerator,
+        &router_state.audit_log,
+    )
+    .await?;
+
+    Ok(Json(RevokeByRecoveryCodeResponse { found_wallet_count }))
 }
 
 #[utoipa::path(
@@ -159,6 +216,7 @@ where
     let router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(revoke_wallets_by_id))
         .routes(routes!(revoke_wallet_by_revocation_code))
+        .routes(routes!(revoke_wallets_by_recovery_code))
         .routes(routes!(nuke));
 
     #[cfg(feature = "test_internal_ui")]
