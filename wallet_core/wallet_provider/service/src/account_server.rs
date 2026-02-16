@@ -313,8 +313,8 @@ pub enum InstructionError {
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("recovery code is on deny list: {0}")]
-    RecoveryCodeOnDenyList(String),
+    #[error("recovery code is denied: {0}")]
+    RecoveryCodeIsDenied(String),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]

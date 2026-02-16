@@ -115,7 +115,7 @@ where
 
     user_state
         .repositories
-        .add_recovery_code_to_deny_list(&tx, recovery_code.to_owned())
+        .deny_recovery_code(&tx, recovery_code.to_owned())
         .await?;
 
     let wallet_user_ids = user_state

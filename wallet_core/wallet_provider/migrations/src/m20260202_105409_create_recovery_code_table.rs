@@ -11,16 +11,16 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(DeniedRecoveryCode::Table)
+                    .table(RecoveryCode::Table)
                     .if_not_exists()
-                    .col(pk_auto(DeniedRecoveryCode::Id))
-                    .col(string(DeniedRecoveryCode::RecoveryCode))
-                    .col(boolean(DeniedRecoveryCode::IsDenied).default(false))
+                    .col(pk_auto(RecoveryCode::Id))
+                    .col(string(RecoveryCode::RecoveryCode))
+                    .col(boolean(RecoveryCode::IsDenied).default(false))
                     .index(
                         Index::create()
                             .unique()
-                            .name("denied_recovery_code_unique_recovery_code")
-                            .col(DeniedRecoveryCode::RecoveryCode),
+                            .name("recovery_code_unique_recovery_code")
+                            .col(RecoveryCode::RecoveryCode),
                     )
                     .to_owned(),
             )
@@ -29,10 +29,10 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .table(DeniedRecoveryCode::Table)
-                    .name("denied_recovery_code_is_denied")
-                    .col(DeniedRecoveryCode::IsDenied)
-                    .and_where(Expr::col(DeniedRecoveryCode::IsDenied).eq(true))
+                    .table(RecoveryCode::Table)
+                    .name("recovery_code_is_denied")
+                    .col(RecoveryCode::IsDenied)
+                    .and_where(Expr::col(RecoveryCode::IsDenied).eq(true))
                     .to_owned(),
             )
             .await?;
@@ -42,9 +42,10 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-pub enum DeniedRecoveryCode {
+pub enum RecoveryCode {
     Table,
     Id,
+    #[expect(clippy::enum_variant_names, reason = "There is not better name for this column")]
     RecoveryCode,
     IsDenied,
 }

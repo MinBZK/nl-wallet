@@ -42,7 +42,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
-use crate::entity::denied_recovery_code;
+use crate::entity::recovery_code;
 use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
@@ -187,7 +187,7 @@ struct WalletUserJoinedModel {
     revocation_reason: Option<String>,
     revocation_date_time: Option<DateTimeWithTimeZone>,
     recovery_code: Option<String>,
-    recovery_code_on_deny_list: bool,
+    recovery_code_is_denied: bool,
 }
 
 /// Find a user by its `wallet_id` and return it, if it exists.
@@ -198,13 +198,13 @@ where
     T: PersistenceConnection<S>,
 {
     let is_denied_query = Query::select()
-        .column(denied_recovery_code::Column::IsDenied)
-        .from(denied_recovery_code::Entity)
+        .column(recovery_code::Column::IsDenied)
+        .from(recovery_code::Entity)
         .and_where(
-            Expr::col((denied_recovery_code::Entity, denied_recovery_code::Column::RecoveryCode))
+            Expr::col((recovery_code::Entity, recovery_code::Column::RecoveryCode))
                 .eq(Expr::col((wallet_user::Entity, wallet_user::Column::RecoveryCode))),
         )
-        .and_where(Expr::col((denied_recovery_code::Entity, denied_recovery_code::Column::IsDenied)).eq(true))
+        .and_where(Expr::col((recovery_code::Entity, recovery_code::Column::IsDenied)).eq(true))
         .take();
 
     let Some(model) = wallet_user::Entity::find()
@@ -223,7 +223,7 @@ where
         .column(wallet_user::Column::RevocationReason)
         .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
-        .expr_as(Expr::exists(is_denied_query), "recovery_code_on_deny_list")
+        .expr_as(Expr::exists(is_denied_query), "recovery_code_is_denied")
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,
@@ -344,7 +344,7 @@ where
         revocation_code_hmac: model.revocation_code_hmac,
         revocation_registration,
         recovery_code: model.recovery_code.clone(),
-        recovery_code_on_deny_list: model.recovery_code_on_deny_list,
+        recovery_code_is_denied: model.recovery_code_is_denied,
     };
 
     Ok(QueryResult::Found(Box::new(wallet_user)))

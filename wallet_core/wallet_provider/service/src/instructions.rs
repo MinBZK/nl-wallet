@@ -103,7 +103,7 @@ fn validate_wallet_user_not_revoked(wallet_user: &WalletUser) -> Result<(), Inst
                 .as_ref()
                 .expect("should be set when state is revoked")
                 .reason,
-            can_register_new_account: !wallet_user.recovery_code_on_deny_list,
+            can_register_new_account: !wallet_user.recovery_code_is_denied,
         })),
         _ => Ok(()),
     }
@@ -777,10 +777,10 @@ impl HandleInstruction for DiscloseRecoveryCode {
 
         let tx = user_state.repositories.begin_transaction().await?;
 
-        // Verify that the recovery code is not on the deny list, if it is, immediately revoke the wallet
+        // Verify that the recovery code is not denied, if it is, immediately revoke the wallet
         if user_state
             .repositories
-            .is_recovery_code_on_deny_list(&tx, recovery_code.clone())
+            .recovery_code_is_denied(&tx, recovery_code.clone())
             .await?
         {
             user_state
@@ -794,7 +794,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
                 .await?;
 
             tx.commit().await?;
-            return Err(InstructionError::RecoveryCodeOnDenyList(recovery_code));
+            return Err(InstructionError::RecoveryCodeIsDenied(recovery_code));
         }
 
         // Verify the recovery code against the stored recovery code if any
@@ -1584,7 +1584,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_recovery_code_on_deny_list()
+            .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
@@ -1637,7 +1637,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_recovery_code_on_deny_list()
+            .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
@@ -1693,7 +1693,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_recovery_code_on_deny_list()
+            .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
@@ -1758,7 +1758,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_recovery_code_on_deny_list()
+            .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
@@ -1815,7 +1815,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_recovery_code_on_deny_list()
+            .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_has_multiple_active_accounts_by_recovery_code()
@@ -2272,7 +2272,7 @@ mod tests {
     fn test_instruction_validation_revoked_wallet(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::Revoked;
-        wallet_user.recovery_code_on_deny_list = true;
+        wallet_user.recovery_code_is_denied = true;
 
         for reason in RevocationReason::iter() {
             wallet_user.revocation_registration = Some(RevocationRegistration {
@@ -2377,7 +2377,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_recovery_code_on_deny_list() {
+    async fn test_recovery_code_is_denied() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wallet_user = wallet_user::mock::wallet_user_1();
@@ -2387,7 +2387,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_is_recovery_code_on_deny_list()
+            .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(true));
         wallet_user_repo
             .expect_revoke_wallet_users()
@@ -2419,7 +2419,7 @@ mod tests {
         assert!(wallet_user.recovery_code.is_none());
         assert_matches!(
             result,
-            Err(InstructionError::RecoveryCodeOnDenyList(code))
+            Err(InstructionError::RecoveryCodeIsDenied(code))
                 // the recovery code from the test PID example credential
                 if code == "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
         );

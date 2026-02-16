@@ -28,7 +28,7 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::database::Db;
-use crate::denied_recovery_code;
+use crate::recovery_code;
 use crate::transaction;
 use crate::transaction::Transaction;
 use crate::wallet_transfer;
@@ -482,21 +482,21 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn add_recovery_code_to_deny_list(
+    async fn deny_recovery_code(
         &self,
         transaction: &Self::TransactionType,
         recovery_code: String,
     ) -> Result<(), PersistenceError> {
-        denied_recovery_code::insert(transaction, recovery_code).await
+        recovery_code::insert(transaction, recovery_code).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn is_recovery_code_on_deny_list(
+    async fn recovery_code_is_denied(
         &self,
         transaction: &Self::TransactionType,
         recovery_code: String,
     ) -> Result<bool, PersistenceError> {
-        denied_recovery_code::exists(transaction, recovery_code).await
+        recovery_code::is_denied(transaction, recovery_code).await
     }
 }
 
@@ -790,13 +790,13 @@ pub mod mock {
                 revocation_date_time: DateTime<Utc>
             ) -> Result<Vec<Uuid>, PersistenceError>;
 
-            async fn add_recovery_code_to_deny_list(
+            async fn deny_recovery_code(
                 &self,
                 transaction: &MockTransaction,
                 recovery_code: String,
             ) -> Result<(), PersistenceError>;
 
-            async fn is_recovery_code_on_deny_list(
+            async fn recovery_code_is_denied(
                 &self,
                 transaction: &MockTransaction,
                 recovery_code: String,
@@ -876,7 +876,7 @@ pub mod mock {
                 revocation_code_hmac: self.revocation_code_hmac.clone(),
                 revocation_registration: self.revocation_registration,
                 recovery_code: None,
-                recovery_code_on_deny_list: false,
+                recovery_code_is_denied: false,
             })))
         }
 
@@ -1185,7 +1185,7 @@ pub mod mock {
             ])
         }
 
-        async fn add_recovery_code_to_deny_list(
+        async fn deny_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: String,
@@ -1193,7 +1193,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn is_recovery_code_on_deny_list(
+        async fn recovery_code_is_denied(
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: String,

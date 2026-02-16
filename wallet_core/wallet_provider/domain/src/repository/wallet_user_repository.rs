@@ -231,17 +231,10 @@ pub trait WalletUserRepository {
         revocation_date_time: DateTime<Utc>,
     ) -> Result<Vec<Uuid>>;
 
-    async fn add_recovery_code_to_deny_list(
-        &self,
-        transaction: &Self::TransactionType,
-        recovery_code: String,
-    ) -> Result<()>;
+    async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: String) -> Result<()>;
 
-    async fn is_recovery_code_on_deny_list(
-        &self,
-        transaction: &Self::TransactionType,
-        recovery_code: String,
-    ) -> Result<bool>;
+    async fn recovery_code_is_denied(&self, transaction: &Self::TransactionType, recovery_code: String)
+    -> Result<bool>;
 }
 
 #[cfg(feature = "mock")]
@@ -567,15 +560,11 @@ pub mod mock {
             ])
         }
 
-        async fn add_recovery_code_to_deny_list(
-            &self,
-            _transaction: &Self::TransactionType,
-            _recovery_code: String,
-        ) -> Result<()> {
+        async fn deny_recovery_code(&self, _transaction: &Self::TransactionType, _recovery_code: String) -> Result<()> {
             Ok(())
         }
 
-        async fn is_recovery_code_on_deny_list(
+        async fn recovery_code_is_denied(
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: String,

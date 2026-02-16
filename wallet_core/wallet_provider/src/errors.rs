@@ -102,7 +102,7 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::Validation(InstructionValidationError::AccountRevoked(data)) => {
                     Self::AccountRevoked(data)
                 }
-                InstructionError::RecoveryCodeOnDenyList(_) => Self::AccountRevoked(AccountRevokedData {
+                InstructionError::RecoveryCodeIsDenied(_) => Self::AccountRevoked(AccountRevokedData {
                     revocation_reason: RevocationReason::AdminRequest,
                     can_register_new_account: false,
                 }),
