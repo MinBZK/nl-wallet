@@ -4,12 +4,14 @@ use std::sync::Arc;
 use derive_more::Constructor;
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
+use tracing::warn;
 
 use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
+use wallet_account::messages::errors::RevocationReasonData;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
@@ -138,9 +140,11 @@ where
         let result = self
             .account_provider_client
             .instruction_challenge(&self.parameters.client_config, challenge_request)
-            .await?;
+            .await
+            .map_err(InstructionError::from);
 
-        Ok(result)
+        let challenge = self.check_for_revocation(result).await?;
+        Ok(challenge)
     }
 
     pub async fn send<I>(&self, instruction: I) -> Result<I::Result, InstructionError>
@@ -170,7 +174,9 @@ where
             .account_provider_client
             .hw_signed_instruction(&self.parameters.client_config, instruction)
             .await
-            .map_err(InstructionError::from)?;
+            .map_err(InstructionError::from);
+
+        let signed_result = self.check_for_revocation(signed_result).await?;
 
         let result = signed_result
             .parse_and_verify_with_sub(&self.parameters.instruction_result_public_key)
@@ -179,6 +185,34 @@ where
             .result;
 
         Ok(result)
+    }
+
+    /// Helper function that checks if the parameter was an error indicating wallet revocation,
+    /// and if so stores that in the wallet database.
+    async fn check_for_revocation<T>(&self, result: Result<T, InstructionError>) -> Result<T, InstructionError> {
+        match result {
+            Ok(result) => Ok(result),
+            Err(err) => {
+                if let InstructionError::AccountIsRevoked(reason) = err {
+                    warn!("wallet has been revoked: {reason}");
+
+                    if let Err(writing_error) = self
+                        .storage
+                        .write()
+                        .await
+                        .insert_data(&RevocationReasonData {
+                            revocation_reason: reason,
+                        })
+                        .await
+                    {
+                        // Log the error but do nothing else, as handling the original error
+                        // this function was called with is more important.
+                        warn!("failed to write revocation reason to storage: {writing_error}");
+                    }
+                }
+                Err(err)
+            }
+        }
     }
 }
 
@@ -237,7 +271,12 @@ where
             .account_provider_client
             .instruction(&self.hw_signed_instruction_client.parameters.client_config, instruction)
             .await
-            .map_err(InstructionError::from)?;
+            .map_err(InstructionError::from);
+
+        let signed_result = self
+            .hw_signed_instruction_client
+            .check_for_revocation(signed_result)
+            .await?;
 
         let result = signed_result
             .parse_and_verify_with_sub(

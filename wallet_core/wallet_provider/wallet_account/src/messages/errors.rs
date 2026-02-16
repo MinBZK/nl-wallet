@@ -55,7 +55,7 @@ pub enum RevocationReason {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RevocationReasonData {
-    revocation_reason: RevocationReason,
+    pub revocation_reason: RevocationReason,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
