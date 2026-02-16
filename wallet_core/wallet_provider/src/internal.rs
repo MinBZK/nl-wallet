@@ -156,6 +156,7 @@ where
         &recovery_code,
         &router_state.user_state,
         &TimeGenerator,
+        &router_state.audit_log,
     )
     .await?;
 

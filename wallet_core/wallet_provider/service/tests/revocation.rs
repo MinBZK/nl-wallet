@@ -780,9 +780,14 @@ async fn test_revoke_wallet_by_recovery_code() {
     .await;
 
     // revoke the wallets
-    revoke_wallets_by_recovery_code(&recovery_code, &user_state, &MockTimeGenerator::default())
-        .await
-        .unwrap();
+    revoke_wallets_by_recovery_code(
+        &recovery_code,
+        &user_state,
+        &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
+    )
+    .await
+    .unwrap();
 
     // wallets should be revoked
     verify_revocation(
@@ -806,9 +811,14 @@ async fn test_revoke_wallet_by_recovery_code() {
     .await;
 
     // revoke the wallets again
-    revoke_wallets_by_recovery_code(&recovery_code, &user_state, &MockTimeGenerator::default())
-        .await
-        .unwrap();
+    revoke_wallets_by_recovery_code(
+        &recovery_code,
+        &user_state,
+        &MockTimeGenerator::default(),
+        &MockAuditLog::default(),
+    )
+    .await
+    .unwrap();
 
     verify_revocation(
         &revoked_wallet_ids,

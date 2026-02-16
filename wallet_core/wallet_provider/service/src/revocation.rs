@@ -102,41 +102,50 @@ pub async fn revoke_wallets_by_recovery_code<T, R, H>(
     recovery_code: &str,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
+    audit_log: &impl AuditLog<Error = PostgresAuditLogError>,
 ) -> Result<usize, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Hsm<Error = HsmError>,
 {
-    let revocation_reason = RevocationReason::AdminRequest;
-    let revocation_date_time = time.generate();
+    audit_log
+        .audit(
+            "revoke_wallet_by_revocation_code",
+            json!({"recovery_code": recovery_code.to_string()}),
+            async || {
+                let revocation_reason = RevocationReason::AdminRequest;
+                let revocation_date_time = time.generate();
 
-    let tx = user_state.repositories.begin_transaction().await?;
+                let tx = user_state.repositories.begin_transaction().await?;
 
-    user_state
-        .repositories
-        .deny_recovery_code(&tx, recovery_code.to_owned())
-        .await?;
+                user_state
+                    .repositories
+                    .deny_recovery_code(&tx, recovery_code.to_owned())
+                    .await?;
 
-    let wallet_user_ids = user_state
-        .repositories
-        .find_wallet_user_ids_by_recovery_code(&tx, recovery_code)
-        .await?;
+                let wallet_user_ids = user_state
+                    .repositories
+                    .find_wallet_user_ids_by_recovery_code(&tx, recovery_code)
+                    .await?;
 
-    let found_wallet_count = wallet_user_ids.len();
-    let wua_ids = user_state
-        .repositories
-        .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
-        .await?;
+                let found_wallet_count = wallet_user_ids.len();
+                let wua_ids = user_state
+                    .repositories
+                    .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
+                    .await?;
 
-    tx.commit().await?;
+                tx.commit().await?;
 
-    user_state
-        .status_list_service
-        .revoke_attestation_batches(wua_ids)
-        .await?;
+                user_state
+                    .status_list_service
+                    .revoke_attestation_batches(wua_ids)
+                    .await?;
 
-    Ok(found_wallet_count)
+                Ok(found_wallet_count)
+            },
+        )
+        .await
 }
 
 pub async fn revoke_wallets_by_wallet_id<T, R, H>(
