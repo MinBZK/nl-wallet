@@ -1,7 +1,10 @@
+use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 
 use assert_matches::assert_matches;
+use audit_log::audited;
+use audit_log::model::FromAuditLogError;
 use chrono::Utc;
 use config::Config;
 use config::File;
@@ -24,7 +27,6 @@ use utils::path::prefix_local_path;
 use audit_log::entity;
 use audit_log::model::AuditLog;
 use audit_log::model::PostgresAuditLog;
-use audit_log::model::PostgresAuditLogError;
 
 #[derive(Debug, Clone, Deserialize)]
 struct TestSettings {
@@ -51,9 +53,15 @@ impl Generator<Uuid> for MockUuid {
 #[derive(Debug, thiserror::Error)]
 enum TestError {
     #[error("audit error: {0}")]
-    AuditLog(#[from] PostgresAuditLogError),
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
     #[error("test error")]
     Test,
+}
+
+impl FromAuditLogError for TestError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+        TestError::AuditLog(audit_log_error)
+    }
 }
 
 async fn setup_test_database(
@@ -81,6 +89,15 @@ async fn setup_test_database(
     (connection, audit_log)
 }
 
+#[audited]
+async fn operation(
+    #[auditor] audit_log: &impl AuditLog,
+    is_success: bool,
+    #[audit] param1: &'static str,
+) -> Result<(), TestError> {
+    if is_success { Ok(()) } else { Err(TestError::Test) }
+}
+
 #[rstest]
 #[tokio::test]
 async fn test_audit(#[values(true, false)] is_success: bool) {
@@ -89,11 +106,7 @@ async fn test_audit(#[values(true, false)] is_success: bool) {
     let (connection, audit_log) = setup_test_database(correlation_id).await;
 
     // Perform audited test operation
-    let result: Result<(), TestError> = audit_log
-        .audit("operation".to_string(), json!({"param1": "input"}), async || {
-            if is_success { Ok(()) } else { Err(TestError::Test) }
-        })
-        .await;
+    let result: Result<(), TestError> = operation(&audit_log, is_success, "input").await;
 
     assert_eq!(result.is_ok(), is_success);
 

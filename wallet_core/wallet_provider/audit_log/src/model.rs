@@ -1,7 +1,6 @@
-use std::fmt::Display;
+use std::error::Error;
 
 use chrono::DateTime;
-use derive_more::Display;
 use sea_orm::ActiveModelTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::DbErr;
@@ -18,8 +17,12 @@ use utils::generator::TimeGenerator;
 
 use crate::entity::audit_log;
 
+pub trait FromAuditLogError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self;
+}
+
 pub trait AuditLog {
-    type Error;
+    type Error: Error + Send + Sync;
 
     async fn audit<F, T, E>(
         &self,
@@ -29,7 +32,7 @@ pub trait AuditLog {
     ) -> Result<T, E>
     where
         F: AsyncFnOnce() -> Result<T, E>,
-        E: From<Self::Error> + Display;
+        E: FromAuditLogError;
 }
 
 pub struct PostgresAuditLog<UG, TG = TimeGenerator> {
@@ -38,15 +41,12 @@ pub struct PostgresAuditLog<UG, TG = TimeGenerator> {
     pub uuid_generator: UG,
 }
 
-#[derive(Debug, Display, thiserror::Error)]
-pub struct PostgresAuditLogError(#[from] DbErr);
-
 impl<UG, TG> AuditLog for PostgresAuditLog<UG, TG>
 where
     TG: Generator<DateTime<Utc>>,
     UG: Generator<Uuid>,
 {
-    type Error = PostgresAuditLogError;
+    type Error = DbErr;
 
     /// Audit operation.
     ///
@@ -61,7 +61,7 @@ where
     ) -> Result<T, E>
     where
         F: AsyncFnOnce() -> Result<T, E>,
-        E: From<PostgresAuditLogError> + Display,
+        E: FromAuditLogError,
     {
         let correlation_id: Uuid = self.uuid_generator.generate();
         let operation_name = operation_name.into();
@@ -75,9 +75,16 @@ where
         );
 
         self.audit_operation_start(operation_name, parameters, correlation_id)
-            .await?;
+            .await
+            .map_err(|e| E::from_audit_log_error(Box::new(e)))?;
+
         let result = operation().await;
-        self.audit_operation_result(correlation_id, result).await
+
+        self.audit_operation_result(correlation_id, &result)
+            .await
+            .map_err(|e| E::from_audit_log_error(Box::new(e)))?;
+
+        result
     }
 }
 
@@ -86,15 +93,12 @@ where
     TG: Generator<DateTime<Utc>>,
     UG: Generator<Uuid>,
 {
-    async fn audit_operation_start<E>(
+    async fn audit_operation_start(
         &self,
         operation_name: String,
         parameters: JsonValue,
         correlation_id: Uuid,
-    ) -> Result<(), E>
-    where
-        E: From<PostgresAuditLogError>,
-    {
+    ) -> Result<(), DbErr> {
         let timestamp: DateTimeWithTimeZone = self.time_generator.generate().into();
 
         let audit_start = audit_log::ActiveModel {
@@ -112,16 +116,13 @@ where
                 audit_parameters = %parameters,
                 "error while auditing start of operation: {error}",
             );
-            PostgresAuditLogError(error)
+            error
         })?;
 
         Ok(())
     }
 
-    async fn audit_operation_result<T, E>(&self, correlation_id: Uuid, result: Result<T, E>) -> Result<T, E>
-    where
-        E: From<PostgresAuditLogError> + Display,
-    {
+    async fn audit_operation_result<T, E>(&self, correlation_id: Uuid, result: &Result<T, E>) -> Result<(), DbErr> {
         let timestamp: DateTimeWithTimeZone = self.time_generator.generate().into();
         let is_success = result.is_ok();
 
@@ -139,31 +140,25 @@ where
                 audit_operation_result = is_success,
                 "error while auditing result of operation: {error}",
             );
-            PostgresAuditLogError(error)
+            error
         })?;
 
-        result
+        Ok(())
     }
 }
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use std::marker::PhantomData;
+    use std::convert::Infallible;
 
     use sea_orm::JsonValue;
 
     use crate::model::AuditLog;
 
-    pub struct MockAuditLog<E>(PhantomData<E>);
+    pub struct MockAuditLog;
 
-    impl<E> Default for MockAuditLog<E> {
-        fn default() -> Self {
-            Self(PhantomData)
-        }
-    }
-
-    impl<EE> AuditLog for MockAuditLog<EE> {
-        type Error = EE;
+    impl AuditLog for MockAuditLog {
+        type Error = Infallible;
 
         async fn audit<F, T, E>(
             &self,

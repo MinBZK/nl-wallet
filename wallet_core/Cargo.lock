@@ -672,6 +672,7 @@ name = "audit_log"
 version = "0.5.0-dev"
 dependencies = [
  "assert_matches",
+ "audit_log_macros",
  "chrono",
  "config",
  "derive_more",
@@ -682,8 +683,23 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tracing",
+ "tracing-test",
  "utils",
  "uuid",
+]
+
+[[package]]
+name = "audit_log_macros"
+version = "0.5.0-dev"
+dependencies = [
+ "audit_log",
+ "itertools 0.14.0",
+ "proc-macro2",
+ "quote",
+ "rstest",
+ "serde",
+ "serde_json",
+ "syn",
 ]
 
 [[package]]
@@ -5593,6 +5609,7 @@ dependencies = [
  "derive_more",
  "rand 0.8.5",
  "rstest",
+ "serde",
  "thiserror 2.0.17",
 ]
 
