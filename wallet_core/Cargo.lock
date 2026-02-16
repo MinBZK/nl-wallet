@@ -7584,7 +7584,6 @@ dependencies = [
  "etag",
  "futures",
  "health_checkers",
- "hsm",
  "http_utils",
  "itertools 0.14.0",
  "jwt",
