@@ -4,6 +4,7 @@ use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use wallet_account::messages::errors::RevocationReasonData;
 
 use crate::Wallet;
 use crate::digid::DigidClient;
@@ -62,7 +63,6 @@ where
     #[instrument(skip_all)]
     pub async fn get_state(&self) -> Result<WalletState, WalletStateError> {
         if self.is_blocked() {
-            // TODO: support `BlockedByWalletProvider` (PVW-5307)
             return Ok(WalletState::Blocked {
                 reason: BlockedReason::RequiresAppUpdate,
             });
@@ -70,6 +70,19 @@ where
 
         if !self.has_registration() {
             return Ok(WalletState::Unregistered);
+        }
+
+        if self
+            .storage
+            .read()
+            .await
+            .fetch_data::<RevocationReasonData>()
+            .await?
+            .is_some()
+        {
+            return Ok(WalletState::Blocked {
+                reason: BlockedReason::BlockedByWalletProvider,
+            });
         }
 
         let flow_state = self.get_flow_state().await?;
