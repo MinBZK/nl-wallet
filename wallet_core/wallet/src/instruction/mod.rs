@@ -4,7 +4,7 @@ mod keys;
 use error_category::ErrorCategory;
 use jwt::error::JwtError;
 use wallet_account::messages::errors::AccountError;
-use wallet_account::messages::errors::RevocationReason;
+use wallet_account::messages::errors::AccountRevokedData;
 
 use crate::account_provider::AccountProviderError;
 use crate::account_provider::AccountProviderResponseError;
@@ -48,9 +48,9 @@ pub enum InstructionError {
     InstructionResultValidation(#[source] JwtError),
     #[error("could not store instruction sequence number in database: {0}")]
     StoreInstructionSequenceNumber(#[from] StorageError),
-    #[error("revoked with reason: {0}")]
+    #[error("account is revoked with data: {0:?}")]
     #[category(expected)]
-    AccountIsRevoked(RevocationReason),
+    AccountRevoked(AccountRevokedData),
 }
 
 impl From<AccountProviderError> for InstructionError {
@@ -79,7 +79,10 @@ impl From<AccountProviderError> for InstructionError {
             AccountProviderError::Response(AccountProviderResponseError::Account(
                 AccountError::AccountRevoked(reason),
                 _,
-            )) => Self::AccountIsRevoked(reason),
+            )) => Self::AccountRevoked(AccountRevokedData {
+                revocation_reason: reason.revocation_reason,
+                can_register_new_account: reason.can_register_new_account,
+            }),
             value => Self::ServerError(value),
         }
     }

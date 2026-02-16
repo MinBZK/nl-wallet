@@ -38,6 +38,7 @@ pub struct WalletUser {
     pub revocation_code_hmac: Vec<u8>,
     pub revocation_registration: Option<RevocationRegistration>,
     pub recovery_code: Option<String>,
+    pub recovery_code_is_denied: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -190,6 +191,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             revocation_code_hmac: random_bytes(32),
             revocation_registration: None,
             recovery_code: None,
+            recovery_code_is_denied: false,
         }
     }
 }

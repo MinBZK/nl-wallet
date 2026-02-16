@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod recovery_code;
 pub mod wallet_transfer;
 pub mod wallet_user;
 pub mod wallet_user_android_attestation;
