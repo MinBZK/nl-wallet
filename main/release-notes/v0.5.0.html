@@ -218,6 +218,9 @@ processed.</p></li>
 ID. This will be used by the Wallet Provider’s admin interface to allow manual
 revocation of wallets.</p></li>
 <li><p>The Wallet Provider now has an endpoint to revoke a wallet based on a user’s
+recovery code. This will also deny the user to register new wallets by placing
+it on a deny list.</p></li>
+<li><p>The Wallet Provider now has an endpoint to revoke a wallet based on a user’s
 revocation code. This will be used by the Revocation portal to allow a user to
 revoke their wallet.</p></li>
 <li><p>The Wallet Provider will write audit logs for all admin operations to another
@@ -231,8 +234,8 @@ active session will be aborted.</p></li>
 <section id="interoperability-improvements">
 <h2>Interoperability improvements<a class="headerlink" href="#interoperability-improvements" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Sections of both the wallet and issuer code have been updated to be
-compliant with OpenID4VCI 1.0:</p>
+<li><p>Sections of both the wallet and issuer code have been updated to be compliant
+with OpenID4VCI 1.0:</p>
 <ul>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">CredentialResponse</span></code> type has been updated to conform to version 1.0
 of the specification and deferred issuance is explicitly rejected.</p></li>
