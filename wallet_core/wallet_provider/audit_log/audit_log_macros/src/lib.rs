@@ -284,8 +284,7 @@ fn require_ident(pat_type: &syn::PatType, attr_name: &str) -> syn::Result<syn::I
     Ok(pat_ident.ident.clone())
 }
 
-/// Drains `#[auditor]` and `#[audit]` helper attributes from the parameter and
-/// classifies it into a [`ParamRole`].
+/// Classify the parameter as a [`ParamRole`].
 fn classify_param(pat_type: &syn::PatType) -> syn::Result<ParamRole> {
     let (roles, errors): (Vec<_>, Vec<_>) = pat_type
         .attrs
