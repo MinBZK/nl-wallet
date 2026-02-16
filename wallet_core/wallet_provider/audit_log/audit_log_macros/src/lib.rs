@@ -415,10 +415,10 @@ fn lifetimes_from_iter<'a>(iter: impl Iterator<Item = &'a syn::Type>) -> syn::Re
 }
 
 /// Extracts a lifetime from a [`syn::TypeParamBound`], if it is a lifetime bound.
-fn lifetime_from_bound(bound: &syn::TypeParamBound) -> Vec<&syn::Lifetime> {
+fn lifetime_from_bound(bound: &syn::TypeParamBound) -> Option<&syn::Lifetime> {
     match bound {
-        syn::TypeParamBound::Lifetime(lt) => vec![lt],
-        _ => vec![],
+        syn::TypeParamBound::Lifetime(lt) => Some(lt),
+        _ => None,
     }
 }
 
