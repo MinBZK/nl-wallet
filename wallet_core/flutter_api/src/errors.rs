@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use wallet::RevocationReason;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
@@ -90,6 +91,9 @@ enum FlutterApiErrorType {
 
     /// DigiD authentication was cancelled.
     DeniedDigid,
+
+    /// Wallet has been revoked.
+    Revoked,
 
     /// Indicating something unexpected went wrong.
     Generic,
@@ -222,6 +226,7 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
 struct IssuanceErrorData {
     redirect_error: Option<AuthorizationErrorCode>,
     organization_name: Option<LocalizedStrings>,
+    revocation_reason: Option<RevocationReason>,
 }
 
 impl FlutterApiErrorFields for IssuanceError {
@@ -255,6 +260,7 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }
+            IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -274,10 +280,17 @@ impl FlutterApiErrorFields for IssuanceError {
             _ => None,
         };
 
+        let revocation_reason = if let Self::Instruction(InstructionError::AccountIsRevoked(reason)) = self {
+            Some(*reason)
+        } else {
+            None
+        };
+
         if redirect_error.is_some() || organization_name.is_some() {
             serde_json::to_value(IssuanceErrorData {
                 redirect_error,
                 organization_name,
+                revocation_reason,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -293,6 +306,7 @@ struct DisclosureErrorData<'a> {
     can_retry: Option<bool>,
     return_url: Option<&'a Url>,
     organization_name: Option<LocalizedStrings>,
+    revocation_reason: Option<RevocationReason>,
 }
 
 fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApiErrorType> {
@@ -363,6 +377,11 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             _ => None,
         };
+        let revocation_reason = if let Self::Instruction(InstructionError::AccountIsRevoked(reason)) = self {
+            Some(*reason)
+        } else {
+            None
+        };
 
         if session_type.is_some() || can_retry.is_some() || return_url.is_some() {
             serde_json::to_value(DisclosureErrorData {
@@ -370,6 +389,7 @@ impl FlutterApiErrorFields for DisclosureError {
                 can_retry,
                 return_url,
                 organization_name,
+                revocation_reason,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -443,6 +463,7 @@ impl From<&AccountProviderError> for FlutterApiErrorType {
 impl From<&InstructionError> for FlutterApiErrorType {
     fn from(value: &InstructionError) -> Self {
         match value {
+            InstructionError::AccountIsRevoked(_) => FlutterApiErrorType::Revoked,
             InstructionError::ServerError(e) => FlutterApiErrorType::from(e),
             InstructionError::InstructionValidation => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,

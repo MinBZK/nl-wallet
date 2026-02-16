@@ -43,6 +43,7 @@ pub use crate::wallet::WalletState;
 
 pub use token_status_list::verification::verifier::RevocationStatus;
 pub use wallet_account::RevocationCode;
+pub use wallet_account::messages::errors::RevocationReason;
 pub use wallet_account::messages::transfer::TransferSessionState;
 
 pub mod attestation_data {
