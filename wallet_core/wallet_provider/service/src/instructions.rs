@@ -29,6 +29,8 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
+use wallet_account::messages::errors::AccountRevokedData;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -72,14 +74,17 @@ use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WuaIssuer;
 
+fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    validate_wallet_user_not_revoked(wallet_user)?;
+    validate_wallet_user_not_transferred(wallet_user)?;
+    validate_no_pin_change_in_progress(wallet_user)?;
+    validate_no_transfer_in_progress(wallet_user)?;
+    validate_no_pin_recovery_in_progress(wallet_user)
+}
+
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_change_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-        Ok(())
+        default_validations(wallet_user)
     }
 }
 
@@ -92,13 +97,14 @@ fn validate_wallet_user_not_transferred(wallet_user: &WalletUser) -> Result<(), 
 
 fn validate_wallet_user_not_revoked(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     match wallet_user.state {
-        WalletUserState::Revoked => Err(InstructionValidationError::AccountIsRevoked(
-            wallet_user
+        WalletUserState::Revoked => Err(InstructionValidationError::AccountRevoked(AccountRevokedData {
+            revocation_reason: wallet_user
                 .revocation_registration
                 .as_ref()
                 .expect("should be set when state is revoked")
                 .reason,
-        )),
+            can_register_new_account: !wallet_user.recovery_code_is_denied,
+        })),
         _ => Ok(()),
     }
 }
@@ -141,9 +147,7 @@ fn validate_transfer_instruction(wallet_user: &WalletUser) -> Result<(), Instruc
     };
 
     validate_no_pin_change_in_progress(wallet_user)?;
-    validate_no_pin_recovery_in_progress(wallet_user)?;
-
-    Ok(())
+    validate_no_pin_recovery_in_progress(wallet_user)
 }
 
 impl ValidateInstruction for ChangePinStart {}
@@ -153,11 +157,7 @@ impl ValidateInstruction for DiscloseRecoveryCode {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_change_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
+        default_validations(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -173,21 +173,22 @@ impl ValidateInstruction for Sign {
     }
 }
 
+fn pin_change_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    validate_wallet_user_not_revoked(wallet_user)?;
+    validate_wallet_user_not_transferred(wallet_user)?;
+    validate_no_pin_recovery_in_progress(wallet_user)?;
+    validate_no_transfer_in_progress(wallet_user)
+}
+
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)
+        pin_change_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)
+        pin_change_validations(wallet_user)
     }
 }
 
@@ -219,9 +220,7 @@ impl ValidateInstruction for PairTransfer {
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-
-        Ok(())
+        validate_no_pin_recovery_in_progress(wallet_user)
     }
 }
 
@@ -248,39 +247,34 @@ impl ValidateInstruction for GetTransferStatus {
     }
 }
 
+fn transfer_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    validate_wallet_user_not_revoked(wallet_user)?;
+    validate_wallet_user_not_transferred(wallet_user)?;
+    validate_transfer_instruction(wallet_user)?;
+    validate_transfer_in_progress(wallet_user)
+}
+
 impl ValidateInstruction for ConfirmTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for SendWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for ReceiveWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for CompleteTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
@@ -782,6 +776,26 @@ impl HandleInstruction for DiscloseRecoveryCode {
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         let tx = user_state.repositories.begin_transaction().await?;
+
+        // Verify that the recovery code is not denied, if it is, immediately revoke the wallet
+        if user_state
+            .repositories
+            .recovery_code_is_denied(&tx, recovery_code.clone())
+            .await?
+        {
+            user_state
+                .repositories
+                .revoke_wallet_users(
+                    &tx,
+                    vec![wallet_user.id],
+                    RevocationReason::AdminRequest,
+                    generators.generate(),
+                )
+                .await?;
+
+            tx.commit().await?;
+            return Err(InstructionError::RecoveryCodeIsDenied(recovery_code));
+        }
 
         // Verify the recovery code against the stored recovery code if any
         // Check here as well to prevent failure for retried wallet request
@@ -1570,6 +1584,9 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
+        wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
@@ -1619,6 +1636,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
@@ -1672,6 +1692,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
@@ -1735,6 +1758,9 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
+        wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
@@ -1788,6 +1814,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(true));
@@ -2243,6 +2272,7 @@ mod tests {
     fn test_instruction_validation_revoked_wallet(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::Revoked;
+        wallet_user.recovery_code_is_denied = true;
 
         for reason in RevocationReason::iter() {
             wallet_user.revocation_registration = Some(RevocationRegistration {
@@ -2253,7 +2283,7 @@ mod tests {
 
             assert_matches!(
                 result,
-                Err(InstructionValidationError::AccountIsRevoked(revocation_reason)) if revocation_reason == reason
+                Err(InstructionValidationError::AccountRevoked(data)) if data.revocation_reason == reason && !data.can_register_new_account
             );
         }
     }
@@ -2344,6 +2374,55 @@ mod tests {
             state,
             encrypted_wallet_data: None,
         }
+    }
+
+    #[tokio::test]
+    async fn test_recovery_code_is_denied() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let wallet_user = wallet_user::mock::wallet_user_1();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::default();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo
+            .expect_revoke_wallet_users()
+            .returning(|_, _, _, _| Ok(vec![]));
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+            app_version: "0.0.1".parse().unwrap(),
+        };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
+                ),
+                &mock::RECOVERY_CODE_CONFIG,
+            )
+            .await;
+
+        assert!(wallet_user.recovery_code.is_none());
+        assert_matches!(
+            result,
+            Err(InstructionError::RecoveryCodeIsDenied(code))
+                // the recovery code from the test PID example credential
+                if code == "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+        );
     }
 
     #[tokio::test]

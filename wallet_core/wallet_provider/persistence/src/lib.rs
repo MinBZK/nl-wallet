@@ -1,6 +1,7 @@
 pub mod database;
 #[rustfmt::skip]
 pub mod entity;
+pub mod recovery_code;
 pub mod repositories;
 pub mod transaction;
 pub mod wallet_transfer;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/dialog/scan_with_wallet_dialog.dart';
+import '../common/dialog/stop_to_reset_pin_dialog.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/missing_attributes_page.dart';
 import '../common/page/network_error_page.dart';
@@ -27,6 +30,7 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
+import '../forgot_pin/forgot_pin_screen.dart';
 import '../fraud_check/fraud_check_page.dart';
 import '../history/detail/argument/history_detail_screen_argument.dart';
 import '../login/login_detail_screen.dart';
@@ -230,6 +234,17 @@ class DisclosureScreen extends StatelessWidget {
         title: title,
         onPinValidated: (returnUrl) => context.bloc.add(DisclosurePinConfirmed(returnUrl: returnUrl)),
         onConfirmWithPinFailed: (context, state) => context.bloc.add(DisclosureConfirmPinFailed(error: state.error)),
+        onForgotPinPressed: () async {
+          final stopped = await StopToResetPinDialog.show(
+            context,
+            state.isLoginFlow ? .login : .disclosure,
+            organizationName: state.relyingParty.displayName.l10nValue(context),
+          );
+          if (stopped && context.mounted) {
+            context.bloc.add(const DisclosureStopRequested());
+            await ForgotPinScreen.show(context, popToDashboard: true);
+          }
+        },
       ),
     );
   }
@@ -276,13 +291,17 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildNetworkErrorPage(BuildContext context, DisclosureNetworkError state) {
     return NetworkErrorPage(
       hasInternet: state.hasInternet,
-      onStopPressed: () => Navigator.pop(context),
+      onStopPressed: () {
+        context.bloc.add(const DisclosureCancelRequested());
+        Navigator.pop(context);
+      },
     );
   }
 
   Widget _buildGenericErrorPage(BuildContext context, {String? returnUrl}) {
     return DisclosureGenericErrorPage(
       onStopPressed: () {
+        context.bloc.add(const DisclosureCancelRequested());
         returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
         Navigator.pop(context);
       },
@@ -420,6 +439,7 @@ class DisclosureScreen extends StatelessWidget {
       );
       if (stopPressed) bloc.add(const DisclosureStopRequested());
     } else {
+      context.bloc.add(const DisclosureCancelRequested());
       Navigator.pop(context);
     }
   }

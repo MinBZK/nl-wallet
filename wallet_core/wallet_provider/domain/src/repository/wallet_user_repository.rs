@@ -52,6 +52,12 @@ pub trait WalletUserRepository {
         revocation_code_hmac: &[u8],
     ) -> Result<QueryResult<Uuid>>;
 
+    async fn find_wallet_user_ids_by_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &str,
+    ) -> Result<Vec<Uuid>>;
+
     async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
     async fn update_instruction_challenge_and_sequence_number(
@@ -224,6 +230,11 @@ pub trait WalletUserRepository {
         revocation_reason: RevocationReason,
         revocation_date_time: DateTime<Utc>,
     ) -> Result<Vec<Uuid>>;
+
+    async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: String) -> Result<()>;
+
+    async fn recovery_code_is_denied(&self, transaction: &Self::TransactionType, recovery_code: String)
+    -> Result<bool>;
 }
 
 #[cfg(feature = "mock")]
@@ -243,15 +254,15 @@ pub mod mock {
     impl WalletUserRepository for WalletUserRepositoryStub {
         type TransactionType = MockTransaction;
 
-        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>> {
-            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
-        }
-
         async fn list_wallet_user_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
             Ok(vec![
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
             ])
+        }
+
+        async fn list_wallet_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>> {
+            Ok(vec!["wallet-123".to_string(), "wallet-456".to_string()])
         }
 
         async fn create_wallet_user(
@@ -284,6 +295,14 @@ pub mod mock {
             _revocation_code_hmac: &[u8],
         ) -> Result<QueryResult<Uuid>> {
             Ok(QueryResult::Found(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08").into()))
+        }
+
+        async fn find_wallet_user_ids_by_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &str,
+        ) -> Result<Vec<Uuid>> {
+            Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
         }
 
         async fn clear_instruction_challenge(
@@ -344,15 +363,6 @@ pub mod mock {
             Ok(Some(true))
         }
 
-        async fn unblock_blocked_keys_in_batch(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_user_id: Uuid,
-            _key: VerifyingKey,
-        ) -> Result<()> {
-            Ok(())
-        }
-
         async fn delete_blocked_keys_in_batch(
             &self,
             _transaction: &Self::TransactionType,
@@ -366,6 +376,15 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn unblock_blocked_keys_in_batch(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key: VerifyingKey,
         ) -> Result<()> {
             Ok(())
         }
@@ -539,6 +558,18 @@ pub mod mock {
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
             ])
+        }
+
+        async fn deny_recovery_code(&self, _transaction: &Self::TransactionType, _recovery_code: String) -> Result<()> {
+            Ok(())
+        }
+
+        async fn recovery_code_is_denied(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: String,
+        ) -> Result<bool> {
+            Ok(false)
         }
     }
 }

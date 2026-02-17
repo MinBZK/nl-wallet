@@ -42,6 +42,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
+use crate::entity::recovery_code;
 use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
@@ -60,7 +61,7 @@ where
         .into_tuple()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn list_wallet_user_ids<S, T>(db: &T) -> Result<Vec<Uuid>>
@@ -74,7 +75,7 @@ where
         .into_tuple()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<Uuid>
@@ -99,7 +100,7 @@ where
             }
             .insert(connection)
             .await
-            .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+            .map_err(PersistenceError::Execution)?;
 
             (Some(id), None)
         }
@@ -129,7 +130,7 @@ where
             }
             .insert(connection)
             .await
-            .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+            .map_err(PersistenceError::Execution)?;
 
             (None, Some(id))
         }
@@ -157,7 +158,7 @@ where
     }
     .insert(connection)
     .await
-    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+    .map_err(PersistenceError::Execution)?;
 
     Ok(user_id)
 }
@@ -186,6 +187,7 @@ struct WalletUserJoinedModel {
     revocation_reason: Option<String>,
     revocation_date_time: Option<DateTimeWithTimeZone>,
     recovery_code: Option<String>,
+    recovery_code_is_denied: bool,
 }
 
 /// Find a user by its `wallet_id` and return it, if it exists.
@@ -195,6 +197,16 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
+    let is_denied_query = Query::select()
+        .column(recovery_code::Column::IsDenied)
+        .from(recovery_code::Entity)
+        .and_where(
+            Expr::col((recovery_code::Entity, recovery_code::Column::RecoveryCode))
+                .eq(Expr::col((wallet_user::Entity, wallet_user::Column::RecoveryCode))),
+        )
+        .and_where(Expr::col((recovery_code::Entity, recovery_code::Column::IsDenied)).eq(true))
+        .take();
+
     let Some(model) = wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::State)
@@ -211,6 +223,7 @@ where
         .column(wallet_user::Column::RevocationReason)
         .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
+        .expr_as(Expr::exists(is_denied_query), "recovery_code_is_denied")
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,
@@ -244,7 +257,7 @@ where
         .into_model::<WalletUserJoinedModel>()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .map_err(PersistenceError::Execution)?
     else {
         return Ok(QueryResult::NotFound);
     };
@@ -331,6 +344,7 @@ where
         revocation_code_hmac: model.revocation_code_hmac,
         revocation_registration,
         recovery_code: model.recovery_code.clone(),
+        recovery_code_is_denied: model.recovery_code_is_denied,
     };
 
     Ok(QueryResult::Found(Box::new(wallet_user)))
@@ -352,7 +366,7 @@ where
         .into_tuple::<(Uuid, String)>()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .map_err(PersistenceError::Execution)?
         .into_iter()
         .map(|(wallet_user_id, wallet_id)| (wallet_id, wallet_user_id))
         .collect())
@@ -373,12 +387,27 @@ where
         .into_tuple::<Uuid>()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result {
         Some(wallet_user_id) => Ok(QueryResult::Found(Box::new(wallet_user_id))),
         None => Ok(QueryResult::NotFound),
     }
+}
+
+pub async fn find_wallet_user_ids_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<Vec<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .filter(wallet_user::Column::RecoveryCode.eq(recovery_code))
+        .into_tuple::<Uuid>()
+        .all(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -403,7 +432,7 @@ where
     let builder = conn.get_database_backend();
     conn.execute(builder.build(&stmt))
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -439,7 +468,8 @@ where
                 .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
                 .to_owned(),
         )
-        .map_err(|e| PersistenceError::Execution(e.into()))?
+        // this only occurs if the number of selected values do not match the number of columns
+        .expect("number of columns should match number of values")
         .on_conflict(
             OnConflict::column(wallet_user_instruction_challenge::Column::WalletUserId)
                 .update_columns([
@@ -454,7 +484,7 @@ where
     let builder = conn.get_database_backend();
     conn.execute(builder.build(&stmt))
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -566,7 +596,7 @@ where
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn rollback_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -594,7 +624,7 @@ where
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 async fn update_pin_entries<S, T>(
@@ -623,7 +653,7 @@ where
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 async fn update_fields<S, T, C>(db: &T, wallet_id: &str, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
@@ -641,7 +671,7 @@ where
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn update_apple_assertion_counter<S, T>(
@@ -669,7 +699,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -700,7 +730,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -727,7 +757,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -750,7 +780,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -775,7 +805,7 @@ where
         )
         .count(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(count > 1)
 }
@@ -812,7 +842,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }

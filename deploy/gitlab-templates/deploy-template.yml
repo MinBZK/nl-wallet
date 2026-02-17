@@ -177,6 +177,16 @@ demo-index-${DEPLOY_ENV}:
     RELEASE_NAME: demo-index
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-index.yaml"
 
+revocation-portal-${DEPLOY_ENV}:
+  extends: .deploy-helm
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: revocation-portal
+    RELEASE_NAME: revocation-portal
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/revocation-portal.yaml"
+
 update-policy-server-${DEPLOY_ENV}:
   extends: .deploy-helm
   needs:
@@ -247,6 +257,44 @@ gba-hc-converter-${DEPLOY_ENV}:
       helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
+       $FILE_OPTIONS
+    - !reference [.check-helm-install-status, script]
+
+redis-${DEPLOY_ENV}:
+  extends: .deploy-base
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: redis
+    RELEASE_NAME: redis
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/general/redis.yaml"
+  script:
+    - !reference [.build-helm-dependency, script]
+    - !reference [.parse-config-files, script]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+       $FILE_OPTIONS
+    - !reference [.check-helm-install-status, script]
+
+digid-connector-${DEPLOY_ENV}:
+  extends: .deploy-base
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: rdo-max
+    RELEASE_NAME: digid-connector
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/general/rdo-max.yaml,deploy-variables/${DEPLOY_ENV}/digid-connector.yaml"
+  script:
+    - !reference [.build-helm-dependency, script]
+    - !reference [.parse-config-files, script]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
        $FILE_OPTIONS
     - !reference [.check-helm-install-status, script]
 

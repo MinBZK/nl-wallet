@@ -1,0 +1,43 @@
+{{ $name := include "common.names.fullname" . }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- with .Values.ingress.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    # CSP header is set in the application
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+      more_set_headers "Referrer-Policy: no-referrer";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-Frame-Options: deny";
+      more_set_headers "Permissions-Policy: camera=(), microphone=()";
+      more_set_headers "X-Permitted-Cross-Domain-Policies: none";
+      more_set_headers "Cross-Origin-Resource-Policy: same-origin";
+      more_set_headers "Cross-Origin-Embedder-Policy: require-corp";
+      more_set_headers "Cross-Origin-Opener-Policy: same-origin";
+spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  rules:
+    - host: {{ .Values.ingress.hostname | quote }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  name: http
+            path: /support
+            pathType: Prefix
+  tls:
+    - hosts:
+        - {{ .Values.ingress.hostname }}
+      secretName: {{ .Values.ingress.tlsSecretName | quote }}

@@ -1,12 +1,17 @@
+import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/list_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
+import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -16,15 +21,32 @@ import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
+import 'argument/forgot_pin_screen_argument.dart';
 
 class ForgotPinScreen extends StatelessWidget {
-  const ForgotPinScreen({super.key});
+  /// When set, uses 'close' copy instead of the default 'back' behaviour.
+  final bool useCloseButton;
+
+  const ForgotPinScreen({this.useCloseButton = false, super.key});
+
+  static ForgotPinScreenArgument getArgument(RouteSettings settings) {
+    final args = settings.arguments;
+    try {
+      return tryCast<ForgotPinScreenArgument>(args) ?? ForgotPinScreenArgument.fromJson(args! as Map<String, dynamic>);
+    } catch (exception) {
+      Fimber.i('Failed to decode $args, falling back to default', ex: exception);
+      return const ForgotPinScreenArgument(useCloseButton: false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(context.l10n.forgotPinScreenTitle),
+        automaticallyImplyLeading: false,
+        leading: useCloseButton ? null : const BackIconButton(),
+        actions: [useCloseButton ? const CloseIconButton() : null].nonNullsList,
       ),
       key: const Key('forgotPinScreen'),
       body: SafeArea(
@@ -91,8 +113,12 @@ class ForgotPinScreen extends StatelessWidget {
               const SizedBox(height: 12),
               TertiaryButton(
                 onPressed: () => Navigator.maybePop(context),
-                text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
-                icon: const Icon(Icons.arrow_back),
+                text: Text.rich(
+                  useCloseButton
+                      ? context.l10n.generalClose.toTextSpan(context)
+                      : context.l10n.generalBottomBackCta.toTextSpan(context),
+                ),
+                icon: Icon(useCloseButton ? Icons.close_outlined : Icons.arrow_back),
               ),
             ],
           ),
@@ -103,13 +129,7 @@ class ForgotPinScreen extends StatelessWidget {
 
   Widget _buildPinRecoveryButton(BuildContext context) {
     return PrimaryButton(
-      onPressed: () {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          WalletRoutes.pinRecoveryRoute,
-          ModalRoute.withName(WalletRoutes.dashboardRoute),
-        );
-      },
+      onPressed: () => Navigator.pushNamed(context, WalletRoutes.pinRecoveryRoute),
       text: Text.rich(context.l10n.forgotPinScreenCta.toTextSpan(context)),
     );
   }
@@ -127,7 +147,22 @@ class ForgotPinScreen extends StatelessWidget {
     return isInitializedWithPid ? PinRecoveryMethod.recoverPin : PinRecoveryMethod.resetWallet;
   }
 
-  static void show(BuildContext context) => Navigator.pushNamed(context, WalletRoutes.forgotPinRoute);
+  static Future<void> show(BuildContext context, {bool popToDashboard = false}) {
+    if (popToDashboard) {
+      return Navigator.pushNamedAndRemoveUntil(
+        context,
+        WalletRoutes.forgotPinRoute,
+        ModalRoute.withName(WalletRoutes.dashboardRoute),
+        arguments: ForgotPinScreenArgument(useCloseButton: popToDashboard).toJson(),
+      );
+    } else {
+      return Navigator.pushNamed(
+        context,
+        WalletRoutes.forgotPinRoute,
+        arguments: ForgotPinScreenArgument(useCloseButton: popToDashboard).toJson(),
+      );
+    }
+  }
 }
 
 /// Specify the recovery path that is available to the user

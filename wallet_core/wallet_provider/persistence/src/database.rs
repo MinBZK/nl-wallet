@@ -26,7 +26,7 @@ impl Db {
 
         let db = Database::connect(connect_options)
             .await
-            .map_err(|e| PersistenceError::Connection(e.into()))?;
+            .map_err(PersistenceError::Connection)?;
 
         Ok(db)
     }

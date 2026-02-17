@@ -55,11 +55,13 @@ import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_use
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart';
+import 'package:wallet/src/domain/usecase/notification/set_direct_os_notification_callback_usecase.dart';
 import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
@@ -196,6 +198,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CancelPidIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePidIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveWalletCardDetailUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveMaintenanceStateUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletCardUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletEventsUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletEventsForCardUseCase>()])
@@ -244,6 +247,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<SetRevocationCodeSavedUseCase>()])
 @GenerateNiceMocks([MockSpec<GetRevocationCodeUseCase>()])
 @GenerateNiceMocks([MockSpec<GetRegistrationRevocationCodeUseCase>()])
+@GenerateNiceMocks([MockSpec<SetDirectOsNotificationCallbackUsecase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants
@@ -337,7 +341,7 @@ class Mocks {
     sl.registerFactory<TourRepository>(MockTourRepository.new);
     sl.registerFactory<ConfigurationRepository>(() {
       final repository = MockConfigurationRepository();
-      when(repository.appConfiguration).thenAnswer(
+      when(repository.observeAppConfiguration).thenAnswer(
         (_) => Stream.value(
           const FlutterAppConfiguration(
             idleLockTimeout: Duration(minutes: 2),
@@ -345,6 +349,7 @@ class Mocks {
             backgroundLockTimeout: Duration(minutes: 1),
             staticAssetsBaseUrl: 'https://example.com/',
             pidAttestationTypes: ['com.example.attestationType'],
+            maintenanceWindow: null,
             version: '1',
             environment: 'test',
           ),

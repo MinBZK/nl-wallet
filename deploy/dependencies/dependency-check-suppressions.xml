@@ -38,6 +38,16 @@
      <packageUrl regex="true">^pkg:npm/glob@10[.]5[.]0$</packageUrl>
      <vulnerabilityName>CVE-2025-64756</vulnerabilityName>
   </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    We are not vulnerable as ajv is only run as dev-dependency.
+    Also eslint pinned their dependency on 6.x.y. and will not update.
+    See https://github.com/eslint/eslint/pull/19340
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/ajv@.*$</packageUrl>
+    <vulnerabilityName>CVE-2025-69873</vulnerabilityName>
+  </suppress>
   <!-- End group: [HIGH] -->
 
   <!-- Start group: [MEDIUM] -->
@@ -49,6 +59,14 @@
     ]]></notes>
     <packageUrl regex="true">^pkg:npm/prettier@.*$</packageUrl>
     <vulnerabilityName>CVE-2025-8263</vulnerabilityName>
+  </suppress>
+
+  <suppress>
+     <notes><![CDATA[
+     We are not vulnerable as there are no user controlled URI paths.
+     ]]></notes>
+     <packageUrl regex="true">^pkg:gem/faraday@.*$</packageUrl>
+     <vulnerabilityName>CVE-2026-25765</vulnerabilityName>
   </suppress>
   <!-- End group: [MEDIUM] -->
 

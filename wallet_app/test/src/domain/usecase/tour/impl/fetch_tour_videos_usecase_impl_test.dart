@@ -24,6 +24,7 @@ void main() {
     backgroundLockTimeout: Duration.zero,
     staticAssetsBaseUrl: testBaseUrl,
     pidAttestationTypes: ['com.example.attestationType'],
+    maintenanceWindow: null,
     version: '0',
     environment: 'test',
   );
@@ -32,7 +33,7 @@ void main() {
     mockConfigurationRepository = MockConfigurationRepository();
     useCase = FetchTourVideosUseCaseImpl(mockConfigurationRepository);
 
-    when(mockConfigurationRepository.appConfiguration).thenAnswer((_) => Stream.value(appConfig));
+    when(mockConfigurationRepository.observeAppConfiguration).thenAnswer((_) => Stream.value(appConfig));
   });
 
   test('invoke returns success with a list of tour videos matching the amount of video_slugs', () async {

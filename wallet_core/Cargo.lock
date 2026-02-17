@@ -683,6 +683,7 @@ name = "audit_log"
 version = "0.5.0-dev"
 dependencies = [
  "assert_matches",
+ "audit_log_macros",
  "chrono",
  "config",
  "derive_more",
@@ -693,8 +694,23 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tracing",
+ "tracing-test",
  "utils",
  "uuid",
+]
+
+[[package]]
+name = "audit_log_macros"
+version = "0.5.0-dev"
+dependencies = [
+ "audit_log",
+ "itertools 0.14.0",
+ "proc-macro2",
+ "quote",
+ "rstest",
+ "serde",
+ "serde_json",
+ "syn 2.0.111",
 ]
 
 [[package]]
@@ -4202,6 +4218,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
+ "jsonwebtoken",
  "nom 8.0.0",
  "nutype",
  "p256",
@@ -4214,6 +4231,7 @@ dependencies = [
  "serde",
  "serde-aux",
  "serde_bytes",
+ "serde_json",
  "serde_repr",
  "serde_with",
  "ssri",
@@ -5880,6 +5898,7 @@ dependencies = [
  "derive_more",
  "rand 0.8.5",
  "rstest",
+ "serde",
  "thiserror 2.0.17",
 ]
 
@@ -9206,6 +9225,7 @@ dependencies = [
  "hsm",
  "p256",
  "rand 0.8.5",
+ "sea-orm",
  "semver",
  "serde",
  "serde_with",

@@ -24,4 +24,9 @@ extension DateTimeExtension on DateTime {
     final oneMonthAgo = clock.now().subtract(const Duration(days: 31));
     return isAfter(oneMonthAgo);
   }
+
+  /// Returns true when `other` date is on the exact same day (ignoring time)
+  bool isSameDay(DateTime other) {
+    return year == other.year && month == other.month && day == other.day;
+  }
 }

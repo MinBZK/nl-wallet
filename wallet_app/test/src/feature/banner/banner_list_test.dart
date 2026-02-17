@@ -87,7 +87,7 @@ void main() {
       await screenMatchesGolden('banner_list.multiple_banners_alt_order.light');
     });
 
-    testGoldens('multiple banners (expiry, expired, revoked) - light theme', (tester) async {
+    testGoldens('ltc71 multiple banners (expiry, expired, revoked) - light theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [
@@ -100,7 +100,7 @@ void main() {
       await screenMatchesGolden('banner_list.multiple_expiry_banners.light');
     });
 
-    testGoldens('multiple banners (expiry, expired, revoked) - dark theme', (tester) async {
+    testGoldens('ltc71 multiple banners (expiry, expired, revoked) - dark theme', (tester) async {
       await pumpBannerList(
         tester,
         initialBanners: [

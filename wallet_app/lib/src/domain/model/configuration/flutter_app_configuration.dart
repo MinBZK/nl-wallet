@@ -1,48 +1,23 @@
-import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
-import 'package:wallet_core/core.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-@immutable
-class FlutterAppConfiguration extends Equatable {
-  final Duration idleLockTimeout;
-  final Duration idleWarningTimeout;
-  final Duration backgroundLockTimeout;
-  final String staticAssetsBaseUrl;
-  final List<String> pidAttestationTypes;
-  final String version;
-  final String environment;
+import 'maintenance_window.dart';
 
-  const FlutterAppConfiguration({
-    required this.idleLockTimeout,
-    required this.idleWarningTimeout,
-    required this.backgroundLockTimeout,
-    required this.staticAssetsBaseUrl,
-    required this.pidAttestationTypes,
-    required this.version,
-    required this.environment,
-  });
+part 'flutter_app_configuration.freezed.dart';
 
-  factory FlutterAppConfiguration.fromFlutterConfig(FlutterConfiguration config) {
-    return FlutterAppConfiguration(
-      idleLockTimeout: Duration(seconds: config.inactiveLockTimeout),
-      idleWarningTimeout: Duration(seconds: config.inactiveWarningTimeout),
-      backgroundLockTimeout: Duration(seconds: config.backgroundLockTimeout),
-      staticAssetsBaseUrl: config.staticAssetsBaseUrl,
-      pidAttestationTypes: config.pidAttestationTypes,
-      version: config.version,
-      environment: config.environment,
-    );
-  }
+@freezed
+abstract class FlutterAppConfiguration with _$FlutterAppConfiguration {
+  const factory FlutterAppConfiguration({
+    required Duration idleLockTimeout,
+    required Duration idleWarningTimeout,
+    required Duration backgroundLockTimeout,
+    required String staticAssetsBaseUrl,
+    required List<String> pidAttestationTypes,
+    required MaintenanceWindow? maintenanceWindow,
+    required String version,
+    required String environment,
+  }) = _FlutterAppConfiguration;
+
+  const FlutterAppConfiguration._();
 
   String get versionAndEnvironment => '$version ($environment)';
-
-  @override
-  List<Object?> get props => [
-    idleLockTimeout,
-    idleWarningTimeout,
-    backgroundLockTimeout,
-    staticAssetsBaseUrl,
-    pidAttestationTypes,
-    version,
-  ];
 }

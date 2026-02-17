@@ -8,6 +8,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/dialog_helper.dart';
 import '../../wallet_assets.dart';
+import '../common/dialog/stop_to_reset_pin_dialog.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/sheet/error_details_sheet.dart';
@@ -27,7 +28,6 @@ import 'page/wallet_transfer_source_confirm_pin_page.dart';
 import 'page/wallet_transfer_source_transfer_success_page.dart';
 import 'page/wallet_transfer_source_transferring_page.dart';
 import 'widget/wallet_transfer_source_stop_sheet.dart';
-import 'widget/wallet_transfer_source_stop_to_change_pin_sheet.dart';
 
 class WalletTransferSourceScreen extends StatefulWidget {
   const WalletTransferSourceScreen({super.key});
@@ -204,7 +204,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
       case WalletStopRequestReason.generic:
         stopConfirmed = await WalletTransferSourceStopSheet.show(context);
       case WalletStopRequestReason.pinRecovery:
-        stopConfirmed = await WalletTransferSourceStopToChangePinSheet.show(context);
+        stopConfirmed = await StopToResetPinDialog.show(context, .transfer);
     }
     if (stopConfirmed && context.mounted) context.bloc.add(WalletTransferStopRequestedEvent(reason: reason));
   }

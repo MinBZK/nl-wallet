@@ -1,21 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/configuration/impl/configuration_repository_impl.dart';
-import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
-  late ConfigurationRepositoryImpl configurationRepository;
   late MockTypedWalletCore mockCore;
+
+  late ConfigurationRepositoryImpl configurationRepository;
 
   setUp(() {
     mockCore = MockTypedWalletCore();
-    configurationRepository = ConfigurationRepositoryImpl(mockCore);
+
+    configurationRepository = ConfigurationRepositoryImpl(
+      mockCore,
+      MockMapper(),
+    );
   });
 
-  test('verify that CoreConfigurationRepository fetches configuration through wallet_core', () async {
+  test('verify that ConfigurationRepository fetches configuration through wallet_core', () async {
     when(mockCore.observeConfig()).thenAnswer(
       (_) => Stream.value(
         const FlutterConfiguration(
@@ -30,18 +35,10 @@ void main() {
       ),
     );
 
-    final config = await configurationRepository.appConfiguration.first;
+    final config = await configurationRepository.observeAppConfiguration.first;
     expect(
       config,
-      const FlutterAppConfiguration(
-        idleWarningTimeout: Duration(seconds: 3),
-        idleLockTimeout: Duration(seconds: 5),
-        backgroundLockTimeout: Duration(seconds: 10),
-        staticAssetsBaseUrl: 'https://example.com/',
-        pidAttestationTypes: ['urn:eudi:pid:nl:1'],
-        version: '0',
-        environment: 'test',
-      ),
+      WalletMockData.flutterAppConfiguration,
     );
   });
 }

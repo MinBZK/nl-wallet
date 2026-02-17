@@ -1,15 +1,13 @@
-use std::error::Error;
-
 #[derive(Debug, thiserror::Error)]
 pub enum PersistenceError {
     #[error("connection error: {0}")]
-    Connection(#[source] Box<dyn Error + Send + Sync>),
+    Connection(#[source] sea_orm::DbErr),
 
     #[error("transaction error: {0}")]
-    Transaction(#[source] Box<dyn Error + Send + Sync>),
+    Transaction(#[source] sea_orm::DbErr),
 
     #[error("execution error: {0}")]
-    Execution(#[source] Box<dyn Error + Send + Sync>),
+    Execution(#[source] sea_orm::DbErr),
 
     #[error("verifying key conversion error: {0}")]
     VerifyingKeyConversion(#[from] p256::pkcs8::spki::Error),

@@ -178,6 +178,6 @@ sequenceDiagram
 
 <!-- References -->
 
-[1]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
-[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer
+[1]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow
+[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-offer
 [3]: https://eudi.dev/latest/architecture-and-reference-framework-main/#43-reference-architecture

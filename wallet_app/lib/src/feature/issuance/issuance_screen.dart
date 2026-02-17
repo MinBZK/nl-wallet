@@ -15,6 +15,7 @@ import '../../util/extension/object_extension.dart';
 import '../../util/launch_util.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/scan_with_wallet_dialog.dart';
+import '../common/dialog/stop_to_reset_pin_dialog.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/missing_attributes_page.dart';
 import '../common/page/network_error_page.dart';
@@ -32,6 +33,7 @@ import '../common/widget/wallet_app_bar.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../disclosure/widget/disclosure_stop_sheet.dart';
 import '../error/error_page.dart';
+import '../forgot_pin/forgot_pin_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../report_issue/report_issue_screen.dart';
 import '../report_issue/reporting_group.dart';
@@ -210,6 +212,7 @@ class IssuanceScreen extends StatelessWidget {
         onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
           IssuanceConfirmPinFailed(error: errorState.error),
         ),
+        onForgotPinPressed: () => _onForgotPinPressed(context),
       ),
     );
   }
@@ -217,11 +220,23 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildProvidePinForIssuancePage(BuildContext context, IssuanceProvidePinForIssuance state) {
     return IssuanceConfirmPinForIssuancePage(
       onPinValidated: (_) => context.bloc.add(const IssuancePinForIssuanceConfirmed()),
-      onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
-        IssuanceConfirmPinFailed(error: errorState.error),
-      ),
+      onConfirmWithPinFailed: (context, errorState) =>
+          context.bloc.add(IssuanceConfirmPinFailed(error: errorState.error)),
       cards: state.cards,
+      onForgotPinPressed: () => _onForgotPinPressed(context),
     );
+  }
+
+  Future<void> _onForgotPinPressed(BuildContext context) async {
+    final session = context.bloc.state is IssuanceProvidePinForIssuance
+        ? StopCopyVariant.issuance
+        : StopCopyVariant.disclosure;
+    final organizationName = context.bloc.relyingParty?.displayName.l10nValue(context);
+    final stopped = await StopToResetPinDialog.show(context, session, organizationName: organizationName);
+    if (stopped && context.mounted) {
+      context.bloc.add(const IssuanceStopRequested());
+      await ForgotPinScreen.show(context, popToDashboard: true);
+    }
   }
 
   Widget _buildReviewCardsPage(BuildContext context, IssuanceReviewCards state) {

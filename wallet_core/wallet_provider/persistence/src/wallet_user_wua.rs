@@ -23,7 +23,7 @@ where
     }
     .insert(db.connection())
     .await
-    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+    .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -39,7 +39,7 @@ where
         .into_tuple()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn find_wua_ids_for_wallet_users<S, T>(
@@ -57,5 +57,5 @@ where
         .into_tuple()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }

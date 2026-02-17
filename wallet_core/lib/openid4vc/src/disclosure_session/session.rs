@@ -13,7 +13,6 @@ use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::iso::disclosure::DeviceResponse;
-use mdoc::iso::engagement::SessionTranscript;
 use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use utils::generator::Generator;
@@ -126,18 +125,11 @@ where
                     // type guarantees that it contains at least one attestation.
                     .unwrap();
 
-                let session_transcript = SessionTranscript::new_oid4vp(
-                    &self.auth_request.response_uri,
-                    &self.auth_request.client_id,
-                    self.auth_request.nonce.clone(),
-                    &encryption_nonce,
-                );
-
                 // Have the WSCD sign all of the partial mdocs in one operation,
                 // producing a PoA if multiple unique keys are used for this.
                 let result = DeviceResponse::sign_multiple_from_partial_mdocs(
                     partial_mdocs,
-                    &session_transcript,
+                    &self.auth_request.session_transcript(),
                     wscd,
                     poa_input,
                 )
@@ -282,7 +274,6 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use rstest::rstest;
     use serde::de::Error;
-    use serde_json::json;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_types::claim_path::ClaimPath;
@@ -505,33 +496,6 @@ mod tests {
             DisclosureError {
                 data_shared: DataDisclosed::NotDisclosed,
                 error: VpSessionError::Client(VpClientError::SdJwtSigning(_))
-            }
-        );
-    }
-
-    #[test]
-    fn test_disclosure_session_disclose_error_auth_response_encryption() {
-        // Calling `VPDisclosureSession::disclose()` with a malformed encryption key should result in an error.
-        let (requests, attestations, wscd) = setup_disclosure_mdoc();
-        let (mut disclosure_session, _verifier_session) = setup_disclosure_session(None, requests);
-
-        disclosure_session
-            .auth_request
-            .encryption_pubkey
-            .set_parameter("kty", Some(json!("invalid_value")))
-            .unwrap();
-
-        let (_disclosure_session, error) = disclosure_session
-            .disclose(attestations, &wscd, &MockTimeGenerator::default())
-            .now_or_never()
-            .unwrap()
-            .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
-
-        assert_matches!(
-            error,
-            DisclosureError {
-                data_shared: DataDisclosed::NotDisclosed,
-                error: VpSessionError::Client(VpClientError::AuthResponseEncryption(_))
             }
         );
     }

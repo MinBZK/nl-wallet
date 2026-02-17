@@ -7,10 +7,12 @@ import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
+import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/pin/check_pin_result.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
@@ -25,6 +27,7 @@ import 'package:wallet/src/util/helper/onboarding_helper.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet_core/core.dart' as core;
 
+import 'src/mocks/core_mock_data.dart';
 import 'src/mocks/wallet_mock_data.dart';
 import 'src/mocks/wallet_mocks.dart';
 import 'src/test_util/font_utils.dart';
@@ -53,6 +56,9 @@ void _setupMockitoDummies() {
   const stringValue = StringValue('');
   provideDummy<DataAttribute>(DataAttribute.untranslated(key: '', label: '', value: stringValue));
   provideDummy<AttributeValue>(stringValue);
+
+  // Configuration
+  provideDummy<FlutterAppConfiguration>(WalletMockData.flutterAppConfiguration);
 
   // Organization and policy dummies
   provideDummy<Organization>(WalletMockData.organization);
@@ -198,6 +204,17 @@ void _setupMockitoDummies() {
   );
   provideDummy<Result<WalletCard>>(Result.success(WalletMockData.card));
   provideDummy<Result<BiometricAuthenticationResult>>(const Result.success(BiometricAuthenticationResult.success));
+
+  // Result dummies - Notifications
+  provideDummy<AppNotification>(
+    AppNotification(
+      id: 0,
+      type: NotificationType.cardRevoked(card: WalletMockData.card),
+      displayTargets: [const .dashboard()],
+    ),
+  );
+  provideDummy<NotificationType>(.cardExpired(card: WalletMockData.card));
+  provideDummy<core.NotificationType>(const core.NotificationType.cardExpired(card: CoreMockData.attestation));
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

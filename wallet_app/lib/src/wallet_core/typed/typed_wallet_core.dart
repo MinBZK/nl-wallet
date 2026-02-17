@@ -51,6 +51,11 @@ class TypedWalletCore {
     _notifications.onCancel = core.clearScheduledNotificationsStream;
   }
 
+  void setupNotificationCallback(FutureOr<void> Function(List<(int, core.NotificationType)>) callback) {
+    core.clearDirectNotificationsCallback();
+    core.setDirectNotificationsCallback(callback: callback);
+  }
+
   void _setupAttestationsStream() {
     _attestations.onListen = () => core.setAttestationsStream().listen(_attestations.add);
     _attestations.onCancel = core.clearAttestationsStream;

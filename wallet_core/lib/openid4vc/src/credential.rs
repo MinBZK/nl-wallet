@@ -1,9 +1,14 @@
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::time::Duration;
 
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
+use serde::de::value::StringDeserializer;
+use serde_with::DeserializeAs;
+use serde_with::DurationSeconds;
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -18,6 +23,7 @@ use mdoc::utils::serialization::CborBase64;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wscd::Poa;
 
 use crate::Format;
@@ -102,11 +108,46 @@ pub struct CredentialResponses {
     pub credential_responses: Vec<CredentialResponse>,
 }
 
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-response>.
+/// A Credential Response, see: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3>.
 #[serde_as]
+#[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "format", rename_all = "snake_case")]
+#[serde(untagged)]
 pub enum CredentialResponse {
+    Immediate {
+        // TODO (PVW-5554): Actually transport more than one credential in this field
+        //                  by implementing batch issuance according to OpenID4VCI 1.0.
+        credentials: VecNonEmpty<Credential>,
+        notification_id: Option<String>,
+    },
+    Deferred {
+        transaction_id: String,
+        #[serde_as(as = "DurationSeconds<u64>")]
+        interval: Duration,
+    },
+}
+
+impl CredentialResponse {
+    pub fn new_immediate(credential: Credential) -> Self {
+        Self::Immediate {
+            credentials: vec_nonempty![credential],
+            notification_id: None,
+        }
+    }
+
+    // TODO (PVW-5554): Replace this with into_immediate_credential().
+    pub fn into_immediate_credential(self) -> Option<Credential> {
+        match self {
+            Self::Immediate { credentials, .. } => Some(credentials.into_first()),
+            Self::Deferred { .. } => None,
+        }
+    }
+}
+
+#[serde_as]
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
+pub enum Credential {
     MsoMdoc {
         #[serde_as(as = "Box<CborBase64>")]
         credential: Box<IssuerSigned>,
@@ -116,11 +157,53 @@ pub enum CredentialResponse {
     },
 }
 
-impl CredentialResponse {
-    pub fn matches_format(&self, format: Format) -> bool {
-        match &self {
-            CredentialResponse::MsoMdoc { .. } => format == Format::MsoMdoc,
-            CredentialResponse::SdJwt { .. } => format == Format::SdJwt,
+/// Manual implementation of [`Deserialize`] for [`Credential`] is necessary, in order to help `serde`
+/// discern between the two enum variants without attempting to do a full Base64 and CBOR decode.
+impl<'de> Deserialize<'de> for Credential {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct StringCredential {
+            credential: String,
+        }
+
+        let StringCredential { credential } = StringCredential::deserialize(deserializer)?;
+
+        // Assume the credential is SD-JWT if its string representation contains
+        // a tilde character, which does not occur in URL-safe Base64.
+        let deserialized_credential = if credential.contains('~') {
+            let sd_jwt = UnverifiedSdJwt::deserialize(StringDeserializer::new(credential))?;
+
+            Self::SdJwt { credential: sd_jwt }
+        } else {
+            let issuer_signed = CborBase64::deserialize_as(StringDeserializer::new(credential))?;
+
+            Self::MsoMdoc {
+                credential: issuer_signed,
+            }
+        };
+
+        Ok(deserialized_credential)
+    }
+}
+
+impl Credential {
+    pub fn new_mdoc(issuer_signed: IssuerSigned) -> Self {
+        Self::MsoMdoc {
+            credential: Box::new(issuer_signed),
+        }
+    }
+
+    pub fn new_sd_jwt(sd_jwt: UnverifiedSdJwt) -> Self {
+        Self::SdJwt { credential: sd_jwt }
+    }
+
+    pub fn format(&self) -> Format {
+        match self {
+            Self::MsoMdoc { .. } => Format::MsoMdoc,
+            Self::SdJwt { .. } => Format::SdJwt,
         }
     }
 }
@@ -215,10 +298,23 @@ pub struct PreAuthTransactionCode {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use assert_matches::assert_matches;
+    use base64::Engine;
+    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use serde_json::json;
 
-    use crate::credential::Grants;
+    use mdoc::DeviceResponse;
+    use mdoc::examples::Example;
+    use mdoc::utils::serialization::cbor_serialize;
+    use sd_jwt::examples::SD_JWT_VC;
+
+    use crate::Format;
+
+    use super::Credential;
+    use super::CredentialResponse;
+    use super::Grants;
 
     #[test]
     fn test_grants_serialization() {
@@ -243,5 +339,99 @@ mod tests {
             serde_json::from_value::<Grants>(json).unwrap(),
             Grants::AuthorizationCode { .. }
         );
+    }
+
+    #[test]
+    fn test_deferred_credential_response_serialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-12
+        let json = json!({
+            "transaction_id": "8xLOxBtZp8",
+            "interval" : 3600
+        });
+
+        let response = serde_json::from_value::<CredentialResponse>(json.clone())
+            .expect("deferred credential response JSON should parse correctly");
+
+        assert_matches!(
+            &response,
+            CredentialResponse::Deferred {
+                transaction_id,
+                interval
+            } if transaction_id == "8xLOxBtZp8" && *interval == Duration::from_hours(1)
+        );
+
+        let output_json =
+            serde_json::to_value(response).expect("deferred credential response should serialize to JSON");
+
+        assert_eq!(json, output_json);
+    }
+
+    #[test]
+    fn test_sd_jwt_credential_response_serialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-8
+        let json = json!({
+            "credentials": [
+                {
+                    "credential": SD_JWT_VC
+                }
+            ]
+        });
+
+        let response = serde_json::from_value::<CredentialResponse>(json.clone())
+            .expect("SD-JWT credential response JSON should parse correctly");
+
+        assert_matches!(
+            &response,
+            CredentialResponse::Immediate { credentials, notification_id: None } if credentials.len().get() == 1
+        );
+
+        let credential = response.clone().into_immediate_credential().unwrap();
+        assert_eq!(credential.format(), Format::SdJwt);
+        assert_matches!(credential, Credential::SdJwt { .. });
+
+        let output_json = serde_json::to_value(response).expect("SD-JWT credential response should serialize to JSON");
+
+        assert_eq!(json, output_json);
+    }
+
+    #[test]
+    fn test_mdoc_credential_response_serialization() {
+        let device_response = DeviceResponse::example();
+        let issuer_signed = &device_response
+            .documents
+            .as_ref()
+            .unwrap()
+            .first()
+            .unwrap()
+            .issuer_signed;
+        let credential = BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(issuer_signed).unwrap());
+
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-8
+        let json = json!({
+            "credentials": [
+                {
+                    "credential": credential,
+                }
+            ],
+            "notification_id": "3fwe98js"
+        });
+
+        let response = serde_json::from_value::<CredentialResponse>(json.clone())
+            .expect("mdoc credential response JSON should parse correctly");
+
+        assert_matches!(
+            &response,
+            CredentialResponse::Immediate {
+                credentials, notification_id: Some(notification_id)
+            } if credentials.len().get() == 1 && notification_id == "3fwe98js"
+        );
+
+        let credential = response.clone().into_immediate_credential().unwrap();
+        assert_eq!(credential.format(), Format::MsoMdoc);
+        assert_matches!(credential, Credential::MsoMdoc { .. });
+
+        let output_json = serde_json::to_value(response).expect("mdoc credential response should serialize to JSON");
+
+        assert_eq!(json, output_json);
     }
 }
