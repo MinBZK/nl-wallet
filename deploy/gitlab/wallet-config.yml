@@ -18,7 +18,6 @@ wallet-config-ont:
     - job: build-env-ont
       artifacts: true
   rules:
-    - !reference [.on-schedule-scan, rules]
     - !reference [.on-schedule-nightly-performance-test, rules]
     - !reference [.default-branch, rules]
 
