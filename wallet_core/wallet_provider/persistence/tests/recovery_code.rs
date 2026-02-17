@@ -183,15 +183,12 @@ async fn test_remove_recovery_code() {
 async fn test_list_recovery_code() {
     let db = db_from_env().await.expect("Could not connect to database");
 
-    // start with a clean slate
-    recovery_code::truncate(&db).await.unwrap();
-
     let recovery_code = random_string(64);
     let recovery_codes = recovery_code::list(&db)
         .await
         .expect("should be able to list denied recovery code");
 
-    assert!(recovery_codes.is_empty());
+    assert!(!recovery_codes.contains(&recovery_code));
 
     recovery_code::insert(&db, recovery_code.clone())
         .await

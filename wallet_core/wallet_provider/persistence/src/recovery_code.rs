@@ -92,16 +92,3 @@ where
         .await
         .map_err(PersistenceError::Execution)
 }
-
-#[cfg(feature = "test")]
-pub async fn truncate<S, T>(db: &T) -> Result<(), PersistenceError>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    recovery_code::Entity::delete_many()
-        .exec(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)
-        .map(|_| ())
-}
