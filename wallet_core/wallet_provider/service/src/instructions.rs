@@ -807,7 +807,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
                     .await?;
             }
             // This is a retried request
-            Some(stored) if recovery_code.as_str() == stored => {}
+            Some(stored) if &recovery_code == stored => {}
             _ => return Err(InstructionError::InvalidRecoveryCode),
         }
 
@@ -1297,6 +1297,7 @@ where
         .recovery_code
         .as_ref()
         .expect("instruction validation fails if there is no recovery code")
+        .as_ref()
         != &transfer_session.destination_wallet_recovery_code
     {
         return Err(InstructionError::AccountTransferWalletsMismatch);
@@ -1808,8 +1809,11 @@ mod tests {
 
         let transfer_session_id_clone = Arc::clone(&transfer_session_id);
 
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
@@ -1854,8 +1858,11 @@ mod tests {
     async fn should_handle_disclose_recovery_code_for_pin_recovery() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -1921,8 +1928,11 @@ mod tests {
         };
 
         wallet_user.state = WalletUserState::Active;
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
         let wallet_user_repo = MockTransactionalWalletUserRepository::new();
 
         let result = instruction
@@ -1947,7 +1957,7 @@ mod tests {
     async fn should_fail_disclose_recovery_code_for_pin_recovery_when_wrong_recovery_code() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code = Some("wrong_recovery_code".to_string());
+        wallet_user.recovery_code = Some("wrong_recovery_code".to_owned().into());
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -1981,8 +1991,11 @@ mod tests {
     async fn should_fail_disclose_recovery_code_for_pin_recovery_when_wrong_pin_recovery_key() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -2299,7 +2312,7 @@ mod tests {
         #[case] should_succeed: bool,
     ) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Transferred;
 
         let result = instruction.validate_instruction(&wallet_user);
@@ -2313,7 +2326,7 @@ mod tests {
     #[tokio::test]
     async fn validating_pair_transfer() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         let transfer_session_id = Uuid::new_v4();
         let app_version = Version::parse("1.0.0").unwrap();
 
@@ -2331,7 +2344,7 @@ mod tests {
         let app_version = Version::parse("1.0.0").unwrap();
 
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Transferring;
 
         let instruction = PairTransfer {
@@ -2369,7 +2382,7 @@ mod tests {
             source_wallet_user_id: Some(Uuid::new_v4()),
             destination_wallet_user_id: Uuid::new_v4(),
             transfer_session_id,
-            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_recovery_code: "recovery_code".to_owned(),
             destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
             state,
             encrypted_wallet_data: None,
@@ -2421,7 +2434,7 @@ mod tests {
             result,
             Err(InstructionError::RecoveryCodeIsDenied(code))
                 // the recovery code from the test PID example credential
-                if code == "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                if code == "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_owned().into()
         );
     }
 
@@ -2429,7 +2442,7 @@ mod tests {
     async fn should_handle_pair_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Active;
 
         let transfer_session_id = Uuid::new_v4();
@@ -2475,7 +2488,7 @@ mod tests {
     async fn should_handle_pair_transfer_should_fail_for_different_recovery_code() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Active;
 
         let transfer_session_id = Uuid::new_v4();
@@ -2580,7 +2593,7 @@ mod tests {
     async fn should_handle_pair_transfer_wrong_app_version() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2625,7 +2638,7 @@ mod tests {
     #[case(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }))]
     async fn validating_transfer_instruction(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         instruction.validate_instruction(&wallet_user).unwrap();
     }
 
@@ -2649,7 +2662,7 @@ mod tests {
     async fn should_handle_cancel_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2693,7 +2706,7 @@ mod tests {
     async fn should_handle_cancel_transfer_when_session_is_created() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2736,7 +2749,7 @@ mod tests {
     async fn should_handle_cancel_transfer_when_already_completed() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Success);
@@ -2782,7 +2795,7 @@ mod tests {
     async fn should_handle_reset_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2855,7 +2868,7 @@ mod tests {
     async fn should_handle_reset_transfer_illegal_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Success);
@@ -2897,7 +2910,7 @@ mod tests {
     async fn should_handle_get_transfer_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
 
@@ -2937,7 +2950,7 @@ mod tests {
     async fn should_handle_confirm_wallet_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Paired);
@@ -2978,7 +2991,7 @@ mod tests {
     async fn should_handle_confirm_wallet_payload_idempotency() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Confirmed);
@@ -3016,7 +3029,7 @@ mod tests {
     async fn should_handle_send_wallet_payload() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Confirmed);
@@ -3066,7 +3079,7 @@ mod tests {
     async fn should_handle_send_wallet_payload_idempotency() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3110,7 +3123,7 @@ mod tests {
     async fn should_handle_send_wallet_payload_for_illegal_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Canceled);
@@ -3155,7 +3168,7 @@ mod tests {
     async fn should_handle_receive_wallet_payload() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3197,7 +3210,7 @@ mod tests {
     async fn should_handle_receive_wallet_payload_for_illegal_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3239,7 +3252,7 @@ mod tests {
     async fn should_handle_receive_wallet_payload_for_empty_wallet_data() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Uploaded);
@@ -3278,7 +3291,7 @@ mod tests {
     async fn should_handle_complete_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3321,7 +3334,7 @@ mod tests {
     async fn should_handle_complete_transfer_when_already_canceled() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3366,7 +3379,7 @@ mod tests {
     async fn should_handle_complete_transfer_wrong_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3409,7 +3422,7 @@ mod tests {
     async fn should_handle_complete_transfer_idempotency() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);

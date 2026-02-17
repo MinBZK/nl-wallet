@@ -18,6 +18,7 @@ use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -104,7 +105,7 @@ impl WalletUserRepository for Repositories {
     async fn find_wallet_user_ids_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: &str,
+        recovery_code: &RecoveryCode,
     ) -> Result<Vec<Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_ids_by_recovery_code(transaction, recovery_code).await
     }
@@ -257,7 +258,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &WalletId,
-        recovery_code: String,
+        recovery_code: RecoveryCode,
     ) -> Result<(), PersistenceError> {
         wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
     }
@@ -281,7 +282,7 @@ impl WalletUserRepository for Repositories {
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: &str,
+        recovery_code: &RecoveryCode,
     ) -> Result<bool, PersistenceError> {
         wallet_user::has_multiple_active_accounts_by_recovery_code(transaction, recovery_code).await
     }
@@ -490,7 +491,7 @@ impl WalletUserRepository for Repositories {
     async fn deny_recovery_code(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: String,
+        recovery_code: RecoveryCode,
     ) -> Result<(), PersistenceError> {
         recovery_code::insert(transaction, recovery_code).await
     }
@@ -499,7 +500,7 @@ impl WalletUserRepository for Repositories {
     async fn recovery_code_is_denied(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: String,
+        recovery_code: RecoveryCode,
     ) -> Result<bool, PersistenceError> {
         recovery_code::is_denied(transaction, recovery_code).await
     }
@@ -508,7 +509,7 @@ impl WalletUserRepository for Repositories {
     async fn list_denied_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-    ) -> Result<Vec<String>, PersistenceError> {
+    ) -> Result<Vec<RecoveryCode>, PersistenceError> {
         recovery_code::list(transaction).await
     }
 
@@ -516,7 +517,7 @@ impl WalletUserRepository for Repositories {
     async fn allow_recovery_code(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: &str,
+        recovery_code: &RecoveryCode,
     ) -> Result<bool, PersistenceError> {
         recovery_code::set_allowed(transaction, recovery_code).await
     }
@@ -545,6 +546,7 @@ pub mod mock {
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+    use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletId;
@@ -606,7 +608,7 @@ pub mod mock {
             async fn find_wallet_user_ids_by_recovery_code(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: &str,
+                recovery_code: &RecoveryCode,
             ) -> Result<Vec<Uuid>, PersistenceError>;
 
             async fn register_unsuccessful_pin_entry(
@@ -715,7 +717,7 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 wallet_id: &WalletId,
-                recovery_code: String,
+                recovery_code: RecoveryCode,
             ) -> Result<(), PersistenceError>;
 
             async fn recover_pin(
@@ -727,7 +729,7 @@ pub mod mock {
             async fn has_multiple_active_accounts_by_recovery_code(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: &str,
+                recovery_code: &RecoveryCode,
             ) -> Result<bool, PersistenceError>;
 
             async fn create_transfer_session(
@@ -819,21 +821,21 @@ pub mod mock {
             async fn deny_recovery_code(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: String,
+                recovery_code: RecoveryCode,
             ) -> Result<(), PersistenceError>;
 
             async fn recovery_code_is_denied(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: String,
+                recovery_code: RecoveryCode,
             ) -> Result<bool, PersistenceError>;
 
-            async fn list_denied_recovery_codes(&self, transaction: &MockTransaction) -> Result<Vec<String>, PersistenceError>;
+            async fn list_denied_recovery_codes(&self, transaction: &MockTransaction) -> Result<Vec<RecoveryCode>, PersistenceError>;
 
             async fn allow_recovery_code(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: &str,
+                recovery_code: &RecoveryCode,
             ) -> Result<bool, PersistenceError>;
         }
 
@@ -943,7 +945,7 @@ pub mod mock {
         async fn find_wallet_user_ids_by_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &str,
+            _recovery_code: &RecoveryCode,
         ) -> Result<Vec<Uuid>, PersistenceError> {
             Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
         }
@@ -1085,7 +1087,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &WalletId,
-            _recovery_code: String,
+            _recovery_code: RecoveryCode,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
@@ -1101,7 +1103,7 @@ pub mod mock {
         async fn has_multiple_active_accounts_by_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &str,
+            _recovery_code: &RecoveryCode,
         ) -> Result<bool, PersistenceError> {
             Ok(false)
         }
@@ -1232,7 +1234,7 @@ pub mod mock {
         async fn deny_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: String,
+            _recovery_code: RecoveryCode,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
@@ -1240,7 +1242,7 @@ pub mod mock {
         async fn recovery_code_is_denied(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: String,
+            _recovery_code: RecoveryCode,
         ) -> Result<bool, PersistenceError> {
             Ok(false)
         }
@@ -1248,14 +1250,14 @@ pub mod mock {
         async fn list_denied_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-        ) -> Result<Vec<String>, PersistenceError> {
+        ) -> Result<Vec<RecoveryCode>, PersistenceError> {
             Ok(vec![])
         }
 
         async fn allow_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &str,
+            _recovery_code: &RecoveryCode,
         ) -> Result<bool, PersistenceError> {
             Ok(false)
         }

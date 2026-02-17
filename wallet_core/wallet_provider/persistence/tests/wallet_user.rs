@@ -12,6 +12,7 @@ use utils::generator::Generator;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
@@ -441,7 +442,9 @@ async fn test_store_recovery_code() {
         other_wallet_user, QueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
 
-    let recovery_code = "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string();
+    let recovery_code: RecoveryCode = "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+        .to_owned()
+        .into();
     // After updating the recovery_code for the first user it should be changed, while the other one should remain null
     store_recovery_code(&db, &other_wallet_id, recovery_code.clone())
         .await
@@ -488,7 +491,7 @@ async fn test_has_multiple_accounts() {
     let (_, wallet_user_id2, wallet_id2, _) = common::create_test_user(WalletDeviceVendor::Google).await;
     let (_, wallet_user_id3, wallet_id3, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
 
-    let recovery_code = Uuid::new_v4().to_string();
+    let recovery_code: RecoveryCode = random_string(64).into();
 
     // There is only one wallet user having the same recovery_code
     store_recovery_code(&db, &wallet_id1, recovery_code.clone())

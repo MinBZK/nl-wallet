@@ -33,6 +33,7 @@ use utils::num::NonZeroU31;
 use utils::num::U31;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -756,7 +757,7 @@ async fn test_revoke_wallet_by_recovery_code() {
     let revoked_wua_ids = revoked_wua_ids.into_iter().flatten().collect_vec();
     let non_revoked_wua_ids = non_revoked_wua_ids.into_iter().flatten().collect_vec();
 
-    let recovery_code = random_string(32);
+    let recovery_code: RecoveryCode = random_string(32).into();
     join_all(revoked_wallet_ids.iter().map(async |wallet_id| {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         user_state
@@ -772,7 +773,7 @@ async fn test_revoke_wallet_by_recovery_code() {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         user_state
             .repositories
-            .store_recovery_code(&tx, wallet_id, random_string(32))
+            .store_recovery_code(&tx, wallet_id, random_string(32).into())
             .await
             .unwrap();
 
@@ -847,7 +848,7 @@ async fn test_list_and_remove_denied_recovery_codes_service() {
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
     let user_state = setup_state(publish_dir.clone()).await;
 
-    let recovery_code = random_string(64);
+    let recovery_code: RecoveryCode = random_string(64).into();
 
     // add recovery code to deny list
     let tx = user_state.repositories.begin_transaction().await.unwrap();
@@ -881,7 +882,7 @@ async fn test_remove_nonexistent_denied_recovery_code_service() {
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
     let user_state = setup_state(publish_dir.clone()).await;
 
-    let recovery_code = random_string(64);
+    let recovery_code = random_string(64).into();
 
     // removing a non-existent recovery code should return RevocationCodeNotFound
     let err = wallet_provider_service::revocation::remove_denied_recovery_code(&user_state, &recovery_code)
@@ -890,6 +891,6 @@ async fn test_remove_nonexistent_denied_recovery_code_service() {
 
     assert!(matches!(
         err,
-        RevocationError::RevocationCodeNotFound(code) if code == recovery_code
+        RevocationError::RecoveryCodeNotFound(code) if code == recovery_code
     ));
 }

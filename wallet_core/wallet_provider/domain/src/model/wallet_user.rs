@@ -41,7 +41,7 @@ pub struct WalletUser {
     pub state: WalletUserState,
     pub revocation_code_hmac: Vec<u8>,
     pub revocation_registration: Option<RevocationRegistration>,
-    pub recovery_code: Option<String>,
+    pub recovery_code: Option<RecoveryCode>,
     pub recovery_code_is_denied: bool,
 }
 
@@ -164,15 +164,19 @@ impl WalletUserKey {
 )]
 pub struct WalletId(String);
 
+#[derive(Debug, Clone, AsRef, From, Into, Display, PartialEq, Eq, Deserialize, Serialize)]
+#[cfg_attr(
+    feature = "utoipa",
+    derive(utoipa::ToSchema),
+    schema(examples("54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"))
+)]
+pub struct RecoveryCode(String);
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct WalletUserIsRevoked {
     pub wallet_id: WalletId,
-    #[cfg_attr(
-        feature = "utoipa",
-        schema(examples("54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"))
-    )]
-    pub recovery_code: Option<String>,
+    pub recovery_code: Option<RecoveryCode>,
     pub state: WalletUserState,
     pub revocation_registration: Option<RevocationRegistration>,
     pub can_register_new_wallet: bool,

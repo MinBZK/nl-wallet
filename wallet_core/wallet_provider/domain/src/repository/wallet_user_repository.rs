@@ -14,6 +14,7 @@ use wallet_account::messages::errors::RevocationReason;
 
 use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
+use crate::model::wallet_user::RecoveryCode;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletId;
 use crate::model::wallet_user::WalletUserCreate;
@@ -57,7 +58,7 @@ pub trait WalletUserRepository {
     async fn find_wallet_user_ids_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: &str,
+        recovery_code: &RecoveryCode,
     ) -> Result<Vec<Uuid>>;
 
     async fn clear_instruction_challenge(
@@ -143,7 +144,7 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &WalletId,
-        recovery_code: String,
+        recovery_code: RecoveryCode,
     ) -> Result<()>;
 
     async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
@@ -151,7 +152,7 @@ pub trait WalletUserRepository {
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: &str,
+        recovery_code: &RecoveryCode,
     ) -> Result<bool>;
 
     async fn update_apple_assertion_counter(
@@ -241,14 +242,21 @@ pub trait WalletUserRepository {
         revocation_date_time: DateTime<Utc>,
     ) -> Result<Vec<Uuid>>;
 
-    async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: String) -> Result<()>;
+    async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: RecoveryCode) -> Result<()>;
 
-    async fn recovery_code_is_denied(&self, transaction: &Self::TransactionType, recovery_code: String)
-    -> Result<bool>;
+    async fn recovery_code_is_denied(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: RecoveryCode,
+    ) -> Result<bool>;
 
-    async fn list_denied_recovery_codes(&self, transaction: &Self::TransactionType) -> Result<Vec<String>>;
+    async fn list_denied_recovery_codes(&self, transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>>;
 
-    async fn allow_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: &str) -> Result<bool>;
+    async fn allow_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &RecoveryCode,
+    ) -> Result<bool>;
 }
 
 #[cfg(feature = "mock")]
@@ -322,7 +330,7 @@ pub mod mock {
         async fn find_wallet_user_ids_by_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &str,
+            _recovery_code: &RecoveryCode,
         ) -> Result<Vec<Uuid>> {
             Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
         }
@@ -442,7 +450,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &WalletId,
-            _recovery_code: String,
+            _recovery_code: RecoveryCode,
         ) -> Result<()> {
             Ok(())
         }
@@ -454,7 +462,7 @@ pub mod mock {
         async fn has_multiple_active_accounts_by_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &str,
+            _recovery_code: &RecoveryCode,
         ) -> Result<bool> {
             Ok(false)
         }
@@ -582,26 +590,30 @@ pub mod mock {
             ])
         }
 
-        async fn deny_recovery_code(&self, _transaction: &Self::TransactionType, _recovery_code: String) -> Result<()> {
+        async fn deny_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: RecoveryCode,
+        ) -> Result<()> {
             Ok(())
         }
 
         async fn recovery_code_is_denied(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: String,
+            _recovery_code: RecoveryCode,
         ) -> Result<bool> {
             Ok(false)
         }
 
-        async fn list_denied_recovery_codes(&self, _transaction: &Self::TransactionType) -> Result<Vec<String>> {
+        async fn list_denied_recovery_codes(&self, _transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>> {
             Ok(vec![])
         }
 
         async fn allow_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &str,
+            _recovery_code: &RecoveryCode,
         ) -> Result<bool> {
             Ok(false)
         }

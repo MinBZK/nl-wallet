@@ -15,6 +15,7 @@ use utils::generator::Generator;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::repository::Committable;
@@ -39,8 +40,11 @@ pub enum RevocationError {
     #[error("error signing hmac for revocation code: {0}")]
     RevocationCodeHmac(#[source] HsmError),
 
-    #[error("recovation code not found: {0}")]
+    #[error("revocation code not found: {0}")]
     RevocationCodeNotFound(String),
+
+    #[error("recovery code not found: {0}")]
+    RecoveryCodeNotFound(RecoveryCode),
 
     #[error("error while auditing: {0}")]
     AuditLog(#[source] Box<dyn Error + Send + Sync>),
@@ -102,7 +106,7 @@ where
 
 #[audited]
 pub async fn revoke_wallets_by_recovery_code<T, R, H>(
-    #[audit] recovery_code: &str,
+    #[audit] recovery_code: &RecoveryCode,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
@@ -242,7 +246,7 @@ where
 
 pub async fn list_denied_recovery_codes<T, R, H>(
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
-) -> Result<Vec<String>, RevocationError>
+) -> Result<Vec<RecoveryCode>, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -257,7 +261,7 @@ where
 
 pub async fn remove_denied_recovery_code<T, R, H>(
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
-    recovery_code: &str,
+    recovery_code: &RecoveryCode,
 ) -> Result<(), RevocationError>
 where
     T: Committable,
@@ -269,7 +273,7 @@ where
     tx.commit().await?;
 
     if !removed {
-        return Err(RevocationError::RevocationCodeNotFound(recovery_code.to_owned()));
+        return Err(RevocationError::RecoveryCodeNotFound(recovery_code.to_owned()));
     }
 
     Ok(())

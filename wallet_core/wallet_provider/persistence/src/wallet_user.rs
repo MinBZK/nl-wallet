@@ -32,6 +32,7 @@ use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::RevocationRegistration;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -113,7 +114,7 @@ where
 
             WalletUserIsRevoked {
                 wallet_id: model.wallet_id.into(),
-                recovery_code: model.recovery_code,
+                recovery_code: model.recovery_code.map(Into::into),
                 state,
                 revocation_registration,
                 can_register_new_wallet: !model.recovery_code_is_denied,
@@ -394,7 +395,7 @@ where
         state,
         revocation_code_hmac: model.revocation_code_hmac,
         revocation_registration,
-        recovery_code: model.recovery_code.clone(),
+        recovery_code: model.recovery_code.map(Into::into),
         recovery_code_is_denied: model.recovery_code_is_denied,
     };
 
@@ -446,7 +447,7 @@ where
     }
 }
 
-pub async fn find_wallet_user_ids_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<Vec<Uuid>>
+pub async fn find_wallet_user_ids_by_recovery_code<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<Vec<Uuid>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -454,7 +455,7 @@ where
     wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::Id)
-        .filter(wallet_user::Column::RecoveryCode.eq(recovery_code))
+        .filter(wallet_user::Column::RecoveryCode.eq(recovery_code.as_ref()))
         .into_tuple::<Uuid>()
         .all(db.connection())
         .await
@@ -817,13 +818,16 @@ where
     }
 }
 
-pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &WalletId, recovery_code: String) -> Result<()>
+pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &WalletId, recovery_code: RecoveryCode) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     let result = wallet_user::Entity::update_many()
-        .col_expr(wallet_user::Column::RecoveryCode, Expr::value(recovery_code))
+        .col_expr(
+            wallet_user::Column::RecoveryCode,
+            Expr::value(recovery_code.to_string()),
+        )
         .filter(
             wallet_user::Column::WalletId
                 .eq(wallet_id.as_ref())
@@ -840,23 +844,22 @@ where
     }
 }
 
-pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<bool>
+pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<bool>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let count: u64 = wallet_user::Entity::find()
-        .filter(
-            wallet_user::Column::RecoveryCode
-                .eq(recovery_code)
-                .and(wallet_user::Column::State.is_not_in([
+    let count: u64 =
+        wallet_user::Entity::find()
+            .filter(wallet_user::Column::RecoveryCode.eq(recovery_code.as_ref()).and(
+                wallet_user::Column::State.is_not_in([
                     WalletUserState::Transferred.to_string(),
                     WalletUserState::Revoked.to_string(),
-                ])),
-        )
-        .count(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)?;
+                ]),
+            ))
+            .count(db.connection())
+            .await
+            .map_err(PersistenceError::Execution)?;
 
     Ok(count > 1)
 }

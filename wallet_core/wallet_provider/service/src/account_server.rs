@@ -29,6 +29,7 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 use uuid::Uuid;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
@@ -315,7 +316,7 @@ pub enum InstructionError {
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("recovery code is denied: {0}")]
-    RecoveryCodeIsDenied(String),
+    RecoveryCodeIsDenied(RecoveryCode),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -487,13 +488,13 @@ impl From<HashMap<String, VecNonEmpty<String>>> for RecoveryCodeConfig {
 }
 
 impl RecoveryCodeConfig {
-    pub fn extract_from_sd_jwt(&self, verified_sd_jwt: &VerifiedSdJwt) -> Result<String, InstructionError> {
+    pub fn extract_from_sd_jwt(&self, verified_sd_jwt: &VerifiedSdJwt) -> Result<RecoveryCode, InstructionError> {
         self.0
             .get(&verified_sd_jwt.claims().vct)
             .map(|path| {
                 let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
                 match disclosed_attributes.get(path).expect("constructed claim_path invalid") {
-                    Some(AttributeValue::Text(recovery_code)) => Ok(recovery_code.to_string()),
+                    Some(AttributeValue::Text(recovery_code)) => Ok(recovery_code.to_owned().into()),
                     _ => Err(InstructionError::MissingRecoveryCode),
                 }
             })
@@ -1992,7 +1993,7 @@ mod tests {
         let result = RECOVERY_CODE_CONFIG.extract_from_sd_jwt(&verified_recovery_code_sd_jwt());
         assert!(result.is_ok());
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().as_ref(),
             "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
         );
     }
