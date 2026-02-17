@@ -24,6 +24,7 @@ get-rdo-max-source:
     - tar xzf "nl-rdo-max-${RDO_MAX_VERSION}.tar.gz" -C nl-rdo-max --strip-components=1
     - cd nl-rdo-max
     - npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
+    - rm -rf saml/tvs
   artifacts:
     name: rdo-max-source
     paths:
