@@ -56,13 +56,13 @@ struct ApplicationState<C> {
 }
 
 pub static PORTAL_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/support/portal.js"))));
 
 pub static PORTAL_UI_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal-ui.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/support/portal-ui.js"))));
 
 pub static LOKALIZE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/lokalize.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/support/lokalize.js"))));
 
 // Bundled CSS constant - placeholder in dev mode, full bundle in release mode.
 // In dev mode, CSS is served from the filesystem via ServeDir.
@@ -144,7 +144,7 @@ where
     // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
     #[cfg(not(debug_assertions))]
     let app = app.route(
-        "/static/css/portal.css",
+        "/support/static/css/portal.css",
         get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, PORTAL_CSS) }),
     );
 
