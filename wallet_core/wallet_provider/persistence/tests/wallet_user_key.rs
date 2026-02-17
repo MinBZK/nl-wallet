@@ -1,11 +1,13 @@
 use std::collections::HashSet;
 use std::slice::from_ref;
 
+use crypto::utils::random_string;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use uuid::Uuid;
 
 use hsm::model::wrapped_key::WrappedKey;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_persistence::test::WalletDeviceVendor;
@@ -43,7 +45,7 @@ async fn test_create_keys() {
         ..test_wallet_user_key()
     };
 
-    let wallet_id = Uuid::new_v4().to_string();
+    let wallet_id: WalletId = random_string(32).into();
 
     let wallet_user_id = create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id.clone()).await;
 
@@ -95,13 +97,13 @@ async fn test_move_keys() {
         ..test_wallet_user_key()
     };
 
-    let source_wallet_id = Uuid::new_v4();
+    let source_wallet_id: WalletId = random_string(32).into();
     let source_wallet_user_id =
-        create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, source_wallet_id.to_string()).await;
+        create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, source_wallet_id).await;
 
-    let destination_wallet_id = Uuid::new_v4();
+    let destination_wallet_id: WalletId = random_string(32).into();
     let destination_wallet_user_id =
-        create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Google, destination_wallet_id.to_string()).await;
+        create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Google, destination_wallet_id).await;
 
     // Create example keys in source and destination wallets
 
@@ -205,9 +207,9 @@ async fn test_create_blocked_keys() {
         ..test_wallet_user_key()
     };
 
-    let wallet_id = Uuid::new_v4().to_string();
+    let wallet_id: WalletId = random_string(32).into();
 
-    let wallet_user_id = create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id.clone()).await;
+    let wallet_user_id = create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id).await;
 
     let batch_id = Uuid::new_v4();
 
@@ -272,7 +274,7 @@ async fn test_delete_blocked_keys() {
         ..test_wallet_user_key()
     };
 
-    let wallet_id = Uuid::new_v4().to_string();
+    let wallet_id: WalletId = random_string(32).into();
 
     let wallet_user_id = create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id.clone()).await;
 

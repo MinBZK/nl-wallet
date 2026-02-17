@@ -17,6 +17,7 @@ use hsm::model::encrypter::Encrypter;
 use hsm::model::mock::MockPkcs11Client;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::repository::PersistenceError;
@@ -47,7 +48,7 @@ pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
     .unwrap()
 }
 
-pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, vendor: WalletDeviceVendor, wallet_id: String) -> Uuid
+pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, vendor: WalletDeviceVendor, wallet_id: WalletId) -> Uuid
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

@@ -15,6 +15,7 @@ use utils::generator::Generator;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -33,7 +34,7 @@ pub enum RevocationError {
     WuaRevocation(#[from] token_status_list::status_list_service::RevocationError),
 
     #[error("wallet ID not found: {0:?}")]
-    WalletIdsNotFound(HashSet<String>),
+    WalletIdsNotFound(HashSet<WalletId>),
 
     #[error("error signing hmac for revocation code: {0}")]
     RevocationCodeHmac(#[source] HsmError),
@@ -144,7 +145,7 @@ where
 
 #[audited]
 pub async fn revoke_wallets_by_wallet_id<T, R, H>(
-    #[audit] wallet_ids: &HashSet<String>,
+    #[audit] wallet_ids: &HashSet<WalletId>,
     user_state: &UserState<R, H, impl WuaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
@@ -164,7 +165,7 @@ where
         .await?;
 
     if found_wallets.len() != wallet_ids.len() {
-        let not_found_ids: HashSet<String> = wallet_ids
+        let not_found_ids: HashSet<WalletId> = wallet_ids
             .difference(&found_wallets.into_keys().collect())
             .cloned()
             .collect();

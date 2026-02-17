@@ -12,6 +12,7 @@ use utils::generator::Generator;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
@@ -40,7 +41,7 @@ pub mod common;
 #[tokio::test]
 async fn test_create_wallet_user() {
     let (_db, _wallet_user_id, wallet_id, wallet_user) = common::create_test_user(WalletDeviceVendor::Apple).await;
-    assert_eq!(wallet_id, wallet_user.wallet_id);
+    assert_eq!(wallet_id.as_ref(), &wallet_user.wallet_id);
 }
 
 #[tokio::test]
@@ -94,7 +95,7 @@ async fn test_create_wallet_user_transaction_commit() {
         .await
         .expect("Could not begin transaction");
 
-    let wallet_id = random_string(32);
+    let wallet_id: WalletId = random_string(32).into();
 
     let wallet_user_id =
         create_wallet_user_with_random_keys(&transaction, WalletDeviceVendor::Apple, wallet_id.clone()).await;
@@ -112,13 +113,13 @@ async fn test_create_wallet_user_transaction_commit() {
         .await
         .expect("Wallet user not found");
 
-    assert_eq!(wallet_id, wallet_user.wallet_id);
+    assert_eq!(wallet_id.as_ref(), &wallet_user.wallet_id);
 }
 
 #[tokio::test]
 async fn test_create_wallet_user_transaction_rollback() {
     let db = db_from_env().await.expect("Could not connect to database");
-    let wallet_id = random_string(32);
+    let wallet_id: WalletId = random_string(32).into();
 
     let wallet_user_id = {
         let transaction = transaction::begin_transaction(&db)
@@ -174,7 +175,7 @@ async fn test_insert_instruction_challenge_on_conflict() {
     assert_ne!(challenges[0].id, og_id);
 
     // create a second wallet
-    let wallet_id2 = random_string(32);
+    let wallet_id2: WalletId = random_string(32).into();
     let wallet_user_id2 =
         create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Google, wallet_id2.clone()).await;
 
@@ -214,7 +215,7 @@ async fn test_register_unsuccessful_pin_entry() {
 async fn do_change_pin() -> (
     Db,
     Uuid,
-    String,
+    WalletId,
     Encrypted<VerifyingKey>,
     wallet_user::Model,
     wallet_user::Model,
@@ -245,7 +246,7 @@ async fn do_change_pin() -> (
 async fn test_change_pin_and_commit() {
     let (db, wallet_user_id, wallet_id, new_pin, _before_pin_change, _after_pin_change) = do_change_pin().await;
 
-    commit_pin_change(&db, wallet_id.as_str()).await.unwrap();
+    commit_pin_change(&db, &wallet_id).await.unwrap();
 
     let after_commit = common::find_wallet_user(&db, wallet_user_id).await.unwrap();
 
@@ -259,7 +260,7 @@ async fn test_change_pin_and_commit() {
 async fn test_rollback_pin() {
     let (db, wallet_user_id, wallet_id, _new_pin, before_pin_change, _after_pin_change) = do_change_pin().await;
 
-    rollback_pin_change(&db, wallet_id.as_str()).await.unwrap();
+    rollback_pin_change(&db, &wallet_id).await.unwrap();
 
     let after_rollback = common::find_wallet_user(&db, wallet_user_id).await.unwrap();
 
@@ -325,7 +326,7 @@ async fn test_create_wallet_user_android_attestations() {
     let (db, _wallet_user_id, wallet_id, wallet_user_model) =
         common::create_test_user(WalletDeviceVendor::Google).await;
 
-    assert_eq!(wallet_id, wallet_user_model.wallet_id);
+    assert_eq!(wallet_id.as_ref(), &wallet_user_model.wallet_id);
 
     let wallet_user_result = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
 

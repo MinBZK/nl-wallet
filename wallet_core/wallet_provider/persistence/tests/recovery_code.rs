@@ -4,6 +4,7 @@ use crypto::utils::random_string;
 use tokio::time::Duration;
 use tokio::time::sleep;
 
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_persistence::recovery_code;
 use wallet_provider_persistence::test::WalletDeviceVendor;
@@ -42,8 +43,8 @@ async fn test_insert_recovery_code() {
 async fn test_recovery_code_is_denied() {
     let db = db_from_env().await.expect("Could not connect to database");
 
-    let wallet_id1 = random_string(32);
-    let wallet_id2 = random_string(32);
+    let wallet_id1: WalletId = random_string(32).into();
+    let wallet_id2: WalletId = random_string(32).into();
 
     create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id1.clone()).await;
     create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id2.clone()).await;

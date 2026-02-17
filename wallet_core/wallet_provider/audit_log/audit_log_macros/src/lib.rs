@@ -24,12 +24,13 @@ use syn::parse_macro_input;
 /// # use audit_log_macros::audited;
 /// # struct DbErr;
 /// # struct RevocationError;
+/// # type WalletId = String;
 /// # impl audit_log::model::FromAuditLogError for RevocationError {
 /// #     fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self }
 /// # }
 /// #[audited]
 /// pub async fn revoke_wallet(
-///     #[audit] wallet_id: &str,
+///     #[audit] wallet_id: &WalletId,
 ///     #[auditor] audit_log: &impl AuditLog,
 /// ) -> Result<(), RevocationError> {
 ///     Ok(())
@@ -42,32 +43,27 @@ use syn::parse_macro_input;
 /// # use audit_log::model::AuditLog;
 /// # struct DbErr;
 /// # struct RevocationError;
+/// # type WalletId = String;
 /// # impl audit_log::model::FromAuditLogError for RevocationError {
 /// #     fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self }
 /// # }
-/// pub async fn revoke_wallet(
-///     wallet_id: &str,
-///     audit_log: &impl AuditLog,
-/// ) -> Result<(), RevocationError> {
+/// pub async fn revoke_wallet(wallet_id: &WalletId, audit_log: &impl AuditLog) -> Result<(), RevocationError> {
 ///     #[derive(::serde::Serialize)]
 ///     struct AuditParameters<'__audit> {
 ///         wallet_id: &'__audit str,
 ///     }
 ///     let __audit_params_json = {
-///         let __audit_params = AuditParameters { wallet_id: wallet_id };
+///         let __audit_params = AuditParameters { wallet_id };
 ///         match ::serde_json::to_value(__audit_params) {
 ///             Ok(params) => params,
 ///             Err(error) => {
-///                 return Err(audit_log::model::FromAuditLogError::from_audit_log_error(Box::new(error)));
+///                 return Err(audit_log::model::FromAuditLogError::from_audit_log_error(Box::new(
+///                     error,
+///                 )));
 ///             }
 ///         }
 ///     };
-///     audit_log::model::AuditLog::audit(
-///         audit_log,
-///         "revoke_wallet",
-///         __audit_params_json,
-///         async move || { Ok(()) },
-///     ).await
+///     audit_log::model::AuditLog::audit(audit_log, "revoke_wallet", __audit_params_json, async move || Ok(())).await
 /// }
 /// ```
 #[proc_macro_attribute]

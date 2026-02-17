@@ -15,6 +15,7 @@ use wallet_account::messages::errors::RevocationReason;
 use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
+use crate::model::wallet_user::WalletId;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserIsRevoked;
 use crate::model::wallet_user::WalletUserKeys;
@@ -38,14 +39,14 @@ pub trait WalletUserRepository {
     async fn find_wallet_user_by_wallet_id(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: &WalletId,
     ) -> Result<WalletUserQueryResult>;
 
     async fn find_wallet_user_id_by_wallet_ids(
         &self,
         transaction: &Self::TransactionType,
-        wallet_ids: &HashSet<String>,
-    ) -> Result<HashMap<String, Uuid>>;
+        wallet_ids: &HashSet<WalletId>,
+    ) -> Result<HashMap<WalletId, Uuid>>;
 
     async fn find_wallet_user_id_by_revocation_code(
         &self,
@@ -59,12 +60,16 @@ pub trait WalletUserRepository {
         recovery_code: &str,
     ) -> Result<Vec<Uuid>>;
 
-    async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+    async fn clear_instruction_challenge(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &WalletId,
+    ) -> Result<()>;
 
     async fn update_instruction_challenge_and_sequence_number(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: &WalletId,
         challenge: InstructionChallenge,
         instruction_sequence_number: u64,
     ) -> Result<()>;
@@ -72,19 +77,23 @@ pub trait WalletUserRepository {
     async fn update_instruction_sequence_number(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: &WalletId,
         instruction_sequence_number: u64,
     ) -> Result<()>;
 
     async fn register_unsuccessful_pin_entry(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: &WalletId,
         is_blocked: bool,
         datetime: DateTime<Utc>,
     ) -> Result<()>;
 
-    async fn reset_unsuccessful_pin_entries(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+    async fn reset_unsuccessful_pin_entries(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &WalletId,
+    ) -> Result<()>;
 
     async fn save_keys(&self, transaction: &Self::TransactionType, keys: WalletUserKeys) -> Result<()>;
 
@@ -121,19 +130,19 @@ pub trait WalletUserRepository {
     async fn change_pin(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: &WalletId,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
         user_state: WalletUserState,
     ) -> Result<()>;
 
-    async fn commit_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+    async fn commit_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &WalletId) -> Result<()>;
 
-    async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+    async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &WalletId) -> Result<()>;
 
     async fn store_recovery_code(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: &WalletId,
         recovery_code: String,
     ) -> Result<()>;
 
@@ -148,7 +157,7 @@ pub trait WalletUserRepository {
     async fn update_apple_assertion_counter(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: &WalletId,
         assertion_counter: AssertionCounter,
     ) -> Result<()>;
 
@@ -249,6 +258,7 @@ pub mod mock {
 
     use crate::model::QueryResult;
     use crate::model::wallet_user;
+    use crate::model::wallet_user::WalletId;
     use crate::model::wallet_user::WalletUserQueryResult;
 
     use super::super::transaction::mock::MockTransaction;
@@ -269,7 +279,7 @@ pub mod mock {
         async fn list_wallets(&self, _transaction: &Self::TransactionType) -> Result<Vec<WalletUserIsRevoked>> {
             Ok(vec![
                 wallet_user::mock::wallet_user_1().into(),
-                wallet_user::mock::wallet_user_with_id("wallet-456".to_owned()).into(),
+                wallet_user::mock::wallet_user_with_id("wallet-456".to_owned().into()).into(),
             ])
         }
 
@@ -284,7 +294,7 @@ pub mod mock {
         async fn find_wallet_user_by_wallet_id(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
         ) -> Result<WalletUserQueryResult> {
             Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
         }
@@ -292,9 +302,13 @@ pub mod mock {
         async fn find_wallet_user_id_by_wallet_ids(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_ids: &HashSet<String>,
-        ) -> Result<HashMap<String, Uuid>> {
-            Ok([("wallet-123".to_owned(), uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))].into())
+            _wallet_ids: &HashSet<WalletId>,
+        ) -> Result<HashMap<WalletId, Uuid>> {
+            Ok([(
+                WalletId::from("wallet-123".to_owned()),
+                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+            )]
+            .into())
         }
 
         async fn find_wallet_user_id_by_revocation_code(
@@ -316,7 +330,7 @@ pub mod mock {
         async fn clear_instruction_challenge(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
         ) -> Result<()> {
             Ok(())
         }
@@ -324,7 +338,7 @@ pub mod mock {
         async fn update_instruction_challenge_and_sequence_number(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
             _challenge: InstructionChallenge,
             _instruction_sequence_number: u64,
         ) -> Result<()> {
@@ -334,7 +348,7 @@ pub mod mock {
         async fn update_instruction_sequence_number(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
             _instruction_sequence_number: u64,
         ) -> Result<()> {
             Ok(())
@@ -343,7 +357,7 @@ pub mod mock {
         async fn register_unsuccessful_pin_entry(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
             _is_blocked: bool,
             _datetime: DateTime<Utc>,
         ) -> Result<()> {
@@ -353,7 +367,7 @@ pub mod mock {
         async fn reset_unsuccessful_pin_entries(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
         ) -> Result<()> {
             Ok(())
         }
@@ -409,25 +423,25 @@ pub mod mock {
         async fn change_pin(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
             _encrypted_pin_pubkey: Encrypted<VerifyingKey>,
             _user_state: WalletUserState,
         ) -> Result<()> {
             Ok(())
         }
 
-        async fn commit_pin_change(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
+        async fn commit_pin_change(&self, _transaction: &Self::TransactionType, _wallet_id: &WalletId) -> Result<()> {
             Ok(())
         }
 
-        async fn rollback_pin_change(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
+        async fn rollback_pin_change(&self, _transaction: &Self::TransactionType, _wallet_id: &WalletId) -> Result<()> {
             Ok(())
         }
 
         async fn store_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
             _recovery_code: String,
         ) -> Result<()> {
             Ok(())
@@ -448,7 +462,7 @@ pub mod mock {
         async fn update_apple_assertion_counter(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_id: &WalletId,
             _assertion_counter: AssertionCounter,
         ) -> Result<()> {
             Ok(())

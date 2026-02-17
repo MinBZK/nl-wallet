@@ -29,6 +29,7 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 use uuid::Uuid;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
 use webpki::ring::ECDSA_P384_SHA256;
@@ -388,7 +389,7 @@ impl From<PinPolicyEvaluation> for InstructionError {
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
-    wallet_id: String,
+    wallet_id: WalletId,
 
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
@@ -535,7 +536,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     ) -> Result<Vec<u8>, ChallengeError> {
         let challenge = SignedJwt::sign_with_sub(
             RegistrationChallengeClaims {
-                wallet_id: crypto::utils::random_string(32),
+                wallet_id: crypto::utils::random_string(32).into(),
                 random: crypto::utils::random_bytes(32),
                 exp: Utc::now() + Duration::from_secs(60),
             },
@@ -1065,7 +1066,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .repositories
             .change_pin(
                 &tx,
-                wallet_user.wallet_id.as_str(),
+                &wallet_user.wallet_id,
                 encrypted_pin_pubkey,
                 WalletUserState::Active,
             )
@@ -1126,7 +1127,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         user_state
             .repositories
-            .rollback_pin_change(&tx, wallet_user.wallet_id.as_str())
+            .rollback_pin_change(&tx, &wallet_user.wallet_id)
             .await?;
 
         tx.commit().await?;
@@ -1187,7 +1188,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .repositories
             .change_pin(
                 &tx,
-                wallet_user.wallet_id.as_str(),
+                &wallet_user.wallet_id,
                 encrypted_pin_pubkey,
                 WalletUserState::RecoveringPin,
             )
@@ -1753,7 +1754,7 @@ pub mod mock {
 
         pub async fn sign_instruction_challenge<I>(
             &self,
-            wallet_id: String,
+            wallet_id: WalletId,
             instruction_sequence_number: u64,
             certificate: WalletCertificate,
         ) -> InstructionChallengeRequest
@@ -1763,7 +1764,7 @@ pub mod mock {
             match self {
                 Self::Apple(attested_key) => {
                     InstructionChallengeRequest::new_apple::<I>(
-                        wallet_id,
+                        wallet_id.into(),
                         instruction_sequence_number,
                         attested_key,
                         certificate,
@@ -1772,7 +1773,7 @@ pub mod mock {
                 }
                 Self::Google(signing_key) => {
                     InstructionChallengeRequest::new_google::<I>(
-                        wallet_id,
+                        wallet_id.into(),
                         instruction_sequence_number,
                         signing_key,
                         certificate,
@@ -2210,7 +2211,12 @@ mod tests {
     {
         let instruction_challenge = hw_privkey
             .sign_instruction_challenge::<I>(
-                wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id,
+                wallet_certificate
+                    .dangerous_parse_unverified()
+                    .unwrap()
+                    .1
+                    .wallet_id
+                    .into(),
                 instruction_sequence_number,
                 wallet_certificate,
             )
@@ -2571,7 +2577,7 @@ mod tests {
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
-                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id.into(),
                 1,
                 cert.clone(),
             )
@@ -2587,7 +2593,7 @@ mod tests {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
             .repositories
-            .find_wallet_user_by_wallet_id(&tx, "0")
+            .find_wallet_user_by_wallet_id(&tx, &"0".to_owned().into())
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -2626,7 +2632,7 @@ mod tests {
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
-                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id.into(),
                 1,
                 cert.clone(),
             )
@@ -2650,7 +2656,7 @@ mod tests {
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
-                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id.into(),
                 1,
                 cert.clone(),
             )
@@ -2666,7 +2672,7 @@ mod tests {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
             .repositories
-            .find_wallet_user_by_wallet_id(&tx, "0")
+            .find_wallet_user_by_wallet_id(&tx, &"0".to_owned().into())
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -2727,7 +2733,7 @@ mod tests {
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
-                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id.into(),
                 1,
                 cert.clone(),
             )
@@ -2741,7 +2747,7 @@ mod tests {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
             .repositories
-            .find_wallet_user_by_wallet_id(&tx, "0")
+            .find_wallet_user_by_wallet_id(&tx, &"0".to_owned().into())
             .await
             .unwrap();
 
@@ -2781,7 +2787,7 @@ mod tests {
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<PairTransfer>(
-                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id.into(),
                 1,
                 cert.clone(),
             )
@@ -2797,7 +2803,7 @@ mod tests {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
             .repositories
-            .find_wallet_user_by_wallet_id(&tx, "0")
+            .find_wallet_user_by_wallet_id(&tx, &"0".to_owned().into())
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -2823,7 +2829,7 @@ mod tests {
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
-                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id.into(),
                 1,
                 cert.clone(),
             )
@@ -2839,7 +2845,7 @@ mod tests {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
             .repositories
-            .find_wallet_user_by_wallet_id(&tx, "0")
+            .find_wallet_user_by_wallet_id(&tx, &"0".to_owned().into())
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -2884,7 +2890,7 @@ mod tests {
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<PairTransfer>(
-                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id.into(),
                 1,
                 cert.clone(),
             )
@@ -2901,7 +2907,7 @@ mod tests {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let mut user = user_state
             .repositories
-            .find_wallet_user_by_wallet_id(&tx, "0")
+            .find_wallet_user_by_wallet_id(&tx, &"0".to_owned().into())
             .await
             .unwrap()
             .unwrap_found();

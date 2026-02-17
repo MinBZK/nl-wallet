@@ -20,6 +20,7 @@ use utoipa_axum::routes;
 
 use readable_identifier::ReadableIdentifierParseError;
 use utils::generator::TimeGenerator;
+use wallet_provider_domain::model::wallet_user::WalletId;
 #[cfg(feature = "test_internal_ui")]
 use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 
@@ -40,7 +41,7 @@ pub enum RevocationError {
 
 #[derive(Debug, Clone, Deserialize, Serialize, utoipa::ToSchema)]
 struct NotFoundResponse {
-    missing_wallet_ids: HashSet<String>,
+    missing_wallet_ids: HashSet<WalletId>,
 }
 
 impl IntoResponse for RevocationError {
@@ -63,11 +64,8 @@ impl IntoResponse for RevocationError {
     post,
     path = "/revoke-wallets-by-id/",
     request_body(
-        content = Vec<String>,
+        content = Vec<WalletId>,
         content_type = "application/json",
-        example = json!([
-            "dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ",
-        ]),
     ),
     responses(
         (status = OK, description = "Successfully revoked the provided wallet IDs."),
@@ -76,7 +74,7 @@ impl IntoResponse for RevocationError {
 )]
 async fn revoke_wallets_by_id<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(wallet_ids): Json<HashSet<String>>,
+    Json(wallet_ids): Json<HashSet<WalletId>>,
 ) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,

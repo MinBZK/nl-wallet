@@ -1,6 +1,10 @@
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::AsRef;
 use derive_more::Debug;
+use derive_more::Display;
+use derive_more::From;
+use derive_more::Into;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use serde::Deserialize;
@@ -18,7 +22,6 @@ use wallet_account::messages::transfer::TransferSessionState;
 
 use crate::model::QueryResult;
 
-pub type WalletId = String;
 pub type WalletUserQueryResult = QueryResult<WalletUser>;
 
 #[derive(Debug)]
@@ -99,7 +102,7 @@ pub struct InstructionChallenge {
 
 #[derive(Debug)]
 pub struct WalletUserCreate {
-    pub wallet_id: String,
+    pub wallet_id: WalletId,
     pub hw_pubkey: VerifyingKey,
     #[debug(skip)]
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
@@ -153,11 +156,18 @@ impl WalletUserKey {
     }
 }
 
+#[derive(Debug, Clone, AsRef, From, Into, Display, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[cfg_attr(
+    feature = "utoipa",
+    derive(utoipa::ToSchema),
+    schema(examples("dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ"))
+)]
+pub struct WalletId(String);
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct WalletUserIsRevoked {
-    #[cfg_attr(feature = "utoipa", schema(examples("dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ")))]
-    pub wallet_id: String,
+    pub wallet_id: WalletId,
     #[cfg_attr(
         feature = "utoipa",
         schema(examples("54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"))
@@ -191,16 +201,18 @@ pub mod mock {
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypted::InitializationVector;
 
+    use crate::model::wallet_user::WalletId;
+
     use super::AndroidHardwareIdentifiers;
     use super::WalletUser;
     use super::WalletUserAttestation;
     use super::WalletUserState;
 
     pub fn wallet_user_1() -> WalletUser {
-        wallet_user_with_id("wallet_123".to_owned())
+        wallet_user_with_id("wallet_123".to_owned().into())
     }
 
-    pub fn wallet_user_with_id(wallet_id: String) -> WalletUser {
+    pub fn wallet_user_with_id(wallet_id: WalletId) -> WalletUser {
         WalletUser {
             id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
             wallet_id,

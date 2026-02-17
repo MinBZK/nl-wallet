@@ -33,6 +33,7 @@ use utils::num::NonZeroU31;
 use utils::num::U31;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
@@ -103,11 +104,11 @@ async fn register_wallets_with_wuas(
         MockWuaIssuer,
         PostgresStatusListService<SigningKey>,
     >,
-) -> (Vec<String>, Vec<Vec<(Uuid, StatusClaim)>>) {
-    let (wallets, wuas): (Vec<String>, Vec<Vec<(Uuid, StatusClaim)>>) =
+) -> (Vec<WalletId>, Vec<Vec<(Uuid, StatusClaim)>>) {
+    let (wallets, wuas): (Vec<WalletId>, Vec<Vec<(Uuid, StatusClaim)>>) =
         join_all(wuas_per_wallet.into_iter().map(async |wua_count| {
             let tx = user_state.repositories.begin_transaction().await.unwrap();
-            let wallet_id = random_string(10);
+            let wallet_id: WalletId = random_string(32).into();
 
             // manually create a user and some WUA IDs, bypassing registration logic
             let user_uuid =
@@ -161,7 +162,7 @@ async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, pub
 }
 
 async fn verify_revocation(
-    wallet_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    wallet_ids: impl IntoIterator<Item = &WalletId>,
     expected_revocation_reason: Option<RevocationReason>,
     wua_id_and_claim: impl IntoIterator<Item = &(Uuid, StatusClaim)>,
     publish_dir: Option<&PublishDir>,
@@ -176,7 +177,7 @@ async fn verify_revocation(
     // verify wallet revocation
     join_all(wallet_ids.into_iter().map(async |wallet_id| {
         let tx = user_state.repositories.begin_transaction().await.unwrap();
-        let wallet_user = wallet_user::find_wallet_user_by_wallet_id(&tx, wallet_id.as_ref())
+        let wallet_user = wallet_user::find_wallet_user_by_wallet_id(&tx, wallet_id)
             .await
             .unwrap()
             .unwrap_found();
@@ -235,11 +236,11 @@ async fn register_wallets_to_revoke_with_revocation_codes(
         PostgresStatusListService<SigningKey>,
     >,
     revocation_code_key_identifier: &str,
-) -> (Vec<(String, RevocationCode)>, Vec<Vec<(Uuid, StatusClaim)>>) {
-    let (wallets, wuas): (Vec<(String, RevocationCode)>, Vec<Vec<(Uuid, StatusClaim)>>) =
+) -> (Vec<(WalletId, RevocationCode)>, Vec<Vec<(Uuid, StatusClaim)>>) {
+    let (wallets, wuas): (Vec<(WalletId, RevocationCode)>, Vec<Vec<(Uuid, StatusClaim)>>) =
         join_all(wuas_per_wallet.into_iter().map(async |wua_count| {
             let tx = user_state.repositories.begin_transaction().await.unwrap();
-            let wallet_id = random_string(10);
+            let wallet_id: WalletId = random_string(10).into();
 
             let revocation_code = RevocationCode::new_random();
             let revocation_code_hmac = user_state
@@ -456,7 +457,7 @@ async fn test_revoke_wallet_not_found() {
     .await;
 
     let non_existing_wallet_id = "non_existing_wallet_id".to_owned();
-    let wallet_ids_to_revoke = HashSet::from([non_existing_wallet_id.clone()]);
+    let wallet_ids_to_revoke = HashSet::from([non_existing_wallet_id.clone().into()]);
     let err = revoke_wallets_by_wallet_id(
         &wallet_ids_to_revoke,
         &user_state,
@@ -641,7 +642,7 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
     // sanity: nothing should have been revoked
     // (we don't have wallet ids here; verify via WUA status still valid)
     verify_revocation(
-        std::iter::empty::<String>(),
+        std::iter::empty::<&WalletId>(),
         None,
         &wuas,
         Some(&publish_dir),
@@ -686,7 +687,7 @@ async fn test_revoke_wallet_by_revocation_code_wua_error() {
     let wuas = wuas.into_iter().flatten().collect_vec();
 
     // all wallets should not be revoked
-    let wallet_ids: Vec<String> = wallets_with_codes.iter().map(|(id, _)| id.clone()).collect();
+    let wallet_ids: Vec<WalletId> = wallets_with_codes.iter().map(|(id, _)| id.clone()).collect();
     verify_revocation(
         &wallet_ids,
         None,

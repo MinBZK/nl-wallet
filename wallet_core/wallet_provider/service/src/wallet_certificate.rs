@@ -12,6 +12,7 @@ use jwt::SignedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::QueryResult;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
@@ -32,7 +33,7 @@ pub async fn new_wallet_certificate<H>(
     issuer: String,
     pin_public_disclosure_protection_key_identifier: &str,
     wallet_certificate_signing_key: &impl WalletCertificateSigningKey,
-    wallet_id: String,
+    wallet_id: WalletId,
     wallet_hw_pubkey: VerifyingKey,
     wallet_pin_pubkey: &VerifyingKey,
     hsm: &H,
@@ -44,7 +45,7 @@ where
         sign_pin_pubkey(wallet_pin_pubkey, pin_public_disclosure_protection_key_identifier, hsm).await?;
 
     let cert = WalletCertificateClaims {
-        wallet_id,
+        wallet_id: wallet_id.into(),
         hw_pubkey: wallet_hw_pubkey.into(),
         pin_pubkey_hash,
         version: WALLET_CERTIFICATE_VERSION,
@@ -80,7 +81,7 @@ where
     debug!("Fetching the user associated to the provided certificate");
 
     let user_result = wallet_user_repository
-        .find_wallet_user_by_wallet_id(&tx, &claims.wallet_id)
+        .find_wallet_user_by_wallet_id(&tx, &claims.wallet_id.clone().into())
         .await?;
     tx.commit().await?;
 
@@ -405,7 +406,7 @@ mod tests {
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
-            String::from("wallet_id_1"),
+            "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
             &hsm,
@@ -441,7 +442,7 @@ mod tests {
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
-            String::from("wallet_id_1"),
+            "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
             &hsm,
@@ -479,7 +480,7 @@ mod tests {
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
-            String::from("wallet_id_1"),
+            "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
             &hsm,
@@ -527,7 +528,7 @@ mod tests {
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
-            String::from("wallet_id_1"),
+            "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
             &hsm,
@@ -557,7 +558,7 @@ mod tests {
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
-            String::from("wallet_id_1"),
+            "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
             &hsm,

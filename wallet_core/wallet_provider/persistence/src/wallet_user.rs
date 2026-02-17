@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -34,6 +33,7 @@ use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RevocationRegistration;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -112,7 +112,7 @@ where
             };
 
             WalletUserIsRevoked {
-                wallet_id: model.wallet_id,
+                wallet_id: model.wallet_id.into(),
                 recovery_code: model.recovery_code,
                 state,
                 revocation_registration,
@@ -196,7 +196,7 @@ where
 
     wallet_user::ActiveModel {
         id: Set(user_id),
-        wallet_id: Set(user.wallet_id),
+        wallet_id: Set(user.wallet_id.into()),
         hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
         encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.data),
         pin_pubkey_iv: Set(user.encrypted_pin_pubkey.iv.0),
@@ -250,7 +250,7 @@ struct WalletUserJoinedModel {
 
 /// Find a user by its `wallet_id` and return it, if it exists.
 /// Note that this function will also return blocked users.
-pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
+pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &WalletId) -> Result<WalletUserQueryResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -304,7 +304,7 @@ where
             JoinType::LeftJoin,
             wallet_user::Relation::WalletUserAndroidAttestation.def(),
         )
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
         .into_model::<WalletUserJoinedModel>()
         .one(db.connection())
         .await
@@ -382,7 +382,7 @@ where
 
     let wallet_user = WalletUser {
         id: model.id,
-        wallet_id: model.wallet_id,
+        wallet_id: model.wallet_id.into(),
         encrypted_pin_pubkey,
         encrypted_previous_pin_pubkey,
         hw_pubkey: VerifyingKey::from_public_key_der(&model.hw_pubkey_der).unwrap(),
@@ -403,8 +403,8 @@ where
 
 pub async fn find_wallet_user_id_by_wallet_ids<S, T>(
     db: &T,
-    wallet_ids: &HashSet<String>,
-) -> Result<HashMap<String, Uuid>>
+    wallet_ids: impl IntoIterator<Item = &String>,
+) -> Result<HashMap<WalletId, Uuid>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -419,7 +419,7 @@ where
         .await
         .map_err(PersistenceError::Execution)?
         .into_iter()
-        .map(|(wallet_user_id, wallet_id)| (wallet_id, wallet_user_id))
+        .map(|(wallet_user_id, wallet_id)| (wallet_id.into(), wallet_user_id))
         .collect())
 }
 
@@ -461,7 +461,7 @@ where
         .map_err(PersistenceError::Execution)
 }
 
-pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -473,7 +473,7 @@ where
                 Query::select()
                     .column(wallet_user::Column::Id)
                     .from(wallet_user::Entity)
-                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id.as_ref()))
                     .to_owned(),
             ),
         )
@@ -490,7 +490,7 @@ where
 
 pub async fn update_instruction_challenge_and_sequence_number<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     instruction_challenge: InstructionChallenge,
     instruction_sequence_number: u64,
 ) -> Result<()>
@@ -516,7 +516,7 @@ where
                 .expr(Expr::value(instruction_challenge.bytes))
                 .expr(Expr::value(instruction_challenge.expiration_date_time))
                 .from(wallet_user::Entity)
-                .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id.as_ref()))
                 .to_owned(),
         )
         // this only occurs if the number of selected values do not match the number of columns
@@ -542,7 +542,7 @@ where
 
 pub async fn update_instruction_sequence_number<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     instruction_sequence_number: u64,
 ) -> Result<()>
 where
@@ -562,7 +562,7 @@ where
 
 pub async fn register_unsuccessful_pin_entry<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     is_blocked: bool,
     datetime: DateTime<Utc>,
 ) -> Result<()>
@@ -584,7 +584,7 @@ where
     .await
 }
 
-pub async fn reset_unsuccessful_pin_entries<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn reset_unsuccessful_pin_entries<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -595,7 +595,7 @@ where
 
 pub async fn change_pin<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     new_encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     user_state: WalletUserState,
 ) -> Result<()>
@@ -630,7 +630,7 @@ where
     update_fields(db, wallet_id, fields).await
 }
 
-pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -640,7 +640,7 @@ where
         .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
         .filter(
             wallet_user::Column::WalletId
-                .eq(wallet_id)
+                .eq(wallet_id.as_ref())
                 .and(wallet_user::Column::EncryptedPreviousPinPubkeySec1.is_not_null())
                 .and(wallet_user::Column::PreviousPinPubkeyIv.is_not_null()),
         )
@@ -650,7 +650,7 @@ where
         .map_err(PersistenceError::Execution)
 }
 
-pub async fn rollback_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn rollback_pin_change<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -668,7 +668,7 @@ where
         .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
         .filter(
             wallet_user::Column::WalletId
-                .eq(wallet_id)
+                .eq(wallet_id.as_ref())
                 .and(wallet_user::Column::EncryptedPreviousPinPubkeySec1.is_not_null())
                 .and(wallet_user::Column::PreviousPinPubkeyIv.is_not_null()),
         )
@@ -680,7 +680,7 @@ where
 
 async fn update_pin_entries<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     pin_entries: SimpleExpr,
     datetime: Option<DateTime<Utc>>,
     is_blocked: bool,
@@ -700,14 +700,14 @@ where
     query
         .col_expr(wallet_user::Column::PinEntries, pin_entries)
         .col_expr(wallet_user::Column::LastUnsuccessfulPin, Expr::value(datetime))
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
         .exec(db.connection())
         .await
         .map(|_| ())
         .map_err(PersistenceError::Execution)
 }
 
-async fn update_fields<S, T, C>(db: &T, wallet_id: &str, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
+async fn update_fields<S, T, C>(db: &T, wallet_id: &WalletId, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -718,7 +718,7 @@ where
         .fold(wallet_user::Entity::update_many(), |stmt, col_value| {
             stmt.col_expr(col_value.0, col_value.1)
         })
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
         .exec(db.connection())
         .await
         .map(|_| ())
@@ -727,7 +727,7 @@ where
 
 pub async fn update_apple_assertion_counter<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     assertion_counter: AssertionCounter,
 ) -> Result<()>
 where
@@ -744,7 +744,7 @@ where
                 Query::select()
                     .column(wallet_user::Column::AppleAttestationId)
                     .from(wallet_user::Entity)
-                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id.as_ref()))
                     .to_owned(),
             ),
         )
@@ -817,7 +817,7 @@ where
     }
 }
 
-pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
+pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &WalletId, recovery_code: String) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -826,7 +826,7 @@ where
         .col_expr(wallet_user::Column::RecoveryCode, Expr::value(recovery_code))
         .filter(
             wallet_user::Column::WalletId
-                .eq(wallet_id)
+                .eq(wallet_id.as_ref())
                 .and(wallet_user::Column::RecoveryCode.is_null()),
         )
         .exec(db.connection())
