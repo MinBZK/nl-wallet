@@ -388,7 +388,7 @@ pub struct MockGoogleAttestedKey {
 }
 
 impl GoogleAttestedKey for MockGoogleAttestedKey {
-    async fn delete(self) -> Result<(), Self::Error> {
+    async fn delete(&self) -> Result<(), Self::Error> {
         self.key_states.write().remove(&self.key_identifier);
 
         Ok(())

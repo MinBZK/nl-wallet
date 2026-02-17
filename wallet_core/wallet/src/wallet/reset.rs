@@ -1,5 +1,4 @@
 use std::mem;
-use std::sync::Arc;
 
 use tracing::info;
 use tracing::instrument;
@@ -49,15 +48,8 @@ where
             // Clear the database and its encryption key.
             self.storage.write().await.clear().await;
 
-            // This is guaranteed to succeed for the following reasons:
-            // * The reference count for the key is only ever incremented when sending an instruction.
-            // * All instructions are sent and wrapped up within methods that take `&mut self`.
-            // * This method takes `&mut self`, so an instruction can never be in flight at the same time.
-            let attested_key = Arc::into_inner(attested_key)
-                .expect("attested key should have no outstanding outside references to it on wallet reset");
-
             // Delete the hardware attested key if we are on Android, log any potential error.
-            match attested_key {
+            match attested_key.as_ref() {
                 AttestedKey::Apple(_) => {}
                 AttestedKey::Google(key) => {
                     if let Err(error) = key.delete().await {
