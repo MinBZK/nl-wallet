@@ -39,6 +39,14 @@ spec:
           name: files
           subPath: max.conf
           readOnly: true
+        - mountPath: {{ .Values.max.home }}/resources/js/mock_redirect.js
+          name: files
+          subPath: mock_redirect.js
+          readOnly: true
+        - mountPath: {{ .Values.max.home }}/static/assets/mock_redirect-ncEe772z.js
+          name: files
+          subPath: mock_redirect.js
+          readOnly: true
         - mountPath: {{ .Values.max.home }}/config/clients.json
           name: files
           subPath: clients.json
