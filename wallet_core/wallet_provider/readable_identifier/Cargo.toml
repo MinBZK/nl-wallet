@@ -13,7 +13,7 @@ doctest = false
 [dependencies]
 derive_more = { workspace = true, features = ["display", "into"] }
 rand.workspace = true
-serde.workspace = true
+serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 
 [dev-dependencies]
