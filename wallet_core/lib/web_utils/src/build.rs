@@ -6,6 +6,27 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+/// The build profile as determined by Cargo's `PROFILE` environment variable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BuildProfile {
+    Debug,
+    Release,
+}
+
+impl BuildProfile {
+    /// Converts the value of Cargo's `PROFILE` environment variable to a `BuildProfile`.
+    pub fn from_cargo_profile(profile: Option<&str>) -> Self {
+        match profile {
+            Some("release") => Self::Release,
+            _ => Self::Debug,
+        }
+    }
+
+    pub fn is_release(self) -> bool {
+        self == Self::Release
+    }
+}
+
 /// Copies files and directories recursively to the destination using `cp -R`.
 ///
 /// This function also emits `cargo::rerun-if-changed` directives for each source.
@@ -35,36 +56,6 @@ pub fn copy_static_assets(sources: &[&Path], dest: &Path) {
     }
 }
 
-/// Combines multiple CSS files into a single file.
-///
-/// This function also emits `cargo::rerun-if-changed` directives for each source file.
-///
-/// # Panics
-///
-/// - If any source file cannot be read.
-/// - If the destination file cannot be written.
-pub fn combine_css(sources: &[&Path], dest: &Path) {
-    let mut combined = String::new();
-
-    for path in sources {
-        println!("cargo::rerun-if-changed={}", path.display());
-
-        let content = fs::read_to_string(path).unwrap_or_else(|e| panic!("Failed to read {}: {}", path.display(), e));
-
-        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("unknown");
-
-        combined.push_str(&format!("/* === {} === */\n", file_name));
-        combined.push_str(&content);
-        combined.push_str("\n\n");
-    }
-
-    if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent).expect("Failed to create destination directory");
-    }
-
-    fs::write(dest, combined).expect("Failed to write combined CSS");
-}
-
 fn write_to_file(dest: &Path, content: &str) {
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent).expect("Failed to create destination directory");
@@ -81,26 +72,25 @@ fn write_to_file(dest: &Path, content: &str) {
 ///
 /// # Arguments
 ///
-/// * `entry_file` - The main CSS file that may contain @import statements
+/// * `entry_file` - The main CSS file (relative to the crate root) that may contain @import statements
 /// * `dest` - Destination path for the combined CSS file
+/// * `profile` - The build profile (debug or release)
+/// * `manifest_dir` - The crate's manifest directory (CARGO_MANIFEST_DIR)
 ///
 /// # Panics
 ///
 /// - If any source file cannot be read (release mode only)
 /// - If the destination file cannot be written
 /// - If CSS parsing or bundling fails (release mode only)
-pub fn combine_css_with_imports(entry_file: &Path, dest: &Path) {
-    let is_release = std::env::var("PROFILE").unwrap_or_else(|_| "debug".to_string()) == "release";
-
+pub fn combine_css_with_imports(entry_file: &Path, dest: &Path, profile: BuildProfile, manifest_dir: &Path) {
     println!("cargo::rerun-if-changed={}", entry_file.display());
 
-    if !is_release {
+    if !profile.is_release() {
         write_to_file(dest, "/* CSS served from filesystem in development mode */");
         return;
     }
 
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
-    let abs_entry_file = Path::new(&manifest_dir).join(entry_file);
+    let abs_entry_file = manifest_dir.join(entry_file);
 
     // Use the bundler to resolve @import statements
     let fs = lightningcss::bundler::FileProvider::new();

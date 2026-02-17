@@ -2,8 +2,11 @@ use std::env;
 use std::fs;
 use std::path::Path;
 
+use web_utils::build::BuildProfile;
+
 fn main() {
-    let is_release = env::var("PROFILE").unwrap_or_else(|_| "debug".to_string()) == "release";
+    let profile = BuildProfile::from_cargo_profile(env::var("PROFILE").ok().as_deref());
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
 
     // These directories are merged from multiple crates, so they must be copies
     web_utils::build::copy_static_assets(
@@ -34,7 +37,7 @@ fn main() {
     );
 
     // In development mode, symlink CSS directories so changes are reflected immediately
-    if !is_release {
+    if !profile.is_release() {
         fs::create_dir_all("assets/support/static/css").expect("Failed to create assets/static");
         fs::create_dir_all("assets/support/lib/web_utils/static")
             .expect("Failed to create assets/lib/web_utils/static");
@@ -65,7 +68,12 @@ fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("style.css");
 
-    web_utils::build::combine_css_with_imports(Path::new("static/portal.css"), &dest_path);
+    web_utils::build::combine_css_with_imports(
+        Path::new("static/portal.css"),
+        &dest_path,
+        profile,
+        Path::new(&manifest_dir),
+    );
 }
 
 /// Creates a symlink, removing any existing file, symlink, or directory at the link path.
