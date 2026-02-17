@@ -36,7 +36,7 @@ axum = [
     "utoipa/uuid",
     "token_status_list/axum",
 ]
-db_test = ["axum", "dep:reqwest", "health_checkers/test_settings", "test"]
+db_test = ["axum", "dep:db_test", "dep:reqwest", "test", "tokio/rt-multi-thread"]
 test = []
 # Enable additional test API endpoints
 test_api = ["axum"]
@@ -81,7 +81,7 @@ measure.path = "../measure"
 token_status_list = { path = "../token_status_list" }
 utils.path = "../utils"
 
-health_checkers = { path = "../health_checkers", optional = true }
+db_test = { path = "../db_test", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

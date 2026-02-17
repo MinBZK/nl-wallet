@@ -13,10 +13,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::task::JoinHandle;
 
+use db_test::DbSetup;
+use db_test::default_connection_options;
 use health_checkers::postgres::DatabaseChecker;
-use health_checkers::test_settings::connection_from_settings;
-use health_checkers::test_settings::default_connection_options;
-use health_checkers::test_settings::test_settings;
 use http_utils::health::HealthChecker;
 use http_utils::health::HealthStatus;
 
@@ -101,32 +100,31 @@ impl Proxy {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_db_check_up() {
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = Database::connect(db_setup.connect_url()).await.unwrap();
     let checker = DatabaseChecker::new("db", &connection);
     let result = checker.status().await;
     assert_eq!(result.expect("checker should return ok"), HealthStatus::UP);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 async fn test_db_check_down(#[values(false, true)] test_before_acquire: bool) {
-    let url = test_settings().storage_url;
+    let db_setup = DbSetup::create().await;
+    let connect_options = db_setup.connect_options();
 
     // Create proxy, this is needed because the pool tests the connection on startup
-    let addr = format!("{}:{}", url.host().unwrap(), url.port().unwrap());
-    let proxy = Proxy::new(addr).await;
+    let proxy = Proxy::new((connect_options.get_host(), connect_options.get_port())).await;
     let port = proxy.port;
     let handle = proxy.spawn();
 
     // Create pool
-    let mut connection_options = ConnectOptions::new(format!(
-        "postgres://{}:{}@127.0.0.1:{port}{}",
-        url.username(),
-        url.password().unwrap_or_default(),
-        url.path()
-    ));
+    let mut url = db_setup.connect_url();
+    url.set_host(Some("127.0.0.1")).unwrap();
+    url.set_port(Some(port)).unwrap();
+    let mut connection_options = ConnectOptions::new(url);
     default_connection_options(&mut connection_options);
     connection_options.connect_timeout(Duration::from_secs(1));
     connection_options.test_before_acquire(test_before_acquire);

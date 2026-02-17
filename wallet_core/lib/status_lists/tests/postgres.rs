@@ -29,7 +29,8 @@ use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
-use health_checkers::test_settings::connection_from_settings;
+use db_test::DbSetup;
+use db_test::connection_from_url;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
 use jwt::SignedJwt;
@@ -261,10 +262,11 @@ async fn fetch_attestation_batches(
         .unwrap()
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_initializes_status_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _, _) = create_status_list_service(&ca, &connection, 10, 1, None, &publish_dir)
         .await
@@ -286,10 +288,11 @@ async fn test_service_initializes_status_lists() {
     assert_empty_published_list(&config, &db_lists[0]).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
 
     let key_pair = ca.generate_status_list_mock().unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
@@ -345,10 +348,11 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_initializes_schedule_housekeeping_empty() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
@@ -374,10 +378,11 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
     assert_status_list_items(&connection, &db_lists[1], 6, 6, 11, false).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_initializes_schedule_housekeeping_almost_empty() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
@@ -403,10 +408,11 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
     assert_status_list_items(&connection, &db_lists[1], 7, 7, 12, false).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_initializes_schedule_housekeeping_full() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
@@ -424,10 +430,11 @@ async fn test_service_initializes_schedule_housekeeping_full() {
     assert_status_list_items(&connection, &db_lists[0], 5, 5, 5, false).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_create_status_claims() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 9, 5, None, &publish_dir)
         .await
@@ -482,10 +489,11 @@ async fn test_service_create_status_claims() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 8, 1, None, &publish_dir)
         .await
@@ -543,10 +551,11 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     assert_eq!(db_list_indices[1].indices, vec![db_new_list_items[0].index]);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_create_status_claims_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _, service) =
         create_status_list_service(&ca, &connection, 24, 2, None, &publish_dir)
@@ -584,10 +593,11 @@ async fn test_service_create_status_claims_concurrently() {
     assert_eq!(claims, db_claims);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_revoke_attestation_batches_multiple_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, _) =
         create_status_list_service(&ca, &connection, 4, 1, Some(Duration::from_secs(300)), &publish_dir)
@@ -644,10 +654,11 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_revoke_attestation_batches_concurrently() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 9, 1, None, &publish_dir)
         .await
@@ -721,13 +732,14 @@ async fn wait_for_refresh(service: &PostgresStatusListService<SigningKey>, path:
     Err(anyhow::Error::msg("Timeout waiting for refresh"))
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 #[case(None)]
 #[case(Some(Utc::now()))]
 async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<DateTime<Utc>>) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 3, 1, None, &publish_dir)
         .await
@@ -744,10 +756,11 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
     assert_published_list(&config, &db_lists[0], []).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_republish_status_list_with_revoke_all_set() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, service) =
         create_status_list_service(&ca, &connection, 5, 1, None, &publish_dir)
@@ -780,10 +793,11 @@ async fn test_service_republish_status_list_with_revoke_all_set() {
     revoke_all_flag.set().await.unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_new_status_list_with_revoke_all_set() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, service) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)
@@ -811,10 +825,11 @@ async fn test_service_new_status_list_with_revoke_all_set() {
     assert_published_list(&config, &db_lists[1], 0..8).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_revoke_all() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
+    let db_setup = DbSetup::create_clean().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, _) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)
@@ -844,8 +859,8 @@ async fn test_service_revoke_all() {
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[1], 9, 9, 11, false).await;
 
-    // Revoke all (ignore result since it will try to revoke lists that cannot be published)
-    let _ = service.revoke_all().await;
+    // Revoke all
+    service.revoke_all().await.unwrap();
 
     // Check if revoke_all flag is set
     assert!(revoke_all_flag.is_set().await.unwrap());

@@ -17,7 +17,7 @@ required-features = ["mock"]
 
 [features]
 mock = []
-db_test = []
+db_test = ["dep:db_test", "tokio/rt-multi-thread"]
 
 [[test]]
 name = "db_test"
@@ -41,6 +41,8 @@ uuid.workspace = true
 
 audit_log_macros.path = "audit_log_macros"
 utils.path = "../../lib/utils"
+
+db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
