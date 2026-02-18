@@ -20,6 +20,10 @@ use utoipa_axum::routes;
 
 use readable_identifier::ReadableIdentifierParseError;
 use utils::generator::TimeGenerator;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
+use wallet_provider_domain::model::wallet_user::WalletId;
+#[cfg(feature = "test_internal_ui")]
+use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 
 use crate::router_state::RouterState;
 
@@ -38,7 +42,7 @@ pub enum RevocationError {
 
 #[derive(Debug, Clone, Deserialize, Serialize, utoipa::ToSchema)]
 struct NotFoundResponse {
-    missing_wallet_ids: HashSet<String>,
+    missing_wallet_ids: HashSet<WalletId>,
 }
 
 impl IntoResponse for RevocationError {
@@ -61,11 +65,8 @@ impl IntoResponse for RevocationError {
     post,
     path = "/revoke-wallets-by-id/",
     request_body(
-        content = Vec<String>,
+        content = Vec<WalletId>,
         content_type = "application/json",
-        example = json!([
-            "dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ",
-        ]),
     ),
     responses(
         (status = OK, description = "Successfully revoked the provided wallet IDs."),
@@ -74,7 +75,7 @@ impl IntoResponse for RevocationError {
 )]
 async fn revoke_wallets_by_id<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(wallet_ids): Json<HashSet<String>>,
+    Json(wallet_ids): Json<HashSet<WalletId>>,
 ) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,
@@ -138,9 +139,8 @@ pub struct RevokeByRecoveryCodeResponse {
     post,
     path = "/revoke-wallet-by-recovery-code/",
     request_body(
-        content = String,
+        content = RecoveryCode,
         content_type = "application/json",
-        example = json!("54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"),
     ),
     responses(
         (status = OK, body = RevokeByRecoveryCodeResponse, description = "Successfully revoked the wallets."),
@@ -148,7 +148,7 @@ pub struct RevokeByRecoveryCodeResponse {
 )]
 async fn revoke_wallets_by_recovery_code<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(recovery_code): Json<String>,
+    Json(recovery_code): Json<RecoveryCode>,
 ) -> Result<Json<RevokeByRecoveryCodeResponse>, RevocationError>
 where
     GRC: Send + Sync + 'static,
@@ -192,21 +192,30 @@ where
     responses(
         (
             status = OK,
-            body = Vec<String>,
-            description = "Successfully listed the registered wallet IDs.",
-            example = json!([ "dozCMuQOCEJPtuSNXtB2VkCdaEFNMhEZ" ])
+            body = Vec<WalletUserIsRevoked>,
+            description = "Successfully listed the registered wallets.",
         ),
     )
 )]
 async fn list_wallets<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-) -> Result<Json<Vec<String>>, RevocationError>
+) -> Result<Json<Vec<WalletUserIsRevoked>>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
     Ok(Json(
-        wallet_provider_service::revocation::list_wallets(&router_state.user_state).await?,
+        wallet_provider_service::revocation::list_wallets(&router_state.user_state)
+            .await?
+            .into_iter()
+            .map(|w| WalletUserIsRevoked {
+                wallet_id: w.wallet_id,
+                recovery_code: w.recovery_code,
+                state: w.state,
+                revocation_registration: w.revocation_registration,
+                can_register_new_wallet: w.can_register_new_wallet,
+            })
+            .collect(),
     ))
 }
 
@@ -216,18 +225,14 @@ where
     responses(
         (
             status = OK,
-            body = Vec<String>,
+            body = Vec<RecoveryCode>,
             description = "Successfully listed the denied recovery codes.",
-            example = json!([
-                "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526",
-                "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
-            ])
         ),
     )
 )]
 async fn list_denied_recovery_codes<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-) -> Result<Json<Vec<String>>, RevocationError>
+) -> Result<Json<Vec<RecoveryCode>>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
@@ -242,10 +247,9 @@ where
     path = "/deny-list/{recovery-code}",
     params(
          (
-             "recovery-code" = String,
+             "recovery-code" = RecoveryCode,
              Path,
              description = "The recovery code to remove from the deny list.",
-             example = "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"
          ),
     ),
     responses(
@@ -261,7 +265,7 @@ where
 )]
 async fn remove_denied_recovery_code<GRC, PIC>(
     State(router_state): State<Arc<RouterState<GRC, PIC>>>,
-    Path(recovery_code): Path<String>,
+    Path(recovery_code): Path<RecoveryCode>,
 ) -> Result<NoContent, RevocationError>
 where
     GRC: Send + Sync + 'static,

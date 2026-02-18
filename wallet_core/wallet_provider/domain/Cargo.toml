@@ -13,10 +13,11 @@ doctest = false
 [features]
 # Include mock implementations and constructors for testing
 mock = ["dep:hmac", "dep:rand", "hsm/mock"]
+utoipa = ["utoipa/chrono", "wallet_account/utoipa"]
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
-derive_more = { workspace = true, features = ["debug", "unwrap"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "display", "from", "into", "unwrap"] }
 futures.workspace = true
 p256.workspace = true
 sea-orm.workspace = true
@@ -29,6 +30,7 @@ uuid = { workspace = true, features = ["v4"] }
 
 hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
 
 android_attest.path = "../../lib/android_attest"
 apple_app_attest.path = "../../lib/apple_app_attest"
