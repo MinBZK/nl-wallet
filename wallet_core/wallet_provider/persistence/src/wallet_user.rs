@@ -76,6 +76,8 @@ pub struct WalletUserStateModel {
     pub recovery_code_is_denied: bool,
 }
 
+// Note: this function is not optimized for production use, as it loads all wallets at once and does not implement
+// pagination. It is only intended for demo, test and debugging purposes.
 pub async fn list_wallets<S, T>(db: &T) -> Result<Vec<WalletUserIsRevoked>>
 where
     S: ConnectionTrait,
