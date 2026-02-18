@@ -377,6 +377,7 @@ pub async fn connection_from_url(url: Url) -> DatabaseConnection {
 pub fn default_connection_options(options: &mut sea_orm::ConnectOptions) {
     options
         .connect_timeout(Duration::from_secs(3))
+        .max_connections(5)
         .sqlx_logging(true)
         .sqlx_logging_level(LevelFilter::Trace);
 }
