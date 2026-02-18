@@ -777,6 +777,20 @@ impl HandleInstruction for DiscloseRecoveryCode {
 
         let tx = user_state.repositories.begin_transaction().await?;
 
+        // Verify the recovery code against the stored recovery code if any
+        // Check here as well to prevent failure for retried wallet request
+        match wallet_user.recovery_code.as_ref() {
+            None => {
+                user_state
+                    .repositories
+                    .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
+                    .await?;
+            }
+            // This is a retried request
+            Some(stored) if &recovery_code == stored => {}
+            _ => return Err(InstructionError::InvalidRecoveryCode),
+        }
+
         // Verify that the recovery code is not denied, if it is, immediately revoke the wallet
         if user_state
             .repositories
@@ -795,20 +809,6 @@ impl HandleInstruction for DiscloseRecoveryCode {
 
             tx.commit().await?;
             return Err(InstructionError::RecoveryCodeIsDenied(recovery_code));
-        }
-
-        // Verify the recovery code against the stored recovery code if any
-        // Check here as well to prevent failure for retried wallet request
-        match wallet_user.recovery_code.as_ref() {
-            None => {
-                user_state
-                    .repositories
-                    .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
-                    .await?;
-            }
-            // This is a retried request
-            Some(stored) if &recovery_code == stored => {}
-            _ => return Err(InstructionError::InvalidRecoveryCode),
         }
 
         let transfer_session_id = if let Some(transfer_session_id) = user_state
@@ -2399,6 +2399,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
         wallet_user_repo
             .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(true));
