@@ -839,3 +839,56 @@ async fn test_revoke_wallet_by_recovery_code() {
     )
     .await;
 }
+
+#[tokio::test]
+async fn test_list_and_remove_denied_recovery_codes_service() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
+    let user_state = setup_state(publish_dir.clone()).await;
+
+    let recovery_code = random_string(64);
+
+    // add recovery code to deny list
+    let tx = user_state.repositories.begin_transaction().await.unwrap();
+    user_state
+        .repositories
+        .deny_recovery_code(&tx, recovery_code.clone())
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+
+    // the list should include the added recovery code
+    let denied = wallet_provider_service::revocation::list_denied_recovery_codes(&user_state)
+        .await
+        .unwrap();
+    assert!(denied.contains(&recovery_code));
+
+    wallet_provider_service::revocation::remove_denied_recovery_code(&user_state, &recovery_code)
+        .await
+        .unwrap();
+
+    // after removal the code should no longer be listed
+    let denied = wallet_provider_service::revocation::list_denied_recovery_codes(&user_state)
+        .await
+        .unwrap();
+    assert!(!denied.contains(&recovery_code));
+}
+
+#[tokio::test]
+async fn test_remove_nonexistent_denied_recovery_code_service() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
+    let user_state = setup_state(publish_dir.clone()).await;
+
+    let recovery_code = random_string(64);
+
+    // removing a non-existent recovery code should return RevocationCodeNotFound
+    let err = wallet_provider_service::revocation::remove_denied_recovery_code(&user_state, &recovery_code)
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        err,
+        RevocationError::RevocationCodeNotFound(code) if code == recovery_code
+    ));
+}
