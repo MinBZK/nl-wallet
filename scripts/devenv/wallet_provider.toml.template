@@ -20,6 +20,7 @@ url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_pro
 url = "postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/wallet_provider_audit_log"
 
 [wua_status_list]
+list_size = 100
 base_url = "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wua"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 key_identifier = "wua_tsl_key"
