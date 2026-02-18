@@ -16,4 +16,9 @@ reason = "`bincode` is a transitive dependency that is no longer maintained but 
 [[IgnoredVulns]]
 id = "GHSA-33mh-2634-fwr2"
 ignoreUntil = 2026-07-01
-reason = "The vulnerability cannot happen as there are no user controlled URI paths."
+reason = "We are not vulnerable as there are no user controlled URI paths."
+
+[[IgnoredVulns]]
+id = "GHSA-2g4f-4pwh-qvx6"
+ignoreUntil = 2026-07-01
+reason = "We are not vulnerable as ajv is only run as dev-dependency. Also eslint pinned their dependency on 6.x.y. and will not update. See https://github.com/eslint/eslint/pull/19340."
