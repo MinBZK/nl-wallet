@@ -2400,6 +2400,9 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
             .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(true));
         wallet_user_repo
