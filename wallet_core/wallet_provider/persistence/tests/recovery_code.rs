@@ -4,22 +4,24 @@ use crypto::utils::random_string;
 use tokio::time::Duration;
 use tokio::time::sleep;
 
+use db_test::DbSetup;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_persistence::recovery_code;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
-use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_insert_recovery_code() {
     let recovery_code: RecoveryCode = random_string(64).into();
 
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     // verify it does not exist before insertion
     let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
@@ -40,9 +42,10 @@ async fn test_insert_recovery_code() {
     assert!(is_denied);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_recovery_code_is_denied() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     let wallet_id1: WalletId = random_string(32).into();
     let wallet_id2: WalletId = random_string(32).into();
@@ -90,10 +93,10 @@ async fn test_recovery_code_is_denied() {
 /// The test fails if the two reads within the same transaction return different results for the same recovery code. It
 /// will not fail if the database provides repeatable reads, but should also not fail if the database provides only read
 /// committed isolation level, which is the default isolation level for Postgres.
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_recovery_code_repeatable_reads() {
-    let db = db_from_env().await.expect("Could not connect to database");
-    let db = Arc::new(db);
+    let db_setup = DbSetup::create().await;
+    let db = Arc::new(db_from_setup(&db_setup).await);
 
     let recovery_code: RecoveryCode = random_string(64).into();
 
@@ -148,11 +151,12 @@ async fn test_recovery_code_repeatable_reads() {
     assert_eq!(first, second, "Detected non-repeatable read for the same recovery code",);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_remove_recovery_code() {
     let recovery_code = random_string(64).into();
 
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     recovery_code::set_allowed(&db, &recovery_code)
         .await
@@ -181,9 +185,10 @@ async fn test_remove_recovery_code() {
     assert!(!is_denied);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_recovery_code() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     let recovery_code: RecoveryCode = random_string(64).into();
     let recovery_codes = recovery_code::list(&db)

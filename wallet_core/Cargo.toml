@@ -47,7 +47,6 @@ members = [
     "wallet_provider/audit_log",
     "wallet_provider/audit_log/audit_log_macros",
     "wallet_provider/audit_log/migrations",
-    "wallet_provider/database_settings",
     "wallet_provider/domain",
     "wallet_provider/migrations",
     "wallet_provider/persistence",

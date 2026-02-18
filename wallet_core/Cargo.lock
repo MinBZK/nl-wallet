@@ -1993,6 +1993,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "wallet_provider_migrations",
 ]
 
 [[package]]
@@ -9625,27 +9626,16 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tracing-test",
+ "url",
  "utils",
  "utoipa",
  "utoipa-axum",
  "utoipa-swagger-ui",
  "uuid",
  "wallet_account",
- "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
-]
-
-[[package]]
-name = "wallet_provider_database_settings"
-version = "0.5.0-dev"
-dependencies = [
- "config",
- "serde",
- "serde_with",
- "url",
- "utils",
 ]
 
 [[package]]
@@ -9694,6 +9684,7 @@ dependencies = [
  "chrono",
  "crypto",
  "ctor",
+ "db_test",
  "derive_more",
  "hsm",
  "measure",
@@ -9703,7 +9694,8 @@ dependencies = [
  "rand_core 0.6.4",
  "sea-orm",
  "semver",
- "status_lists",
+ "serde",
+ "serde_with",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -9712,7 +9704,6 @@ dependencies = [
  "utils",
  "uuid",
  "wallet_account",
- "wallet_provider_database_settings",
  "wallet_provider_domain",
 ]
 
@@ -9730,6 +9721,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "crypto",
+ "db_test",
  "der",
  "derive_more",
  "futures",
@@ -9762,7 +9754,6 @@ dependencies = [
  "utils",
  "uuid",
  "wallet_account",
- "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wscd",

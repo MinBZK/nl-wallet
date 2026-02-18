@@ -547,10 +547,6 @@ export ANDROID_ROOT_EC_PUBKEY
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
-# Database settings for wallet_provider crate level integration tests
-render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${WP_DIR}/persistence/wallet_provider_database_settings.toml"
-render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${WP_DIR}/service/wallet_provider_database_settings.toml"
-
 render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
 
 ########################################################################
