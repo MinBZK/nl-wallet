@@ -234,7 +234,7 @@ pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<Wall
 
 #[flutter_api_error]
 pub async fn continue_change_pin(pin: &str) -> anyhow::Result<WalletInstructionResult> {
-    let wallet = wallet().read().await;
+    let mut wallet = wallet().write().await;
 
     let result = wallet.continue_change_pin(pin).await.try_into()?;
 

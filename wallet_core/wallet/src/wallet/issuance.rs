@@ -538,16 +538,12 @@ where
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| IssuanceError::NotRegistered)?;
+        let attested_key = Arc::clone(attested_key);
 
         info!("Checking if locked");
         if self.lock.is_locked() {
             return Err(IssuanceError::Locked);
         }
-
-        info!("Checking if there is an active issuance session");
-        let Some(Session::Issuance(issuance_session)) = &self.session else {
-            return Err(IssuanceError::SessionState);
-        };
 
         let config = self.config_repository.get();
 
@@ -556,7 +552,7 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                Arc::clone(attested_key),
+                attested_key,
                 InstructionClientParameters::new(
                     registration_data.wallet_id.clone(),
                     registration_data.pin_salt.clone(),
@@ -568,8 +564,13 @@ where
             .await?;
 
         let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
-        info!("Signing nonce using Wallet Provider");
 
+        info!("Checking if there is an active issuance session");
+        let Some(Session::Issuance(issuance_session)) = &self.session else {
+            return Err(IssuanceError::SessionState);
+        };
+
+        info!("Signing nonce using Wallet Provider");
         let issuance_result = issuance_session
             .protocol_state
             .accept_issuance(

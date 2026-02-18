@@ -735,6 +735,7 @@ where
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| DisclosureError::NotRegistered)?;
+        let attested_key = Arc::clone(attested_key);
 
         info!("Checking if locked");
         if self.lock.is_locked() {
@@ -758,16 +759,13 @@ where
             });
         }
 
-        // Note that this will panic if any of the indices are out of bounds.
-        let attestations = session.attestations.select_proposal(selected_indices);
-
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                Arc::clone(attested_key),
+                attested_key,
                 InstructionClientParameters::new(
                     registration_data.wallet_id.clone(),
                     registration_data.pin_salt.clone(),
@@ -777,6 +775,15 @@ where
                 ),
             )
             .await?;
+
+        // We have to take ownership of the disclosure session here, so that `attestations`
+        // below doesn't borrow from self, as we also borrow mutably from self above.
+        let Some(Session::Disclosure(mut session)) = self.session.take() else {
+            unreachable!(); // This not possible, as we took a reference to this value before.
+        };
+
+        // Note that this will panic if any of the indices are out of bounds.
+        let attestations = session.attestations.select_proposal(selected_indices);
 
         let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
 
@@ -833,6 +840,8 @@ where
                     error!("Could not store error in history: {e}");
                 });
 
+            // Put back the session for a later attempt
+            self.session.replace(Session::Disclosure(session));
             return Err(DisclosureError::IncrementUsageCount(error));
         }
 
@@ -862,12 +871,8 @@ where
             (_, _) => panic!("VpDisclosureClient should not allow requesting a mix of formats"),
         };
 
-        // Take ownership of the disclosure session and actually perform disclosure, casting any
-        // `InstructionError` that occurs during signing to `RemoteEcdsaKeyError::Instruction`.
-        let Some(Session::Disclosure(mut session)) = self.session.take() else {
-            // This not possible, as we took a reference to this value before.
-            unreachable!();
-        };
+        // Actually perform disclosure, casting any `InstructionError` that occurs during signing
+        // to `RemoteEcdsaKeyError::Instruction`.
         let result = session
             .protocol_state
             .disclose(disclosable_attestations, &remote_wscd, &TimeGenerator)
