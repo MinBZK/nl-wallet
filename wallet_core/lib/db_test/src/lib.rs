@@ -111,6 +111,7 @@ pub struct DbSetup {
 #[strum(serialize_all = "snake_case")]
 enum DbName {
     StatusLists,
+    VerificationServer,
     WalletProviderAuditLog,
 }
 
@@ -205,6 +206,10 @@ impl DbSetup {
 
     pub fn status_lists_url(&self) -> Url {
         DbName::StatusLists.url(self.connect_options.clone(), self.index)
+    }
+
+    pub fn verification_server_url(&self) -> Url {
+        DbName::VerificationServer.url(self.connect_options.clone(), self.index)
     }
 }
 
@@ -379,6 +384,7 @@ async fn migrate(name: DbName, connect_options: PgConnectOptions) {
     let pool = connection_from_url(url.clone()).await;
     match name {
         DbName::StatusLists => status_lists_migrations::Migrator::up(&pool, None).await,
+        DbName::VerificationServer => server_utils_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProviderAuditLog => audit_log_migrations::Migrator::up(&pool, None).await,
     }
     .unwrap_or_else(|e| panic!("Could not migrate database {}: {}", name, e));

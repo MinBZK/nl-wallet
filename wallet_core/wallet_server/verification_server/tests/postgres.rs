@@ -1,16 +1,13 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
-use chrono::NaiveDate;
-use chrono::NaiveTime;
 use chrono::Utc;
 use parking_lot::RwLock;
 use serde::Deserialize;
 use serde::Serialize;
 
-use serial_test::parallel;
-use serial_test::serial;
-
+use db_test::DbSetup;
+use db_test::connection_from_url;
 use openid4vc::server_state::Expirable;
 use openid4vc::server_state::HasProgress;
 use openid4vc::server_state::Progress;
@@ -20,7 +17,6 @@ use openid4vc::server_state::test;
 use openid4vc::server_state::test::RandomData;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Storage;
-use server_utils::store::postgres;
 use server_utils::store::postgres::PostgresSessionStore;
 use utils::generator::mock::MockTimeGenerator;
 use verification_server::settings::VerifierSettings;
@@ -90,50 +86,41 @@ fn storage_settings() -> Storage {
         .storage
 }
 
-async fn postgres_session_store() -> PostgresSessionStore {
+async fn postgres_session_store(db_setup: &DbSetup) -> PostgresSessionStore {
     let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
-    PostgresSessionStore::new(postgres::new_connection(storage_settings.url).await.unwrap(), timeouts)
+    let connection = connection_from_url(db_setup.verification_server_url()).await;
+    PostgresSessionStore::new(connection, timeouts)
 }
 
 type SessionStoreWithMockTime = (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>);
 
-async fn postgres_session_store_with_mock_time() -> SessionStoreWithMockTime {
-    let date = DateTime::from_naive_utc_and_offset(
-        // Use date in the past to not interfere with other tests
-        NaiveDate::from_ymd_opt(1995, 10, 10)
-            .unwrap()
-            .and_time(NaiveTime::default()),
-        Utc,
-    );
-    let time_generator = MockTimeGenerator::new(date);
+async fn postgres_session_store_with_mock_time(db_setup: &DbSetup) -> SessionStoreWithMockTime {
+    let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
 
     let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
-    let session_store = PostgresSessionStore::new_with_time(
-        postgres::new_connection(storage_settings.url).await.unwrap(),
-        timeouts,
-        time_generator,
-    );
+    let connection = connection_from_url(db_setup.verification_server_url()).await;
+    let session_store = PostgresSessionStore::new_with_time(connection, timeouts, time_generator);
 
     (session_store, mock_time)
 }
 
-#[tokio::test]
-#[parallel(cleanup)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_get_write() {
-    let session_store = postgres_session_store().await;
+    let db_setup = DbSetup::create().await;
+    let session_store = postgres_session_store(&db_setup).await;
 
     test::test_session_store_get_write::<MockSessionData>(&session_store).await;
 }
 
-#[tokio::test]
-#[serial(cleanup)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_cleanup_expiration() {
-    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
+    let db_setup = DbSetup::create().await;
+    let (session_store, mock_time) = postgres_session_store_with_mock_time(&db_setup).await;
 
     test::test_session_store_cleanup_expiration::<MockSessionData>(
         &session_store,
@@ -143,10 +130,10 @@ async fn test_cleanup_expiration() {
     .await;
 }
 
-#[tokio::test]
-#[serial(cleanup)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_cleanup_successful_deletion() {
-    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
+    let db_setup = DbSetup::create().await;
+    let (session_store, mock_time) = postgres_session_store_with_mock_time(&db_setup).await;
 
     test::test_session_store_cleanup_successful_deletion::<MockSessionData>(
         &session_store,
@@ -156,10 +143,10 @@ async fn test_cleanup_successful_deletion() {
     .await;
 }
 
-#[tokio::test]
-#[serial(cleanup)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_cleanup_failed_deletion() {
-    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
+    let db_setup = DbSetup::create().await;
+    let (session_store, mock_time) = postgres_session_store_with_mock_time(&db_setup).await;
 
     test::test_session_store_cleanup_failed_deletion::<MockSessionData>(
         &session_store,
