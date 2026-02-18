@@ -1,13 +1,13 @@
 {% extends "base.askama" %}
 
 {% block scripts %}
-<script integrity="sha256-{{ base.lokalize_js_sha256 }}" nonce="{{ base.nonce }}" src="/lokalize.js" defer></script>
+<script integrity="sha256-{{ base.lokalize_js_sha256 }}" nonce="{{ base.nonce }}" src="/support/lokalize.js" defer></script>
 {% endblock %}
 
 {% block content %}
 <section class="intro">
   <div class="logo-icon-wrapper">
-    <img src="/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
+    <img src="/support/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
   </div>
 
   <h1>{{ base.trans.success_title }}</h1>
@@ -22,7 +22,7 @@
 </section>
 
 <div class="illustration-container" aria-hidden="true">
-  <img src="/images/success_illustration.svg" alt="" class="illustration">
+  <img src="/support/images/success_illustration.svg" alt="" class="illustration">
 </div>
 
 <a href="/support" class="back-link">
@@ -35,10 +35,10 @@
   <p class="download-text"><strong>{{ base.trans.download_text }}</strong></p>
   <div class="store-links">
     <a href="#" class="store-button" aria-label="{{ base.trans.apple_app_store }}">
-      <img src="/images/apple_app_store.svg" alt="" height="40">
+      <img src="/support/images/apple_app_store.svg" alt="" height="40">
     </a>
     <a href="#" class="store-button" aria-label="{{ base.trans.google_play_store }}">
-      <img src="/images/google_play_store.svg" alt="" height="40">
+      <img src="/support/images/google_play_store.svg" alt="" height="40">
     </a>
   </div>
 </div>

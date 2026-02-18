@@ -11,57 +11,52 @@ fn main() {
     // These directories are merged from multiple crates, so they must be copies
     web_utils::build::copy_static_assets(
         &[
-            Path::new("static/images"),
-            Path::new("../lib/web_utils/static/images"),
-            Path::new("../lib/web_utils/static/non-free"),
+            Path::new("../demo_utils/static/images"),
+            Path::new("../demo_utils/static/non-free"),
+            Path::new("../../lib/web_utils/static/images"),
+            Path::new("../../lib/web_utils/static/non-free"),
         ],
-        Path::new("assets/support"),
+        Path::new("assets"),
     );
 
     // Single-source files can be symlinks for instant dev updates
     force_symlink(
-        Path::new("../../static/lokalize.js"),
-        Path::new("assets/support/lokalize.js"),
-    );
-    force_symlink(
-        Path::new("../../static/portal.js"),
-        Path::new("assets/support/portal.js"),
-    );
-    force_symlink(
-        Path::new("../../static/portal-ui.js"),
-        Path::new("assets/support/portal-ui.js"),
-    );
-    force_symlink(
         Path::new("../../../lib/web_utils/static/language.js"),
-        Path::new("assets/support/language.js"),
+        Path::new("assets/language.js"),
     );
 
     // In development mode, symlink CSS directories so changes are reflected immediately
     if !profile.is_release() {
-        fs::create_dir_all("assets/support/static/css").expect("Failed to create assets/static");
-        fs::create_dir_all("assets/support/lib/web_utils/static")
-            .expect("Failed to create assets/lib/web_utils/static");
+        fs::create_dir_all("assets/static").expect("Failed to create assets/static");
+        fs::create_dir_all("assets/demo_utils/static").expect("Failed to create assets/demo_utils/static");
+        fs::create_dir_all("assets/lib/web_utils/static").expect("Failed to create assets/lib/web_utils/static");
 
         // Symlink CSS directories to source
+        force_symlink(Path::new("../../static/css"), Path::new("assets/static/css"));
         force_symlink(
-            Path::new("../../../../static/portal.css"),
-            Path::new("assets/support/static/css/portal.css"),
+            Path::new("../../../../demo_utils/static/css"),
+            Path::new("assets/demo_utils/static/css"),
         );
         force_symlink(
             Path::new("../../../../../../lib/web_utils/static/css"),
-            Path::new("assets/support/lib/web_utils/static/css"),
+            Path::new("assets/lib/web_utils/static/css"),
         );
 
         // Symlink non-free/ and images/ so url() paths resolve to merged assets
-        force_symlink(Path::new("../non-free"), Path::new("assets/support/static/non-free"));
-        force_symlink(Path::new("../images"), Path::new("assets/support/static/images"));
+        force_symlink(Path::new("../non-free"), Path::new("assets/static/non-free"));
+        force_symlink(Path::new("../images"), Path::new("assets/static/images"));
+        force_symlink(
+            Path::new("../../non-free"),
+            Path::new("assets/demo_utils/static/non-free"),
+        );
+        force_symlink(Path::new("../../images"), Path::new("assets/demo_utils/static/images"));
         force_symlink(
             Path::new("../../../non-free"),
-            Path::new("assets/support/lib/web_utils/static/non-free"),
+            Path::new("assets/lib/web_utils/static/non-free"),
         );
         force_symlink(
             Path::new("../../../images"),
-            Path::new("assets/support/lib/web_utils/static/images"),
+            Path::new("assets/lib/web_utils/static/images"),
         );
     }
 
@@ -69,7 +64,7 @@ fn main() {
     let dest_path = Path::new(&out_dir).join("style.css");
 
     web_utils::build::combine_css_with_imports(
-        Path::new("static/portal.css"),
+        Path::new("static/css/nav.css"),
         &dest_path,
         profile,
         Path::new(&manifest_dir),

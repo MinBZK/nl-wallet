@@ -1,6 +1,6 @@
 @import url("./online_marketplace.css");
-@import url("./title_bar.css");
-@import url("./page.css");
+@import url("../../../demo_utils/static/css/title_bar.css");
+@import url("../../../demo_utils/static/css/page.css");
 @import url("./search.css");
 @import url("./products.css");
 
