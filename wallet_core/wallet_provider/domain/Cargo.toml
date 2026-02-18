@@ -13,7 +13,7 @@ doctest = false
 [features]
 # Include mock implementations and constructors for testing
 mock = ["dep:hmac", "dep:rand", "hsm/mock"]
-utoipa = ["dep:utoipa", "wallet_account/utoipa"]
+utoipa = ["utoipa/chrono", "wallet_account/utoipa"]
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
