@@ -11,8 +11,11 @@ use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
 use update_policy_model::update_policy::VersionState;
+use wallet_account::messages::errors::RevocationReason;
+use wallet_account::messages::errors::RevocationReasonData;
 
 use crate::digid::DigidClient;
+use crate::errors::InstructionError;
 use crate::repository::Repository;
 use crate::storage::Storage;
 
@@ -96,6 +99,44 @@ where
         }
 
         Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn check_result_for_wallet_revocation<T>(
+        &mut self,
+        result: Result<T, InstructionError>,
+    ) -> Result<T, InstructionError> {
+        match result {
+            Err(error @ InstructionError::AccountIsRevoked(reason)) => {
+                self.handle_wallet_revocation(reason).await;
+                Err(error)
+            }
+            _ => Ok(result?),
+        }
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn handle_wallet_revocation(&mut self, reason: RevocationReason) {
+        if reason == RevocationReason::UserRequest {
+            // In this case, the wallet user is probably not the owner of the wallet.
+            // We wipe its contents to protect its from leaking/being stolen.
+            self.reset_to_initial_state().await;
+        } else {
+            // In this case, store the fact that the wallet has been revoked so
+            // self.get_state() can indicate so in its response.
+            if let Err(writing_error) = self
+                .storage
+                .write()
+                .await
+                .insert_data(&RevocationReasonData {
+                    revocation_reason: reason,
+                })
+                .await
+            {
+                // Log the error but do nothing else.
+                warn!("failed to write revocation reason to storage: {writing_error}");
+            }
+        }
     }
 }
 

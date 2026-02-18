@@ -580,16 +580,17 @@ where
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session.protocol_state));
 
-        // Make sure there are no remaining references to the `AttestedKey` value.
-        drop(remote_wscd);
-
-        // If the Wallet Provider returns either a PIN timeout or a permanent block,
-        // wipe the contents of the wallet and return it to its initial state.
+        // In some cases, the contents of the wallet need to be wiped and the wallet returned to its initial state.
         let issued_credentials_with_metadata = match issuance_result {
-            Err(IssuanceError::Instruction(error @ (InstructionError::Timeout { .. } | InstructionError::Blocked))) => {
-                drop(remote_instruction);
-                self.reset_to_initial_state().await;
-                return Err(IssuanceError::Instruction(error));
+            Err(error @ IssuanceError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)) => {
+                if issuance_session.pid_purpose.is_some() {
+                    self.reset_to_initial_state().await;
+                }
+                return Err(error);
+            }
+            Err(error @ IssuanceError::Instruction(InstructionError::AccountIsRevoked(reason))) => {
+                self.handle_wallet_revocation(reason).await;
+                return Err(error);
             }
             _ => issuance_result?,
         };
@@ -684,7 +685,7 @@ where
     /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
     /// endpoint of the Wallet Provider.
     async fn disclose_recovery_code<AK: AppleAttestedKey, GK: GoogleAttestedKey>(
-        &self,
+        &mut self,
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
     ) -> Result<Option<TransferSessionId>, IssuanceError> {
@@ -720,8 +721,8 @@ where
                 recovery_code_disclosure: recovery_code_disclosure.into(),
                 app_version: version().clone(),
             })
-            .await
-            .map_err(IssuanceError::Instruction)?;
+            .await;
+        let result = self.check_result_for_wallet_revocation(result).await?;
 
         Ok(result.transfer_session_id.map(Into::into))
     }

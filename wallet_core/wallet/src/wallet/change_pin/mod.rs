@@ -14,6 +14,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
+use crate::errors::InstructionError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientFactory;
 use crate::instruction::InstructionClientParameters;
@@ -100,7 +101,15 @@ where
             certificate_public_key,
             &hw_pubkey,
         );
-        let (new_pin_salt, new_wallet_certificate) = session.begin_change_pin(old_pin, new_pin).await?;
+
+        let result = session.begin_change_pin(old_pin, new_pin).await;
+        let (new_pin_salt, new_wallet_certificate) = match result {
+            Err(error @ ChangePinError::Instruction(InstructionError::AccountIsRevoked(reason))) => {
+                self.handle_wallet_revocation(reason).await;
+                return Err(error);
+            }
+            _ => result?,
+        };
 
         registration_data.pin_salt = new_pin_salt;
         registration_data.wallet_certificate = new_wallet_certificate;
@@ -110,7 +119,7 @@ where
         Ok(())
     }
 
-    pub async fn continue_change_pin(&self, pin: &str) -> Result<(), ChangePinError> {
+    pub async fn continue_change_pin(&mut self, pin: &str) -> Result<(), ChangePinError> {
         info!("Continue PIN change");
 
         info!("Checking if blocked");
@@ -144,7 +153,15 @@ where
 
         let session = FinishChangePinOperation::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
 
-        session.finish_change_pin(pin).await?;
+        let result = session.finish_change_pin(pin).await;
+
+        match result {
+            Err(error @ ChangePinError::Instruction(InstructionError::AccountIsRevoked(reason))) => {
+                self.handle_wallet_revocation(reason).await;
+                Err(error)?;
+            }
+            _ => result?,
+        };
 
         info!("PIN change successfully finalized");
 

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use tracing::info;
 use tracing::instrument;
+use tracing::warn;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -148,7 +149,7 @@ where
         };
     }
 
-    pub(super) async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
+    pub(super) async fn send_check_pin_instruction(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -191,7 +192,8 @@ where
 
         info!("Sending check pin instruction to Wallet Provider");
 
-        remote_instruction.send(CheckPin).await?;
+        self.check_result_for_wallet_revocation(remote_instruction.send(CheckPin).await)
+            .await?;
 
         Ok(())
     }
@@ -227,7 +229,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn check_pin(&self, pin: String) -> Result<(), WalletUnlockError>
+    pub async fn check_pin(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,

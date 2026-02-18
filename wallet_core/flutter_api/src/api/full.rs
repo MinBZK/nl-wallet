@@ -216,7 +216,7 @@ pub async fn lock_wallet() {
 
 #[flutter_api_error]
 pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
-    let wallet = wallet().read().await;
+    let mut wallet = wallet().write().await;
 
     let result = wallet.check_pin(pin).await.try_into()?;
 
@@ -556,7 +556,7 @@ pub async fn get_registration_revocation_code() -> anyhow::Result<String> {
 
 #[flutter_api_error]
 pub async fn get_revocation_code(pin: String) -> anyhow::Result<RevocationCodeResult> {
-    let wallet = wallet().read().await;
+    let mut wallet = wallet().write().await;
 
     let result = wallet.get_revocation_code_with_pin(pin).await.try_into()?;
 

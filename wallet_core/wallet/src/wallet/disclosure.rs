@@ -901,30 +901,33 @@ where
                 // At this point place the `DisclosureSession` back so that `WalletDisclosureSession` is whole again.
                 session.protocol_state = protocol_state;
 
-                if matches!(
-                    disclosure_error,
-                    DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
-                ) {
-                    // On a PIN timeout we should proactively terminate the disclosure session
-                    // and lock the wallet, as the user is probably not the owner of the wallet.
-                    // The UI should catch this specific error and close the disclosure screens.
-                    //
-                    // If terminating the session results in an error, log it but do nothing else.
-                    let _ = self
-                        .terminate_disclosure_session(session)
-                        .await
-                        .inspect_err(|terminate_error| {
-                            error!(
-                                "Error while terminating disclosure session on PIN timeout: {}",
-                                terminate_error
-                            );
-                        });
+                match disclosure_error {
+                    DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked) => {
+                        // On a PIN timeout we should proactively terminate the disclosure session
+                        // and lock the wallet, as the user is probably not the owner of the wallet.
+                        // The UI should catch this specific error and close the disclosure screens.
+                        //
+                        // If terminating the session results in an error, log it but do nothing else.
+                        let _ = self
+                            .terminate_disclosure_session(session)
+                            .await
+                            .inspect_err(|terminate_error| {
+                                error!(
+                                    "Error while terminating disclosure session on PIN timeout: {}",
+                                    terminate_error
+                                );
+                            });
 
-                    self.lock.lock();
-                } else {
-                    // If we did not just give away ownership of the disclosure session by terminating it,
-                    // place it back in the wallet state so that the user may retry disclosure.
-                    self.session.replace(Session::Disclosure(session));
+                        self.lock.lock();
+                    }
+                    DisclosureError::Instruction(InstructionError::AccountIsRevoked(reason)) => {
+                        self.handle_wallet_revocation(reason).await;
+                    }
+                    _ => {
+                        // If we did not just give away ownership of the disclosure session by terminating it,
+                        // place it back in the wallet state so that the user may retry disclosure.
+                        self.session.replace(Session::Disclosure(session));
+                    }
                 }
 
                 return Err(disclosure_error);

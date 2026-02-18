@@ -292,8 +292,9 @@ where
             )
             .await?;
 
-        remote_instruction
-            .send(ConfirmTransfer { transfer_session_id })
+        let result = remote_instruction.send(ConfirmTransfer { transfer_session_id }).await;
+
+        self.check_result_for_wallet_revocation(result)
             .await
             .map_err(TransferError::Instruction)
     }
@@ -433,7 +434,7 @@ where
         Ok(())
     }
 
-    async fn send_transfer_instruction<I>(&self, instruction: I) -> Result<I::Result, TransferError>
+    async fn send_transfer_instruction<I>(&mut self, instruction: I) -> Result<I::Result, TransferError>
     where
         I: InstructionAndResult + 'static,
     {
@@ -456,10 +457,9 @@ where
             ),
         );
 
-        let result = instruction_client
-            .send(instruction)
-            .await
-            .map_err(TransferError::Instruction)?;
+        let result = self
+            .check_result_for_wallet_revocation(instruction_client.send(instruction).await)
+            .await?;
 
         Ok(result)
     }
