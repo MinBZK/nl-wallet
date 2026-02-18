@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::net::SocketAddr;
 use std::str::FromStr;
 use std::thread::available_parallelism;
 use std::time::Duration;
@@ -34,6 +35,7 @@ use testcontainers::TestcontainersError;
 use testcontainers::core::error::ClientError;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres;
+use tokio::net::lookup_host;
 use tracing::log::LevelFilter;
 use url::Url;
 
@@ -231,17 +233,27 @@ async fn start_testcontainer() -> (String, u16) {
         }
     }
     .expect("Could not start testcontainer");
+
     (
-        container
-            .get_host()
-            .await
-            .expect("Could not get testcontainer host")
-            .to_string(),
+        // Testcontainers can have a different port for ipv4 and ipv6
+        get_ipv4_addr(container.get_host().await.expect("Could not get testcontainer host")).await,
         container
             .get_host_port_ipv4(DB_PORT)
             .await
             .expect("Could not get testcontainer port"),
     )
+}
+
+async fn get_ipv4_addr(host: url::Host) -> String {
+    lookup_host((host.to_string(), 0))
+        .await
+        .unwrap_or_else(|_| panic!("Could not resolve address for {}", host))
+        .filter_map(|addr| match addr {
+            SocketAddr::V4(addr) => Some(addr.ip().to_string()),
+            SocketAddr::V6(_) => None,
+        })
+        .next()
+        .unwrap_or_else(|| panic!("Could not find an ipv4 address for {}", host))
 }
 
 /// Find a free set of databases
