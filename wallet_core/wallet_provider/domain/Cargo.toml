@@ -17,7 +17,7 @@ utoipa = ["dep:utoipa"]
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
-derive_more = { workspace = true, features = ["debug", "unwrap"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "display", "from", "into", "unwrap"] }
 futures.workspace = true
 p256.workspace = true
 sea-orm.workspace = true
