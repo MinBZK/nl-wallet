@@ -47,6 +47,7 @@
     ]]></notes>
     <packageUrl regex="true">^pkg:npm/ajv@.*$</packageUrl>
     <vulnerabilityName>CVE-2025-69873</vulnerabilityName>
+    <vulnerabilityName>GHSA-2g4f-4pwh-qvx6</vulnerabilityName>
   </suppress>
   <!-- End group: [HIGH] -->
 
