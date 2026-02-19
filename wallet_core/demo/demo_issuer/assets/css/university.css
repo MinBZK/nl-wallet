@@ -1,0 +1,44 @@
+@import url("./reset.css");
+@import url("./button-reset.css");
+@import url("./fonts.css");
+@import url("./common.css");
+@import url("./title_bar.css");
+@import url("./notification.css");
+@import url("./banner.css");
+@import url("./container.css");
+@import url("./buttons-after.css");
+
+:root {
+  --primary-color: #067761;
+  --hover-color: #003923;
+  --title-color: #002328;
+  --text-color: #002328;
+  --logo-url: url("../images/university.svg");
+}
+
+.banner-university {
+  background-image: url("../images/banner-university.svg");
+}
+
+@media only screen and (max-width: 1145px) {
+  main {
+    gap: 24px;
+  }
+}
+
+main a {
+  color: var(--text-color);
+}
+
+main h2 {
+  font-size: 36px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+@media only screen and (min-width: 1145px) {
+  main h2 {
+    font-size: 44px;
+    line-height: 1.4;
+  }
+}

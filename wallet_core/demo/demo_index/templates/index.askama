@@ -2,7 +2,8 @@
 {%- import "../../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block styles %}
-<link rel="stylesheet" href="./static/css/nav.css" />
+<link rel="stylesheet" href="./css/index.css" />
+<link rel="stylesheet" href="./css/language_selector.css" />
 {% endblock %}
 
 {% block scripts %}

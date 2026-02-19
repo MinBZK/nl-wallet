@@ -1,0 +1,25 @@
+@import url("./reset.css");
+@import url("./button-reset.css");
+@import url("./fonts.css");
+@import url("./common.css");
+@import url("./title_bar.css");
+@import url("./notification.css");
+@import url("./container.css");
+
+:root {
+  --primary-color: #288b36;
+  --hover-color: #0bbb52;
+  --title-color: #30293d;
+  --text-color: #2e2e2e;
+  --notification-color: #288b36;
+  --error-color: #ab0048;
+  --logo-url: url("../images/job_finder.svg");
+}
+
+header h1 span.part {
+  color: var(--primary-color);
+}
+
+header h1::before {
+  display: none;
+}

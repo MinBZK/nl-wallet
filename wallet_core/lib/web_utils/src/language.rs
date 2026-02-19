@@ -15,7 +15,7 @@ use serde_with::SerializeDisplay;
 use crypto::utils::sha256;
 
 pub static LANGUAGE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../static/language.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/language.js"))));
 
 #[derive(
     Debug,

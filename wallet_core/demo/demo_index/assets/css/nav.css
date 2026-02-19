@@ -1,9 +1,3 @@
-@import url("../../../../lib/web_utils/static/css/reset.css");
-@import url("../../../../lib/web_utils/static/css/button-reset.css");
-@import url("../../../../lib/web_utils/static/css/fonts.css");
-@import url("../../../../lib/web_utils/static/css/language_selector.css");
-@import url("../../../demo_utils/static/css/demo_bar.css");
-
 :root {
   font-family: "RO Sans", sans-serif;
   font-feature-settings: "clig" off, "liga" off;
