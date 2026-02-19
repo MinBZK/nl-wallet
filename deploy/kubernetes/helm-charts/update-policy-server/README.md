@@ -40,6 +40,12 @@
 | -------------------- | --------------------------- | ----- |
 | `serviceAccountName` | Name of the service account | `""`  |
 
+### Pod security context
+
+| Name                 | Description                  | Value |
+| -------------------- | ---------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod | `{}`  |
+
 ### Security context
 
 | Name              | Description                        | Value |

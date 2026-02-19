@@ -39,6 +39,17 @@ nameOverride: ""
 extraAnnotations: {}
 extraPodLabels: {}
 
+## @section Pod security context
+## Security context for the pod
+## @param podSecurityContext Security context for the pod
+podSecurityContext: {}
+
+## @section Security context
+## Security context for the container
+## @param securityContext Security context for the container
+##
+securityContext: {}
+
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request
 ## @param resources.requests.memory Memory request

@@ -29,6 +29,17 @@ image:
 ##
 imagePullSecrets: []
 
+## @section Pod security context
+## Security context for the pod
+## @param podSecurityContext Security context for the pod
+podSecurityContext: {}
+
+## @section Security context
+## Security context for the container
+## @param securityContext Security context for the container
+##
+securityContext: {}
+
 ## @section Common parameters
 ## String to partially override the chart's fullname template
 ## @param fullnameOverride String to completely override chart's fullname

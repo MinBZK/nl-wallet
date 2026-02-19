@@ -13,4 +13,4 @@ spec:
   resources:
     requests:
       storage: 500Mi
-  storageClassName: nfs
+  storageClassName: {{ .Values.preloadGba.storageClassName }}
