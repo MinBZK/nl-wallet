@@ -31,7 +31,7 @@ pub mod common;
 static LOGGING: Once = Once::new();
 
 pub async fn wait_for_server(base_url: BaseUrl) {
-    let client = trusted_reqwest_client_builder(std::iter::empty()).build().unwrap();
+    let client = trusted_reqwest_client_builder([]).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
