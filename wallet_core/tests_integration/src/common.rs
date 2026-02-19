@@ -69,7 +69,7 @@ use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
-use server_utils::store::postgres::new_connection;
+pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::serve::create_serve_router;
@@ -464,6 +464,30 @@ pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
         .count(connection)
         .await
         .expect("Could not fetch user count from database")
+}
+
+pub async fn get_all_wallet_ids(connection: &DatabaseConnection) -> Vec<String> {
+    wallet_user::Entity::find()
+        .all(connection)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|user| user.wallet_id)
+        .collect()
+}
+
+pub async fn get_wallet_recovery_code(connection: &DatabaseConnection, wallet_id: &str) -> String {
+    use sea_orm::ColumnTrait;
+    use sea_orm::QueryFilter;
+
+    wallet_user::Entity::find()
+        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .one(connection)
+        .await
+        .unwrap()
+        .expect("wallet_user should exist")
+        .recovery_code
+        .expect("wallet_user should have a recovery code")
 }
 
 pub fn static_server_settings() -> (StaticSettings, ReqwestTrustAnchor) {
