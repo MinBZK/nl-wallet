@@ -27,7 +27,7 @@ pub enum AccountError {
     #[cfg_attr(feature = "client", category(expected))]
     AccountBlocked,
     #[cfg_attr(feature = "client", category(expected))]
-    AccountRevoked(RevocationReason),
+    AccountRevoked(AccountRevokedData),
     InstructionValidation,
 }
 
@@ -44,6 +44,7 @@ pub enum AccountError {
     strum::EnumIter,
 )]
 #[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum RevocationReason {
     // upon the explicit request of the User
     UserRequest,
@@ -54,8 +55,9 @@ pub enum RevocationReason {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RevocationReasonData {
+pub struct AccountRevokedData {
     pub revocation_reason: RevocationReason,
+    pub can_register_new_account: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,9 +78,7 @@ impl From<AccountError> for Map<String, Value> {
         match value {
             AccountError::IncorrectPin(data) => serde_json::to_value(data).into(),
             AccountError::PinTimeout(data) => serde_json::to_value(data).into(),
-            AccountError::AccountRevoked(revocation_reason) => {
-                serde_json::to_value(RevocationReasonData { revocation_reason }).into()
-            }
+            AccountError::AccountRevoked(data) => serde_json::to_value(data).into(),
             _ => None,
         }
         .transpose()
@@ -112,9 +112,7 @@ impl AccountError {
             AccountErrorType::PinTimeout => Self::PinTimeout(serde_json::from_value(data)?),
             AccountErrorType::AccountBlocked => Self::AccountBlocked,
             AccountErrorType::InstructionValidation => Self::InstructionValidation,
-            AccountErrorType::AccountRevoked => {
-                Self::AccountRevoked(serde_json::from_value::<RevocationReasonData>(data)?.revocation_reason)
-            }
+            AccountErrorType::AccountRevoked => Self::AccountRevoked(serde_json::from_value(data)?),
         };
 
         Ok(account_error)

@@ -39,6 +39,7 @@ void main() {
       backgroundLockTimeout: backgroundLockTimeout,
       staticAssetsBaseUrl: 'https://example.org',
       pidAttestationTypes: ['com.example.attestationType'],
+      maintenanceWindow: null,
       version: '1',
       environment: 'test',
     );

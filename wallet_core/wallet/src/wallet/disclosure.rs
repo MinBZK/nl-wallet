@@ -925,8 +925,8 @@ where
 
                         self.lock.lock();
                     }
-                    DisclosureError::Instruction(InstructionError::AccountIsRevoked(reason)) => {
-                        self.handle_wallet_revocation(reason).await;
+                    DisclosureError::Instruction(InstructionError::AccountRevoked(data)) => {
+                        self.handle_wallet_revocation(data).await;
                     }
                     _ => {
                         // If we did not just give away ownership of the disclosure session by terminating it,
@@ -1030,8 +1030,8 @@ mod tests {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
+    use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
-    use wallet_account::messages::errors::RevocationReasonData;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
@@ -3039,7 +3039,13 @@ mod tests {
                 default_pid_credential_requests(CredentialFormat::MsoMdoc),
             );
 
-            Err((session, wallet_revocation_error(RevocationReason::UserRequest)))
+            Err((
+                session,
+                wallet_revocation_error(AccountRevokedData {
+                    revocation_reason: RevocationReason::AdminRequest,
+                    can_register_new_account: true,
+                }),
+            ))
         });
 
         let error = wallet
@@ -3049,7 +3055,10 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+            DisclosureError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true
+            }))
         );
 
         // After a UserRequest revocation, the wallet is fully reset: unregistered and locked.
@@ -3086,7 +3095,7 @@ mod tests {
         // AdminRequest revocation stores the reason without resetting the wallet.
         wallet
             .mut_storage()
-            .expect_insert_data::<RevocationReasonData>()
+            .expect_insert_data::<AccountRevokedData>()
             .times(1)
             .returning(|_| Ok(()));
 
@@ -3100,7 +3109,13 @@ mod tests {
                 default_pid_credential_requests(CredentialFormat::MsoMdoc),
             );
 
-            Err((session, wallet_revocation_error(RevocationReason::AdminRequest)))
+            Err((
+                session,
+                wallet_revocation_error(AccountRevokedData {
+                    revocation_reason: RevocationReason::AdminRequest,
+                    can_register_new_account: true,
+                }),
+            ))
         });
 
         let error = wallet
@@ -3110,7 +3125,10 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+            DisclosureError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
+            }))
         );
         // After an AdminRequest revocation, the wallet remains registered.
         assert!(wallet.registration.is_registered());
@@ -3119,10 +3137,10 @@ mod tests {
     }
 
     /// Returns a disclosure error that simulates the WP having revoked our wallet.
-    fn wallet_revocation_error(reason: RevocationReason) -> disclosure_session::DisclosureError<VpSessionError> {
+    fn wallet_revocation_error(data: AccountRevokedData) -> disclosure_session::DisclosureError<VpSessionError> {
         disclosure_session::DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
             mdoc::Error::Cose(CoseError::Signing(Box::new(RemoteEcdsaKeyError::Instruction(
-                InstructionError::AccountIsRevoked(reason),
+                InstructionError::AccountRevoked(data),
             )))),
         )))
     }

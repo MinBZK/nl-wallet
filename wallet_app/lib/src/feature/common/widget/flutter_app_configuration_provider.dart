@@ -31,7 +31,7 @@ class FlutterAppConfigurationProvider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<FlutterAppConfiguration>(
-      stream: configProvider ?? context.read<ConfigurationRepository>().appConfiguration,
+      stream: configProvider ?? context.read<ConfigurationRepository>().observeAppConfiguration,
       builder: (context, snapshot) {
         if (!snapshot.hasData && defaultConfig == null) return const CenteredLoadingIndicator();
         Fimber.i('Providing config: ${snapshot.data ?? defaultConfig}');

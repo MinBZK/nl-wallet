@@ -104,8 +104,8 @@ where
 
         let result = session.begin_change_pin(old_pin, new_pin).await;
         let (new_pin_salt, new_wallet_certificate) = match result {
-            Err(error @ ChangePinError::Instruction(InstructionError::AccountIsRevoked(reason))) => {
-                self.handle_wallet_revocation(reason).await;
+            Err(error @ ChangePinError::Instruction(InstructionError::AccountRevoked(data))) => {
+                self.handle_wallet_revocation(data).await;
                 return Err(error);
             }
             _ => result?,
@@ -156,8 +156,8 @@ where
         let result = session.finish_change_pin(pin).await;
 
         match result {
-            Err(error @ ChangePinError::Instruction(InstructionError::AccountIsRevoked(reason))) => {
-                self.handle_wallet_revocation(reason).await;
+            Err(error @ ChangePinError::Instruction(InstructionError::AccountRevoked(data))) => {
+                self.handle_wallet_revocation(data).await;
                 Err(error)?;
             }
             _ => result?,

@@ -11,8 +11,8 @@ use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
 use update_policy_model::update_policy::VersionState;
+use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
-use wallet_account::messages::errors::RevocationReasonData;
 
 use crate::digid::DigidClient;
 use crate::errors::InstructionError;
@@ -107,8 +107,8 @@ where
         result: Result<T, InstructionError>,
     ) -> Result<T, InstructionError> {
         match result {
-            Err(error @ InstructionError::AccountIsRevoked(reason)) => {
-                self.handle_wallet_revocation(reason).await;
+            Err(error @ InstructionError::AccountRevoked(data)) => {
+                self.handle_wallet_revocation(data).await;
                 Err(error)
             }
             _ => Ok(result?),
@@ -116,23 +116,15 @@ where
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn handle_wallet_revocation(&mut self, reason: RevocationReason) {
-        if reason == RevocationReason::UserRequest {
+    pub(crate) async fn handle_wallet_revocation(&mut self, revocation_data: AccountRevokedData) {
+        if revocation_data.revocation_reason == RevocationReason::UserRequest {
             // In this case, the wallet user is probably not the owner of the wallet.
             // We wipe its contents to protect its from leaking/being stolen.
             self.reset_to_initial_state().await;
         } else {
             // In this case, store the fact that the wallet has been revoked so
             // self.get_state() can indicate so in its response.
-            if let Err(writing_error) = self
-                .storage
-                .write()
-                .await
-                .insert_data(&RevocationReasonData {
-                    revocation_reason: reason,
-                })
-                .await
-            {
+            if let Err(writing_error) = self.storage.write().await.insert_data(&revocation_data).await {
                 // Log the error but do nothing else.
                 warn!("failed to write revocation reason to storage: {writing_error}");
             }
@@ -272,14 +264,18 @@ mod tests {
 
         // A UserRequest revocation should reset the wallet to its initial (unregistered) state.
         let result = wallet
-            .check_result_for_wallet_revocation(Err::<(), _>(InstructionError::AccountIsRevoked(
-                RevocationReason::UserRequest,
-            )))
+            .check_result_for_wallet_revocation(Err::<(), _>(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true,
+            })))
             .await;
 
         assert_matches!(
             result,
-            Err(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+            Err(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true,
+            }))
         );
         assert!(!wallet.registration.is_registered());
         assert_matches!(
@@ -294,14 +290,18 @@ mod tests {
 
         // An AdminRequest revocation should store the revocation reason without resetting the wallet.
         let result = wallet
-            .check_result_for_wallet_revocation(Err::<(), _>(InstructionError::AccountIsRevoked(
-                RevocationReason::AdminRequest,
-            )))
+            .check_result_for_wallet_revocation(Err::<(), _>(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true,
+            })))
             .await;
 
         assert_matches!(
             result,
-            Err(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+            Err(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true,
+            }))
         );
         assert!(wallet.registration.is_registered());
 
@@ -309,13 +309,14 @@ mod tests {
             .storage
             .read()
             .await
-            .fetch_data::<RevocationReasonData>()
+            .fetch_data::<AccountRevokedData>()
             .await
             .unwrap();
         assert_matches!(
             revocation_data,
-            Some(RevocationReasonData {
-                revocation_reason: RevocationReason::AdminRequest
+            Some(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true,
             })
         );
     }

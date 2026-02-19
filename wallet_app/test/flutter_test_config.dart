@@ -7,6 +7,7 @@ import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
+import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
@@ -55,6 +56,9 @@ void _setupMockitoDummies() {
   const stringValue = StringValue('');
   provideDummy<DataAttribute>(DataAttribute.untranslated(key: '', label: '', value: stringValue));
   provideDummy<AttributeValue>(stringValue);
+
+  // Configuration
+  provideDummy<FlutterAppConfiguration>(WalletMockData.flutterAppConfiguration);
 
   // Organization and policy dummies
   provideDummy<Organization>(WalletMockData.organization);

@@ -29,6 +29,8 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
+use wallet_account::messages::errors::AccountRevokedData;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -72,14 +74,17 @@ use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WuaIssuer;
 
+fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    validate_wallet_user_not_revoked(wallet_user)?;
+    validate_wallet_user_not_transferred(wallet_user)?;
+    validate_no_pin_change_in_progress(wallet_user)?;
+    validate_no_transfer_in_progress(wallet_user)?;
+    validate_no_pin_recovery_in_progress(wallet_user)
+}
+
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_change_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-        Ok(())
+        default_validations(wallet_user)
     }
 }
 
@@ -92,13 +97,14 @@ fn validate_wallet_user_not_transferred(wallet_user: &WalletUser) -> Result<(), 
 
 fn validate_wallet_user_not_revoked(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     match wallet_user.state {
-        WalletUserState::Revoked => Err(InstructionValidationError::AccountIsRevoked(
-            wallet_user
+        WalletUserState::Revoked => Err(InstructionValidationError::AccountRevoked(AccountRevokedData {
+            revocation_reason: wallet_user
                 .revocation_registration
                 .as_ref()
                 .expect("should be set when state is revoked")
                 .reason,
-        )),
+            can_register_new_account: !wallet_user.recovery_code_is_denied,
+        })),
         _ => Ok(()),
     }
 }
@@ -141,9 +147,7 @@ fn validate_transfer_instruction(wallet_user: &WalletUser) -> Result<(), Instruc
     };
 
     validate_no_pin_change_in_progress(wallet_user)?;
-    validate_no_pin_recovery_in_progress(wallet_user)?;
-
-    Ok(())
+    validate_no_pin_recovery_in_progress(wallet_user)
 }
 
 impl ValidateInstruction for ChangePinStart {}
@@ -153,11 +157,7 @@ impl ValidateInstruction for DiscloseRecoveryCode {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_change_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
+        default_validations(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -173,21 +173,22 @@ impl ValidateInstruction for Sign {
     }
 }
 
+fn pin_change_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    validate_wallet_user_not_revoked(wallet_user)?;
+    validate_wallet_user_not_transferred(wallet_user)?;
+    validate_no_pin_recovery_in_progress(wallet_user)?;
+    validate_no_transfer_in_progress(wallet_user)
+}
+
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)
+        pin_change_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-        validate_no_transfer_in_progress(wallet_user)
+        pin_change_validations(wallet_user)
     }
 }
 
@@ -219,9 +220,7 @@ impl ValidateInstruction for PairTransfer {
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
-        validate_no_pin_recovery_in_progress(wallet_user)?;
-
-        Ok(())
+        validate_no_pin_recovery_in_progress(wallet_user)
     }
 }
 
@@ -248,39 +247,34 @@ impl ValidateInstruction for GetTransferStatus {
     }
 }
 
+fn transfer_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    validate_wallet_user_not_revoked(wallet_user)?;
+    validate_wallet_user_not_transferred(wallet_user)?;
+    validate_transfer_instruction(wallet_user)?;
+    validate_transfer_in_progress(wallet_user)
+}
+
 impl ValidateInstruction for ConfirmTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for SendWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for ReceiveWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
 impl ValidateInstruction for CompleteTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_wallet_user_not_revoked(wallet_user)?;
-        validate_wallet_user_not_transferred(wallet_user)?;
-        validate_transfer_instruction(wallet_user)?;
-        validate_transfer_in_progress(wallet_user)
+        transfer_validations(wallet_user)
     }
 }
 
@@ -793,8 +787,28 @@ impl HandleInstruction for DiscloseRecoveryCode {
                     .await?;
             }
             // This is a retried request
-            Some(stored) if recovery_code.as_str() == stored => {}
+            Some(stored) if &recovery_code == stored => {}
             _ => return Err(InstructionError::InvalidRecoveryCode),
+        }
+
+        // Verify that the recovery code is not denied, if it is, immediately revoke the wallet
+        if user_state
+            .repositories
+            .recovery_code_is_denied(&tx, recovery_code.clone())
+            .await?
+        {
+            user_state
+                .repositories
+                .revoke_wallet_users(
+                    &tx,
+                    vec![wallet_user.id],
+                    RevocationReason::AdminRequest,
+                    generators.generate(),
+                )
+                .await?;
+
+            tx.commit().await?;
+            return Err(InstructionError::RecoveryCodeIsDenied(recovery_code));
         }
 
         let transfer_session_id = if let Some(transfer_session_id) = user_state
@@ -1283,6 +1297,7 @@ where
         .recovery_code
         .as_ref()
         .expect("instruction validation fails if there is no recovery code")
+        .as_ref()
         != &transfer_session.destination_wallet_recovery_code
     {
         return Err(InstructionError::AccountTransferWalletsMismatch);
@@ -1570,6 +1585,9 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
+        wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
@@ -1619,6 +1637,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
@@ -1672,6 +1693,9 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
@@ -1735,6 +1759,9 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
+        wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
@@ -1782,12 +1809,18 @@ mod tests {
 
         let transfer_session_id_clone = Arc::clone(&transfer_session_id);
 
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(false));
         wallet_user_repo
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(true));
@@ -1825,8 +1858,11 @@ mod tests {
     async fn should_handle_disclose_recovery_code_for_pin_recovery() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -1892,8 +1928,11 @@ mod tests {
         };
 
         wallet_user.state = WalletUserState::Active;
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
         let wallet_user_repo = MockTransactionalWalletUserRepository::new();
 
         let result = instruction
@@ -1918,7 +1957,7 @@ mod tests {
     async fn should_fail_disclose_recovery_code_for_pin_recovery_when_wrong_recovery_code() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code = Some("wrong_recovery_code".to_string());
+        wallet_user.recovery_code = Some("wrong_recovery_code".to_owned().into());
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -1952,8 +1991,11 @@ mod tests {
     async fn should_fail_disclose_recovery_code_for_pin_recovery_when_wrong_pin_recovery_key() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code =
-            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
+        wallet_user.recovery_code = Some(
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                .to_owned()
+                .into(),
+        );
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -2243,6 +2285,7 @@ mod tests {
     fn test_instruction_validation_revoked_wallet(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::Revoked;
+        wallet_user.recovery_code_is_denied = true;
 
         for reason in RevocationReason::iter() {
             wallet_user.revocation_registration = Some(RevocationRegistration {
@@ -2253,7 +2296,7 @@ mod tests {
 
             assert_matches!(
                 result,
-                Err(InstructionValidationError::AccountIsRevoked(revocation_reason)) if revocation_reason == reason
+                Err(InstructionValidationError::AccountRevoked(data)) if data.revocation_reason == reason && !data.can_register_new_account
             );
         }
     }
@@ -2269,7 +2312,7 @@ mod tests {
         #[case] should_succeed: bool,
     ) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Transferred;
 
         let result = instruction.validate_instruction(&wallet_user);
@@ -2283,7 +2326,7 @@ mod tests {
     #[tokio::test]
     async fn validating_pair_transfer() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         let transfer_session_id = Uuid::new_v4();
         let app_version = Version::parse("1.0.0").unwrap();
 
@@ -2301,7 +2344,7 @@ mod tests {
         let app_version = Version::parse("1.0.0").unwrap();
 
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Transferring;
 
         let instruction = PairTransfer {
@@ -2339,7 +2382,7 @@ mod tests {
             source_wallet_user_id: Some(Uuid::new_v4()),
             destination_wallet_user_id: Uuid::new_v4(),
             transfer_session_id,
-            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_recovery_code: "recovery_code".to_owned(),
             destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
             state,
             encrypted_wallet_data: None,
@@ -2347,10 +2390,62 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_recovery_code_is_denied() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let wallet_user = wallet_user::mock::wallet_user_1();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::default();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_recovery_code_is_denied()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo
+            .expect_revoke_wallet_users()
+            .returning(|_, _, _, _| Ok(vec![]));
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+            app_version: "0.0.1".parse().unwrap(),
+        };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
+                    MockStatusListService::default(),
+                ),
+                &mock::RECOVERY_CODE_CONFIG,
+            )
+            .await;
+
+        assert!(wallet_user.recovery_code.is_none());
+        assert_matches!(
+            result,
+            Err(InstructionError::RecoveryCodeIsDenied(code))
+                // the recovery code from the test PID example credential
+                if code == "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_owned().into()
+        );
+    }
+
+    #[tokio::test]
     async fn should_handle_pair_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Active;
 
         let transfer_session_id = Uuid::new_v4();
@@ -2396,7 +2491,7 @@ mod tests {
     async fn should_handle_pair_transfer_should_fail_for_different_recovery_code() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         wallet_user.state = WalletUserState::Active;
 
         let transfer_session_id = Uuid::new_v4();
@@ -2501,7 +2596,7 @@ mod tests {
     async fn should_handle_pair_transfer_wrong_app_version() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2546,7 +2641,7 @@ mod tests {
     #[case(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }))]
     async fn validating_transfer_instruction(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
         instruction.validate_instruction(&wallet_user).unwrap();
     }
 
@@ -2570,7 +2665,7 @@ mod tests {
     async fn should_handle_cancel_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2614,7 +2709,7 @@ mod tests {
     async fn should_handle_cancel_transfer_when_session_is_created() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2657,7 +2752,7 @@ mod tests {
     async fn should_handle_cancel_transfer_when_already_completed() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Success);
@@ -2703,7 +2798,7 @@ mod tests {
     async fn should_handle_reset_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
@@ -2776,7 +2871,7 @@ mod tests {
     async fn should_handle_reset_transfer_illegal_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Success);
@@ -2818,7 +2913,7 @@ mod tests {
     async fn should_handle_get_transfer_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
 
@@ -2858,7 +2953,7 @@ mod tests {
     async fn should_handle_confirm_wallet_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Paired);
@@ -2899,7 +2994,7 @@ mod tests {
     async fn should_handle_confirm_wallet_payload_idempotency() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Confirmed);
@@ -2937,7 +3032,7 @@ mod tests {
     async fn should_handle_send_wallet_payload() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Confirmed);
@@ -2987,7 +3082,7 @@ mod tests {
     async fn should_handle_send_wallet_payload_idempotency() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3031,7 +3126,7 @@ mod tests {
     async fn should_handle_send_wallet_payload_for_illegal_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Canceled);
@@ -3076,7 +3171,7 @@ mod tests {
     async fn should_handle_receive_wallet_payload() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3118,7 +3213,7 @@ mod tests {
     async fn should_handle_receive_wallet_payload_for_illegal_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3160,7 +3255,7 @@ mod tests {
     async fn should_handle_receive_wallet_payload_for_empty_wallet_data() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Uploaded);
@@ -3199,7 +3294,7 @@ mod tests {
     async fn should_handle_complete_transfer() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3242,7 +3337,7 @@ mod tests {
     async fn should_handle_complete_transfer_when_already_canceled() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3287,7 +3382,7 @@ mod tests {
     async fn should_handle_complete_transfer_wrong_state() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);
@@ -3330,7 +3425,7 @@ mod tests {
     async fn should_handle_complete_transfer_idempotency() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.recovery_code = Some("recovery_code".to_owned().into());
 
         let transfer_session_id = Uuid::new_v4();
         let payload = random_string(32);

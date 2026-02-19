@@ -7,7 +7,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use wallet_account::RevocationCode;
-use wallet_account::messages::errors::RevocationReasonData;
+use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::registration::WalletCertificate;
 
 use crate::pin::change::State;
@@ -110,7 +110,7 @@ impl KeyedData for PinRecoveryData {
     const KEY: &'static str = "pin_recovery";
 }
 
-impl KeyedData for RevocationReasonData {
+impl KeyedData for AccountRevokedData {
     const KEY: &'static str = "revocation_reason";
 }
 

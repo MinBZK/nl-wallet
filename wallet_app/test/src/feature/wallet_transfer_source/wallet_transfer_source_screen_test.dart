@@ -170,7 +170,7 @@ void main() {
           RepositoryProvider<ConfigurationRepository>(
             create: (c) {
               final mock = MockConfigurationRepository();
-              when(mock.appConfiguration).thenAnswer(
+              when(mock.observeAppConfiguration).thenAnswer(
                 (_) => Stream.value(
                   const FlutterAppConfiguration(
                     backgroundLockTimeout: Duration.zero,
@@ -178,6 +178,7 @@ void main() {
                     idleWarningTimeout: Duration.zero,
                     staticAssetsBaseUrl: 'https://example.org/',
                     pidAttestationTypes: ['com.example.attestationType'],
+                    maintenanceWindow: null,
                     version: '1337',
                     environment: 'test',
                   ),

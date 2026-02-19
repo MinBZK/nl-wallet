@@ -589,8 +589,8 @@ where
                 }
                 return Err(error);
             }
-            Err(error @ IssuanceError::Instruction(InstructionError::AccountIsRevoked(reason))) => {
-                self.handle_wallet_revocation(reason).await;
+            Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
+                self.handle_wallet_revocation(data).await;
                 return Err(error);
             }
             _ => issuance_result?,
@@ -813,8 +813,8 @@ mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
-    use wallet_account::messages::errors::RevocationReasonData;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
     use wallet_configuration::wallet_config::PidAttributePaths;
@@ -1925,14 +1925,20 @@ mod tests {
     async fn test_accept_issuance_error_revoked_user_request() {
         // UserRequest revocation always resets the wallet, regardless of session type.
         let (wallet, error) = test_accept_pid_issuance_error_remote_key(
-            RemoteEcdsaKeyError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest)),
+            RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true,
+            })),
             true,
         )
         .await;
 
         assert_matches!(
             error,
-            IssuanceError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+            IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true,
+            }))
         );
         assert!(!wallet.has_registration());
         assert!(wallet.is_locked());
@@ -1954,7 +1960,7 @@ mod tests {
         // AdminRequest revocation stores the revocation reason without resetting the wallet.
         wallet
             .mut_storage()
-            .expect_insert_data::<RevocationReasonData>()
+            .expect_insert_data::<AccountRevokedData>()
             .times(1)
             .returning(|_| Ok(()));
 
@@ -1962,9 +1968,10 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client.expect_accept().return_once(|| {
                 Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(
-                    RemoteEcdsaKeyError::Instruction(InstructionError::AccountIsRevoked(
-                        RevocationReason::AdminRequest,
-                    )),
+                    RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                        revocation_reason: RevocationReason::AdminRequest,
+                        can_register_new_account: true,
+                    })),
                 ))))
             });
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
@@ -1983,7 +1990,10 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+            IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
+            }))
         );
         // After an AdminRequest revocation, the wallet remains registered.
         assert!(wallet.has_registration());

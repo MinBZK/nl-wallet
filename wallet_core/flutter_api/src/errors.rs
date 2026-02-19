@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use wallet::RevocationReason;
+use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
@@ -226,7 +226,7 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
 struct IssuanceErrorData {
     redirect_error: Option<AuthorizationErrorCode>,
     organization_name: Option<LocalizedStrings>,
-    revocation_reason: Option<RevocationReason>,
+    revocation_data: Option<AccountRevokedData>,
 }
 
 impl FlutterApiErrorFields for IssuanceError {
@@ -280,17 +280,17 @@ impl FlutterApiErrorFields for IssuanceError {
             _ => None,
         };
 
-        let revocation_reason = if let Self::Instruction(InstructionError::AccountIsRevoked(reason)) = self {
-            Some(*reason)
+        let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
+            Some(*data)
         } else {
             None
         };
 
-        if redirect_error.is_some() || organization_name.is_some() || revocation_reason.is_some() {
+        if redirect_error.is_some() || organization_name.is_some() || revocation_data.is_some() {
             serde_json::to_value(IssuanceErrorData {
                 redirect_error,
                 organization_name,
-                revocation_reason,
+                revocation_data,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -306,7 +306,7 @@ struct DisclosureErrorData<'a> {
     can_retry: Option<bool>,
     return_url: Option<&'a Url>,
     organization_name: Option<LocalizedStrings>,
-    revocation_reason: Option<RevocationReason>,
+    revocation_data: Option<AccountRevokedData>,
 }
 
 fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApiErrorType> {
@@ -377,8 +377,8 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             _ => None,
         };
-        let revocation_reason = if let Self::Instruction(InstructionError::AccountIsRevoked(reason)) = self {
-            Some(*reason)
+        let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
+            Some(*data)
         } else {
             None
         };
@@ -389,7 +389,7 @@ impl FlutterApiErrorFields for DisclosureError {
                 can_retry,
                 return_url,
                 organization_name,
-                revocation_reason,
+                revocation_data,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -463,7 +463,7 @@ impl From<&AccountProviderError> for FlutterApiErrorType {
 impl From<&InstructionError> for FlutterApiErrorType {
     fn from(value: &InstructionError) -> Self {
         match value {
-            InstructionError::AccountIsRevoked(_) => FlutterApiErrorType::Revoked,
+            InstructionError::AccountRevoked(_) => FlutterApiErrorType::Revoked,
             InstructionError::ServerError(e) => FlutterApiErrorType::from(e),
             InstructionError::InstructionValidation => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
@@ -594,6 +594,7 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
+    use wallet::AccountRevokedData;
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
     use wallet::errors::DigidError;
@@ -670,9 +671,15 @@ mod tests {
         serde_json::Value::Null
     )]
     #[case(
-        IssuanceError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest)),
+        IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_reason": "user_request"})
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
     )]
     fn test_pid_issuance_error<E>(
         #[case] source_error: E,

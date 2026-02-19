@@ -4,7 +4,7 @@ use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
-use wallet_account::messages::errors::RevocationReasonData;
+use wallet_account::messages::errors::AccountRevokedData;
 
 use crate::Wallet;
 use crate::digid::DigidClient;
@@ -76,7 +76,7 @@ where
             .storage
             .read()
             .await
-            .fetch_data::<RevocationReasonData>()
+            .fetch_data::<AccountRevokedData>()
             .await?
             .is_some()
         {

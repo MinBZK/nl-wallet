@@ -17,5 +17,5 @@ find "$BASE_DIR" -type f -name 'values.yaml' -print0 |
   while IFS= read -r -d '' values_file; do
     chart_dir="$(dirname -- "$values_file")"
     basename -- "$chart_dir"
-    "$GENERATOR" -r "$chart_dir/README.md" -v "$values_file"
+    $GENERATOR -r "$chart_dir/README.md" -v "$values_file"
   done

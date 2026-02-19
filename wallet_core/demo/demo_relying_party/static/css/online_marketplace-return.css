@@ -1,0 +1,31 @@
+@import url("./online_marketplace.css");
+@import url("../../../demo_utils/static/css/title_bar.css");
+@import url("../../../demo_utils/static/css/page.css");
+@import url("./search.css");
+@import url("./products.css");
+
+header h1::before {
+  border-radius: 4.36px;
+}
+
+@media only screen and (min-width: 1145px) {
+  header h1::before {
+    border-radius: 6px;
+  }
+}
+
+@media only screen and (min-width: 1145px) {
+  main {
+    gap: 32px;
+  }
+}
+
+.products {
+  row-gap: 32px;
+}
+
+@media only screen and (min-width: 1145px) {
+  .notification {
+    padding: 16px 24px;
+  }
+}

@@ -54,7 +54,7 @@ where
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 #[derive(FromQueryResult, DerivePartialModel)]
@@ -78,7 +78,7 @@ where
         .into_partial_model()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(blocked_query_result.map(|query_result| query_result.is_blocked))
 }
@@ -105,7 +105,7 @@ where
         .filter(wallet_user_key::Column::BatchId.in_subquery(select_batch_id(wallet_user_id, key_identifier)))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -122,7 +122,7 @@ where
         .filter(wallet_user_key::Column::BatchId.in_subquery(select_batch_id(wallet_user_id, key_identifier)))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -137,7 +137,7 @@ where
         .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -151,7 +151,7 @@ where
         .filter(wallet_user_key::Column::WalletUserId.is_in(wallet_user_ids))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -177,7 +177,7 @@ where
         .into_tuple::<(String, Vec<u8>, Vec<u8>)>()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .map_err(PersistenceError::Execution)?
         .into_iter()
         .map(|(id, key_data, public_key)| {
             Ok((
@@ -198,7 +198,7 @@ where
         .filter(wallet_user_key::Column::WalletUserId.eq(from_wallet_user_id))
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }

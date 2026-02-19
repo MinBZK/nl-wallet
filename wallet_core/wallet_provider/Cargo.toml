@@ -26,7 +26,7 @@ required-features = ["hsm_test"]
 [features]
 default = []
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
-test_internal_ui = ["utoipa-swagger-ui/axum", "token_status_list/axum"]
+test_internal_ui = ["token_status_list/axum", "utoipa-swagger-ui/axum"]
 # Allow software key attestation_datas coming from the android emulator.
 # This is DANGEROUS and should not be used in any production environment.
 allow_android_emulator_keys = ["android_attest/allow_emulator_keys"]
@@ -72,7 +72,7 @@ tower-http = { workspace = true, features = ["trace", "decompression-zstd"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 uuid = { workspace = true, features = ["serde", "v4", "v7"] }
-utoipa.workspace = true
+utoipa = { workspace = true, features = ["chrono"] }
 utoipa-axum.workspace = true
 
 rand_core = { workspace = true, optional = true }
@@ -91,7 +91,7 @@ status_lists = { path = "../lib/status_lists", features = ["axum"] }
 utils = { path = "../lib/utils" }
 wallet_account = { path = "wallet_account", features = ["server"] }
 wallet_provider_database_settings.path = "database_settings"
-wallet_provider_domain.path = "domain"
+wallet_provider_domain = { path = "domain", features = ["utoipa"] }
 wallet_provider_persistence.path = "persistence"
 wallet_provider_service.path = "service"
 

@@ -291,10 +291,10 @@ mod tests {
     use jwt::SignedJwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
+    use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::errors::PinTimeoutData;
     use wallet_account::messages::errors::RevocationReason;
-    use wallet_account::messages::errors::RevocationReasonData;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::InstructionResultClaims;
@@ -724,7 +724,10 @@ mod tests {
             .expect_instruction()
             .return_once(|_, _: Instruction<CheckPin>| {
                 Err(AccountProviderResponseError::Account(
-                    AccountError::AccountRevoked(RevocationReason::UserRequest),
+                    AccountError::AccountRevoked(AccountRevokedData {
+                        revocation_reason: RevocationReason::UserRequest,
+                        can_register_new_account: true,
+                    }),
                     None,
                 )
                 .into())
@@ -737,7 +740,10 @@ mod tests {
 
         assert_matches!(
             error,
-            WalletUnlockError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+            WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true
+            }))
         );
         // UserRequest revocation resets the wallet to its initial state.
         assert!(!wallet.registration.is_registered());
@@ -762,7 +768,10 @@ mod tests {
             .expect_instruction()
             .return_once(|_, _: Instruction<CheckPin>| {
                 Err(AccountProviderResponseError::Account(
-                    AccountError::AccountRevoked(RevocationReason::AdminRequest),
+                    AccountError::AccountRevoked(AccountRevokedData {
+                        revocation_reason: RevocationReason::AdminRequest,
+                        can_register_new_account: true,
+                    }),
                     None,
                 )
                 .into())
@@ -775,7 +784,10 @@ mod tests {
 
         assert_matches!(
             error,
-            WalletUnlockError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+            WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
+            }))
         );
         // AdminRequest revocation stores the reason in the database without resetting the wallet.
         assert!(wallet.registration.is_registered());
@@ -784,13 +796,14 @@ mod tests {
             .storage
             .read()
             .await
-            .fetch_data::<RevocationReasonData>()
+            .fetch_data::<AccountRevokedData>()
             .await
             .unwrap();
         assert_matches!(
             revocation_data,
-            Some(RevocationReasonData {
-                revocation_reason: RevocationReason::AdminRequest
+            Some(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
             })
         );
     }

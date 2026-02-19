@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crypto::utils::random_bytes;
 use crypto::utils::random_string;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::entity::wallet_user;
@@ -33,7 +34,7 @@ where
         .expect("Could not fetch wallet user")
 }
 
-pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: &str)
+pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: &WalletId)
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -59,7 +60,10 @@ pub struct InstructionChallengeResult {
     pub expiration_date_time: DateTime<Utc>,
 }
 
-pub async fn find_instruction_challenges_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Vec<InstructionChallengeResult>
+pub async fn find_instruction_challenges_by_wallet_id<S, T>(
+    db: &T,
+    wallet_id: &WalletId,
+) -> Vec<InstructionChallengeResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -77,7 +81,7 @@ where
                 Query::select()
                     .column(wallet_user::Column::Id)
                     .from(wallet_user::Entity)
-                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id.as_ref()))
                     .to_owned(),
             ),
         )
@@ -92,10 +96,10 @@ where
         .expect("Could not fetch instruction challenges")
 }
 
-pub async fn create_test_user(vendor: WalletDeviceVendor) -> (Db, Uuid, String, wallet_user::Model) {
+pub async fn create_test_user(vendor: WalletDeviceVendor) -> (Db, Uuid, WalletId, wallet_user::Model) {
     let db = db_from_env().await.expect("Could not connect to database");
 
-    let wallet_id = random_string(32);
+    let wallet_id: WalletId = random_string(32).into();
 
     let wallet_user_id = create_wallet_user_with_random_keys(&db, vendor, wallet_id.clone()).await;
 

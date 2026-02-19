@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -22,6 +21,7 @@ use sea_orm::prelude::Expr;
 use sea_orm::sea_query::IntoIden;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
+use sea_orm::sea_query::SelectStatement;
 use sea_orm::sea_query::SimpleExpr;
 use uuid::Uuid;
 
@@ -32,16 +32,20 @@ use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::RevocationRegistration;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
+use crate::entity::recovery_code;
 use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
@@ -49,18 +53,76 @@ use crate::entity::wallet_user_instruction_challenge;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-pub async fn list_wallet_ids<S, T>(db: &T) -> Result<Vec<String>>
+fn recovery_code_is_denied_statement() -> SelectStatement {
+    Query::select()
+        .column(recovery_code::Column::IsDenied)
+        .from(recovery_code::Entity)
+        .and_where(
+            Expr::col((recovery_code::Entity, recovery_code::Column::RecoveryCode))
+                .eq(Expr::col((wallet_user::Entity, wallet_user::Column::RecoveryCode))),
+        )
+        .and_where(Expr::col((recovery_code::Entity, recovery_code::Column::IsDenied)).eq(true))
+        .take()
+}
+
+#[derive(FromQueryResult)]
+#[sea_orm(entity = "wallet_user::Entity")]
+pub struct WalletUserStateModel {
+    pub wallet_id: String,
+    pub state: String,
+    pub revocation_reason: Option<String>,
+    pub revocation_date_time: Option<DateTimeWithTimeZone>,
+    pub recovery_code: Option<String>,
+    pub recovery_code_is_denied: bool,
+}
+
+// Note: this function is not optimized for production use, as it loads all wallets at once and does not implement
+// pagination. It is only intended for demo, test and debugging purposes.
+pub async fn list_wallets<S, T>(db: &T) -> Result<Vec<WalletUserIsRevoked>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user::Entity::find()
+    Ok(wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::WalletId)
-        .into_tuple()
+        .column(wallet_user::Column::State)
+        .column(wallet_user::Column::RevocationReason)
+        .column(wallet_user::Column::RevocationDateTime)
+        .column(wallet_user::Column::RecoveryCode)
+        .expr_as(
+            Expr::exists(recovery_code_is_denied_statement()),
+            "recovery_code_is_denied",
+        )
+        .into_model::<WalletUserStateModel>()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)?
+        .into_iter()
+        .map(|model| {
+            let state = model
+                .state
+                .parse()
+                .expect("parsing the wallet user state from the database should always succeed");
+
+            let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
+                (Some(reason), Some(date_time)) => Some(RevocationRegistration {
+                    reason: reason.parse().unwrap(),
+                    date_time: date_time.into(),
+                }),
+                (None, None) => None,
+                _ => panic!("every reason should have a registered datetime"),
+            };
+
+            WalletUserIsRevoked {
+                wallet_id: model.wallet_id.into(),
+                recovery_code: model.recovery_code.map(Into::into),
+                state,
+                revocation_registration,
+                can_register_new_wallet: !model.recovery_code_is_denied,
+            }
+        })
+        .collect())
 }
 
 pub async fn list_wallet_user_ids<S, T>(db: &T) -> Result<Vec<Uuid>>
@@ -74,7 +136,7 @@ where
         .into_tuple()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<Uuid>
@@ -99,7 +161,7 @@ where
             }
             .insert(connection)
             .await
-            .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+            .map_err(PersistenceError::Execution)?;
 
             (Some(id), None)
         }
@@ -129,7 +191,7 @@ where
             }
             .insert(connection)
             .await
-            .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+            .map_err(PersistenceError::Execution)?;
 
             (None, Some(id))
         }
@@ -137,7 +199,7 @@ where
 
     wallet_user::ActiveModel {
         id: Set(user_id),
-        wallet_id: Set(user.wallet_id),
+        wallet_id: Set(user.wallet_id.into()),
         hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
         encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.data),
         pin_pubkey_iv: Set(user.encrypted_pin_pubkey.iv.0),
@@ -157,7 +219,7 @@ where
     }
     .insert(connection)
     .await
-    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+    .map_err(PersistenceError::Execution)?;
 
     Ok(user_id)
 }
@@ -186,11 +248,12 @@ struct WalletUserJoinedModel {
     revocation_reason: Option<String>,
     revocation_date_time: Option<DateTimeWithTimeZone>,
     recovery_code: Option<String>,
+    recovery_code_is_denied: bool,
 }
 
 /// Find a user by its `wallet_id` and return it, if it exists.
 /// Note that this function will also return blocked users.
-pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
+pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &WalletId) -> Result<WalletUserQueryResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -211,6 +274,10 @@ where
         .column(wallet_user::Column::RevocationReason)
         .column(wallet_user::Column::RevocationDateTime)
         .column(wallet_user::Column::RecoveryCode)
+        .expr_as(
+            Expr::exists(recovery_code_is_denied_statement()),
+            "recovery_code_is_denied",
+        )
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,
@@ -240,11 +307,11 @@ where
             JoinType::LeftJoin,
             wallet_user::Relation::WalletUserAndroidAttestation.def(),
         )
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
         .into_model::<WalletUserJoinedModel>()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .map_err(PersistenceError::Execution)?
     else {
         return Ok(QueryResult::NotFound);
     };
@@ -318,7 +385,7 @@ where
 
     let wallet_user = WalletUser {
         id: model.id,
-        wallet_id: model.wallet_id,
+        wallet_id: model.wallet_id.into(),
         encrypted_pin_pubkey,
         encrypted_previous_pin_pubkey,
         hw_pubkey: VerifyingKey::from_public_key_der(&model.hw_pubkey_der).unwrap(),
@@ -330,7 +397,8 @@ where
         state,
         revocation_code_hmac: model.revocation_code_hmac,
         revocation_registration,
-        recovery_code: model.recovery_code.clone(),
+        recovery_code: model.recovery_code.map(Into::into),
+        recovery_code_is_denied: model.recovery_code_is_denied,
     };
 
     Ok(QueryResult::Found(Box::new(wallet_user)))
@@ -338,8 +406,8 @@ where
 
 pub async fn find_wallet_user_id_by_wallet_ids<S, T>(
     db: &T,
-    wallet_ids: &HashSet<String>,
-) -> Result<HashMap<String, Uuid>>
+    wallet_ids: impl IntoIterator<Item = &String>,
+) -> Result<HashMap<WalletId, Uuid>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -352,9 +420,9 @@ where
         .into_tuple::<(Uuid, String)>()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .map_err(PersistenceError::Execution)?
         .into_iter()
-        .map(|(wallet_user_id, wallet_id)| (wallet_id, wallet_user_id))
+        .map(|(wallet_user_id, wallet_id)| (wallet_id.into(), wallet_user_id))
         .collect())
 }
 
@@ -373,7 +441,7 @@ where
         .into_tuple::<Uuid>()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result {
         Some(wallet_user_id) => Ok(QueryResult::Found(Box::new(wallet_user_id))),
@@ -381,7 +449,22 @@ where
     }
 }
 
-pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn find_wallet_user_ids_by_recovery_code<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<Vec<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .filter(wallet_user::Column::RecoveryCode.eq(recovery_code.as_ref()))
+        .into_tuple::<Uuid>()
+        .all(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)
+}
+
+pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -393,7 +476,7 @@ where
                 Query::select()
                     .column(wallet_user::Column::Id)
                     .from(wallet_user::Entity)
-                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id.as_ref()))
                     .to_owned(),
             ),
         )
@@ -403,14 +486,14 @@ where
     let builder = conn.get_database_backend();
     conn.execute(builder.build(&stmt))
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
 
 pub async fn update_instruction_challenge_and_sequence_number<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     instruction_challenge: InstructionChallenge,
     instruction_sequence_number: u64,
 ) -> Result<()>
@@ -436,10 +519,11 @@ where
                 .expr(Expr::value(instruction_challenge.bytes))
                 .expr(Expr::value(instruction_challenge.expiration_date_time))
                 .from(wallet_user::Entity)
-                .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id.as_ref()))
                 .to_owned(),
         )
-        .map_err(|e| PersistenceError::Execution(e.into()))?
+        // this only occurs if the number of selected values do not match the number of columns
+        .expect("number of columns should match number of values")
         .on_conflict(
             OnConflict::column(wallet_user_instruction_challenge::Column::WalletUserId)
                 .update_columns([
@@ -454,14 +538,14 @@ where
     let builder = conn.get_database_backend();
     conn.execute(builder.build(&stmt))
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
 
 pub async fn update_instruction_sequence_number<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     instruction_sequence_number: u64,
 ) -> Result<()>
 where
@@ -481,7 +565,7 @@ where
 
 pub async fn register_unsuccessful_pin_entry<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     is_blocked: bool,
     datetime: DateTime<Utc>,
 ) -> Result<()>
@@ -503,7 +587,7 @@ where
     .await
 }
 
-pub async fn reset_unsuccessful_pin_entries<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn reset_unsuccessful_pin_entries<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -514,7 +598,7 @@ where
 
 pub async fn change_pin<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     new_encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     user_state: WalletUserState,
 ) -> Result<()>
@@ -549,7 +633,7 @@ where
     update_fields(db, wallet_id, fields).await
 }
 
-pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -559,17 +643,17 @@ where
         .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
         .filter(
             wallet_user::Column::WalletId
-                .eq(wallet_id)
+                .eq(wallet_id.as_ref())
                 .and(wallet_user::Column::EncryptedPreviousPinPubkeySec1.is_not_null())
                 .and(wallet_user::Column::PreviousPinPubkeyIv.is_not_null()),
         )
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
-pub async fn rollback_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn rollback_pin_change<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -587,19 +671,19 @@ where
         .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
         .filter(
             wallet_user::Column::WalletId
-                .eq(wallet_id)
+                .eq(wallet_id.as_ref())
                 .and(wallet_user::Column::EncryptedPreviousPinPubkeySec1.is_not_null())
                 .and(wallet_user::Column::PreviousPinPubkeyIv.is_not_null()),
         )
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 async fn update_pin_entries<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     pin_entries: SimpleExpr,
     datetime: Option<DateTime<Utc>>,
     is_blocked: bool,
@@ -619,14 +703,14 @@ where
     query
         .col_expr(wallet_user::Column::PinEntries, pin_entries)
         .col_expr(wallet_user::Column::LastUnsuccessfulPin, Expr::value(datetime))
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
-async fn update_fields<S, T, C>(db: &T, wallet_id: &str, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
+async fn update_fields<S, T, C>(db: &T, wallet_id: &WalletId, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -637,16 +721,16 @@ where
         .fold(wallet_user::Entity::update_many(), |stmt, col_value| {
             stmt.col_expr(col_value.0, col_value.1)
         })
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
         .exec(db.connection())
         .await
         .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(PersistenceError::Execution)
 }
 
 pub async fn update_apple_assertion_counter<S, T>(
     db: &T,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     assertion_counter: AssertionCounter,
 ) -> Result<()>
 where
@@ -663,13 +747,13 @@ where
                 Query::select()
                     .column(wallet_user::Column::AppleAttestationId)
                     .from(wallet_user::Entity)
-                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id.as_ref()))
                     .to_owned(),
             ),
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }
@@ -700,7 +784,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -727,7 +811,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -736,21 +820,24 @@ where
     }
 }
 
-pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
+pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &WalletId, recovery_code: RecoveryCode) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     let result = wallet_user::Entity::update_many()
-        .col_expr(wallet_user::Column::RecoveryCode, Expr::value(recovery_code))
+        .col_expr(
+            wallet_user::Column::RecoveryCode,
+            Expr::value(recovery_code.to_string()),
+        )
         .filter(
             wallet_user::Column::WalletId
-                .eq(wallet_id)
+                .eq(wallet_id.as_ref())
                 .and(wallet_user::Column::RecoveryCode.is_null()),
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(PersistenceError::Execution)?;
 
     match result.rows_affected {
         0 => Err(PersistenceError::NoRowsUpdated),
@@ -759,23 +846,22 @@ where
     }
 }
 
-pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<bool>
+pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<bool>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let count: u64 = wallet_user::Entity::find()
-        .filter(
-            wallet_user::Column::RecoveryCode
-                .eq(recovery_code)
-                .and(wallet_user::Column::State.is_not_in([
+    let count: u64 =
+        wallet_user::Entity::find()
+            .filter(wallet_user::Column::RecoveryCode.eq(recovery_code.as_ref()).and(
+                wallet_user::Column::State.is_not_in([
                     WalletUserState::Transferred.to_string(),
                     WalletUserState::Revoked.to_string(),
-                ])),
-        )
-        .count(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+                ]),
+            ))
+            .count(db.connection())
+            .await
+            .map_err(PersistenceError::Execution)?;
 
     Ok(count > 1)
 }
@@ -812,7 +898,7 @@ where
         )
         .exec(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+        .map_err(PersistenceError::Execution)?;
 
     Ok(())
 }

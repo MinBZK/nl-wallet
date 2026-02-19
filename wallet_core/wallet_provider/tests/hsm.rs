@@ -13,7 +13,7 @@ async fn generate_key_and_sign() {
     let test_case = TestCase::new("wallet_provider.toml", "generate_key_and_sign");
     let (hsm, identifier) = test_case.test_params();
 
-    let wallet_id: WalletId = String::from("wallet_user_1");
+    let wallet_id: WalletId = "wallet_user_1".to_owned().into();
     let public_key = hsm.generate_key(&wallet_id, identifier).await.unwrap();
 
     let data = random_bytes(32);
