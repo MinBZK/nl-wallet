@@ -293,6 +293,8 @@ mod tests {
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::errors::PinTimeoutData;
+    use wallet_account::messages::errors::RevocationReason;
+    use wallet_account::messages::errors::RevocationReasonData;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::InstructionResultClaims;
@@ -302,6 +304,7 @@ mod tests {
     use crate::pin::key::PinKey;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
+    use crate::storage::StorageState;
 
     use super::super::WalletRegistration;
     use super::super::test::TestWalletInMemoryStorage;
@@ -704,6 +707,91 @@ mod tests {
         assert_matches!(
             error,
             WalletUnlockError::Instruction(InstructionError::StoreInstructionSequenceNumber(_))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_revoked_user_request() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.lock();
+
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+        account_provider_client
+            .expect_instruction_challenge()
+            .return_once(|_, _| Ok(crypto::utils::random_bytes(32)));
+        account_provider_client
+            .expect_instruction()
+            .return_once(|_, _: Instruction<CheckPin>| {
+                Err(AccountProviderResponseError::Account(
+                    AccountError::AccountRevoked(RevocationReason::UserRequest),
+                    None,
+                )
+                .into())
+            });
+
+        let error = wallet
+            .unlock(PIN.to_owned())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+        );
+        // UserRequest revocation resets the wallet to its initial state.
+        assert!(!wallet.registration.is_registered());
+        assert!(wallet.is_locked());
+        assert_matches!(
+            wallet.storage.read().await.state().await.unwrap(),
+            StorageState::Uninitialized
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_revoked_admin_request() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.lock();
+
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+        account_provider_client
+            .expect_instruction_challenge()
+            .return_once(|_, _| Ok(crypto::utils::random_bytes(32)));
+        account_provider_client
+            .expect_instruction()
+            .return_once(|_, _: Instruction<CheckPin>| {
+                Err(AccountProviderResponseError::Account(
+                    AccountError::AccountRevoked(RevocationReason::AdminRequest),
+                    None,
+                )
+                .into())
+            });
+
+        let error = wallet
+            .unlock(PIN.to_owned())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+        );
+        // AdminRequest revocation stores the reason in the database without resetting the wallet.
+        assert!(wallet.registration.is_registered());
+
+        let revocation_data = wallet
+            .storage
+            .read()
+            .await
+            .fetch_data::<RevocationReasonData>()
+            .await
+            .unwrap();
+        assert_matches!(
+            revocation_data,
+            Some(RevocationReasonData {
+                revocation_reason: RevocationReason::AdminRequest
+            })
         );
     }
 }

@@ -148,6 +148,7 @@ mod tests {
 
     use crate::PidIssuancePurpose;
     use crate::attestation::AttestationPresentation;
+    use crate::errors::InstructionError;
     use crate::storage::StorageState;
     use crate::wallet::Session;
     use crate::wallet::test::TestWalletInMemoryStorage;
@@ -237,5 +238,85 @@ mod tests {
             .expect_err("resetting the Wallet should have resulted in an error");
 
         assert_matches!(error, ResetError::NotRegistered);
+    }
+
+    #[tokio::test]
+    async fn test_check_result_for_wallet_revocation_ok() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // An Ok result should be passed through unchanged.
+        let result = wallet
+            .check_result_for_wallet_revocation(Ok::<u32, InstructionError>(42))
+            .await;
+
+        assert_matches!(result, Ok(42));
+        assert!(wallet.registration.is_registered());
+    }
+
+    #[tokio::test]
+    async fn test_check_result_for_wallet_revocation_other_error() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // A non-revocation error should be passed through unchanged without affecting the wallet.
+        let result = wallet
+            .check_result_for_wallet_revocation(Err::<(), _>(InstructionError::Blocked))
+            .await;
+
+        assert_matches!(result, Err(InstructionError::Blocked));
+        assert!(wallet.registration.is_registered());
+    }
+
+    #[tokio::test]
+    async fn test_check_result_for_wallet_revocation_user_request() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // A UserRequest revocation should reset the wallet to its initial (unregistered) state.
+        let result = wallet
+            .check_result_for_wallet_revocation(Err::<(), _>(InstructionError::AccountIsRevoked(
+                RevocationReason::UserRequest,
+            )))
+            .await;
+
+        assert_matches!(
+            result,
+            Err(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+        );
+        assert!(!wallet.registration.is_registered());
+        assert_matches!(
+            wallet.storage.read().await.state().await.unwrap(),
+            StorageState::Uninitialized
+        );
+    }
+
+    #[tokio::test]
+    async fn test_check_result_for_wallet_revocation_admin_request() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // An AdminRequest revocation should store the revocation reason without resetting the wallet.
+        let result = wallet
+            .check_result_for_wallet_revocation(Err::<(), _>(InstructionError::AccountIsRevoked(
+                RevocationReason::AdminRequest,
+            )))
+            .await;
+
+        assert_matches!(
+            result,
+            Err(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+        );
+        assert!(wallet.registration.is_registered());
+
+        let revocation_data = wallet
+            .storage
+            .read()
+            .await
+            .fetch_data::<RevocationReasonData>()
+            .await
+            .unwrap();
+        assert_matches!(
+            revocation_data,
+            Some(RevocationReasonData {
+                revocation_reason: RevocationReason::AdminRequest
+            })
+        );
     }
 }

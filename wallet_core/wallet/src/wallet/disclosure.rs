@@ -1030,6 +1030,8 @@ mod tests {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
+    use wallet_account::messages::errors::RevocationReason;
+    use wallet_account::messages::errors::RevocationReasonData;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
@@ -2998,5 +3000,130 @@ mod tests {
         );
 
         wallet.mut_storage().checkpoint();
+    }
+
+    #[tokio::test]
+    async fn test_accept_disclosure_error_revoked_user_request() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        wallet.session = Some(session);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        // UserRequest revocation calls reset_to_initial_state(), which clears storage.
+        wallet.mut_storage().expect_clear().times(1).return_const(());
+
+        let Some(Session::Disclosure(session)) = &mut wallet.session else {
+            unreachable!();
+        };
+
+        session.protocol_state.expect_disclose().times(1).return_once(move |_| {
+            let session = setup_disclosure_session_verifier_certificate(
+                verifier_certificate,
+                default_pid_credential_requests(CredentialFormat::MsoMdoc),
+            );
+
+            Err((session, wallet_revocation_error(RevocationReason::UserRequest)))
+        });
+
+        let error = wallet
+            .accept_disclosure(&[0], PIN.to_string())
+            .await
+            .expect_err("accepting disclosure should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+        );
+
+        // After a UserRequest revocation, the wallet is fully reset: unregistered and locked.
+        assert!(!wallet.registration.is_registered());
+        assert!(wallet.is_locked());
+        // The disclosure session is not placed back after a revocation.
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_accept_disclosure_error_revoked_admin_request() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        wallet.session = Some(session);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        // AdminRequest revocation stores the reason without resetting the wallet.
+        wallet
+            .mut_storage()
+            .expect_insert_data::<RevocationReasonData>()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let Some(Session::Disclosure(session)) = &mut wallet.session else {
+            unreachable!();
+        };
+
+        session.protocol_state.expect_disclose().times(1).return_once(move |_| {
+            let session = setup_disclosure_session_verifier_certificate(
+                verifier_certificate,
+                default_pid_credential_requests(CredentialFormat::MsoMdoc),
+            );
+
+            Err((session, wallet_revocation_error(RevocationReason::AdminRequest)))
+        });
+
+        let error = wallet
+            .accept_disclosure(&[0], PIN.to_string())
+            .await
+            .expect_err("accepting disclosure should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+        );
+        // After an AdminRequest revocation, the wallet remains registered.
+        assert!(wallet.registration.is_registered());
+        // The disclosure session is not placed back after a revocation.
+        assert!(wallet.session.is_none());
+    }
+
+    /// Returns a disclosure error that simulates the WP having revoked our wallet.
+    fn wallet_revocation_error(reason: RevocationReason) -> disclosure_session::DisclosureError<VpSessionError> {
+        disclosure_session::DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
+            mdoc::Error::Cose(CoseError::Signing(Box::new(RemoteEcdsaKeyError::Instruction(
+                InstructionError::AccountIsRevoked(reason),
+            )))),
+        )))
     }
 }

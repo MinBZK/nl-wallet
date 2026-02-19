@@ -813,6 +813,8 @@ mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use wallet_account::messages::errors::RevocationReason;
+    use wallet_account::messages::errors::RevocationReasonData;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
     use wallet_configuration::wallet_config::PidAttributePaths;
@@ -1917,5 +1919,74 @@ mod tests {
         let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator, Some(&pid_config));
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![Some(attestation_id)], identities);
+    }
+
+    #[tokio::test]
+    async fn test_accept_issuance_error_revoked_user_request() {
+        // UserRequest revocation always resets the wallet, regardless of session type.
+        let (wallet, error) = test_accept_pid_issuance_error_remote_key(
+            RemoteEcdsaKeyError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest)),
+            true,
+        )
+        .await;
+
+        assert_matches!(
+            error,
+            IssuanceError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest))
+        );
+        assert!(!wallet.has_registration());
+        assert!(wallet.is_locked());
+        assert_matches!(
+            wallet.storage.read().await.state().await.unwrap(),
+            StorageState::Uninitialized
+        );
+    }
+
+    #[tokio::test]
+    async fn test_accept_issuance_error_revoked_admin_request() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        // AdminRequest revocation stores the revocation reason without resetting the wallet.
+        wallet
+            .mut_storage()
+            .expect_insert_data::<RevocationReasonData>()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let pid_issuer = {
+            let mut client = MockIssuanceSession::new();
+            client.expect_accept().return_once(|| {
+                Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(
+                    RemoteEcdsaKeyError::Instruction(InstructionError::AccountIsRevoked(
+                        RevocationReason::AdminRequest,
+                    )),
+                ))))
+            });
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+            client
+        };
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            Some(PidIssuancePurpose::Enrollment),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            pid_issuer,
+        )));
+
+        let error = wallet
+            .accept_issuance(PIN.to_owned())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            IssuanceError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::AdminRequest))
+        );
+        // After an AdminRequest revocation, the wallet remains registered.
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 }

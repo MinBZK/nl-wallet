@@ -286,7 +286,7 @@ impl FlutterApiErrorFields for IssuanceError {
             None
         };
 
-        if redirect_error.is_some() || organization_name.is_some() {
+        if redirect_error.is_some() || organization_name.is_some() || revocation_reason.is_some() {
             serde_json::to_value(IssuanceErrorData {
                 redirect_error,
                 organization_name,
@@ -592,10 +592,12 @@ mod tests {
     use std::error::Error;
 
     use rstest::rstest;
-
     use serde_json::json;
+
+    use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
     use wallet::errors::DigidError;
+    use wallet::errors::InstructionError;
     use wallet::errors::IssuanceError;
     use wallet::errors::RecoveryCodeError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
@@ -666,6 +668,11 @@ mod tests {
         }),
         FlutterApiErrorType::WrongDigid,
         serde_json::Value::Null
+    )]
+    #[case(
+        IssuanceError::Instruction(InstructionError::AccountIsRevoked(RevocationReason::UserRequest)),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_reason": "user_request"})
     )]
     fn test_pid_issuance_error<E>(
         #[case] source_error: E,
