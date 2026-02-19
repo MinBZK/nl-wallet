@@ -43,18 +43,25 @@ const DEFER: &str = "defer";
 /// Setting this macro on an `impl` block is the same as setting this on all `fn`s in the impl block.
 #[proc_macro_attribute]
 pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let item = syn::parse::<Item>(item);
+    match syn::parse::<Item>(item) {
+        Ok(item) => sentry_capture_error_item(item).into(),
+        Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
+    }
+}
+
+/// Generate code for a parsed [`Item`].
+/// Returns a [`TokenStream`] with the transformed item, or a compile error for unsupported item kinds.
+fn sentry_capture_error_item(item: Item) -> TokenStream {
     match item {
-        Ok(Item::Fn(item_fn)) => sentry_capture_error_fn(item_fn).into(),
-        Ok(Item::Impl(item_impl)) => sentry_capture_error_impl_block(item_impl).into(),
-        Ok(item) => {
+        Item::Fn(item_fn) => sentry_capture_error_fn(item_fn),
+        Item::Impl(item_impl) => sentry_capture_error_impl_block(item_impl),
+        item => {
             let mut token_stream = Error::new(item.span(), "attribute macro `sentry_capture_error` not supported here")
                 .into_compile_error();
             // Copy the original item, to prevent new/other compilation errors
             item.to_tokens(&mut token_stream);
-            token_stream.into()
+            token_stream
         }
-        Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
     }
 }
 
@@ -509,4 +516,196 @@ fn path_equals(path: &Path, expected: &str) -> bool {
     path.get_ident()
         .map(|ident| ident.to_string().eq(expected))
         .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use syn::DeriveInput;
+    use syn::Item;
+
+    use super::*;
+
+    #[test]
+    fn fail_on_uncategorized_field() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                MyError,
+            }
+        };
+        let err = expand(input).unwrap_err();
+        assert!(err.to_string().contains("enum variant is missing `category` attribute"));
+    }
+
+    #[test]
+    fn fail_on_invalid_category() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                #[category(invalid)]
+                Invalid,
+            }
+        };
+        let err = expand(input).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains(r#"expected any of ["expected", "critical", "pd", "defer", "unexpected"], got "invalid""#)
+        );
+    }
+
+    #[test]
+    fn fail_multiple_errors() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                First,
+                Second,
+            }
+        };
+        let err = expand(input).unwrap_err();
+        let errors: Vec<Error> = err.into_iter().collect();
+
+        assert_eq!(errors.len(), 2);
+        for err in errors {
+            assert!(err.to_string().contains("enum variant is missing `category` attribute"));
+        }
+    }
+
+    #[test]
+    fn fail_on_struct_missing_category() {
+        let input: DeriveInput = syn::parse_quote! {
+            struct Error {}
+        };
+        let err = expand(input).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("expected `category` attribute on struct `Error`")
+        );
+    }
+
+    #[test]
+    fn fail_on_struct_missing_defer() {
+        let input: DeriveInput = syn::parse_quote! {
+            #[category(defer)]
+            struct Error {
+                field_1: String,
+                field_2: String,
+            }
+        };
+        let err = expand(input).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("expected `#[defer]` attribute to identify the field to defer into, found none")
+        );
+    }
+
+    #[test]
+    fn fail_on_multiple_defer_attributes() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum RootError {
+                #[category(defer)]
+                SingleStruct {
+                    #[defer]
+                    field_1: SomeError,
+                    #[defer]
+                    field_2: SomeError,
+                },
+            }
+        };
+        let err = expand(input).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("expected a single `#[defer]` attribute to identify the field to defer into, found 2")
+        );
+    }
+
+    #[test]
+    fn fail_on_invalid_defer_empty_struct_variant() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                #[category(defer)]
+                SingleStruct {},
+            }
+        };
+        let err = expand(input).unwrap_err();
+        assert!(err.to_string().contains("expected a field to defer into, found none"));
+    }
+
+    #[test]
+    fn fail_on_invalid_defer_unit_variant() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                #[category(defer)]
+                SingleStruct,
+            }
+        };
+        let err = expand(input).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("`#[category(defer)]` is not supported on unit variants")
+        );
+    }
+
+    #[test]
+    fn fail_on_invalid_defer_empty_tuple_variant() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                #[category(defer)]
+                SingleStruct(),
+            }
+        };
+        let err = expand(input).unwrap_err();
+        dbg!(&err);
+        assert!(err.to_string().contains("expected a field to defer into, found none"));
+    }
+
+    // For tuple variants the macro itself succeeds; the resulting type error (the field
+    // type does not implement ErrorCategory) is caught by the compiler, not the macro.
+    #[test]
+    fn defer_with_single_field_expands_successfully() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                #[category(defer)]
+                MyError(SomeType),
+            }
+        };
+        assert!(expand(input).is_ok());
+    }
+
+    #[test]
+    fn sentry_fail_on_struct() {
+        let item: Item = syn::parse_quote! { struct Foo {} };
+        assert!(
+            sentry_capture_error_item(item)
+                .to_string()
+                .contains("not supported here")
+        );
+    }
+
+    #[test]
+    fn sentry_fail_on_enum() {
+        let item: Item = syn::parse_quote! { enum Foo {} };
+        assert!(
+            sentry_capture_error_item(item)
+                .to_string()
+                .contains("not supported here")
+        );
+    }
+
+    #[test]
+    fn sentry_fail_on_const() {
+        let item: Item = syn::parse_quote! { const FOO: u32 = 42; };
+        assert!(
+            sentry_capture_error_item(item)
+                .to_string()
+                .contains("not supported here")
+        );
+    }
+
+    #[test]
+    fn sentry_fail_on_trait() {
+        let item: Item = syn::parse_quote! { trait Foo {} };
+        assert!(
+            sentry_capture_error_item(item)
+                .to_string()
+                .contains("not supported here")
+        );
+    }
 }

@@ -241,7 +241,6 @@ tracing-subscriber = { version = "0.3.22", default-features = false, features = 
 ] }
 tracing-test = "0.2.5"
 trait-variant = "0.1.2"
-trybuild = "1.0.114"
 ts-rs = "11.1.0"
 uniffi = { version = "0.30.0", default-features = false }
 url = "2.5.7"

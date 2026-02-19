@@ -268,9 +268,3 @@ fn test_purse_baz() {
     );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
-
-#[test]
-fn sentry_capture_error() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/sentry_capture_error/fail_*.rs");
-}
