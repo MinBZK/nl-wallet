@@ -482,11 +482,14 @@ where
 }
 
 #[cfg(feature = "serialize_key_attestation")]
-fn serialize_octet_string_as_utf8<S>(value: &OctetString, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_octet_string_as_utf8_with_fallback<S>(value: &OctetString, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
-    serializer.serialize_str(&String::from_utf8_lossy(value))
+    match String::from_utf8(value.to_vec()) {
+        Ok(string_value) => serializer.serialize_str(&string_value),
+        Err(_error) => serializer.serialize_bytes(value),
+    }
 }
 
 // AttestationPackageInfo ::= SEQUENCE {
@@ -500,7 +503,7 @@ where
 pub struct AttestationPackageInfo {
     #[cfg_attr(
         feature = "serialize_key_attestation",
-        serde(serialize_with = "serialize_octet_string_as_utf8")
+        serde(serialize_with = "serialize_octet_string_as_utf8_with_fallback")
     )]
     pub package_name: OctetString,
     #[cfg_attr(feature = "serialize_key_attestation", serde_as(as = "DisplayFromStr"))]
