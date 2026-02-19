@@ -79,13 +79,11 @@ pub fn audited(_attr: TokenStream, item: TokenStream) -> TokenStream {
 const AUDITOR: &str = "auditor";
 const AUDIT: &str = "audit";
 
-#[derive(Debug, PartialEq)]
 struct AuditParam {
     ident: syn::Ident,
     ty: Box<syn::Type>,
 }
 
-#[derive(Debug, PartialEq)]
 enum ParamRole {
     Auditor(syn::Ident),
     AuditParam(AuditParam),
