@@ -39,6 +39,18 @@ optional PVC.
 | `extraAnnotations` | Additional annotations for the statefulset | `{}`  |
 | `extraPodLabels`   | Additional labels for the pods             | `{}`  |
 
+### Pod security context
+
+| Name                 | Description                  | Value |
+| -------------------- | ---------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod | `{}`  |
+
+### Security context
+
+| Name              | Description                        | Value |
+| ----------------- | ---------------------------------- | ----- |
+| `securityContext` | Security context for the container | `{}`  |
+
 ### Resource requests and limits
 
 | Name                        | Description    | Value   |

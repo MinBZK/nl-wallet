@@ -51,6 +51,17 @@ extraPodLabels: {}
 ##
 imagePullSecrets: []
 
+## @section Pod security context
+## Security context for the pod
+## @param podSecurityContext Security context for the pod
+podSecurityContext: {}
+
+## @section Security context
+## Security context for the container
+## @param securityContext Security context for the container
+##
+securityContext: {}
+
 ## @section Ingress internal parameters
 ## Parameters for the internal ingress
 ## @param ingressInternal.enabled Enable or disable the internal ingress
@@ -134,3 +145,9 @@ universalLinkBaseUrl: null
 migration:
   labels: {}
   reset: true
+
+## @section Persistence parameters
+## Parameters for persistence configuration
+## @param persistence.storageClassName Storage class name for the persistent volume claim
+persistence:
+  storageClassName: nfs

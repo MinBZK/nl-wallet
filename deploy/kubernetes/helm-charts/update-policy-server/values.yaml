@@ -47,7 +47,13 @@ replicaCount: 2
 ##
 serviceAccountName: ""
 
+## @section Pod security context
+## Security context for the pod
+## @param podSecurityContext Security context for the pod
+podSecurityContext: {}
+
 ## @section Security context
+## Security context for the container
 ## @param securityContext Security context for the container
 ##
 securityContext: {}
