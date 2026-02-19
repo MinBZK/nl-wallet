@@ -468,17 +468,28 @@ pub struct AttestationApplicationId {
 }
 
 #[cfg(feature = "serialize_key_attestation")]
-fn serialize_set_of<S, T>(package_infos: &SetOf<T>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_set_of<S, T>(set: &SetOf<T>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
     T: serde::Serialize,
     T: Eq + Hash,
 {
-    let mut seq = serializer.serialize_seq(Some(package_infos.len()))?;
-    for element in package_infos.to_vec() {
+    let mut seq = serializer.serialize_seq(Some(set.len()))?;
+    for element in set.to_vec() {
         seq.serialize_element(element)?;
     }
     seq.end()
+}
+
+#[cfg(feature = "serialize_key_attestation")]
+fn serialize_octet_string_as_utf8_with_fallback<S>(value: &OctetString, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match String::from_utf8(value.to_vec()) {
+        Ok(string_value) => serializer.serialize_str(&string_value),
+        Err(_error) => serializer.serialize_bytes(value),
+    }
 }
 
 // AttestationPackageInfo ::= SEQUENCE {
@@ -490,6 +501,10 @@ where
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
 #[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct AttestationPackageInfo {
+    #[cfg_attr(
+        feature = "serialize_key_attestation",
+        serde(serialize_with = "serialize_octet_string_as_utf8_with_fallback")
+    )]
     pub package_name: OctetString,
     #[cfg_attr(feature = "serialize_key_attestation", serde_as(as = "DisplayFromStr"))]
     pub version: Integer,
