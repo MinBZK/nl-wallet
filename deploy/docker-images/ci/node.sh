@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 wget --no-hsts -q -O ./setup.sh https://deb.nodesource.com/setup_24.x
-echo "872150825071bb403b6e210c66d9487a791047d0299026de429eb1f626fd969f  setup.sh" | sha256sum -c
+echo "6e3d580f5bd7ccf2aa1e8df8d35c60d78e873c3ff8beb282c9bebd914904ad72  setup.sh" | sha256sum -c
 
 chmod +x ./setup.sh
 ./setup.sh
