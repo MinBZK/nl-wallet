@@ -1627,6 +1627,11 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .return_once(|| Ok(None));
+
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet

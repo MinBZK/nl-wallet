@@ -154,6 +154,7 @@ mod tests {
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::issuance_session::IssuedCredential;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use wallet_account::messages::errors::AccountRevokedData;
 
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
@@ -221,6 +222,9 @@ mod tests {
         storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -251,6 +255,9 @@ mod tests {
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
 
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -279,6 +286,9 @@ mod tests {
             .expect_fetch_data::<TransferData>()
             .return_once(move || Ok(Some(transfer_data)));
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -301,6 +311,9 @@ mod tests {
         storage
             .expect_fetch_data::<PinRecoveryData>()
             .return_once(|| Ok(Some(PinRecoveryData)));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -331,6 +344,9 @@ mod tests {
         storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
 
@@ -446,6 +462,9 @@ mod tests {
         storage
             .expect_fetch_data::<PinRecoveryData>()
             .return_once(|| Ok(pin_recovery_data));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);

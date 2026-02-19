@@ -2452,6 +2452,7 @@ mod tests {
         let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
         wallet.session = Some(session);
 
+        wallet.mut_storage().expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant query index should result in a panic.
@@ -2466,6 +2467,7 @@ mod tests {
         let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
         wallet.session = Some(session);
 
+        wallet.mut_storage().expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant
@@ -3042,7 +3044,7 @@ mod tests {
             Err((
                 session,
                 wallet_revocation_error(AccountRevokedData {
-                    revocation_reason: RevocationReason::AdminRequest,
+                    revocation_reason: RevocationReason::UserRequest,
                     can_register_new_account: true,
                 }),
             ))
