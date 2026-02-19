@@ -35,16 +35,12 @@ struct ApplicationState {
     demo_services: Vec<DemoService>,
 }
 
-// Bundled CSS constant - placeholder in dev mode, full bundle in release mode.
-// In dev mode, CSS is served from the filesystem via ServeDir.
-pub const NAV_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
-
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
     let script_src = format!("'sha256-{}'", *LANGUAGE_JS_SHA256);
 
     format!(
-        "default-src 'self'; script-src {script_src}; style-src 'self'; img-src 'self' data:; font-src 'self' data:; \
-         form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+        "default-src 'self'; script-src {script_src}; img-src 'self' data:; font-src 'self' data:; form-action \
+         'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
     )
 });
 
@@ -53,23 +49,18 @@ pub fn create_router(settings: Settings) -> Router {
         demo_services: settings.demo_services,
     });
 
-    let app = Router::new().route("/", get(index));
-
-    // In release mode, serve bundled CSS from route handlers.
-    // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
-    #[cfg(not(debug_assertions))]
-    let app = app.route(
-        "/static/css/nav.css",
-        get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, NAV_CSS) }),
-    );
-
-    let mut app = app
+    let mut app = Router::new()
+        .route("/", get(index))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path(Path::new("assets")))
-                        .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                    ServeDir::new(prefix_local_path(Path::new("assets"))).fallback(
+                        ServeDir::new(prefix_local_path(Path::new("../demo_utils/assets"))).fallback(
+                            ServeDir::new(prefix_local_path(Path::new("../../lib/web_utils/assets")))
+                                .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ),
+                    ),
                 ),
         )
         .with_state(Arc::clone(&application_state))

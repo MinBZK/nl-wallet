@@ -17,6 +17,7 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
+use base64::prelude::*;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -28,8 +29,6 @@ use tracing::warn;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestation;
@@ -66,20 +65,6 @@ struct ApplicationState {
     usecases: HashMap<String, Usecase>,
 }
 
-// Bundled CSS constants - placeholders in dev mode, full bundles in release mode.
-// In dev mode, CSS is served from the filesystem via ServeDir.
-pub const AMSTERDAM_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mijn_amsterdam-index.css"));
-pub const AMSTERDAM_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mijn_amsterdam-return.css"));
-pub const MONKEY_BIKE_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike-index.css"));
-pub const MONKEY_BIKE_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/monkey_bike-return.css"));
-pub const ONLINE_MARKETPLACE_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/online_marketplace-index.css"));
-pub const ONLINE_MARKETPLACE_RETURN_CSS: &str =
-    include_str!(concat!(env!("OUT_DIR"), "/online_marketplace-return.css"));
-pub const XYZ_BANK_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank-index.css"));
-pub const XYZ_BANK_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank-return.css"));
-pub const JOB_FINDER_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-index.css"));
-pub const JOB_FINDER_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-return.css"));
-
 static CSP_HEADER: OnceLock<String> = OnceLock::new();
 
 pub fn create_router(settings: Settings) -> Router {
@@ -96,69 +81,20 @@ pub fn create_router(settings: Settings) -> Router {
         .connect_src
         .unwrap_or(ConnectSource::List(vec![SourceExpression::SelfSource]))
         .to_string();
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/sessions", post(create_session))
         .route("/{usecase}/", get(usecase))
-        .route(&format!("/{{usecase}}/{RETURN_URL_SEGMENT}"), get(disclosed_attributes));
-
-    // In release mode, serve bundled CSS from route handlers.
-    // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
-    #[cfg(not(debug_assertions))]
-    let app = app
-        .route(
-            "/static/css/mijn_amsterdam-index.css",
-            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, AMSTERDAM_INDEX_CSS) }),
-        )
-        .route(
-            "/static/css/mijn_amsterdam-return.css",
-            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, AMSTERDAM_RETURN_CSS) }),
-        )
-        .route(
-            "/static/css/monkey_bike-index.css",
-            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, MONKEY_BIKE_INDEX_CSS) }),
-        )
-        .route(
-            "/static/css/monkey_bike-return.css",
-            get(
-                |h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, MONKEY_BIKE_RETURN_CSS) },
-            ),
-        )
-        .route(
-            "/static/css/online_marketplace-index.css",
-            get(|h: axum::http::HeaderMap| async move {
-                web_utils::css::serve_bundled_css(&h, ONLINE_MARKETPLACE_INDEX_CSS)
-            }),
-        )
-        .route(
-            "/static/css/online_marketplace-return.css",
-            get(|h: axum::http::HeaderMap| async move {
-                web_utils::css::serve_bundled_css(&h, ONLINE_MARKETPLACE_RETURN_CSS)
-            }),
-        )
-        .route(
-            "/static/css/xyz_bank-index.css",
-            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, XYZ_BANK_INDEX_CSS) }),
-        )
-        .route(
-            "/static/css/xyz_bank-return.css",
-            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, XYZ_BANK_RETURN_CSS) }),
-        )
-        .route(
-            "/static/css/job_finder-index.css",
-            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, JOB_FINDER_INDEX_CSS) }),
-        )
-        .route(
-            "/static/css/job_finder-return.css",
-            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, JOB_FINDER_RETURN_CSS) }),
-        );
-
-    let mut app = app
+        .route(&format!("/{{usecase}}/{RETURN_URL_SEGMENT}"), get(disclosed_attributes))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path(std::path::Path::new("assets")))
-                        .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                    ServeDir::new(prefix_local_path(std::path::Path::new("assets"))).fallback(
+                        ServeDir::new(prefix_local_path(std::path::Path::new("../demo_utils/assets"))).fallback(
+                            ServeDir::new(prefix_local_path(std::path::Path::new("../../lib/web_utils/assets")))
+                                .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                        ),
+                    ),
                 ),
         )
         .with_state(application_state)
@@ -271,7 +207,7 @@ struct UsecaseTemplate<'a> {
 }
 
 static USECASE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!("../static/usecase.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!("../assets/usecase.js"))));
 
 fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
     let mut start_url = public_url.join("/sessions");
@@ -287,21 +223,20 @@ async fn usecase(
     language: Language,
 ) -> Response {
     let start_url = format_start_url(&state.public_url, language);
-    let base = BaseTemplate {
-        session_token: None,
-        nonce: None,
-        selected_lang: language,
-        trans: &TRANSLATIONS[language],
-        available_languages: &Language::iter().collect_vec(),
-        language_js_sha256: &LANGUAGE_JS_SHA256,
-    };
     UsecaseTemplate {
         usecase: &usecase,
         start_url,
         help_base_url: state.help_base_url.clone().into_inner(),
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_sha256: &WALLET_WEB_JS_SHA256,
-        base,
+        base: BaseTemplate {
+            session_token: None,
+            nonce: None,
+            selected_lang: language,
+            trans: &TRANSLATIONS[language],
+            available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
+        },
     }
     .into_response()
 }

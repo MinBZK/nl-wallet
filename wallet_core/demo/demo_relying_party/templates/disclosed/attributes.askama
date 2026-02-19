@@ -7,17 +7,19 @@
 {%- import "components/products.askama" as products -%}
 
 {% block styles %}
+<link rel="stylesheet" href="../css/demo_bar.css" />
+<link rel="stylesheet" href="../css/language_selector.css" />
 {% match usecase %}
 {% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
-    <link rel="stylesheet" href="../static/css/mijn_amsterdam-return.css" />
+    <link rel="stylesheet" href="../css/mijn_amsterdam-return.css" />
 {% when "monkey_bike" %}
-    <link rel="stylesheet" href="../static/css/monkey_bike-return.css" />
+    <link rel="stylesheet" href="../css/monkey_bike-return.css" />
 {% when "online_marketplace" %}
-    <link rel="stylesheet" href="../static/css/online_marketplace-return.css" />
+    <link rel="stylesheet" href="../css/online_marketplace-return.css" />
 {% when "xyz_bank_mdoc" | "xyz_bank_sd_jwt" | "xyz_bank_sd_jwt_eu" %}
-    <link rel="stylesheet" href="../static/css/xyz_bank-return.css" />
+    <link rel="stylesheet" href="../css/xyz_bank-return.css" />
 {% when "job_finder" %}
-    <link rel="stylesheet" href="../static/css/job_finder-return.css" />
+    <link rel="stylesheet" href="../css/job_finder-return.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}

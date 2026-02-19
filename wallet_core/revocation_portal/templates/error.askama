@@ -7,7 +7,7 @@
 {% block content %}
 <section class="intro" data-test="error-container">
   <div class="logo-icon-wrapper">
-    <img src="/support/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
+    <img src="/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
   </div>
 
   <h1>{{ base.trans.error_title }}</h1>
@@ -16,7 +16,7 @@
 </section>
 
 <div class="illustration-container" aria-hidden="true">
-  <img src="/support/images/error_illustration.svg" alt="" class="illustration">
+  <img src="/images/error_illustration.svg" alt="" class="illustration">
 </div>
 
 <a href="/support/delete?lang={{ base.selected_lang }}" class="btn btn-retry">

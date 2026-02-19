@@ -5,13 +5,15 @@
 {%- import "../components/banner.askama" as banner -%}
 
 {% block styles %}
+<link rel="stylesheet" href="../css/demo_bar.css" />
+<link rel="stylesheet" href="../css/language_selector.css" />
 {% match usecase %}
 {% when "university_mdoc" | "university_sd_jwt" %}
-    <link rel="stylesheet" href="../static/css/university.css" />
+    <link rel="stylesheet" href="../css/university.css" />
 {% when "insurance" %}
-    <link rel="stylesheet" href="../static/css/insurance.css" />
+    <link rel="stylesheet" href="../css/insurance.css" />
 {% when "housing" %}
-    <link rel="stylesheet" href="../static/css/housing.css" />
+    <link rel="stylesheet" href="../css/housing.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}

@@ -10,6 +10,7 @@ use axum::body::Body;
 use axum::extract::FromRequestParts;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
+use axum::http::HeaderMap;
 use axum::http::Request;
 use axum::http::StatusCode;
 use axum::http::header;
@@ -56,22 +57,46 @@ struct ApplicationState<C> {
 }
 
 pub static PORTAL_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/support/portal.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal.js"))));
 
 pub static PORTAL_UI_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/support/portal-ui.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/portal-ui.js"))));
 
 pub static LOKALIZE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/support/lokalize.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/lokalize.js"))));
 
-// Bundled CSS constant - placeholder in dev mode, full bundle in release mode.
-// In dev mode, CSS is served from the filesystem via ServeDir.
-pub const PORTAL_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
+pub const COMBINED_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
+
+pub static COMBINED_CSS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(COMBINED_CSS.as_bytes())));
 
 #[derive(Deserialize)]
 struct DeleteForm {
     csrf_token: String,
     deletion_code: String,
+}
+
+/// Combined CSS, bundled at compile time
+/// Serve the combined CSS with caching headers
+async fn serve_combined_css(headers: HeaderMap) -> Response {
+    let etag = format!("\"{}\"", &*COMBINED_CSS_SHA256);
+
+    // Check If-None-Match header for conditional request
+    if let Some(if_none_match) = headers.get(header::IF_NONE_MATCH)
+        && if_none_match.as_bytes() == etag.as_bytes()
+    {
+        return (StatusCode::NOT_MODIFIED, [(header::ETAG, etag)]).into_response();
+    }
+
+    (
+        [
+            (header::CONTENT_TYPE, "text/css; charset=utf-8".to_string()),
+            (header::ETAG, etag),
+            (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
+        ],
+        COMBINED_CSS,
+    )
+        .into_response()
 }
 
 #[derive(Debug, Clone, AsRef, Display)]
@@ -111,8 +136,8 @@ async fn csp_middleware(mut req: Request<Body>, next: Next) -> Response {
     let mut response = next.run(req).await;
 
     let csp = format!(
-        "default-src 'none'; script-src 'nonce-{nonce}'; style-src 'self' 'nonce-{nonce}'; img-src 'self' data:; \
-         font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+        "default-src 'self'; script-src 'nonce-{nonce}'; img-src 'self' data:; font-src 'self' data:; form-action \
+         'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
     );
 
     response.headers_mut().insert(
@@ -136,25 +161,19 @@ where
         .with_secure(true)
         .with_cookie_same_site(SameSite::Strict);
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/support/delete", get(index::<C>))
-        .route("/support/delete", post(delete_wallet::<C>));
-
-    // In release mode, serve bundled CSS from route handlers.
-    // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
-    #[cfg(not(debug_assertions))]
-    let app = app.route(
-        "/support/static/css/portal.css",
-        get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, PORTAL_CSS) }),
-    );
-
-    let mut app = app
+        .route("/support/delete", post(delete_wallet::<C>))
+        .route("/css/style.css", get(serve_combined_css))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path(Path::new("assets")))
-                        .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                    ServeDir::new(prefix_local_path(Path::new("assets"))).fallback(
+                        ServiceBuilder::new()
+                            .service(ServeDir::new(prefix_local_path(Path::new("../lib/web_utils/assets"))))
+                            .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                    ),
                 ),
         )
         .with_state(Arc::clone(&application_state))
@@ -177,6 +196,7 @@ struct BaseTemplate<'a> {
     portal_ui_js_sha256: &'a str,
     portal_js_sha256: &'a str,
     lokalize_js_sha256: &'a str,
+    combined_css_sha256: &'a str,
     nonce: &'a str,
 }
 
@@ -217,6 +237,7 @@ async fn index<C: RevocationClient>(
         portal_js_sha256: &PORTAL_JS_SHA256,
         portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
+        combined_css_sha256: &COMBINED_CSS_SHA256,
         nonce: nonce.as_ref(),
     };
 
@@ -253,6 +274,7 @@ async fn delete_wallet<C: RevocationClient>(
         portal_js_sha256: &PORTAL_JS_SHA256,
         portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
         lokalize_js_sha256: &LOKALIZE_JS_SHA256,
+        combined_css_sha256: &COMBINED_CSS_SHA256,
         nonce: nonce.as_ref(),
     };
 
@@ -609,19 +631,6 @@ mod tests {
             body_str.contains(&expected_time),
             "expected body to contain formatted time ({expected_time}), got:\n{body_str}"
         );
-    }
-
-    #[tokio::test]
-    async fn test_not_found_returns_404_and_error_template() {
-        let client = MockRevocationClient::default();
-        let app = create_router(&random_bytes(64).into(), false, client);
-
-        let response = app
-            .oneshot(Request::builder().uri("/non-existent").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
     async fn axum_body_bytes(body: axum::body::Body) -> Vec<u8> {

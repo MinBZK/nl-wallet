@@ -75,8 +75,8 @@ fn android_x86_64_workaround() {
 
         // Inform rustc that we need to link "libclang_rt.builtins-x86_64-android.a"
         // and add the path derived above to the linker search paths.
-        println!("cargo::rustc-link-search={}", linux_x86_64_lib_dir.to_str().unwrap());
-        println!("cargo::rustc-link-lib=static=clang_rt.builtins-x86_64-android");
+        println!("cargo:rustc-link-search={}", linux_x86_64_lib_dir.to_str().unwrap());
+        println!("cargo:rustc-link-lib=static=clang_rt.builtins-x86_64-android");
     }
 }
 
@@ -95,7 +95,7 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
 
     verify_environment(config.environment(), file);
 
-    println!("cargo::rerun-if-changed={file}");
+    println!("cargo:rerun-if-changed={file}");
 }
 
 fn current_env() -> String {

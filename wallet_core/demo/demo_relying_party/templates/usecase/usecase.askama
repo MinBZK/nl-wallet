@@ -4,17 +4,19 @@
 {%- import "../../../demo_utils/templates/components/notification.askama" as notification -%}
 
 {% block styles %}
+<link rel="stylesheet" href="../css/demo_bar.css" />
+<link rel="stylesheet" href="../css/language_selector.css" />
 {% match usecase %}
 {% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
-    <link rel="stylesheet" href="../static/css/mijn_amsterdam-index.css" />
+    <link rel="stylesheet" href="../css/mijn_amsterdam-index.css" />
 {% when "monkey_bike" %}
-    <link rel="stylesheet" href="../static/css/monkey_bike-index.css" />
+    <link rel="stylesheet" href="../css/monkey_bike-index.css" />
 {% when "online_marketplace" %}
-    <link rel="stylesheet" href="../static/css/online_marketplace-index.css" />
+    <link rel="stylesheet" href="../css/online_marketplace-index.css" />
 {% when "xyz_bank_mdoc" | "xyz_bank_sd_jwt" | "xyz_bank_sd_jwt_eu" %}
-    <link rel="stylesheet" href="../static/css/xyz_bank-index.css" />
+    <link rel="stylesheet" href="../css/xyz_bank-index.css" />
 {% when "job_finder" %}
-    <link rel="stylesheet" href="../static/css/job_finder-index.css" />
+    <link rel="stylesheet" href="../css/job_finder-index.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}

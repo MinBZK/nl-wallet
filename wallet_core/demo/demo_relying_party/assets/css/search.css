@@ -1,4 +1,4 @@
-@import url("../../../demo_utils/static/css/input-reset.css");
+@import url("./input-reset.css");
 
 input[name="search"] {
   display: flex;
