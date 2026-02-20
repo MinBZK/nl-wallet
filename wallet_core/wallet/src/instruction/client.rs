@@ -135,13 +135,13 @@ where
         })
         .await?;
 
-        let challenge = self
+        let result = self
             .account_provider_client
             .instruction_challenge(&self.parameters.client_config, challenge_request)
             .await
             .map_err(InstructionError::from)?;
 
-        Ok(challenge)
+        Ok(result)
     }
 
     pub async fn send<I>(&self, instruction: I) -> Result<I::Result, InstructionError>

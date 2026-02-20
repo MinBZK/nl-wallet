@@ -106,7 +106,6 @@ where
         self.registration.is_registered()
     }
 
-
     async fn set_registration_key_identifier(&mut self, key_identifier: String) -> Result<(), StorageError>
     where
         S: Storage,
