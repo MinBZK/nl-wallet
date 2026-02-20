@@ -645,7 +645,7 @@ target the Android platform":
 > Use `Alpha` distribution at any time during development cycle.
 
 * Push commit of your choosing to: alpha/v{X.Y.Z}
-* After the GitHub Action has completed successfully; install the release via
+* After the GitHub Action has completed successfuly; install the release via
   F-Droid repo
 
 ### Beta
@@ -655,7 +655,7 @@ target the Android platform":
 
 * `$ git fetch && git pull`
 * Push `main` branch to: beta/v{X.Y.Z}
-* After the GitHub Action has completed successfully; install the release via
+* After the GitHub Action has completed successfuly; install the release via
   F-Droid repo
 
 ## App build configuration
@@ -696,7 +696,7 @@ Next to these configuration files the build can be configured with:
 
 ### Initial checkout / branch switch
 
-Generate/update localisation files (to compile/run the project successfully):
+Generate/update localisation files (to compile/run the project successfuly):
 
     $ flutter gen-l10n
 
