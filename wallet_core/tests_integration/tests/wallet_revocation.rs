@@ -9,9 +9,11 @@ use http_utils::reqwest::trusted_reqwest_client_builder;
 use tests_integration::common::*;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
+use wallet::PidIssuancePurpose;
 use wallet::RevocationReason;
 use wallet::WalletState;
 use wallet::errors::InstructionError;
+use wallet::errors::IssuanceError;
 use wallet::errors::WalletUnlockError;
 
 /// Revoke a wallet via the wallet provider's internal endpoint and assert
@@ -200,8 +202,8 @@ async fn test_revoke_wallets_by_recovery_code() {
     let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
 
     let mut wallet = setup_in_memory_wallet(
-        config_server_config,
-        wallet_config,
+        config_server_config.clone(),
+        wallet_config.clone(),
         mock_device_config.apple_key_holder(),
     )
     .await;
@@ -251,5 +253,35 @@ async fn test_revoke_wallets_by_recovery_code() {
         WalletState::Blocked {
             reason: BlockedReason::BlockedByWalletProvider
         }
+    );
+
+    // Try to setup a new wallet; this will use the same recovery code so the WP will
+    // immediately revoke it during PID issuance
+    let mut wallet = setup_in_memory_wallet(
+        config_server_config,
+        wallet_config,
+        mock_device_config.apple_key_holder(),
+    )
+    .await;
+    wallet = do_wallet_registration(wallet, pin).await;
+    let redirect_url = wallet
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
+        .await
+        .expect("Could not create pid issuance auth url");
+    let _attestations = wallet
+        .continue_pid_issuance(redirect_url)
+        .await
+        .expect("Could not continue pid issuance");
+    let err = wallet
+        .accept_issuance(pin.to_string())
+        .await
+        .expect_err("PID issuance of a revoked wallet should not have succeeded");
+
+    assert_matches!(
+        err,
+        IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::AdminRequest,
+            can_register_new_account: false
+        }))
     );
 }
