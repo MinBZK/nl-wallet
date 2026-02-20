@@ -170,7 +170,7 @@ pub async fn setup_wallet_and_default_env(
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         issuance_server_settings(),
     )
     .await
@@ -253,7 +253,7 @@ pub async fn setup_env_default() -> (
         update_policy_server_settings(),
         wallet_provider_settings(),
         verification_server_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         issuance_server_settings(),
     )
     .await
@@ -594,13 +594,16 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings() -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
+pub fn pid_issuer_settings(recovery_code: String) -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec![mock_issuable_document_pid()].try_into().unwrap())
+    (
+        settings,
+        vec![mock_issuable_document_pid(recovery_code)].try_into().unwrap(),
+    )
 }
 
 pub fn issuance_server_settings() -> (

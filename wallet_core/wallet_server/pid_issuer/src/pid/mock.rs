@@ -29,13 +29,14 @@ use crate::pid::constants::PID_RESIDENT_STREET;
 #[derive(Debug, Constructor)]
 pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 
-pub fn mock_issuable_document_pid() -> IssuableDocument {
-    IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), eudi_nl_pid_example()).unwrap()
+pub fn mock_issuable_document_pid(recovery_code: String) -> IssuableDocument {
+    IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), eudi_nl_pid_example(recovery_code))
+        .unwrap()
 }
 
 impl Default for MockAttributeService {
     fn default() -> Self {
-        Self::new(vec![mock_issuable_document_pid()].try_into().unwrap())
+        Self::new(vec![mock_issuable_document_pid("123".to_string())].try_into().unwrap())
     }
 }
 
@@ -63,7 +64,7 @@ impl AttributeService for MockAttributeService {
 }
 
 /// Represents a single card with both PID and address claims
-pub fn eudi_nl_pid_example() -> Attributes {
+pub fn eudi_nl_pid_example(recovery_code: String) -> Attributes {
     Attributes::example([
         (
             vec![PID_GIVEN_NAME],
@@ -73,7 +74,7 @@ pub fn eudi_nl_pid_example() -> Attributes {
         (vec![PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
         (vec![PID_AGE_OVER_18], AttributeValue::Bool(true)),
         (vec![PID_BSN], AttributeValue::Text("999991772".to_string())),
-        (vec![PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+        (vec![PID_RECOVERY_CODE], AttributeValue::Text(recovery_code)),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
             AttributeValue::Text("Turfmarkt".to_string()),

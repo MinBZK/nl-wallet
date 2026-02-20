@@ -4,6 +4,7 @@ use std::iter;
 use assert_matches::assert_matches;
 use serial_test::serial;
 
+use crypto::utils::random_string;
 use http_utils::reqwest::trusted_reqwest_client_builder;
 use tests_integration::common::*;
 use wallet::AccountRevokedData;
@@ -27,7 +28,7 @@ async fn test_revoke_wallet_by_revocation_code() {
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),
         verification_server_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         issuance_server_settings(),
     )
     .await;
@@ -70,9 +71,8 @@ async fn test_revoke_wallet_by_revocation_code() {
     assert!(response.status().is_success());
 
     // Checking the PIN sends a CheckPin instruction; the wallet provider informs us we are blocked.
-    let result = wallet.check_pin(pin.to_string()).await;
     assert_matches!(
-        result,
+        wallet.check_pin(pin.to_string()).await,
         Err(WalletUnlockError::Instruction(InstructionError::AccountRevoked(
             AccountRevokedData {
                 revocation_reason: RevocationReason::UserRequest,
@@ -102,7 +102,7 @@ async fn test_revoke_wallets_by_id() {
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),
         verification_server_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         issuance_server_settings(),
     )
     .await;
@@ -143,16 +143,11 @@ async fn test_revoke_wallets_by_id() {
         .send()
         .await
         .unwrap();
-    assert!(
-        response.status().is_success(),
-        "revocation request failed: {}",
-        response.status()
-    );
+    assert!(response.status().is_success());
 
     // Checking the PIN sends a CheckPin instruction; the wallet provider informs us we are blocked.
-    let result = wallet.check_pin(pin.to_string()).await;
     assert_matches!(
-        result,
+        wallet.check_pin(pin.to_string()).await,
         Err(WalletUnlockError::Instruction(InstructionError::AccountRevoked(
             AccountRevokedData {
                 revocation_reason: RevocationReason::AdminRequest,
@@ -189,7 +184,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),
         verification_server_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings(random_string(32)), // Prevent breaking other tests that use a constant revocation code
         issuance_server_settings(),
     )
     .await;
@@ -237,21 +232,8 @@ async fn test_revoke_wallets_by_recovery_code() {
     assert!(response.status().is_success());
 
     // Checking the PIN sends a CheckPin instruction; the wallet provider informs us we are blocked.
-    let result = wallet.check_pin(pin.to_string()).await;
-
-    // Clean up: the mock PID issuer always uses the same recovery code value, so remove it
-    // from the deny list now to prevent this from affecting other integration tests.
-    let cleanup_response = client
-        .delete(format!(
-            "https://localhost:{wp_port}/internal/deny-list/{recovery_code}"
-        ))
-        .send()
-        .await
-        .unwrap();
-    assert!(cleanup_response.status().is_success());
-
     assert_matches!(
-        result,
+        wallet.check_pin(pin.to_string()).await,
         Err(WalletUnlockError::Instruction(InstructionError::AccountRevoked(
             AccountRevokedData {
                 revocation_reason: RevocationReason::AdminRequest,

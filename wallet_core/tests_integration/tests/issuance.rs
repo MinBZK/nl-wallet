@@ -155,7 +155,7 @@ async fn ltc1_test_pid_optional_attributes() {
         update_policy_server_settings(),
         wallet_provider_settings(),
         (
-            pid_issuer_settings().0,
+            pid_issuer_settings("123".to_string()).0,
             vec![pid_without_optionals_with_address()].try_into().unwrap(),
         ),
         issuance_server_settings(),
@@ -197,7 +197,7 @@ async fn ltc2_test_pid_missing_required_attributes() {
         update_policy_server_settings(),
         wallet_provider_settings(),
         (
-            pid_issuer_settings().0,
+            pid_issuer_settings("123".to_string()).0,
             vec![pid_missing_required_with_address()].try_into().unwrap(),
         ),
         issuance_server_settings(),

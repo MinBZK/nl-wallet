@@ -227,7 +227,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         (issuance_server_settings, vec![], di_trust_anchor, di_tls_config),
     )
     .await;
