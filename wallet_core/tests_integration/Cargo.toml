@@ -312,8 +312,3 @@ verification_server = { path = "../wallet_server/verification_server", features 
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
-serde.workspace = true
-serde_json.workspace = true
-
-sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
-utils.path = "../lib/utils"
