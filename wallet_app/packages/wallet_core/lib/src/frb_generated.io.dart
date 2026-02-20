@@ -1604,8 +1604,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_wallet_state(WalletState apiObj, wire_cst_wallet_state wireObj) {
     if (apiObj is WalletState_Blocked) {
       var pre_reason = cst_encode_blocked_reason(apiObj.reason);
+      var pre_can_register_new_account = cst_encode_bool(apiObj.canRegisterNewAccount);
       wireObj.tag = 0;
       wireObj.kind.Blocked.reason = pre_reason;
+      wireObj.kind.Blocked.can_register_new_account = pre_can_register_new_account;
       return;
     }
     if (apiObj is WalletState_Unregistered) {
@@ -3672,6 +3674,9 @@ final class wire_cst_wallet_instruction_error extends ffi.Struct {
 final class wire_cst_WalletState_Blocked extends ffi.Struct {
   @ffi.Int32()
   external int reason;
+
+  @ffi.Bool()
+  external bool can_register_new_account;
 }
 
 final class wire_cst_WalletState_Transferring extends ffi.Struct {

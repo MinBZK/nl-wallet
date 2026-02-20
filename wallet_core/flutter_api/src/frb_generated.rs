@@ -2772,7 +2772,11 @@ impl SseDecode for crate::models::wallet_state::WalletState {
         match tag_ {
             0 => {
                 let mut var_reason = <crate::models::wallet_state::BlockedReason>::sse_decode(deserializer);
-                return crate::models::wallet_state::WalletState::Blocked { reason: var_reason };
+                let mut var_canRegisterNewAccount = <bool>::sse_decode(deserializer);
+                return crate::models::wallet_state::WalletState::Blocked {
+                    reason: var_reason,
+                    can_register_new_account: var_canRegisterNewAccount,
+                };
             }
             1 => {
                 return crate::models::wallet_state::WalletState::Unregistered;
@@ -3745,9 +3749,15 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::WalletInstruc
 impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::WalletState {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::models::wallet_state::WalletState::Blocked { reason } => {
-                [0.into_dart(), reason.into_into_dart().into_dart()].into_dart()
-            }
+            crate::models::wallet_state::WalletState::Blocked {
+                reason,
+                can_register_new_account,
+            } => [
+                0.into_dart(),
+                reason.into_into_dart().into_dart(),
+                can_register_new_account.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             crate::models::wallet_state::WalletState::Unregistered => [1.into_dart()].into_dart(),
             crate::models::wallet_state::WalletState::Locked { sub_state } => {
                 [2.into_dart(), sub_state.into_into_dart().into_dart()].into_dart()
@@ -4874,9 +4884,13 @@ impl SseEncode for crate::models::wallet_state::WalletState {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::models::wallet_state::WalletState::Blocked { reason } => {
+            crate::models::wallet_state::WalletState::Blocked {
+                reason,
+                can_register_new_account,
+            } => {
                 <i32>::sse_encode(0, serializer);
                 <crate::models::wallet_state::BlockedReason>::sse_encode(reason, serializer);
+                <bool>::sse_encode(can_register_new_account, serializer);
             }
             crate::models::wallet_state::WalletState::Unregistered => {
                 <i32>::sse_encode(1, serializer);
@@ -5799,6 +5813,7 @@ mod io {
                     let ans = unsafe { self.kind.Blocked };
                     crate::models::wallet_state::WalletState::Blocked {
                         reason: ans.reason.cst_decode(),
+                        can_register_new_account: ans.can_register_new_account.cst_decode(),
                     }
                 }
                 1 => crate::models::wallet_state::WalletState::Unregistered,
@@ -7522,6 +7537,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletState_Blocked {
         reason: i32,
+        can_register_new_account: bool,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
