@@ -125,7 +125,7 @@ void main() {
   blocTest(
     'verify user is redirected to blocked when wallet state is WalletStateWalletBlocked',
     setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer(
-      (_) async => const WalletStateBlocked(BlockedReason.requiresAppUpdate),
+      (_) async => const WalletStateBlocked(BlockedReason.requiresAppUpdate, canRegisterNewAccount: false),
     ),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),

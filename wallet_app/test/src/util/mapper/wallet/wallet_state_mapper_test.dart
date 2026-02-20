@@ -93,14 +93,14 @@ void main() {
       'maps core.WalletState_WalletBlocked with reason RequiresAppUpdate to WalletStateWalletBlocked with reason requiresAppUpdate',
       () {
         const input = core.WalletState_Blocked(
+          canRegisterNewAccount: true,
           reason: core.BlockedReason.RequiresAppUpdate,
         );
         final output = mapper.map(input);
         expect(output, isA<WalletStateBlocked>());
-        expect(
-          (output as WalletStateBlocked).reason,
-          BlockedReason.requiresAppUpdate,
-        );
+        output as WalletStateBlocked;
+        expect(output.reason, BlockedReason.requiresAppUpdate);
+        expect(output.canRegisterNewAccount, isTrue);
       },
     );
 
@@ -108,14 +108,14 @@ void main() {
       'maps core.WalletState_WalletBlocked with reason BlockedByWalletProvider to WalletStateWalletBlocked with reason blockedByWalletProvider',
       () {
         const input = core.WalletState_Blocked(
+          canRegisterNewAccount: false,
           reason: core.BlockedReason.BlockedByWalletProvider,
         );
         final output = mapper.map(input);
         expect(output, isA<WalletStateBlocked>());
-        expect(
-          (output as WalletStateBlocked).reason,
-          BlockedReason.blockedByWalletProvider,
-        );
+        output as WalletStateBlocked;
+        expect(output.reason, BlockedReason.blockedByWalletProvider);
+        expect(output.canRegisterNewAccount, isFalse);
       },
     );
 
