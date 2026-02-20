@@ -5,6 +5,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::errors::AccountRevokedData;
+use wallet_account::messages::errors::RevocationReason;
 
 use crate::Wallet;
 use crate::digid::DigidClient;
@@ -26,13 +27,20 @@ pub enum WalletStateError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum WalletState {
-    Blocked { reason: BlockedReason },
+    Blocked {
+        reason: BlockedReason,
+        can_register_new_account: bool,
+    },
     Unregistered,
-    Locked { sub_state: Box<WalletState> },
+    Locked {
+        sub_state: Box<WalletState>,
+    },
     // The following variants may appear in `Locked { sub_state }`
     Empty,
     TransferPossible,
-    Transferring { role: TransferRole },
+    Transferring {
+        role: TransferRole,
+    },
     InDisclosureFlow,
     InIssuanceFlow,
     InPinChangeFlow,
@@ -65,6 +73,7 @@ where
         if self.is_blocked() {
             return Ok(WalletState::Blocked {
                 reason: BlockedReason::RequiresAppUpdate,
+                can_register_new_account: true,
             });
         }
 
@@ -72,16 +81,11 @@ where
             return Ok(WalletState::Unregistered);
         }
 
-        if self
-            .storage
-            .read()
-            .await
-            .fetch_data::<AccountRevokedData>()
-            .await?
-            .is_some()
-        {
+        if let Some(revocation_data) = self.storage.read().await.fetch_data::<AccountRevokedData>().await? {
             return Ok(WalletState::Blocked {
                 reason: BlockedReason::BlockedByWalletProvider,
+                can_register_new_account: revocation_data.can_register_new_account
+                    && revocation_data.revocation_reason == RevocationReason::AdminRequest,
             });
         }
 

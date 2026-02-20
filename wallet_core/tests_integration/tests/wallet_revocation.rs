@@ -265,6 +265,8 @@ async fn assert_wallet_revoked(
         if has_registration {
             WalletState::Blocked {
                 reason: BlockedReason::BlockedByWalletProvider,
+                can_register_new_account: revocation_data.can_register_new_account
+                    && revocation_data.revocation_reason == RevocationReason::AdminRequest,
             }
         } else {
             WalletState::Unregistered
