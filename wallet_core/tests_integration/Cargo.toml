@@ -190,7 +190,7 @@ integration_test = [
     "pid_issuer/test_internal_ui",
     "test_common",
     "tokio/macros",
-    "tokio/rt",
+    "tokio/rt-multi-thread",
     "tokio/sync",
     "tokio/time",
 ]
@@ -271,6 +271,7 @@ attestation_data = { path = "../lib/attestation_data", optional = true }
 attestation_types = { path = "../lib/attestation_types", optional = true }
 audit_log = { path = "../wallet_provider/audit_log", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
+db_test.path = "../lib/db_test"
 dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 health_checkers = { path = "../lib/health_checkers", optional = true }

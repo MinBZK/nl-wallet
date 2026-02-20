@@ -2,6 +2,7 @@ use serial_test::serial;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
+use db_test::DbSetup;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
@@ -23,11 +24,13 @@ use wallet::errors::IssuanceError;
 
 use tests_integration::common::*;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc1_test_pid_ok() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
-    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -146,19 +149,22 @@ fn pid_missing_required_with_address() -> IssuableDocument {
     .unwrap()
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc1_test_pid_optional_attributes() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
+
     let (mut wallet, _, _) = setup_wallet_and_env(
+        &db_setup,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
-        wallet_provider_settings(),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
-            pid_issuer_settings("123".to_string()).0,
+            pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()).0,
             vec![pid_without_optionals_with_address()].try_into().unwrap(),
         ),
-        issuance_server_settings(),
+        issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
@@ -188,19 +194,22 @@ async fn ltc1_test_pid_optional_attributes() {
     assert!(age_over_18.is_none());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc2_test_pid_missing_required_attributes() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
+
     let (mut wallet, _, _) = setup_wallet_and_env(
+        &db_setup,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
-        wallet_provider_settings(),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
-            pid_issuer_settings("123".to_string()).0,
+            pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()).0,
             vec![pid_missing_required_with_address()].try_into().unwrap(),
         ),
-        issuance_server_settings(),
+        issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;

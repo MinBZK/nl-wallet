@@ -4,6 +4,7 @@ use assert_matches::assert_matches;
 use serial_test::serial;
 
 use attestation_data::issuable_document::IssuableDocument;
+use db_test::DbSetup;
 use dcql::CredentialFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
@@ -16,12 +17,13 @@ use wallet::errors::DisclosureError;
 
 use tests_integration::common::*;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_revocation_pid_ok() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
-    let (mut wallet, _, issuance_urls) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, issuance_urls) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet.stop_background_revocation_checks();
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
@@ -40,17 +42,19 @@ async fn test_revocation_pid_ok() {
     assert_matches!(err, DisclosureError::AttributesNotAvailable { .. });
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_revocation_degree_ok() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
-    let (settings, _, trust_anchor, tls_config) = issuance_server_settings();
+    let (settings, _, trust_anchor, tls_config) = issuance_server_settings(db_setup.issuance_server_url());
     let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
+        &db_setup,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
-        wallet_provider_settings(),
-        pid_issuer_settings("123".to_string()),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
         (
             settings,
             vec![IssuableDocument::new_mock_degree("MSc".to_string())],

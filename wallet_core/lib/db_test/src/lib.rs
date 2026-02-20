@@ -110,7 +110,8 @@ pub struct DbSetup {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, AsRefStr, Display, EnumString, VariantArray)]
 #[strum(serialize_all = "snake_case")]
 enum DbName {
-    StatusLists,
+    IssuanceServer,
+    PidIssuer,
     VerificationServer,
     WalletProvider,
     WalletProviderAuditLog,
@@ -175,8 +176,10 @@ impl DbSetup {
         // Wrap in dropper to ensure connection is closed on dropped and advisory locks are released
         let mut connection = AsyncDropper::new(connection.into());
 
-        // Create templates
-        setup_templates(&mut connection, &connect_options).await;
+        // Create templates if not on CI
+        if !ci {
+            setup_templates(&mut connection, &connect_options).await;
+        }
 
         // Find free set of databases
         let index = find_free_set_of_databases(&mut connection).await;
@@ -205,13 +208,22 @@ impl DbSetup {
         DbName::WalletProviderAuditLog.url(self.connect_options.clone(), self.index)
     }
 
+    pub fn issuance_server_url(&self) -> Url {
+        DbName::IssuanceServer.url(self.connect_options.clone(), self.index)
+    }
+
     pub fn server_utils_url(&self) -> Url {
         // Reuse verification server as it exactly the same as server utils migrations
         DbName::VerificationServer.url(self.connect_options.clone(), self.index)
     }
 
     pub fn status_lists_url(&self) -> Url {
-        DbName::StatusLists.url(self.connect_options.clone(), self.index)
+        // Reuse issuance server as it contains status lists and only used in the module
+        DbName::IssuanceServer.url(self.connect_options.clone(), self.index)
+    }
+
+    pub fn pid_issuer_url(&self) -> Url {
+        DbName::PidIssuer.url(self.connect_options.clone(), self.index)
     }
 
     pub fn verification_server_url(&self) -> Url {
@@ -393,7 +405,8 @@ async fn migrate(name: DbName, connect_options: PgConnectOptions) {
     let url = name.template_url(connect_options);
     let pool = connection_from_url(url.clone()).await;
     match name {
-        DbName::StatusLists => status_lists_migrations::Migrator::up(&pool, None).await,
+        DbName::IssuanceServer => issuance_server_migrations::Migrator::up(&pool, None).await,
+        DbName::PidIssuer => issuance_server_migrations::Migrator::up(&pool, None).await,
         DbName::VerificationServer => server_utils_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProvider => wallet_provider_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProviderAuditLog => audit_log_migrations::Migrator::up(&pool, None).await,

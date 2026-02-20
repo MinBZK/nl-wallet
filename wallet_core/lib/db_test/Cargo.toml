@@ -32,6 +32,6 @@ tokio.workspace = true
 url.workspace = true
 
 audit_log_migrations.path = "../../wallet_provider/audit_log/migrations"
+issuance_server_migrations.path = "../../wallet_server/issuance_server/migrations"
 server_utils_migrations.path = "../../wallet_server/server_utils/migrations"
-status_lists_migrations.path = "../status_lists/migrations"
 wallet_provider_migrations.path = "../../wallet_provider/migrations"
