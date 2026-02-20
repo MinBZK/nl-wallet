@@ -19,11 +19,6 @@ path = "tests/verifier_api.rs"
 required-features = ["test"]
 
 [[test]]
-name = "postgres"
-path = "tests/postgres.rs"
-required-features = ["db_test"]
-
-[[test]]
 name = "settings"
 path = "tests/settings.rs"
 required-features = ["integration_test"]

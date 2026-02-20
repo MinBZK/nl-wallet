@@ -204,6 +204,11 @@ impl DbSetup {
         DbName::WalletProviderAuditLog.url(self.connect_options.clone(), self.index)
     }
 
+    pub fn server_utils_url(&self) -> Url {
+        // Reuse verification server as it exactly the same as server utils migrations
+        DbName::VerificationServer.url(self.connect_options.clone(), self.index)
+    }
+
     pub fn status_lists_url(&self) -> Url {
         DbName::StatusLists.url(self.connect_options.clone(), self.index)
     }

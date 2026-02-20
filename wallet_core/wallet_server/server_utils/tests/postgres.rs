@@ -15,11 +15,8 @@ use openid4vc::server_state::SessionDataType;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::test;
 use openid4vc::server_state::test::RandomData;
-use server_utils::settings::ServerSettings;
-use server_utils::settings::Storage;
 use server_utils::store::postgres::PostgresSessionStore;
 use utils::generator::mock::MockTimeGenerator;
-use verification_server::settings::VerifierSettings;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,18 +76,10 @@ impl SessionDataType for MockSessionData {
     const TYPE: &'static str = "mockdata";
 }
 
-fn storage_settings() -> Storage {
-    VerifierSettings::new("verification_server.toml", "verification_server")
-        .unwrap()
-        .server_settings
-        .storage
-}
-
 async fn postgres_session_store(db_setup: &DbSetup) -> PostgresSessionStore {
-    let storage_settings = storage_settings();
-    let timeouts = SessionStoreTimeouts::from(&storage_settings);
+    let timeouts = SessionStoreTimeouts::default();
 
-    let connection = connection_from_url(db_setup.verification_server_url()).await;
+    let connection = connection_from_url(db_setup.server_utils_url()).await;
     PostgresSessionStore::new(connection, timeouts)
 }
 
@@ -100,10 +89,9 @@ async fn postgres_session_store_with_mock_time(db_setup: &DbSetup) -> SessionSto
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
 
-    let storage_settings = storage_settings();
-    let timeouts = SessionStoreTimeouts::from(&storage_settings);
+    let timeouts = SessionStoreTimeouts::default();
 
-    let connection = connection_from_url(db_setup.verification_server_url()).await;
+    let connection = connection_from_url(db_setup.server_utils_url()).await;
     let session_store = PostgresSessionStore::new_with_time(connection, timeouts, time_generator);
 
     (session_store, mock_time)
