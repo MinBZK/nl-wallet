@@ -38,7 +38,7 @@ extraPodLabels: {}
 ##
 image:
   repository: ghcr-io-proxy/cloudnative-pg/postgresql
-  tag: 18.1-bookworm
+  tag: 18.2-standard-trixie
 
 ## @section PgBouncer Image configuration
 ## Parameters for the PgBouncer Docker image
