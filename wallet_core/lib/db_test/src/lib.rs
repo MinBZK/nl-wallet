@@ -416,17 +416,17 @@ async fn migrate(name: DbName, connect_options: PgConnectOptions) {
 }
 
 pub async fn connection_from_url(url: Url) -> DatabaseConnection {
-    let mut connection_options = sea_orm::ConnectOptions::new(url);
-    default_connection_options(&mut connection_options);
-    Database::connect(connection_options)
+    Database::connect(default_connection_options(url))
         .await
         .expect("cannot connect to database")
 }
 
-pub fn default_connection_options(options: &mut sea_orm::ConnectOptions) {
-    options
+pub fn default_connection_options(url: Url) -> sea_orm::ConnectOptions {
+    let mut connection_options = sea_orm::ConnectOptions::new(url);
+    connection_options
         .connect_timeout(Duration::from_secs(3))
         .max_connections(5)
         .sqlx_logging(true)
         .sqlx_logging_level(LevelFilter::Trace);
+    connection_options
 }

@@ -2,7 +2,6 @@ use std::net::SocketAddr;
 use std::time::Duration;
 
 use rstest::rstest;
-use sea_orm::ConnectOptions;
 use sea_orm::Database;
 use tokio::io::copy_bidirectional;
 use tokio::net::TcpStream;
@@ -124,8 +123,7 @@ async fn test_db_check_down(#[values(false, true)] test_before_acquire: bool) {
     let mut url = db_setup.connect_url();
     url.set_host(Some("127.0.0.1")).unwrap();
     url.set_port(Some(port)).unwrap();
-    let mut connection_options = ConnectOptions::new(url);
-    default_connection_options(&mut connection_options);
+    let mut connection_options = default_connection_options(url);
     connection_options.connect_timeout(Duration::from_secs(1));
     connection_options.test_before_acquire(test_before_acquire);
     let connection = Database::connect(connection_options).await.unwrap();
