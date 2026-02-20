@@ -71,16 +71,16 @@ impl AsyncDropPgConnection {
         row.get(0)
     }
 
-    async fn advisory_lock(&mut self, n: u32) -> () {
+    async fn advisory_lock(&mut self, n: i64) -> () {
         self.as_mut_ref()
-            .execute(query("SELECT pg_advisory_lock($1)").bind(i64::from(n)))
+            .execute(query("SELECT pg_advisory_lock($1)").bind(n))
             .await
             .expect("Advisory lock failed");
     }
 
-    async fn advisory_unlock(&mut self, n: u32) -> () {
+    async fn advisory_unlock(&mut self, n: i64) -> () {
         self.as_mut_ref()
-            .execute(query("SELECT pg_advisory_unlock($1)").bind(i64::from(n)))
+            .execute(query("SELECT pg_advisory_unlock($1)").bind(n))
             .await
             .expect("Advisory unlock failed");
     }
@@ -113,6 +113,10 @@ enum DbName {
 }
 
 impl DbName {
+    fn advisory_lock(self) -> i64 {
+        -1 - (self as i64)
+    }
+
     fn template_url(self, connect_options: PgConnectOptions) -> Url {
         connect_options.database(self.as_ref()).to_url_lossy()
     }
@@ -346,11 +350,14 @@ async fn setup_databases(connection: &mut AsyncDropPgConnection, index: u32, cle
         };
 
         if !exist {
+            // Use advisory lock on source database, because it cannot be copied concurrently
+            connection.advisory_lock(name.advisory_lock()).await;
             connection
                 .as_mut_ref()
                 .execute(query(&format!(r#"CREATE DATABASE "{indexed_name}" TEMPLATE "{name}""#)))
                 .await
-                .unwrap_or_else(|e| panic!("Could not create database {indexed_name}: {e}"));
+                .unwrap_or_else(|e| panic!("Could not create database {}: {}", indexed_name, e));
+            connection.advisory_unlock(name.advisory_lock()).await;
         }
     }
 }
