@@ -56,6 +56,55 @@ pub fn copy_static_assets(sources: &[&Path], dest: &Path) {
     }
 }
 
+/// Creates a symlink, removing any existing file, symlink, or directory at the link path.
+///
+/// # Panics
+///
+/// - If the existing file/symlink/directory at `link` cannot be removed
+/// - If the symlink creation fails
+pub fn force_symlink(target: &Path, link: &Path) {
+    if let Ok(meta) = link.symlink_metadata() {
+        if meta.is_dir() {
+            fs::remove_dir_all(link).unwrap_or_else(|e| panic!("Failed to remove dir {}: {}", link.display(), e));
+        } else {
+            fs::remove_file(link).unwrap_or_else(|e| panic!("Failed to remove {}: {}", link.display(), e));
+        }
+    }
+    std::os::unix::fs::symlink(target, link).unwrap_or_else(|e| {
+        panic!(
+            "Failed to create symlink {} -> {}: {}",
+            link.display(),
+            target.display(),
+            e
+        )
+    });
+}
+
+/// Makes a static asset available at `link`, using the strategy appropriate for the build profile:
+/// - **Debug**: Creates a symlink for instant dev updates without rebuild
+/// - **Release**: Copies the file for Docker compatibility (symlinks break in containers)
+///
+/// The `target` path is relative to the `link` location (as with symlinks). For copying, the actual
+/// source path is resolved by joining `target` onto the parent directory of `link`.
+///
+/// # Panics
+///
+/// - If the existing file/symlink/directory at `link` cannot be removed
+/// - If the symlink or copy operation fails
+pub fn link_or_copy_asset(target: &Path, link: &Path, profile: BuildProfile) {
+    if profile.is_release() {
+        let source = link.parent().unwrap().join(target);
+        // Remove existing file/symlink before copying
+        if link.symlink_metadata().is_ok() {
+            fs::remove_file(link).unwrap_or_else(|e| panic!("Failed to remove {}: {}", link.display(), e));
+        }
+        fs::copy(&source, link)
+            .unwrap_or_else(|e| panic!("Failed to copy {} to {}: {}", source.display(), link.display(), e));
+    } else {
+        force_symlink(target, link);
+    }
+}
+
 fn write_to_file(dest: &Path, content: &str) {
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent).expect("Failed to create destination directory");
