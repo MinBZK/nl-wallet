@@ -29,6 +29,7 @@ chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["from"] }
 itertools.workspace = true
+reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
 strfmt.workspace = true
 strum.workspace = true
@@ -41,7 +42,7 @@ tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json
 trait-variant.workspace = true
 
 crypto.path = "../lib/crypto"
-http_utils.path = "../lib/http_utils"
+http_utils = { path = "../lib/http_utils", features = ["client"] }
 readable_identifier.path = "../wallet_provider/readable_identifier"
 server_utils.path = "../wallet_server/server_utils"
 utils.path = "../lib/utils"

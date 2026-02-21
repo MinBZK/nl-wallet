@@ -1,6 +1,12 @@
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::From;
+use serde::Deserialize;
+
+use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::reqwest::ReqwestClientUrl;
+use http_utils::tls::pinning::TlsPinningConfig;
 
 use crate::DeletionCode;
 
@@ -8,9 +14,12 @@ use crate::DeletionCode;
 pub enum RevocationError {
     #[error("failed to revoke wallet")]
     RevocationFailed,
+
+    #[error("networking error: {0}")]
+    Networking(#[from] reqwest::Error),
 }
 
-#[derive(Debug, Clone, From)]
+#[derive(Debug, Clone, From, Deserialize)]
 pub struct RevocationResult {
     pub revoked_at: DateTime<Utc>,
 }
@@ -21,12 +30,31 @@ pub trait RevocationClient {
 }
 
 #[derive(Debug, Clone)]
-pub struct HttpRevocationClient {}
+pub struct HttpRevocationClient {
+    http_client: PinnedReqwestClient,
+}
+
+impl HttpRevocationClient {
+    pub fn new(tls_pinning_config: TlsPinningConfig) -> Result<Self, reqwest::Error> {
+        let http_client = tls_pinning_config.try_into_json_client()?;
+
+        Ok(Self { http_client })
+    }
+}
 
 impl RevocationClient for HttpRevocationClient {
-    async fn revoke(&self, _deletion_code: DeletionCode) -> Result<RevocationResult, RevocationError> {
-        // TODO: implement in PVW-5306
-        Ok(Utc::now().into())
+    async fn revoke(&self, deletion_code: DeletionCode) -> Result<RevocationResult, RevocationError> {
+        let response = self
+            .http_client
+            .send_custom_post(
+                ReqwestClientUrl::Relative("/revoke-wallet-by-revocation-code/"),
+                |request| request.json(&deletion_code),
+            )
+            .await?;
+
+        let result = response.error_for_status()?.json().await?;
+
+        Ok(result)
     }
 }
 

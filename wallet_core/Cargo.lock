@@ -6059,6 +6059,7 @@ dependencies = [
  "http_utils",
  "itertools 0.14.0",
  "readable_identifier",
+ "reqwest",
  "rstest",
  "scraper",
  "serde",

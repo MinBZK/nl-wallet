@@ -283,7 +283,7 @@ async fn delete_wallet<C: RevocationClient>(
                 .into_response()
             }
             Err(err) => {
-                warn!("Error revoking wallet: {}", err);
+                warn!("Error revoking wallet: {:?}", err);
                 ErrorTemplate { base }.into_response()
             }
         },
