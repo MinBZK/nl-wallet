@@ -1,3 +1,8 @@
+@import url("../../lib/web_utils/static/css/reset.css");
+@import url("../../lib/web_utils/static/css/button-reset.css");
+@import url("../../lib/web_utils/static/css/language_selector.css");
+@import url("../../lib/web_utils/static/css/fonts.css");
+
 :root {
   font-family: "RO Sans", sans-serif;
   font-feature-settings: "clig" off, "liga" off;
@@ -309,8 +314,8 @@ form {
   width: 1.25rem;
   height: 1.25rem;
   margin-right: 0.5rem;
-  -webkit-mask: url("/images/arrow_right_up.svg") no-repeat center / contain;
-  mask: url("/images/arrow_right_up.svg") no-repeat center / contain;
+  -webkit-mask: url("/support/images/arrow_right_up.svg") no-repeat center / contain;
+  mask: url("/support/images/arrow_right_up.svg") no-repeat center / contain;
   background-color: var(--secondary-color);
   /* Hide the unicode arrow visually */
   color: transparent;
@@ -331,8 +336,8 @@ form {
   width: 1.25rem;
   height: 1.25rem;
   margin-right: 0.5rem;
-  -webkit-mask: url("/images/arrow_left.svg") no-repeat center / contain;
-  mask: url("/images/arrow_left.svg") no-repeat center / contain;
+  -webkit-mask: url("/support/images/arrow_left.svg") no-repeat center / contain;
+  mask: url("/support/images/arrow_left.svg") no-repeat center / contain;
   background-color: var(--secondary-color);
   /* Hide the unicode arrow visually */
   color: transparent;

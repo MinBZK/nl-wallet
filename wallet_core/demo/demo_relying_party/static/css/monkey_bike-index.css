@@ -1,7 +1,7 @@
 @import url("./monkey_bike.css");
 @import url("./title_alt.css");
 @import url("./card.css");
-@import url("./buttons-before.css");
+@import url("../../../demo_utils/static/css/buttons-before.css");
 
 @media only screen and (min-width: 500px) {
   header h1::before {
