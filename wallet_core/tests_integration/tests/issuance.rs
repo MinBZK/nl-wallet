@@ -81,7 +81,7 @@ fn pid_without_optionals_with_address() -> IssuableDocument {
                 AttributeValue::Text("Willeke Liselotte".to_string()),
             ),
             (vec![PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
-            // only age_over_18 is optional in `eudi::pid::nl:1.json`
+            // only age_over_18 is optional in `eudi:pid:nl:1`
             (vec![PID_BSN], AttributeValue::Text("999991772".to_string())),
             (vec![PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
             (
