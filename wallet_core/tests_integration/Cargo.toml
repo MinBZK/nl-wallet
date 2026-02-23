@@ -101,7 +101,7 @@ test_common = [
     "apple_app_attest/mock",
     "attestation_data/example_credential_payloads",
     "attestation_data/mock",
-    "axum-server/tls-rustls-no-provider",
+    "dep:axum-server",
     "axum/json",
     "dep:android_attest",
     "dep:crypto",

@@ -16,7 +16,7 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["json"] }
-axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
+axum-server.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true

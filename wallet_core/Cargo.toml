@@ -107,7 +107,7 @@ async-dropper = "0.3.1"
 async-trait = "0.1.89"
 axum = { version = "0.8.7", default-features = false, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
 axum-extra = "0.12.2"
-axum-server = "0.8.0"
+axum-server = { version = "0.8.0", features = ["tls-rustls-no-provider"] }
 axum_csrf = "0.11.0"
 backtrace = "0.3.76"
 base64 = "0.22.1"
