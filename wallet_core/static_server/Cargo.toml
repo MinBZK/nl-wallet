@@ -13,6 +13,10 @@ name = "static_server"
 [lib]
 doctest = false
 
+[features]
+# Allow Credential Issuer Identifiers to contain "http://"
+allow_insecure_url = ["wallet_configuration/allow_insecure_url"]
+
 [dependencies]
 axum.workspace = true
 axum-server.workspace = true

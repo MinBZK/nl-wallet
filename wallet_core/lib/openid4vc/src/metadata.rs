@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -14,6 +15,10 @@ use jwt::UnverifiedJwt;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
+use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
+
+use crate::issuer_identifier::CredentialIssuerIdentifier;
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
@@ -30,24 +35,55 @@ pub struct IssuerMetadata {
     pub protected_metadata: Option<UnverifiedJwt<IssuerDataClaims>>,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum IssuerMetadataDiscoveryError {
+    #[error("could not fetch or deserialize credential issuer metadata: {0}")]
+    Http(#[from] reqwest::Error),
+    #[error("credential issuer identifier in metadata does not match, expected: {expected}, received: {received}")]
+    IssuerIdentifierMismatch {
+        expected: Box<CredentialIssuerIdentifier>,
+        received: Box<CredentialIssuerIdentifier>,
+    },
+}
+
 impl IssuerMetadata {
     /// Discover the Credential Issuer metadata by GETting it from .well-known and parsing it.
-    pub(crate) async fn discover(client: &reqwest::Client, issuer: &BaseUrl) -> Result<Self, reqwest::Error> {
-        client
-            .get(issuer.join("/.well-known/openid-credential-issuer"))
+    pub(crate) async fn discover(
+        client: &reqwest::Client,
+        issuer_identifier: &CredentialIssuerIdentifier,
+    ) -> Result<Self, IssuerMetadataDiscoveryError> {
+        let metadata = client
+            .get(
+                issuer_identifier
+                    .as_base_url()
+                    .join("/.well-known/openid-credential-issuer"),
+            )
             .send()
             .await?
             .error_for_status()?
-            .json()
-            .await
+            .json::<Self>()
+            .await?;
+
+        // As per specification, "The [credential issuer] MUST be identical to the Credential Issuer's identifier value
+        // into which the well-known URI string was inserted to create the URL used to retrieve the metadata. If these
+        // values are not identical (when compared using a simple string comparison with no normalization), the data
+        // contained in the response MUST NOT be used."
+        if metadata.issuer_config.credential_issuer != *issuer_identifier {
+            return Err(IssuerMetadataDiscoveryError::IssuerIdentifierMismatch {
+                expected: Box::new(issuer_identifier.clone()),
+                received: Box::new(metadata.issuer_config.credential_issuer),
+            });
+        }
+
+        Ok(metadata)
     }
 }
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IssuerData {
-    /// The Credential Issuer's identifier, as defined in Section 11.2.1.
-    pub credential_issuer: BaseUrl,
+    /// The Credential Issuer's identifier, as defined in Section 12.2.1.
+    pub credential_issuer: CredentialIssuerIdentifier,
 
     /// Array of strings, where each string is an identifier of the OAuth 2.0 Authorization Server (as defined in
     /// [RFC8414]) the Credential Issuer relies on for authorization. If this parameter is omitted, the entity
@@ -102,15 +138,18 @@ pub struct IssuerData {
 }
 
 impl IssuerData {
-    /// Returns a non-empty Vec of authorization servers.
-    pub fn authorization_servers(&self) -> Vec<BaseUrl> {
-        match self.authorization_servers {
-            Some(ref authservers) if !authservers.is_empty() => authservers.clone(),
-
-            // Per the spec, "If [the authorization_servers] parameter is omitted, the entity providing the
-            // Credential Issuer is also acting as the Authorization Server".
-            Some(_) | None => vec![self.credential_issuer.clone()],
-        }
+    /// Returns a non-empty slice of authorization servers.
+    pub fn authorization_servers(&self) -> VecNonEmpty<&BaseUrl> {
+        self.authorization_servers
+            .iter()
+            .flatten()
+            .collect_vec()
+            .try_into()
+            .unwrap_or_else(|_| {
+                // Per the spec, "If [the authorization_servers] parameter is omitted, the entity
+                // providing the Credential Issuer is also acting as the Authorization Server".
+                vec_nonempty![self.credential_issuer.as_base_url()]
+            })
     }
 }
 
@@ -530,8 +569,8 @@ mod tests {
 
         // Assert that some of the contents has the expected values
         assert_eq!(
-            deserialized.issuer_config.credential_issuer.as_ref().as_str(),
-            "https://credential-issuer.example.com/"
+            deserialized.issuer_config.credential_issuer.as_ref(),
+            "https://credential-issuer.example.com"
         );
         let (cred_type, cred_metadata) = deserialized
             .issuer_config

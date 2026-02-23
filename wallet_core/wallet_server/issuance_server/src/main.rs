@@ -83,7 +83,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             .iter()
             .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
         &settings.status_lists,
-        &settings.issuer_settings.server_settings.public_url,
+        settings.issuer_settings.public_url.as_base_url(),
         hsm.clone(),
     )
     .await?;

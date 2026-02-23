@@ -68,13 +68,21 @@ where
     let application_state = ApplicationState { issuer };
 
     Router::new()
-        .route("/.well-known/openid-credential-issuer", get(metadata))
-        .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
-        .route("/token", post(token))
-        .route("/credential", post(credential))
-        .route("/credential", delete(reject_issuance))
-        .route("/batch_credential", post(batch_credential))
-        .route("/batch_credential", delete(reject_issuance))
+        .nest(
+            "/.well-known",
+            Router::new()
+                .route("/openid-credential-issuer", get(metadata))
+                .route("/oauth-authorization-server", get(oauth_metadata)),
+        )
+        .nest(
+            "/issuance",
+            Router::new()
+                .route("/token", post(token))
+                .route("/credential", post(credential))
+                .route("/credential", delete(reject_issuance))
+                .route("/batch_credential", post(batch_credential))
+                .route("/batch_credential", delete(reject_issuance)),
+        )
         .with_state(application_state)
 }
 
@@ -103,7 +111,7 @@ where
 }
 
 async fn metadata<A, K, S, L>(State(state): State<ApplicationState<A, K, S, L>>) -> Json<IssuerMetadata> {
-    Json(state.issuer.metadata.clone())
+    Json(state.issuer.metadata().clone())
 }
 
 async fn token<A, K, S, L>(

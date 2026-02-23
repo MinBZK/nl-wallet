@@ -93,9 +93,10 @@ where
     L: StatusListServices + StatusListRevocationService + Sync + 'static,
     C: StatusListClient + Sync + 'static,
 {
-    let log_requests = settings.issuer_settings.server_settings.log_requests;
     let issuer_settings = settings.issuer_settings;
+    let log_requests = issuer_settings.server_settings.log_requests;
     let type_metadata = issuer_settings.metadata;
+    let disclosure_public_url = issuer_settings.public_url.as_base_url().join_base_url("disclosure");
     let attestation_config = issuer_settings.attestation_settings.parse(&hsm, &type_metadata).await?;
 
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| async {
@@ -120,7 +121,7 @@ where
         issuance_sessions,
         TrivialAttributeService,
         attestation_config,
-        &issuer_settings.server_settings.public_url,
+        issuer_settings.public_url.clone(),
         issuer_settings.wallet_client_ids.clone(),
         Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here,
         Arc::clone(&status_list_services),
@@ -130,7 +131,7 @@ where
 
     let result_handler = IssuanceResultHandler {
         issuer,
-        credential_issuer: issuer_settings.server_settings.public_url.join_base_url("issuance/"),
+        credential_issuer: issuer_settings.public_url,
         attributes_fetcher,
     };
 
@@ -143,7 +144,7 @@ where
     );
 
     let disclosure_router = VerifierFactory::new(
-        issuer_settings.server_settings.public_url.join_base_url("disclosure"),
+        disclosure_public_url,
         settings.universal_link_base_url,
         use_cases,
         issuer_settings
@@ -157,8 +158,7 @@ where
     )
     .create_wallet_router(disclosure_sessions, revocation_verifier, Some(Box::new(result_handler)));
 
-    let mut wallet_router = Router::new()
-        .nest("/issuance", add_cache_control_no_store_layer(issuance_router))
+    let mut wallet_router = add_cache_control_no_store_layer(issuance_router)
         .nest("/disclosure", add_cache_control_no_store_layer(disclosure_router));
 
     if let Some(status_list_router) = status_list_router {

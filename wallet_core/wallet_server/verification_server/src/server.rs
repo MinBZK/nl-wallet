@@ -77,7 +77,7 @@ where
     );
 
     let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
-        settings.server_settings.public_url.join_base_url("disclosure/sessions"),
+        settings.public_url.join_base_url("disclosure/sessions"),
         settings.universal_link_base_url,
         usecases,
         settings

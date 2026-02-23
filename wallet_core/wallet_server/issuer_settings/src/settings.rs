@@ -27,6 +27,7 @@ use http_utils::urls::HttpsUri;
 use openid4vc::Format;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
+use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use server_utils::keys::PrivateKeySettingsError;
@@ -47,6 +48,9 @@ pub type TypeMetadataByVct = HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct IssuerSettings {
+    /// Publicly reachable URL used by the wallet during sessions, which should be a valid Credential Issuer Identifier.
+    pub public_url: CredentialIssuerIdentifier,
+
     pub attestation_settings: AttestationTypesConfigSettings,
 
     #[serde(deserialize_with = "deserialize_type_metadata")]
@@ -368,6 +372,7 @@ mod tests {
             .into();
 
         IssuerSettings {
+            public_url: "https://example.com".parse().unwrap(),
             attestation_settings: HashMap::from([(
                 "com.example.pid".to_string(),
                 AttestationTypeConfigSettings {
@@ -401,7 +406,6 @@ mod tests {
                     ip: "127.0.0.1".parse().unwrap(),
                     port: 43,
                 }),
-                public_url: "https://example.com".parse().unwrap(),
                 log_requests: false,
                 structured_logging: false,
                 storage: Storage {

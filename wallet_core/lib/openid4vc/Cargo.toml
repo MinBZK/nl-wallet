@@ -49,6 +49,7 @@ derive_more = { workspace = true, features = [
     "constructor",
     "debug",
     "display",
+    "eq",
     "from",
     "from_str",
     "into",

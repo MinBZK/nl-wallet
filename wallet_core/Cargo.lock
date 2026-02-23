@@ -9121,6 +9121,7 @@ dependencies = [
  "http_utils",
  "itertools 0.14.0",
  "jwt",
+ "openid4vc",
  "rustls-pki-types",
  "serde",
  "serde_with",

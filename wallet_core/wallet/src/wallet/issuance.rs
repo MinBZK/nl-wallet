@@ -22,7 +22,6 @@ use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
-use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialWithMetadata;
@@ -31,6 +30,7 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
+use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
@@ -425,7 +425,7 @@ where
     pub(super) async fn issuance_fetch_previews(
         &mut self,
         token_request: TokenRequest,
-        issuer_url: BaseUrl,
+        issuer_identifier: CredentialIssuerIdentifier,
         issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
         pid_purpose: Option<PidIssuancePurpose>,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
@@ -435,7 +435,7 @@ where
 
         let issuance_session = IS::start_issuance(
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
-            issuer_url,
+            issuer_identifier,
             token_request,
             issuer_trust_anchors,
         )
