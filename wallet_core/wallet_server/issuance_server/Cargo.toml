@@ -67,6 +67,6 @@ utils.path = "../../lib/utils"
 chrono = { workspace = true, features = ["now"] }
 indexmap.workspace = true
 p256.workspace = true
-tokio = { workspace = true, features = ["macros", "test-util"] }
+tokio = { workspace = true, features = ["macros"] }
 
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }

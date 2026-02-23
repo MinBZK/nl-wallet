@@ -52,7 +52,6 @@ test = [
     "server_utils/parsed_key_pair_conversion",
     "token_status_list/mock",
     "tokio/macros",
-    "tokio/test-util",
     "utils/mock_time",
     "wscd/examples",
     "wscd/mock",
