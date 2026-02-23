@@ -117,9 +117,11 @@ where
 
     #[instrument(skip_all)]
     pub(crate) async fn handle_wallet_revocation(&mut self, revocation_data: AccountRevokedData) {
+        info!("wallet has been revoked: {}", revocation_data.revocation_reason);
         if revocation_data.revocation_reason == RevocationReason::UserRequest {
             // In this case, the wallet user is probably not the owner of the wallet.
             // We wipe its contents to protect its from leaking/being stolen.
+            info!("resetting wallet to initial state");
             self.reset_to_initial_state().await;
         } else {
             // In this case, store the fact that the wallet has been revoked so
