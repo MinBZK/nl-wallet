@@ -26,6 +26,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
@@ -37,6 +38,7 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
+use sd_jwt::error::SigningError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
@@ -204,6 +206,9 @@ impl From<VpSessionError> for DisclosureError {
         match value {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
             VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                signing_error,
+            ))))
+            | VpSessionError::Client(VpClientError::SdJwtSigning(SigningError::Jwt(JwtError::Signing(
                 signing_error,
             )))) if matches!(
                 signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
