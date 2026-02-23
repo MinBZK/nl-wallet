@@ -194,11 +194,6 @@ impl DbSetup {
         }
     }
 
-    /// Returns the connect options to the database server with the default database
-    pub fn connect_options(&self) -> &PgConnectOptions {
-        &self.connect_options
-    }
-
     /// Returns a lossy url to the database server with the default database
     pub fn connect_url(&self) -> Url {
         self.connect_options.to_url_lossy()

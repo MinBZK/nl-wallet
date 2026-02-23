@@ -17,14 +17,11 @@ required-features = ["db_test"]
 
 [features]
 db_test = [
-    "dep:anyhow",
     "dep:db_test",
     "dep:rstest",
     "sea-orm/runtime-tokio-rustls",
-    "tokio/macros",
-    "tokio/net",
-    "tokio/sync",
     "tokio/rt-multi-thread",
+    "tokio/macros",
 ]
 
 [dependencies]
@@ -32,9 +29,7 @@ async-trait.workspace = true
 r2d2-cryptoki.workspace = true
 sea-orm = { workspace = true, features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 
-anyhow = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
-serde = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 
 hsm.path = "../hsm"

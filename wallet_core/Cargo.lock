@@ -3322,7 +3322,6 @@ dependencies = [
 name = "health_checkers"
 version = "0.5.0-dev"
 dependencies = [
- "anyhow",
  "async-trait",
  "db_test",
  "hsm",
@@ -3330,7 +3329,6 @@ dependencies = [
  "r2d2-cryptoki",
  "rstest",
  "sea-orm",
- "serde",
  "tokio",
 ]
 
