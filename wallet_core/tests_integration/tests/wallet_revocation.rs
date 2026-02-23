@@ -2,9 +2,15 @@ use std::collections::HashSet;
 use std::iter;
 
 use assert_matches::assert_matches;
+use sea_orm::ColumnTrait;
+use sea_orm::EntityTrait;
+use sea_orm::QueryFilter;
+use sea_orm::QueryOrder;
+use serde_json::json;
 use serial_test::serial;
 use tempfile::TempDir;
 
+use audit_log::entity;
 use crypto::utils::random_string;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::trusted_reqwest_client_builder;
@@ -27,7 +33,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 async fn test_revoke_wallet_by_revocation_code() {
     let pin = "112233";
 
-    let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _) =
+    let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _, audit_log_connection) =
         setup_revocation_env("123".to_string()).await;
 
     let dir = TempDir::new().unwrap();
@@ -47,11 +53,21 @@ async fn test_revoke_wallet_by_revocation_code() {
         .unwrap()
         .to_string();
 
+    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
+
     call_wp_revocation_endpoint(
         wp_root_ca,
         wp_port,
         "/internal/revoke-wallet-by-revocation-code/",
         &revocation_code,
+    )
+    .await;
+
+    assert_audit_log_entry(
+        &audit_log_connection,
+        max_audit_log_id,
+        "revoke_wallet_by_revocation_code",
+        json!({"revocation_code": revocation_code}),
     )
     .await;
 
@@ -74,8 +90,15 @@ async fn test_revoke_wallet_by_revocation_code() {
 async fn test_revoke_wallets_by_id() {
     let pin = "112233";
 
-    let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, connection) =
-        setup_revocation_env("123".to_string()).await;
+    let (
+        config_server_config,
+        mock_device_config,
+        wallet_config,
+        wp_port,
+        wp_root_ca,
+        connection,
+        audit_log_connection,
+    ) = setup_revocation_env("123".to_string()).await;
 
     let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
 
@@ -95,7 +118,17 @@ async fn test_revoke_wallets_by_id() {
         .expect("should have registered exactly one new wallet")
         .to_string();
 
+    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
+
     call_wp_revocation_endpoint(wp_root_ca, wp_port, "/internal/revoke-wallets-by-id/", &[&wallet_id]).await;
+
+    assert_audit_log_entry(
+        &audit_log_connection,
+        max_audit_log_id,
+        "revoke_wallets_by_wallet_id",
+        json!({"wallet_ids": [wallet_id]}),
+    )
+    .await;
 
     assert_wallet_revoked(
         &mut wallet,
@@ -118,8 +151,15 @@ async fn test_revoke_wallets_by_recovery_code() {
     let pin = "112233";
 
     // Use a random recovery code to prevent breaking other tests that use a constant recovery code
-    let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, connection) =
-        setup_revocation_env(random_string(32)).await;
+    let (
+        config_server_config,
+        mock_device_config,
+        wallet_config,
+        wp_port,
+        wp_root_ca,
+        connection,
+        audit_log_connection,
+    ) = setup_revocation_env(random_string(32)).await;
 
     let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
 
@@ -140,11 +180,22 @@ async fn test_revoke_wallets_by_recovery_code() {
         .to_string();
 
     let recovery_code = get_wallet_recovery_code(&connection, &wallet_id).await;
+
+    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
+
     call_wp_revocation_endpoint(
         wp_root_ca,
         wp_port,
         "/internal/revoke-wallet-by-recovery-code/",
         &recovery_code,
+    )
+    .await;
+
+    assert_audit_log_entry(
+        &audit_log_connection,
+        max_audit_log_id,
+        "revoke_wallets_by_recovery_code",
+        json!({"recovery_code": recovery_code}),
     )
     .await;
 
@@ -199,9 +250,11 @@ async fn setup_revocation_env(
     u16,
     ReqwestTrustAnchor,
     sea_orm::DatabaseConnection,
+    sea_orm::DatabaseConnection,
 ) {
     let (wp_settings, wp_root_ca) = wallet_provider_settings();
     let connection = new_connection(wp_settings.database.url.clone()).await.unwrap();
+    let audit_log_url = wp_settings.audit_log.url.clone();
 
     let (config_server_config, mock_device_config, wallet_config, _, _) = setup_env(
         static_server_settings(),
@@ -212,6 +265,8 @@ async fn setup_revocation_env(
         issuance_server_settings(),
     )
     .await;
+
+    let audit_log_connection = new_connection(audit_log_url).await.unwrap();
 
     let wp_port = wallet_config
         .account_server
@@ -228,6 +283,7 @@ async fn setup_revocation_env(
         wp_port,
         wp_root_ca,
         connection,
+        audit_log_connection,
     )
 }
 
@@ -247,6 +303,42 @@ async fn call_wp_revocation_endpoint(
         .await
         .unwrap();
     assert!(response.status().is_success());
+}
+
+async fn get_max_audit_log_id(connection: &sea_orm::DatabaseConnection) -> i32 {
+    entity::audit_log::Entity::find()
+        .order_by_desc(entity::audit_log::Column::Id)
+        .one(connection)
+        .await
+        .unwrap()
+        .map(|m| m.id)
+        .unwrap_or(0)
+}
+
+async fn assert_audit_log_entry(
+    connection: &sea_orm::DatabaseConnection,
+    max_id_before: i32,
+    expected_operation: &str,
+    expected_params: serde_json::Value,
+) {
+    let records = entity::audit_log::Entity::find()
+        .filter(entity::audit_log::Column::Id.gt(max_id_before))
+        .order_by_asc(entity::audit_log::Column::Id)
+        .all(connection)
+        .await
+        .unwrap();
+
+    assert_eq!(records.len(), 2);
+
+    let start_record = &records[0];
+    assert_eq!(start_record.operation.as_deref(), Some(expected_operation));
+    assert_eq!(start_record.params.as_ref(), Some(&expected_params));
+    assert!(start_record.is_success.is_none());
+
+    let result_record = &records[1];
+    assert!(result_record.operation.is_none());
+    assert!(result_record.params.is_none());
+    assert_eq!(result_record.is_success, Some(true));
 }
 
 async fn assert_wallet_revoked(

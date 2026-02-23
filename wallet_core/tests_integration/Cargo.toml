@@ -109,6 +109,7 @@ test_common = [
     "axum-server/tls-rustls-no-provider",
     "axum/json",
     "dep:android_attest",
+    "dep:audit_log",
     "dep:crypto",
     "dep:ctor",
     "dep:futures",
