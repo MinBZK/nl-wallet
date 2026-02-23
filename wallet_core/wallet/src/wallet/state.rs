@@ -84,6 +84,9 @@ where
         if let Some(revocation_data) = self.storage.read().await.fetch_data::<AccountRevokedData>().await? {
             return Ok(WalletState::Blocked {
                 reason: BlockedReason::BlockedByWalletProvider,
+                // In case of `AdminRequest`, the `can_register_new_account` flag whether or not the user
+                // can register a new account. For the other two variants of `RevocationReason`,
+                // reregistering would not make sense so we return false in those cases.
                 can_register_new_account: revocation_data.can_register_new_account
                     && revocation_data.revocation_reason == RevocationReason::AdminRequest,
             });
