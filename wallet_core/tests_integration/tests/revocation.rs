@@ -89,8 +89,8 @@ async fn assert_revokeable(wallet: &mut WalletWithStorage, attestation_type: &st
     let attestation = get_attestation(wallet, attestation_type, None).await;
     assert!(attestation.is_some());
 
-    wallet.start_background_revocation_checks(Duration::from_millis(10));
-    tokio::time::timeout(Duration::from_secs(5), async {
+    wallet.start_background_revocation_checks(Duration::from_millis(50));
+    tokio::time::timeout(Duration::from_secs(1), async {
         loop {
             if get_attestation(wallet, attestation_type, Some(RevocationStatus::Valid))
                 .await
@@ -104,13 +104,11 @@ async fn assert_revokeable(wallet: &mut WalletWithStorage, attestation_type: &st
     })
     .await
     .expect("Timeout waiting for revocation status");
-    wallet.stop_background_revocation_checks();
 
     revoke_all_attestations(revocation_url).await;
 
     // Check that the attestation now is revoked
-    wallet.start_background_revocation_checks(Duration::from_millis(10));
-    tokio::time::timeout(Duration::from_secs(5), async {
+    tokio::time::timeout(Duration::from_secs(1), async {
         loop {
             if get_attestation(wallet, attestation_type, Some(RevocationStatus::Revoked))
                 .await
@@ -124,8 +122,6 @@ async fn assert_revokeable(wallet: &mut WalletWithStorage, attestation_type: &st
     })
     .await
     .expect("Timeout waiting for revocation status");
-
-    wallet.stop_background_revocation_checks();
 }
 
 async fn revoke_all_attestations(internal_url: BaseUrl) {
