@@ -538,7 +538,7 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
 
     tokio::spawn(async {
         if let Err(error) = static_server::server::serve_with_listener(listener, settings).await {
-            println!("Could not start config_server: {error:?}");
+            tracing::error!("Could not start config_server: {error:?}");
             process::exit(1);
         }
     });
@@ -554,7 +554,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 
     tokio::spawn(async {
         if let Err(error) = update_policy_server::server::serve_with_listener(listener, settings).await {
-            println!("Could not start update_policy_server: {error:?}");
+            tracing::error!("Could not start update_policy_server: {error:?}");
             process::exit(1);
         }
     });
@@ -583,7 +583,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
         )
         .await
         {
-            println!("Could not start wallet_provider: {error:?}");
+            tracing::error!("Could not start wallet_provider: {error:?}");
 
             process::exit(1);
         }
@@ -791,7 +791,7 @@ pub async fn start_issuance_server(
             )
             .await
             {
-                println!("Could not start issuance_server: {error:?}");
+                tracing::error!("Could not start issuance_server: {error:?}");
 
                 process::exit(1);
             }
@@ -855,7 +855,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             )
             .await
             {
-                println!("Could not start pid_issuer: {error:?}");
+                tracing::error!("Could not start pid_issuer: {error:?}");
 
                 process::exit(1);
             }
@@ -905,7 +905,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
             )
             .await
             {
-                println!("Could not start verification_server: {error:?}");
+                tracing::error!("Could not start verification_server: {error:?}");
 
                 process::exit(1);
             }
@@ -921,7 +921,10 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
 }
 
 pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl IntoIterator<Item = Certificate>) {
-    let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
+    let client = trusted_reqwest_client_builder(trust_anchors)
+        .connect_timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
@@ -934,14 +937,14 @@ pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl IntoIterator
             {
                 Ok(_) => break,
                 Err(e) => {
-                    println!("Server not yet up: {e:?}");
+                    tracing::info!("Server not yet up: {e:?}");
                     interval.tick().await;
                 }
             }
         }
     })
     .await
-    .expect("Server not up: {base_url}");
+    .unwrap_or_else(|e| panic!("Server not up: {base_url}: {e}"));
 }
 
 pub fn gba_hc_converter_settings() -> GbaSettings {
@@ -959,13 +962,13 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
             if let Some(io_error) = error.downcast_ref::<io::Error>()
                 && io_error.kind() == io::ErrorKind::AddrInUse
             {
-                println!(
+                tracing::warn!(
                     "TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, \
                      continuing..."
                 );
                 return;
             }
-            println!("Could not start gba_hc_converter: {error:?}");
+            tracing::error!("Could not start gba_hc_converter: {error:?}");
             process::exit(1);
         }
     });

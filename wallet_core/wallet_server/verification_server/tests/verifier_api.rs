@@ -227,7 +227,10 @@ async fn start_wallet_server<S, C>(
 }
 
 async fn wait_for_server(base_url: BaseUrl) {
-    let client = default_reqwest_client_builder().build().unwrap();
+    let client = default_reqwest_client_builder()
+        .connect_timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
@@ -240,7 +243,7 @@ async fn wait_for_server(base_url: BaseUrl) {
             {
                 Ok(_) => break,
                 Err(error) => {
-                    println!("Server not yet up: {error}");
+                    tracing::info!("Server not yet up: {error}");
                     interval.tick().await;
                 }
             }
