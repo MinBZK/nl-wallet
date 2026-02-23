@@ -18,14 +18,7 @@ client = ["reqwest/gzip", "serde_with/base64"]
 # Implement the HttpConfig type for insecurely fetching configurations.
 insecure_http_client = ["client"]
 # Include implementations of the axum IntoResponse trait.
-server = [
-    "axum/json",
-    "axum-server/tls-rustls-no-provider",
-    "dep:tracing",
-    "dep:futures",
-    "serde_with/base64",
-    "tower-http/cors",
-]
+server = ["axum/json", "dep:axum-server", "dep:tracing", "dep:futures", "serde_with/base64", "tower-http/cors"]
 
 [dependencies]
 async-trait.workspace = true

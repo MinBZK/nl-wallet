@@ -14,7 +14,7 @@ async fn setup_wallet_provider() -> (Client, BaseUrl) {
     let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).expect("Could not initialize HSM");
     let port = start_wallet_provider(settings, hsm, root_ca.clone()).await;
 
-    let client = trusted_reqwest_client_builder(std::iter::once(root_ca.into_certificate()))
+    let client = trusted_reqwest_client_builder([root_ca.into_certificate()])
         .build()
         .unwrap();
     let url = format!("https://localhost:{}", port).parse().unwrap();

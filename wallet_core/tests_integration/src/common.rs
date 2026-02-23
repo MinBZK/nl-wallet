@@ -412,7 +412,7 @@ where
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
-    let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
+    let mut wallet_clients = WalletClients::new_http().unwrap();
     setup_mock_digid_client(&mut wallet_clients.digid_client);
 
     Wallet::init_registration(
@@ -520,7 +520,7 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
     });
 
     let base_url = local_config_base_url(port);
-    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
     port
 }
 
@@ -536,7 +536,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     });
 
     let base_url = local_ups_base_url(port);
-    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
     port
 }
 
@@ -566,7 +566,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     });
 
     let base_url = local_wp_base_url(port);
-    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
     port
 }
 
@@ -705,7 +705,7 @@ async fn start_mock_attestation_server(
     });
 
     let url = local_https_base_url(port);
-    wait_for_server(url.clone(), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(url.clone(), [trust_anchor.into_certificate()]).await;
     url
 }
 
@@ -745,7 +745,7 @@ pub async fn start_issuance_server(
         hsm.clone(),
     )
     .await;
-    let status_list_client = HttpStatusListClient::new().unwrap();
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
 
     tokio::spawn(
         async move {
@@ -772,7 +772,7 @@ pub async fn start_issuance_server(
         .instrument(info_span!("service", name = "issuance_server")),
     );
 
-    wait_for_server(public_url.clone(), std::iter::empty()).await;
+    wait_for_server(public_url.clone(), []).await;
     IssuerUrl {
         internal: internal_url,
         public: public_url,
@@ -836,7 +836,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         .instrument(info_span!("service", name = "pid_issuer")),
     );
 
-    wait_for_server(public_url.clone(), std::iter::empty()).await;
+    wait_for_server(public_url.clone(), []).await;
     IssuerUrl {
         internal: internal_url,
         public: local_pid_base_url(public_port),
@@ -864,7 +864,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         storage_settings.into(),
     ));
 
-    let status_list_client = HttpStatusListClient::new().unwrap();
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
 
     tokio::spawn(
         async move {
@@ -886,14 +886,14 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         .instrument(info_span!("service", name = "verification_server")),
     );
 
-    wait_for_server(public_url.clone(), std::iter::empty()).await;
+    wait_for_server(public_url.clone(), []).await;
     DisclosureUrls {
         verifier_url: public_url,
         verifier_internal_url: internal_url,
     }
 }
 
-pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl Iterator<Item = Certificate>) {
+pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl IntoIterator<Item = Certificate>) {
     let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
@@ -943,7 +943,7 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
         }
     });
 
-    wait_for_server(base_url, std::iter::empty()).await;
+    wait_for_server(base_url, []).await;
 }
 
 pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) -> WalletWithStorage {

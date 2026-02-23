@@ -19,8 +19,6 @@ fake_attestation = [
     "platform_support/persistent_mock_attested_key",
     "platform_support/xcode_env",
 ]
-# Adds serializability for snapshot tests
-snapshot_test = []
 # Various test related functionality of Wallet types and dependencies
 test = ["openid4vc/mock", "platform_support/mock_hw_keystore", "dep:mockall"]
 
