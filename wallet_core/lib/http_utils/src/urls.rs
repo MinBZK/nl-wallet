@@ -8,6 +8,14 @@ use nutype::nutype;
 use serde::Deserialize;
 use url::Url;
 
+cfg_if! {
+    if #[cfg(feature = "allow_insecure_url")] {
+        pub const ALLOWED_HTTP_SCHEMES: [&str; 2] = ["https", "http"];
+    } else {
+        pub const ALLOWED_HTTP_SCHEMES: [&str; 1] = ["https"];
+    }
+}
+
 #[nutype(
     validate(predicate = |u| !u.cannot_be_a_base()),
     derive(Debug, Clone, TryFrom, FromStr, Display, AsRef, PartialEq, Eq, Hash, Serialize, Deserialize),
@@ -66,15 +74,7 @@ pub struct Origin(Url);
 
 impl Origin {
     fn is_valid(u: &Url) -> bool {
-        cfg_if! {
-            if #[cfg(feature = "allow_insecure_url")] {
-                let allowed_schemes = ["https", "http"];
-            } else {
-                let allowed_schemes = ["https"];
-            }
-        }
-
-        (allowed_schemes.contains(&u.scheme()))
+        (ALLOWED_HTTP_SCHEMES.contains(&u.scheme()))
             && u.has_host()
             && u.fragment().is_none()
             && u.query().is_none()

@@ -4816,7 +4816,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "biscuit",
- "cfg-if",
  "chrono",
  "crypto",
  "dashmap 6.1.0",
