@@ -383,7 +383,7 @@ impl FlutterApiErrorFields for DisclosureError {
             None
         };
 
-        if session_type.is_some() || can_retry.is_some() || return_url.is_some() {
+        if session_type.is_some() || can_retry.is_some() || return_url.is_some() && revocation_data.is_some() {
             serde_json::to_value(DisclosureErrorData {
                 session_type,
                 can_retry,
