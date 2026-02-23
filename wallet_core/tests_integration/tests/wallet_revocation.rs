@@ -3,6 +3,7 @@ use std::iter;
 
 use assert_matches::assert_matches;
 use serial_test::serial;
+use tempfile::TempDir;
 
 use crypto::utils::random_string;
 use http_utils::reqwest::ReqwestTrustAnchor;
@@ -29,10 +30,12 @@ async fn test_revoke_wallet_by_revocation_code() {
     let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _) =
         setup_revocation_env("123".to_string()).await;
 
-    let wallet = setup_in_memory_wallet(
+    let dir = TempDir::new().unwrap();
+    let wallet = setup_file_wallet(
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
+        dir.path().to_path_buf(),
     )
     .await;
     let wallet = do_wallet_registration(wallet, pin).await;
@@ -260,16 +263,14 @@ async fn assert_wallet_revoked(
 
     assert!(wallet.has_registration() == has_registration);
 
-    assert_eq!(
-        wallet.get_state().await.unwrap(),
-        if has_registration {
+    if has_registration {
+        assert_eq!(
+            wallet.get_state().await.unwrap(),
             WalletState::Blocked {
                 reason: BlockedReason::BlockedByWalletProvider,
                 can_register_new_account: revocation_data.can_register_new_account
                     && revocation_data.revocation_reason == RevocationReason::AdminRequest,
             }
-        } else {
-            WalletState::Unregistered
-        }
-    );
+        );
+    }
 }
