@@ -29,6 +29,7 @@ use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
+use db_test::DbName;
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use jwt::DEFAULT_VALIDATIONS;
@@ -828,8 +829,8 @@ async fn test_service_new_status_list_with_revoke_all_set() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_service_revoke_all() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let db_setup = DbSetup::create_clean().await;
-    let connection = connection_from_url(db_setup.status_lists_url()).await;
+    let db_setup = DbSetup::create_clean_only([DbName::IssuanceServer]).await;
+    let connection = connection_from_url(db_setup.issuance_server_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
     let (attestation_type, config, revoke_all_flag, _) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)

@@ -109,7 +109,7 @@ pub struct DbSetup {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, AsRefStr, Display, EnumString, VariantArray)]
 #[strum(serialize_all = "snake_case")]
-enum DbName {
+pub enum DbName {
     IssuanceServer,
     PidIssuer,
     VerificationServer,
@@ -138,17 +138,24 @@ impl DbName {
 impl DbSetup {
     /// Create a database setup
     pub async fn create() -> Self {
-        Self::create_with_clean(false).await
+        Self::create_with_clean([]).await
     }
 
-    /// Create a clean database setup
+    /// Create a database setup and clean all databases
     ///
     /// This involves dropping the database and recreating from the templates.
     pub async fn create_clean() -> Self {
-        Self::create_with_clean(true).await
+        Self::create_with_clean(DbName::VARIANTS.iter().copied()).await
     }
 
-    async fn create_with_clean(clean: bool) -> Self {
+    /// Create a database setup and only clean the databases specified
+    ///
+    /// This involves dropping the database and recreating from the templates.
+    pub async fn create_clean_only(names: impl IntoIterator<Item = DbName>) -> Self {
+        Self::create_with_clean(names).await
+    }
+
+    async fn create_with_clean(clean: impl IntoIterator<Item = DbName>) -> Self {
         let ci = std::env::var("CI").is_ok();
 
         // Start testcontainer when not on CI
@@ -185,6 +192,7 @@ impl DbSetup {
         let index = find_free_set_of_databases(&mut connection).await;
 
         // Create databases
+        let clean = clean.into_iter().collect();
         setup_databases(&mut connection, index, clean).await;
 
         Self {
@@ -361,7 +369,7 @@ async fn setup_templates(connection: &mut AsyncDropPgConnection, connect_options
     connection.advisory_unlock(0).await;
 }
 
-async fn setup_databases(connection: &mut AsyncDropPgConnection, index: u32, clean: bool) {
+async fn setup_databases(connection: &mut AsyncDropPgConnection, index: u32, clean: HashSet<DbName>) {
     // Fetch all created databases
     let existing =
         fetch_existing_database::<String>(connection, DbName::VARIANTS.iter().map(|name| name.with_index(index))).await;
@@ -371,7 +379,7 @@ async fn setup_databases(connection: &mut AsyncDropPgConnection, index: u32, cle
         let indexed_name = name.with_index(index);
 
         // Drop with force if clean table is requested
-        let exist = match (existing.contains(&indexed_name), clean) {
+        let exist = match (existing.contains(&indexed_name), clean.contains(name)) {
             (true, true) => {
                 connection
                     .as_mut_ref()
