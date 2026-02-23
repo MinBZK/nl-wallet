@@ -59,11 +59,17 @@
 | -------------------- | --------------------------- | ----- |
 | `serviceAccountName` | Name of the service account | `nil` |
 
+### Pod security context
+
+| Name                 | Description                  | Value |
+| -------------------- | ---------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod | `{}`  |
+
 ### Security context
 
-| Name              | Description                         | Value |
-| ----------------- | ----------------------------------- | ----- |
-| `securityContext` | Security context for the containers | `{}`  |
+| Name              | Description                        | Value |
+| ----------------- | ---------------------------------- | ----- |
+| `securityContext` | Security context for the container | `{}`  |
 
 ### Ingress internal parameters
 
@@ -185,3 +191,4 @@
 | `logSidecar.resources.requests.memory` | Memory request of log sidecar           | `64Mi`         |
 | `logSidecar.resources.limits.cpu`      | CPU limit of log sidecar                | `400m`         |
 | `logSidecar.resources.limits.memory`   | Memory limit of log sidecar             | `128Mi`        |
+| `logSidecar.securityContext`           | Security context for the log sidecar    | `{}`           |

@@ -44,6 +44,7 @@ pub enum AccountError {
     strum::EnumIter,
 )]
 #[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum RevocationReason {
     // upon the explicit request of the User
     UserRequest,

@@ -33,6 +33,18 @@
 | `extraAnnotations` | Additional annotations for the deployment | `{}`  |
 | `extraPodLabels`   | Additional labels for the pods            | `{}`  |
 
+### Pod security context
+
+| Name                 | Description                  | Value |
+| -------------------- | ---------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod | `{}`  |
+
+### Security context
+
+| Name              | Description                        | Value |
+| ----------------- | ---------------------------------- | ----- |
+| `securityContext` | Security context for the container | `{}`  |
+
 ### Image pull secrets
 
 | Name               | Description                                  | Value |

@@ -26,6 +26,10 @@ spec:
       imagePullSecrets:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: {{ include "common.names.fullname" . }}
         image: {{ printf "%s:%s" (list .Values.global.imageRegistry .Values.image.repository | compact | join "/") .Values.image.tag }}
@@ -52,8 +56,14 @@ spec:
               - {{ $value | quote }}
               {{- end }}
         {{- end }}
+        {{- with .Values.resources }}
         resources:
-        {{- toYaml .Values.resources | nindent 12 }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
         - name: redis
           containerPort: {{ .Values.redis.server.port }}

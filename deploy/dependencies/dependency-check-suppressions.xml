@@ -1,34 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-  <!-- Start group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
+  <!-- Start group: [CRITICAL] -->
   <suppress>
-    <!--
+    <notes><![CDATA[
       Suppressing Flutter 1.0.0 because 1.0.0 doesn't present any particular Flutter release
       https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
       https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
-    -->
-    <notes><![CDATA[file name: Flutter:1.0.0]]></notes>
+    ]]></notes>
     <packageUrl>pkg:cocoapods/Flutter@1.0.0</packageUrl>
     <vulnerabilityName regex="true">.*</vulnerabilityName>
   </suppress>
-  <!-- Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.10.0 and Flutter 3.38.1 -->
+
   <suppress>
-    <notes><![CDATA[file name: flutter_local_notifications:0.0.1]]></notes>
+    <notes><![CDATA[
+    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.10.0 and Flutter ^3.38.1
+    ]]></notes>
     <packageUrl regex="true">^pkg:cocoapods/flutter_local_notifications@.*$</packageUrl>
     <cve>CVE-2022-3095</cve>
   </suppress>
   <suppress>
-    <notes><![CDATA[file name: flutter_native_splash:2.4.3]]></notes>
+    <notes><![CDATA[
+    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.10.0 and Flutter ^3.38.1
+    ]]></notes>
     <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
     <cve>CVE-2022-3095</cve>
   </suppress>
+
   <suppress>
-    <notes><![CDATA[file name: python-gitlab:6.1.0]]></notes>
+    <notes><![CDATA[
+    False positive on GitLab project (not Python library).
+    ]]></notes>
     <packageUrl regex="true">^pkg:pypi/python-gitlab@.*$</packageUrl>
     <cpe>cpe:/a:gitlab:gitlab</cpe>
   </suppress>
-  <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
 
+  <suppress>
+    <notes><![CDATA[
+    False positive on [root](https://github.com/root-project/root/) project.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/root_jailbreak_sniffer@.*$</packageUrl>
+    <cve>CVE-2026-24811</cve>
+  </suppress>
+  <!-- End group: [CRITICAL] -->
 
   <!-- Start group: [HIGH] -->
   <suppress>
@@ -47,6 +60,7 @@
     ]]></notes>
     <packageUrl regex="true">^pkg:npm/ajv@.*$</packageUrl>
     <vulnerabilityName>CVE-2025-69873</vulnerabilityName>
+    <vulnerabilityName>GHSA-2g4f-4pwh-qvx6</vulnerabilityName>
   </suppress>
   <!-- End group: [HIGH] -->
 
@@ -73,8 +87,7 @@
   <!-- Start group: [LOW] -->
   <suppress>
     <notes><![CDATA[
-      file name: video_player_avfoundation:0.0.1
-      False positive (Drupal)
+    False positive (Drupal)
     ]]></notes>
     <packageUrl regex="true">^pkg:cocoapods/video_player_avfoundation@.*$</packageUrl>
     <cve>CVE-2015-3362</cve>

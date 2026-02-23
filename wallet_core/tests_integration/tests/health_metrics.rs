@@ -1,6 +1,7 @@
 use reqwest::Client;
 use serde_json::Value;
 use serde_json::json;
+use serial_test::serial;
 
 use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::trusted_reqwest_client_builder;
@@ -21,6 +22,7 @@ async fn setup_wallet_provider() -> (Client, BaseUrl) {
 }
 
 #[tokio::test]
+#[serial(hsm)]
 async fn test_wallet_provider_health() {
     let (client, url) = setup_wallet_provider().await;
 
@@ -46,6 +48,7 @@ async fn test_wallet_provider_health() {
 }
 
 #[tokio::test]
+#[serial(hsm)]
 async fn test_wallet_provider_metrics() {
     let (client, url) = setup_wallet_provider().await;
 

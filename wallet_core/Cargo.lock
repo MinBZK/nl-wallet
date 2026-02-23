@@ -8712,6 +8712,7 @@ dependencies = [
  "strum 0.27.2",
  "thiserror 2.0.17",
  "utils",
+ "utoipa",
  "uuid",
  "wscd",
 ]
@@ -8858,6 +8859,7 @@ dependencies = [
  "strum 0.27.2",
  "thiserror 2.0.17",
  "utils",
+ "utoipa",
  "uuid",
  "wallet_account",
 ]

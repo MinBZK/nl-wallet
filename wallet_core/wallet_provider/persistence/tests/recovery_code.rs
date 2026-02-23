@@ -4,6 +4,8 @@ use crypto::utils::random_string;
 use tokio::time::Duration;
 use tokio::time::sleep;
 
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_persistence::recovery_code;
 use wallet_provider_persistence::test::WalletDeviceVendor;
@@ -15,40 +17,40 @@ use wallet_provider_persistence::wallet_user::store_recovery_code;
 
 #[tokio::test]
 async fn test_insert_recovery_code() {
-    let recovery_code = random_string(64);
+    let recovery_code: RecoveryCode = random_string(64).into();
 
     let db = db_from_env().await.expect("Could not connect to database");
 
     // verify it does not exist before insertion
-    let exists = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
-    assert!(!exists);
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(!is_denied);
 
     recovery_code::insert(&db, recovery_code.clone())
         .await
         .expect("should be able to insert recovery code");
 
-    let exists = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
-    assert!(exists);
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(is_denied);
 
     // verify idempotency
     recovery_code::insert(&db, recovery_code.clone())
         .await
         .expect("should be able to insert recovery code");
-    let exists = recovery_code::is_denied(&db, recovery_code).await.unwrap();
-    assert!(exists);
+    let is_denied = recovery_code::is_denied(&db, recovery_code).await.unwrap();
+    assert!(is_denied);
 }
 
 #[tokio::test]
 async fn test_recovery_code_is_denied() {
     let db = db_from_env().await.expect("Could not connect to database");
 
-    let wallet_id1 = random_string(32);
-    let wallet_id2 = random_string(32);
+    let wallet_id1: WalletId = random_string(32).into();
+    let wallet_id2: WalletId = random_string(32).into();
 
     create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id1.clone()).await;
     create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, wallet_id2.clone()).await;
 
-    let recovery_code = random_string(64);
+    let recovery_code: RecoveryCode = random_string(64).into();
     store_recovery_code(&db, &wallet_id1, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
@@ -93,11 +95,11 @@ async fn test_recovery_code_repeatable_reads() {
     let db = db_from_env().await.expect("Could not connect to database");
     let db = Arc::new(db);
 
-    let recovery_code = random_string(64);
+    let recovery_code: RecoveryCode = random_string(64).into();
 
     // Ensure the code is not present before starting the test
-    let exists = recovery_code::is_denied(&*db, recovery_code.clone()).await.unwrap();
-    assert!(!exists, "Recovery code should not exist before the test starts");
+    let is_denied = recovery_code::is_denied(&*db, recovery_code.clone()).await.unwrap();
+    assert!(!is_denied, "Recovery code should not exist before the test starts");
 
     // Spawn the reader task which starts a transaction and does two reads with a sleep in between.
     let db_clone = Arc::clone(&db);
@@ -144,4 +146,112 @@ async fn test_recovery_code_repeatable_reads() {
 
     // The test should fail if the two reads differ
     assert_eq!(first, second, "Detected non-repeatable read for the same recovery code",);
+}
+
+#[tokio::test]
+async fn test_remove_recovery_code() {
+    let recovery_code = random_string(64).into();
+
+    let db = db_from_env().await.expect("Could not connect to database");
+
+    recovery_code::set_allowed(&db, &recovery_code)
+        .await
+        .expect("should be able to set non-denied recovery code to allowed");
+
+    recovery_code::insert(&db, recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(is_denied);
+
+    recovery_code::set_allowed(&db, &recovery_code)
+        .await
+        .expect("should be able to set denied recovery code to allowed");
+
+    let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    assert!(!is_denied);
+
+    // verify idempotency
+    recovery_code::set_allowed(&db, &recovery_code)
+        .await
+        .expect("should be able to set non-denied recovery code to allowed");
+
+    let is_denied = recovery_code::is_denied(&db, recovery_code).await.unwrap();
+    assert!(!is_denied);
+}
+
+#[tokio::test]
+async fn test_list_recovery_code() {
+    let db = db_from_env().await.expect("Could not connect to database");
+
+    let recovery_code: RecoveryCode = random_string(64).into();
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(!recovery_codes.contains(&recovery_code));
+
+    recovery_code::insert(&db, recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(recovery_codes.contains(&recovery_code));
+
+    // inserting the same code again should not create duplicates
+    recovery_code::insert(&db, recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(recovery_codes.contains(&recovery_code));
+
+    // inserting another should result in both being listed
+    let another_recovery_code: RecoveryCode = random_string(64).into();
+    recovery_code::insert(&db, another_recovery_code.clone())
+        .await
+        .expect("should be able to insert denied recovery code");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(
+        [&recovery_code, &another_recovery_code]
+            .iter()
+            .all(|code| recovery_codes.contains(code))
+    );
+
+    // removing the first should result in only the second being listed
+    recovery_code::set_allowed(&db, &recovery_code)
+        .await
+        .expect("should be able to set denied recovery code to allowed");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+    assert!(!recovery_codes.contains(&recovery_code));
+    assert!(recovery_codes.contains(&another_recovery_code));
+
+    // removing the second should result in an empty list
+    recovery_code::set_allowed(&db, &another_recovery_code)
+        .await
+        .expect("should be able to set another denied recovery code to allowed");
+
+    let recovery_codes = recovery_code::list(&db)
+        .await
+        .expect("should be able to list denied recovery code");
+
+    assert!(
+        [&recovery_code, &another_recovery_code]
+            .iter()
+            .all(|code| !recovery_codes.contains(code))
+    );
 }

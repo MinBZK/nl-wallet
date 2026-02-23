@@ -36,7 +36,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ .Values.serviceAccountName }}
-      {{ with .Values.securityContext }}
+      {{ with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -46,6 +46,14 @@ spec:
           imagePullPolicy: {{ .Values.imagePreload.pullPolicy }}
           command: [ "sh", "-c", "--" ]
           args: [ "while true; do sleep 30; done;" ]
+          {{ with .Values.preloadGba.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: /data
               name: preloaded-gba-v-data-volume

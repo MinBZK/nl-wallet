@@ -27,6 +27,7 @@ use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::generator::mock::MockGenerators;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::TimeoutPinPolicy;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -144,7 +145,7 @@ async fn do_registration(
 
 async fn assert_instruction_data(
     repos: &Repositories,
-    wallet_id: &str,
+    wallet_id: &WalletId,
     expected_sequence_number: u64,
     has_challenge: bool,
 ) {
@@ -193,7 +194,7 @@ async fn test_instruction_challenge(
     let challenge1 = account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone(), 1, certificate.clone())
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 1, certificate.clone())
                 .await,
             &EpochGenerator,
             &user_state,
@@ -201,12 +202,12 @@ async fn test_instruction_challenge(
         .await
         .unwrap();
 
-    assert_instruction_data(&user_state.repositories, &cert_data.wallet_id, 1, true).await;
+    assert_instruction_data(&user_state.repositories, &cert_data.wallet_id.clone().into(), 1, true).await;
 
     let challenge2 = account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone(), 2, certificate)
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 2, certificate)
                 .await,
             &EpochGenerator,
             &user_state,
@@ -214,7 +215,7 @@ async fn test_instruction_challenge(
         .await
         .unwrap();
 
-    assert_instruction_data(&user_state.repositories, &cert_data.wallet_id, 2, true).await;
+    assert_instruction_data(&user_state.repositories, &cert_data.wallet_id.into(), 2, true).await;
 
     assert_ne!(challenge1, challenge2);
 }
@@ -244,7 +245,7 @@ async fn test_wua_status() {
         .instruction_challenge(
             hw_privkey
                 .sign_instruction_challenge::<PerformIssuanceWithWua>(
-                    cert_data.wallet_id.clone(),
+                    cert_data.wallet_id.clone().into(),
                     1,
                     certificate.clone(),
                 )

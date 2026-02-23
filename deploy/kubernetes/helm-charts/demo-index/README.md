@@ -39,6 +39,18 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
+### Pod security context
+
+| Name                 | Description                  | Value |
+| -------------------- | ---------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod | `{}`  |
+
+### Security context
+
+| Name              | Description                        | Value |
+| ----------------- | ---------------------------------- | ----- |
+| `securityContext` | Security context for the container | `{}`  |
+
 ### Ingress parameters
 
 | Name                    | Description                            | Value   |

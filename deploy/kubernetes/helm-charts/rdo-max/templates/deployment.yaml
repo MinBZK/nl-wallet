@@ -25,12 +25,22 @@ spec:
       imagePullSecrets:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: {{ include "common.names.fullname" . }}
         image: {{ printf "%s:%s" (list .Values.global.imageRegistry .Values.image.repository | compact | join "/") .Values.image.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- with .Values.resources }}
         resources:
-        {{- toYaml .Values.resources | nindent 12 }}
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
         ports:
         - name: max
           containerPort: {{ .Values.max.config.asgi.port }}
