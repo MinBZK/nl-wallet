@@ -30,9 +30,9 @@ class TasDataHelper {
         JSONObject(jsonContent)
     }
 
-    private fun getExtendedPidCardMetadataPath() = getProjectFile("scripts/devenv/eudi:pid:nl:1.json")
+    private fun getExtendedPidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_nl_1.json")
 
-    private fun getBasePidCardMetadataPath() = getProjectFile("scripts/devenv/eudi:pid:1.json")
+    private fun getBasePidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_1.json")
 
     private fun getDiplomaCardMetadataPath() = getProjectFile("scripts/devenv/com.example.degree.json")
 
