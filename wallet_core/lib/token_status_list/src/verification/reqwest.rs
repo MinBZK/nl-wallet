@@ -1,8 +1,7 @@
 use derive_more::AsRef;
 use http::header;
+use reqwest::ClientBuilder;
 use url::Url;
-
-use http_utils::reqwest::default_reqwest_client_builder;
 
 use crate::status_list_token::StatusListToken;
 use crate::verification::client::StatusListClient;
@@ -14,8 +13,8 @@ const STATUS_LIST_JWT_ACCEPT: &str = "application/statuslist+jwt";
 pub struct HttpStatusListClient(reqwest::Client);
 
 impl HttpStatusListClient {
-    pub fn new() -> Result<Self, reqwest::Error> {
-        let client = default_reqwest_client_builder().build()?;
+    pub fn new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+        let client = client_builder.build()?;
 
         Ok(Self(client))
     }

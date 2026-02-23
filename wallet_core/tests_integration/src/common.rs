@@ -412,7 +412,7 @@ where
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
-    let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
+    let mut wallet_clients = WalletClients::new_http().unwrap();
     setup_mock_digid_client(&mut wallet_clients.digid_client);
 
     Wallet::init_registration(
@@ -745,7 +745,7 @@ pub async fn start_issuance_server(
         hsm.clone(),
     )
     .await;
-    let status_list_client = HttpStatusListClient::new().unwrap();
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
 
     tokio::spawn(
         async move {
@@ -864,7 +864,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         storage_settings.into(),
     ));
 
-    let status_list_client = HttpStatusListClient::new().unwrap();
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
 
     tokio::spawn(
         async move {
