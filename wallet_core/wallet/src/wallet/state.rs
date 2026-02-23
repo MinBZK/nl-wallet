@@ -159,7 +159,9 @@ mod tests {
     use openid4vc::issuance_session::IssuedCredential;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::errors::AccountRevokedData;
+    use wallet_account::messages::errors::RevocationReason;
 
+    use crate::BlockedReason;
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
     use crate::WalletState;
@@ -472,6 +474,42 @@ mod tests {
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
+    }
+
+    #[rstest]
+    #[case(RevocationReason::AdminRequest, true, true)]
+    #[case(RevocationReason::AdminRequest, false, false)]
+    #[case(RevocationReason::UserRequest, true, false)]
+    #[case(RevocationReason::UserRequest, false, false)]
+    #[case(RevocationReason::WalletSolutionCompromised, true, false)]
+    #[case(RevocationReason::WalletSolutionCompromised, false, false)]
+    #[tokio::test]
+    async fn test_wallet_revocation_state(
+        #[case] revocation_reason: RevocationReason,
+        #[case] blocked_at_wp: bool,
+        #[case] can_register_new_account: bool,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let storage = wallet.mut_storage();
+        storage.expect_has_any_attestations().return_once(|| Ok(true));
+        storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<AccountRevokedData>().return_once(move || {
+            Ok(Some(AccountRevokedData {
+                revocation_reason,
+                can_register_new_account: blocked_at_wp,
+            }))
+        });
+
+        assert_eq!(
+            wallet.get_state().await.unwrap(),
+            WalletState::Blocked {
+                reason: BlockedReason::BlockedByWalletProvider,
+                can_register_new_account
+            }
+        );
     }
 
     fn some_jwk() -> Jwk {
