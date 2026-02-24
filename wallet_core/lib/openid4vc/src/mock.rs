@@ -15,7 +15,6 @@ use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
 use crate::issuer_identifier::CredentialIssuerIdentifier;
 use crate::issuer_metadata::CredentialResponseEncryption;
-use crate::issuer_metadata::IssuerData;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::oidc::Config;
 use crate::token::TokenRequest;
@@ -117,23 +116,20 @@ impl IssuerMetadata {
             .join_base_url("/issuance/batch_credential");
 
         IssuerMetadata {
-            issuer_config: IssuerData {
-                credential_issuer: issuer_identifier,
-                authorization_servers: None,
-                credential_endpoint,
-                batch_credential_endpoint: Some(batch_credential_endpoint),
-                deferred_credential_endpoint: None,
-                notification_endpoint: None,
-                credential_response_encryption: CredentialResponseEncryption {
-                    alg_values_supported: vec![],
-                    enc_values_supported: vec![],
-                    encryption_required: false,
-                },
-                credential_identifiers_supported: None,
-                display: None,
-                credential_configurations_supported: HashMap::new(),
+            credential_issuer: issuer_identifier,
+            authorization_servers: None,
+            credential_endpoint,
+            batch_credential_endpoint: Some(batch_credential_endpoint),
+            deferred_credential_endpoint: None,
+            notification_endpoint: None,
+            credential_response_encryption: CredentialResponseEncryption {
+                alg_values_supported: vec![],
+                enc_values_supported: vec![],
+                encryption_required: false,
             },
-            protected_metadata: None,
+            credential_identifiers_supported: None,
+            display: None,
+            credential_configurations_supported: HashMap::new(),
         }
     }
 }

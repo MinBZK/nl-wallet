@@ -620,7 +620,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         // The issuer may announce multiple OAuth authorization servers the wallet may use. Which one the wallet
         // uses is left up to the wallet. We just take the first one.
-        let oauth_server = issuer_metadata.issuer_config.authorization_servers().into_first();
+        let oauth_server = issuer_metadata.authorization_servers().into_first();
         let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
 
         let token_endpoint = oauth_metadata.token_endpoint.clone();
@@ -635,7 +635,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let url = message_client
             .discover_metadata(issuer_identifier)
             .await?
-            .issuer_config
             .credential_endpoint
             .as_ref()
             .clone();
@@ -652,7 +651,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let url = message_client
             .discover_metadata(issuer_identifier)
             .await?
-            .issuer_config
             .batch_credential_endpoint
             .map(|url| url.as_ref().clone());
         Ok(url)

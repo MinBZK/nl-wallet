@@ -64,7 +64,6 @@ use crate::credential::CredentialResponses;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::CredentialIssuerIdentifier;
-use crate::issuer_metadata;
 use crate::issuer_metadata::CredentialMetadata;
 use crate::issuer_metadata::CredentialResponseEncryption;
 use crate::issuer_metadata::IssuerMetadata;
@@ -467,7 +466,7 @@ where
         let credential_endpoint = server_url.join_base_url("/credential");
         let batch_credential_endpoint = server_url.join_base_url("/batch_credential");
 
-        let issuer_config = issuer_metadata::IssuerData {
+        let metadata = IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
             credential_endpoint,
@@ -482,10 +481,6 @@ where
             credential_identifiers_supported: Some(false),
             display: None,
             credential_configurations_supported,
-        };
-        let metadata = IssuerMetadata {
-            issuer_config,
-            protected_metadata: None,
         };
 
         let issuer_data = IssuerData {
@@ -704,7 +699,7 @@ where
 
     pub async fn oauth_metadata(&self) -> Result<oidc::Config, A::Error> {
         self.attr_service
-            .oauth_metadata(&self.issuer_data.metadata.issuer_config.credential_issuer)
+            .oauth_metadata(&self.issuer_data.metadata.credential_issuer)
             .await
     }
 }
@@ -987,7 +982,7 @@ impl Session<WaitingForResponse> {
         attestation_keys: impl Iterator<Item = VerifyingKey>,
         issuer_data: &IssuerData<K>,
     ) -> Result<(), CredentialRequestError> {
-        let issuer_identifier = issuer_data.metadata.issuer_config.credential_issuer.as_ref();
+        let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
 
         let attestation_keys = match &issuer_data.wua_config {
             None => attestation_keys.collect_vec(),
@@ -1274,7 +1269,7 @@ impl CredentialRequest {
             .verify(
                 c_nonce,
                 &issuer_data.accepted_wallet_client_ids,
-                &issuer_data.metadata.issuer_config.credential_issuer,
+                &issuer_data.metadata.credential_issuer,
             )?;
 
         Ok(holder_pubkey)

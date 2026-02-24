@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-use chrono::DateTime;
-use chrono::Utc;
-use chrono::serde::ts_seconds;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -11,7 +8,6 @@ use url::Url;
 
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
-use jwt::UnverifiedJwt;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
@@ -21,70 +17,10 @@ use utils::vec_nonempty;
 use crate::issuer_identifier::CredentialIssuerIdentifier;
 
 /// Credential issuer metadata, as per
-/// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
-///
-/// Fields may be set either in the `issuer_config` field or in the `protected_metadata` JWT, both of which
-/// contain [`IssuerData`]. If a field is present in the JWT then the same field in `issuer_config` should be
-/// disregarded.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssuerMetadata {
-    #[serde(flatten)]
-    pub issuer_config: IssuerData,
-
-    pub protected_metadata: Option<UnverifiedJwt<IssuerDataClaims>>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum IssuerMetadataDiscoveryError {
-    #[error("could not fetch or deserialize credential issuer metadata: {0}")]
-    Http(#[from] reqwest::Error),
-
-    #[error("credential issuer identifier in metadata does not match, expected: {expected}, received: {received}")]
-    IssuerIdentifierMismatch {
-        expected: Box<CredentialIssuerIdentifier>,
-        received: Box<CredentialIssuerIdentifier>,
-    },
-}
-
-impl IssuerMetadata {
-    /// Discover the Credential Issuer metadata by GETting it from .well-known and parsing it.
-    pub(crate) async fn discover(
-        client: &reqwest::Client,
-        issuer_identifier: &CredentialIssuerIdentifier,
-    ) -> Result<Self, IssuerMetadataDiscoveryError> {
-        // TODO (PVW-5527): Composing of the `.well-known` path below is not compliant
-        //                  with the OpenID4VCI specification and should be fixed.
-        let metadata = client
-            .get(
-                issuer_identifier
-                    .as_base_url()
-                    .join("/.well-known/openid-credential-issuer"),
-            )
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Self>()
-            .await?;
-
-        // As per specification, "The [credential issuer] MUST be identical to the Credential Issuer's identifier value
-        // into which the well-known URI string was inserted to create the URL used to retrieve the metadata. If these
-        // values are not identical (when compared using a simple string comparison with no normalization), the data
-        // contained in the response MUST NOT be used."
-        if metadata.issuer_config.credential_issuer != *issuer_identifier {
-            return Err(IssuerMetadataDiscoveryError::IssuerIdentifierMismatch {
-                expected: Box::new(issuer_identifier.clone()),
-                received: Box::new(metadata.issuer_config.credential_issuer),
-            });
-        }
-
-        Ok(metadata)
-    }
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IssuerData {
     /// The Credential Issuer's identifier, as defined in Section 12.2.1.
     pub credential_issuer: CredentialIssuerIdentifier,
 
@@ -140,7 +76,52 @@ pub struct IssuerData {
     pub credential_configurations_supported: HashMap<String, CredentialMetadata>,
 }
 
-impl IssuerData {
+#[derive(Debug, thiserror::Error)]
+pub enum IssuerMetadataDiscoveryError {
+    #[error("could not fetch or deserialize credential issuer metadata: {0}")]
+    Http(#[from] reqwest::Error),
+
+    #[error("credential issuer identifier in metadata does not match, expected: {expected}, received: {received}")]
+    IssuerIdentifierMismatch {
+        expected: Box<CredentialIssuerIdentifier>,
+        received: Box<CredentialIssuerIdentifier>,
+    },
+}
+
+impl IssuerMetadata {
+    /// Discover the Credential Issuer metadata by GETting it from .well-known and parsing it.
+    pub(crate) async fn discover(
+        client: &reqwest::Client,
+        issuer_identifier: &CredentialIssuerIdentifier,
+    ) -> Result<Self, IssuerMetadataDiscoveryError> {
+        // TODO (PVW-5527): Composing of the `.well-known` path below is not compliant
+        //                  with the OpenID4VCI specification and should be fixed.
+        let metadata = client
+            .get(
+                issuer_identifier
+                    .as_base_url()
+                    .join("/.well-known/openid-credential-issuer"),
+            )
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Self>()
+            .await?;
+
+        // As per specification, "The [credential issuer] MUST be identical to the Credential Issuer's identifier value
+        // into which the well-known URI string was inserted to create the URL used to retrieve the metadata. If these
+        // values are not identical (when compared using a simple string comparison with no normalization), the data
+        // contained in the response MUST NOT be used."
+        if metadata.credential_issuer != *issuer_identifier {
+            return Err(IssuerMetadataDiscoveryError::IssuerIdentifierMismatch {
+                expected: Box::new(issuer_identifier.clone()),
+                received: Box::new(metadata.credential_issuer),
+            });
+        }
+
+        Ok(metadata)
+    }
+
     /// Returns a non-empty slice of authorization servers.
     pub fn authorization_servers(&self) -> VecNonEmpty<&BaseUrl> {
         self.authorization_servers
@@ -154,20 +135,6 @@ impl IssuerData {
                 vec_nonempty![self.credential_issuer.as_base_url()]
             })
     }
-}
-
-/// Claims of a JWT containing [`IssuerData`].
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IssuerDataClaims {
-    /// Issuer of this JWT
-    pub iss: String,
-    /// The Credential Issuer Identifier
-    pub sub: String,
-    #[serde(with = "ts_seconds")]
-    pub iat: DateTime<Utc>,
-
-    #[serde(flatten)]
-    pub issuer_config: IssuerData,
 }
 
 /// Information about whether the Credential Issuer supports encryption of the Credential and Batch Credential Response
@@ -572,15 +539,10 @@ mod tests {
 
         // Assert that some of the contents has the expected values
         assert_eq!(
-            deserialized.issuer_config.credential_issuer.as_ref(),
+            deserialized.credential_issuer.as_ref(),
             "https://credential-issuer.example.com"
         );
-        let (cred_type, cred_metadata) = deserialized
-            .issuer_config
-            .credential_configurations_supported
-            .iter()
-            .next()
-            .unwrap();
+        let (cred_type, cred_metadata) = deserialized.credential_configurations_supported.iter().next().unwrap();
         assert_eq!(cred_type, "UniversityDegreeCredential");
         assert_matches!(cred_metadata.format, CredentialFormat::Other(..));
         assert_matches!(
