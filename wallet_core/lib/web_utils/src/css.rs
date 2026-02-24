@@ -8,6 +8,9 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use etag::EntityTag;
 
+const CSS_CONTENT_TYPE: &str = "text/css; charset=utf-8";
+const CACHE_CONTROL: &str = "public, max-age=604800";
+
 /// Serves bundled CSS content with ETag-based caching.
 ///
 /// Returns 304 Not Modified if the client's `If-None-Match` header matches the content hash.
@@ -15,17 +18,11 @@ pub fn serve_bundled_css(headers: &HeaderMap, css: &'static str) -> Response {
     static BUNDLED_ETAG: OnceLock<EntityTag> = OnceLock::new();
     let bundled_etag = BUNDLED_ETAG.get_or_init(|| EntityTag::from_data(css.as_bytes()));
 
-    // We can safely unwrap all header values below because we know there are no non-ascii characters used.
     let response_headers = [
-        (
-            header::CONTENT_TYPE,
-            HeaderValue::from_str("text/css; charset=utf-8").unwrap(),
-        ),
+        (header::CONTENT_TYPE, HeaderValue::from_static(CSS_CONTENT_TYPE)),
+        // We can safely unwrap the header value because we know there are no non-ascii characters used.
         (header::ETAG, HeaderValue::from_str(&bundled_etag.to_string()).unwrap()),
-        (
-            header::CACHE_CONTROL,
-            HeaderValue::from_str("public, max-age=604800").unwrap(),
-        ),
+        (header::CACHE_CONTROL, HeaderValue::from_static(CACHE_CONTROL)),
     ];
 
     if let Some(if_none_match) = headers.get(header::IF_NONE_MATCH) {
