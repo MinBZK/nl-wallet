@@ -9458,6 +9458,7 @@ dependencies = [
  "chrono",
  "crypto",
  "derive_more",
+ "etag",
  "http_utils",
  "indexmap 2.12.1",
  "lightningcss",
