@@ -138,8 +138,7 @@ where
         let result = self
             .account_provider_client
             .instruction_challenge(&self.parameters.client_config, challenge_request)
-            .await
-            .map_err(InstructionError::from)?;
+            .await?;
 
         Ok(result)
     }
