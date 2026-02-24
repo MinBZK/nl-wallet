@@ -58,18 +58,25 @@ pub fn copy_static_assets(sources: &[&Path], dest: &Path) {
 
 /// Creates a symlink, removing any existing file, symlink, or directory at the link path.
 ///
+/// If a symlink already exists at `link` and points to `target`, this is a no-op.
+///
 /// # Panics
 ///
 /// - If the existing file/symlink/directory at `link` cannot be removed
 /// - If the symlink creation fails
 pub fn force_symlink(target: &Path, link: &Path) {
     if let Ok(meta) = link.symlink_metadata() {
+        if meta.file_type().is_symlink() && fs::read_link(link).ok().as_deref() == Some(target) {
+            return;
+        }
+
         if meta.is_dir() {
             fs::remove_dir_all(link).unwrap_or_else(|e| panic!("Failed to remove dir {}: {}", link.display(), e));
         } else {
             fs::remove_file(link).unwrap_or_else(|e| panic!("Failed to remove {}: {}", link.display(), e));
         }
     }
+
     std::os::unix::fs::symlink(target, link).unwrap_or_else(|e| {
         panic!(
             "Failed to create symlink {} -> {}: {}",
