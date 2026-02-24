@@ -58,5 +58,10 @@
   ],
   "dependencies": {
     "@lavamoat/preinstall-always-fail": "^2.1.1"
+  },
+  "overrides": {
+    "editorconfig": {
+      "minimatch": "^9.0.6"
+    }
   }
 }
