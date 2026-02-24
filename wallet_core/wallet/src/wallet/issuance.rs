@@ -538,16 +538,12 @@ where
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| IssuanceError::NotRegistered)?;
+        let attested_key = Arc::clone(attested_key);
 
         info!("Checking if locked");
         if self.lock.is_locked() {
             return Err(IssuanceError::Locked);
         }
-
-        info!("Checking if there is an active issuance session");
-        let Some(Session::Issuance(issuance_session)) = &self.session else {
-            return Err(IssuanceError::SessionState);
-        };
 
         let config = self.config_repository.get();
 
@@ -556,7 +552,7 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                Arc::clone(attested_key),
+                attested_key,
                 InstructionClientParameters::new(
                     registration_data.wallet_id.clone(),
                     registration_data.pin_salt.clone(),
@@ -568,8 +564,13 @@ where
             .await?;
 
         let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
-        info!("Signing nonce using Wallet Provider");
 
+        info!("Checking if there is an active issuance session");
+        let Some(Session::Issuance(issuance_session)) = &self.session else {
+            return Err(IssuanceError::SessionState);
+        };
+
+        info!("Signing nonce using Wallet Provider");
         let issuance_result = issuance_session
             .protocol_state
             .accept_issuance(
@@ -580,16 +581,17 @@ where
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session.protocol_state));
 
-        // Make sure there are no remaining references to the `AttestedKey` value.
-        drop(remote_wscd);
-
-        // If the Wallet Provider returns either a PIN timeout or a permanent block,
-        // wipe the contents of the wallet and return it to its initial state.
+        // In some cases, the contents of the wallet need to be wiped and the wallet returned to its initial state.
         let issued_credentials_with_metadata = match issuance_result {
-            Err(IssuanceError::Instruction(error @ (InstructionError::Timeout { .. } | InstructionError::Blocked))) => {
-                drop(remote_instruction);
-                self.reset_to_initial_state().await;
-                return Err(IssuanceError::Instruction(error));
+            Err(error @ IssuanceError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)) => {
+                if issuance_session.pid_purpose.is_some() {
+                    self.reset_to_initial_state().await;
+                }
+                return Err(error);
+            }
+            Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
+                self.handle_wallet_revocation(data).await;
+                return Err(error);
             }
             _ => issuance_result?,
         };
@@ -684,7 +686,7 @@ where
     /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
     /// endpoint of the Wallet Provider.
     async fn disclose_recovery_code<AK: AppleAttestedKey, GK: GoogleAttestedKey>(
-        &self,
+        &mut self,
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
     ) -> Result<Option<TransferSessionId>, IssuanceError> {
@@ -720,8 +722,8 @@ where
                 recovery_code_disclosure: recovery_code_disclosure.into(),
                 app_version: version().clone(),
             })
-            .await
-            .map_err(IssuanceError::Instruction)?;
+            .await;
+        let result = self.check_result_for_wallet_revocation(result).await?;
 
         Ok(result.transfer_session_id.map(Into::into))
     }
@@ -811,6 +813,8 @@ mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use wallet_account::messages::errors::AccountRevokedData;
+    use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
     use wallet_configuration::wallet_config::PidAttributePaths;
@@ -1623,6 +1627,11 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .return_once(|| Ok(None));
+
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet
@@ -1915,5 +1924,84 @@ mod tests {
         let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator, Some(&pid_config));
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![Some(attestation_id)], identities);
+    }
+
+    #[tokio::test]
+    async fn test_accept_issuance_error_revoked_user_request() {
+        // UserRequest revocation always resets the wallet, regardless of session type.
+        let (wallet, error) = test_accept_pid_issuance_error_remote_key(
+            RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true,
+            })),
+            true,
+        )
+        .await;
+
+        assert_matches!(
+            error,
+            IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true,
+            }))
+        );
+        assert!(!wallet.has_registration());
+        assert!(wallet.is_locked());
+        assert_matches!(
+            wallet.storage.read().await.state().await.unwrap(),
+            StorageState::Uninitialized
+        );
+    }
+
+    #[tokio::test]
+    async fn test_accept_issuance_error_revoked_admin_request() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        // AdminRequest revocation stores the revocation reason without resetting the wallet.
+        wallet
+            .mut_storage()
+            .expect_insert_data::<AccountRevokedData>()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let pid_issuer = {
+            let mut client = MockIssuanceSession::new();
+            client.expect_accept().return_once(|| {
+                Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(
+                    RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                        revocation_reason: RevocationReason::AdminRequest,
+                        can_register_new_account: true,
+                    })),
+                ))))
+            });
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+            client
+        };
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            Some(PidIssuancePurpose::Enrollment),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            pid_issuer,
+        )));
+
+        let error = wallet
+            .accept_issuance(PIN.to_owned())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
+            }))
+        );
+        // After an AdminRequest revocation, the wallet remains registered.
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 }

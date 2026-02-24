@@ -4,6 +4,8 @@ use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use wallet_account::messages::errors::AccountRevokedData;
+use wallet_account::messages::errors::RevocationReason;
 
 use crate::Wallet;
 use crate::digid::DigidClient;
@@ -25,13 +27,20 @@ pub enum WalletStateError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum WalletState {
-    Blocked { reason: BlockedReason },
+    Blocked {
+        reason: BlockedReason,
+        can_register_new_account: bool,
+    },
     Unregistered,
-    Locked { sub_state: Box<WalletState> },
+    Locked {
+        sub_state: Box<WalletState>,
+    },
     // The following variants may appear in `Locked { sub_state }`
     Empty,
     TransferPossible,
-    Transferring { role: TransferRole },
+    Transferring {
+        role: TransferRole,
+    },
     InDisclosureFlow,
     InIssuanceFlow,
     InPinChangeFlow,
@@ -62,14 +71,25 @@ where
     #[instrument(skip_all)]
     pub async fn get_state(&self) -> Result<WalletState, WalletStateError> {
         if self.is_blocked() {
-            // TODO: support `BlockedByWalletProvider` (PVW-5307)
             return Ok(WalletState::Blocked {
                 reason: BlockedReason::RequiresAppUpdate,
+                can_register_new_account: true,
             });
         }
 
         if !self.has_registration() {
             return Ok(WalletState::Unregistered);
+        }
+
+        if let Some(revocation_data) = self.storage.read().await.fetch_data::<AccountRevokedData>().await? {
+            return Ok(WalletState::Blocked {
+                reason: BlockedReason::BlockedByWalletProvider,
+                // In case of `AdminRequest`, the `can_register_new_account` flag whether or not the user
+                // can register a new account. For the other two variants of `RevocationReason`,
+                // reregistering would not make sense so we return false in those cases.
+                can_register_new_account: revocation_data.can_register_new_account
+                    && revocation_data.revocation_reason == RevocationReason::AdminRequest,
+            });
         }
 
         let flow_state = self.get_flow_state().await?;
@@ -141,7 +161,10 @@ mod tests {
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::issuance_session::IssuedCredential;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use wallet_account::messages::errors::AccountRevokedData;
+    use wallet_account::messages::errors::RevocationReason;
 
+    use crate::BlockedReason;
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
     use crate::WalletState;
@@ -208,6 +231,9 @@ mod tests {
         storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -238,6 +264,9 @@ mod tests {
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
 
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -266,6 +295,9 @@ mod tests {
             .expect_fetch_data::<TransferData>()
             .return_once(move || Ok(Some(transfer_data)));
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -288,6 +320,9 @@ mod tests {
         storage
             .expect_fetch_data::<PinRecoveryData>()
             .return_once(|| Ok(Some(PinRecoveryData)));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
@@ -318,6 +353,9 @@ mod tests {
         storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
         storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
 
@@ -433,9 +471,48 @@ mod tests {
         storage
             .expect_fetch_data::<PinRecoveryData>()
             .return_once(|| Ok(pin_recovery_data));
+        storage
+            .expect_fetch_data::<AccountRevokedData>()
+            .return_once(|| Ok(None));
 
         let wallet_state = wallet.get_state().await.unwrap();
         assert_eq!(wallet_state, expected_state);
+    }
+
+    #[rstest]
+    #[case(RevocationReason::AdminRequest, true, true)]
+    #[case(RevocationReason::AdminRequest, false, false)]
+    #[case(RevocationReason::UserRequest, true, false)]
+    #[case(RevocationReason::UserRequest, false, false)]
+    #[case(RevocationReason::WalletSolutionCompromised, true, false)]
+    #[case(RevocationReason::WalletSolutionCompromised, false, false)]
+    #[tokio::test]
+    async fn test_wallet_revocation_state(
+        #[case] revocation_reason: RevocationReason,
+        #[case] blocked_at_wp: bool,
+        #[case] can_register_new_account: bool,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let storage = wallet.mut_storage();
+        storage.expect_has_any_attestations().return_once(|| Ok(true));
+        storage.expect_fetch_data::<ChangePinData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<TransferData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<PinRecoveryData>().return_once(|| Ok(None));
+        storage.expect_fetch_data::<AccountRevokedData>().return_once(move || {
+            Ok(Some(AccountRevokedData {
+                revocation_reason,
+                can_register_new_account: blocked_at_wp,
+            }))
+        });
+
+        assert_eq!(
+            wallet.get_state().await.unwrap(),
+            WalletState::Blocked {
+                reason: BlockedReason::BlockedByWalletProvider,
+                can_register_new_account
+            }
+        );
     }
 
     fn some_jwk() -> Jwk {

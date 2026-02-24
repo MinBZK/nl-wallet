@@ -37,7 +37,7 @@ void main() {
     for (final state in [
       const WalletStateUnregistered(),
       const WalletStateEmpty(),
-      const WalletStateBlocked(BlockedReason.blockedByWalletProvider),
+      const WalletStateBlocked(BlockedReason.blockedByWalletProvider, canRegisterNewAccount: false),
       const WalletStateInPinChangeFlow(),
     ]) {
       test('when in ${state.runtimeType}, should return false', () async {

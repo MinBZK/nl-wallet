@@ -26,6 +26,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
@@ -37,6 +38,7 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
+use sd_jwt::error::SigningError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
@@ -204,6 +206,9 @@ impl From<VpSessionError> for DisclosureError {
         match value {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
             VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                signing_error,
+            ))))
+            | VpSessionError::Client(VpClientError::SdJwtSigning(SigningError::Jwt(JwtError::Signing(
                 signing_error,
             )))) if matches!(
                 signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
@@ -735,6 +740,7 @@ where
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| DisclosureError::NotRegistered)?;
+        let attested_key = Arc::clone(attested_key);
 
         info!("Checking if locked");
         if self.lock.is_locked() {
@@ -758,16 +764,13 @@ where
             });
         }
 
-        // Note that this will panic if any of the indices are out of bounds.
-        let attestations = session.attestations.select_proposal(selected_indices);
-
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                Arc::clone(attested_key),
+                attested_key,
                 InstructionClientParameters::new(
                     registration_data.wallet_id.clone(),
                     registration_data.pin_salt.clone(),
@@ -777,6 +780,15 @@ where
                 ),
             )
             .await?;
+
+        // We have to take ownership of the disclosure session here, so that `attestations`
+        // below doesn't borrow from self, as we also borrow mutably from self above.
+        let Some(Session::Disclosure(mut session)) = self.session.take() else {
+            unreachable!(); // This not possible, as we took a reference to this value before.
+        };
+
+        // Note that this will panic if any of the indices are out of bounds.
+        let attestations = session.attestations.select_proposal(selected_indices);
 
         let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
 
@@ -833,6 +845,8 @@ where
                     error!("Could not store error in history: {e}");
                 });
 
+            // Put back the session for a later attempt
+            self.session.replace(Session::Disclosure(session));
             return Err(DisclosureError::IncrementUsageCount(error));
         }
 
@@ -862,12 +876,8 @@ where
             (_, _) => panic!("VpDisclosureClient should not allow requesting a mix of formats"),
         };
 
-        // Take ownership of the disclosure session and actually perform disclosure, casting any
-        // `InstructionError` that occurs during signing to `RemoteEcdsaKeyError::Instruction`.
-        let Some(Session::Disclosure(mut session)) = self.session.take() else {
-            // This not possible, as we took a reference to this value before.
-            unreachable!();
-        };
+        // Actually perform disclosure, casting any `InstructionError` that occurs during signing
+        // to `RemoteEcdsaKeyError::Instruction`.
         let result = session
             .protocol_state
             .disclose(disclosable_attestations, &remote_wscd, &TimeGenerator)
@@ -901,30 +911,33 @@ where
                 // At this point place the `DisclosureSession` back so that `WalletDisclosureSession` is whole again.
                 session.protocol_state = protocol_state;
 
-                if matches!(
-                    disclosure_error,
-                    DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
-                ) {
-                    // On a PIN timeout we should proactively terminate the disclosure session
-                    // and lock the wallet, as the user is probably not the owner of the wallet.
-                    // The UI should catch this specific error and close the disclosure screens.
-                    //
-                    // If terminating the session results in an error, log it but do nothing else.
-                    let _ = self
-                        .terminate_disclosure_session(session)
-                        .await
-                        .inspect_err(|terminate_error| {
-                            error!(
-                                "Error while terminating disclosure session on PIN timeout: {}",
-                                terminate_error
-                            );
-                        });
+                match disclosure_error {
+                    DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked) => {
+                        // On a PIN timeout we should proactively terminate the disclosure session
+                        // and lock the wallet, as the user is probably not the owner of the wallet.
+                        // The UI should catch this specific error and close the disclosure screens.
+                        //
+                        // If terminating the session results in an error, log it but do nothing else.
+                        let _ = self
+                            .terminate_disclosure_session(session)
+                            .await
+                            .inspect_err(|terminate_error| {
+                                error!(
+                                    "Error while terminating disclosure session on PIN timeout: {}",
+                                    terminate_error
+                                );
+                            });
 
-                    self.lock.lock();
-                } else {
-                    // If we did not just give away ownership of the disclosure session by terminating it,
-                    // place it back in the wallet state so that the user may retry disclosure.
-                    self.session.replace(Session::Disclosure(session));
+                        self.lock.lock();
+                    }
+                    DisclosureError::Instruction(InstructionError::AccountRevoked(data)) => {
+                        self.handle_wallet_revocation(data).await;
+                    }
+                    _ => {
+                        // If we did not just give away ownership of the disclosure session by terminating it,
+                        // place it back in the wallet state so that the user may retry disclosure.
+                        self.session.replace(Session::Disclosure(session));
+                    }
                 }
 
                 return Err(disclosure_error);
@@ -1022,6 +1035,8 @@ mod tests {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
+    use wallet_account::messages::errors::AccountRevokedData;
+    use wallet_account::messages::errors::RevocationReason;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
@@ -2442,6 +2457,10 @@ mod tests {
         let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
         wallet.session = Some(session);
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .return_once(|| Ok(None));
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant query index should result in a panic.
@@ -2456,6 +2475,10 @@ mod tests {
         let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
         wallet.session = Some(session);
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .return_once(|| Ok(None));
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant
@@ -2990,5 +3013,148 @@ mod tests {
         );
 
         wallet.mut_storage().checkpoint();
+    }
+
+    #[tokio::test]
+    async fn test_accept_disclosure_error_revoked_user_request() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        wallet.session = Some(session);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        // UserRequest revocation calls reset_to_initial_state(), which clears storage.
+        wallet.mut_storage().expect_clear().times(1).return_const(());
+
+        let Some(Session::Disclosure(session)) = &mut wallet.session else {
+            unreachable!();
+        };
+
+        session.protocol_state.expect_disclose().times(1).return_once(move |_| {
+            let session = setup_disclosure_session_verifier_certificate(
+                verifier_certificate,
+                default_pid_credential_requests(CredentialFormat::MsoMdoc),
+            );
+
+            Err((
+                session,
+                wallet_revocation_error(AccountRevokedData {
+                    revocation_reason: RevocationReason::UserRequest,
+                    can_register_new_account: true,
+                }),
+            ))
+        });
+
+        let error = wallet
+            .accept_disclosure(&[0], PIN.to_string())
+            .await
+            .expect_err("accepting disclosure should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true
+            }))
+        );
+
+        // After a UserRequest revocation, the wallet is fully reset: unregistered and locked.
+        assert!(!wallet.registration.is_registered());
+        assert!(wallet.is_locked());
+        // The disclosure session is not placed back after a revocation.
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_accept_disclosure_error_revoked_admin_request() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        wallet.session = Some(session);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        // AdminRequest revocation stores the reason without resetting the wallet.
+        wallet
+            .mut_storage()
+            .expect_insert_data::<AccountRevokedData>()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let Some(Session::Disclosure(session)) = &mut wallet.session else {
+            unreachable!();
+        };
+
+        session.protocol_state.expect_disclose().times(1).return_once(move |_| {
+            let session = setup_disclosure_session_verifier_certificate(
+                verifier_certificate,
+                default_pid_credential_requests(CredentialFormat::MsoMdoc),
+            );
+
+            Err((
+                session,
+                wallet_revocation_error(AccountRevokedData {
+                    revocation_reason: RevocationReason::AdminRequest,
+                    can_register_new_account: true,
+                }),
+            ))
+        });
+
+        let error = wallet
+            .accept_disclosure(&[0], PIN.to_string())
+            .await
+            .expect_err("accepting disclosure should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
+            }))
+        );
+        // After an AdminRequest revocation, the wallet remains registered.
+        assert!(wallet.registration.is_registered());
+        // The disclosure session is not placed back after a revocation.
+        assert!(wallet.session.is_none());
+    }
+
+    /// Returns a disclosure error that simulates the WP having revoked our wallet.
+    fn wallet_revocation_error(data: AccountRevokedData) -> disclosure_session::DisclosureError<VpSessionError> {
+        disclosure_session::DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
+            mdoc::Error::Cose(CoseError::Signing(Box::new(RemoteEcdsaKeyError::Instruction(
+                InstructionError::AccountRevoked(data),
+            )))),
+        )))
     }
 }

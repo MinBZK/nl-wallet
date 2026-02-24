@@ -24,6 +24,7 @@ sealed class WalletState with _$WalletState {
 
   const factory WalletState.blocked({
     required BlockedReason reason,
+    required bool canRegisterNewAccount,
   }) = WalletState_Blocked;
   const factory WalletState.unregistered() = WalletState_Unregistered;
   const factory WalletState.locked({

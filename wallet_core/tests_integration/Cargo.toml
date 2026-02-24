@@ -70,6 +70,11 @@ path = "tests/revocation.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "wallet_revocation"
+path = "tests/wallet_revocation.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "transfer"
 path = "tests/transfer.rs"
 required-features = ["integration_test"]
@@ -104,6 +109,7 @@ test_common = [
     "dep:axum-server",
     "axum/json",
     "dep:android_attest",
+    "dep:audit_log",
     "dep:crypto",
     "dep:ctor",
     "dep:futures",

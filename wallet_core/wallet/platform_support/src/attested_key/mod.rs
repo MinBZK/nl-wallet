@@ -162,6 +162,5 @@ pub trait AppleAttestedKey {
 
 /// Trait for a Google attested key, which includes all methods contained in [`SecureEcdsaKey`].
 pub trait GoogleAttestedKey: SecureEcdsaKey {
-    /// Delete the attested key, which consumes the type.
-    async fn delete(self) -> Result<(), Self::Error>;
+    async fn delete(&self) -> Result<(), Self::Error>;
 }
