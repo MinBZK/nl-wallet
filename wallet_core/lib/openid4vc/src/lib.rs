@@ -25,7 +25,7 @@ pub mod errors;
 pub use errors::*;
 
 pub mod issuer_identifier;
-pub mod metadata;
+pub mod issuer_metadata;
 pub mod oidc;
 pub mod server_state;
 

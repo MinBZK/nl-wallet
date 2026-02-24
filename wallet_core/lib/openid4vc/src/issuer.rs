@@ -64,10 +64,10 @@ use crate::credential::CredentialResponses;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::CredentialIssuerIdentifier;
-use crate::metadata;
-use crate::metadata::CredentialMetadata;
-use crate::metadata::CredentialResponseEncryption;
-use crate::metadata::IssuerMetadata;
+use crate::issuer_metadata;
+use crate::issuer_metadata::CredentialMetadata;
+use crate::issuer_metadata::CredentialResponseEncryption;
+use crate::issuer_metadata::IssuerMetadata;
 use crate::oidc;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::server_state::Expirable;
@@ -467,7 +467,7 @@ where
         let credential_endpoint = server_url.join_base_url("/credential");
         let batch_credential_endpoint = server_url.join_base_url("/batch_credential");
 
-        let issuer_config = metadata::IssuerData {
+        let issuer_config = issuer_metadata::IssuerData {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
             credential_endpoint,

@@ -467,11 +467,11 @@ pub struct BackgroundImage {
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::metadata::CredentialMetadata;
-    use crate::metadata::CredentialSigningAlg;
-    use crate::metadata::CryptographicBindingMethod;
-    use crate::metadata::ProofSigningAlg;
-    use crate::metadata::ProofType;
+    use crate::issuer_metadata::CredentialMetadata;
+    use crate::issuer_metadata::CredentialSigningAlg;
+    use crate::issuer_metadata::CryptographicBindingMethod;
+    use crate::issuer_metadata::ProofSigningAlg;
+    use crate::issuer_metadata::ProofType;
 
     use super::CredentialFormat;
     use super::IssuerMetadata;
