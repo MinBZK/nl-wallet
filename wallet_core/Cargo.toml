@@ -154,6 +154,9 @@ jsonwebtoken = { version = "10.2.0", default-features = false, features = ["rust
 libc = "0.2.178"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
+# The lightningcss crate has a 1.0.0 version as well as an `alpha` label, meaning they don't use the semver
+# strategy. However, since this should only be used as a build dependency, we accept the `alpha` label.
+lightningcss = "1.0.0-alpha.70"
 log = "0.4.29"
 mediatype = "0.21.0"
 metrics = "0.24.3"

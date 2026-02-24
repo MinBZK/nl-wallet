@@ -200,7 +200,8 @@ build-wallet-provider-migrations-binary:
 build-audit-log-migrations-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "audit_log_migrations" --bin audit_log_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "audit_log_migrations" --bin
+      audit_log_migrations
   artifacts:
     name: audit_log_migrations
     paths:
@@ -278,6 +279,7 @@ build-demo-relying-party-binary:
   artifacts:
     name: demo_relying_party
     paths:
+      - wallet_core/demo/demo_relying_party/assets
       - wallet_core/target/x86_64-unknown-linux-musl/release/demo_relying_party
 
 build-demo-issuer-binary:
@@ -287,6 +289,7 @@ build-demo-issuer-binary:
   artifacts:
     name: demo_issuer
     paths:
+      - wallet_core/demo/demo_issuer/assets
       - wallet_core/target/x86_64-unknown-linux-musl/release/demo_issuer
 
 build-demo-index-binary:
@@ -296,6 +299,7 @@ build-demo-index-binary:
   artifacts:
     name: demo_index
     paths:
+      - wallet_core/demo/demo_index/assets
       - wallet_core/target/x86_64-unknown-linux-musl/release/demo_index
 
 build-gba-hc-converter-binary:
@@ -339,10 +343,12 @@ build-gba-fetch-frontend-binary:
 build-revocation-portal-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "revocation_portal" --bin revocation_portal
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "revocation_portal" --bin
+      revocation_portal
   artifacts:
     name: revocation_portal
     paths:
+      - wallet_core/revocation_portal/assets
       - wallet_core/target/x86_64-unknown-linux-musl/release/revocation_portal
 
 build-performance-test:

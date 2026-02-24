@@ -25,8 +25,10 @@ tower-http = { workspace = true, features = ["fs", "trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 
-demo_utils.path = "../demo_utils"
 http_utils.path = "../../lib/http_utils"
 server_utils.path = "../../wallet_server/server_utils"
 utils.path = "../../lib/utils"
 web_utils.path = "../../lib/web_utils"
+
+[build-dependencies]
+web_utils = { path = "../../lib/web_utils", features = ["build"] }
