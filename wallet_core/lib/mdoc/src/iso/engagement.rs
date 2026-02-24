@@ -262,7 +262,8 @@ mod tests {
 
         use base64::prelude::*;
         use hex_literal::hex;
-        use jsonwebtoken::jwk::{Jwk, ThumbprintHash};
+        use jsonwebtoken::jwk::Jwk;
+        use jsonwebtoken::jwk::ThumbprintHash;
         use serde_json::json;
 
         use super::*;

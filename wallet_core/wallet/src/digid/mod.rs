@@ -5,6 +5,7 @@ use url::Url;
 use error_category::ErrorCategory;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::tls::pinning::TlsPinningConfig;
+use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
 use wallet_configuration::wallet_config::DigidConfiguration;
@@ -24,27 +25,48 @@ pub enum DigidError {
     Oidc(#[from] OidcError),
 }
 
-#[cfg_attr(any(test, feature = "test"), mockall::automock(type Session = MockDigidSession<C>;))]
+/// The state of a DigiD session after OIDC discovery.
+/// Contains the OIDC client (for token exchange) and the authorization URL.
+#[derive(Debug)]
+pub struct DigidSessionState<O: OidcClient> {
+    pub oidc_client: O,
+    pub auth_url: Url,
+}
+
+impl<O: OidcClient> DigidSessionState<O> {
+    pub fn into_token_request(self, redirect_uri: &Url) -> Result<TokenRequest, DigidError> {
+        let token_request = self.oidc_client.into_token_request(redirect_uri)?;
+        Ok(token_request)
+    }
+}
+
+#[cfg_attr(any(test, feature = "test"), mockall::automock(type OC = openid4vc::oidc::MockOidcClient;))]
 pub trait DigidClient<C = TlsPinningConfig>
 where
     C: IntoPinnedReqwestClient + Clone + Hash,
 {
-    type Session: DigidSession<C>;
+    type OC: OidcClient;
 
     async fn start_session(
         &self,
         digid_config: DigidConfiguration,
         http_config: C,
         redirect_uri: Url,
-    ) -> Result<Self::Session, DigidError>;
+    ) -> Result<DigidSessionState<Self::OC>, DigidError>;
 }
 
-#[cfg_attr(any(test, feature = "test"), mockall::automock)]
-pub trait DigidSession<C = TlsPinningConfig>
-where
-    C: IntoPinnedReqwestClient + Clone + Hash,
-{
-    fn auth_url(&self) -> &Url;
+#[cfg(test)]
+pub mod mock {
+    use openid4vc::oidc::MockOidcClient;
 
-    async fn into_token_request(self, http_config: &C, redirect_uri: Url) -> Result<TokenRequest, DigidError>;
+    use super::*;
+
+    pub const AUTH_URL: &str = "http://example.com/auth";
+
+    pub fn mock_digid_session_state() -> DigidSessionState<MockOidcClient> {
+        DigidSessionState {
+            oidc_client: MockOidcClient::new(),
+            auth_url: Url::parse("http://example.com/auth").unwrap(),
+        }
+    }
 }

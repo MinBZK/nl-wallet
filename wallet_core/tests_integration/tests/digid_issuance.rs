@@ -15,7 +15,6 @@ use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::test::DigidClient;
-use wallet::test::DigidSession;
 use wallet::test::HttpDigidClient;
 use wallet::test::default_wallet_config;
 use wscd::mock_remote::MockRemoteWscd;
@@ -80,15 +79,12 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
-        digid_session.auth_url().clone(),
+        digid_session.auth_url.clone(),
         wallet_config.pid_issuance.digid_http_config.clone(),
         "999991772",
     )
     .await;
-    let token_request = digid_session
-        .into_token_request(&wallet_config.pid_issuance.digid_http_config, redirect_url)
-        .await
-        .unwrap();
+    let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let issuance_session = HttpIssuanceSession::start_issuance(

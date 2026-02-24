@@ -131,7 +131,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::digid::MockDigidSession;
+    use crate::digid::mock::mock_digid_session_state;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
@@ -171,7 +171,7 @@ mod tests {
         // Set up an enrollment `DigidSession` that will match the URI.
         wallet.session = Some(Session::Digid {
             purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
+            session: mock_digid_session_state(),
         });
 
         // The wallet should now recognise the DigiD URI.
@@ -180,7 +180,7 @@ mod tests {
         // Set up a PID renewal `DigidSession` that will match the URI.
         wallet.session = Some(Session::Digid {
             purpose: PidIssuancePurpose::Renewal,
-            session: MockDigidSession::new(),
+            session: mock_digid_session_state(),
         });
 
         // The wallet should now recognise the DigiD URI.

@@ -32,6 +32,7 @@ use tokio::task::AbortHandle;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
@@ -41,6 +42,7 @@ use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
 use crate::digid::DigidClient;
+use crate::digid::DigidSessionState;
 use crate::digid::HttpDigidClient;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
@@ -117,16 +119,16 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 #[derive(Debug)]
-enum Session<DS, IS, DCS> {
+enum Session<OC: OidcClient, IS, DCS> {
     Digid {
         purpose: PidIssuancePurpose,
-        session: DS,
+        session: DigidSessionState<OC>,
     },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
     PinRecovery {
         pid_config: PidAttributesConfiguration,
-        session: PinRecoverySession<DS, IS>,
+        session: PinRecoverySession<OC, IS>,
     },
 }
 
@@ -154,7 +156,7 @@ pub struct Wallet<
     digid_client: DC,
     disclosure_client: DCC,
     status_list_client: Arc<SLC>,
-    session: Option<Session<DC::Session, IS, DCC::Session>>,
+    session: Option<Session<DC::OC, IS, DCC::Session>>,
     lock: WalletLock,
     attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,

@@ -54,6 +54,7 @@ use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
+use openid4vc::oidc::MockOidcClient;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::token::TokenRequest;
@@ -82,10 +83,10 @@ use wallet::AttestationPresentation;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
+use wallet::test::DigidSessionState;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockDigidClient;
-use wallet::test::MockDigidSession;
 use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
@@ -1011,21 +1012,17 @@ pub async fn do_degree_issuance(
     attestation_previews
 }
 
-/// Configure [`MockDigidClient`] to return a [`MockDigidClient`] that returns some arbitrary token.
+/// Configure [`MockDigidClient`] to return a [`DigidSessionState`] that returns some arbitrary token.
 pub fn setup_mock_digid_client(digid_client: &mut MockDigidClient<TlsPinningConfig>) {
     digid_client
         .expect_start_session()
         .returning(|_digid_config, _http_config, _redirect_uri| {
-            let mut session = MockDigidSession::new();
+            let mut oidc_client = MockOidcClient::new();
 
-            session
-                .expect_auth_url()
-                .return_const(Url::parse("http://localhost/").unwrap());
-
-            session
+            oidc_client
                 .expect_into_token_request()
                 .times(1)
-                .return_once(|_http_config, _redirect_uri| {
+                .return_once(|_redirect_uri| {
                     let token_request = TokenRequest {
                         grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
                             pre_authorized_code: crypto::utils::random_string(32).into(),
@@ -1038,7 +1035,10 @@ pub fn setup_mock_digid_client(digid_client: &mut MockDigidClient<TlsPinningConf
                     Ok(token_request)
                 });
 
-            Ok(session)
+            Ok(DigidSessionState {
+                oidc_client,
+                auth_url: Url::parse("http://localhost/").unwrap(),
+            })
         });
 }
 

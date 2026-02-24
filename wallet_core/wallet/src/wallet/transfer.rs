@@ -482,7 +482,7 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
-    use crate::digid::MockDigidSession;
+    use crate::digid::mock::mock_digid_session_state;
     use crate::storage::ChangePinData;
     use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
@@ -538,7 +538,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Digid {
             purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
+            session: mock_digid_session_state(),
         });
 
         let error = wallet
