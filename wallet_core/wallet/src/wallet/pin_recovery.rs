@@ -374,9 +374,9 @@ where
             .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
 
         let issuance_result = match issuance_result {
-            Err(IssuanceError::Instruction(error @ InstructionError::AccountRevoked(data))) => {
+            Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
                 self.handle_wallet_revocation(data).await;
-                Err(IssuanceError::from(error))?
+                Err(error)?
             }
             _ => issuance_result?,
         };
