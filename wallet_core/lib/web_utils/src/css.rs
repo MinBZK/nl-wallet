@@ -15,30 +15,28 @@ pub fn serve_bundled_css(headers: &HeaderMap, css: &'static str) -> Response {
     static BUNDLED_ETAG: OnceLock<EntityTag> = OnceLock::new();
     let bundled_etag = BUNDLED_ETAG.get_or_init(|| EntityTag::from_data(css.as_bytes()));
 
+    // We can safely unwrap all header values below because we know there are no non-ascii characters used.
+    let response_headers = [
+        (
+            header::CONTENT_TYPE,
+            HeaderValue::from_str("text/css; charset=utf-8").unwrap(),
+        ),
+        (header::ETAG, HeaderValue::from_str(&bundled_etag.to_string()).unwrap()),
+        (
+            header::CACHE_CONTROL,
+            HeaderValue::from_str("public, max-age=604800").unwrap(),
+        ),
+    ];
+
     if let Some(if_none_match) = headers.get(header::IF_NONE_MATCH) {
         let Some(entity_tag) = if_none_match.to_str().ok().and_then(|etag| etag.parse().ok()) else {
             return (StatusCode::BAD_REQUEST).into_response();
         };
 
         if bundled_etag.weak_eq(&entity_tag) {
-            return (StatusCode::NOT_MODIFIED, [(header::ETAG, bundled_etag.to_string())]).into_response();
+            return (StatusCode::NOT_MODIFIED, response_headers).into_response();
         }
     }
 
-    (
-        // We can safely unwrap all header values below because we know there are no non-ascii characters used.
-        [
-            (
-                header::CONTENT_TYPE,
-                HeaderValue::from_str("text/css; charset=utf-8").unwrap(),
-            ),
-            (header::ETAG, HeaderValue::from_str(&bundled_etag.to_string()).unwrap()),
-            (
-                header::CACHE_CONTROL,
-                HeaderValue::from_str("public, max-age=604800").unwrap(),
-            ),
-        ],
-        css,
-    )
-        .into_response()
+    (response_headers, css).into_response()
 }
