@@ -12,6 +12,12 @@ fn main() {
     let profile = BuildProfile::from_cargo_profile(env::var("PROFILE").ok().as_deref());
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
 
+    // Remove stale contents (e.g. broken symlinks from a previous build) before repopulating
+    if Path::new("assets/static").exists() {
+        fs::remove_dir_all("assets/static").expect("Failed to remove assets/static");
+    }
+    // Create the necessary directories so that `cp -R` behaves as expected
+    fs::create_dir_all("assets/static/non-free").expect("Failed to create assets/static/non-free");
     // These directories are merged from multiple crates, so they must be copies
     web_utils::build::copy_static_assets(
         &[
@@ -21,7 +27,7 @@ fn main() {
             Path::new("../../lib/web_utils/static/images"),
             Path::new("../../lib/web_utils/static/non-free"),
         ],
-        Path::new("assets"),
+        Path::new("assets/static"),
     );
 
     web_utils::build::link_or_copy_asset(
@@ -56,19 +62,20 @@ fn main() {
         );
 
         // Symlink non-free/ and images/ so url() paths like ../non-free/images/x.svg resolve to merged assets
-        web_utils::build::force_symlink(Path::new("../non-free"), Path::new("assets/static/non-free"));
-        web_utils::build::force_symlink(Path::new("../images"), Path::new("assets/static/images"));
         web_utils::build::force_symlink(
-            Path::new("../../non-free"),
+            Path::new("../../static/non-free"),
             Path::new("assets/demo_utils/static/non-free"),
         );
-        web_utils::build::force_symlink(Path::new("../../images"), Path::new("assets/demo_utils/static/images"));
         web_utils::build::force_symlink(
-            Path::new("../../../non-free"),
+            Path::new("../../static/images"),
+            Path::new("assets/demo_utils/static/images"),
+        );
+        web_utils::build::force_symlink(
+            Path::new("../../../static/non-free"),
             Path::new("assets/lib/web_utils/static/non-free"),
         );
         web_utils::build::force_symlink(
-            Path::new("../../../images"),
+            Path::new("../../../static/images"),
             Path::new("assets/lib/web_utils/static/images"),
         );
     }
