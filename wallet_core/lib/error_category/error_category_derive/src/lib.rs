@@ -534,7 +534,7 @@ mod tests {
             }
         };
         let err = expand(input).unwrap_err();
-        assert!(err.to_string().contains("enum variant is missing `category` attribute"));
+        assert_eq!(err.to_string(), "enum variant is missing `category` attribute");
     }
 
     #[test]
@@ -546,9 +546,9 @@ mod tests {
             }
         };
         let err = expand(input).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains(r#"expected any of ["expected", "critical", "pd", "defer", "unexpected"], got "invalid""#)
+        assert_eq!(
+            err.to_string(),
+            r#"expected any of ["expected", "critical", "pd", "defer", "unexpected"], got "invalid""#
         );
     }
 
@@ -565,7 +565,7 @@ mod tests {
 
         assert_eq!(errors.len(), 2);
         for err in errors {
-            assert!(err.to_string().contains("enum variant is missing `category` attribute"));
+            assert_eq!(err.to_string(), "enum variant is missing `category` attribute");
         }
     }
 
@@ -575,10 +575,7 @@ mod tests {
             struct Error {}
         };
         let err = expand(input).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains("expected `category` attribute on struct `Error`")
-        );
+        assert_eq!(err.to_string(), "expected `category` attribute on struct `Error`");
     }
 
     #[test]
@@ -591,9 +588,9 @@ mod tests {
             }
         };
         let err = expand(input).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains("expected `#[defer]` attribute to identify the field to defer into, found none")
+        assert_eq!(
+            err.to_string(),
+            "expected `#[defer]` attribute to identify the field to defer into, found none"
         );
     }
 
@@ -611,9 +608,9 @@ mod tests {
             }
         };
         let err = expand(input).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains("expected a single `#[defer]` attribute to identify the field to defer into, found 2")
+        assert_eq!(
+            err.to_string(),
+            "expected a single `#[defer]` attribute to identify the field to defer into, found 2"
         );
     }
 
@@ -626,7 +623,7 @@ mod tests {
             }
         };
         let err = expand(input).unwrap_err();
-        assert!(err.to_string().contains("expected a field to defer into, found none"));
+        assert_eq!(err.to_string(), "expected a field to defer into, found none");
     }
 
     #[test]
@@ -638,9 +635,9 @@ mod tests {
             }
         };
         let err = expand(input).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains("`#[category(defer)]` is not supported on unit variants")
+        assert_eq!(
+            err.to_string(),
+            "`#[category(defer)]` is not supported on unit variants"
         );
     }
 
@@ -653,8 +650,22 @@ mod tests {
             }
         };
         let err = expand(input).unwrap_err();
-        dbg!(&err);
-        assert!(err.to_string().contains("expected a field to defer into, found none"));
+        assert_eq!(err.to_string(), "expected a field to defer into, found none");
+    }
+
+    #[test]
+    fn fail_on_invalid_defer_tuple_variant_with_multiple_values() {
+        let input: DeriveInput = syn::parse_quote! {
+            enum Error {
+                #[category(defer)]
+                SingleStruct(u8, i16),
+            }
+        };
+        let err = expand(input).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "expected `#[defer]` attribute to identify the field to defer into, found none"
+        );
     }
 
     // For tuple variants the macro itself succeeds; the resulting type error (the field
