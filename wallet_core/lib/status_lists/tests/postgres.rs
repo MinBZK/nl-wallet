@@ -1,14 +1,18 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ffi::OsStr;
+use std::hash::Hash;
+use std::io::ErrorKind;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
+use std::time::SystemTime;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
+use futures::future::join_all;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
@@ -21,6 +25,8 @@ use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
 use sea_orm::sea_query::Expr;
 use tempfile::TempDir;
+use tokio::task::AbortHandle;
+use tokio::time::error::Elapsed;
 use uuid::Uuid;
 
 use attestation_types::status_claim::StatusClaim;
@@ -222,6 +228,53 @@ async fn assert_published_list(
     assert_eq!(published, expected);
 }
 
+async fn modified_timestamps<P>(paths: impl IntoIterator<Item = P>) -> Vec<(P, Option<SystemTime>)>
+where
+    P: AsRef<Path>,
+{
+    join_all(paths.into_iter().map(|path| async move {
+        let before = match tokio::fs::metadata(path.as_ref()).await {
+            Ok(metadata) => Some(metadata.modified().unwrap()),
+            Err(err) if err.kind() == ErrorKind::NotFound => None,
+            Err(err) => panic!("Could not read path: {err}"),
+        };
+        (path, before)
+    }))
+    .await
+}
+
+async fn wait_for_refresh<F, P>(start_refresh_job: F, paths: impl IntoIterator<Item = P>) -> Result<(), Elapsed>
+where
+    F: FnOnce() -> Vec<AbortHandle>,
+    P: AsRef<Path> + Eq + Hash,
+{
+    let befores = modified_timestamps(paths.into_iter())
+        .await
+        .into_iter()
+        .collect::<HashMap<_, _>>();
+    let handles = start_refresh_job();
+
+    let result = tokio::time::timeout(Duration::from_secs(3), async {
+        let mut interval = tokio::time::interval(Duration::from_millis(100));
+        loop {
+            interval.tick().await;
+            let refreshed = modified_timestamps(befores.keys())
+                .await
+                .into_iter()
+                .all(|(path, current)| current != befores[path]);
+            if refreshed {
+                break;
+            }
+        }
+    })
+    .await;
+
+    for handle in handles {
+        handle.abort();
+    }
+    result
+}
+
 async fn fetch_status_list(connection: &DatabaseConnection, type_id: i16) -> Vec<status_list::Model> {
     status_list::Entity::find()
         .filter(status_list::Column::AttestationTypeId.eq(type_id))
@@ -328,18 +381,20 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
         .unwrap();
 
     // Check if status lists are correctly initialized
+    let mut paths = Vec::new();
     for attestation_type in &attestation_types {
         let db_lists = fetch_status_list(&connection, attestation_type.id).await;
         assert_eq!(db_lists.len(), 1);
         assert_status_list_items(&connection, &db_lists[0], 4, 4, 4, false).await;
         assert_empty_published_list(&configs.as_ref()[&attestation_type.name], &db_lists[0]).await;
+        paths.push(publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id)));
     }
 
     // Clean published files and start refresh job
     clean_publish_dir(publish_dir.path().to_path_buf()).await;
-    let refresh_handles = service.start_refresh_jobs();
-    tokio::time::sleep(Duration::from_millis(100)).await;
-    refresh_handles.into_iter().for_each(|handle| handle.abort());
+    wait_for_refresh(|| service.start_refresh_jobs(), paths.iter())
+        .await
+        .unwrap();
 
     // Check if status lists are correctly republished
     for attestation_type in attestation_types {
@@ -716,23 +771,6 @@ async fn republish_list_with_expiry(path: &Path, key_pair: &KeyPair<impl EcdsaKe
     tokio::fs::write(&lock_path, []).await.unwrap();
 }
 
-async fn wait_for_refresh(service: &PostgresStatusListService<SigningKey>, path: &Path) -> anyhow::Result<()> {
-    let before = tokio::fs::metadata(path).await?.modified()?;
-    let handle = service.start_refresh_job();
-    for _ in 0..10 {
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        match tokio::fs::metadata(path).await?.modified() {
-            Ok(current) if current > before => {
-                handle.abort();
-                return Ok(());
-            }
-            _ => {}
-        }
-    }
-    handle.abort();
-    Err(anyhow::Error::msg("Timeout waiting for refresh"))
-}
-
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 #[case(None)]
@@ -753,7 +791,9 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
     let path = publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id));
     republish_list_with_expiry(&path, &config.key_pair, expiry).await;
 
-    wait_for_refresh(&service, &path).await.unwrap();
+    wait_for_refresh(|| [service.start_refresh_job()].into(), [&path])
+        .await
+        .unwrap();
     assert_published_list(&config, &db_lists[0], []).await;
 }
 
