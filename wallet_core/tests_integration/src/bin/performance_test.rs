@@ -3,7 +3,7 @@ use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;

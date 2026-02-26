@@ -80,7 +80,8 @@ mod tests {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use http_utils::tls::pinning::TlsPinningConfig;
+    use http_utils::client::InternalHttpConfig;
+    use http_utils::client::TlsPinningConfig;
     use jwt::EcdsaDecodingKey;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -137,12 +138,9 @@ mod tests {
             "should return initial_wallet_config"
         );
 
-        repo.fetch(&TlsPinningConfig {
-            base_url: "http://localhost".parse().unwrap(),
-            trust_anchors: vec![],
-        })
-        .await
-        .unwrap();
+        repo.fetch(&InternalHttpConfig::try_new("http://localhost".parse().unwrap()).unwrap())
+            .await
+            .unwrap();
 
         let config = repo.get();
         assert_eq!(

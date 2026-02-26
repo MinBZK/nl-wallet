@@ -3,10 +3,10 @@ use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
 use url::Url;
 
+use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::PinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
-use http_utils::tls::pinning::TlsPinningConfig;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
 // invoking the same URLs at the DigiD bridge that would normally be invoked by the app and browser in the mock

@@ -147,7 +147,7 @@ mod test {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use http_utils::tls::insecure::InsecureHttpConfig;
+    use http_utils::client::InternalHttpConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
@@ -184,12 +184,12 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
+        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();
 
-        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
+        let client_builder = InternalHttpConfig::try_new(mock_server.uri().parse().unwrap()).unwrap();
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -217,8 +217,8 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
-        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
+        let client_builder = InternalHttpConfig::try_new(mock_server.uri().parse().unwrap()).unwrap();
+        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();

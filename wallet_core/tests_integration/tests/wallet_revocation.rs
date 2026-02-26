@@ -14,6 +14,7 @@ use audit_log::entity;
 use crypto::utils::random_string;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::trusted_reqwest_client_builder;
+
 use tests_integration::common::*;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
@@ -271,7 +272,7 @@ async fn setup_revocation_env(
     let wp_port = wallet_config
         .account_server
         .http_config
-        .base_url
+        .base_url()
         .as_ref()
         .port()
         .unwrap();

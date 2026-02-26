@@ -77,8 +77,8 @@ mod tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
+    use http_utils::client::InternalHttpConfig;
     use http_utils::reqwest::IntoPinnedReqwestClient;
-    use http_utils::tls::insecure::InsecureHttpConfig;
     use http_utils::urls::BaseUrl;
 
     use super::CachedReqwestClient;
@@ -90,11 +90,11 @@ mod tests {
 
         let cached_client = CachedReqwestClient::new();
 
-        // Calling get_or_try_init() on a new InsecureHttpConfig should initialize a new client.
+        // Calling get_or_try_init() on a new InternalHttpConfig should initialize a new client.
         let mut builder_called = false;
         let client1a = cached_client
-            .get_or_try_init(&InsecureHttpConfig::new(base_url1.clone()), |config| {
-                assert_eq!(config.base_url, base_url1);
+            .get_or_try_init(&InternalHttpConfig::try_new(base_url1.clone()).unwrap(), |config| {
+                assert_eq!(config.base_url(), &base_url1);
                 builder_called = true;
 
                 config.try_into_client()
@@ -106,7 +106,7 @@ mod tests {
         // Calling get_or_try_init() again with the same BaseUrl should have it re-use the existing client.
         let mut builder_called = false;
         let client1b = cached_client
-            .get_or_try_init(&InsecureHttpConfig::new(base_url1.clone()), |config| {
+            .get_or_try_init(&InternalHttpConfig::try_new(base_url1.clone()).unwrap(), |config| {
                 builder_called = true;
 
                 config.try_into_client()
@@ -119,8 +119,8 @@ mod tests {
         // Calling get_or_try_init() with a different BaseUrl should cause the client to be re-initialized.
         let mut builder_called = false;
         let client2 = cached_client
-            .get_or_try_init(&InsecureHttpConfig::new(base_url2.clone()), |config| {
-                assert_eq!(config.base_url, base_url2);
+            .get_or_try_init(&InternalHttpConfig::try_new(base_url2.clone()).unwrap(), |config| {
+                assert_eq!(config.base_url(), &base_url2);
                 builder_called = true;
 
                 config.try_into_client()

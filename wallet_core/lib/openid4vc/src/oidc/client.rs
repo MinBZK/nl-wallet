@@ -343,7 +343,7 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
-    use http_utils::tls::insecure::InsecureHttpConfig;
+    use http_utils::client::InternalHttpConfig;
     use http_utils::urls::BaseUrl;
 
     use crate::AuthorizationErrorCode;
@@ -390,7 +390,7 @@ mod tests {
 
         // Create an OIDC client with start()
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new(InsecureHttpConfig::new(server_url.clone())).unwrap();
+        let client = OidcReqwestClient::try_new(InternalHttpConfig::try_new(server_url.clone()).unwrap()).unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
         let (client, auth_url) =
             HttpOidcClient::<MockPkcePair>::start(&client, CLIENT_ID.to_string(), redirect_uri.clone())
@@ -431,7 +431,7 @@ mod tests {
         });
 
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new(InsecureHttpConfig::new(server_url.clone())).unwrap();
+        let client = OidcReqwestClient::try_new(InternalHttpConfig::try_new(server_url.clone()).unwrap()).unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
         let (client, _) = HttpOidcClient::<MockPkcePair>::start(&client, CLIENT_ID.to_string(), redirect_uri.clone())
             .await

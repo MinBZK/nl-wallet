@@ -3,8 +3,8 @@ use std::hash::Hash;
 use url::Url;
 
 use error_category::ErrorCategory;
+use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
 use wallet_configuration::wallet_config::DigidConfiguration;

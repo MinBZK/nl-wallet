@@ -3,10 +3,10 @@ use chrono::Utc;
 use derive_more::From;
 use serde::Deserialize;
 
+use http_utils::client::HttpServiceConfig;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::PinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
-use http_utils::tls::pinning::TlsPinningConfig;
 
 use crate::DeletionCode;
 
@@ -35,8 +35,8 @@ pub struct HttpRevocationClient {
 }
 
 impl HttpRevocationClient {
-    pub fn new(tls_pinning_config: TlsPinningConfig) -> Result<Self, reqwest::Error> {
-        let http_client = tls_pinning_config.try_into_json_client()?;
+    pub fn new(http_config: HttpServiceConfig) -> Result<Self, reqwest::Error> {
+        let http_client = http_config.try_into_json_client()?;
 
         Ok(Self { http_client })
     }
