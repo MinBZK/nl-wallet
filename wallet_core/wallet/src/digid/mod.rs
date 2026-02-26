@@ -3,8 +3,8 @@ use std::hash::Hash;
 use url::Url;
 
 use error_category::ErrorCategory;
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::IntoReqwestClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
 use wallet_configuration::wallet_config::DigidConfiguration;
@@ -61,7 +61,7 @@ pub enum DigidError {
 #[cfg_attr(any(test, feature = "test"), mockall::automock(type Session = MockDigidSession<C>;))]
 pub trait DigidClient<C = TlsPinningConfig>
 where
-    C: IntoPinnedReqwestClient + Clone + Hash,
+    C: IntoReqwestClient + Clone + Hash,
 {
     type Session: DigidSession<C>;
 
@@ -76,7 +76,7 @@ where
 #[cfg_attr(any(test, feature = "test"), mockall::automock)]
 pub trait DigidSession<C = TlsPinningConfig>
 where
-    C: IntoPinnedReqwestClient + Clone + Hash,
+    C: IntoReqwestClient + Clone + Hash,
 {
     fn auth_url(&self) -> &Url;
 

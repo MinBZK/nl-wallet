@@ -149,7 +149,7 @@ mod tests {
     use parking_lot::RwLock;
     use tokio::sync::Notify;
 
-    use http_utils::tls::pinning::TlsPinningConfig;
+    use http_utils::client::TlsPinningConfig;
     use update_policy_model::update_policy::VersionState;
 
     use crate::repository::Repository;
@@ -198,10 +198,8 @@ mod tests {
         // No awaits, so the task will not be executed
         assert_eq!(repository.get(), VersionState::Ok);
 
-        repository.fetch_in_background(TlsPinningConfig {
-            base_url: "https://example.com".parse().unwrap(),
-            trust_anchors: vec![],
-        });
+        repository
+            .fetch_in_background(TlsPinningConfig::try_new("https://example.com".parse().unwrap(), vec![]).unwrap());
         notifier.notified().await;
         assert_eq!(repository.get(), VersionState::Block);
     }
@@ -225,10 +223,9 @@ mod tests {
             // No awaits, so the task will not be executed
             assert_eq!(repository.get(), VersionState::Ok);
 
-            repository.fetch_in_background(TlsPinningConfig {
-                base_url: "https://example.com".parse().unwrap(),
-                trust_anchors: vec![],
-            });
+            repository.fetch_in_background(
+                TlsPinningConfig::try_new("https://example.com".parse().unwrap(), vec![]).unwrap(),
+            );
 
             // Drop the background repository
         }

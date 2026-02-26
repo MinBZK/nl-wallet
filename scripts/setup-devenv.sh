@@ -458,16 +458,6 @@ render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_
 
 
 ########################################################################
-# Configure revocation_portal
-########################################################################
-
-REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY=$(openssl rand -hex 64)
-export REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY
-
-render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
-
-
-########################################################################
 # Configure update-policy-server
 ########################################################################
 
@@ -615,6 +605,17 @@ export WALLET_CONFIG_JWT
 
 render_template "${DEVENV}/static_server.toml.template" "${STATIC_SERVER_DIR}/static_server.toml"
 cp "${STATIC_SERVER_DIR}/static_server.toml" "${BASE_DIR}/wallet_core/tests_integration/static_server.toml"
+
+
+########################################################################
+# Configure revocation_portal
+########################################################################
+
+REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY=$(openssl rand -hex 64)
+export REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY
+
+render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
+
 
 ########################################################################
 # Configure gba-hc-converter

@@ -28,7 +28,7 @@ use crypto::x509::BorrowingCertificate;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
-use http_utils::tls::server::TlsServerConfig;
+use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use status_lists::config::StatusListConfig;
 use status_lists::publish::PublishDir;

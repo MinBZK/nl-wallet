@@ -106,8 +106,8 @@ mod tests {
 
             assert_eq!(configs.len(), 1);
             assert_eq!(
-                configs.first().unwrap().account_server.http_config.base_url,
-                default_wallet_config().account_server.http_config.base_url
+                configs.first().unwrap().account_server.http_config.base_url(),
+                default_wallet_config().account_server.http_config.base_url()
             );
         }
 

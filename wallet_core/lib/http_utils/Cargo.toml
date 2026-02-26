@@ -15,8 +15,6 @@ doctest = false
 allow_insecure_url = []
 # Include implementations for http clients
 client = ["reqwest/gzip", "serde_with/base64"]
-# Implement the HttpConfig type for insecurely fetching configurations.
-insecure_http_client = ["client"]
 # Include implementations of the axum IntoResponse trait.
 server = ["axum/json", "dep:axum-server", "dep:tracing", "dep:futures", "serde_with/base64", "tower-http/cors"]
 

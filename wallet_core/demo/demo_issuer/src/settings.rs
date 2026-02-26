@@ -13,7 +13,7 @@ use serde_valid::Validate;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
-use http_utils::tls::server::TlsServerConfig;
+use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use utils::path::prefix_local_path;
