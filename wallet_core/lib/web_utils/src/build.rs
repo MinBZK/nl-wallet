@@ -41,8 +41,6 @@ pub fn copy_static_assets(sources: &[&Path], dest: &Path) {
     }
 
     for source in sources {
-        println!("cargo::rerun-if-changed={}", source.display());
-
         let status = Command::new("cp")
             .arg("-R")
             .arg(source)

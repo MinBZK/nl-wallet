@@ -244,6 +244,8 @@ pub mod test {
     use assert_matches::assert_matches;
     use parking_lot::RwLock;
 
+    use utils::generator::mock::MockTimeGenerator;
+
     use super::*;
 
     // Helper trait that signifies that a type has a constructor that generates random data.
@@ -456,15 +458,53 @@ pub mod test {
 
         assert!(session.is_none());
     }
+
+    pub async fn test_memory_store_with_cleanup_task<T, G>(
+        session_store: Arc<MemorySessionStore<T, G>>,
+        token: SessionToken,
+        mock_time: &RwLock<DateTime<Utc>>,
+    ) where
+        T: HasProgress + Expirable + Clone + Send + Sync,
+        G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+    {
+        assert!(!session_store.get(&token).await.unwrap().unwrap().data.is_expired());
+
+        // Advance the clock just enough so that session expiry will have occurred.
+        let expiry_time = Utc::now() + session_store.timeouts.expiration;
+        *mock_time.write() = expiry_time;
+
+        time::pause();
+        time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
+        time::resume();
+        time::sleep(Duration::from_millis(100)).await;
+
+        assert!(session_store.get(&token).await.unwrap().unwrap().data.is_expired());
+
+        // Advance the clock again so that the expired session will be purged.
+        *mock_time.write() = expiry_time + session_store.timeouts.failed_deletion + Duration::from_millis(1);
+
+        time::pause();
+        time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
+        time::resume();
+        time::sleep(Duration::from_millis(100)).await;
+
+        assert!(session_store.get(&token).await.unwrap().is_none());
+    }
+
+    pub fn memory_session_store_with_mock_time<T>()
+    -> (MemorySessionStore<T, MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>) {
+        let time_generator = MockTimeGenerator::default();
+        let mock_time = Arc::clone(&time_generator.time);
+        let session_store = MemorySessionStore::new_with_time(Default::default(), time_generator);
+
+        (session_store, mock_time)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use parking_lot::RwLock;
-
-    use utils::generator::mock::MockTimeGenerator;
-
     use self::test::RandomData;
+    use self::test::memory_session_store_with_mock_time;
 
     use super::*;
 
@@ -520,27 +560,16 @@ mod tests {
         test::test_session_store_get_write(&session_store).await;
     }
 
-    fn memory_session_store_with_mock_time() -> (
-        MemorySessionStore<MockSessionData, MockTimeGenerator>,
-        Arc<RwLock<DateTime<Utc>>>,
-    ) {
-        let time_generator = MockTimeGenerator::default();
-        let mock_time = Arc::clone(&time_generator.time);
-        let session_store = MemorySessionStore::new_with_time(Default::default(), time_generator);
-
-        (session_store, mock_time)
-    }
-
     #[tokio::test]
     async fn test_memory_session_store_cleanup_expiration() {
-        let (session_store, mock_time) = memory_session_store_with_mock_time();
+        let (session_store, mock_time) = memory_session_store_with_mock_time::<MockSessionData>();
 
         test::test_session_store_cleanup_expiration(&session_store, &session_store.timeouts, mock_time.as_ref()).await;
     }
 
     #[tokio::test]
     async fn test_memory_session_store_cleanup_successful_deletion() {
-        let (session_store, mock_time) = memory_session_store_with_mock_time();
+        let (session_store, mock_time) = memory_session_store_with_mock_time::<MockSessionData>();
 
         test::test_session_store_cleanup_successful_deletion(
             &session_store,
@@ -552,7 +581,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_memory_session_store_cleanup_failed_deletion() {
-        let (session_store, mock_time) = memory_session_store_with_mock_time();
+        let (session_store, mock_time) = memory_session_store_with_mock_time::<MockSessionData>();
 
         test::test_session_store_cleanup_failed_deletion(&session_store, &session_store.timeouts, mock_time.as_ref())
             .await;

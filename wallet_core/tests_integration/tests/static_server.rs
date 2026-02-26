@@ -21,6 +21,7 @@ use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_provider::settings::Settings as WpSettings;
 
 #[tokio::test]
 async fn test_wallet_config() {
@@ -72,7 +73,7 @@ async fn test_wallet_config() {
 
 #[tokio::test]
 async fn test_wallet_config_stale() {
-    let (settings, _) = wallet_provider_settings();
+    let settings = WpSettings::new().expect("Could not read settings");
 
     let mut served_wallet_config = default_wallet_config();
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
@@ -108,7 +109,7 @@ async fn test_wallet_config_stale() {
 
 #[tokio::test]
 async fn test_wallet_config_signature_verification_failed() {
-    let (settings, _) = wallet_provider_settings();
+    let settings = WpSettings::new().expect("Could not read settings");
 
     let mut served_wallet_config = default_wallet_config();
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(

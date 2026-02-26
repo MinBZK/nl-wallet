@@ -61,7 +61,7 @@
   },
   "overrides": {
     "editorconfig": {
-      "minimatch": "^9.0.6"
+      "minimatch": "^9.0.7"
     }
   }
 }

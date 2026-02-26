@@ -69,7 +69,7 @@ token_status_list.path = "../../lib/token_status_list"
 
 [dev-dependencies]
 rstest.workspace = true
-tokio = { workspace = true, features = ["macros", "test-util"] }
+tokio = { workspace = true, features = ["macros"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

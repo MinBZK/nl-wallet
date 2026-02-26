@@ -22,3 +22,8 @@ reason = "We are not vulnerable as there are no user controlled URI paths."
 id = "GHSA-2g4f-4pwh-qvx6"
 ignoreUntil = 2026-07-01
 reason = "We are not vulnerable as ajv is only run as dev-dependency. Also eslint pinned their dependency on 6.x.y. and will not update. See https://github.com/eslint/eslint/pull/19340."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0134"
+ignoreUntil = 2026-07-01
+reason = "This is a transitive dependency that is no longer maintained. Waiting for testcontainers_modules to update to new testcontainers version in which it should be fixed."
