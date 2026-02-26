@@ -24,11 +24,11 @@
 
 .notification span::before {
   content: " ";
-  background: transparent url("../non-free/images/checkmark.svg") center center / contain;
+  background: transparent url("../images/checkmark.svg") center center / contain;
   width: 32px;
   height: 32px;
 }
 
 .notification.error span::before {
-  background: transparent url("../non-free/images/close.svg") center center / contain;
+  background: transparent url("../images/close.svg") center center / contain;
 }
