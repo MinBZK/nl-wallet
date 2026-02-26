@@ -38,6 +38,7 @@ pub async fn wait_for_server(base_url: BaseUrl) {
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
+        interval.tick().await;
         loop {
             match client
                 .get(base_url.join("health"))
@@ -46,10 +47,7 @@ pub async fn wait_for_server(base_url: BaseUrl) {
                 .and_then(|r| r.error_for_status())
             {
                 Ok(_) => break,
-                Err(e) => {
-                    tracing::info!("Server not yet up: {e:?}");
-                    interval.tick().await;
-                }
+                Err(e) => tracing::info!("Server not yet up: {e:?}"),
             }
         }
     })
