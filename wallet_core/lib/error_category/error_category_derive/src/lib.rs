@@ -44,7 +44,7 @@ const DEFER: &str = "defer";
 #[proc_macro_attribute]
 pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     match syn::parse::<Item>(item) {
-        Ok(item) => sentry_capture_error_item(item),
+        Ok(item) => expand_sentry_capture_error(item),
         Err(err) => err.to_compile_error(),
     }
     .into()
@@ -52,7 +52,7 @@ pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::To
 
 /// Generate code for a parsed [`Item`].
 /// Returns a [`TokenStream`] with the transformed item, or a compile error for unsupported item kinds.
-fn sentry_capture_error_item(item: Item) -> TokenStream {
+fn expand_sentry_capture_error(item: Item) -> TokenStream {
     match item {
         Item::Fn(item_fn) => sentry_capture_error_fn(item_fn),
         Item::Impl(item_impl) => sentry_capture_error_impl_block(item_impl),
@@ -687,7 +687,7 @@ mod tests {
     fn sentry_fail_on_struct() {
         let item: Item = syn::parse_quote! { struct Foo {} };
         assert!(
-            sentry_capture_error_item(item)
+            expand_sentry_capture_error(item)
                 .to_string()
                 .contains("not supported here")
         );
@@ -697,7 +697,7 @@ mod tests {
     fn sentry_fail_on_enum() {
         let item: Item = syn::parse_quote! { enum Foo {} };
         assert!(
-            sentry_capture_error_item(item)
+            expand_sentry_capture_error(item)
                 .to_string()
                 .contains("not supported here")
         );
@@ -707,7 +707,7 @@ mod tests {
     fn sentry_fail_on_const() {
         let item: Item = syn::parse_quote! { const FOO: u32 = 42; };
         assert!(
-            sentry_capture_error_item(item)
+            expand_sentry_capture_error(item)
                 .to_string()
                 .contains("not supported here")
         );
@@ -717,7 +717,7 @@ mod tests {
     fn sentry_fail_on_trait() {
         let item: Item = syn::parse_quote! { trait Foo {} };
         assert!(
-            sentry_capture_error_item(item)
+            expand_sentry_capture_error(item)
                 .to_string()
                 .contains("not supported here")
         );
