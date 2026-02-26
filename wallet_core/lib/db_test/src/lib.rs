@@ -310,18 +310,25 @@ async fn find_free_set_of_databases(connection: &mut AsyncDropPgConnection) -> u
         Err(err) => panic!("Cannot not read NEXTEST_TEST_THREAD: {err}"),
     };
 
-    let mut n = rand::thread_rng().gen_range(1..=max_parallel);
-    for _ in 1..=max_parallel {
-        if connection.try_advisory_lock(n).await {
-            return n;
+    tokio::time::timeout(Duration::from_secs(3), async {
+        let mut n = rand::thread_rng().gen_range(1..=max_parallel);
+        let mut interval = tokio::time::interval(Duration::from_millis(100));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            for _ in 1..=max_parallel {
+                if connection.try_advisory_lock(n).await {
+                    return n;
+                }
+                if n == max_parallel {
+                    n = 0;
+                }
+                n += 1;
+            }
         }
-
-        if n == max_parallel {
-            n = 0;
-        }
-        n += 1;
-    }
-    panic!("More threads are executed than determined parallelism ({max_parallel})")
+    })
+    .await
+    .expect("Timed out while waiting for free set of databases")
 }
 
 async fn fetch_existing_database<'a, T>(
