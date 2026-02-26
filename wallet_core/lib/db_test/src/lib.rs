@@ -48,7 +48,7 @@ const DB_TESTCONTAINER_IMAGE: &str = "docker.io/library/postgres";
 const DB_TESTCONTAINER_IMAGE_TAG: &str = "18.2-trixie";
 const DB_TESTCONTAINER_NAME: &str = "wallet-postgres-test";
 const DB_TESTCONTAINER_TRIES: u8 = 5;
-const DB_TESTCONTAINER_RETRY_DELAY: Duration = Duration::from_secs(11);
+const DB_TESTCONTAINER_RETRY_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Default)]
 struct AsyncDropPgConnection(Option<PgConnection>);
@@ -216,7 +216,7 @@ impl DbSetup {
     }
 
     pub fn server_utils_url(&self) -> Url {
-        // Reuse verification server as it exactly the same as server utils migrations
+        // Reuse verification server as it is exactly the same as server utils migrations
         DbName::VerificationServer.url(self.connect_options.clone(), self.index)
     }
 
