@@ -266,10 +266,12 @@ fn sentry_capture_error_impl_fn(
 pub fn error_category(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    expand(input).unwrap_or_else(Error::into_compile_error).into()
+    expand_error_category(input)
+        .unwrap_or_else(Error::into_compile_error)
+        .into()
 }
 
-fn expand(input: DeriveInput) -> Result<TokenStream> {
+fn expand_error_category(input: DeriveInput) -> Result<TokenStream> {
     let body = match input.data {
         Data::Enum(ref data) => expand_enum(&input, data),
         Data::Struct(ref data) => expand_struct(&input, data),
@@ -533,7 +535,7 @@ mod tests {
                 MyError,
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(err.to_string(), "enum variant is missing `category` attribute");
     }
 
@@ -545,7 +547,7 @@ mod tests {
                 Invalid,
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(
             err.to_string(),
             r#"expected any of ["expected", "critical", "pd", "defer", "unexpected"], got "invalid""#
@@ -560,7 +562,7 @@ mod tests {
                 Second,
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         let errors: Vec<Error> = err.into_iter().collect();
 
         assert_eq!(errors.len(), 2);
@@ -574,7 +576,7 @@ mod tests {
         let input: DeriveInput = syn::parse_quote! {
             struct Error {}
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(err.to_string(), "expected `category` attribute on struct `Error`");
     }
 
@@ -587,7 +589,7 @@ mod tests {
                 field_2: String,
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(
             err.to_string(),
             "expected `#[defer]` attribute to identify the field to defer into, found none"
@@ -607,7 +609,7 @@ mod tests {
                 },
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(
             err.to_string(),
             "expected a single `#[defer]` attribute to identify the field to defer into, found 2"
@@ -622,7 +624,7 @@ mod tests {
                 SingleStruct {},
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(err.to_string(), "expected a field to defer into, found none");
     }
 
@@ -634,7 +636,7 @@ mod tests {
                 SingleStruct,
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(
             err.to_string(),
             "`#[category(defer)]` is not supported on unit variants"
@@ -649,7 +651,7 @@ mod tests {
                 SingleStruct(),
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(err.to_string(), "expected a field to defer into, found none");
     }
 
@@ -661,7 +663,7 @@ mod tests {
                 SingleStruct(u8, i16),
             }
         };
-        let err = expand(input).unwrap_err();
+        let err = expand_error_category(input).unwrap_err();
         assert_eq!(
             err.to_string(),
             "expected `#[defer]` attribute to identify the field to defer into, found none"
@@ -678,7 +680,7 @@ mod tests {
                 MyError(SomeType),
             }
         };
-        assert!(expand(input).is_ok());
+        assert!(expand_error_category(input).is_ok());
     }
 
     #[test]
