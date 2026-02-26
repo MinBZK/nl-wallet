@@ -32,6 +32,7 @@ use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use db_test::DbSetup;
 use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
@@ -164,14 +165,16 @@ pub type WalletWithStorage = Wallet<
 >;
 
 pub async fn setup_wallet_and_default_env(
+    db_setup: &DbSetup,
     vendor: WalletDeviceVendor,
 ) -> (WalletWithStorage, DisclosureUrls, IssuerUrls) {
     setup_wallet_and_env(
+        db_setup,
         vendor,
         update_policy_server_settings(),
-        wallet_provider_settings(),
-        pid_issuer_settings("123".to_string()),
-        issuance_server_settings(),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
 }
@@ -241,7 +244,9 @@ impl MockDeviceConfig {
     }
 }
 
-pub async fn setup_env_default() -> (
+pub async fn setup_env_default(
+    db_setup: &DbSetup,
+) -> (
     ConfigServerConfiguration,
     MockDeviceConfig,
     WalletConfiguration,
@@ -251,10 +256,10 @@ pub async fn setup_env_default() -> (
     setup_env(
         static_server_settings(),
         update_policy_server_settings(),
-        wallet_provider_settings(),
-        verification_server_settings(),
-        pid_issuer_settings("123".to_string()),
-        issuance_server_settings(),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
+        verification_server_settings(db_setup.verification_server_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
 }
@@ -428,6 +433,7 @@ where
 
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
+    db_setup: &DbSetup,
     vendor: WalletDeviceVendor,
     ups_config: (UpsSettings, ReqwestTrustAnchor),
     wp_config: (WpSettings, ReqwestTrustAnchor),
@@ -443,7 +449,7 @@ pub async fn setup_wallet_and_env(
         static_server_settings(),
         ups_config,
         wp_config,
-        verification_server_settings(),
+        verification_server_settings(db_setup.verification_server_url()),
         issuer_config,
         issuance_config,
     )
@@ -521,8 +527,11 @@ pub async fn config_jwt(wallet_config: &WalletConfiguration) -> SignedJwt<Wallet
     .unwrap()
 }
 
-pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
+pub fn wallet_provider_settings(db_url: Url, audit_db_url: Url) -> (WpSettings, ReqwestTrustAnchor) {
     let mut settings = WpSettings::new().expect("Could not read settings");
+    settings.database.url = db_url;
+    settings.audit_log.url = audit_db_url;
+
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.webserver.port = 0;
     settings.pin_policy.timeouts = vec![200, 400, 600].into_iter().map(Duration::from_millis).collect();
@@ -538,7 +547,7 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
 
     tokio::spawn(async {
         if let Err(error) = static_server::server::serve_with_listener(listener, settings).await {
-            println!("Could not start config_server: {error:?}");
+            tracing::error!("Could not start config_server: {error:?}");
             process::exit(1);
         }
     });
@@ -554,7 +563,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 
     tokio::spawn(async {
         if let Err(error) = update_policy_server::server::serve_with_listener(listener, settings).await {
-            println!("Could not start update_policy_server: {error:?}");
+            tracing::error!("Could not start update_policy_server: {error:?}");
             process::exit(1);
         }
     });
@@ -583,7 +592,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
         )
         .await
         {
-            println!("Could not start wallet_provider: {error:?}");
+            tracing::error!("Could not start wallet_provider: {error:?}");
 
             process::exit(1);
         }
@@ -594,8 +603,10 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings(recovery_code: String) -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
+pub fn pid_issuer_settings(db_url: Url, recovery_code: String) -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
+
+    settings.issuer_settings.server_settings.storage.url = db_url;
 
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
@@ -606,7 +617,9 @@ pub fn pid_issuer_settings(recovery_code: String) -> (PidIssuerSettings, VecNonE
     )
 }
 
-pub fn issuance_server_settings() -> (
+pub fn issuance_server_settings(
+    db_url: Url,
+) -> (
     IssuanceServerSettings,
     Vec<IssuableDocument>,
     ReqwestTrustAnchor,
@@ -614,6 +627,8 @@ pub fn issuance_server_settings() -> (
 ) {
     let mut settings =
         IssuanceServerSettings::new("issuance_server.toml", "issuance_server").expect("Could not read settings");
+
+    settings.issuer_settings.server_settings.storage.url = db_url;
 
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
@@ -632,9 +647,11 @@ pub fn issuance_server_settings() -> (
     (settings, issuable_documents, root_ca, tls_config)
 }
 
-pub fn verification_server_settings() -> VerifierSettings {
+pub fn verification_server_settings(db_url: Url) -> VerifierSettings {
     let mut settings =
         VerifierSettings::new("verification_server.toml", "verification_server").expect("Could not read settings");
+
+    settings.server_settings.storage.url = db_url;
 
     settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.server_settings.wallet_server.port = 0;
@@ -791,7 +808,7 @@ pub async fn start_issuance_server(
             )
             .await
             {
-                println!("Could not start issuance_server: {error:?}");
+                tracing::error!("Could not start issuance_server: {error:?}");
 
                 process::exit(1);
             }
@@ -814,14 +831,13 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_base_url(public_port);
+    settings.issuer_settings.server_settings.public_url = public_url.clone();
 
     let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
     let internal_url = local_http_base_url(internal_port);
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
-    settings.issuer_settings.server_settings.public_url = public_url.clone();
-
     let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
@@ -855,7 +871,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             )
             .await
             {
-                println!("Could not start pid_issuer: {error:?}");
+                tracing::error!("Could not start pid_issuer: {error:?}");
 
                 process::exit(1);
             }
@@ -878,10 +894,9 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
 
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
     let internal_url = internal_url(&settings.server_settings);
-
-    let storage_settings = &settings.server_settings.storage;
     settings.server_settings.public_url = public_url.clone();
 
+    let storage_settings = &settings.server_settings.storage;
     let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
@@ -905,7 +920,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
             )
             .await
             {
-                println!("Could not start verification_server: {error:?}");
+                tracing::error!("Could not start verification_server: {error:?}");
 
                 process::exit(1);
             }
@@ -921,11 +936,15 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
 }
 
 pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl IntoIterator<Item = Certificate>) {
-    let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
+    let client = trusted_reqwest_client_builder(trust_anchors)
+        .connect_timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
         loop {
+            interval.tick().await;
             match client
                 .get(base_url.join("health"))
                 .send()
@@ -933,15 +952,12 @@ pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl IntoIterator
                 .and_then(|r| r.error_for_status())
             {
                 Ok(_) => break,
-                Err(e) => {
-                    println!("Server not yet up: {e:?}");
-                    interval.tick().await;
-                }
+                Err(e) => tracing::info!("Server not yet up: {e:?}"),
             }
         }
     })
     .await
-    .expect("Server not up: {base_url}");
+    .unwrap_or_else(|e| panic!("Server not up: {base_url}: {e}"));
 }
 
 pub fn gba_hc_converter_settings() -> GbaSettings {
@@ -959,13 +975,13 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
             if let Some(io_error) = error.downcast_ref::<io::Error>()
                 && io_error.kind() == io::ErrorKind::AddrInUse
             {
-                println!(
+                tracing::warn!(
                     "TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, \
                      continuing..."
                 );
                 return;
             }
-            println!("Could not start gba_hc_converter: {error:?}");
+            tracing::error!("Could not start gba_hc_converter: {error:?}");
             process::exit(1);
         }
     });

@@ -9,6 +9,7 @@ use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_credential::TestCredentials;
+use db_test::DbSetup;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
@@ -50,6 +51,9 @@ async fn assert_disclosure_ok(
     dcql_query: Query,
     test_credentials: TestCredentials,
 ) {
+    let db_setup = DbSetup::create_clean().await;
+    let pin = "112233";
+
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
         dcql_query: Some(dcql_query),
@@ -58,8 +62,7 @@ async fn assert_disclosure_ok(
         return_url_template,
     };
 
-    let pin = "112233";
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -225,7 +228,7 @@ async fn assert_disclosure_ok(
     "xyz_bank_no_return_url",
     nl_pid_full_name_and_minimal_address()
 )]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc15_ltc16_test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
@@ -247,7 +250,7 @@ async fn ltc15_ltc16_test_disclosure_usecases_ok(
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc15_test_disclosure_extended_vct_ok() {
     let session_type = SessionType::SameDevice;
@@ -284,11 +287,13 @@ async fn ltc15_test_disclosure_extended_vct_ok() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc20_test_disclosure_without_pid() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+
+    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     let client = reqwest::Client::new();

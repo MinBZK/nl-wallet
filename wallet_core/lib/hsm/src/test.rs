@@ -42,7 +42,6 @@ impl TestSettings {
     }
 }
 
-// Default is needed for AsyncDrop
 pub struct TestCase<H> {
     identifier: String,
     hsm: Option<H>,

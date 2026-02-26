@@ -31,10 +31,14 @@ pub mod common;
 static LOGGING: Once = Once::new();
 
 pub async fn wait_for_server(base_url: BaseUrl) {
-    let client = trusted_reqwest_client_builder([]).build().unwrap();
+    let client = trusted_reqwest_client_builder([])
+        .connect_timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
+        interval.tick().await;
         loop {
             match client
                 .get(base_url.join("health"))
@@ -43,10 +47,7 @@ pub async fn wait_for_server(base_url: BaseUrl) {
                 .and_then(|r| r.error_for_status())
             {
                 Ok(_) => break,
-                Err(e) => {
-                    println!("Server not yet up: {e:?}");
-                    interval.tick().await;
-                }
+                Err(e) => tracing::info!("Server not yet up: {e:?}"),
             }
         }
     })

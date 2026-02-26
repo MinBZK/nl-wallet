@@ -162,6 +162,7 @@ db_test = [
     "audit_log?/db_test",
     "health_checkers?/db_test",
     "pid_issuer?/db_test",
+    "server_utils?/db_test",
     "status_lists?/db_test",
     "verification_server?/db_test",
     "wallet_provider_persistence?/db_test",
@@ -189,7 +190,7 @@ integration_test = [
     "pid_issuer/test_internal_ui",
     "test_common",
     "tokio/macros",
-    "tokio/rt",
+    "tokio/rt-multi-thread",
     "tokio/sync",
     "tokio/time",
 ]
@@ -270,6 +271,7 @@ attestation_data = { path = "../lib/attestation_data", optional = true }
 attestation_types = { path = "../lib/attestation_types", optional = true }
 audit_log = { path = "../wallet_provider/audit_log", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
+db_test.path = "../lib/db_test"
 dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 health_checkers = { path = "../lib/health_checkers", optional = true }

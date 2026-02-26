@@ -1,15 +1,18 @@
 use assert_matches::assert_matches;
 use serial_test::serial;
 
+use db_test::DbSetup;
 use tests_integration::common::*;
 use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc41_test_pin_recovery() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233".to_string();
-    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, &pin).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
@@ -22,11 +25,13 @@ async fn ltc41_test_pin_recovery() {
     wallet.check_pin(new_pin).await.unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc46_test_pin_recovery_timeout() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233".to_string();
-    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, &pin).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
