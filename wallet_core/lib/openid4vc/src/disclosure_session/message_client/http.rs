@@ -55,19 +55,14 @@ impl HttpVpMessageClient {
         Ok(body)
     }
 
-    /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not
-    /// say whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts
-    /// both.
+    /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows,
+    /// the spec requires an empty JSON object, i.e. `{}`.
     async fn handle_vp_response<T>(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError>
     where
         T: DeserializeOwned,
         DisclosureErrorResponse<T>: Into<VpMessageClientError>,
     {
         let response_body = Self::get_body_from_response(response).await?;
-
-        if response_body.is_empty() {
-            return Ok(None);
-        }
         let response: VpResponse = serde_json::from_str(&response_body)?;
 
         Ok(response.redirect_uri)
