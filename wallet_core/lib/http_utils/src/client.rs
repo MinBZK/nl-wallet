@@ -8,8 +8,8 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use crate::reqwest::IntoPinnedReqwestClient;
-use crate::reqwest::PinnedReqwestClient;
+use crate::reqwest::IntoReqwestClient;
+use crate::reqwest::ReqwestClient;
 use crate::reqwest::ReqwestTrustAnchor;
 use crate::reqwest::default_reqwest_client_builder;
 use crate::reqwest::tls_pinned_client_builder;
@@ -55,13 +55,13 @@ impl TryFrom<InternalHttpConfigRaw> for InternalHttpConfig {
     }
 }
 
-impl IntoPinnedReqwestClient for InternalHttpConfig {
-    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<PinnedReqwestClient, reqwest::Error>
+impl IntoReqwestClient for InternalHttpConfig {
+    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<ReqwestClient, reqwest::Error>
     where
         F: FnOnce(ClientBuilder) -> ClientBuilder,
     {
         let client = builder_adapter(default_reqwest_client_builder()).build()?;
-        let pinned_client = PinnedReqwestClient::new(client, self.base_url);
+        let pinned_client = ReqwestClient::new(client, self.base_url);
 
         Ok(pinned_client)
     }
@@ -122,14 +122,14 @@ impl TryFrom<TlsPinningConfigRaw> for TlsPinningConfig {
     }
 }
 
-impl IntoPinnedReqwestClient for TlsPinningConfig {
-    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<PinnedReqwestClient, reqwest::Error>
+impl IntoReqwestClient for TlsPinningConfig {
+    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<ReqwestClient, reqwest::Error>
     where
         F: FnOnce(ClientBuilder) -> ClientBuilder,
     {
         let certificates = self.trust_anchors.into_iter().map(ReqwestTrustAnchor::into_certificate);
         let client = builder_adapter(tls_pinned_client_builder(certificates)).build()?;
-        let pinned_client = PinnedReqwestClient::new(client, self.base_url);
+        let pinned_client = ReqwestClient::new(client, self.base_url);
 
         Ok(pinned_client)
     }
@@ -142,8 +142,8 @@ pub enum HttpServiceConfig {
     Internal(InternalHttpConfig),
 }
 
-impl IntoPinnedReqwestClient for HttpServiceConfig {
-    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<PinnedReqwestClient, reqwest::Error>
+impl IntoReqwestClient for HttpServiceConfig {
+    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<ReqwestClient, reqwest::Error>
     where
         F: FnOnce(ClientBuilder) -> ClientBuilder,
     {

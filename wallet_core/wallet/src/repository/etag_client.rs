@@ -11,7 +11,7 @@ use http::header;
 use parking_lot::Mutex;
 use tokio::fs;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
 use crate::reqwest::CachedReqwestClient;
@@ -80,7 +80,7 @@ impl<T, B, E> HttpClient<T, B> for EtagHttpClient<T, B, E>
 where
     T: FromStr + Send + Sync,
     T::Err: Error + Send + Sync + 'static,
-    B: IntoPinnedReqwestClient + Clone + Hash + Send + Sync,
+    B: IntoReqwestClient + Clone + Hash + Send + Sync,
     E: From<HttpClientError> + Error + Send + Sync + 'static,
 {
     type Error = E;
@@ -88,7 +88,7 @@ where
     async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
         let client = self
             .cached_client
-            .get_or_try_init(client_builder, IntoPinnedReqwestClient::try_into_client)
+            .get_or_try_init(client_builder, IntoReqwestClient::try_into_client)
             .map_err(HttpClientError::Networking)?;
         let response = client
             .send_custom_get(

@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 
 use http_utils::client::TlsPinningConfig;
 use http_utils::error::HttpJsonErrorBody;
-use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::reqwest::parse_content_type;
 use wallet_account::RevocationCode;
@@ -61,7 +61,7 @@ impl<C> HttpAccountProviderClient<C> {
 
 impl<C> HttpAccountProviderClient<C>
 where
-    C: IntoPinnedReqwestClient + Clone + Hash,
+    C: IntoReqwestClient + Clone + Hash,
 {
     async fn send_post_request<T>(&self, http_config: &C, path: &str) -> Result<T, AccountProviderError>
     where
@@ -114,7 +114,7 @@ where
     {
         let http_client = self
             .http_client
-            .get_or_try_init(http_config, IntoPinnedReqwestClient::try_into_json_client)?;
+            .get_or_try_init(http_config, IntoReqwestClient::try_into_json_client)?;
         let response = http_client
             .send_custom_post(ReqwestClientUrl::Relative(path), request_adapter)
             .await?;
@@ -274,7 +274,7 @@ mod tests {
     use wiremock::matchers::path;
 
     use http_utils::client::InternalHttpConfig;
-    use http_utils::reqwest::IntoPinnedReqwestClient;
+    use http_utils::reqwest::IntoReqwestClient;
     use http_utils::urls::BaseUrl;
 
     use super::*;
@@ -298,7 +298,7 @@ mod tests {
         http_config: &C,
     ) -> Result<ExampleBody, AccountProviderError>
     where
-        C: IntoPinnedReqwestClient + Clone + Hash,
+        C: IntoReqwestClient + Clone + Hash,
     {
         client.send_post_request(http_config, path).await
     }

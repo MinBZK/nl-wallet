@@ -4,8 +4,8 @@ use derive_more::From;
 use serde::Deserialize;
 
 use http_utils::client::HttpServiceConfig;
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
+use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
 use crate::DeletionCode;
@@ -31,7 +31,7 @@ pub trait RevocationClient {
 
 #[derive(Debug, Clone)]
 pub struct HttpRevocationClient {
-    http_client: PinnedReqwestClient,
+    http_client: ReqwestClient,
 }
 
 impl HttpRevocationClient {

@@ -8,8 +8,8 @@ use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::issuable_document::IssuableDocument;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::client::TlsPinningConfig;
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
+use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::urls::BaseUrl;
 use openid4vc::PostAuthResponseErrorCode;
@@ -48,7 +48,7 @@ pub trait AttributesFetcher {
 }
 
 pub struct HttpAttributesFetcher {
-    urls: HashMap<String, PinnedReqwestClient>,
+    urls: HashMap<String, ReqwestClient>,
 }
 
 impl HttpAttributesFetcher {

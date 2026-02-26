@@ -6,12 +6,12 @@ use std::sync::Arc;
 
 use parking_lot::Mutex;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
+use http_utils::reqwest::ReqwestClient;
 
 #[derive(Debug)]
 struct CachedClientState {
-    http_client: Arc<PinnedReqwestClient>,
+    http_client: Arc<ReqwestClient>,
     source_hash: u64,
 }
 
@@ -29,14 +29,10 @@ impl<C> CachedReqwestClient<C> {
         }
     }
 
-    pub fn get_or_try_init<F>(
-        &self,
-        http_config: &C,
-        build_client: F,
-    ) -> Result<Arc<PinnedReqwestClient>, reqwest::Error>
+    pub fn get_or_try_init<F>(&self, http_config: &C, build_client: F) -> Result<Arc<ReqwestClient>, reqwest::Error>
     where
-        C: IntoPinnedReqwestClient + Clone + Hash,
-        F: FnOnce(C) -> Result<PinnedReqwestClient, reqwest::Error>,
+        C: IntoReqwestClient + Clone + Hash,
+        F: FnOnce(C) -> Result<ReqwestClient, reqwest::Error>,
     {
         let http_config_hash = {
             let mut hasher = DefaultHasher::new();
@@ -78,7 +74,7 @@ mod tests {
     use std::sync::Arc;
 
     use http_utils::client::InternalHttpConfig;
-    use http_utils::reqwest::IntoPinnedReqwestClient;
+    use http_utils::reqwest::IntoReqwestClient;
     use http_utils::urls::BaseUrl;
 
     use super::CachedReqwestClient;

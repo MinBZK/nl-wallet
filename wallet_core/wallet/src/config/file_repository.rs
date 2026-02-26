@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use derive_more::Constructor;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
 use jwt::EcdsaDecodingKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -57,7 +57,7 @@ where
 impl<T, B> UpdateableRepository<Arc<WalletConfiguration>, B> for FileStorageConfigurationRepository<T>
 where
     T: UpdateableRepository<Arc<WalletConfiguration>, B, Error = ConfigurationError> + Sync,
-    B: IntoPinnedReqwestClient + Send + Sync,
+    B: IntoReqwestClient + Send + Sync,
 {
     type Error = ConfigurationError;
 
