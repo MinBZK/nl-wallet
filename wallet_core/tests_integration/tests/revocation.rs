@@ -50,7 +50,7 @@ async fn test_revocation_degree_ok() {
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         (
             settings,
             vec![IssuableDocument::new_mock_degree("MSc".to_string())],

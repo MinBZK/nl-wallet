@@ -78,6 +78,7 @@ impl From<WalletProviderError> for AccountError {
         match value {
             WalletProviderError::Challenge(error) => match error {
                 ChallengeError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,
+                ChallengeError::AccountIsRevoked(data) => Self::AccountRevoked(data),
                 ChallengeError::WalletCertificate(_) => Self::ChallengeValidation,
                 _ => Self::ChallengeValidation,
             },

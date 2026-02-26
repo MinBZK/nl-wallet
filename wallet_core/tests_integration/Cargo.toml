@@ -70,6 +70,11 @@ path = "tests/revocation.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "wallet_revocation"
+path = "tests/wallet_revocation.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "transfer"
 path = "tests/transfer.rs"
 required-features = ["integration_test"]
@@ -101,9 +106,10 @@ test_common = [
     "apple_app_attest/mock",
     "attestation_data/example_credential_payloads",
     "attestation_data/mock",
-    "axum-server/tls-rustls-no-provider",
+    "dep:axum-server",
     "axum/json",
     "dep:android_attest",
+    "dep:audit_log",
     "dep:crypto",
     "dep:ctor",
     "dep:futures",
@@ -112,6 +118,7 @@ test_common = [
     "dep:indexmap",
     "dep:issuance_server",
     "dep:issuer_settings",
+    "dep:jwt",
     "dep:openid4vc",
     "dep:reqwest",
     "dep:rustls",
@@ -236,26 +243,24 @@ http = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true }
-
-semver = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-p256.workspace = true
+p256 = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
+sea-orm = { workspace = true, optional = true }
+semver = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
-
 url = { workspace = true, optional = true }
 zstd = { workspace = true, optional = true }
 
@@ -272,25 +277,25 @@ hsm = { path = "../lib/hsm", optional = true }
 http_utils = { path = "../lib/http_utils", optional = true }
 issuance_server = { path = "../wallet_server/issuance_server", optional = true }
 issuer_settings = { path = "../wallet_server/issuer_settings", optional = true }
-jwt.path = "../lib/jwt"
+jwt = { path = "../lib/jwt", optional = true }
 openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true }
-wscd = { path = "../lib/wscd", optional = true }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true }
 platform_support = { path = "../wallet/platform_support", optional = true }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", optional = true }
 server_utils = { path = "../wallet_server/server_utils", optional = true }
 static_server = { path = "../static_server", optional = true }
 status_lists = { path = "../lib/status_lists", optional = true }
-token_status_list = { path = "../lib/token_status_list", features = ["mock"] }
+token_status_list = { path = "../lib/token_status_list", optional = true }
 update_policy_server = { path = "../update_policy/server", optional = true }
+utils = { path = "../lib/utils", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true }
 wallet = { path = "../wallet", optional = true }
-utils = { path = "../lib/utils", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true }
+wscd = { path = "../lib/wscd", optional = true }
 
 [dev-dependencies]
 itertools.workspace = true
@@ -312,8 +317,3 @@ verification_server = { path = "../wallet_server/verification_server", features 
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
-serde.workspace = true
-serde_json.workspace = true
-
-sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
-utils.path = "../lib/utils"

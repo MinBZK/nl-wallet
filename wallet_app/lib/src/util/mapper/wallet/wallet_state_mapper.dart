@@ -26,7 +26,7 @@ class WalletStateMapper extends Mapper<core.WalletState, WalletState> {
       core.WalletState_Blocked() => WalletStateBlocked(switch (input.reason) {
         core.BlockedReason.RequiresAppUpdate => .requiresAppUpdate,
         core.BlockedReason.BlockedByWalletProvider => .blockedByWalletProvider,
-      }),
+      }, canRegisterNewAccount: input.canRegisterNewAccount),
       core.WalletState_Empty() => const WalletStateEmpty(),
     };
   }

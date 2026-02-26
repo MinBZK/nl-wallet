@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use tracing::info;
 use tracing::instrument;
+use tracing::warn;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -148,7 +149,7 @@ where
         };
     }
 
-    pub(super) async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
+    pub(super) async fn send_check_pin_instruction(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -191,7 +192,8 @@ where
 
         info!("Sending check pin instruction to Wallet Provider");
 
-        remote_instruction.send(CheckPin).await?;
+        self.check_result_for_wallet_revocation(remote_instruction.send(CheckPin).await)
+            .await?;
 
         Ok(())
     }
@@ -227,7 +229,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn check_pin(&self, pin: String) -> Result<(), WalletUnlockError>
+    pub async fn check_pin(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -289,8 +291,10 @@ mod tests {
     use jwt::SignedJwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
+    use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::errors::PinTimeoutData;
+    use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::InstructionResultClaims;
@@ -300,6 +304,7 @@ mod tests {
     use crate::pin::key::PinKey;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
+    use crate::storage::StorageState;
 
     use super::super::WalletRegistration;
     use super::super::test::TestWalletInMemoryStorage;
@@ -702,6 +707,104 @@ mod tests {
         assert_matches!(
             error,
             WalletUnlockError::Instruction(InstructionError::StoreInstructionSequenceNumber(_))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_revoked_user_request() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.lock();
+
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+        account_provider_client
+            .expect_instruction_challenge()
+            .return_once(|_, _| Ok(crypto::utils::random_bytes(32)));
+        account_provider_client
+            .expect_instruction()
+            .return_once(|_, _: Instruction<CheckPin>| {
+                Err(AccountProviderResponseError::Account(
+                    AccountError::AccountRevoked(AccountRevokedData {
+                        revocation_reason: RevocationReason::UserRequest,
+                        can_register_new_account: true,
+                    }),
+                    None,
+                )
+                .into())
+            });
+
+        let error = wallet
+            .unlock(PIN.to_owned())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::UserRequest,
+                can_register_new_account: true
+            }))
+        );
+        // UserRequest revocation resets the wallet to its initial state.
+        assert!(!wallet.registration.is_registered());
+        assert!(wallet.is_locked());
+        assert_matches!(
+            wallet.storage.read().await.state().await.unwrap(),
+            StorageState::Uninitialized
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_revoked_admin_request() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.lock();
+
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+        account_provider_client
+            .expect_instruction_challenge()
+            .return_once(|_, _| Ok(crypto::utils::random_bytes(32)));
+        account_provider_client
+            .expect_instruction()
+            .return_once(|_, _: Instruction<CheckPin>| {
+                Err(AccountProviderResponseError::Account(
+                    AccountError::AccountRevoked(AccountRevokedData {
+                        revocation_reason: RevocationReason::AdminRequest,
+                        can_register_new_account: true,
+                    }),
+                    None,
+                )
+                .into())
+            });
+
+        let error = wallet
+            .unlock(PIN.to_owned())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
+            }))
+        );
+        // AdminRequest revocation stores the reason in the database without resetting the wallet.
+        assert!(wallet.registration.is_registered());
+
+        let revocation_data = wallet
+            .storage
+            .read()
+            .await
+            .fetch_data::<AccountRevokedData>()
+            .await
+            .unwrap();
+        assert_matches!(
+            revocation_data,
+            Some(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                can_register_new_account: true
+            })
         );
     }
 }

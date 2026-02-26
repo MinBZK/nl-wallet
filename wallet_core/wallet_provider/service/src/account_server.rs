@@ -83,7 +83,6 @@ use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
-use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::HwSignedInstruction;
@@ -153,8 +152,8 @@ pub enum ChallengeError {
     WalletCertificate(#[from] WalletCertificateError),
     #[error("instruction sequence number validation failed")]
     SequenceNumberValidation,
-    #[error("account is revoked with reason: {0}")]
-    AccountIsRevoked(RevocationReason),
+    #[error("account is revoked with data: {0:?}")]
+    AccountIsRevoked(AccountRevokedData),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -832,7 +831,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Parsing and verifying challenge request for user {}", user.id);
 
         if let Some(revocation) = &user.revocation_registration {
-            return Err(ChallengeError::AccountIsRevoked(revocation.reason));
+            return Err(ChallengeError::AccountIsRevoked(AccountRevokedData {
+                revocation_reason: revocation.reason,
+                can_register_new_account: !user.recovery_code_is_denied,
+            }));
         }
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
@@ -1921,6 +1923,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wallet_account::RevocationCode;
+    use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::ChangePinCommit;
@@ -2644,7 +2647,13 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_matches!(err, ChallengeError::AccountIsRevoked(RevocationReason::AdminRequest));
+        assert_matches!(
+            err,
+            ChallengeError::AccountIsRevoked(AccountRevokedData {
+                revocation_reason: RevocationReason::AdminRequest,
+                ..
+            })
+        );
     }
 
     #[tokio::test]

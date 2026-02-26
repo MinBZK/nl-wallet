@@ -76,10 +76,6 @@ spec:
       localeCType: "en_US.UTF-8"
       secret:
         name: {{ print $chart.Release.Name "-" (first .Values.databases) | replace "_" "-" }}
-      postInitApplicationSQLRefs:
-        configMapRefs:
-          - key: extensions.sql
-            name: config-extensions-{{ .Release.Name }}
 
 {{- end }}
 

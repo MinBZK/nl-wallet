@@ -47,7 +47,7 @@ async fn ltc47_test_block() {
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         (settings, wp_root_ca),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         issuance_server_settings(),
     )
     .await;

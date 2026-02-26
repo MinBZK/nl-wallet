@@ -94,7 +94,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_revocation_code_with_pin(&self, pin: String) -> Result<&RevocationCode, RevocationCodeError>
+    pub async fn get_revocation_code_with_pin(&mut self, pin: String) -> Result<&RevocationCode, RevocationCodeError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,

@@ -5,9 +5,19 @@ use std::path::Path;
 use web_utils::build::BuildProfile;
 
 fn main() {
+    if cfg!(windows) {
+        panic!("Building on Windows is not supported");
+    }
+
     let profile = BuildProfile::from_cargo_profile(env::var("PROFILE").ok().as_deref());
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
 
+    // Remove stale contents (e.g. broken symlinks from a previous build) before repopulating
+    if Path::new("assets/static").exists() {
+        fs::remove_dir_all("assets/static").expect("Failed to remove assets/static");
+    }
+    // Create the necessary directories so that `cp -R` behaves as expected
+    fs::create_dir_all("assets/static").expect("Failed to create assets/static");
     // These directories are merged from multiple crates, so they must be copies
     web_utils::build::copy_static_assets(
         &[
@@ -16,46 +26,46 @@ fn main() {
             Path::new("../../lib/web_utils/static/images"),
             Path::new("../../lib/web_utils/static/non-free"),
         ],
-        Path::new("assets"),
+        Path::new("assets/static"),
     );
 
-    // Single-source files can be symlinks for instant dev updates
-    force_symlink(
+    web_utils::build::link_or_copy_asset(
         Path::new("../../../lib/web_utils/static/language.js"),
         Path::new("assets/language.js"),
+        profile,
     );
 
     // In development mode, symlink CSS directories so changes are reflected immediately
     if !profile.is_release() {
-        fs::create_dir_all("assets/static").expect("Failed to create assets/static");
         fs::create_dir_all("assets/demo_utils/static").expect("Failed to create assets/demo_utils/static");
         fs::create_dir_all("assets/lib/web_utils/static").expect("Failed to create assets/lib/web_utils/static");
 
         // Symlink CSS directories to source
-        force_symlink(Path::new("../../static/css"), Path::new("assets/static/css"));
-        force_symlink(
+        web_utils::build::force_symlink(Path::new("../../static/css"), Path::new("assets/static/css"));
+        web_utils::build::force_symlink(
             Path::new("../../../../demo_utils/static/css"),
             Path::new("assets/demo_utils/static/css"),
         );
-        force_symlink(
+        web_utils::build::force_symlink(
             Path::new("../../../../../../lib/web_utils/static/css"),
             Path::new("assets/lib/web_utils/static/css"),
         );
 
         // Symlink non-free/ and images/ so url() paths resolve to merged assets
-        force_symlink(Path::new("../non-free"), Path::new("assets/static/non-free"));
-        force_symlink(Path::new("../images"), Path::new("assets/static/images"));
-        force_symlink(
-            Path::new("../../non-free"),
+        web_utils::build::force_symlink(
+            Path::new("../../static/non-free"),
             Path::new("assets/demo_utils/static/non-free"),
         );
-        force_symlink(Path::new("../../images"), Path::new("assets/demo_utils/static/images"));
-        force_symlink(
-            Path::new("../../../non-free"),
+        web_utils::build::force_symlink(
+            Path::new("../../static/images"),
+            Path::new("assets/demo_utils/static/images"),
+        );
+        web_utils::build::force_symlink(
+            Path::new("../../../static/non-free"),
             Path::new("assets/lib/web_utils/static/non-free"),
         );
-        force_symlink(
-            Path::new("../../../images"),
+        web_utils::build::force_symlink(
+            Path::new("../../../static/images"),
             Path::new("assets/lib/web_utils/static/images"),
         );
     }
@@ -69,23 +79,4 @@ fn main() {
         profile,
         Path::new(&manifest_dir),
     );
-}
-
-/// Creates a symlink, removing any existing file, symlink, or directory at the link path.
-fn force_symlink(target: &Path, link: &Path) {
-    if let Ok(meta) = link.symlink_metadata() {
-        if meta.is_dir() {
-            fs::remove_dir_all(link).unwrap_or_else(|e| panic!("Failed to remove dir {}: {}", link.display(), e));
-        } else {
-            fs::remove_file(link).unwrap_or_else(|e| panic!("Failed to remove {}: {}", link.display(), e));
-        }
-    }
-    std::os::unix::fs::symlink(target, link).unwrap_or_else(|e| {
-        panic!(
-            "Failed to create symlink {} -> {}: {}",
-            link.display(),
-            target.display(),
-            e
-        )
-    });
 }

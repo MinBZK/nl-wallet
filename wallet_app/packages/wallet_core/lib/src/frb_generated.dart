@@ -2537,6 +2537,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return WalletState_Blocked(
           reason: dco_decode_blocked_reason(raw[1]),
+          canRegisterNewAccount: dco_decode_bool(raw[2]),
         );
       case 1:
         return WalletState_Unregistered();
@@ -3631,7 +3632,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (tag_) {
       case 0:
         var var_reason = sse_decode_blocked_reason(deserializer);
-        return WalletState_Blocked(reason: var_reason);
+        var var_canRegisterNewAccount = sse_decode_bool(deserializer);
+        return WalletState_Blocked(reason: var_reason, canRegisterNewAccount: var_canRegisterNewAccount);
       case 1:
         return WalletState_Unregistered();
       case 2:
@@ -4720,9 +4722,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_wallet_state(WalletState self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case WalletState_Blocked(reason: final reason):
+      case WalletState_Blocked(reason: final reason, canRegisterNewAccount: final canRegisterNewAccount):
         sse_encode_i_32(0, serializer);
         sse_encode_blocked_reason(reason, serializer);
+        sse_encode_bool(canRegisterNewAccount, serializer);
       case WalletState_Unregistered():
         sse_encode_i_32(1, serializer);
       case WalletState_Locked(subState: final subState):

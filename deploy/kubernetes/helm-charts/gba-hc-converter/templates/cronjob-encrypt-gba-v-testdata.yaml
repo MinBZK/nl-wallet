@@ -32,8 +32,10 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           serviceAccountName: {{ .Values.serviceAccountName }}
+          {{- with .Values.podSecurityContext }}
           securityContext:
-            runAsUser: 65532
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           containers:
             - name: {{ .Values.gbaEncryptTestData.name }}
               image: {{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}:{{ .Values.image.tag }}
@@ -41,6 +43,14 @@ spec:
               command: ["sh", "-c", "--"]
               args:
                 - ./encrypt_all.sh
+              {{ with .Values.gbaHcConverter.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with .Values.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
               volumeMounts:
                 - mountPath: /data
                   name: preloaded-gba-v-data-volume

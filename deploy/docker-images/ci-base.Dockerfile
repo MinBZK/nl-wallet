@@ -1,6 +1,6 @@
 ARG DOCKER_HUB_PROXY
-# trixie-20250721-slim
-FROM ${DOCKER_HUB_PROXY}library/debian@sha256:cc92da07b99dd5c078cb5583fdb4ba639c7c9c14eb78508a2be285ca67cc738a
+# trixie-20260202-slim
+FROM ${DOCKER_HUB_PROXY}library/debian@sha256:f6e2cfac5cf956ea044b4bd75e6397b4372ad88fe00908045e9a0d21712ae3ba
 
 COPY apt.sh /tmp/
 RUN /tmp/apt.sh

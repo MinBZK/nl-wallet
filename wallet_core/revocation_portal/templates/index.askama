@@ -12,7 +12,7 @@
 {% block content %}
 <section class="intro">
   <div class="logo-icon-wrapper">
-    <img src="/support/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
+    <img src="/support/static/non-free/images/nl-wallet.svg" alt="NL Wallet Logo" class="logo">
   </div>
 
   <h1>{{ base.trans.delete_title }}</h1>

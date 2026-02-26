@@ -302,6 +302,7 @@ where
             .registration
             .as_key_and_registration_data()
             .ok_or(PinRecoveryError::NotRegistered)?;
+        let attested_key = Arc::clone(attested_key);
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
@@ -348,7 +349,7 @@ where
         let instruction_client = self
             .new_instruction_client(
                 new_pin.clone(),
-                Arc::clone(attested_key),
+                Arc::clone(&attested_key),
                 InstructionClientParameters::new(
                     registration_data.wallet_id.clone(),
                     registration_data.pin_salt.clone(),
@@ -370,7 +371,15 @@ where
         let issuance_result = issuance_session
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session))?;
+            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
+
+        let issuance_result = match issuance_result {
+            Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
+                self.handle_wallet_revocation(data).await;
+                Err(error)?
+            }
+            _ => issuance_result?,
+        };
 
         // Store the new wallet certificate and the new salt.
 
@@ -387,7 +396,6 @@ where
         };
         self.storage.write().await.upsert_data(&registration_data).await?;
 
-        let attested_key = Arc::clone(attested_key);
         self.registration = WalletRegistration::Registered {
             attested_key: Arc::clone(&attested_key),
             data: registration_data.clone(),
@@ -420,7 +428,7 @@ where
         // Finish PIN recovery by sending the second WP instruction.
 
         // Use a new instruction client that uses our new WP certificate
-        InstructionClient::new(
+        let result = InstructionClient::new(
             new_pin,
             Arc::clone(&self.storage),
             attested_key,
@@ -436,8 +444,11 @@ where
         .send(DiscloseRecoveryCodePinRecovery {
             recovery_code_disclosure,
         })
-        .await
-        .map_err(PinRecoveryError::DiscloseRecoveryCode)?;
+        .await;
+
+        self.check_result_for_wallet_revocation(result)
+            .await
+            .map_err(PinRecoveryError::DiscloseRecoveryCode)?;
 
         self.storage.write().await.delete_data::<PinRecoveryData>().await?;
 

@@ -65,9 +65,14 @@ imagePullSecrets: []
 ##
 serviceAccountName: null
 
+## @section Pod security context
+## Security context for the pod
+## @param podSecurityContext Security context for the pod
+podSecurityContext: {}
+
 ## @section Security context
-## Security context for the containers
-## @param securityContext Security context for the containers
+## Security context for the container
+## @param securityContext Security context for the container
 ##
 securityContext: {}
 
@@ -226,7 +231,7 @@ serviceMonitor:
 ## @param logSidecar.resources.requests.memory Memory request of log sidecar
 ## @param logSidecar.resources.limits.cpu CPU limit of log sidecar
 ## @param logSidecar.resources.limits.memory Memory limit of log sidecar
-##
+## @param logSidecar.securityContext Security context for the log sidecar
 logSidecar:
   image:
     repository: null
@@ -239,3 +244,4 @@ logSidecar:
     limits:
       cpu: "400m"
       memory: "128Mi"
+  securityContext: {}

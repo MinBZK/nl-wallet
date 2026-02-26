@@ -13,8 +13,8 @@ macro_rules! crate_local_path {
 }
 
 pub fn eudi_nl_pid_type_metadata_documents() -> (Integrity, TypeMetadataDocuments) {
-    let pid_bytes = fs::read(crate_local_path!("eudi:pid:1.json")).unwrap();
-    let nl_pid_bytes = fs::read(crate_local_path!("eudi:pid:nl:1.json")).unwrap();
+    let pid_bytes = fs::read(crate_local_path!("eudi_pid_1.json")).unwrap();
+    let nl_pid_bytes = fs::read(crate_local_path!("eudi_pid_nl_1.json")).unwrap();
 
     (
         Integrity::from(&nl_pid_bytes),

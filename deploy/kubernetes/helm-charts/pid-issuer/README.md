@@ -52,6 +52,18 @@
 | -------------------- | --------------------------- | ----- |
 | `serviceAccountName` | Name of the service account | `nil` |
 
+### Pod security context
+
+| Name                 | Description                  | Value |
+| -------------------- | ---------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod | `{}`  |
+
+### Security context
+
+| Name              | Description                        | Value |
+| ----------------- | ---------------------------------- | ----- |
+| `securityContext` | Security context for the container | `{}`  |
+
 ### Ingress internal parameters
 
 | Name                            | Description                                     | Value   |
@@ -93,6 +105,12 @@
 | `resources.limits.cpu`      | CPU limit                                                         | `200m`  |
 | `resources.limits.memory`   | Memory limit                                                      | `128Mi` |
 | `database.secretName`       | The secret name that contains the connection url for the database | `nil`   |
+
+### Persistence parameters
+
+| Name                           | Description                                        | Value |
+| ------------------------------ | -------------------------------------------------- | ----- |
+| `persistence.storageClassName` | Storage class name for the persistent volume claim | `nfs` |
 
 ### DigiD parameters
 

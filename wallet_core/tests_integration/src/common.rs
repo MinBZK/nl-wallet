@@ -69,7 +69,7 @@ use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
-use server_utils::store::postgres::new_connection;
+pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::serve::create_serve_router;
@@ -170,7 +170,7 @@ pub async fn setup_wallet_and_default_env(
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         issuance_server_settings(),
     )
     .await
@@ -253,7 +253,7 @@ pub async fn setup_env_default() -> (
         update_policy_server_settings(),
         wallet_provider_settings(),
         verification_server_settings(),
-        pid_issuer_settings(),
+        pid_issuer_settings("123".to_string()),
         issuance_server_settings(),
     )
     .await
@@ -412,7 +412,7 @@ where
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
-    let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
+    let mut wallet_clients = WalletClients::new_http().unwrap();
     setup_mock_digid_client(&mut wallet_clients.digid_client);
 
     Wallet::init_registration(
@@ -464,6 +464,30 @@ pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
         .count(connection)
         .await
         .expect("Could not fetch user count from database")
+}
+
+pub async fn get_all_wallet_ids(connection: &DatabaseConnection) -> Vec<String> {
+    wallet_user::Entity::find()
+        .all(connection)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|user| user.wallet_id)
+        .collect()
+}
+
+pub async fn get_wallet_recovery_code(connection: &DatabaseConnection, wallet_id: &str) -> String {
+    use sea_orm::ColumnTrait;
+    use sea_orm::QueryFilter;
+
+    wallet_user::Entity::find()
+        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .one(connection)
+        .await
+        .unwrap()
+        .expect("wallet_user should exist")
+        .recovery_code
+        .expect("wallet_user should have a recovery code")
 }
 
 pub fn static_server_settings() -> (StaticSettings, ReqwestTrustAnchor) {
@@ -520,7 +544,7 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
     });
 
     let base_url = local_config_base_url(port);
-    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
     port
 }
 
@@ -536,7 +560,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     });
 
     let base_url = local_ups_base_url(port);
-    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
     port
 }
 
@@ -566,17 +590,20 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     });
 
     let base_url = local_wp_base_url(port);
-    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
     port
 }
 
-pub fn pid_issuer_settings() -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
+pub fn pid_issuer_settings(recovery_code: String) -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec![mock_issuable_document_pid()].try_into().unwrap())
+    (
+        settings,
+        vec![mock_issuable_document_pid(recovery_code)].try_into().unwrap(),
+    )
 }
 
 pub fn issuance_server_settings() -> (
@@ -705,7 +732,7 @@ async fn start_mock_attestation_server(
     });
 
     let url = local_https_base_url(port);
-    wait_for_server(url.clone(), std::iter::once(trust_anchor.into_certificate())).await;
+    wait_for_server(url.clone(), [trust_anchor.into_certificate()]).await;
     url
 }
 
@@ -745,7 +772,7 @@ pub async fn start_issuance_server(
         hsm.clone(),
     )
     .await;
-    let status_list_client = HttpStatusListClient::new().unwrap();
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
 
     tokio::spawn(
         async move {
@@ -772,7 +799,7 @@ pub async fn start_issuance_server(
         .instrument(info_span!("service", name = "issuance_server")),
     );
 
-    wait_for_server(public_url.clone(), std::iter::empty()).await;
+    wait_for_server(public_url.clone(), []).await;
     IssuerUrl {
         internal: internal_url,
         public: public_url,
@@ -836,7 +863,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         .instrument(info_span!("service", name = "pid_issuer")),
     );
 
-    wait_for_server(public_url.clone(), std::iter::empty()).await;
+    wait_for_server(public_url.clone(), []).await;
     IssuerUrl {
         internal: internal_url,
         public: local_pid_base_url(public_port),
@@ -864,7 +891,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         storage_settings.into(),
     ));
 
-    let status_list_client = HttpStatusListClient::new().unwrap();
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
 
     tokio::spawn(
         async move {
@@ -886,14 +913,14 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         .instrument(info_span!("service", name = "verification_server")),
     );
 
-    wait_for_server(public_url.clone(), std::iter::empty()).await;
+    wait_for_server(public_url.clone(), []).await;
     DisclosureUrls {
         verifier_url: public_url,
         verifier_internal_url: internal_url,
     }
 }
 
-pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl Iterator<Item = Certificate>) {
+pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl IntoIterator<Item = Certificate>) {
     let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
@@ -943,7 +970,7 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
         }
     });
 
-    wait_for_server(base_url, std::iter::empty()).await;
+    wait_for_server(base_url, []).await;
 }
 
 pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) -> WalletWithStorage {

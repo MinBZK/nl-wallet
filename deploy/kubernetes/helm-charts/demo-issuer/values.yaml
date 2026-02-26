@@ -37,6 +37,17 @@ image:
 extraAnnotations: {}
 extraPodLabels: {}
 
+## @section Pod security context
+## Security context for the pod
+## @param podSecurityContext Security context for the pod
+podSecurityContext: {}
+
+## @section Security context
+## Security context for the container
+## @param securityContext Security context for the container
+##
+securityContext: {}
+
 ## @section Image pull secrets
 ## Secrets for pulling images from private registries
 ## @param imagePullSecrets Array of secret names for private registries

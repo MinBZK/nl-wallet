@@ -32,7 +32,7 @@ where
     /// This is the recommended way to obtain an [`InstructionClient`], because this function
     /// will try to finalize any unfinished PIN change process.
     pub(super) async fn new_instruction_client(
-        &self,
+        &mut self,
         pin: String,
         attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
         parameters: InstructionClientParameters,

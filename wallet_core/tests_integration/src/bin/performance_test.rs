@@ -3,7 +3,6 @@ use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
-use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
@@ -75,7 +74,7 @@ async fn main() {
         .unwrap();
     let pid_issuance_config = &config_repository.get().pid_issuance;
     let update_policy_repository = UpdatePolicyRepository::init();
-    let wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
+    let wallet_clients = WalletClients::new_http().unwrap();
 
     let storage = MockHardwareDatabaseStorage::open_in_memory().await;
 

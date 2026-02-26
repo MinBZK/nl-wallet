@@ -59,11 +59,12 @@ class WalletStateInPinRecoveryFlow extends WalletState {
 
 class WalletStateBlocked extends WalletState {
   final BlockedReason reason;
+  final bool canRegisterNewAccount;
 
-  const WalletStateBlocked(this.reason);
+  const WalletStateBlocked(this.reason, {required this.canRegisterNewAccount});
 
   @override
-  List<Object?> get props => [...super.props, reason];
+  List<Object?> get props => [...super.props, reason, canRegisterNewAccount];
 }
 
 enum TransferRole { source, target }

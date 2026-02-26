@@ -37,7 +37,7 @@ use wscd::mock_remote::MockRemoteWscd;
 #[tokio::test]
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
-    let (settings, _) = pid_issuer_settings();
+    let (settings, _) = pid_issuer_settings("123".to_string());
     let hsm = settings
         .issuer_settings
         .server_settings
