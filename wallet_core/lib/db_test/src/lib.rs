@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::env::VarError;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::net::SocketAddr;
@@ -292,8 +293,22 @@ async fn get_ipv4_addr(host: url::Host) -> String {
 /// starts and tries to acquire a lock. `n` is equal to the available
 /// parallelism, which should be equal to the maximum number of tests.
 async fn find_free_set_of_databases(connection: &mut AsyncDropPgConnection) -> u32 {
-    let max_parallel = available_parallelism().expect("cannot get parallelism").get();
-    let max_parallel = max_parallel.try_into().unwrap();
+    let max_parallel = available_parallelism()
+        .expect("Cannot get parallelism")
+        .get()
+        .try_into()
+        .unwrap();
+    let max_parallel = match std::env::var("NEXTEST_TEST_THREADS") {
+        Ok(text) => {
+            let test_threads = text
+                .parse::<u32>()
+                .unwrap_or_else(|err| panic!("Cannot not parse NEXTEST_TEST_THREADS '{text}': {err}"));
+            // Use max parallel if higher than configured test threads, because it can be set lower in a profile
+            std::cmp::max(max_parallel, test_threads)
+        }
+        Err(VarError::NotPresent) => max_parallel,
+        Err(err) => panic!("Cannot not read NEXTEST_TEST_THREAD: {err}"),
+    };
 
     let mut n = rand::thread_rng().gen_range(1..=max_parallel);
     for _ in 1..=max_parallel {
@@ -306,7 +321,7 @@ async fn find_free_set_of_databases(connection: &mut AsyncDropPgConnection) -> u
         }
         n += 1;
     }
-    panic!("Too much contention!")
+    panic!("More threads are executed than determined parallelism ({max_parallel})")
 }
 
 async fn fetch_existing_database<'a, T>(
