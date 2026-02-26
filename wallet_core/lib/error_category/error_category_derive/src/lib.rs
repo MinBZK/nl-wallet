@@ -44,9 +44,10 @@ const DEFER: &str = "defer";
 #[proc_macro_attribute]
 pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     match syn::parse::<Item>(item) {
-        Ok(item) => sentry_capture_error_item(item).into(),
-        Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
+        Ok(item) => sentry_capture_error_item(item),
+        Err(err) => err.to_compile_error(),
     }
+    .into()
 }
 
 /// Generate code for a parsed [`Item`].
