@@ -71,7 +71,6 @@ where
     H: Hsm<Error = HsmError>,
 {
     let revocation_reason = RevocationReason::UserRequest;
-    let revocation_date_time = time.generate();
 
     let revocation_code_hmac = user_state
         .wallet_user_hsm
@@ -90,14 +89,15 @@ where
         return Err(RevocationError::RevocationCodeNotFound(revocation_code.into()));
     };
 
-    // Idempotency: if the wallet is already revoked, return the existing revocation datetime.
-    if wallet_user.state == WalletUserState::Revoked {
-        let revocation_date_time = wallet_user
+    // Idempotency: if the wallet is already revoked, use the existing revocation datetime.
+    let revocation_date_time = if wallet_user.state == WalletUserState::Revoked {
+        wallet_user
             .revocation_registration
             .expect("revoked wallet user must have a revocation_registration")
-            .date_time;
-        return Ok(revocation_date_time);
-    }
+            .date_time
+    } else {
+        time.generate()
+    };
 
     let wua_ids = user_state
         .repositories
