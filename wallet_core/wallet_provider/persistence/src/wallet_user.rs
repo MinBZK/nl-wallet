@@ -76,6 +76,20 @@ pub struct WalletUserStateModel {
     pub recovery_code_is_denied: bool,
 }
 
+fn parse_revocation_registration(
+    reason: Option<String>,
+    date_time: Option<DateTimeWithTimeZone>,
+) -> Option<RevocationRegistration> {
+    match (reason, date_time) {
+        (Some(reason), Some(date_time)) => Some(RevocationRegistration {
+            reason: reason.parse().unwrap(),
+            date_time: date_time.into(),
+        }),
+        (None, None) => None,
+        _ => panic!("every reason should have a registered datetime"),
+    }
+}
+
 // Note: this function is not optimized for production use, as it loads all wallets at once and does not implement
 // pagination. It is only intended for demo, test and debugging purposes.
 pub async fn list_wallets<S, T>(db: &T) -> Result<Vec<WalletUserIsRevoked>>
@@ -105,14 +119,8 @@ where
                 .parse()
                 .expect("parsing the wallet user state from the database should always succeed");
 
-            let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
-                (Some(reason), Some(date_time)) => Some(RevocationRegistration {
-                    reason: reason.parse().unwrap(),
-                    date_time: date_time.into(),
-                }),
-                (None, None) => None,
-                _ => panic!("every reason should have a registered datetime"),
-            };
+            let revocation_registration =
+                parse_revocation_registration(model.revocation_reason, model.revocation_date_time);
 
             WalletUserIsRevoked {
                 wallet_id: model.wallet_id.into(),
@@ -372,14 +380,7 @@ where
         }
     };
 
-    let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
-        (Some(reason), Some(date_time)) => Some(RevocationRegistration {
-            reason: reason.parse().unwrap(),
-            date_time: date_time.into(),
-        }),
-        (None, None) => None,
-        _ => panic!("every reason should have a registered datetime"),
-    };
+    let revocation_registration = parse_revocation_registration(model.revocation_reason, model.revocation_date_time);
 
     let wallet_user = WalletUser {
         id: model.id,
