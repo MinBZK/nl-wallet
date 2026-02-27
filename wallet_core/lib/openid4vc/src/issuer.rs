@@ -63,6 +63,7 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::issuer_identifier::CredentialIssuerIdentifier;
 use crate::metadata;
 use crate::metadata::CredentialMetadata;
 use crate::metadata::CredentialResponseEncryption;
@@ -308,7 +309,8 @@ pub trait AttributeService {
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
+    async fn oauth_metadata(&self, issuer_identifier: &CredentialIssuerIdentifier)
+    -> Result<oidc::Config, Self::Error>;
 }
 
 pub struct TrivialAttributeService;
@@ -320,7 +322,10 @@ impl AttributeService for TrivialAttributeService {
         unimplemented!()
     }
 
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+    async fn oauth_metadata(
+        &self,
+        issuer_identifier: &CredentialIssuerIdentifier,
+    ) -> Result<oidc::Config, Self::Error> {
         // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
         // because they are mandatory in an OIDC Provider Metadata document (see
         // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
@@ -328,12 +333,14 @@ impl AttributeService for TrivialAttributeService {
         // Authorization Metadata document instead, see <https://www.rfc-editor.org/rfc/rfc8414.html>, which to
         // a large extent has the same fields but `authorize` and `jwks` are optional there.
 
-        Ok(oidc::Config::new(
-            issuer_url.clone(),
-            issuer_url.join("authorize"),
-            issuer_url.join("token"),
-            issuer_url.join("jwks"),
-        ))
+        let issuer_url = issuer_identifier.as_base_url().clone();
+        let auth_url = issuer_url.join("authorize");
+        let token_url = issuer_url.join("issuance/token");
+        let jwks_url = issuer_url.join("jwks");
+
+        let config = oidc::Config::new(issuer_url, auth_url, token_url, jwks_url);
+
+        Ok(config)
     }
 }
 
@@ -394,7 +401,6 @@ pub struct Issuer<A, K, S, L> {
     issuer_data: IssuerData<K>,
     sessions_cleanup_task: AbortHandle,
     status_list_services: Arc<L>,
-    pub metadata: IssuerMetadata,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
@@ -402,15 +408,13 @@ pub struct IssuerData<K> {
     attestation_config: AttestationTypesConfig<K>,
     wua_config: Option<WuaConfig>,
 
-    /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
-    /// and MUST be used by the wallet as `aud` in its PoP JWTs.
-    credential_issuer_identifier: BaseUrl,
-
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
     accepted_wallet_client_ids: Vec<String>,
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
+
+    metadata: IssuerMetadata,
 }
 
 pub struct WuaConfig {
@@ -422,6 +426,12 @@ impl<A, K, S, L> Drop for Issuer<A, K, S, L> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.sessions_cleanup_task.abort();
+    }
+}
+
+impl<A, K, S, L> Issuer<A, K, S, L> {
+    pub fn metadata(&self) -> &IssuerMetadata {
+        &self.issuer_data.metadata
     }
 }
 
@@ -437,7 +447,7 @@ where
         sessions: Arc<S>,
         attr_service: A,
         attestation_config: AttestationTypesConfig<K>,
-        server_url: &BaseUrl,
+        issuer_identifier: CredentialIssuerIdentifier,
         wallet_client_ids: Vec<String>,
         wua_config: Option<WuaConfig>,
         status_list_services: Arc<L>,
@@ -453,16 +463,40 @@ where
             })
             .collect();
 
-        let issuer_url = server_url.join_base_url("issuance/");
+        let server_url = issuer_identifier.as_base_url().join_base_url("issuance");
+        let credential_endpoint = server_url.join_base_url("/credential");
+        let batch_credential_endpoint = server_url.join_base_url("/batch_credential");
+
+        let issuer_config = metadata::IssuerData {
+            credential_issuer: issuer_identifier,
+            authorization_servers: None,
+            credential_endpoint,
+            batch_credential_endpoint: Some(batch_credential_endpoint),
+            deferred_credential_endpoint: None,
+            notification_endpoint: None,
+            credential_response_encryption: CredentialResponseEncryption {
+                alg_values_supported: vec![],
+                enc_values_supported: vec![],
+                encryption_required: false,
+            },
+            credential_identifiers_supported: Some(false),
+            display: None,
+            credential_configurations_supported,
+        };
+        let metadata = IssuerMetadata {
+            issuer_config,
+            protected_metadata: None,
+        };
+
         let issuer_data = IssuerData {
             attestation_config,
-            credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
             wua_config,
 
-            // In this implementation, for now the Credential Issuer Identifier also always acts as
-            // the public server URL.
-            server_url: issuer_url.clone(),
+            // In this implementation, the public server URL is composed of the
+            // Credential Issuer Identifier appended with the "/issuance/" path.
+            server_url,
+            metadata,
         };
 
         Self {
@@ -471,25 +505,6 @@ where
             issuer_data,
             status_list_services,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS).abort_handle(),
-            metadata: IssuerMetadata {
-                issuer_config: metadata::IssuerData {
-                    credential_issuer: issuer_url.clone(),
-                    authorization_servers: None,
-                    credential_endpoint: issuer_url.join_base_url("/credential"),
-                    batch_credential_endpoint: Some(issuer_url.join_base_url("/batch_credential")),
-                    deferred_credential_endpoint: None,
-                    notification_endpoint: None,
-                    credential_response_encryption: CredentialResponseEncryption {
-                        alg_values_supported: vec![],
-                        enc_values_supported: vec![],
-                        encryption_required: false,
-                    },
-                    credential_identifiers_supported: Some(false),
-                    display: None,
-                    credential_configurations_supported,
-                },
-                protected_metadata: None,
-            },
         }
     }
 }
@@ -566,7 +581,7 @@ where
                 &self.issuer_data.accepted_wallet_client_ids,
                 dpop,
                 &self.attr_service,
-                &self.issuer_data.credential_issuer_identifier,
+                &self.issuer_data.server_url,
                 &self.issuer_data.attestation_config,
             )
             .await;
@@ -668,7 +683,7 @@ where
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            &self.issuer_data.credential_issuer_identifier.join(endpoint_name),
+            &self.issuer_data.server_url.join(endpoint_name),
             &Method::DELETE,
             Some(&access_token),
             Some(&session_data.dpop_nonce),
@@ -689,7 +704,7 @@ where
 
     pub async fn oauth_metadata(&self) -> Result<oidc::Config, A::Error> {
         self.attr_service
-            .oauth_metadata(&self.issuer_data.credential_issuer_identifier)
+            .oauth_metadata(&self.issuer_data.metadata.issuer_config.credential_issuer)
             .await
     }
 }
@@ -924,8 +939,8 @@ impl Session<WaitingForResponse> {
         &self,
         access_token: &AccessToken,
         dpop: Dpop,
+        server_url: &BaseUrl,
         endpoint: &str,
-        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -937,7 +952,7 @@ impl Session<WaitingForResponse> {
         // Check that the DPoP is valid and its key matches the one from the Token Request
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            &issuer_data.server_url.join(endpoint),
+            &server_url.join(endpoint),
             &Method::POST,
             Some(access_token),
             Some(&session_data.dpop_nonce),
@@ -965,14 +980,14 @@ impl Session<WaitingForResponse> {
         Ok(wua_pubkey)
     }
 
-    pub fn verify_wua_and_poa(
+    pub fn verify_wua_and_poa<K>(
         &self,
         attestations: Option<&WuaDisclosure>,
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
-        issuer_data: &IssuerData<impl EcdsaKeySend>,
+        issuer_data: &IssuerData<K>,
     ) -> Result<(), CredentialRequestError> {
-        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
+        let issuer_identifier = issuer_data.metadata.issuer_config.credential_issuer.as_ref();
 
         let attestation_keys = match &issuer_data.wua_config {
             None => attestation_keys.collect_vec(),
@@ -1002,7 +1017,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(&access_token, dpop, "credential", issuer_data)?;
+        self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "credential")?;
 
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
@@ -1105,7 +1120,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(&access_token, dpop, "batch_credential", issuer_data)?;
+        self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "batch_credential")?;
 
         let mut cred_req_index = 0;
         let previews_and_holder_pubkeys = session_data
@@ -1251,11 +1266,7 @@ impl<T: IssuanceState> Session<T> {
 }
 
 impl CredentialRequest {
-    fn verify(
-        &self,
-        c_nonce: &str,
-        issuer_data: &IssuerData<impl EcdsaKeySend>,
-    ) -> Result<VerifyingKey, CredentialRequestError> {
+    fn verify<K>(&self, c_nonce: &str, issuer_data: &IssuerData<K>) -> Result<VerifyingKey, CredentialRequestError> {
         let holder_pubkey = self
             .proof
             .as_ref()
@@ -1263,7 +1274,7 @@ impl CredentialRequest {
             .verify(
                 c_nonce,
                 &issuer_data.accepted_wallet_client_ids,
-                &issuer_data.credential_issuer_identifier,
+                &issuer_data.metadata.issuer_config.credential_issuer,
             )?;
 
         Ok(holder_pubkey)
@@ -1327,7 +1338,7 @@ impl CredentialRequestProof {
         &self,
         nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
-        credential_issuer_identifier: &BaseUrl,
+        credential_issuer_identifier: &CredentialIssuerIdentifier,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let CredentialRequestProof::Jwt { jwt } = self;
 

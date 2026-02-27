@@ -7,8 +7,8 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
 use http_utils::client::TlsPinningConfig;
-use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
+use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
@@ -99,9 +99,10 @@ impl AttributeService for BrpPidAttributeService {
         Ok(vec_nonempty![issuable_document])
     }
 
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {
+    async fn oauth_metadata(&self, issuer_identifier: &CredentialIssuerIdentifier) -> Result<oidc::Config, Error> {
         let mut metadata = self.openid_client.discover_metadata().await?;
-        metadata.token_endpoint = issuer_url.join_base_url("/token").as_ref().clone();
+        metadata.token_endpoint = issuer_identifier.as_base_url().join("/issuance/token");
+
         Ok(metadata)
     }
 }

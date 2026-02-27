@@ -42,7 +42,6 @@ ts_rs = []
 async-trait.workspace = true
 base64.workspace = true
 biscuit.workspace = true
-cfg-if.workspace = true
 chrono = { workspace = true, features = ["now"] }
 dashmap.workspace = true
 derive_more = { workspace = true, features = [
@@ -50,6 +49,7 @@ derive_more = { workspace = true, features = [
     "constructor",
     "debug",
     "display",
+    "eq",
     "from",
     "from_str",
     "into",

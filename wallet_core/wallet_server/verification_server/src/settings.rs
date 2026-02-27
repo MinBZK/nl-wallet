@@ -59,6 +59,9 @@ pub struct VerifierSettings {
     #[serde_as(as = "Vec<Base64>")]
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 
+    /// Publicly reachable URL used by the wallet during sessions.
+    pub public_url: BaseUrl,
+
     pub universal_link_base_url: BaseUrl,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,

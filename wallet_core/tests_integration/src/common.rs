@@ -55,6 +55,7 @@ use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
+use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::token::TokenRequest;
@@ -68,7 +69,6 @@ use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::Server;
 use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
-use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
 pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
@@ -129,12 +129,6 @@ pub fn local_ups_base_url(port: u16) -> BaseUrl {
         .expect("hardcoded values should always parse successfully")
 }
 
-pub fn local_pid_base_url(port: u16) -> BaseUrl {
-    format!("http://localhost:{port}/issuance/")
-        .parse()
-        .expect("hardcoded values should always parse successfully")
-}
-
 pub fn local_http_base_url(port: u16) -> BaseUrl {
     format!("http://localhost:{port}/")
         .parse()
@@ -143,6 +137,12 @@ pub fn local_http_base_url(port: u16) -> BaseUrl {
 
 pub fn local_https_base_url(port: u16) -> BaseUrl {
     format!("https://localhost:{port}/")
+        .parse()
+        .expect("hardcoded values should always parse successfully")
+}
+
+pub fn local_http_issuer_identifier(port: u16) -> CredentialIssuerIdentifier {
+    format!("http://localhost:{port}/")
         .parse()
         .expect("hardcoded values should always parse successfully")
 }
@@ -186,7 +186,7 @@ pub struct DisclosureUrls {
 
 pub struct IssuerUrl {
     pub internal: BaseUrl,
-    pub public: BaseUrl,
+    pub public: CredentialIssuerIdentifier,
 }
 
 pub struct IssuerUrls {
@@ -666,14 +666,14 @@ pub fn verification_server_settings(db_url: Url) -> VerifierSettings {
     settings
 }
 
-fn internal_url(server_settings: &Settings) -> BaseUrl {
-    match server_settings.internal_server {
+fn internal_url(settings: &VerifierSettings) -> BaseUrl {
+    match settings.server_settings.internal_server {
         ServerAuth::ProtectedInternalEndpoint {
             server: Server { port, .. },
             ..
         }
         | ServerAuth::InternalEndpoint(Server { port, .. }) => local_http_base_url(port),
-        ServerAuth::Authentication(_) => server_settings.public_url.clone(),
+        ServerAuth::Authentication(_) => settings.public_url.clone(),
     }
 }
 
@@ -716,7 +716,7 @@ async fn get_status_list_service_and_router(
             .iter()
             .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
         status_lists_settings,
-        &issuer_settings.server_settings.public_url,
+        issuer_settings.public_url.as_base_url(),
         hsm,
     )
     .await
@@ -762,8 +762,8 @@ pub async fn start_issuance_server(
 ) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
-    let public_url = local_http_base_url(public_port);
-    settings.issuer_settings.server_settings.public_url = public_url.clone();
+    let public_url = local_http_issuer_identifier(public_port);
+    settings.issuer_settings.public_url = public_url.clone();
 
     let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
@@ -818,7 +818,7 @@ pub async fn start_issuance_server(
         .instrument(info_span!("service", name = "issuance_server")),
     );
 
-    wait_for_server(public_url.clone(), []).await;
+    wait_for_server(public_url.as_base_url().clone(), []).await;
     IssuerUrl {
         internal: internal_url,
         public: public_url,
@@ -832,8 +832,8 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
 ) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
-    let public_url = local_http_base_url(public_port);
-    settings.issuer_settings.server_settings.public_url = public_url.clone();
+    let public_url = local_http_issuer_identifier(public_port);
+    settings.issuer_settings.public_url = public_url.clone();
 
     let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
@@ -881,10 +881,10 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         .instrument(info_span!("service", name = "pid_issuer")),
     );
 
-    wait_for_server(public_url.clone(), []).await;
+    wait_for_server(public_url.as_base_url().clone(), []).await;
     IssuerUrl {
         internal: internal_url,
-        public: local_pid_base_url(public_port),
+        public: public_url,
     }
 }
 
@@ -895,8 +895,8 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
     let requester_listener = get_internal_listener(&mut settings.server_settings).await;
 
     let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
-    let internal_url = internal_url(&settings.server_settings);
-    settings.server_settings.public_url = public_url.clone();
+    let internal_url = internal_url(&settings);
+    settings.public_url = public_url.clone();
 
     let storage_settings = &settings.server_settings.storage;
     let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
@@ -1038,11 +1038,14 @@ pub async fn do_pid_issuance_with_purpose(
 pub async fn do_degree_issuance(
     wallet: &mut WalletWithStorage,
     pin: String,
-    issuance_server_url: &BaseUrl,
+    issuance_server_url: &CredentialIssuerIdentifier,
     format: CredentialFormat,
 ) -> Vec<AttestationPresentation> {
     let _proposal = wallet
-        .start_disclosure(&universal_link(issuance_server_url, format), DisclosureUriSource::Link)
+        .start_disclosure(
+            &universal_link(issuance_server_url.as_base_url(), format),
+            DisclosureUriSource::Link,
+        )
         .await
         .unwrap();
 

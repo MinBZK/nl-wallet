@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-# Allow the disclosure return URL and its prefix to use http://
+# Allow Credential Issuer Identifiers to contain "http://" and allow the Origin type to contain "https://".
 allow_insecure_url = []
 # Include implementations for http clients
 client = ["reqwest/gzip", "serde_with/base64"]

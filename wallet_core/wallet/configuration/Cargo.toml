@@ -10,6 +10,10 @@ workspace = true
 [lib]
 doctest = false
 
+[features]
+# Allow Credential Issuer Identifiers to contain "http://".
+allow_insecure_url = ["openid4vc/allow_insecure_url"]
+
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["debug"] }
@@ -26,4 +30,5 @@ crypto.path = "../../lib/crypto"
 error_category.path = "../../lib/error_category"
 http_utils = { path = "../../lib/http_utils", features = ["client"] }
 jwt.path = "../../lib/jwt"
+openid4vc.path = "../../lib/openid4vc"
 utils.path = "../../lib/utils"

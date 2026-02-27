@@ -5,8 +5,8 @@ use derive_more::Constructor;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
-use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
+use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use utils::vec_at_least::NonEmptyIterator;
@@ -58,8 +58,13 @@ impl AttributeService for MockAttributeService {
         Ok(documents)
     }
 
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new_mock(issuer_url))
+    async fn oauth_metadata(
+        &self,
+        issuer_identifier: &CredentialIssuerIdentifier,
+    ) -> Result<oidc::Config, Self::Error> {
+        let config = oidc::Config::new_mock(issuer_identifier.as_base_url().clone());
+
+        Ok(config)
     }
 }
 

@@ -79,7 +79,7 @@ where
         issuance_sessions,
         attr_service,
         attestation_config,
-        &settings.server_settings.public_url,
+        settings.public_url,
         settings.wallet_client_ids,
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
@@ -87,7 +87,7 @@ where
         Arc::clone(&status_list_services),
     )));
 
-    let mut router = Router::new().nest("/issuance", add_cache_control_no_store_layer(wallet_issuance_router));
+    let mut router = add_cache_control_no_store_layer(wallet_issuance_router);
     if let Some(status_list_router) = status_list_router {
         router = router.merge(status_list_router);
     }

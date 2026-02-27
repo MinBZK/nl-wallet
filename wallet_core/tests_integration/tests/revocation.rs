@@ -33,7 +33,10 @@ async fn test_revocation_pid_ok() {
     // Disclosing a revoked attestation should fail
     let err = wallet
         .start_disclosure(
-            &universal_link(&issuance_urls.issuance_server.public, CredentialFormat::SdJwt),
+            &universal_link(
+                issuance_urls.issuance_server.public.as_base_url(),
+                CredentialFormat::SdJwt,
+            ),
             DisclosureUriSource::Link,
         )
         .await

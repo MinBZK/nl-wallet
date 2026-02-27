@@ -1,7 +1,7 @@
-use cfg_if::cfg_if;
 use nutype::nutype;
 use strfmt::strfmt;
 
+use http_utils::urls::ALLOWED_HTTP_SCHEMES;
 use url::Url;
 
 use crate::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
@@ -22,19 +22,13 @@ impl ReturnUrlTemplate {
     }
 
     fn is_valid_return_url_template(s: &str) -> bool {
-        cfg_if! {
-            if #[cfg(feature = "allow_insecure_url")] {
-                const ALLOWED_SCHEMES: [&str; 3] = [OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME, "https", "http"];
-            } else {
-                const ALLOWED_SCHEMES: [&str; 2] = [OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME, "https"];
-            }
-        }
-
         // It should be a valid URL when removing the template parameter.
         let s = s.replace("{session_token}", "");
         let url = s.parse::<Url>();
 
-        url.is_ok_and(|url| ALLOWED_SCHEMES.contains(&url.scheme()))
+        url.is_ok_and(|url| {
+            url.scheme() == OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME || ALLOWED_HTTP_SCHEMES.contains(&url.scheme())
+        })
     }
 }
 

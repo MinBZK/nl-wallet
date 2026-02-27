@@ -243,7 +243,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
 
     let _proposal = wallet
         .start_disclosure(
-            &universal_link(&issuance_urls.issuance_server.public, format),
+            &universal_link(issuance_urls.issuance_server.public.as_base_url(), format),
             DisclosureUriSource::Link,
         )
         .await

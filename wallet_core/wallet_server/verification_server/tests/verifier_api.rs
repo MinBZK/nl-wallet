@@ -162,8 +162,6 @@ async fn wallet_server_settings_and_listener(
 
         internal_server,
 
-        public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
-
         log_requests: true,
         structured_logging: false,
         storage: memory_storage_settings(),
@@ -178,6 +176,8 @@ async fn wallet_server_settings_and_listener(
 
         allow_origins: None,
         reader_trust_anchors,
+
+        public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
 
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
@@ -204,7 +204,7 @@ async fn start_wallet_server<S, C>(
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
     C: StatusListClient + Sync + 'static,
 {
-    let public_url = settings.server_settings.public_url.clone();
+    let public_url = settings.public_url.clone();
 
     tokio::spawn(async move {
         if let Err(error) = server::serve_with_listeners(
@@ -251,14 +251,14 @@ async fn wait_for_server(base_url: BaseUrl) {
     .unwrap();
 }
 
-fn internal_url(server_settings: &Settings) -> BaseUrl {
-    match server_settings.internal_server {
+fn internal_url(settings: &VerifierSettings) -> BaseUrl {
+    match settings.server_settings.internal_server {
         ServerAuth::ProtectedInternalEndpoint {
             server: Server { port, .. },
             ..
         }
         | ServerAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
-        ServerAuth::Authentication(_) => server_settings.public_url.clone(),
+        ServerAuth::Authentication(_) => settings.public_url.clone(),
     }
 }
 
@@ -297,7 +297,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
         .unwrap();
     let auth = &settings.server_settings.internal_server;
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
 
     start_wallet_server(
         wallet_listener,
@@ -314,7 +314,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
     // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise
     // (because it is served on the internal URL)
     let response = client
-        .post(settings.server_settings.public_url.join("disclosure/sessions"))
+        .post(settings.public_url.join("disclosure/sessions"))
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
@@ -341,7 +341,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
     // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because
     // it is served on the internal URL)
     let response = client
-        .post(settings.server_settings.public_url.join("disclosure/sessions"))
+        .post(settings.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
@@ -366,7 +366,6 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
 
     let session_token = response.json::<StartDisclosureResponse>().await.unwrap().session_token;
     let public_disclosed_attributes_url = settings
-        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
     let internal_disclosed_attributes_url =
@@ -456,7 +455,7 @@ async fn test_new_session_parameters_error() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
     start_wallet_server(
         wallet_listener,
         internal_listener,
@@ -510,7 +509,7 @@ async fn test_disclosure_not_found() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
     start_wallet_server(
         wallet_listener,
         internal_listener,
@@ -529,19 +528,13 @@ async fn test_disclosure_not_found() {
     let client = default_reqwest_client_builder().build().unwrap();
 
     // check if a non-existent token returns a 404 on the status URL
-    let status_url = settings
-        .server_settings
-        .public_url
-        .join("disclosure/sessions/nonexistent_session");
+    let status_url = settings.public_url.join("disclosure/sessions/nonexistent_session");
     let response = client.get(status_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the cancel URL
-    let cancel_url = settings
-        .server_settings
-        .public_url
-        .join("disclosure/sessions/nonexistent_session");
+    let cancel_url = settings.public_url.join("disclosure/sessions/nonexistent_session");
     let response = client.delete(cancel_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
@@ -610,7 +603,7 @@ where
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
 
     start_wallet_server(
         wallet_listener,
@@ -652,7 +645,7 @@ async fn test_disclosure_missing_session_type() {
     .await;
 
     // Check if requesting the session status without a session_type returns a 200, but without the universal link.
-    let status_url = format_status_url(&settings.server_settings.public_url, &session_token, None);
+    let status_url = format_status_url(&settings.public_url, &session_token, None);
 
     assert_matches!(
         get_status_ok(&client, status_url).await,
@@ -669,11 +662,7 @@ async fn test_disclosure_cancel() {
     .await;
 
     // Fetching the status should return OK and be in the Created state.
-    let status_url = format_status_url(
-        &settings.server_settings.public_url,
-        &session_token,
-        Some(SessionType::SameDevice),
-    );
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(SessionType::SameDevice));
 
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
@@ -682,7 +671,6 @@ async fn test_disclosure_cancel() {
 
     // Cancel the newly created session, which should return 204 and no body.
     let cancel_url = settings
-        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
@@ -695,7 +683,6 @@ async fn test_disclosure_cancel() {
 
     // Cancelling the session again should return a 400.
     let cancel_url = settings
-        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
@@ -728,11 +715,7 @@ where
         start_disclosure(session_store.clone(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     // Fetch the status, this should return OK and be in the Created state.
-    let status_url = format_status_url(
-        &settings.server_settings.public_url,
-        &session_token,
-        Some(SessionType::SameDevice),
-    );
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(SessionType::SameDevice));
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
         StatusResponse::Created { ul: Some(_) }
@@ -890,7 +873,7 @@ async fn perform_full_disclosure(
     .await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
-    let status_url = format_status_url(&settings.server_settings.public_url, &session_token, Some(session_type));
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(session_type));
 
     let StatusResponse::Created { ul: Some(ul) } = get_status_ok(&client, status_url.clone()).await else {
         panic!("session should be in CREATED state and a universal link should be provided")
@@ -1092,11 +1075,7 @@ async fn test_disclosed_attributes_failed_session() {
     .await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
-    let status_url = format_status_url(
-        &settings.server_settings.public_url,
-        &session_token,
-        Some(SessionType::CrossDevice),
-    );
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(SessionType::CrossDevice));
 
     let StatusResponse::Created { ul: Some(ul) } = get_status_ok(&client, status_url.clone()).await else {
         panic!("session should be in CREATED state and a universal link should be provided")

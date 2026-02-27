@@ -24,7 +24,6 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
-use http_utils::urls::BaseUrl;
 use openid4vc::server_state::SessionStoreTimeouts;
 use utils::generator::Generator;
 
@@ -45,9 +44,6 @@ pub struct Settings {
     // if not configured the wallet_server will be used, but an api_key is required in that case
     // if it conflicts with wallet_server, the application will crash on startup
     pub internal_server: ServerAuth,
-
-    /// Publicly reachable URL used by the wallet during sessions
-    pub public_url: BaseUrl,
 
     pub log_requests: bool,
     pub structured_logging: bool,
