@@ -590,7 +590,7 @@ impl NormalizedVpAuthorizationRequest {
                 )
                 .as_str(),
             )
-            .map_err(|err| AuthRequestError::ClientIdParsing(err))?,
+            .map_err(AuthRequestError::ClientIdParsing)?,
             nonce,
             encryption_pubkey,
             response_uri,
