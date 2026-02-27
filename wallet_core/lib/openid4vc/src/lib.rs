@@ -8,6 +8,7 @@ pub mod token;
 
 // Cryptographic tools.
 pub mod dpop;
+pub mod jwe;
 pub mod pkce;
 
 // Issuance code for the server and client.

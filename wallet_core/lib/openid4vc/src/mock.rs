@@ -13,7 +13,6 @@ use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_metadata::CredentialResponseEncryption;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::oidc::Config;
 use crate::token::TokenRequest;
@@ -121,11 +120,7 @@ impl IssuerMetadata {
             nonce_endpoint: None,
             deferred_credential_endpoint: None,
             notification_endpoint: None,
-            credential_response_encryption: CredentialResponseEncryption {
-                alg_values_supported: vec![],
-                enc_values_supported: vec![],
-                encryption_required: false,
-            },
+            credential_response_encryption: None,
             credential_identifiers_supported: None,
             display: None,
             credential_configurations_supported: HashMap::new(),

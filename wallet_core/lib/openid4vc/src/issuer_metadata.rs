@@ -16,6 +16,9 @@ use utils::vec_nonempty;
 
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
+use crate::jwe::JweAlgorithm;
+use crate::jwe::JweCompressionAlgorithm;
+use crate::jwe::JweEncryptionAlgorithm;
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -60,9 +63,9 @@ pub struct IssuerMetadata {
     /// support the Notification Endpoint.
     pub notification_endpoint: Option<IssuerUrl>,
 
-    /// Object containing information about whether the Credential Issuer supports encryption of the Credential and
-    /// Batch Credential Response on top of TLS.
-    pub credential_response_encryption: CredentialResponseEncryption,
+    /// Object containing information about whether the Credential Issuer supports encryption of the Credential Response
+    /// on top of TLS.
+    pub credential_response_encryption: Option<CredentialResponseEncryption>,
 
     /// Boolean value specifying whether the Credential Issuer supports returning `credential_identifiers` parameter in
     /// the authorization_details Token Response parameter, with true indicating support. If omitted, the default value
@@ -139,26 +142,27 @@ impl IssuerMetadata {
     }
 }
 
-/// Information about whether the Credential Issuer supports encryption of the Credential and Batch Credential Response
-/// on top of TLS.
-// For now we use plain strings for the first two fields below so the wallet can deserialize values that the issuer
-// sends. When we implement credential response encryption we should replace these with an enum listing implemented
-// algorithms.
+/// Information about whether the Credential Issuer supports encryption of the Credential Response on top of TLS.
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialResponseEncryption {
-    /// Array containing a list of the JWE [RFC7516] encryption algorithms (`alg` values) [RFC7518] supported by the
-    /// Credential and Batch Credential Endpoint to encode the Credential or Batch Credential Response in a JWT
-    /// [RFC7519].
-    pub alg_values_supported: Vec<String>,
-    /// Array containing a list of the JWE [RFC7516] encryption algorithms (`enc` values) [RFC7518] supported by the
-    /// Credential and Batch Credential Endpoint to encode the Credential or Batch Credential Response in a JWT
-    /// [RFC7519].
-    pub enc_values_supported: Vec<String>,
+    /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (alg values) [RFC7518] supported
+    /// by the Credential Endpoint to encode the Credential Response in a JWT.
+    pub alg_values_supported: VecNonEmpty<JweAlgorithm>,
+
+    /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
+    /// by the Credential Endpoint to encode the Credential Response in a JWT
+    pub enc_values_supported: VecNonEmpty<JweEncryptionAlgorithm>,
+
+    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518] supported
+    /// by the Credential Endpoint to compress the Credential Response prior to encryption. If absent then compression
+    /// is not supported.
+    pub zip_values_supported: Option<VecNonEmpty<JweCompressionAlgorithm>>,
 
     /// Boolean value specifying whether the Credential Issuer requires the additional encryption on top of TLS for the
     /// Credential Response. If the value is true, the Credential Issuer requires encryption for every Credential
-    /// Response and therefore the Wallet MUST provide encryption keys in the Credential Request. If the value is
-    /// `false`, the Wallet MAY chose whether it provides encryption keys or not.
+    /// Response and therefore the Wallet MUST provide encryption keys in the Credential Request. If the value is false,
+    /// the Wallet MAY choose whether it provides encryption keys or not.
     pub encryption_required: bool,
 }
 

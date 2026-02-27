@@ -65,7 +65,6 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::CredentialMetadata;
-use crate::issuer_metadata::CredentialResponseEncryption;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::oidc;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
@@ -470,11 +469,7 @@ where
             nonce_endpoint: None,
             deferred_credential_endpoint: None,
             notification_endpoint: None,
-            credential_response_encryption: CredentialResponseEncryption {
-                alg_values_supported: vec![],
-                enc_values_supported: vec![],
-                encryption_required: false,
-            },
+            credential_response_encryption: None,
             credential_identifiers_supported: Some(false),
             display: None,
             credential_configurations_supported,
