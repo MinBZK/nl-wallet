@@ -23,7 +23,7 @@ class WalletTransferAppEventListener extends AppEventListener {
     final WalletState state = await _getWalletStateUseCase.invoke();
     if (state is WalletStateTransferring) {
       await _cancelWalletTransferUseCase.invoke();
-      if (state.role == .target) unawaited(_navigationService.showDialog(.moveStopped));
+      if (state.role == .destination) unawaited(_navigationService.showDialog(.moveStopped));
     }
   }
 

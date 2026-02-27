@@ -12,18 +12,21 @@ void main() {
   late MockIssuanceRepository mockIssuanceRepository;
   late MockDisclosureRepository mockDisclosureRepository;
   late MockPinRepository mockPinRepository;
+  late MockTransferRepository mockTransferRepository;
 
   setUp(() {
     mockWalletRepository = MockWalletRepository();
     mockIssuanceRepository = MockIssuanceRepository();
     mockDisclosureRepository = MockDisclosureRepository();
     mockPinRepository = MockPinRepository();
+    mockTransferRepository = MockTransferRepository();
 
     usecase = MoveToReadyStateUseCaseImpl(
       mockWalletRepository,
       mockIssuanceRepository,
       mockDisclosureRepository,
       mockPinRepository,
+      mockTransferRepository,
     );
   });
 
@@ -63,7 +66,7 @@ void main() {
   group('Given wallet is in a state that should throw an error', () {
     for (final state in [
       const WalletStateTransferPossible(),
-      const WalletStateTransferring(TransferRole.source),
+      const WalletStateTransferring(TransferRole.destination),
     ]) {
       test('when in ${state.runtimeType}, should throw exception', () async {
         when(mockWalletRepository.getWalletState()).thenAnswer((_) async => state);
@@ -96,6 +99,16 @@ void main() {
       );
       await usecase.invoke();
       verify(mockPinRepository.cancelPinRecovery()).called(1);
+    });
+
+    test('when in WalletStateTransferring(source), should cancel transfer', () async {
+      when(
+        mockWalletRepository.getWalletState(),
+      ).thenAnswer(
+        (_) async => const WalletStateTransferring(TransferRole.source),
+      );
+      await usecase.invoke();
+      verify(mockTransferRepository.cancelWalletTransfer()).called(1);
     });
   });
 }

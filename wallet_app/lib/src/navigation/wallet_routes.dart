@@ -235,7 +235,8 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
 );
 
 Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
-  create: (BuildContext context) => QrBloc(context.read(), context.read())..add(const QrScanCheckPermission()),
+  create: (BuildContext context) =>
+      QrBloc(context.read(), context.read(), context.read())..add(const QrScanCheckPermission()),
   child: const QrScreen(),
 );
 

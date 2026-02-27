@@ -15,6 +15,7 @@ import '../../../mocks/wallet_mocks.dart';
 void main() {
   late MockDecodeQrUseCase decodeQrUseCase;
   late MockRequestPermissionUseCase requestPermissionUseCase;
+  late MockMoveToReadyStateUseCase moveToReadyStateUseCase;
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -25,11 +26,12 @@ void main() {
     );
     decodeQrUseCase = MockDecodeQrUseCase();
     requestPermissionUseCase = MockRequestPermissionUseCase();
+    moveToReadyStateUseCase = MockMoveToReadyStateUseCase();
   });
 
   blocTest(
     'ltc7 ltc16 ltc19 verify initial state',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     verify: (bloc) {
       expect(bloc.state, QrScanInitial());
     },
@@ -37,7 +39,7 @@ void main() {
 
   blocTest(
     'ltc7 ltc16 ltc19 verify permission state when permission is not permanentlyDenied',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
       when(
@@ -49,7 +51,7 @@ void main() {
 
   blocTest(
     'ltc7 ltc16 ltc19 verify permission state when permission is permanentlyDenied',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
       when(
@@ -61,7 +63,7 @@ void main() {
 
   blocTest(
     'ltc7 ltc16 ltc19 verify scanner moves to scanning when permission is granted',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
       when(
@@ -73,7 +75,7 @@ void main() {
 
   blocTest(
     'ltc7 ltc16 ltc19 verify scanner moves to scan failed when scanner throws',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
@@ -91,7 +93,7 @@ void main() {
 
   blocTest(
     'ltc7 ltc16 ltc19 verify scanner moves to scan failed when scanner returns an error',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
@@ -109,7 +111,7 @@ void main() {
 
   blocTest(
     'ltc7 ltc16 ltc19 verify scanner moves to scan success when scanner returns a valid result',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
@@ -127,11 +129,15 @@ void main() {
       const QrScanLoading(),
       const QrScanSuccess(GenericNavigationRequest('/destination')),
     ],
+    verify: (_) {
+      // Verify that the moveToReadyStateUseCase was called exactly once
+      verify(moveToReadyStateUseCase.invoke()).called(1);
+    },
   );
 
   blocTest(
     'ltc7 ltc16 ltc19 triggering multiple scans only should only result in one decode attempt (i.e. process one barcode at a time)',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode(rawValue: 'a')))
@@ -156,7 +162,7 @@ void main() {
 
   blocTest(
     'ltc7 ltc16 ltc19 resetting the scanner should allow the next uri to be decoded',
-    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase),
+    build: () => QrBloc(decodeQrUseCase, requestPermissionUseCase, moveToReadyStateUseCase),
     act: (bloc) async {
       bloc
         ..add(const QrScanCheckPermission())

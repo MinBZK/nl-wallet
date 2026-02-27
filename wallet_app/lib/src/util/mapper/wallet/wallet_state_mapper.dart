@@ -14,7 +14,7 @@ class WalletStateMapper extends Mapper<core.WalletState, WalletState> {
       core.WalletState_Transferring() => WalletStateTransferring(
         switch (input.role) {
           core.TransferRole.Source => .source,
-          core.TransferRole.Destination => .target,
+          core.TransferRole.Destination => .destination,
         },
       ),
       core.WalletState_TransferPossible() => const WalletStateTransferPossible(),
