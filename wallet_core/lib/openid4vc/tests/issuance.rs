@@ -23,7 +23,6 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::UnverifiedJwt;
 use openid4vc::CredentialErrorCode;
@@ -92,12 +91,7 @@ fn setup<G>(
     ca: &Ca,
     issuance_keypair: &KeyPair,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-) -> (
-    MockIssuer<G>,
-    TrustAnchor<'static>,
-    IssuerIdentifier,
-    SigningKey,
-)
+) -> (MockIssuer<G>, TrustAnchor<'static>, IssuerIdentifier, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
@@ -478,8 +472,11 @@ impl VcMessageClient for MockOpenidMessageClient {
         Ok(IssuerMetadata::new_mock(issuer_identifier.clone()))
     }
 
-    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
-        Ok(oidc::Config::new_mock(url.clone()))
+    async fn discover_oauth_metadata(
+        &self,
+        issuer_identifier: &IssuerIdentifier,
+    ) -> Result<oidc::Config, IssuanceSessionError> {
+        Ok(oidc::Config::new_mock(issuer_identifier.clone()))
     }
 
     async fn request_token(
@@ -602,7 +599,7 @@ impl AttributeService for MockAttributeService {
         Ok(self.documents.clone())
     }
 
-    async fn oauth_metadata(&self, issuer_url: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new_mock(issuer_url.as_base_url().clone()))
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
+        Ok(oidc::Config::new_mock(issuer_identifier.clone()))
     }
 }

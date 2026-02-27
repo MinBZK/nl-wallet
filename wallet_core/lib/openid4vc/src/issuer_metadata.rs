@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -11,6 +10,7 @@ use http_utils::urls::BaseUrl;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -24,18 +24,18 @@ pub struct IssuerMetadata {
     /// The Credential Issuer's identifier, as defined in Section 12.2.1.
     pub credential_issuer: IssuerIdentifier,
 
-    /// Array of strings, where each string is an identifier of the OAuth 2.0 Authorization Server (as defined in
-    /// [RFC8414]) the Credential Issuer relies on for authorization. If this parameter is omitted, the entity
-    /// providing the Credential Issuer is also acting as the Authorization Server, i.e., the Credential Issuer's
+    /// A non-empty array of strings, where each string is an identifier of the OAuth 2.0 Authorization Server (as
+    /// defined in [RFC8414]) the Credential Issuer relies on for authorization. If this parameter is omitted, the
+    /// entity providing the Credential Issuer is also acting as the Authorization Server, i.e., the Credential Issuer's
     /// identifier is used to obtain the Authorization Server metadata. The actual OAuth 2.0 Authorization Server
     /// metadata is obtained from the `oauth-authorization-server` well-known location as defined in Section 3 of
-    /// [RFC8414]. When there are multiple entries in the array, the Wallet may be able to determine which
-    /// Authorization Server to use by querying the metadata; for example, by examining the `grant_types_supported`
-    /// values, the Wallet can filter the server to use based on the grant type it plans to use. When the Wallet is
-    /// using `authorization_server` parameter in the Credential Offer as a hint to determine which Authorization
-    /// Server to use out of multiple, the Wallet MUST NOT proceed with the flow if the `authorization_server`
-    /// Credential Offer parameter value does not match any of the entries in the `authorization_servers` array.
-    pub authorization_servers: Option<Vec<BaseUrl>>,
+    /// [RFC8414]. When there are multiple entries in the array, the Wallet may be able to determine which Authorization
+    /// Server to use by querying the metadata; for example, by examining the `grant_types_supported` values, the Wallet
+    /// can filter the server to use based on the grant type it plans to use. When the Wallet is using
+    /// `authorization_server` parameter in the Credential Offer as a hint to determine which Authorization Server to
+    /// use out of multiple, the Wallet MUST NOT proceed with the flow if the `authorization_server` Credential Offer
+    /// parameter value does not match any of the entries in the `authorization_servers` array.
+    pub authorization_servers: Option<VecNonEmpty<IssuerIdentifier>>,
 
     /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 7.2. This URL MUST use the https
     /// scheme and MAY contain port, path, and query parameter components.
@@ -123,16 +123,14 @@ impl IssuerMetadata {
     }
 
     /// Returns a non-empty slice of authorization servers.
-    pub fn authorization_servers(&self) -> VecNonEmpty<&BaseUrl> {
+    pub fn authorization_servers(&self) -> VecNonEmpty<&IssuerIdentifier> {
         self.authorization_servers
-            .iter()
-            .flatten()
-            .collect_vec()
-            .try_into()
-            .unwrap_or_else(|_| {
+            .as_ref()
+            .map(|servers| servers.nonempty_iter().collect())
+            .unwrap_or_else(|| {
                 // Per the spec, "If [the authorization_servers] parameter is omitted, the entity
                 // providing the Credential Issuer is also acting as the Authorization Server".
-                vec_nonempty![self.credential_issuer.as_base_url()]
+                vec_nonempty![&self.credential_issuer]
             })
     }
 }

@@ -54,6 +54,7 @@ pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient,
     recovery_code_secret_key: SecretKeyVariant,
+    issuer_identifier: IssuerIdentifier,
 }
 
 impl BrpPidAttributeService {
@@ -62,11 +63,13 @@ impl BrpPidAttributeService {
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_identifier: IssuerIdentifier,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::try_new(bsn_privkey, http_config)?,
             recovery_code_secret_key,
+            issuer_identifier,
         })
     }
 }
@@ -101,6 +104,8 @@ impl AttributeService for BrpPidAttributeService {
 
     async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Error> {
         let mut metadata = self.openid_client.discover_metadata().await?;
+
+        metadata.issuer = self.issuer_identifier.clone();
         metadata.token_endpoint = issuer_identifier.as_base_url().join("/issuance/token");
 
         Ok(metadata)

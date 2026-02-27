@@ -58,11 +58,8 @@ impl AttributeService for MockAttributeService {
         Ok(documents)
     }
 
-    async fn oauth_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<oidc::Config, Self::Error> {
-        let config = oidc::Config::new_mock(issuer_identifier.as_base_url().clone());
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
+        let config = oidc::Config::new_mock(issuer_identifier.clone());
 
         Ok(config)
     }

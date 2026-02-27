@@ -28,7 +28,6 @@ use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
-use http_utils::urls::BaseUrl;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::wua::WuaDisclosure;
@@ -178,7 +177,7 @@ pub enum IssuanceSessionError {
 
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
-    OauthDiscovery(#[source] reqwest::Error),
+    OauthDiscovery(#[source] OauthDiscoveryError),
 
     #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
     #[category(expected)]
@@ -209,6 +208,18 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum OauthDiscoveryError {
+    #[error("could not fetch or deserialize credential OAuth Server Metadata : {0}")]
+    Http(#[from] reqwest::Error),
+
+    #[error("issuer identifier in OAuth Server Metadata does not match, expected: {expected}, received: {received}")]
+    IssuerIdentifierMismatch {
+        expected: Box<IssuerIdentifier>,
+        received: Box<IssuerIdentifier>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -330,7 +341,10 @@ pub trait VcMessageClient {
         &self,
         issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError>;
-    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
+    async fn discover_oauth_metadata(
+        &self,
+        issuer_identifier: &IssuerIdentifier,
+    ) -> Result<oidc::Config, IssuanceSessionError>;
 
     async fn request_token(
         &self,
@@ -385,16 +399,35 @@ impl VcMessageClient for HttpVcMessageClient {
         Ok(metadata)
     }
 
-    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
+    async fn discover_oauth_metadata(
+        &self,
+        issuer_identifier: &IssuerIdentifier,
+    ) -> Result<oidc::Config, IssuanceSessionError> {
+        // TODO (PVW-5527): Implement some sort of unified processing for fetching well-known metadata.
         let metadata = self
             .http_client
-            .get(url.join("/.well-known/oauth-authorization-server"))
+            .get(
+                issuer_identifier
+                    .as_base_url()
+                    .join("/.well-known/oauth-authorization-server"),
+            )
             .send()
             .await?
             .error_for_status()?
-            .json()
+            .json::<oidc::Config>()
             .await
-            .map_err(IssuanceSessionError::OauthDiscovery)?;
+            .map_err(|error| IssuanceSessionError::OauthDiscovery(OauthDiscoveryError::Http(error)))?;
+
+        // According to <https://www.rfc-editor.org/rfc/rfc8414.html#section-3.3> these values should be identifical.
+        if metadata.issuer != *issuer_identifier {
+            return Err(IssuanceSessionError::OauthDiscovery(
+                OauthDiscoveryError::IssuerIdentifierMismatch {
+                    expected: Box::new(issuer_identifier.clone()),
+                    received: Box::new(metadata.issuer),
+                },
+            ));
+        }
+
         Ok(metadata)
     }
 

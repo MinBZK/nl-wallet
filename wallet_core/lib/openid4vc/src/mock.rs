@@ -6,7 +6,6 @@ use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use dcql::disclosure::ExtendingVctRetriever;
-use http_utils::urls::BaseUrl;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
@@ -89,7 +88,8 @@ impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
 
 impl Config {
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
-    pub fn new_mock(issuer_url: BaseUrl) -> Self {
+    pub fn new_mock(issuer_identifier: IssuerIdentifier) -> Self {
+        let issuer_url = issuer_identifier.as_base_url();
         let auth_url = issuer_url.join("/authorize");
         let token_url = issuer_url.join("/issuance/token");
         let jwks_url = issuer_url.join("/jwks.json");
@@ -103,7 +103,7 @@ impl Config {
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
 
-            ..Config::new(issuer_url, auth_url, token_url, jwks_url)
+            ..Config::new(issuer_identifier, auth_url, token_url, jwks_url)
         }
     }
 }

@@ -308,8 +308,7 @@ pub trait AttributeService {
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 
-    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier)
-    -> Result<oidc::Config, Self::Error>;
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error>;
 }
 
 pub struct TrivialAttributeService;
@@ -321,10 +320,7 @@ impl AttributeService for TrivialAttributeService {
         unimplemented!()
     }
 
-    async fn oauth_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<oidc::Config, Self::Error> {
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
         // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
         // because they are mandatory in an OIDC Provider Metadata document (see
         // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
@@ -337,7 +333,7 @@ impl AttributeService for TrivialAttributeService {
         let token_url = issuer_url.join("issuance/token");
         let jwks_url = issuer_url.join("jwks");
 
-        let config = oidc::Config::new(issuer_url, auth_url, token_url, jwks_url);
+        let config = oidc::Config::new(issuer_identifier.clone(), auth_url, token_url, jwks_url);
 
         Ok(config)
     }
