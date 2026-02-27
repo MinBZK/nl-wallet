@@ -448,6 +448,12 @@ pub enum AuthRequestValidationError {
     #[error("{0}")]
     #[category(pd)]
     Jwk(#[from] JwePublicKeyError),
+    #[error("unknown client_id scheme: {id}. Only x509_san_dns is currently supported")]
+    #[category(critical)]
+    UnknownClientIdScheme { id: String },
+    #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns is currently supported")]
+    #[category(critical)]
+    UnsupportedClientIdScheme { scheme: String },
     #[error("unsupported DCQL query: {0}")]
     UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
     #[error(
@@ -506,6 +512,24 @@ impl VpAuthorizationRequest {
         wallet_nonce: Option<&str>,
     ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
+        match self.oauth_request.client_id.parse::<ClientId>() {
+            Ok(client_id) if client_id.scheme != ClientIdScheme::X509SanDns => {
+                return Err(AuthRequestValidationError::UnsupportedClientIdScheme {
+                    scheme: client_id.to_string(),
+                });
+            }
+            Err(ParseClientIdError::BadScheme) => {
+                return Err(AuthRequestValidationError::UnknownClientIdScheme {
+                    id: self.oauth_request.client_id.clone(),
+                });
+            }
+            Ok(client_id) => {
+                if client_id.scheme == ClientIdScheme::X509SanDns {
+                    //pass
+                }
+            }
+        }
+
         let Some(client_id_dns_san) = self.oauth_request.client_id.strip_prefix("x509_san_dns:") else {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "client_id",
@@ -692,6 +716,7 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         let encryption_pubkey = JwePublicKey::try_new(jwk)?;
 
         Ok(NormalizedVpAuthorizationRequest {
+            // safe to unwrap because it was already validated in validate
             client_id: vp_auth_request.oauth_request.client_id.parse::<ClientId>().unwrap(),
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey,
