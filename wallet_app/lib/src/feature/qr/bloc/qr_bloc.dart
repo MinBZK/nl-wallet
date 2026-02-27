@@ -10,6 +10,7 @@ import '../../../../environment.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../domain/usecase/qr/decode_qr_usecase.dart';
+import '../../../domain/usecase/wallet/move_to_ready_state_usecase.dart';
 
 part 'qr_event.dart';
 part 'qr_state.dart';
@@ -20,8 +21,10 @@ final kProcessingDelay = Duration(milliseconds: Environment.isTest ? 25 : 500);
 class QrBloc extends Bloc<QrEvent, QrState> {
   final DecodeQrUseCase _decodeQrUseCase;
   final RequestPermissionUseCase _checkHasPermissionUseCase;
+  final MoveToReadyStateUseCase _moveToReadyStateUseCase;
 
-  QrBloc(this._decodeQrUseCase, this._checkHasPermissionUseCase) : super(QrScanInitial()) {
+  QrBloc(this._decodeQrUseCase, this._checkHasPermissionUseCase, this._moveToReadyStateUseCase)
+    : super(QrScanInitial()) {
     on<QrScanCheckPermission>(_onCheckPermission);
     on<QrScanCodeDetected>(_onCodeDetected);
     on<QrScanReset>(_onReset);
@@ -46,7 +49,10 @@ class QrBloc extends Bloc<QrEvent, QrState> {
     final decodeResult = await _decodeQrUseCase.invoke(event.code);
     await decodeResult.process(
       onSuccess: (navRequest) async {
-        await Future.delayed(kProcessingDelay);
+        // Attempt to move to ready state (ignored if already there) before triggering navigation,
+        // result is ignored since not being able to do so will result in appropriate user facing
+        // warning when navigation is actually performed.
+        await Future.wait([_moveToReadyStateUseCase.invoke(), Future.delayed(kProcessingDelay)]);
         emit(QrScanSuccess(navRequest));
       },
       onError: (error) => emit(QrScanFailure()),

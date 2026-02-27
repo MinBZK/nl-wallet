@@ -1994,6 +1994,7 @@ dependencies = [
  "tracing",
  "url",
  "wallet_provider_migrations",
+ "xxhash-rust",
 ]
 
 [[package]]

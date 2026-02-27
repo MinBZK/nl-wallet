@@ -118,7 +118,6 @@ pub struct VpAuthorizationRequest {
     pub dcql_query: Query,
 
     /// Metadata about the verifier such as their encryption key(s).
-    #[serde(flatten)]
     pub client_metadata: Option<VpClientMetadata>,
 
     /// Determines how the verifier is to be authenticated.
@@ -140,28 +139,10 @@ pub enum VpAuthorizationRequestAudience {
     SelfIssued,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum VpClientMetadata {
-    #[serde(rename = "client_metadata")]
-    Direct(ClientMetadata),
-    #[serde(rename = "client_metadata_url")]
-    Indirect(BaseUrl),
-}
-
-impl VpClientMetadata {
-    pub fn direct(self) -> Option<ClientMetadata> {
-        match self {
-            VpClientMetadata::Direct(c) => Some(c),
-            VpClientMetadata::Indirect(_) => None,
-        }
-    }
-}
-
 /// Metadata of the verifier (which acts as the "client" in OAuth).
-/// OpenID4VP refers to https://openid.net/specs/openid-connect-registration-1_0.html and
-/// https://www.rfc-editor.org/rfc/rfc7591.html for this, but here we implement only what we need.
+/// https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-11
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClientMetadata {
+pub struct VpClientMetadata {
     #[serde(flatten)]
     pub jwks: VpJwks,
     pub vp_formats: VpFormat,
@@ -434,7 +415,7 @@ pub struct NormalizedVpAuthorizationRequest {
     pub encryption_pubkey: JwePublicKey,
     pub response_uri: BaseUrl,
     pub credential_requests: NormalizedCredentialRequests,
-    pub client_metadata: ClientMetadata,
+    pub client_metadata: VpClientMetadata,
     pub state: Option<String>,
     pub wallet_nonce: Option<String>,
 }
@@ -461,7 +442,7 @@ impl NormalizedVpAuthorizationRequest {
             encryption_pubkey,
             response_uri,
             credential_requests,
-            client_metadata: ClientMetadata {
+            client_metadata: VpClientMetadata {
                 jwks: VpJwks::Direct { keys: vec![jwk] },
                 vp_formats: VpFormat::MsoMdoc {
                     alg: IndexSet::from([FormatAlg::ES256]),
@@ -501,7 +482,7 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
                 scope: None,
             },
             dcql_query: value.credential_requests.into(),
-            client_metadata: Some(VpClientMetadata::Direct(value.client_metadata)),
+            client_metadata: Some(value.client_metadata),
             client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(value.response_uri),
             wallet_nonce: value.wallet_nonce,
@@ -571,9 +552,6 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         }
 
         // Of fields that have an "_uri" variant, check that they are not used
-        let Some(client_metadata) = client_metadata.direct() else {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
-        };
         let Some(jwks) = client_metadata.jwks.direct() else {
             return Err(AuthRequestValidationError::UriVariantNotSupported(
                 "client_metadata.jwks",

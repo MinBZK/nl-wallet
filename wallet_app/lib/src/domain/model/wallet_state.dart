@@ -67,6 +67,6 @@ class WalletStateBlocked extends WalletState {
   List<Object?> get props => [...super.props, reason, canRegisterNewAccount];
 }
 
-enum TransferRole { source, target }
+enum TransferRole { source, destination }
 
 enum BlockedReason { requiresAppUpdate, blockedByWalletProvider }

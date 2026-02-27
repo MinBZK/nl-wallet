@@ -27,7 +27,7 @@ void main() {
       'should cancel transfer and show moveStopped dialog',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer(
-          (_) async => const WalletStateTransferring(TransferRole.target),
+          (_) async => const WalletStateTransferring(TransferRole.destination),
         );
 
         await listener.onWalletUnlocked();
@@ -80,7 +80,7 @@ void main() {
       () async {
         when(
           getWalletStateUseCase.invoke(),
-        ).thenAnswer((_) async => const WalletStateTransferring(TransferRole.target));
+        ).thenAnswer((_) async => const WalletStateTransferring(TransferRole.destination));
         await listener.onDashboardShown();
 
         verifyNever(cancelWalletTransferUseCase.invoke());
