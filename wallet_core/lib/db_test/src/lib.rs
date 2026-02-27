@@ -69,9 +69,6 @@ const DB_TESTCONTAINER_CMD_ARGS: &[&str] = &[
     "max_wal_senders=0",
 ];
 
-const DB_TESTCONTAINER_TRIES: u8 = 5;
-const DB_TESTCONTAINER_RETRY_DELAY: Duration = Duration::from_secs(1);
-
 #[derive(Default)]
 struct AsyncDropPgConnection(Option<PgConnection>);
 
@@ -269,30 +266,31 @@ impl DbSetup {
 }
 
 async fn start_testcontainer() -> (String, u16) {
-    let mut n = 0;
-    let container = loop {
-        let result = postgres::Postgres::default()
-            .with_name(DB_TESTCONTAINER_IMAGE)
-            .with_tag(DB_TESTCONTAINER_IMAGE_TAG)
-            .with_container_name(DB_TESTCONTAINER_NAME)
-            .with_cmd(DB_TESTCONTAINER_CMD_ARGS.iter().copied())
-            .with_reuse(ReuseDirective::Always)
-            .start()
-            .await;
-        match result {
-            // When the container is not yet started, conflicts are returned, retry after a delay
-            Err(TestcontainersError::Client(ClientError::CreateContainer(
-                BollardError::DockerResponseServerError { status_code: 409, .. },
-            ))) => {
-                tokio::time::sleep(DB_TESTCONTAINER_RETRY_DELAY).await;
+    // Same timeout as testcontainer startup (an image might be needed to pull)
+    let container = tokio::time::timeout(Duration::from_secs(60), async {
+        let mut interval = tokio::time::interval(Duration::from_secs(1));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            let result = postgres::Postgres::default()
+                .with_name(DB_TESTCONTAINER_IMAGE)
+                .with_tag(DB_TESTCONTAINER_IMAGE_TAG)
+                .with_container_name(DB_TESTCONTAINER_NAME)
+                .with_cmd(DB_TESTCONTAINER_CMD_ARGS.iter().copied())
+                .with_reuse(ReuseDirective::Always)
+                .start()
+                .await;
+            match result {
+                Ok(container) => break container,
+                // When the container is not yet started, conflicts are returned, retry after a delay
+                Err(TestcontainersError::Client(ClientError::CreateContainer(
+                    BollardError::DockerResponseServerError { status_code: 409, .. },
+                ))) => continue,
+                Err(err) => panic!("Error starting testcontainer: {err}"),
             }
-            result => break result,
         }
-        n += 1;
-        if n == DB_TESTCONTAINER_TRIES {
-            panic!("Could not start testcontainer in {n} tries");
-        }
-    }
+    })
+    .await
     .expect("Could not start testcontainer");
 
     (
