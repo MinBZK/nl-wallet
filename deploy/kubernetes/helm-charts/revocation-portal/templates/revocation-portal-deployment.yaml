@@ -60,7 +60,7 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
             - name: REVOCATION_PORTAL__REVOCATION_ENDPOINT__BASE_URL
-              value: {{ print "http://wallet_provider." .Release.Namespace ".svc.cluster.local"  | quote }}
+              value: {{ print "http://wallet-provider." .Release.Namespace ".svc.cluster.local/internal"  | quote }}
             - name: REVOCATION_PORTAL__COOKIE_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
