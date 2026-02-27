@@ -12,8 +12,10 @@ use tempfile::TempDir;
 
 use audit_log::entity;
 use crypto::utils::random_string;
+use db_test::DbSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::trusted_reqwest_client_builder;
+
 use tests_integration::common::*;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
@@ -28,13 +30,14 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 /// Revoke a wallet via the wallet provider's internal endpoint and assert
 /// that the wallet wipes itself (UserRequest revocation).
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_revoke_wallet_by_revocation_code() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
     let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _, audit_log_connection) =
-        setup_revocation_env("123".to_string()).await;
+        setup_revocation_env(&db_setup, "123".to_string()).await;
 
     let dir = TempDir::new().unwrap();
     let wallet = setup_file_wallet(
@@ -85,9 +88,10 @@ async fn test_revoke_wallet_by_revocation_code() {
 
 /// Revoke a wallet via the wallet provider's internal endpoint and assert that
 /// the wallet is blocked (AdminRequest revocation), not wiped.
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_revoke_wallets_by_id() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
     let (
@@ -98,7 +102,7 @@ async fn test_revoke_wallets_by_id() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env("123".to_string()).await;
+    ) = setup_revocation_env(&db_setup, "123".to_string()).await;
 
     let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
 
@@ -145,9 +149,10 @@ async fn test_revoke_wallets_by_id() {
 /// Revoke a wallet via the wallet provider's internal endpoint using a recovery code
 /// and assert that the wallet is blocked (AdminRequest revocation) and cannot register
 /// a new account.
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_revoke_wallets_by_recovery_code() {
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
     // Use a random recovery code to prevent breaking other tests that use a constant recovery code
@@ -159,7 +164,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env(random_string(32)).await;
+    ) = setup_revocation_env(&db_setup, random_string(32)).await;
 
     let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
 
@@ -242,6 +247,7 @@ async fn test_revoke_wallets_by_recovery_code() {
 }
 
 async fn setup_revocation_env(
+    db_setup: &DbSetup,
     recovery_code: String,
 ) -> (
     ConfigServerConfiguration,
@@ -252,7 +258,7 @@ async fn setup_revocation_env(
     sea_orm::DatabaseConnection,
     sea_orm::DatabaseConnection,
 ) {
-    let (wp_settings, wp_root_ca) = wallet_provider_settings();
+    let (wp_settings, wp_root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
     let connection = new_connection(wp_settings.database.url.clone()).await.unwrap();
     let audit_log_url = wp_settings.audit_log.url.clone();
 
@@ -260,9 +266,9 @@ async fn setup_revocation_env(
         static_server_settings(),
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),
-        verification_server_settings(),
-        pid_issuer_settings(recovery_code),
-        issuance_server_settings(),
+        verification_server_settings(db_setup.verification_server_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), recovery_code),
+        issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
 
@@ -271,7 +277,7 @@ async fn setup_revocation_env(
     let wp_port = wallet_config
         .account_server
         .http_config
-        .base_url
+        .base_url()
         .as_ref()
         .port()
         .unwrap();

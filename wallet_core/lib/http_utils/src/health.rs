@@ -189,8 +189,8 @@ mod router {
         #[test]
         fn test_create_health_router_checks_duplicates() {
             let result = catch_unwind(|| {
-                let a1 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<dyn HealthChecker + Send + Sync>;
-                let a2 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<dyn HealthChecker + Send + Sync>;
+                let a1 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<_>;
+                let a2 = Box::new(TestChecker::ok("a", HealthStatus::UP)) as Box<_>;
                 _ = create_health_router([a1, a2])
             });
             assert_eq!(

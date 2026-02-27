@@ -5,19 +5,21 @@ use rstest::rstest;
 use serial_test::serial;
 use tokio::time::sleep;
 
+use db_test::DbSetup;
 use tests_integration::common::*;
 use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 #[serial(hsm)]
 async fn ltc37_test_unlock_ok(
     #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
 ) {
+    let db_setup = DbSetup::create().await;
     let pin = "112234";
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(vendor).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, vendor).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();
@@ -33,22 +35,24 @@ async fn ltc37_test_unlock_ok(
     assert!(!wallet.is_locked());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc47_test_block() {
+    let db_setup = DbSetup::create().await;
     let pin = "112234";
 
-    let (mut settings, wp_root_ca) = wallet_provider_settings();
+    let (mut settings, wp_root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
     settings.pin_policy.rounds = 1;
     settings.pin_policy.attempts_per_round = 2;
     settings.pin_policy.timeouts = vec![];
 
     let (mut wallet, _, _) = setup_wallet_and_env(
+        &db_setup,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         (settings, wp_root_ca),
-        pid_issuer_settings("123".to_string()),
-        issuance_server_settings(),
+        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
@@ -84,11 +88,13 @@ async fn ltc47_test_block() {
     assert!(wallet.is_locked());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc46_test_unlock_error() {
+    let db_setup = DbSetup::create().await;
     let pin = "112234";
-    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();

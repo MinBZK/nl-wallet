@@ -11,10 +11,10 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::IntoReqwestClient;
+use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
-use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::issuance_base_uri;
 use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
@@ -32,9 +32,9 @@ use super::app2app::DigidJsonRequest;
 use super::app2app::ReturnUrlParameters;
 use super::app2app::format_app2app_query;
 
-fn build_app2app_http_client<C>(http_config: C) -> Result<PinnedReqwestClient, reqwest::Error>
+fn build_app2app_http_client<C>(http_config: C) -> Result<ReqwestClient, reqwest::Error>
 where
-    C: IntoPinnedReqwestClient,
+    C: IntoReqwestClient,
 {
     http_config.try_into_custom_client(|client_builder| client_builder.redirect(Policy::none()))
 }
@@ -92,7 +92,7 @@ impl<C, O> Default for HttpDigidClient<C, O> {
 
 impl<C, O> DigidClient<C> for HttpDigidClient<C, O>
 where
-    C: IntoPinnedReqwestClient + Clone + Hash,
+    C: IntoReqwestClient + Clone + Hash,
     O: OidcClient,
 {
     type Session = HttpDigidSession<C, O>;
@@ -174,7 +174,7 @@ where
 
 impl<C, O> DigidSession<C> for HttpDigidSession<C, O>
 where
-    C: IntoPinnedReqwestClient + Clone + Hash,
+    C: IntoReqwestClient + Clone + Hash,
     O: OidcClient,
 {
     fn auth_url(&self) -> &Url {
@@ -235,7 +235,8 @@ mod test {
     use wiremock::matchers::path;
     use wiremock::matchers::query_param;
 
-    use http_utils::tls::insecure::InsecureHttpConfig;
+    use http_utils::client::InternalHttpConfig;
+    use http_utils::client::TlsPinningConfig;
     use http_utils::urls::BaseUrl;
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;
@@ -278,7 +279,7 @@ mod test {
         let session = client
             .start_session(
                 DigidConfiguration::default(),
-                InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+                TlsPinningConfig::try_new("https://digid.example.com".parse().unwrap(), vec![]).unwrap(),
                 "https://app.example.com".parse().unwrap(),
             )
             .await
@@ -452,7 +453,7 @@ mod test {
         let session_result = client
             .start_session(
                 digid_config,
-                InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+                InternalHttpConfig::try_new(server.uri().parse().unwrap()).unwrap(),
                 "https://app.example.com".parse().unwrap(),
             )
             .await;
@@ -483,7 +484,7 @@ mod test {
 
         let token_request = session
             .into_token_request(
-                &InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+                &TlsPinningConfig::try_new("https://digid.example.com".parse().unwrap(), vec![]).unwrap(),
                 "https://example.com/deeplink/return-from-digid".parse().unwrap(),
             )
             .await;
@@ -593,7 +594,7 @@ mod test {
         };
 
         let token_request = session
-            .into_token_request(&InsecureHttpConfig::new(base_url), redirect_uri)
+            .into_token_request(&InternalHttpConfig::try_new(base_url).unwrap(), redirect_uri)
             .await;
 
         match (token_request, expected) {

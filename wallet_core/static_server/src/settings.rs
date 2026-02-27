@@ -7,7 +7,7 @@ use config::Environment;
 use config::File;
 use serde::Deserialize;
 
-use http_utils::tls::server::TlsServerConfig;
+use http_utils::server::TlsServerConfig;
 use jwt::VerifiedJwt;
 use status_lists::publish::PublishDir;
 use utils::path::prefix_local_path;

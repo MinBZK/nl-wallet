@@ -5,6 +5,7 @@ use serial_test::serial;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_types::claim_path::ClaimPath;
+use db_test::DbSetup;
 use dcql::CredentialFormat;
 use dcql::normalized::MdocAttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -23,15 +24,17 @@ use wallet::openid4vc::SessionType;
 use tests_integration::common::*;
 
 #[rstest]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] pid_format: CredentialFormat,
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] degree_format: CredentialFormat,
 ) {
-    // Start with a wallet that contains the PID.
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
-    let (mut wallet, urls, issuance_urls) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+
+    // Start with a wallet that contains the PID.
+    let (mut wallet, urls, issuance_urls) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
@@ -215,19 +218,22 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
 }
 
 #[rstest]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
 ) {
-    let (issuance_server_settings, _, di_trust_anchor, di_tls_config) = issuance_server_settings();
-
+    let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
+
+    let (issuance_server_settings, _, di_trust_anchor, di_tls_config) =
+        issuance_server_settings(db_setup.issuance_server_url());
     let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
+        &db_setup,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
-        wallet_provider_settings(),
-        pid_issuer_settings("123".to_string()),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
         (issuance_server_settings, vec![], di_trust_anchor, di_tls_config),
     )
     .await;

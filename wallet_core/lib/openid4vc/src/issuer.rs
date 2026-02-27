@@ -19,7 +19,7 @@ use reqwest::Method;
 use serde::Deserialize;
 use serde::Serialize;
 use ssri::Integrity;
-use tokio::task::JoinHandle;
+use tokio::task::AbortHandle;
 use tracing::info;
 use uuid::Uuid;
 
@@ -399,7 +399,7 @@ pub struct Issuer<A, K, S, L> {
     sessions: Arc<S>,
     attr_service: A,
     issuer_data: IssuerData<K>,
-    sessions_cleanup_task: JoinHandle<()>,
+    sessions_cleanup_task: AbortHandle,
     status_list_services: Arc<L>,
 }
 
@@ -504,7 +504,7 @@ where
             attr_service,
             issuer_data,
             status_list_services,
-            sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS).abort_handle(),
         }
     }
 }

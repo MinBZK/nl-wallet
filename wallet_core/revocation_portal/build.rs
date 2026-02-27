@@ -12,15 +12,7 @@ fn main() {
     let profile = BuildProfile::from_cargo_profile(env::var("PROFILE").ok().as_deref());
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
 
-    // These directories are merged from multiple crates, so they must be copies
-    web_utils::build::copy_static_assets(
-        &[
-            Path::new("static/images"),
-            Path::new("../lib/web_utils/static/images"),
-            Path::new("../lib/web_utils/static/non-free"),
-        ],
-        Path::new("assets/support"),
-    );
+    fs::create_dir_all("assets/support").expect("Failed to create assets/support");
 
     web_utils::build::link_or_copy_asset(
         Path::new("../../static/lokalize.js"),
@@ -43,8 +35,20 @@ fn main() {
         profile,
     );
 
-    // In development mode, symlink CSS directories so changes are reflected immediately
-    if !profile.is_release() {
+    if profile.is_release() {
+        fs::create_dir_all("assets/support/static").expect("Failed to create assets/support/static");
+
+        web_utils::build::copy_static_assets(&[Path::new("static/images")], Path::new("assets/support"));
+        web_utils::build::copy_static_assets(
+            &[
+                Path::new("../lib/web_utils/static/images"),
+                Path::new("../lib/web_utils/static/non-free"),
+            ],
+            Path::new("assets/support/static"),
+        );
+    } else {
+        // In development mode, symlink CSS directories so changes are reflected immediately
+
         fs::create_dir_all("assets/support/static/css").expect("Failed to create assets/static");
         fs::create_dir_all("assets/support/lib/web_utils/static")
             .expect("Failed to create assets/lib/web_utils/static");
@@ -60,14 +64,21 @@ fn main() {
         );
 
         // Symlink non-free/ and images/ so url() paths resolve to merged assets
-        web_utils::build::force_symlink(Path::new("../non-free"), Path::new("assets/support/static/non-free"));
-        web_utils::build::force_symlink(Path::new("../images"), Path::new("assets/support/static/images"));
+        web_utils::build::force_symlink(Path::new("../../static/images"), Path::new("assets/support/images"));
         web_utils::build::force_symlink(
-            Path::new("../../../non-free"),
+            Path::new("../../../../lib/web_utils/static/non-free"),
+            Path::new("assets/support/static/non-free"),
+        );
+        web_utils::build::force_symlink(
+            Path::new("../../../../lib/web_utils/static/images"),
+            Path::new("assets/support/static/images"),
+        );
+        web_utils::build::force_symlink(
+            Path::new("../../../static/non-free"),
             Path::new("assets/support/lib/web_utils/static/non-free"),
         );
         web_utils::build::force_symlink(
-            Path::new("../../../images"),
+            Path::new("../../../static/images"),
             Path::new("assets/support/lib/web_utils/static/images"),
         );
     }

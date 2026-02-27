@@ -449,27 +449,12 @@ render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/te
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
-# And the storage config for crate level integration test
-DB=issuance_server render_template "${DEVENV}/test_settings.toml.template" "${HEALTH_CHECKERS_DIR}/test_settings.toml"
-DB=issuance_server render_template "${DEVENV}/test_settings.toml.template" "${STATUS_LISTS_DIR}/test_settings.toml"
-DB=wallet_provider_audit_log render_template "${DEVENV}/test_settings.toml.template" "${WP_DIR}/audit_log/test_settings.toml"
-
 # Ensure the status_lists dirs exists
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
-
-
-########################################################################
-# Configure revocation_portal
-########################################################################
-
-REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY=$(openssl rand -hex 64)
-export REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY
-
-render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
 
 
 ########################################################################
@@ -552,10 +537,6 @@ export ANDROID_ROOT_EC_PUBKEY
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
-# Database settings for wallet_provider crate level integration tests
-render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${WP_DIR}/persistence/wallet_provider_database_settings.toml"
-render_template "${DEVENV}/wallet_provider_database_settings.toml.template" "${WP_DIR}/service/wallet_provider_database_settings.toml"
-
 render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
 
 ########################################################################
@@ -624,6 +605,17 @@ export WALLET_CONFIG_JWT
 
 render_template "${DEVENV}/static_server.toml.template" "${STATIC_SERVER_DIR}/static_server.toml"
 cp "${STATIC_SERVER_DIR}/static_server.toml" "${BASE_DIR}/wallet_core/tests_integration/static_server.toml"
+
+
+########################################################################
+# Configure revocation_portal
+########################################################################
+
+REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY=$(openssl rand -hex 64)
+export REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY
+
+render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
+
 
 ########################################################################
 # Configure gba-hc-converter

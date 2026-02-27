@@ -16,7 +16,7 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use error_category::ErrorCategory;
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
 use openid4vc::issuer_identifier::CredentialIssuerIdentifier;

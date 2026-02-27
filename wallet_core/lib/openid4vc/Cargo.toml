@@ -28,7 +28,7 @@ allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["crypto/generate", "dep:mockall", "wscd/mock"]
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "wscd/mock"]
+test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "wscd/mock"]
 # All features needed to run the integration test
 integration = ["example_constructors", "mock", "test"]
 # Credential payload examples
@@ -122,7 +122,7 @@ attestation_types = { path = "../attestation_types", features = ["test_pid_const
 crypto = { path = "../crypto", features = ["examples"] }
 dcql = { path = "../dcql", features = ["mock"] }
 http.workspace = true
-http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
+http_utils = { path = "../http_utils", features = ["client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }
 sd_jwt = { path = "../sd_jwt", features = ["examples", "test"] }

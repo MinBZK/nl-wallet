@@ -38,6 +38,10 @@ impl BaseUrl {
     pub fn join_base_url(&self, input: &str) -> Self {
         self.join(input).try_into().unwrap()
     }
+
+    pub fn is_https(&self) -> bool {
+        self.as_ref().scheme() == "https"
+    }
 }
 
 pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";

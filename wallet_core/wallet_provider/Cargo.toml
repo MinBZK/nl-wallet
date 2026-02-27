@@ -71,6 +71,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["trace", "decompression-zstd"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
+url.workspace = true
 uuid = { workspace = true, features = ["serde", "v4", "v7"] }
 utoipa = { workspace = true, features = ["chrono"] }
 utoipa-axum.workspace = true
@@ -90,7 +91,6 @@ readable_identifier.path = "readable_identifier"
 status_lists = { path = "../lib/status_lists", features = ["axum"] }
 utils = { path = "../lib/utils" }
 wallet_account = { path = "wallet_account", features = ["server"] }
-wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain = { path = "domain", features = ["utoipa"] }
 wallet_provider_persistence.path = "persistence"
 wallet_provider_service.path = "service"

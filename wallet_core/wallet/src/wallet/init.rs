@@ -8,8 +8,8 @@ use tokio::sync::RwLock;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::default_reqwest_client_builder;
-use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;

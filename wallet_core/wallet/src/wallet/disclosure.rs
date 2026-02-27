@@ -24,7 +24,7 @@ use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
@@ -1008,7 +1008,7 @@ mod tests {
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
-    use http_utils::tls::pinning::TlsPinningConfig;
+    use http_utils::client::TlsPinningConfig;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
     use mdoc::iso::mdocs::Entry;

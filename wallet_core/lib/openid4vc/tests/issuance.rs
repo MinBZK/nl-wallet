@@ -3,7 +3,9 @@ use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use assert_matches::assert_matches;
+use chrono::DateTime;
 use chrono::Days;
+use chrono::Utc;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
@@ -47,6 +49,8 @@ use openid4vc::metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc;
 use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::test::memory_session_store_with_mock_time;
+use openid4vc::server_state::test::test_memory_store_with_cleanup_task;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
@@ -57,12 +61,15 @@ use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use token_status_list::status_list_service::mock::MockStatusListServices;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaPayload;
 use wscd::mock_remote::MockRemoteWscd;
 
-type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusListServices>;
+type MockIssuer<G = TimeGenerator> =
+    Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData, G>, MockStatusListServices>;
 
 fn setup_mock_issuer(
     attestation_count: NonZeroUsize,
@@ -76,14 +83,24 @@ fn setup_mock_issuer(
         },
         &ca,
         &issuance_keypair,
+        Arc::new(MemorySessionStore::default()),
     )
 }
 
-fn setup(
+fn setup<G>(
     attr_service: MockAttributeService,
     ca: &Ca,
     issuance_keypair: &KeyPair,
-) -> (MockIssuer, TrustAnchor<'static>, CredentialIssuerIdentifier, SigningKey) {
+    sessions: Arc<MemorySessionStore<IssuanceData, G>>,
+) -> (
+    MockIssuer<G>,
+    TrustAnchor<'static>,
+    CredentialIssuerIdentifier,
+    SigningKey,
+)
+where
+    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+{
     let issuer_identifier = "https://example.com/".parse::<CredentialIssuerIdentifier>().unwrap();
     let wua_issuer_privkey = SigningKey::random(&mut OsRng);
     let trust_anchor = ca.to_trust_anchor().to_owned();
@@ -121,7 +138,7 @@ fn setup(
         .into();
 
     let issuer = MockIssuer::new(
-        Arc::new(MemorySessionStore::default()),
+        sessions,
         attr_service,
         attestation_config,
         issuer_identifier.clone(),
@@ -305,6 +322,29 @@ async fn no_wua() {
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
     );
+}
+
+#[tokio::test]
+async fn cleanup_task() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+
+    let documents = mock_issuable_documents(1.try_into().unwrap());
+
+    let (sessions, mock_time) = memory_session_store_with_mock_time();
+    let sessions = Arc::new(sessions);
+
+    let (issuer, _, _, _) = setup(
+        MockAttributeService {
+            documents: documents.clone(),
+        },
+        &ca,
+        &issuance_keypair,
+        sessions.clone(),
+    );
+
+    let token = issuer.new_session(documents).await.unwrap();
+    test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
 }
 
 // Helpers and mocks
