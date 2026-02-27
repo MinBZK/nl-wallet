@@ -76,6 +76,20 @@ pub struct WalletUserStateModel {
     pub recovery_code_is_denied: bool,
 }
 
+fn parse_revocation_registration(
+    reason: Option<String>,
+    date_time: Option<DateTimeWithTimeZone>,
+) -> Option<RevocationRegistration> {
+    match (reason, date_time) {
+        (Some(reason), Some(date_time)) => Some(RevocationRegistration {
+            reason: reason.parse().unwrap(),
+            date_time: date_time.into(),
+        }),
+        (None, None) => None,
+        _ => panic!("every reason should have a registered datetime"),
+    }
+}
+
 // Note: this function is not optimized for production use, as it loads all wallets at once and does not implement
 // pagination. It is only intended for demo, test and debugging purposes.
 pub async fn list_wallets<S, T>(db: &T) -> Result<Vec<WalletUserIsRevoked>>
@@ -105,14 +119,8 @@ where
                 .parse()
                 .expect("parsing the wallet user state from the database should always succeed");
 
-            let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
-                (Some(reason), Some(date_time)) => Some(RevocationRegistration {
-                    reason: reason.parse().unwrap(),
-                    date_time: date_time.into(),
-                }),
-                (None, None) => None,
-                _ => panic!("every reason should have a registered datetime"),
-            };
+            let revocation_registration =
+                parse_revocation_registration(model.revocation_reason, model.revocation_date_time);
 
             WalletUserIsRevoked {
                 wallet_id: model.wallet_id.into(),
@@ -251,9 +259,7 @@ struct WalletUserJoinedModel {
     recovery_code_is_denied: bool,
 }
 
-/// Find a user by its `wallet_id` and return it, if it exists.
-/// Note that this function will also return blocked users.
-pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &WalletId) -> Result<WalletUserQueryResult>
+async fn find_wallet_user_by_condition<S, T>(db: &T, filter: SimpleExpr) -> Result<WalletUserQueryResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -307,7 +313,7 @@ where
             JoinType::LeftJoin,
             wallet_user::Relation::WalletUserAndroidAttestation.def(),
         )
-        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
+        .filter(filter)
         .into_model::<WalletUserJoinedModel>()
         .one(db.connection())
         .await
@@ -374,14 +380,7 @@ where
         }
     };
 
-    let revocation_registration = match (model.revocation_reason, model.revocation_date_time) {
-        (Some(reason), Some(date_time)) => Some(RevocationRegistration {
-            reason: reason.parse().unwrap(),
-            date_time: date_time.into(),
-        }),
-        (None, None) => None,
-        _ => panic!("every reason should have a registered datetime"),
-    };
+    let revocation_registration = parse_revocation_registration(model.revocation_reason, model.revocation_date_time);
 
     let wallet_user = WalletUser {
         id: model.id,
@@ -402,6 +401,16 @@ where
     };
 
     Ok(QueryResult::Found(Box::new(wallet_user)))
+}
+
+/// Find a user by its `wallet_id` and return it, if it exists.
+/// Note that this function will also return blocked users.
+pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &WalletId) -> Result<WalletUserQueryResult>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    find_wallet_user_by_condition(db, wallet_user::Column::WalletId.eq(wallet_id.as_ref())).await
 }
 
 pub async fn find_wallet_user_id_by_wallet_ids<S, T>(
@@ -426,27 +435,15 @@ where
         .collect())
 }
 
-pub async fn find_wallet_user_id_by_revocation_code<S, T>(
+pub async fn find_wallet_user_by_revocation_code<S, T>(
     db: &T,
     revocation_code_hmac: &[u8],
-) -> Result<QueryResult<Uuid>>
+) -> Result<WalletUserQueryResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let result = wallet_user::Entity::find()
-        .select_only()
-        .column(wallet_user::Column::Id)
-        .filter(wallet_user::Column::RevocationCodeHmac.eq(revocation_code_hmac))
-        .into_tuple::<Uuid>()
-        .one(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)?;
-
-    match result {
-        Some(wallet_user_id) => Ok(QueryResult::Found(Box::new(wallet_user_id))),
-        None => Ok(QueryResult::NotFound),
-    }
+    find_wallet_user_by_condition(db, wallet_user::Column::RevocationCodeHmac.eq(revocation_code_hmac)).await
 }
 
 pub async fn find_wallet_user_ids_by_recovery_code<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<Vec<Uuid>>
