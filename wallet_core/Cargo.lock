@@ -8278,6 +8278,7 @@ dependencies = [
  "utils",
  "verification_server",
  "wallet",
+ "wallet_account",
  "wallet_configuration",
  "wallet_provider",
  "wallet_provider_persistence",
