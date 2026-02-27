@@ -291,7 +291,7 @@ impl<'de> Deserialize<'de> for EncryptionPrivateKey {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct VpToken {
-    pub vp_token: String,
+    pub response: String,
 }
 
 /// Sent by the wallet to the `response_uri`: either an Authorization Response JWE or an error, which either indicates
@@ -1430,7 +1430,7 @@ impl Session<WaitingForResponse> {
         debug!("Session({}): process response", self.state.token);
 
         let jwe = match wallet_response {
-            WalletAuthResponse::Response(VpToken { vp_token }) => vp_token,
+            WalletAuthResponse::Response(VpToken { response }) => response,
             WalletAuthResponse::Error(err) => {
                 // Check if the error code indicates that the user refused to disclose.
                 let user_refused = matches!(
@@ -1616,6 +1616,7 @@ mod tests {
     use super::VerifierUrlParameters;
     use super::VpAuthorizationErrorCode;
     use super::VpRequestUriObject;
+    use super::VpToken;
     use super::WalletAuthResponse;
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
@@ -2087,5 +2088,22 @@ mod tests {
             )
             .await
             .unwrap();
+    }
+
+    #[test]
+    fn test_wallet_auth_response_jwe_serializes_to_response_parameter() {
+        let body = serde_urlencoded::to_string(WalletAuthResponse::Response(VpToken {
+            response: "jwe".to_string(),
+        }))
+        .unwrap();
+
+        assert_eq!(body, "response=jwe");
+    }
+
+    #[test]
+    fn test_wallet_auth_response_jwe_deserializes_response_parameter() {
+        let response: WalletAuthResponse = serde_urlencoded::from_str("response=jwe").unwrap();
+
+        assert_matches!(response, WalletAuthResponse::Response(VpToken { response }) if response == "jwe");
     }
 }

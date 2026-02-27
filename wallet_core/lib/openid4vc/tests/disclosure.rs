@@ -1232,7 +1232,7 @@ where
             .verifier
             .process_authorization_response(
                 &session_token,
-                WalletAuthResponse::Response(VpToken { vp_token: jwe }),
+                WalletAuthResponse::Response(VpToken { response: jwe }),
                 &TimeGenerator,
             )
             .await
