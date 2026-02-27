@@ -53,6 +53,8 @@ impl IssuerMetadata {
         client: &reqwest::Client,
         issuer_identifier: &CredentialIssuerIdentifier,
     ) -> Result<Self, IssuerMetadataDiscoveryError> {
+        // TODO (PVW-5527): Composing of the `.well-known` path below is not compliant
+        //                  with the OpenID4VCI specification and should be fixed.
         let metadata = client
             .get(
                 issuer_identifier
