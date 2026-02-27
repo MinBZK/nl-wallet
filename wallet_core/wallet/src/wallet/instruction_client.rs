@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
-use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::instruction::HwSignedInstructionClient;
 use crate::instruction::InstructionClient;
@@ -18,14 +18,14 @@ use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].

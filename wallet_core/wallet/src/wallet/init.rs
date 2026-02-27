@@ -13,6 +13,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -29,7 +30,6 @@ use crate::config::WalletConfigurationRepository;
 use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::init_universal_link_base_url;
-use crate::digid::DigidClient;
 use crate::lock::WalletLock;
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::Repository;
@@ -96,20 +96,20 @@ async fn init_mock_key_holder() -> platform_support::attested_key::mock::Persist
     PersistentMockAttestedKeyHolder::new_mock_xcode(apple_attestation_environment)
 }
 
-impl<APC, DC, IS>
+impl<APC, OC, IS>
     Wallet<
         WalletConfigurationRepository,
         UpdatePolicyRepository,
         DatabaseStorage<HardwareEncryptionKey>,
         KeyHolderType,
         APC,
-        DC,
+        OC,
         IS,
         VpDisclosureClient,
     >
 where
     APC: Default,
-    DC: DigidClient + Default,
+    OC: OidcClient,
 {
     #[sentry_capture_error]
     pub async fn init_all() -> Result<Self, WalletInitError> {
@@ -149,17 +149,15 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct WalletClients<APC, DC, DCC, SLC> {
+pub struct WalletClients<APC, DCC, SLC> {
     pub account_provider_client: APC,
-    pub digid_client: DC,
     pub disclosure_client: DCC,
     pub status_list_client: SLC,
 }
 
-impl<APC, DC> WalletClients<APC, DC, VpDisclosureClient, HttpStatusListClient>
+impl<APC> WalletClients<APC, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
-    DC: Default,
 {
     pub fn new_http(disclosure_client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
         let disclosure_client = VpDisclosureClient::new_http(disclosure_client_builder)?;
@@ -167,7 +165,6 @@ where
 
         let clients = Self {
             account_provider_client: APC::default(),
-            digid_client: DC::default(),
             disclosure_client,
             status_list_client,
         };
@@ -176,10 +173,10 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {
@@ -188,7 +185,7 @@ where
         update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DC, DCC, SLC>,
+        wallet_clients: WalletClients<APC, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -219,7 +216,6 @@ where
             key_holder,
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
-            digid_client: wallet_clients.digid_client,
             disclosure_client: wallet_clients.disclosure_client,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
@@ -238,7 +234,7 @@ where
         update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DC, DCC, SLC>,
+        wallet_clients: WalletClients<APC, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
         CR: Repository<Arc<WalletConfiguration>> + Send + Sync + 'static,
@@ -266,11 +262,11 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {

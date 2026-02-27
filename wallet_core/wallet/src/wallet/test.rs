@@ -31,7 +31,6 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificateExtension;
-use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
@@ -42,6 +41,7 @@ use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
+use openid4vc::oidc::MockOidcClient;
 use openid4vc::token::CredentialPreviewContent;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -74,7 +74,6 @@ use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
 use crate::config::test::test_wallet_config;
-use crate::digid::MockDigidClient;
 use crate::pin::key as pin_key;
 use crate::storage::KeyData;
 use crate::storage::MockHardwareDatabaseStorage;
@@ -125,7 +124,7 @@ pub type TestWallet<S, CR = UpdatingConfigurationRepository<LocalConfigurationRe
     S,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockDigidClient<TlsPinningConfig>,
+    MockOidcClient,
     MockIssuanceSession,
     MockDisclosureClient,
     MockStatusListClient,

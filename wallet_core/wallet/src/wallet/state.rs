@@ -2,11 +2,11 @@ use tracing::instrument;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 
 use crate::Wallet;
-use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
@@ -51,12 +51,12 @@ pub enum TransferRole {
     Destination,
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]

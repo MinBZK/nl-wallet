@@ -14,9 +14,8 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use wallet::test::DigidClient;
-use wallet::test::HttpDigidClient;
 use wallet::test::default_wallet_config;
+use wallet::test::start_digid_session;
 use wscd::mock_remote::MockRemoteWscd;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
@@ -67,15 +66,13 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wallet_config = default_wallet_config();
 
     // Prepare DigiD flow
-    let digid_client = HttpDigidClient::<_, HttpOidcClient>::new();
-    let digid_session = digid_client
-        .start_session(
-            wallet_config.pid_issuance.digid.clone(),
-            wallet_config.pid_issuance.digid_http_config.clone(),
-            urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
-        )
-        .await
-        .unwrap();
+    let digid_session = start_digid_session::<HttpOidcClient, _>(
+        wallet_config.pid_issuance.digid.clone(),
+        wallet_config.pid_issuance.digid_http_config.clone(),
+        urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
+    )
+    .await
+    .unwrap();
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(

@@ -26,9 +26,9 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
-use crate::digid::DigidClient;
 use crate::digid::DigidError;
 use crate::digid::DigidSessionState;
+use crate::digid::start_digid_session;
 use crate::errors::InstructionError;
 use crate::errors::PinKeyError;
 use crate::errors::PinValidationError;
@@ -123,13 +123,13 @@ pub(super) enum PinRecoverySession<OC: OidcClient, IS> {
     },
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     IS: IssuanceSession,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
@@ -169,15 +169,13 @@ where
 
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
 
-        let session = self
-            .digid_client
-            .start_session(
-                config.pid_issuance.digid.clone(),
-                config.pid_issuance.digid_http_config.clone(),
-                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
-            )
-            .await
-            .map_err(IssuanceError::DigidSessionStart)?;
+        let session = start_digid_session(
+            config.pid_issuance.digid.clone(),
+            config.pid_issuance.digid_http_config.clone(),
+            urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
+        )
+        .await
+        .map_err(IssuanceError::DigidSessionStart)?;
 
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = session.auth_url.clone();
@@ -502,6 +500,7 @@ mod tests {
     use crate::digid::DigidSessionState;
     use crate::digid::mock::AUTH_URL;
     use crate::digid::mock::mock_digid_session_state;
+    use crate::digid::mock::mock_digid_session_state_tuple;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
     use crate::repository::Repository;
@@ -525,6 +524,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    #[serial(MockOidcClient)]
     pub async fn create_pin_recovery_redirect_uri(
         #[values(None, Some(PinRecoveryData))] pin_recovery_data: Option<PinRecoveryData>,
     ) {
@@ -543,11 +543,10 @@ mod tests {
             .once()
             .return_once(|_| Ok(true));
 
-        wallet
-            .digid_client
-            .expect_start_session()
-            .once()
-            .return_once(|_digid_config, _http_config, _redirect_uri| Ok(mock_digid_session_state()));
+        let oidc_ctx = MockOidcClient::start_context();
+        oidc_ctx
+            .expect()
+            .return_once(|_, _, _| Ok(mock_digid_session_state_tuple()));
 
         let redirect_uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
         assert_eq!(&redirect_uri.to_string(), AUTH_URL);

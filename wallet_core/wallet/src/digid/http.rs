@@ -1,57 +1,31 @@
 use std::hash::Hash;
-use std::marker::PhantomData;
 
 use tracing::info;
 use url::Url;
 
 use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::tls::pinning::TlsPinningConfig;
-use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcReqwestClient;
 use wallet_configuration::wallet_config::DigidConfiguration;
 
-use super::DigidClient;
 use super::DigidError;
 use super::DigidSessionState;
 
-#[derive(Debug)]
-pub struct HttpDigidClient<C = TlsPinningConfig, O = HttpOidcClient> {
-    _marker: PhantomData<(C, O)>,
-}
-
-impl<C, O> HttpDigidClient<C, O> {
-    pub fn new() -> Self {
-        Self { _marker: PhantomData }
-    }
-}
-
-impl<C, O> Default for HttpDigidClient<C, O> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<C, O> DigidClient<C> for HttpDigidClient<C, O>
+pub async fn start_digid_session<O, C>(
+    digid_config: DigidConfiguration,
+    http_config: C,
+    redirect_uri: Url,
+) -> Result<DigidSessionState<O>, DigidError>
 where
     C: IntoPinnedReqwestClient + Clone + Hash,
     O: OidcClient,
 {
-    type OC = O;
+    let http_client = OidcReqwestClient::try_new(http_config)?;
+    let (oidc_client, auth_url) = O::start(&http_client, digid_config.client_id, redirect_uri).await?;
 
-    async fn start_session(
-        &self,
-        digid_config: DigidConfiguration,
-        http_config: C,
-        redirect_uri: Url,
-    ) -> Result<DigidSessionState<O>, DigidError> {
-        let http_client = OidcReqwestClient::try_new(http_config)?;
-        let (oidc_client, auth_url) = O::start(&http_client, digid_config.client_id, redirect_uri).await?;
+    info!("DigiD auth URL generated");
 
-        info!("DigiD auth URL generated");
-
-        Ok(DigidSessionState { oidc_client, auth_url })
-    }
+    Ok(DigidSessionState { oidc_client, auth_url })
 }
 
 #[cfg(test)]
@@ -64,8 +38,9 @@ mod test {
     use url::Url;
     use wallet_configuration::wallet_config::DigidConfiguration;
 
-    use super::super::DigidClient;
-    use super::HttpDigidClient;
+    use crate::digid::DigidSessionState;
+
+    use super::start_digid_session;
 
     fn default_token_request() -> TokenRequest {
         TokenRequest {
@@ -86,15 +61,13 @@ mod test {
             .expect()
             .return_once(|_, _, _| Ok((MockOidcClient::default(), Url::parse("https://example.com/").unwrap())));
 
-        let client = HttpDigidClient::<_, MockOidcClient>::new();
-        let session = client
-            .start_session(
-                DigidConfiguration::default(),
-                InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
-                "https://app.example.com".parse().unwrap(),
-            )
-            .await
-            .expect("starting DigiD session should succeed");
+        let session: DigidSessionState<MockOidcClient> = start_digid_session(
+            DigidConfiguration::default(),
+            InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+            "https://app.example.com".parse().unwrap(),
+        )
+        .await
+        .expect("starting DigiD session should succeed");
 
         assert_eq!(session.auth_url, "https://example.com/".parse().unwrap());
     }

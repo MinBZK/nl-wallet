@@ -96,10 +96,7 @@ pub mod test {
     pub use crate::config::WalletConfigurationRepository;
     pub use crate::config::default_config_server_config;
     pub use crate::config::default_wallet_config;
-    pub use crate::digid::DigidClient;
-    pub use crate::digid::DigidSessionState;
-    pub use crate::digid::HttpDigidClient;
-    pub use crate::digid::MockDigidClient;
+    pub use crate::digid::start_digid_session;
     pub use crate::repository::BackgroundUpdateableRepository;
     pub use crate::repository::Repository;
     pub use crate::repository::RepositoryUpdateState;

@@ -14,9 +14,7 @@ async fn ltc41_test_pin_recovery() {
     wallet = do_pid_issuance(wallet, pin).await;
 
     let new_pin = "314159".to_string();
-    let uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
-    wallet.continue_pin_recovery(uri).await.unwrap();
-    wallet.complete_pin_recovery(new_pin.clone()).await.unwrap();
+    wallet = do_pin_recovery(wallet, new_pin.clone()).await;
 
     // The wallet can now use the new PIN.
     wallet.check_pin(new_pin).await.unwrap();
@@ -44,9 +42,7 @@ async fn ltc46_test_pin_recovery_timeout() {
     );
 
     let new_pin = "314159".to_string();
-    let uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
-    wallet.continue_pin_recovery(uri).await.unwrap();
-    wallet.complete_pin_recovery(new_pin.clone()).await.unwrap();
+    wallet = do_pin_recovery(wallet, new_pin.clone()).await;
 
     // The wallet can now use the new PIN.
     wallet.check_pin(new_pin).await.unwrap();

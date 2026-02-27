@@ -1,22 +1,22 @@
 use std::sync::Arc;
 
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::digid::DigidClient;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     pub fn is_blocked(&self) -> bool {
@@ -24,12 +24,12 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: ObservableRepository<Arc<WalletConfiguration>>,
     UR: ObservableRepository<VersionState>,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     pub fn set_config_callback(

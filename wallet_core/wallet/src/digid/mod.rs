@@ -1,18 +1,14 @@
-use std::hash::Hash;
+mod http;
 
 use url::Url;
 
 use error_category::ErrorCategory;
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::tls::pinning::TlsPinningConfig;
+
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
-use wallet_configuration::wallet_config::DigidConfiguration;
 
-pub use http::HttpDigidClient;
-
-mod http;
+pub use http::start_digid_session;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -40,21 +36,6 @@ impl<O: OidcClient> DigidSessionState<O> {
     }
 }
 
-#[cfg_attr(any(test, feature = "test"), mockall::automock(type OC = openid4vc::oidc::MockOidcClient;))]
-pub trait DigidClient<C = TlsPinningConfig>
-where
-    C: IntoPinnedReqwestClient + Clone + Hash,
-{
-    type OC: OidcClient;
-
-    async fn start_session(
-        &self,
-        digid_config: DigidConfiguration,
-        http_config: C,
-        redirect_uri: Url,
-    ) -> Result<DigidSessionState<Self::OC>, DigidError>;
-}
-
 #[cfg(test)]
 pub mod mock {
     use openid4vc::oidc::MockOidcClient;
@@ -66,7 +47,12 @@ pub mod mock {
     pub fn mock_digid_session_state() -> DigidSessionState<MockOidcClient> {
         DigidSessionState {
             oidc_client: MockOidcClient::new(),
-            auth_url: Url::parse("http://example.com/auth").unwrap(),
+            auth_url: Url::parse(AUTH_URL).unwrap(),
         }
+    }
+
+    pub fn mock_digid_session_state_tuple() -> (MockOidcClient, Url) {
+        let DigidSessionState { oidc_client, auth_url } = mock_digid_session_state();
+        (oidc_client, auth_url)
     }
 }

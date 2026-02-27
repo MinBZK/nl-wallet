@@ -32,6 +32,7 @@ use tokio::task::AbortHandle;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -41,9 +42,7 @@ use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
-use crate::digid::DigidClient;
 use crate::digid::DigidSessionState;
-use crate::digid::HttpDigidClient;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
@@ -138,13 +137,13 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>, // Storage
     AKH = KeyHolderType,                        // AttestedKeyHolder
     APC = HttpAccountProviderClient,            // AccountProviderClient
-    DC = HttpDigidClient,                       // DigidClient
+    OC = HttpOidcClient,                        // OidcClient for DigiD
     IS = HttpIssuanceSession,                   // IssuanceSession
     DCC = VpDisclosureClient,                   // DisclosureClient
     SLC = HttpStatusListClient,                 // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     config_repository: Arc<CR>,
@@ -153,10 +152,9 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    digid_client: DC,
     disclosure_client: DCC,
     status_list_client: Arc<SLC>,
-    session: Option<Session<DC::OC, IS, DCC::Session>>,
+    session: Option<Session<OC, IS, DCC::Session>>,
     lock: WalletLock,
     attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,

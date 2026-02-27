@@ -11,6 +11,7 @@ use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
@@ -24,7 +25,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
-use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
 use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
@@ -96,10 +96,10 @@ impl WalletRegistrationError {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     pub fn has_registration(&self) -> bool {

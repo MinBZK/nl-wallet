@@ -7,13 +7,13 @@ use tracing::info;
 
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
-use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientFactory;
 use crate::instruction::InstructionClientParameters;
@@ -28,14 +28,14 @@ use super::WalletRegistration;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>

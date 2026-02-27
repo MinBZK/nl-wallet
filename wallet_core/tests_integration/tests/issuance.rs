@@ -4,6 +4,7 @@ use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::oidc::MockOidcClient;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_BIRTH_DATE;
@@ -204,10 +205,14 @@ async fn ltc2_test_pid_missing_required_attributes() {
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
-    let redirect_url = wallet
-        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
-        .await
-        .expect("should create PID issuance redirect URL");
+    let redirect_url = {
+        let ctx = MockOidcClient::start_context();
+        ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
+        wallet
+            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
+            .await
+            .expect("should create PID issuance redirect URL")
+    };
     let _unsigned_mdocs = wallet
         .continue_pid_issuance(redirect_url)
         .await
