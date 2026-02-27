@@ -451,6 +451,9 @@ pub enum AuthRequestValidationError {
     #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns is currently supported")]
     #[category(critical)]
     UnsupportedClientIdScheme { scheme: String },
+    #[error("response_uri fqdn {fqdn} does not match client_id {id}.")]
+    #[category(critical)]
+    UnmatchedResponseFqdn { fqdn: String, id: String },
     #[error("unsupported DCQL query: {0}")]
     UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
     #[error(
@@ -509,7 +512,7 @@ impl VpAuthorizationRequest {
         wallet_nonce: Option<&str>,
     ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
-        match self.oauth_request.client_id.parse::<ClientId>() {
+        let client_id = match self.oauth_request.client_id.parse::<ClientId>() {
             Ok(client_id) if client_id.scheme != ClientIdScheme::X509SanDns => {
                 return Err(AuthRequestValidationError::UnsupportedClientIdScheme {
                     scheme: client_id.to_string(),
@@ -520,19 +523,28 @@ impl VpAuthorizationRequest {
                     id: self.oauth_request.client_id.clone(),
                 });
             }
-            Ok(_) => {
-                // pass
+            Ok(client_id) => client_id,
+        };
+
+        // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
+        // This checks the fqdn of the response uri against the x509_san_dns client id
+        if let Some(response_uri) = &self.response_uri {
+            if let Some(response_uri_fqdn) = response_uri.fqdn() {
+                if response_uri_fqdn != client_id.id {
+                    return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
+                        fqdn: response_uri_fqdn.to_string(),
+                        id: client_id.id.clone(),
+                    });
+                }
+            } else {
+                return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
+                    fqdn: response_uri.to_string(),
+                    id: client_id.id.clone(),
+                });
             }
         }
 
-        let Some(client_id_dns_san) = self.oauth_request.client_id.strip_prefix("x509_san_dns:") else {
-            return Err(AuthRequestValidationError::UnsupportedFieldValue {
-                field: "client_id",
-                expected: "x509_san_dns:<dns_name>",
-                found: self.oauth_request.client_id.to_owned(),
-            });
-        };
-        if dns_san != client_id_dns_san {
+        if dns_san != client_id.id {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: self.oauth_request.client_id.clone(),
                 dns_san: String::from(dns_san),
