@@ -28,7 +28,7 @@ strum = { workspace = true, features = ["derive"] }
 testcontainers = { workspace = true, features = ["reusable-containers"] }
 testcontainers-modules = { workspace = true, features = ["postgres"] }
 tracing.workspace = true
-tokio.workspace = true
+tokio = {workspace = true, features = ["time"] }
 url.workspace = true
 
 audit_log_migrations.path = "../../wallet_provider/audit_log/migrations"
