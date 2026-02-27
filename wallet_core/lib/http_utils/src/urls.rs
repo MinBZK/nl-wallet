@@ -8,6 +8,7 @@ use nutype::nutype;
 use serde::Deserialize;
 use url::Url;
 
+// TODO (PVW-5612): Only allow HTTPS in local development environment and remove this feature flag.
 cfg_if! {
     if #[cfg(feature = "allow_insecure_url")] {
         pub const ALLOWED_HTTP_SCHEMES: [&str; 2] = ["https", "http"];
