@@ -120,6 +120,7 @@ impl IssuerMetadata {
             nonce_endpoint: None,
             deferred_credential_endpoint: None,
             notification_endpoint: None,
+            credential_request_encryption: None,
             credential_response_encryption: None,
             credential_identifiers_supported: None,
             display: None,

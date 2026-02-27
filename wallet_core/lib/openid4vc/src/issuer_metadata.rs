@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use josekit::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -62,6 +63,10 @@ pub struct IssuerMetadata {
     /// scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not
     /// support the Notification Endpoint.
     pub notification_endpoint: Option<IssuerUrl>,
+
+    /// Object containing information about whether the Credential Issuer supports encryption of the Credential Request
+    /// on top of TLS.
+    pub credential_request_encryption: Option<CredentialRequestEncryption>,
 
     /// Object containing information about whether the Credential Issuer supports encryption of the Credential Response
     /// on top of TLS.
@@ -140,6 +145,33 @@ impl IssuerMetadata {
                 vec_nonempty![&self.credential_issuer]
             })
     }
+}
+
+// Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CredentialRequestEncryption {
+    /// A JSON Web Key Set, as defined in [RFC7591], that contains one or more public keys, to be used by the Wallet as
+    /// an input to a key agreement for encryption of the Credential Request. Each JWK in the set MUST have a kid (Key
+    /// ID) parameter that uniquely identifies the key.
+    // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
+    //                  request encryption. Additionally this should check for the presence of `kid` parameters.
+    pub jwks: VecNonEmpty<Jwk>,
+
+    /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
+    /// by the Credential Endpoint to decode the Credential Request from a JWT.
+    pub enc_values_supported: VecNonEmpty<JweEncryptionAlgorithm>,
+
+    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518] supported
+    /// by the Credential Endpoint to uncompress the Credential Request after decryption. If absent then no compression
+    /// algorithms are supported. The Wallet may use any of the supported compression algorithm to compress the
+    /// Credential Request prior to encryption.
+    pub zip_values_supported: Option<VecNonEmpty<JweCompressionAlgorithm>>,
+
+    /// Boolean value specifying whether the Credential Issuer requires the additional encryption on top of TLS for the
+    /// Credential Requests. If the value is true, the Credential Issuer requires encryption for every Credential
+    /// Request. If the value is false, the Wallet MAY choose whether it encrypts the request or not.
+    pub encryption_required: bool,
 }
 
 /// Information about whether the Credential Issuer supports encryption of the Credential Response on top of TLS.
