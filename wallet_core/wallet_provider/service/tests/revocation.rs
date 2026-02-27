@@ -575,12 +575,13 @@ async fn test_revoke_wallet_by_revocation_code() {
     )
     .await;
 
-    // revoke the wallet
-    revoke_wallet_by_revocation_code::<_, _, _>(
+    // revoke the wallet; use a fixed time so we can assert on the return value
+    let first_time_gen = MockTimeGenerator::epoch();
+    let revocation_date_time = revoke_wallet_by_revocation_code::<_, _, _>(
         revocation_code.clone(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
-        &MockTimeGenerator::default(),
+        &first_time_gen,
         &MockAuditLog,
     )
     .await
@@ -597,16 +598,20 @@ async fn test_revoke_wallet_by_revocation_code() {
     )
     .await;
 
-    // verify idempotency: revoking again should succeed without errors
-    revoke_wallet_by_revocation_code(
+    // verify idempotency: revoking again with a *different* time should return the originally
+    // stored datetime, not the new one
+    let second_time_gen = MockTimeGenerator::default();
+    let idempotent_date_time = revoke_wallet_by_revocation_code(
         revocation_code,
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
-        &MockTimeGenerator::default(),
+        &second_time_gen,
         &MockAuditLog,
     )
     .await
     .unwrap();
+
+    assert_eq!(idempotent_date_time, revocation_date_time);
 
     // wallet should still be revoked
     verify_revocation(

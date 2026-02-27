@@ -18,6 +18,7 @@ use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -80,18 +81,27 @@ where
 
     let tx = user_state.repositories.begin_transaction().await?;
 
-    let wallet_user_id_result = user_state
+    let wallet_user_result = user_state
         .repositories
-        .find_wallet_user_id_by_revocation_code(&tx, revocation_code_hmac.as_slice())
+        .find_wallet_user_by_revocation_code(&tx, revocation_code_hmac.as_slice())
         .await?;
 
-    let QueryResult::Found(wallet_user_id) = wallet_user_id_result else {
+    let QueryResult::Found(wallet_user) = wallet_user_result else {
         return Err(RevocationError::RevocationCodeNotFound(revocation_code.into()));
     };
 
+    // Idempotency: if the wallet is already revoked, return the existing revocation datetime.
+    if wallet_user.state == WalletUserState::Revoked {
+        let revocation_date_time = wallet_user
+            .revocation_registration
+            .expect("revoked wallet user must have a revocation_registration")
+            .date_time;
+        return Ok(revocation_date_time);
+    }
+
     let wua_ids = user_state
         .repositories
-        .revoke_wallet_users(&tx, vec![*wallet_user_id], revocation_reason, revocation_date_time)
+        .revoke_wallet_users(&tx, vec![wallet_user.id], revocation_reason, revocation_date_time)
         .await?;
 
     tx.commit().await?;
