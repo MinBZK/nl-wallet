@@ -36,6 +36,7 @@ pub const TRANSLATIONS: Translations = Translations {
         delete_confirm: "Delete wallet",
         delete_code_invalid_length: "The code must be exactly 18 characters long.",
         delete_code_required: "Please enter your deletion code.",
+        delete_code_format: "18-character alphanumeric code, for example: C20C-KF0R-D32B-A5E3-2X",
         delete_code_incorrect: "Deletion code is incorrect. Please try again.",
         success_wb_confirmation: "You used your deletion code to delete your NL Wallet at {time} on {date}. Your \
                                   wallet has been blocked and no one can use your wallet.",
@@ -70,6 +71,7 @@ pub const TRANSLATIONS: Translations = Translations {
         delete_confirm: "Wallet verwijderen",
         delete_code_invalid_length: "De code moet precies 18 tekens lang zijn.",
         delete_code_required: "Voer je verwijder-code in.",
+        delete_code_format: "Code van 18 tekens, bijvoorbeeld: C20C-KF0R-D32B-A5E3-2X",
         delete_code_incorrect: "verwijder-code is incorrect. Probeer het opnieuw.",
         success_wb_confirmation: "Je hebt je verwijder-code gebruikt om je NL Wallet te verwijderen op {date} om \
                                   {time}. Je wallet is stopgezet en niemand kan je wallet gebruiken",
@@ -104,6 +106,7 @@ pub struct Words<'a> {
     pub delete_confirm: &'a str,
     pub delete_code_invalid_length: &'a str,
     pub delete_code_required: &'a str,
+    pub delete_code_format: &'a str,
     pub delete_code_incorrect: &'a str,
     pub success_wb_confirmation: &'a str,
     pub success_wallet_confirmation: &'a str,
