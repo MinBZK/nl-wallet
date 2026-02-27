@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::env::VarError;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::io::prelude::*;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::thread::available_parallelism;
@@ -10,7 +11,9 @@ use std::time::Duration;
 use async_dropper::AsyncDrop;
 use async_dropper::AsyncDropper;
 use async_trait::async_trait;
+use bollard::Docker;
 use bollard::errors::Error as BollardError;
+use bollard::query_parameters::RemoveContainerOptionsBuilder;
 use rand::Rng;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
@@ -39,6 +42,7 @@ use testcontainers_modules::postgres;
 use tokio::net::lookup_host;
 use tracing::log::LevelFilter;
 use url::Url;
+use xxhash_rust::xxh3::xxh3_128;
 
 const DB_PORT: u16 = 5432;
 const DB_USER: &str = "postgres";
@@ -48,8 +52,26 @@ const DB_DEFAULT_DATABASE: &str = "postgres";
 const DB_TESTCONTAINER_IMAGE: &str = "docker.io/library/postgres";
 const DB_TESTCONTAINER_IMAGE_TAG: &str = "18.2-trixie";
 const DB_TESTCONTAINER_NAME: &str = "wallet-postgres-test";
-const DB_TESTCONTAINER_TRIES: u8 = 5;
-const DB_TESTCONTAINER_RETRY_DELAY: Duration = Duration::from_secs(1);
+const DB_TESTCONTAINER_CMD_ARGS: &[&str] = &[
+    "postgres",
+    // Allow for more connections with larger shared buffers
+    "-N",
+    "200",
+    "-c",
+    "shared_buffers=128MB",
+    // Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
+    "-c",
+    "fsync=off",
+    "-c",
+    "synchronous_commit=off",
+    "-c",
+    "full_page_writes=off",
+    // Minimal WAL
+    "-c",
+    "wal_level=minimal",
+    "-c",
+    "max_wal_senders=0",
+];
 
 #[derive(Default)]
 struct AsyncDropPgConnection(Option<PgConnection>);
@@ -178,11 +200,19 @@ impl DbSetup {
             .username(DB_USER)
             .password(DB_PASSWORD)
             .database(DB_DEFAULT_DATABASE);
-        let connection = PgConnection::connect_with(&connect_options)
-            .await
-            .expect("Connecting to database failed");
-        // Wrap in dropper to ensure connection is closed on dropped and advisory locks are released
-        let mut connection = AsyncDropper::new(connection.into());
+        let mut connection = tokio::time::timeout(Duration::from_secs(1), async {
+            let mut interval = tokio::time::interval(Duration::from_millis(100));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            loop {
+                interval.tick().await;
+                if let Ok(connection) = PgConnection::connect_with(&connect_options).await {
+                    // Wrap in dropper to ensure connection is closed on dropped and advisory locks are released
+                    break AsyncDropper::new(connection.into());
+                }
+            }
+        })
+        .await
+        .expect("Could not connect to database");
 
         // Create templates if not on CI
         if !ci {
@@ -239,30 +269,55 @@ impl DbSetup {
     }
 }
 
-async fn start_testcontainer() -> (String, u16) {
-    let mut n = 0;
-    let container = loop {
-        let result = postgres::Postgres::default()
-            .with_name(DB_TESTCONTAINER_IMAGE)
-            .with_tag(DB_TESTCONTAINER_IMAGE_TAG)
-            .with_container_name(DB_TESTCONTAINER_NAME)
-            .with_reuse(ReuseDirective::Always)
-            .start()
-            .await;
-        match result {
-            // When the container is not yet started, conflicts are returned, retry after a delay
-            Err(TestcontainersError::Client(ClientError::CreateContainer(
-                BollardError::DockerResponseServerError { status_code: 409, .. },
-            ))) => {
-                tokio::time::sleep(DB_TESTCONTAINER_RETRY_DELAY).await;
-            }
-            result => break result,
-        }
-        n += 1;
-        if n == DB_TESTCONTAINER_TRIES {
-            panic!("Could not start testcontainer in {n} tries");
-        }
+fn calc_hash<'a>(args: impl IntoIterator<Item = &'a [u8]>) -> String {
+    let mut bytes = Vec::new();
+    for arg in args {
+        bytes.write_all(arg).unwrap();
+        bytes.push(0);
     }
+    format!("{:x}", xxh3_128(&bytes))
+}
+
+async fn start_testcontainer() -> (String, u16) {
+    let cmd_hash = calc_hash(DB_TESTCONTAINER_CMD_ARGS.iter().map(|arg| arg.as_bytes()));
+
+    // Same timeout as testcontainer startup (an image might be needed to pull)
+    let container = tokio::time::timeout(Duration::from_secs(60), async {
+        let mut interval = tokio::time::interval(Duration::from_secs(1));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            let result = postgres::Postgres::default()
+                .with_name(DB_TESTCONTAINER_IMAGE)
+                .with_tag(DB_TESTCONTAINER_IMAGE_TAG)
+                .with_container_name(DB_TESTCONTAINER_NAME)
+                .with_cmd(DB_TESTCONTAINER_CMD_ARGS.iter().copied())
+                .with_reuse(ReuseDirective::Always)
+                // Add labels to force testcontainers to recreate on changes
+                .with_label("image", DB_TESTCONTAINER_IMAGE)
+                .with_label("image-tag", DB_TESTCONTAINER_IMAGE_TAG)
+                .with_label("cmd-args", &cmd_hash)
+                .start()
+                .await;
+            match result {
+                Ok(container) => break container,
+                // When the container is not yet started, conflicts are returned, retry after a delay
+                Err(TestcontainersError::Client(ClientError::CreateContainer(
+                    BollardError::DockerResponseServerError {
+                        status_code: 409,
+                        message,
+                    },
+                ))) => {
+                    if message.contains("is already in use by container") {
+                        _ = remove_testcontainer().await;
+                    }
+                    continue;
+                }
+                Err(err) => panic!("Error starting testcontainer: {err}"),
+            }
+        }
+    })
+    .await
     .expect("Could not start testcontainer");
 
     (
@@ -273,6 +328,12 @@ async fn start_testcontainer() -> (String, u16) {
             .await
             .expect("Could not get testcontainer port"),
     )
+}
+
+async fn remove_testcontainer() -> Result<(), BollardError> {
+    let docker = Docker::connect_with_socket_defaults().expect("Could not connect to docker");
+    let options = RemoveContainerOptionsBuilder::default().force(true).build();
+    docker.remove_container(DB_TESTCONTAINER_NAME, Some(options)).await
 }
 
 async fn get_ipv4_addr(host: url::Host) -> String {
