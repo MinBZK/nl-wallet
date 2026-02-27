@@ -6,7 +6,7 @@ use reqwest::StatusCode;
 use url::ParseError;
 
 use error_category::ErrorCategory;
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;

@@ -19,11 +19,6 @@ path = "tests/verifier_api.rs"
 required-features = ["test"]
 
 [[test]]
-name = "postgres"
-path = "tests/postgres.rs"
-required-features = ["db_test"]
-
-[[test]]
 name = "settings"
 path = "tests/settings.rs"
 required-features = ["integration_test"]
@@ -36,10 +31,10 @@ test = [
     "attestation_data/example_credential_payloads",
     "attestation_data/generate",
     "attestation_data/mock",
+    "attestation_types/test_pid_constants",
     "chrono/now",
     "dcql/mock",
     "dep:assert_matches",
-    "attestation_types/test_pid_constants",
     "dep:http",
     "dep:itertools",
     "dep:parking_lot",
@@ -57,7 +52,6 @@ test = [
     "server_utils/parsed_key_pair_conversion",
     "token_status_list/mock",
     "tokio/macros",
-    "tokio/test-util",
     "utils/mock_time",
     "wscd/examples",
     "wscd/mock",
@@ -65,7 +59,7 @@ test = [
 # Enable integration tests
 integration_test = ["test"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["dep:serial_test", "futures/async-await", "integration_test", "tokio/sync"]
+db_test = ["dep:db_test", "integration_test"]
 
 [dependencies]
 anyhow.workspace = true
@@ -90,7 +84,6 @@ reqwest = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-serial_test = { workspace = true, optional = true }
 ssri = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 
@@ -105,6 +98,7 @@ server_utils = { path = "../server_utils", features = ["postgres"] }
 utils = { path = "../../lib/utils" }
 
 attestation_types = { path = "../../lib/attestation_types", optional = true }
+db_test = { path = "../../lib/db_test", optional = true }
 mdoc = { path = "../../lib/mdoc", optional = true }
 sd_jwt = { path = "../../lib/sd_jwt", optional = true }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", optional = true }

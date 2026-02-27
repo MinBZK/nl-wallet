@@ -1,5 +1,9 @@
 cookie_encryption_key = "${REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY}"
 
+[revocation_endpoint]
+base_url = "https://${SERVICES_HOST}:${WALLET_PROVIDER_PORT}/internal"
+trust_anchors = ["${WALLET_PROVIDER_SERVER_CA_CRT}"]
+
 [webserver]
 ip = '0.0.0.0'
 port = ${REVOCATION_PORTAL_PORT}

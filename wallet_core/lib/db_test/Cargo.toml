@@ -1,0 +1,37 @@
+[package]
+name = "db_test"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+async-dropper = { workspace = true, features = ["simple"] }
+async-trait.workspace = true
+bollard.workspace = true
+rand.workspace = true
+sea-orm = { workspace = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+]}
+sea-orm-migration = { workspace = true, features = [
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+]}
+strum = { workspace = true, features = ["derive"] }
+testcontainers = { workspace = true, features = ["reusable-containers"] }
+testcontainers-modules = { workspace = true, features = ["postgres"] }
+tracing.workspace = true
+tokio.workspace = true
+url.workspace = true
+
+audit_log_migrations.path = "../../wallet_provider/audit_log/migrations"
+issuance_server_migrations.path = "../../wallet_server/issuance_server/migrations"
+server_utils_migrations.path = "../../wallet_server/server_utils/migrations"
+wallet_provider_migrations.path = "../../wallet_provider/migrations"

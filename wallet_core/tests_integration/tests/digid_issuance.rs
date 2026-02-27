@@ -1,5 +1,6 @@
 use serial_test::serial;
 
+use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -34,10 +35,11 @@ use wscd::mock_remote::MockRemoteWscd;
 /// See also
 /// - `test_pid_ok()`, which uses the WP but mocks the OIDC part,
 /// - `accept_issuance()` in the `openid4vc` integration tests, which also mocks the HTTP server and client.
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
-    let (settings, _) = pid_issuer_settings("123".to_string());
+    let db_setup = DbSetup::create_clean().await;
+    let (settings, _) = pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string());
     let hsm = settings
         .issuer_settings
         .server_settings

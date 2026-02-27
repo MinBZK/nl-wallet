@@ -6,7 +6,7 @@ use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;

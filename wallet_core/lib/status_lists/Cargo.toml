@@ -36,7 +36,7 @@ axum = [
     "utoipa/uuid",
     "token_status_list/axum",
 ]
-db_test = ["axum", "dep:reqwest", "health_checkers/test_settings", "test"]
+db_test = ["axum", "dep:db_test", "dep:reqwest", "test", "tokio/rt-multi-thread"]
 test = []
 # Enable additional test API endpoints
 test_api = ["axum"]
@@ -73,24 +73,23 @@ tower-http = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
 utoipa-axum = { workspace = true, optional = true }
 
-attestation_types.path = "../../lib/attestation_types"
-crypto.path = "../../lib/crypto"
-jwt.path = "../../lib/jwt"
-http_utils.path = "../../lib/http_utils"
-hsm.path = "../../lib/hsm"
-measure.path = "../../lib/measure"
-token_status_list = { path = "../../lib/token_status_list" }
-utils.path = "../../lib/utils"
+attestation_types.path = "../attestation_types"
+crypto.path = "../crypto"
+jwt.path = "../jwt"
+http_utils.path = "../http_utils"
+measure.path = "../measure"
+token_status_list = { path = "../token_status_list" }
+utils.path = "../utils"
 
-health_checkers = { path = "../../lib/health_checkers", optional = true }
+db_test = { path = "../db_test", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
 p256.workspace = true
 rstest.workspace = true
 tempfile.workspace = true
-tokio = { workspace = true, features = ["macros", "test-util"] }
+tokio = { workspace = true, features = ["macros"] }
 uuid = { workspace = true, features = ["v4"] }
 
-crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
-utils = { path = "../../lib/utils", features = ["mock_time"] }
+crypto = { path = "../crypto", features = ["generate", "mock"] }
+utils = { path = "../utils", features = ["mock_time"] }

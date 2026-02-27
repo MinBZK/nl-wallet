@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use openid4vc::oidc;
 use openid4vc::oidc::BiscuitError;
 use openid4vc::oidc::Empty;

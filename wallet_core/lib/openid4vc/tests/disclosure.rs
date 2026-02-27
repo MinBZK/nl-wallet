@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use async_trait::async_trait;
+use chrono::DateTime;
 use chrono::Utc;
 use futures::FutureExt;
 use indexmap::IndexMap;
@@ -83,6 +84,8 @@ use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
+use openid4vc::server_state::test::memory_session_store_with_mock_time;
+use openid4vc::server_state::test::test_memory_store_with_cleanup_task;
 use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
@@ -103,6 +106,7 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use token_status_list::verification::client::mock::StatusListClientStub;
 use token_status_list::verification::verifier::RevocationVerifier;
+use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
@@ -804,7 +808,8 @@ async fn test_disclosure_invalid_poa() {
 
 #[tokio::test]
 async fn test_wallet_initiated_usecase_verifier() {
-    let (verifier, test_credentials, rp_trust_anchor, issuer_keypair) = setup_wallet_initiated_usecase_verifier();
+    let (verifier, test_credentials, rp_trust_anchor, issuer_keypair) =
+        setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
     let mut request_uri: Url = format!("https://example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
         .parse()
@@ -847,7 +852,8 @@ async fn test_wallet_initiated_usecase_verifier() {
 
 #[tokio::test]
 async fn test_wallet_initiated_usecase_verifier_cancel() {
-    let (verifier, _test_credentials, rp_trust_anchor, _issuer_keypair) = setup_wallet_initiated_usecase_verifier();
+    let (verifier, _test_credentials, rp_trust_anchor, _issuer_keypair) =
+        setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
     let mut request_uri: Url = format!("https://example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
         .parse()
@@ -972,12 +978,30 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
         .unwrap();
 }
 
-fn setup_wallet_initiated_usecase_verifier() -> (
-    Arc<MockWalletInitiatedUseCaseVerifier>,
+#[tokio::test]
+async fn test_cleanup_task() {
+    let (sessions, mock_time) = memory_session_store_with_mock_time();
+    let sessions = Arc::new(sessions);
+    let (verifier, _, _, _) = setup_wallet_initiated_usecase_verifier(sessions.clone());
+
+    let token = verifier
+        .new_session(WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(), None, None)
+        .await
+        .unwrap();
+    test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
+}
+
+fn setup_wallet_initiated_usecase_verifier<G>(
+    sessions: Arc<MemorySessionStore<DisclosureData, G>>,
+) -> (
+    Arc<MockWalletInitiatedUseCaseVerifier<G>>,
     TestCredentials,
     TrustAnchor<'static>,
     KeyPair,
-) {
+)
+where
+    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+{
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
@@ -1002,7 +1026,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (
 
     let verifier = Arc::new(MockWalletInitiatedUseCaseVerifier::new(
         WalletInitiatedUseCases::new(usecases),
-        Arc::new(MemorySessionStore::default()),
+        sessions,
         vec![issuer_ca.to_trust_anchor().to_owned()],
         Some(Box::new(MockDisclosureResultHandler::new(None))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
@@ -1146,8 +1170,9 @@ async fn request_status_endpoint(
 }
 
 type MockRpInitiatedUseCaseVerifier = MockVerifier<RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData>>>;
-type MockWalletInitiatedUseCaseVerifier = MockVerifier<WalletInitiatedUseCases<SigningKey>>;
-type MockVerifier<T> = Verifier<MemorySessionStore<DisclosureData>, T, StatusListClientStub<SigningKey>>;
+type MockWalletInitiatedUseCaseVerifier<G = TimeGenerator> = MockVerifier<WalletInitiatedUseCases<SigningKey>, G>;
+type MockVerifier<T, G = TimeGenerator> =
+    Verifier<MemorySessionStore<DisclosureData, G>, T, StatusListClientStub<SigningKey>>;
 
 #[derive(Debug)]
 struct VerifierMockVpMessageClient<T> {

@@ -18,6 +18,7 @@ use serde_with::DurationMilliSeconds;
 use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
+use url::Url;
 
 use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
@@ -27,7 +28,7 @@ use crypto::x509::BorrowingCertificate;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
-use http_utils::tls::server::TlsServerConfig;
+use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use status_lists::config::StatusListConfig;
 use status_lists::publish::PublishDir;
@@ -35,7 +36,7 @@ use status_lists::settings::ExpiryLessThanTtl;
 use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
-use wallet_provider_database_settings::Settings as DatabaseSettings;
+use wallet_provider_persistence::database::ConnectionOptions;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -72,6 +73,12 @@ pub struct Settings {
 
     pub ios: Ios,
     pub android: Android,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct DatabaseSettings {
+    pub url: Url,
+    pub options: ConnectionOptions,
 }
 
 #[derive(Clone, Deserialize)]
@@ -166,6 +173,11 @@ impl Settings {
             .set_default("wua_signing_key_identifier", "wua_signing_key")?
             .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
             .set_default("wua_valid_days", 365)?
+            .set_default("audit_log.options.connect_timeout_in_sec", "3")?
+            .set_default("audit_log.options.max_connections", "10")?
+            .set_default("database.options.connect_timeout_in_sec", "3")?
+            .set_default("database.options.max_connections", "10")?
+            .set_default("webserver.port", 8001)?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 8001)?
             .set_default("pin_policy.rounds", 4)?

@@ -8,7 +8,7 @@ use tracing::warn;
 use crypto::keys::EcdsaKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKey;
