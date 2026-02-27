@@ -65,16 +65,8 @@ impl CredentialIssuerIdentifier {
         Ok(Self { identifier, url })
     }
 
-    pub fn into_string(self) -> String {
-        self.identifier
-    }
-
     pub fn as_base_url(&self) -> &BaseUrl {
         &self.url
-    }
-
-    pub fn into_base_url(self) -> BaseUrl {
-        self.url
     }
 }
 
