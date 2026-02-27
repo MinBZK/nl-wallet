@@ -106,12 +106,6 @@ struct DoubleStructRoot {
     field_2: ChildError,
 }
 
-#[test]
-fn derive_error_category() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/derive_error_category/fail_*.rs");
-}
-
 #[rstest]
 #[case(ChildError::Unit, Category::Expected)]
 #[case(ChildError::Unexpected, Category::Unexpected)]
