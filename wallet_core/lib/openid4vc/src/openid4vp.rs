@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -84,13 +86,15 @@ pub enum AuthRequestError {
     CertificateParsing(#[from] CertificateError),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
+    #[error("Failed to parse client id string")]
+    ClientIdParsing(#[from] ParseClientIdError),
 }
 
 /// OpenID4VP request uri.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct VpRequestUri {
     /// MUST equal the client_id from the full Authorization Request.
-    pub client_id: String,
+    pub client_id: ClientId,
 
     #[serde(flatten)]
     pub object: VpRequestUriObject,
@@ -143,9 +147,6 @@ pub struct VpAuthorizationRequest {
 
     /// Metadata about the verifier such as their encryption key(s).
     pub client_metadata: Option<VpClientMetadata>,
-
-    /// Determines how the verifier is to be authenticated.
-    pub client_id_scheme: Option<ClientIdScheme>,
 
     /// REQUIRED if the ResponseMode `direct_post` or `direct_post.jwt` is used.
     /// In that case, the Authorization Response is to be posted to this URL by the wallet.
@@ -228,6 +229,61 @@ pub enum ClientIdScheme {
     VerifierAttestation,
     X509SanDns,
     X509SanUri,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct ClientId {
+    id: String,
+    scheme: ClientIdScheme,
+}
+
+impl fmt::Display for ClientId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let scheme = match serde_json::to_value(&self.scheme).map_err(|_| fmt::Error)? {
+            serde_json::Value::String(s) => s,
+            _ => return Err(fmt::Error),
+        };
+        match self.scheme {
+            // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-fallback
+            ClientIdScheme::PreRegistered => write!(f, "{}", self.id),
+            _ => write!(f, "{scheme}:{}", self.id),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ParseClientIdError {
+    BadScheme,
+}
+
+impl fmt::Display for ParseClientIdError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BadScheme => write!(f, "invalid scheme"),
+        }
+    }
+}
+impl std::error::Error for ParseClientIdError {}
+
+impl FromStr for ClientId {
+    type Err = ParseClientIdError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some((scheme_str, id)) = s.split_once(':') {
+            let scheme: ClientIdScheme =
+                serde_json::from_str(&format!("{scheme_str:?}")).map_err(|_| ParseClientIdError::BadScheme)?;
+            Ok(Self {
+                scheme,
+                id: id.to_string(),
+            })
+        } else {
+            Ok(Self {
+                // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-fallback
+                scheme: ClientIdScheme::PreRegistered,
+                id: s.to_string(),
+            })
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -395,8 +451,8 @@ pub enum AuthRequestValidationError {
     #[error("unsupported DCQL query: {0}")]
     UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
     #[error(
-        "client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 \
-         certificate ({dns_san})"
+        "client_id from Authorization Request was {client_id}, should have been x509_san_dns:{dns_san} to match the \
+         SAN DNSName from the X.509 certificate"
     )]
     #[category(critical)]
     UnauthorizedClientId { client_id: String, dns_san: String },
@@ -440,9 +496,7 @@ impl VpAuthorizationRequest {
 
     /// Validate that an Authorization Request satisfies the following:
     /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the [`x509_san_dns` value for
-    ///   `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
-    ///   which is used by the mentioned profile.
+    /// - the `client_id` uses the `x509_san_dns` scheme and equals the DNS SAN name in the X.509 certificate.
     ///
     /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
@@ -452,9 +506,16 @@ impl VpAuthorizationRequest {
         wallet_nonce: Option<&str>,
     ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
-        if dns_san != self.oauth_request.client_id {
+        let Some(client_id_dns_san) = self.oauth_request.client_id.strip_prefix("x509_san_dns:") else {
+            return Err(AuthRequestValidationError::UnsupportedFieldValue {
+                field: "client_id",
+                expected: "x509_san_dns:<dns_name>",
+                found: self.oauth_request.client_id.to_owned(),
+            });
+        };
+        if dns_san != client_id_dns_san {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
-                client_id: self.oauth_request.client_id,
+                client_id: self.oauth_request.client_id.clone(),
                 dns_san: String::from(dns_san),
             });
         }
@@ -478,7 +539,7 @@ impl VpAuthorizationRequest {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NormalizedVpAuthorizationRequest {
-    pub client_id: String,
+    pub client_id: ClientId,
     pub nonce: String,
     pub encryption_pubkey: JwePublicKey,
     pub response_uri: BaseUrl,
@@ -500,12 +561,17 @@ impl NormalizedVpAuthorizationRequest {
         let jwk = encryption_pubkey.jwk().clone();
 
         Ok(Self {
-            client_id: String::from(
-                rp_certificate
-                    .san_dns_name()
-                    .map_err(AuthRequestError::CertificateParsing)?
-                    .ok_or(AuthRequestError::MissingSAN)?,
-            ),
+            client_id: ClientId::from_str(
+                format!(
+                    "x509_san_dns:{}",
+                    rp_certificate
+                        .san_dns_name()
+                        .map_err(AuthRequestError::CertificateParsing)?
+                        .ok_or(AuthRequestError::MissingSAN)?
+                )
+                .as_str(),
+            )
+            .map_err(|err| AuthRequestError::ClientIdParsing(err))?,
             nonce,
             encryption_pubkey,
             response_uri,
@@ -525,7 +591,7 @@ impl NormalizedVpAuthorizationRequest {
 
     pub fn session_transcript(&self) -> SessionTranscript {
         SessionTranscript::new_oid4vp(
-            &self.client_id,
+            &self.client_id.to_string(),
             &self.nonce,
             Some(&self.encryption_pubkey.sha256_thumbprint_bytes()),
             &self.response_uri,
@@ -539,7 +605,7 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             oauth_request: AuthorizationRequest {
                 response_type: ResponseType::VpToken.into(),
-                client_id: value.client_id,
+                client_id: value.client_id.to_string(),
                 nonce: Some(value.nonce),
                 response_mode: Some(ResponseMode::DirectPostJwt),
                 redirect_uri: None,
@@ -551,7 +617,6 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
             },
             dcql_query: value.credential_requests.into(),
             client_metadata: Some(value.client_metadata),
-            client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(value.response_uri),
             wallet_nonce: value.wallet_nonce,
             transaction_data: None,
@@ -590,9 +655,6 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         if vp_auth_request.oauth_request.response_mode.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
         }
-        if vp_auth_request.client_id_scheme.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme"));
-        }
         if vp_auth_request.response_uri.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
         }
@@ -615,14 +677,6 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
             });
         }
-        if vp_auth_request.client_id_scheme.unwrap() != ClientIdScheme::X509SanDns {
-            return Err(AuthRequestValidationError::UnsupportedFieldValue {
-                field: "client_id_scheme",
-                expected: "x509_san_dns",
-                found: serde_json::to_string(&vp_auth_request.client_id_scheme).unwrap(),
-            });
-        }
-
         // Of fields that have an "_uri" variant, check that they are not used
         let Some(jwks) = client_metadata.jwks.direct() else {
             return Err(AuthRequestValidationError::UriVariantNotSupported(
@@ -638,7 +692,7 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         let encryption_pubkey = JwePublicKey::try_new(jwk)?;
 
         Ok(NormalizedVpAuthorizationRequest {
-            client_id: vp_auth_request.oauth_request.client_id,
+            client_id: vp_auth_request.oauth_request.client_id.parse::<ClientId>().unwrap(),
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey,
             credential_requests: vp_auth_request.dcql_query.try_into()?,
@@ -933,7 +987,7 @@ impl VpAuthorizationResponse {
         if holder_public_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
                 &holder_public_keys,
-                auth_request.client_id.as_str(),
+                auth_request.client_id.to_string().as_str(),
                 accepted_wallet_client_ids,
                 &auth_request.nonce,
             )?
@@ -1026,7 +1080,7 @@ impl VpAuthorizationResponse {
         C: StatusListClient,
     {
         let kb_verification_options = KbVerificationOptions {
-            expected_aud: &auth_request.client_id,
+            expected_aud: &auth_request.client_id.to_string(),
             expected_nonce: &auth_request.nonce,
             iat_leeway: SD_JWT_IAT_LEEWAY,
             iat_acceptance_window: SD_JWT_IAT_WINDOW,
@@ -1323,8 +1377,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id_scheme": "x509_san_dns",
-                "client_id": "example.com",
+                "client_id": "x509_san_dns:example.com",
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1599,7 +1652,7 @@ mod tests {
         partial_mdocs: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
         wscd: &MockRemoteWscd,
     ) -> (HashMap<CredentialQueryIdentifier, VerifiablePresentation>, Option<Poa>) {
-        let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
+        let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.to_string());
 
         let (query_ids, partial_mdocs) = partial_mdocs
             .into_iter()
@@ -1737,8 +1790,8 @@ mod tests {
             .finish();
 
         // Sign these into two `SdJwtPresentation`s and a PoA.
-        let kb_jwt_builder = KeyBindingJwtBuilder::new(auth_request.client_id.clone(), auth_request.nonce.clone());
-        let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
+        let kb_jwt_builder = KeyBindingJwtBuilder::new(auth_request.client_id.to_string(), auth_request.nonce.clone());
+        let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.to_string());
         let (sd_jwt_presentations, poa) = UnsignedSdJwtPresentation::sign_multiple(
             vec_nonempty![
                 (unsigned_presentation1, "sd_jwt_key_1"),
@@ -1891,7 +1944,7 @@ mod tests {
             .unwrap()
             .finish();
 
-        let kb_jwt_builder = KeyBindingJwtBuilder::new(auth_request.client_id.clone(), auth_request.nonce.clone());
+        let kb_jwt_builder = KeyBindingJwtBuilder::new(auth_request.client_id.to_string(), auth_request.nonce.clone());
         let sd_jwt_presentation = unsigned_presentation
             .sign(kb_jwt_builder, &sd_jwt_holder_key, &MockTimeGenerator::default())
             .now_or_never()
@@ -1916,7 +1969,7 @@ mod tests {
             JwtPopClaims::new(
                 Some(auth_request.nonce.clone()),
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                auth_request.client_id.clone(),
+                auth_request.client_id.to_string(),
             ),
         )
         .now_or_never()
