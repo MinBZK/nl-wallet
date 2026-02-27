@@ -48,6 +48,27 @@ const DB_DEFAULT_DATABASE: &str = "postgres";
 const DB_TESTCONTAINER_IMAGE: &str = "docker.io/library/postgres";
 const DB_TESTCONTAINER_IMAGE_TAG: &str = "18.2-trixie";
 const DB_TESTCONTAINER_NAME: &str = "wallet-postgres-test";
+const DB_TESTCONTAINER_CMD_ARGS: &[&str] = &[
+    "postgres",
+    // Allow for more connections with larger shared buffers
+    "-N",
+    "200",
+    "-c",
+    "shared_buffers=128MB",
+    // Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
+    "-c",
+    "fsync=off",
+    "-c",
+    "synchronous_commit=off",
+    "-c",
+    "full_page_writes=off",
+    // Minimal WAL
+    "-c",
+    "wal_level=minimal",
+    "-c",
+    "max_wal_senders=0",
+];
+
 const DB_TESTCONTAINER_TRIES: u8 = 5;
 const DB_TESTCONTAINER_RETRY_DELAY: Duration = Duration::from_secs(1);
 
@@ -246,7 +267,7 @@ async fn start_testcontainer() -> (String, u16) {
             .with_name(DB_TESTCONTAINER_IMAGE)
             .with_tag(DB_TESTCONTAINER_IMAGE_TAG)
             .with_container_name(DB_TESTCONTAINER_NAME)
-            .with_cmd(["postgres", "-N", "200", "-c", "shared_buffers=128MB"])
+            .with_cmd(DB_TESTCONTAINER_CMD_ARGS.iter().copied())
             .with_reuse(ReuseDirective::Always)
             .start()
             .await;
