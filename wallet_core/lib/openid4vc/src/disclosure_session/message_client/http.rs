@@ -109,7 +109,7 @@ impl VpMessageClient for HttpVpMessageClient {
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.http_client
             .post(url.into_inner())
-            .form(&VpToken { vp_token: jwe })
+            .form(&VpToken { response: jwe })
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
