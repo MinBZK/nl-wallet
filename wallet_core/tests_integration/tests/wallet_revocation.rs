@@ -11,7 +11,6 @@ use serial_test::serial;
 use tempfile::TempDir;
 
 use audit_log::entity;
-use crypto::utils::random_string;
 use db_test::DbSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::trusted_reqwest_client_builder;
@@ -37,7 +36,7 @@ async fn test_revoke_wallet_by_revocation_code() {
     let pin = "112233";
 
     let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _, audit_log_connection) =
-        setup_revocation_env(&db_setup, "123".to_string()).await;
+        setup_revocation_env(&db_setup).await;
 
     let dir = TempDir::new().unwrap();
     let wallet = setup_file_wallet(
@@ -102,7 +101,7 @@ async fn test_revoke_wallets_by_id() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, "123".to_string()).await;
+    ) = setup_revocation_env(&db_setup).await;
 
     let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
 
@@ -155,7 +154,6 @@ async fn test_revoke_wallets_by_recovery_code() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
-    // Use a random recovery code to prevent breaking other tests that use a constant recovery code
     let (
         config_server_config,
         mock_device_config,
@@ -164,7 +162,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, random_string(32)).await;
+    ) = setup_revocation_env(&db_setup).await;
 
     let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
 
@@ -248,7 +246,6 @@ async fn test_revoke_wallets_by_recovery_code() {
 
 async fn setup_revocation_env(
     db_setup: &DbSetup,
-    recovery_code: String,
 ) -> (
     ConfigServerConfiguration,
     MockDeviceConfig,
@@ -267,7 +264,7 @@ async fn setup_revocation_env(
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),
         verification_server_settings(db_setup.verification_server_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url(), recovery_code),
+        pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
@@ -359,7 +356,7 @@ async fn assert_wallet_revoked(
         Err(WalletUnlockError::Instruction(InstructionError::AccountRevoked(actual))) if actual == revocation_data
     );
 
-    assert!(wallet.has_registration() == has_registration);
+    assert_eq!(wallet.has_registration(), has_registration);
 
     if has_registration {
         assert_eq!(
