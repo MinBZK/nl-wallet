@@ -21,9 +21,7 @@ required-features = ["integration_test"]
 
 [features]
 # Allow Credential Issuer Identifiers to contain "http://".
-allow_insecure_url = ["http_utils/allow_insecure_url"]
-# Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["allow_insecure_url", "openid4vc/test", "tokio/sync"]
+allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Enable mock PID issuance
 mock = ["attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
 # Enable integration tests
