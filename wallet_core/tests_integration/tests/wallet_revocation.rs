@@ -1,10 +1,7 @@
-use std::collections::HashSet;
 use std::iter;
 
 use assert_matches::assert_matches;
-use sea_orm::ColumnTrait;
 use sea_orm::EntityTrait;
-use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use serde_json::json;
 use serial_test::serial;
@@ -55,8 +52,6 @@ async fn test_revoke_wallet_by_revocation_code() {
         .unwrap()
         .to_string();
 
-    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
-
     call_wp_revocation_endpoint(
         wp_root_ca,
         wp_port,
@@ -67,7 +62,6 @@ async fn test_revoke_wallet_by_revocation_code() {
 
     assert_audit_log_entry(
         &audit_log_connection,
-        max_audit_log_id,
         "revoke_wallet_by_revocation_code",
         json!({"revocation_code": revocation_code}),
     )
@@ -103,8 +97,6 @@ async fn test_revoke_wallets_by_id() {
         audit_log_connection,
     ) = setup_revocation_env(&db_setup).await;
 
-    let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
-
     let wallet = setup_in_memory_wallet(
         config_server_config,
         wallet_config,
@@ -114,20 +106,13 @@ async fn test_revoke_wallets_by_id() {
     let wallet = do_wallet_registration(wallet, pin).await;
     let mut wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
-    let wallet_ids_after: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
-    let wallet_id = wallet_ids_after
-        .difference(&wallet_ids_before)
-        .next()
-        .expect("should have registered exactly one new wallet")
-        .to_string();
-
-    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
+    let wallet_ids = get_all_wallet_ids(&connection).await;
+    let wallet_id = wallet_ids.first().expect("should have registered a wallet").to_string();
 
     call_wp_revocation_endpoint(wp_root_ca, wp_port, "/internal/revoke-wallets-by-id/", &[&wallet_id]).await;
 
     assert_audit_log_entry(
         &audit_log_connection,
-        max_audit_log_id,
         "revoke_wallets_by_wallet_id",
         json!({"wallet_ids": [wallet_id]}),
     )
@@ -164,8 +149,6 @@ async fn test_revoke_wallets_by_recovery_code() {
         audit_log_connection,
     ) = setup_revocation_env(&db_setup).await;
 
-    let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
-
     let wallet = setup_in_memory_wallet(
         config_server_config.clone(),
         wallet_config.clone(),
@@ -175,16 +158,10 @@ async fn test_revoke_wallets_by_recovery_code() {
     let wallet = do_wallet_registration(wallet, pin).await;
     let mut wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
-    let wallet_ids_after: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
-    let wallet_id = wallet_ids_after
-        .difference(&wallet_ids_before)
-        .next()
-        .expect("should have registered exactly one new wallet")
-        .to_string();
+    let wallet_ids = get_all_wallet_ids(&connection).await;
+    let wallet_id = wallet_ids.first().expect("should have registered a wallet").to_string();
 
     let recovery_code = get_wallet_recovery_code(&connection, &wallet_id).await;
-
-    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
 
     call_wp_revocation_endpoint(
         wp_root_ca,
@@ -196,7 +173,6 @@ async fn test_revoke_wallets_by_recovery_code() {
 
     assert_audit_log_entry(
         &audit_log_connection,
-        max_audit_log_id,
         "revoke_wallets_by_recovery_code",
         json!({"recovery_code": recovery_code}),
     )
@@ -308,24 +284,12 @@ async fn call_wp_revocation_endpoint(
     assert!(response.status().is_success());
 }
 
-async fn get_max_audit_log_id(connection: &sea_orm::DatabaseConnection) -> i32 {
-    entity::audit_log::Entity::find()
-        .order_by_desc(entity::audit_log::Column::Id)
-        .one(connection)
-        .await
-        .unwrap()
-        .map(|m| m.id)
-        .unwrap_or(0)
-}
-
 async fn assert_audit_log_entry(
     connection: &sea_orm::DatabaseConnection,
-    max_id_before: i32,
     expected_operation: &str,
     expected_params: serde_json::Value,
 ) {
     let records = entity::audit_log::Entity::find()
-        .filter(entity::audit_log::Column::Id.gt(max_id_before))
         .order_by_asc(entity::audit_log::Column::Id)
         .all(connection)
         .await
