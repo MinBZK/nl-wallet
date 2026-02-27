@@ -3,18 +3,6 @@
 @import url("../../lib/web_utils/static/css/language_selector.css");
 @import url("../../lib/web_utils/static/css/fonts.css");
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 :root {
   font-family: "RO Sans", sans-serif;
   font-feature-settings: "clig" off, "liga" off;
