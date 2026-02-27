@@ -199,11 +199,19 @@ impl DbSetup {
             .username(DB_USER)
             .password(DB_PASSWORD)
             .database(DB_DEFAULT_DATABASE);
-        let connection = PgConnection::connect_with(&connect_options)
-            .await
-            .expect("Connecting to database failed");
-        // Wrap in dropper to ensure connection is closed on dropped and advisory locks are released
-        let mut connection = AsyncDropper::new(connection.into());
+        let mut connection = tokio::time::timeout(Duration::from_secs(1), async {
+            let mut interval = tokio::time::interval(Duration::from_millis(100));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            loop {
+                interval.tick().await;
+                if let Ok(connection) = PgConnection::connect_with(&connect_options).await {
+                    // Wrap in dropper to ensure connection is closed on dropped and advisory locks are released
+                    break AsyncDropper::new(connection.into());
+                }
+            }
+        })
+        .await
+        .expect("Could not connect to database");
 
         // Create templates if not on CI
         if !ci {
