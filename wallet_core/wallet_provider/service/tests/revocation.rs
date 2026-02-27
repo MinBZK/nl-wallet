@@ -73,7 +73,7 @@ async fn setup_state(
     StubWalletFlags,
     MockPkcs11Client<HsmError>,
     MockWuaIssuer,
-    PostgresStatusListService<SigningKey>,
+    PostgresStatusListService<SigningKey, StubWalletFlags>,
 > {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db: Db = db_from_setup(db_setup).await;
@@ -91,7 +91,8 @@ async fn setup_state(
         key_pair,
     };
 
-    let service = PostgresStatusListService::try_new(db.to_connection(), &random_string(20), config)
+    let flags = StubWalletFlags::default();
+    let service = PostgresStatusListService::try_new(db.to_connection(), &random_string(20), config, flags.clone())
         .await
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap().into_iter())
@@ -102,6 +103,7 @@ async fn setup_state(
 
     user_state(
         Repositories::from(db),
+        flags,
         hsm,
         "wrapping_key_identifier".to_owned(),
         vec![],
@@ -116,7 +118,7 @@ async fn register_wallets_with_wuas(
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
-        PostgresStatusListService<SigningKey>,
+        PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
 ) -> (Vec<WalletId>, Vec<Vec<(Uuid, StatusClaim)>>) {
     let (wallets, wuas): (Vec<WalletId>, Vec<Vec<(Uuid, StatusClaim)>>) =
@@ -185,7 +187,7 @@ async fn verify_revocation(
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
-        PostgresStatusListService<SigningKey>,
+        PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
     expected_status_type: StatusType,
 ) {
@@ -246,7 +248,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
-        PostgresStatusListService<SigningKey>,
+        PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
     revocation_code_key_identifier: &str,
 ) -> (Vec<(WalletId, RevocationCode)>, Vec<Vec<(Uuid, StatusClaim)>>) {

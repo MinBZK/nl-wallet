@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::future;
 use std::num::NonZeroUsize;
 use std::path::Path;
@@ -66,7 +67,6 @@ use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_type;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
-use crate::flag::Flag;
 use crate::publish::LockVersion;
 use crate::publish::PublishLockError;
 use crate::refresh::RefreshControl;
@@ -77,17 +77,32 @@ const EXTERNAL_ID_SIZE: usize = 12;
 /// Number of tries to create status list while obtaining a status claim.
 const IN_FLIGHT_CREATE_TRIES: usize = 5;
 
-/// Flag name used in the database (as a key) to revoke all status lists
-const FLAG_NAME_REVOKE_ALL: &str = "revoke_all";
-
 /// Maximal concurrent publish when revoke_all is called
 const REPUBLISH_ALL_MAX_CONCURRENT: usize = 16;
+
+#[trait_variant::make(Send)]
+pub trait RevokeAll {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    async fn is_revoked_all(&self) -> Result<bool, Self::Error>;
+}
+
+#[derive(Debug, Clone)]
+pub struct NoRevokeAll;
+
+impl RevokeAll for NoRevokeAll {
+    type Error = Infallible;
+
+    async fn is_revoked_all(&self) -> Result<bool, Self::Error> {
+        Ok(false)
+    }
+}
 
 /// StatusListService implementation using Postgres for multiple attestation types.
 ///
 /// See [PostgresStatusListService] for more.
 #[derive(Debug)]
-pub struct PostgresStatusListServices<K>(HashMap<String, PostgresStatusListService<K>>);
+pub struct PostgresStatusListServices<K>(HashMap<String, PostgresStatusListService<K, NoRevokeAll>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -106,26 +121,27 @@ pub struct PostgresStatusListServices<K>(HashMap<String, PostgresStatusListServi
 /// status list. This next sequence number is also stored on the attestation type to detect a
 /// concurrent creation of the list by a separate instance.
 #[derive(Debug)]
-pub struct PostgresStatusListService<K> {
+pub struct PostgresStatusListService<K, R> {
     connection: DatabaseConnection,
     /// ID of the attestation type in the DB
     attestation_type_id: i16,
     config: Arc<StatusListConfig<K>>,
-    revoke_all_flag: Flag,
+    revoke_all: R,
 }
 
 // Manually implement Clone as derived Clone uses incorrect bounds:
 // https://github.com/rust-lang/rust/issues/26925#issue-94161444
-impl<K> Clone for PostgresStatusListService<K>
+impl<K, R> Clone for PostgresStatusListService<K, R>
 where
     K: EcdsaKeySend + Sync + 'static,
+    R: RevokeAll + Clone,
 {
     fn clone(&self) -> Self {
         Self {
             connection: self.connection.clone(),
             attestation_type_id: self.attestation_type_id,
             config: self.config.clone(),
-            revoke_all_flag: self.revoke_all_flag.clone(),
+            revoke_all: self.revoke_all.clone(),
         }
     }
 }
@@ -161,6 +177,9 @@ pub enum StatusListServiceError {
 
     #[error("could not lock for publish: {0}")]
     PublishLock(#[from] PublishLockError),
+
+    #[error("could not get revoke all state: {0}")]
+    RevokeAll(#[from] Box<dyn std::error::Error + Send + Sync>),
 
     #[error("too many claims requested: {0}")]
     TooManyClaimsRequested(usize),
@@ -206,8 +225,11 @@ impl<K> StatusListRevocationService for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + 'static,
 {
-    async fn revoke_all(&self) -> Result<(), RevocationError> {
-        unimplemented!("Only implemented for single PostgresStatusListService")
+    async fn republish_all(&self) -> Result<(), RevocationError> {
+        join_all(self.services().map(|service| service.republish_all()))
+            .await
+            .into_iter()
+            .fold_ok((), |_, _| ())
     }
 
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
@@ -250,7 +272,7 @@ impl<K> PostgresStatusListServices<K> {
                     connection: connection.clone(),
                     attestation_type_id,
                     config: Arc::new(config),
-                    revoke_all_flag: Flag::new(connection.clone(), FLAG_NAME_REVOKE_ALL.to_string()),
+                    revoke_all: NoRevokeAll,
                 };
                 (attestation_type, service)
             })
@@ -268,11 +290,11 @@ where
         Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
     }
 
-    fn services(&self) -> impl Iterator<Item = &PostgresStatusListService<K>> {
+    fn services(&self) -> impl Iterator<Item = &PostgresStatusListService<K, NoRevokeAll>> {
         self.0.values()
     }
 
-    fn first_service(&self) -> &PostgresStatusListService<K> {
+    fn first_service(&self) -> &PostgresStatusListService<K, NoRevokeAll> {
         // in the constructor we ensure that at least one service is present
         self.0.values().next().expect("at least one service should be present")
     }
@@ -282,9 +304,10 @@ where
     }
 }
 
-impl<K> StatusListService for PostgresStatusListService<K>
+impl<K, R> StatusListService for PostgresStatusListService<K, R>
 where
     K: EcdsaKeySend + Sync + 'static,
+    R: RevokeAll + Clone + Sync + 'static,
 {
     type Error = StatusListServiceError;
 
@@ -301,21 +324,42 @@ where
     }
 }
 
-impl<K> StatusListRevocationService for PostgresStatusListService<K>
+impl<K, R> StatusListRevocationService for PostgresStatusListService<K, R>
 where
     K: EcdsaKeySend + Sync + 'static,
+    R: RevokeAll + Clone + Sync + 'static,
 {
-    async fn revoke_all(&self) -> Result<(), RevocationError> {
-        // First set revoke all to ensure new lists are also created with invalid status
-        self.revoke_all_flag
-            .set()
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
+    async fn republish_all(&self) -> Result<(), RevocationError> {
+        let service = self.clone();
+        let mut stream = status_list::Entity::find()
+            .select_only()
+            .select_column(status_list::Column::Id)
+            .select_column(status_list::Column::ExternalId)
+            .select_column(status_list::Column::Size)
+            .into_tuple::<(i64, String, i32)>()
+            .stream(&self.connection)
             .await
-            .map_err(|err| RevocationError::InternalError(Box::new(err)))?;
-        self.republish_revoke_all()
-            .await
-            .map_err(|err| RevocationError::InternalError(Box::new(err)))
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?
+            .map(async |result| match result {
+                Ok((list_id, external_id, size)) => {
+                    service.publish_status_list(list_id, &external_id, size as usize).await
+                }
+                Err(err) => future::ready(Err(StatusListServiceError::Db(err))).await,
+            })
+            .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
+
+        let mut result = Ok(());
+        while let Some(job_result) = stream.next().await {
+            if let Err(err) = job_result {
+                tracing::error!("Error publishing list: {:?}", err);
+                result = Err(err);
+            }
+        }
+        result.map_err(|e| RevocationError::InternalError(Box::new(e)))
     }
 
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         // Find batches and status_lists for this service by batch_ids
         let batches: Vec<(i64, i64, String, i32)> = attestation_batch::Entity::find()
@@ -361,6 +405,7 @@ where
         Ok(())
     }
 
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
         attestation_batch::Entity::find()
             .filter(attestation_batch::Column::BatchId.eq(batch_id))
@@ -375,6 +420,7 @@ where
             .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
     }
 
+    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
         Ok(attestation_batch::Entity::find()
             .select_only()
@@ -390,31 +436,12 @@ where
     }
 }
 
-impl<K> PostgresStatusListService<K> {
+impl<K, R> PostgresStatusListService<K, R> {
     pub async fn try_new(
         connection: DatabaseConnection,
         attestation_type: &str,
         config: StatusListConfig<K>,
-    ) -> Result<Self, StatusListServiceError> {
-        let revoke_all_flag = Flag::new(connection.clone(), FLAG_NAME_REVOKE_ALL.to_string());
-        Self::try_new_with_flag_inner(connection, attestation_type, config, revoke_all_flag).await
-    }
-
-    #[cfg(feature = "test")]
-    pub async fn try_new_with_flag(
-        connection: DatabaseConnection,
-        attestation_type: &str,
-        config: StatusListConfig<K>,
-        revoke_all_flag: Flag,
-    ) -> Result<Self, StatusListServiceError> {
-        Self::try_new_with_flag_inner(connection, attestation_type, config, revoke_all_flag).await
-    }
-
-    async fn try_new_with_flag_inner(
-        connection: DatabaseConnection,
-        attestation_type: &str,
-        config: StatusListConfig<K>,
-        revoke_all_flag: Flag,
+        revoke_all: R,
     ) -> Result<Self, StatusListServiceError> {
         let attestation_types = vec![attestation_type];
         let attestation_type_ids = initialize_attestation_type_ids(&connection, attestation_types).await?;
@@ -427,14 +454,15 @@ impl<K> PostgresStatusListService<K> {
             connection,
             attestation_type_id,
             config: Arc::new(config),
-            revoke_all_flag,
+            revoke_all,
         })
     }
 }
 
-impl<K> PostgresStatusListService<K>
+impl<K, R> PostgresStatusListService<K, R>
 where
     K: EcdsaKeySend + Sync + 'static,
+    R: RevokeAll + Clone + Sync + 'static,
 {
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     pub async fn obtain_status_claims_and_scheduled_tasks(
@@ -937,10 +965,16 @@ where
     }
 
     async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
+        let is_revoked_all = self
+            .revoke_all
+            .is_revoked_all()
+            .await
+            .map_err(|err| StatusListServiceError::RevokeAll(err.into()))?;
+
         // Build new status list
         let expires = Utc::now() + self.config.expiry;
         let sub = self.config.base_url.join(external_id);
-        let packed = if self.revoke_all_flag.is_set().await? {
+        let packed = if is_revoked_all {
             PackedStatusList::all_invalid(self.config.list_size.as_usize())
         } else {
             PackedStatusList::new(self.config.list_size.as_usize())
@@ -970,7 +1004,12 @@ where
         external_id: &str,
         size: usize,
     ) -> Result<bool, StatusListServiceError> {
-        if self.revoke_all_flag.is_set().await? {
+        let is_revoked_all = self
+            .revoke_all
+            .is_revoked_all()
+            .await
+            .map_err(|err| StatusListServiceError::RevokeAll(err.into()))?;
+        if is_revoked_all {
             self.publish_status_list_all_revoked(external_id, size).await
         } else {
             self.publish_status_list_from_db(list_id, external_id, size).await
@@ -1062,36 +1101,6 @@ where
 
         Ok(())
     }
-
-    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    pub async fn republish_revoke_all(&self) -> Result<(), StatusListServiceError> {
-        let service = self.clone();
-        let mut stream = status_list::Entity::find()
-            .select_only()
-            .select_column(status_list::Column::ExternalId)
-            .select_column(status_list::Column::Size)
-            .into_tuple::<(String, i32)>()
-            .stream(&self.connection)
-            .await?
-            .map(async |result| match result {
-                Ok((external_id, size)) => {
-                    service
-                        .publish_status_list_all_revoked(&external_id, size as usize)
-                        .await
-                }
-                Err(err) => future::ready(Err(StatusListServiceError::Db(err))).await,
-            })
-            .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
-
-        let mut result = Ok(());
-        while let Some(job_result) = stream.next().await {
-            if let Err(err) = job_result {
-                tracing::error!("Error publishing list: {:?}", err);
-                result = Err(err);
-            }
-        }
-        result
-    }
 }
 
 async fn initialize_attestation_type_ids(
@@ -1175,7 +1184,7 @@ mod tests {
 
     use super::*;
 
-    fn mock_service() -> PostgresStatusListService<SigningKey> {
+    fn mock_service() -> PostgresStatusListService<SigningKey, NoRevokeAll> {
         PostgresStatusListService {
             connection: DatabaseConnection::default(),
             attestation_type_id: 1,
@@ -1193,7 +1202,7 @@ mod tests {
                     .unwrap(),
             }
             .into(),
-            revoke_all_flag: Flag::new(DatabaseConnection::default(), FLAG_NAME_REVOKE_ALL.to_string()),
+            revoke_all: NoRevokeAll,
         }
     }
 

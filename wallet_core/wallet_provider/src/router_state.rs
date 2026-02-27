@@ -42,19 +42,21 @@ use wallet_provider_service::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
 
+type ProductionUserState = UserState<
+    Repositories,
+    WalletRepoFlags<Repositories>,
+    Pkcs11Hsm,
+    HsmWuaIssuer<Pkcs11Hsm>,
+    PostgresStatusListService<HsmEcdsaKey, WalletRepoFlags<Repositories>>,
+>;
+
 pub struct RouterState<GRC, PIC> {
     pub account_server: AccountServer<GRC, PIC>,
     pub audit_log: PostgresAuditLog<UuidV7Generator>,
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: UserState<
-        Repositories,
-        WalletRepoFlags<Repositories>,
-        Pkcs11Hsm,
-        HsmWuaIssuer<Pkcs11Hsm>,
-        PostgresStatusListService<HsmEcdsaKey>,
-    >,
+    pub user_state: ProductionUserState,
     pub max_transfer_upload_size_in_bytes: usize,
 }
 
@@ -133,10 +135,13 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             uuid_generator: UuidV7Generator,
         };
 
+        let repositories = Repositories::from(db.clone());
+        let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
         let status_list_service = PostgresStatusListService::try_new(
             db.to_connection(),
             WUA_ATTESTATION_TYPE_IDENTIFIER,
             settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
+            flags.clone(),
         )
         .await?;
         status_list_service.initialize_lists().await?;
@@ -153,16 +158,12 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let repositories = Repositories::from(db);
         let wua_issuer = HsmWuaIssuer::new(
             HsmEcdsaKey::new(settings.wua_signing_key_identifier, wallet_user_hsm.clone()),
             settings.wua_issuer_identifier,
             wallet_user_hsm.clone(),
             settings.attestation_wrapping_key_identifier.clone(),
         );
-
-        let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
-        flags.start_refresh_job();
 
         let state = RouterState {
             account_server,

@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::error::Error;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -15,6 +14,7 @@ use utils::generator::Generator;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
+use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
@@ -22,6 +22,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletFlagRepository;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::account_server::UserState;
@@ -52,11 +53,11 @@ pub enum RevocationError {
     RecoveryCodeNotFound(RecoveryCode),
 
     #[error("error while auditing: {0}")]
-    AuditLog(#[source] Box<dyn Error + Send + Sync>),
+    AuditLog(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl FromAuditLogError for RevocationError {
-    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+    fn from_audit_log_error(audit_log_error: Box<dyn std::error::Error + Send + Sync>) -> Self {
         Self::AuditLog(audit_log_error)
     }
 }
@@ -225,7 +226,22 @@ where
         .set_solution_revoked()
         .await
         .map_err(|err| RevocationError::Flag(Box::new(err)))?;
-    user_state.status_list_service.revoke_all().await?;
+    user_state.status_list_service.republish_all().await?;
+    Ok(())
+}
+
+pub async fn reboot_solution<R, F, H>(
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+) -> Result<(), RevocationError>
+where
+    R: WalletFlagRepository,
+{
+    user_state
+        .repositories
+        .clear_flag(WalletFlag::SolutionRevoked)
+        .await
+        .map_err(|err| RevocationError::Flag(Box::new(err)))?;
+    user_state.status_list_service.republish_all().await?;
     Ok(())
 }
 

@@ -9,6 +9,7 @@ use tokio::sync::Mutex;
 use tokio::task::AbortHandle;
 use tokio::time::MissedTickBehavior;
 
+use status_lists::postgres::RevokeAll;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::WalletFlagRepository;
@@ -158,17 +159,34 @@ where
     }
 }
 
+impl<R> RevokeAll for WalletRepoFlags<R>
+where
+    R: WalletFlagRepository + Sync,
+{
+    type Error = PersistenceError;
+
+    async fn is_revoked_all(&self) -> Result<bool, Self::Error> {
+        // Directly query the database as the republish all is already done and
+        // new status lists can get created which should be published with all
+        // invalid.
+        self.repository.get_flag(WalletFlag::SolutionRevoked).await
+    }
+}
+
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use std::convert::Infallible;
+    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
 
+    use status_lists::postgres::RevokeAll;
+
     use crate::flags::WalletFlags;
 
-    #[derive(Default)]
+    #[derive(Clone, Default)]
     pub struct StubWalletFlags {
-        solution_revoked: AtomicBool,
+        solution_revoked: Arc<AtomicBool>,
     }
 
     impl StubWalletFlags {
@@ -187,6 +205,14 @@ pub mod mock {
 
         fn solution_is_revoked(&self) -> bool {
             self.solution_revoked.load(Ordering::Relaxed)
+        }
+    }
+
+    impl RevokeAll for StubWalletFlags {
+        type Error = Infallible;
+
+        async fn is_revoked_all(&self) -> Result<bool, Infallible> {
+            Ok(self.solution_is_revoked())
         }
     }
 }

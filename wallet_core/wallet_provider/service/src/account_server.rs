@@ -1772,16 +1772,17 @@ pub mod mock {
         MockStatusListService,
     >;
 
-    pub fn user_state<R, S>(
+    pub fn user_state<R, F, S>(
         repositories: R,
+        flags: F,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
         pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
         status_list_service: S,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
-        UserState::<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
+    ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
+        UserState::<R, F, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
             repositories,
-            flags: StubWalletFlags::default(),
+            flags,
             wallet_user_hsm,
             wua_issuer: MockWuaIssuer,
             wua_validity: Days::new(1),
@@ -2248,6 +2249,7 @@ mod tests {
 
         let user_state = mock::user_state(
             repo,
+            StubWalletFlags::default(),
             hsm,
             wrapping_key_identifier,
             vec![],

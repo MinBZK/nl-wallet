@@ -21,7 +21,6 @@ use db_test::DbSetup;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::mock::MockPkcs11Client;
-use status_lists::entity::status_list_flag;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -130,9 +129,6 @@ impl AsyncDrop for ClearFlags {
     async fn async_drop(&mut self) {
         let db = db_from_url(self.0.as_ref().unwrap().clone()).await;
         if let Err(err) = wallet_flag::Entity::delete_many().exec(db.connection()).await {
-            tracing::error!("Could not delete flags {err}");
-        }
-        if let Err(err) = status_list_flag::Entity::delete_many().exec(db.connection()).await {
             tracing::error!("Could not delete flags {err}");
         }
     }

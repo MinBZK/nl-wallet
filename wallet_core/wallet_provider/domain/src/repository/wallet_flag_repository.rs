@@ -8,6 +8,8 @@ type Result<T> = std::result::Result<T, PersistenceError>;
 pub trait WalletFlagRepository {
     async fn fetch_flags(&self) -> Result<Vec<(WalletFlag, bool)>>;
 
+    async fn get_flag(&self, flag: WalletFlag) -> Result<bool>;
+
     async fn set_flag(&self, flag: WalletFlag) -> Result<()>;
 
     async fn clear_flag(&self, flag: WalletFlag) -> Result<()>;

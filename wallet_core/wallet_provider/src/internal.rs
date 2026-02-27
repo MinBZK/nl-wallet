@@ -184,6 +184,24 @@ where
 
 #[cfg(feature = "test_internal_ui")]
 #[utoipa::path(
+    post,
+    path = "/reboot-solution/",
+    responses(
+        (status = OK, description = "Successfully reboot solution."),
+    )
+)]
+async fn reboot_solution<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+) -> Result<(), RevocationError>
+where
+    GRC: Send + Sync + 'static,
+    PIC: Send + Sync + 'static,
+{
+    Ok(wallet_provider_service::revocation::reboot_solution(&router_state.user_state).await?)
+}
+
+#[cfg(feature = "test_internal_ui")]
+#[utoipa::path(
     get,
     path = "/wallet/",
     responses(
@@ -293,7 +311,7 @@ where
     }
 
     #[cfg(feature = "test_internal_ui")]
-    let router = router.routes(routes!(list_wallets));
+    let router = router.routes(routes!(list_wallets)).routes(routes!(reboot_solution));
 
     let router = router.with_state(state);
 
