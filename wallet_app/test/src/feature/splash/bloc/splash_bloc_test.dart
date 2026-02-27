@@ -103,9 +103,9 @@ void main() {
   );
 
   blocTest(
-    'verify user is redirected to transfer when wallet state is WalletStateTransferring with target role',
+    'verify user is redirected to transfer when wallet state is WalletStateTransferring with destination role',
     setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer(
-      (_) async => const WalletStateTransferring(TransferRole.target),
+      (_) async => const WalletStateTransferring(TransferRole.destination),
     ),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),

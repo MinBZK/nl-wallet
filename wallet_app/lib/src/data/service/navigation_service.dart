@@ -76,7 +76,7 @@ class NavigationService extends AppEventListener {
       WalletStateUnregistered() || WalletStateEmpty() => .finishSetup,
       WalletStateTransferPossible() => .finishTransferringDestination,
       WalletStateTransferring(role: .source) => WalletDialogType.finishTransferringSource,
-      WalletStateTransferring(role: .target) => WalletDialogType.finishTransferringDestination,
+      WalletStateTransferring(role: .destination) => WalletDialogType.finishTransferringDestination,
       WalletStateInDisclosureFlow() => .finishActiveDisclosureSession,
       WalletStateInIssuanceFlow() => .finishActiveIssuanceSession,
       WalletStateInPinChangeFlow() || WalletStateInPinRecoveryFlow() => .finishRecoverPin,

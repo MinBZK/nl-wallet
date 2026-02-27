@@ -46,7 +46,7 @@ void main() {
         );
         final output = mapper.map(input);
         expect(output, isA<WalletStateTransferring>());
-        expect((output as WalletStateTransferring).role, TransferRole.target);
+        expect((output as WalletStateTransferring).role, TransferRole.destination);
       },
     );
 

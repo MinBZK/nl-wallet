@@ -44,7 +44,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       case WalletStateTransferPossible():
         emit(const SplashLoaded(.transfer));
       case WalletStateTransferring():
-        if (unlockedState.role == .target) {
+        if (unlockedState.role == .destination) {
           emit(const SplashLoaded(.transfer));
         } else {
           /// Transfer will be cancelled by [WalletTransferEventListener]
