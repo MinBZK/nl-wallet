@@ -39,6 +39,7 @@ pub struct IssuerMetadata {
 pub enum IssuerMetadataDiscoveryError {
     #[error("could not fetch or deserialize credential issuer metadata: {0}")]
     Http(#[from] reqwest::Error),
+
     #[error("credential issuer identifier in metadata does not match, expected: {expected}, received: {received}")]
     IssuerIdentifierMismatch {
         expected: Box<CredentialIssuerIdentifier>,
