@@ -50,8 +50,13 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
           /// Transfer will be cancelled by [WalletTransferEventListener]
           emit(const SplashLoaded(.dashboard));
         }
-      case WalletStateBlocked():
-        emit(const SplashLoaded(.blocked));
+      case WalletStateBlocked(:final reason):
+        switch (reason) {
+          case BlockedReason.requiresAppUpdate:
+            emit(const SplashLoaded(.none));
+          case BlockedReason.blockedByWalletProvider:
+            emit(const SplashLoaded(.blocked));
+        }
       case WalletStateInPinRecoveryFlow():
         emit(const SplashLoaded(.pinRecovery));
       case WalletStateReady():

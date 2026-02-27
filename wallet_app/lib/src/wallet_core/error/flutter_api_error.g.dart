@@ -32,4 +32,5 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.verifier: 'Verifier',
   FlutterApiErrorType.wrongDigid: 'WrongDigid',
   FlutterApiErrorType.deniedDigid: 'DeniedDigid',
+  FlutterApiErrorType.revoked: 'Revoked',
 };

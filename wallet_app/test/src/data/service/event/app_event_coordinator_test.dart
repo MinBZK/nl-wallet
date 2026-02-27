@@ -7,21 +7,21 @@ import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import '../../../mocks/wallet_mocks.mocks.dart';
 
 void main() {
-  late MockWalletRepository mockWalletRepository;
+  late MockTypedWalletCore mockTypedWalletCore;
   late MockAppEventListener mockListener1;
   late MockAppEventListener mockListener2;
   late AppEventCoordinator coordinator;
   late StreamController<bool> isLockedStreamController;
 
   setUp(() {
-    mockWalletRepository = MockWalletRepository();
+    mockTypedWalletCore = MockTypedWalletCore();
     mockListener1 = MockAppEventListener();
     mockListener2 = MockAppEventListener();
 
     isLockedStreamController = StreamController<bool>();
-    when(mockWalletRepository.isLockedStream).thenAnswer((_) => isLockedStreamController.stream);
+    when(mockTypedWalletCore.isLocked).thenAnswer((_) => isLockedStreamController.stream);
 
-    coordinator = AppEventCoordinator(mockWalletRepository, [mockListener1]);
+    coordinator = AppEventCoordinator(mockTypedWalletCore, [mockListener1]);
   });
 
   tearDown(() {

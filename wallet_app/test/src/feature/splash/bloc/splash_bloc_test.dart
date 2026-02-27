@@ -123,13 +123,23 @@ void main() {
   );
 
   blocTest(
-    'verify user is redirected to blocked when wallet state is WalletStateWalletBlocked',
+    'verify user is redirected to blocked when wallet state is WalletStateWalletBlocked(blockedByWalletProvider)',
+    setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer(
+      (_) async => const WalletStateBlocked(BlockedReason.blockedByWalletProvider, canRegisterNewAccount: false),
+    ),
+    act: (bloc) => bloc.add(const InitSplashEvent()),
+    build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
+    expect: () => [const SplashLoaded(.blocked)],
+  );
+
+  blocTest(
+    'verify user is NOT redirected to blocked when wallet state is WalletStateWalletBlocked(requiresAppUpdate)',
     setUp: () => when(mockGetWalletStateUseCase.invoke()).thenAnswer(
       (_) async => const WalletStateBlocked(BlockedReason.requiresAppUpdate, canRegisterNewAccount: false),
     ),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
-    expect: () => [const SplashLoaded(.blocked)],
+    expect: () => [const SplashLoaded(.none)],
   );
 
   blocTest(

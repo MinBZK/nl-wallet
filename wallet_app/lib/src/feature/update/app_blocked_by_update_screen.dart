@@ -18,8 +18,10 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
-class AppBlockedScreen extends StatelessWidget {
-  const AppBlockedScreen({
+/// A screen displayed when the user is prevented from using the app because
+/// the current version is no longer supported and a forced update is required.
+class AppBlockedByUpdateScreen extends StatelessWidget {
+  const AppBlockedByUpdateScreen({
     super.key,
   });
 
@@ -27,7 +29,7 @@ class AppBlockedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WalletAppBar(
-        title: TitleText(context.l10n.appBlockedScreenTitle),
+        title: TitleText(context.l10n.appBlockedByUpdateScreenTitle),
         actions: const [HelpIconButton()],
         automaticallyImplyLeading: true,
       ),
@@ -41,14 +43,14 @@ class AppBlockedScreen extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: kDefaultTitlePadding,
-                        child: TitleText(context.l10n.appBlockedScreenTitle),
+                        child: TitleText(context.l10n.appBlockedByUpdateScreenTitle),
                       ),
                     ),
                     SliverPadding(
                       sliver: ParagraphedSliverList.splitContent(
                         Platform.isIOS
-                            ? context.l10n.appBlockedScreenDescriptioniOSVariant
-                            : context.l10n.appBlockedScreenDescription,
+                            ? context.l10n.appBlockedByUpdateScreenDescriptioniOSVariant
+                            : context.l10n.appBlockedByUpdateScreenDescription,
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),

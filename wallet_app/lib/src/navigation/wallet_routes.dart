@@ -9,6 +9,8 @@ import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
 import '../feature/about/about_screen.dart';
 import '../feature/biometric_settings/biometric_settings_screen.dart';
 import '../feature/biometric_settings/bloc/biometric_settings_bloc.dart';
+import '../feature/blocked/app_blocked_screen.dart';
+import '../feature/blocked/bloc/app_blocked_bloc.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
 import '../feature/card/data/bloc/card_data_bloc.dart';
 import '../feature/card/data/card_data_screen.dart';
@@ -102,12 +104,14 @@ class WalletRoutes {
     introductionPrivacyRoute,
     privacyPolicyRoute,
     aboutRoute,
+    contactRoute,
     pinRoute,
     pinTimeoutRoute,
     pinRecoveryRoute,
     pinBlockedRoute,
     forgotPinRoute,
     updateInfoRoute,
+    appBlockedRoute,
   ];
 
   static const aboutRoute = '/about';
@@ -119,6 +123,7 @@ class WalletRoutes {
   static const changePinRoute = '/change_pin';
   static const contactRoute = '/menu/contact';
   static const dashboardRoute = '/dashboard';
+  static const appBlockedRoute = '/blocked';
   static const demoRoute = '/demo';
   static const disclosureRoute = '/disclosure';
   static const forgotPinRoute = '/forgot_pin';
@@ -200,6 +205,7 @@ class WalletRoutes {
     WalletRoutes.walletTransferTargetRoute: _createWalletTransferTargetRoute,
     WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
     WalletRoutes.manageNotificationsRoute: (_) => _createManageNotificationsScreenBuilder,
+    WalletRoutes.appBlockedRoute: _createAppBlockedScreenBuilder,
   };
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -636,3 +642,13 @@ Widget _createManageNotificationsScreenBuilder(BuildContext context) => BlocProv
   )..add(const ManageNotificationsLoadTriggered()),
   child: const ManageNotificationsScreen(),
 );
+
+WidgetBuilder _createAppBlockedScreenBuilder(RouteSettings settings) {
+  final reason = AppBlockedScreen.getArgument(settings)?.reason ?? .unknown;
+  return (context) {
+    return BlocProvider<AppBlockedBloc>(
+      create: (BuildContext context) => AppBlockedBloc(context.read())..add(AppBlockedLoadTriggered(reason: reason)),
+      child: const AppBlockedScreen(),
+    );
+  };
+}

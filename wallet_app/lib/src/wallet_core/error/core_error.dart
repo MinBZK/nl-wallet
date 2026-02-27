@@ -1,6 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:wallet_core/core.dart';
 
+import 'data/redirect/redirect_error.dart';
+import 'data/revocation/revocation_data.dart';
+
+export 'data/redirect/redirect_error.dart';
+export 'data/revocation/revocation_data.dart';
+export 'data/session/session_type.dart';
+
 sealed class CoreError extends Equatable {
   final String? description;
   final Map<String, dynamic>? data;
@@ -31,8 +38,6 @@ class CoreRedirectUriError extends CoreError {
   @override
   List<Object?> get props => [redirectError, ...super.props];
 }
-
-enum RedirectError { accessDenied, serverError, loginRequired, unknown }
 
 class CoreHardwareKeyUnsupportedError extends CoreError {
   const CoreHardwareKeyUnsupportedError(super.description, {super.data});
@@ -76,4 +81,19 @@ class CoreRelyingPartyError extends CoreError {
 
   @override
   List<Object?> get props => [organizationName, ...super.props];
+}
+
+class CoreAccountRevokedError extends CoreError {
+  final RevocationData revocationData;
+
+  bool get canRegisterNewAccount => revocationData.canRegisterNewAccount;
+
+  const CoreAccountRevokedError(
+    super.description, {
+    super.data,
+    required this.revocationData,
+  });
+
+  @override
+  List<Object?> get props => [revocationData, ...super.props];
 }

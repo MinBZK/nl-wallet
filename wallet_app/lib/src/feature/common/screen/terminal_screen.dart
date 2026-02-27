@@ -7,8 +7,7 @@ import '../widget/button/confirm/confirm_buttons.dart';
 import '../widget/button/icon/help_icon_button.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/page_illustration.dart';
-import '../widget/spacer/sliver_sized_box.dart';
-import '../widget/text/body_text.dart';
+import '../widget/paragraphed_list.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_app_bar.dart';
 import '../widget/wallet_scrollbar.dart';
@@ -37,44 +36,69 @@ class TerminalScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         actions: const [HelpIconButton()],
       ),
-      body: WalletScrollbar(
-        child: CustomScrollView(
-          slivers: [
-            const SliverSizedBox(height: 12),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TitleText(title),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: BodyText(description),
-              ),
-            ),
-            const SliverSizedBox(height: 24),
-            SliverToBoxAdapter(
-              child: PageIllustration(asset: illustration),
-            ),
-            const SliverSizedBox(height: 24),
-            SliverFillRemaining(
-              hasScrollBody: false,
+      body: SafeArea(
+        bottom: false,
+        child: _buildScrollableSection(),
+      ),
+    );
+  }
+
+  LayoutBuilder _buildScrollableSection() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return WalletScrollbar(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Divider(),
-                  ConfirmButtons(
-                    primaryButton: primaryButton,
-                    secondaryButton: secondaryButton ?? const NeverFitsWidthWidget(child: SizedBox.shrink()),
-                    hideSecondaryButton: secondaryButton == null,
-                  ),
+                  _buildContentSection(context),
+                  _buildBottomSection(context),
                 ],
               ),
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContentSection(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TitleText(title),
+              const SizedBox(height: 8),
+              ParagraphedList.splitContent(description),
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: 24),
+        PageIllustration(asset: illustration),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    final hideSecondaryButton = secondaryButton == null;
+    return Column(
+      children: [
+        const Divider(),
+        ConfirmButtons(
+          primaryButton: primaryButton,
+          secondaryButton: hideSecondaryButton
+              ? const PrimaryButton(text: Text('')) /* always hidden */
+              : secondaryButton!,
+          hideSecondaryButton: hideSecondaryButton,
+        ),
+      ],
     );
   }
 

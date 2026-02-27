@@ -3,6 +3,8 @@
 import 'dart:async';
 
 import '../../../domain/app_event/app_event_listener.dart';
+import '../../../wallet_core/error/core_error.dart';
+import '../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../repository/wallet/wallet_repository.dart';
 
 /// Coordinates and broadcasts application events.
@@ -13,10 +15,11 @@ class AppEventCoordinator implements AppEventListener {
   final List<AppEventListener> _listeners;
   late StreamSubscription<bool> _onLockChangedSubscription;
 
-  AppEventCoordinator(WalletRepository walletRepository, this._listeners) {
-    _onLockChangedSubscription = walletRepository.isLockedStream
+  AppEventCoordinator(TypedWalletCore typedWalletCore, this._listeners) {
+    _onLockChangedSubscription = typedWalletCore.isLocked
         .skipWhile((locked) => locked /* App starts out locked, we ignore events until the first unlock */)
         .listen(_onLockChanged);
+    typedWalletCore.setErrorListener(onCoreError);
   }
 
   void addListener(AppEventListener listener) => _listeners.add(listener);
@@ -34,6 +37,9 @@ class AppEventCoordinator implements AppEventListener {
 
   @override
   void onWalletLocked() => _listeners.forEach((it) => it.onWalletLocked());
+
+  @override
+  void onCoreError(CoreError error) => _listeners.forEach((it) => it.onCoreError(error));
 
   void _onLockChanged(bool isLocked) {
     if (isLocked) {
