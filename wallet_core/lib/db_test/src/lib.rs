@@ -246,6 +246,7 @@ async fn start_testcontainer() -> (String, u16) {
             .with_name(DB_TESTCONTAINER_IMAGE)
             .with_tag(DB_TESTCONTAINER_IMAGE_TAG)
             .with_container_name(DB_TESTCONTAINER_NAME)
+            .with_cmd(["postgres", "-N", "200", "-c", "shared_buffers=128MB"])
             .with_reuse(ReuseDirective::Always)
             .start()
             .await;
