@@ -110,16 +110,15 @@ impl Config {
 
 impl IssuerMetadata {
     pub fn new_mock(issuer_identifier: IssuerIdentifier) -> IssuerMetadata {
-        let credential_endpoint = issuer_identifier.as_base_url().join_base_url("/issuance/credential");
-        let batch_credential_endpoint = issuer_identifier
-            .as_base_url()
-            .join_base_url("/issuance/batch_credential");
+        let credential_endpoint = issuer_identifier.join_issuer_url("/issuance/credential");
+        let batch_credential_endpoint = issuer_identifier.join_issuer_url("/issuance/batch_credential");
 
         IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
             credential_endpoint,
             batch_credential_endpoint: Some(batch_credential_endpoint),
+            nonce_endpoint: None,
             deferred_credential_endpoint: None,
             notification_endpoint: None,
             credential_response_encryption: CredentialResponseEncryption {

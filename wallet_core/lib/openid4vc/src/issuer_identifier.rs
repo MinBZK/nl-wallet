@@ -56,6 +56,13 @@ impl IssuerUrl {
 
         base_url
     }
+
+    pub fn join_issuer_url(&self, path: &str) -> Self {
+        let base_url = self.as_ref().join_base_url(path);
+
+        // The sheme cannot have changed, so the guarantees of the validation in `try_new()` still hold.
+        Self(base_url)
+    }
 }
 
 impl FromStr for IssuerUrl {
@@ -129,6 +136,10 @@ impl IssuerIdentifier {
 
     pub fn as_base_url(&self) -> &BaseUrl {
         self.url.as_ref()
+    }
+
+    pub fn join_issuer_url(&self, path: &str) -> IssuerUrl {
+        self.url.join_issuer_url(path)
     }
 }
 

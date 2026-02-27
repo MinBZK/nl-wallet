@@ -669,8 +669,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .discover_metadata(issuer_identifier)
             .await?
             .credential_endpoint
-            .as_ref()
-            .clone();
+            .into_inner()
+            .into_inner();
 
         Ok(url)
     }
@@ -685,7 +685,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .discover_metadata(issuer_identifier)
             .await?
             .batch_credential_endpoint
-            .map(|url| url.as_ref().clone());
+            .map(|url| url.into_inner().into_inner());
+
         Ok(url)
     }
 }

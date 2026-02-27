@@ -458,15 +458,16 @@ where
             })
             .collect();
 
-        let server_url = issuer_identifier.as_base_url().join_base_url("issuance");
-        let credential_endpoint = server_url.join_base_url("/credential");
-        let batch_credential_endpoint = server_url.join_base_url("/batch_credential");
+        let server_url = issuer_identifier.join_issuer_url("/issuance");
+        let credential_endpoint = server_url.join_issuer_url("/credential");
+        let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
 
         let metadata = IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
             credential_endpoint,
             batch_credential_endpoint: Some(batch_credential_endpoint),
+            nonce_endpoint: None,
             deferred_credential_endpoint: None,
             notification_endpoint: None,
             credential_response_encryption: CredentialResponseEncryption {
@@ -486,7 +487,7 @@ where
 
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
-            server_url,
+            server_url: server_url.into_inner(),
             metadata,
         };
 

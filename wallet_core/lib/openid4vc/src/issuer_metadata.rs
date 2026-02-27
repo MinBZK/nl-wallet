@@ -15,6 +15,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_identifier::IssuerUrl;
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -37,24 +38,27 @@ pub struct IssuerMetadata {
     /// parameter value does not match any of the entries in the `authorization_servers` array.
     pub authorization_servers: Option<VecNonEmpty<IssuerIdentifier>>,
 
-    /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 7.2. This URL MUST use the https
+    /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 8.2. This URL MUST use the https
     /// scheme and MAY contain port, path, and query parameter components.
-    pub credential_endpoint: BaseUrl,
+    pub credential_endpoint: IssuerUrl,
 
-    /// URL of the Credential Issuer's Batch Credential Endpoint, as defined in Section 8. This URL MUST use the https
-    /// scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not
-    /// support the Batch Credential Endpoint.
-    pub batch_credential_endpoint: Option<BaseUrl>,
+    // TODO (PVW-5554): Remove this field when removing the batch credential endpoint.
+    pub batch_credential_endpoint: Option<IssuerUrl>,
+
+    /// URL of the Credential Issuer's Nonce Endpoint, as defined in Section 7. This URL MUST use the https scheme and
+    /// MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not require the
+    /// use of `c_nonce``.
+    pub nonce_endpoint: Option<IssuerUrl>,
 
     /// URL of the Credential Issuer's Deferred Credential Endpoint, as defined in Section 9. This URL MUST use the
     /// https scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does
     /// not support the Deferred Credential Endpoint.
-    pub deferred_credential_endpoint: Option<BaseUrl>,
+    pub deferred_credential_endpoint: Option<IssuerUrl>,
 
-    /// URL of the Credential Issuer's Notification Endpoint, as defined in Section 10. This URL MUST use the https
+    /// URL of the Credential Issuer's Notification Endpoint, as defined in Section 11. This URL MUST use the https
     /// scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not
     /// support the Notification Endpoint.
-    pub notification_endpoint: Option<BaseUrl>,
+    pub notification_endpoint: Option<IssuerUrl>,
 
     /// Object containing information about whether the Credential Issuer supports encryption of the Credential and
     /// Batch Credential Response on top of TLS.
