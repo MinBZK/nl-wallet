@@ -520,10 +520,8 @@ impl VpAuthorizationRequest {
                     id: self.oauth_request.client_id.clone(),
                 });
             }
-            Ok(client_id) => {
-                if client_id.scheme == ClientIdScheme::X509SanDns {
-                    //pass
-                }
+            Ok(_) => {
+                // pass
             }
         }
 
