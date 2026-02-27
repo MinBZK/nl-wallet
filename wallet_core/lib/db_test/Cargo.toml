@@ -30,6 +30,7 @@ testcontainers-modules = { workspace = true, features = ["postgres"] }
 tracing.workspace = true
 tokio = {workspace = true, features = ["time"] }
 url.workspace = true
+xxhash-rust = { workspace = true, features = ["xxh3"] }
 
 audit_log_migrations.path = "../../wallet_provider/audit_log/migrations"
 issuance_server_migrations.path = "../../wallet_server/issuance_server/migrations"
