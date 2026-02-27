@@ -102,7 +102,7 @@ where
         let encryption_nonce = random_string(32);
         let poa_input = JwtPoaInput::new(
             Some(self.auth_request.nonce.clone()),
-            self.auth_request.client_id.clone(),
+            self.auth_request.client_id.to_string(),
         );
 
         let (vp_token, poa) = match attestations.into_inner() {
@@ -187,7 +187,7 @@ where
                 // Have the WSCD sign all of the unsigned presentations in one operation,
                 // producing a PoA if multiple unique keys are used for this.
                 let key_binding_builder =
-                    KeyBindingJwtBuilder::new(self.auth_request.client_id.clone(), self.auth_request.nonce.clone());
+                    KeyBindingJwtBuilder::new(self.auth_request.client_id.to_string(), self.auth_request.nonce.clone());
                 let result = UnsignedSdJwtPresentation::sign_multiple(
                     unsigned_presentations,
                     key_binding_builder,

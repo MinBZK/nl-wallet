@@ -1140,7 +1140,7 @@ impl<S, US, C> Verifier<S, US, C> {
 
         let mut ul = base_ul.into_inner();
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUri {
-            client_id,
+            client_id: client_id.to_string(),
             object: VpRequestUriObject::AsReference {
                 request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
                 request_uri_method: Some(VpRequestUriMethod::POST),

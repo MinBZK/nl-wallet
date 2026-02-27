@@ -95,9 +95,6 @@ pub enum AuthRequestError {
 pub struct VpRequestUri {
     /// MUST equal the client_id from the full Authorization Request.
     pub client_id: ClientId,
-
-    #[serde(flatten)]
-    pub object: VpRequestUriObject,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -232,14 +229,14 @@ pub enum ClientIdScheme {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-struct ClientId {
+pub struct ClientId {
     id: String,
     scheme: ClientIdScheme,
 }
 
 impl fmt::Display for ClientId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let scheme = match serde_json::to_value(&self.scheme).map_err(|_| fmt::Error)? {
+        let scheme = match serde_json::to_value(self.scheme).map_err(|_| fmt::Error)? {
             serde_json::Value::String(s) => s,
             _ => return Err(fmt::Error),
         };

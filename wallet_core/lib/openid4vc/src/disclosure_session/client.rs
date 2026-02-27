@@ -181,7 +181,7 @@ where
 
         let process_request_result = Self::process_auth_request(
             &request.client_id,
-            &auth_request.client_id,
+            &auth_request.client_id.to_string(),
             &auth_request.credential_requests,
             certificate,
         );

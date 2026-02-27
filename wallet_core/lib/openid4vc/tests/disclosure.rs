@@ -217,7 +217,7 @@ fn disclosure_jwe(
 
     // Compute the disclosure.
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
-    let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
+    let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.to_string());
     let (device_responses, poa) = DeviceResponse::sign_multiple_from_partial_mdocs(
         partial_mdocs,
         &auth_request.session_transcript(),
