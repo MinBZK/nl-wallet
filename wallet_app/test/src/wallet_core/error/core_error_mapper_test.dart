@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
+import 'package:wallet/src/wallet_core/error/data/core_error_data.dart';
 import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
 import 'package:wallet_core/core.dart';
 
@@ -212,7 +213,7 @@ void main() {
         type: FlutterApiErrorType.issuer,
         description: defaultDescription,
         data: {
-          'organization_name': {'en': 'Test'},
+          'organization_name': {'en': 'Test', 'nl': 'TestNL'},
         },
       );
       final errorJson = jsonEncode(error);
@@ -222,7 +223,10 @@ void main() {
         CoreRelyingPartyError(
           defaultDescription,
           data: error.data,
-          organizationName: [const LocalizedString(language: 'en', value: 'Test')],
+          organizationName: [
+            const LocalizedString(language: 'en', value: 'Test'),
+            const LocalizedString(language: 'nl', value: 'TestNL'),
+          ],
         ),
       );
     });
@@ -278,6 +282,22 @@ void main() {
       final errorJson = jsonEncode(error);
       final result = errorMapper.map(errorJson);
       expect(result, const CoreDeniedDigidError(defaultDescription));
+    });
+
+    test('mapping FlutterApiErrorType.revoked results in CoreAccountRevokedError', () {
+      final revocationData = RevocationData(
+        revocationReason: .userRequest,
+        canRegisterNewAccount: true,
+      );
+      final errorData = CoreErrorData(revocationData: revocationData).toJson();
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.revoked,
+        description: defaultDescription,
+        data: errorData,
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, CoreAccountRevokedError(defaultDescription, revocationData: revocationData, data: errorData));
     });
   });
 }

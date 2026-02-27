@@ -1,10 +1,12 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../feature/blocked/argument/app_blocked_screen_argument.dart';
 import '../../../feature/card/detail/argument/card_detail_screen_argument.dart';
 import '../../../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../../../feature/issuance/argument/issuance_screen_argument.dart';
 import '../../../feature/sign/argument/sign_screen_argument.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../wallet_core/error/core_error.dart';
 import 'navigation_prerequisite.dart';
 import 'pre_navigation_action.dart';
 
@@ -124,5 +126,12 @@ abstract class NavigationRequest with _$NavigationRequest {
       NavigationPrerequisite.walletInitialized,
       NavigationPrerequisite.pidInitialized,
     ],
+  );
+
+  factory NavigationRequest.appBlocked({required RevocationReason reason}) => NavigationRequest.generic(
+    WalletRoutes.appBlockedRoute,
+    removeUntil: WalletRoutes.splashRoute,
+    navigatePrerequisites: [],
+    argument: AppBlockedScreenArgument(reason: reason).toJson(),
   );
 }

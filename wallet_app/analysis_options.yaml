@@ -3,6 +3,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   errors:
     todo: ignore
+    invalid_annotation_target: ignore # https://github.com/rrousselGit/freezed/issues/488
   exclude:
     - "pub/core_domain/lib/src/core_domain/**.dart"
     - "**/**.g.dart"

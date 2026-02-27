@@ -7,7 +7,7 @@ import '../../data/service/navigation_service.dart';
 import '../../domain/model/update/update_notification.dart';
 import '../../domain/usecase/update/observe_version_state_usecase.dart';
 import '../common/widget/minimal_wallet_app.dart';
-import 'app_blocked_screen.dart';
+import 'app_blocked_by_update_screen.dart';
 
 /// This widget observes and processes the update state of the app
 /// It intentionally lives above the [WalletApp] widget to make sure
@@ -74,7 +74,7 @@ class _UpdateCheckerState extends State<UpdateChecker> {
     return ValueListenableBuilder(
       valueListenable: _isBlocked,
       builder: (c, isBlocked, child) {
-        if (isBlocked) return const MinimalWalletApp(child: AppBlockedScreen());
+        if (isBlocked) return const MinimalWalletApp(child: AppBlockedByUpdateScreen());
         return child!;
       },
       child: widget.child,

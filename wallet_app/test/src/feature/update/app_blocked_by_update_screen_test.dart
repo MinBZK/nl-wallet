@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/feature/update/app_blocked_screen.dart';
+import 'package:wallet/src/feature/update/app_blocked_by_update_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../test_util/golden_utils.dart';
@@ -10,7 +10,7 @@ void main() {
   group('goldens', () {
     testGoldens('ltc43 Light Test', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const AppBlockedScreen(),
+        const AppBlockedByUpdateScreen(),
       );
       await tester.pumpAndSettle();
 
@@ -19,7 +19,7 @@ void main() {
 
     testGoldens('ltc43 Dark Test', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const AppBlockedScreen(),
+        const AppBlockedByUpdateScreen(),
         brightness: Brightness.dark,
       );
       await tester.pumpAndSettle();
@@ -31,12 +31,12 @@ void main() {
   group('widgets', () {
     testWidgets('ltc43 Title is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const AppBlockedScreen(),
+        const AppBlockedByUpdateScreen(),
       );
 
       final l10n = await TestUtils.englishLocalizations;
 
-      final titleFinder = find.textContaining(l10n.appBlockedScreenTitle, findRichText: true);
+      final titleFinder = find.textContaining(l10n.appBlockedByUpdateScreenTitle, findRichText: true);
       expect(titleFinder, findsOneWidget);
     });
   });

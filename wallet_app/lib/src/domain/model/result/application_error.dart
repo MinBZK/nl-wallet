@@ -121,3 +121,12 @@ class RelyingPartyError extends ApplicationError {
   @override
   List<Object?> get props => [...super.props, organizationName];
 }
+
+class AccountRevokedError extends ApplicationError {
+  final bool canRegisterNewAccount;
+
+  const AccountRevokedError({required super.sourceError, required this.canRegisterNewAccount});
+
+  @override
+  List<Object?> get props => [...super.props, canRegisterNewAccount];
+}

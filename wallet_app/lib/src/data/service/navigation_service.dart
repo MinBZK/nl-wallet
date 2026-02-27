@@ -18,6 +18,7 @@ import '../../feature/common/dialog/scan_with_wallet_dialog.dart';
 import '../../feature/common/dialog/update_notification_dialog.dart';
 import '../../feature/notification/sheet/request_notification_permission_sheet.dart';
 import '../../util/helper/dialog_helper.dart';
+import '../../wallet_core/error/core_error.dart';
 
 class NavigationService extends AppEventListener {
   /// Key that holds [NavigatorState], used to perform navigation from a non-Widget.
@@ -41,6 +42,15 @@ class NavigationService extends AppEventListener {
 
   @override
   FutureOr<void> onDashboardShown() => processQueue();
+
+  @override
+  FutureOr<void> onCoreError(CoreError error) async {
+    if (error is CoreAccountRevokedError) {
+      Fimber.d('Account revoked, navigating to app blocked screen. Reason: ${error.revocationData.revocationReason}');
+      final navRequest = NavigationRequest.appBlocked(reason: error.revocationData.revocationReason);
+      await _navigate(navRequest);
+    }
+  }
 
   /// Process the provided [NavigationRequest], or queue it if the app is in a state where it can't be handled.
   /// Overrides any previously set [NavigationRequest] if this request has to be queued as well.

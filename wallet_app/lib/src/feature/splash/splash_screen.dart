@@ -40,8 +40,9 @@ class SplashScreen extends StatelessWidget {
               case PostSplashDestination.dashboard:
                 Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
               case PostSplashDestination.blocked:
-                // UI updated by [UpdateChecker] & [RootChecker]. WP Block yet to be handled.
-                Fimber.d('Not navigating, state is blocked');
+                Navigator.pushReplacementNamed(context, WalletRoutes.appBlockedRoute);
+              case PostSplashDestination.none:
+                Fimber.d('No navigation required, should be handled by UpdateChecker / RootChecker');
             }
           }
         },
