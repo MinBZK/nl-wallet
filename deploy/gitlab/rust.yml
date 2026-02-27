@@ -65,8 +65,6 @@ test-rust:
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
-      # Allow for more connections with larger shared buffers and use non-durable settings:
-      # https://www.postgresql.org/docs/current/non-durability.html
       command: [
         "postgres",
         # Allow for more connections with larger shared buffers
