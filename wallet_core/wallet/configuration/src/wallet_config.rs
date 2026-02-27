@@ -19,7 +19,7 @@ use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -164,7 +164,7 @@ pub struct PidAttributePaths {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PidIssuanceConfiguration {
-    pub pid_issuer_url: CredentialIssuerIdentifier,
+    pub pid_issuer_url: IssuerIdentifier,
     pub digid: DigidConfiguration,
     pub digid_http_config: TlsPinningConfig,
 }

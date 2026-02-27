@@ -63,7 +63,7 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
-use crate::issuer_identifier::CredentialIssuerIdentifier;
+use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::CredentialMetadata;
 use crate::issuer_metadata::CredentialResponseEncryption;
 use crate::issuer_metadata::IssuerMetadata;
@@ -308,7 +308,7 @@ pub trait AttributeService {
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 
-    async fn oauth_metadata(&self, issuer_identifier: &CredentialIssuerIdentifier)
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier)
     -> Result<oidc::Config, Self::Error>;
 }
 
@@ -323,7 +323,7 @@ impl AttributeService for TrivialAttributeService {
 
     async fn oauth_metadata(
         &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<oidc::Config, Self::Error> {
         // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
         // because they are mandatory in an OIDC Provider Metadata document (see
@@ -446,7 +446,7 @@ where
         sessions: Arc<S>,
         attr_service: A,
         attestation_config: AttestationTypesConfig<K>,
-        issuer_identifier: CredentialIssuerIdentifier,
+        issuer_identifier: IssuerIdentifier,
         wallet_client_ids: Vec<String>,
         wua_config: Option<WuaConfig>,
         status_list_services: Arc<L>,
@@ -1333,7 +1333,7 @@ impl CredentialRequestProof {
         &self,
         nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
-        credential_issuer_identifier: &CredentialIssuerIdentifier,
+        credential_issuer_identifier: &IssuerIdentifier,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let CredentialRequestProof::Jwt { jwt } = self;
 

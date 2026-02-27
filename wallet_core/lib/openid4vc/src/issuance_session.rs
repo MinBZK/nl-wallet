@@ -66,7 +66,7 @@ use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
-use crate::issuer_identifier::CredentialIssuerIdentifier;
+use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::IssuerMetadataDiscoveryError;
 use crate::oidc;
@@ -293,7 +293,7 @@ mod example_constructors {
 pub trait IssuanceSession<H = HttpVcMessageClient> {
     async fn start_issuance(
         message_client: H,
-        issuer_identifier: CredentialIssuerIdentifier,
+        issuer_identifier: IssuerIdentifier,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError>
@@ -328,7 +328,7 @@ pub trait VcMessageClient {
     fn client_id(&self) -> &str;
     async fn discover_metadata(
         &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError>;
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
 
@@ -377,7 +377,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
     async fn discover_metadata(
         &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError> {
         let metadata = IssuerMetadata::discover(&self.http_client, issuer_identifier)
             .await
@@ -545,7 +545,7 @@ struct IssuanceState {
     normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
     issuer_registration: IssuerRegistration,
-    issuer_identifier: CredentialIssuerIdentifier,
+    issuer_identifier: IssuerIdentifier,
     #[debug(skip)]
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
@@ -614,7 +614,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// Discover the token endpoint from the OAuth server metadata.
     async fn discover_token_endpoint(
         message_client: &H,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<Url, IssuanceSessionError> {
         let issuer_metadata = message_client.discover_metadata(issuer_identifier).await?;
 
@@ -630,7 +630,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// Discover the credential endpoint from the Credential Issuer metadata.
     async fn discover_credential_endpoint(
         message_client: &H,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<Url, IssuanceSessionError> {
         let url = message_client
             .discover_metadata(issuer_identifier)
@@ -646,7 +646,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// This function returns an `Option` because the batch credential is optional.
     async fn discover_batch_credential_endpoint(
         message_client: &H,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<Option<Url>, IssuanceSessionError> {
         let url = message_client
             .discover_metadata(issuer_identifier)
@@ -660,7 +660,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn start_issuance(
         message_client: H,
-        issuer_identifier: CredentialIssuerIdentifier,
+        issuer_identifier: IssuerIdentifier,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError> {

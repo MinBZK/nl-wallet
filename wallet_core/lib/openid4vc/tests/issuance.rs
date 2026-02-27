@@ -44,7 +44,7 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc;
@@ -73,7 +73,7 @@ type MockIssuer<G = TimeGenerator> =
 
 fn setup_mock_issuer(
     attestation_count: NonZeroUsize,
-) -> (MockIssuer, TrustAnchor<'static>, CredentialIssuerIdentifier, SigningKey) {
+) -> (MockIssuer, TrustAnchor<'static>, IssuerIdentifier, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
 
@@ -95,13 +95,13 @@ fn setup<G>(
 ) -> (
     MockIssuer<G>,
     TrustAnchor<'static>,
-    CredentialIssuerIdentifier,
+    IssuerIdentifier,
     SigningKey,
 )
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
-    let issuer_identifier = "https://example.com/".parse::<CredentialIssuerIdentifier>().unwrap();
+    let issuer_identifier = "https://example.com/".parse::<IssuerIdentifier>().unwrap();
     let wua_issuer_privkey = SigningKey::random(&mut OsRng);
     let trust_anchor = ca.to_trust_anchor().to_owned();
 
@@ -215,7 +215,7 @@ async fn reject_issuance() {
 
 async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
-    issuer_identifier: CredentialIssuerIdentifier,
+    issuer_identifier: IssuerIdentifier,
     trust_anchor: TrustAnchor<'static>,
     wua_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
@@ -473,7 +473,7 @@ impl VcMessageClient for MockOpenidMessageClient {
 
     async fn discover_metadata(
         &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError> {
         Ok(IssuerMetadata::new_mock(issuer_identifier.clone()))
     }
@@ -602,7 +602,7 @@ impl AttributeService for MockAttributeService {
         Ok(self.documents.clone())
     }
 
-    async fn oauth_metadata(&self, issuer_url: &CredentialIssuerIdentifier) -> Result<oidc::Config, Self::Error> {
+    async fn oauth_metadata(&self, issuer_url: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
         Ok(oidc::Config::new_mock(issuer_url.as_base_url().clone()))
     }
 }

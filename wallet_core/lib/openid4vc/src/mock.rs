@@ -13,7 +13,7 @@ use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
-use crate::issuer_identifier::CredentialIssuerIdentifier;
+use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::CredentialResponseEncryption;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::oidc::Config;
@@ -48,7 +48,7 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn start_issuance(
         _: HttpVcMessageClient,
-        _: CredentialIssuerIdentifier,
+        _: IssuerIdentifier,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError>
@@ -109,7 +109,7 @@ impl Config {
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(issuer_identifier: CredentialIssuerIdentifier) -> IssuerMetadata {
+    pub fn new_mock(issuer_identifier: IssuerIdentifier) -> IssuerMetadata {
         let credential_endpoint = issuer_identifier.as_base_url().join_base_url("/issuance/credential");
         let batch_credential_endpoint = issuer_identifier
             .as_base_url()

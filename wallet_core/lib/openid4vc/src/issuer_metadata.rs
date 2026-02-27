@@ -14,7 +14,7 @@ use sd_jwt_vc_metadata::RenderingMetadata;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::issuer_identifier::CredentialIssuerIdentifier;
+use crate::issuer_identifier::IssuerIdentifier;
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -22,7 +22,7 @@ use crate::issuer_identifier::CredentialIssuerIdentifier;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssuerMetadata {
     /// The Credential Issuer's identifier, as defined in Section 12.2.1.
-    pub credential_issuer: CredentialIssuerIdentifier,
+    pub credential_issuer: IssuerIdentifier,
 
     /// Array of strings, where each string is an identifier of the OAuth 2.0 Authorization Server (as defined in
     /// [RFC8414]) the Credential Issuer relies on for authorization. If this parameter is omitted, the entity
@@ -83,8 +83,8 @@ pub enum IssuerMetadataDiscoveryError {
 
     #[error("credential issuer identifier in metadata does not match, expected: {expected}, received: {received}")]
     IssuerIdentifierMismatch {
-        expected: Box<CredentialIssuerIdentifier>,
-        received: Box<CredentialIssuerIdentifier>,
+        expected: Box<IssuerIdentifier>,
+        received: Box<IssuerIdentifier>,
     },
 }
 
@@ -92,7 +92,7 @@ impl IssuerMetadata {
     /// Discover the Credential Issuer metadata by GETting it from .well-known and parsing it.
     pub(crate) async fn discover(
         client: &reqwest::Client,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<Self, IssuerMetadataDiscoveryError> {
         // TODO (PVW-5527): Composing of the `.well-known` path below is not compliant
         //                  with the OpenID4VCI specification and should be fixed.
