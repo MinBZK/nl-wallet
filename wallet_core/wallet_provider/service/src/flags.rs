@@ -27,14 +27,23 @@ pub struct WalletRepoFlags<R> {
     values: Arc<RwLock<HashMap<WalletFlag, bool>>>,
 }
 
-impl<R> WalletRepoFlags<R> {
-    pub fn new(repository: R, refresh_delay: Duration) -> Self {
-        Self {
+impl<R> WalletRepoFlags<R>
+where
+    R: WalletFlagRepository,
+{
+    pub async fn try_new(repository: R, refresh_delay: Duration) -> Result<Self, PersistenceError> {
+        // Initially fetch flags to ensure the flags are never empty
+        let values = Self::fetch_flags(&repository).await?;
+        Ok(Self {
             repository,
             refresh_delay,
             refresh_mutex: Arc::default(),
-            values: Arc::default(),
-        }
+            values: Arc::new(RwLock::new(values)),
+        })
+    }
+
+    async fn fetch_flags(repository: &R) -> Result<HashMap<WalletFlag, bool>, PersistenceError> {
+        Ok(repository.fetch_flags().await?.into_iter().collect())
     }
 }
 
@@ -50,7 +59,7 @@ where
         // This works because the previous async mutex guarantees the rest of
         // the method is called sequentially. This prevents intertwining of the
         // fetching and the writing which can cause old data to overwrite new.
-        let new_values = self.repository.fetch_flags().await?.into_iter().collect();
+        let new_values = Self::fetch_flags(&self.repository).await?;
         *self.values.write() = new_values;
         Ok(())
     }

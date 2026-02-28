@@ -161,7 +161,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             settings.attestation_wrapping_key_identifier.clone(),
         );
 
-        let flags = WalletRepoFlags::new(repositories.clone(), settings.flags_refresh_delay);
+        let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
         flags.start_refresh_job();
 
         let state = RouterState {
