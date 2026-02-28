@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use itertools::Itertools;
 use parking_lot::RwLock;
+use strum::VariantArray;
 use tokio::sync::Mutex;
 use tokio::task::AbortHandle;
 use tokio::time::MissedTickBehavior;
@@ -47,6 +49,20 @@ where
     }
 }
 
+fn update_diff(
+    old_values: &HashMap<WalletFlag, bool>,
+    new_values: &HashMap<WalletFlag, bool>,
+) -> Vec<(WalletFlag, bool)> {
+    let mut diff = Vec::with_capacity(WalletFlag::VARIANTS.len());
+    for flag in WalletFlag::VARIANTS {
+        let new_value = *new_values.get(flag).unwrap_or(&false);
+        if *old_values.get(flag).unwrap_or(&false) != new_value {
+            diff.push((*flag, new_value))
+        }
+    }
+    diff
+}
+
 impl<R> WalletRepoFlags<R>
 where
     R: WalletFlagRepository + Send,
@@ -60,7 +76,20 @@ where
         // the method is called sequentially. This prevents intertwining of the
         // fetching and the writing which can cause old data to overwrite new.
         let new_values = Self::fetch_flags(&self.repository).await?;
-        *self.values.write() = new_values;
+
+        // Check for update
+        let diff = update_diff(&self.values.read(), &new_values);
+
+        // Write update
+        if !diff.is_empty() {
+            let diff = diff
+                .into_iter()
+                .map(|(flag, value)| format!("{flag}={value}"))
+                .join(", ");
+            tracing::info!("Setting new flags: {diff}");
+            *self.values.write() = new_values;
+        }
+
         Ok(())
     }
 }
