@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::ops::Index;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -13,6 +13,27 @@ use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::WalletFlagRepository;
 
+#[derive(Debug)]
+struct FlagArray([bool; WalletFlag::VARIANTS.len()]);
+
+impl Index<WalletFlag> for FlagArray {
+    type Output = bool;
+
+    fn index(&self, index: WalletFlag) -> &Self::Output {
+        &self.0[index as usize]
+    }
+}
+
+impl FromIterator<(WalletFlag, bool)> for FlagArray {
+    fn from_iter<T: IntoIterator<Item = (WalletFlag, bool)>>(iter: T) -> Self {
+        let mut flags = [false; WalletFlag::VARIANTS.len()];
+        for (flag, value) in iter {
+            flags[flag as usize] = value;
+        }
+        Self(flags)
+    }
+}
+
 pub trait WalletFlags {
     type Error: std::error::Error + Send + Sync + 'static;
 
@@ -26,7 +47,7 @@ pub struct WalletRepoFlags<R> {
     repository: R,
     refresh_delay: Duration,
     refresh_mutex: Arc<Mutex<()>>,
-    values: Arc<RwLock<HashMap<WalletFlag, bool>>>,
+    values: Arc<RwLock<FlagArray>>,
 }
 
 impl<R> WalletRepoFlags<R>
@@ -44,19 +65,16 @@ where
         })
     }
 
-    async fn fetch_flags(repository: &R) -> Result<HashMap<WalletFlag, bool>, PersistenceError> {
+    async fn fetch_flags(repository: &R) -> Result<FlagArray, PersistenceError> {
         Ok(repository.fetch_flags().await?.into_iter().collect())
     }
 }
 
-fn update_diff(
-    old_values: &HashMap<WalletFlag, bool>,
-    new_values: &HashMap<WalletFlag, bool>,
-) -> Vec<(WalletFlag, bool)> {
+fn update_diff(old_values: &FlagArray, new_values: &FlagArray) -> Vec<(WalletFlag, bool)> {
     let mut diff = Vec::with_capacity(WalletFlag::VARIANTS.len());
     for flag in WalletFlag::VARIANTS {
-        let new_value = *new_values.get(flag).unwrap_or(&false);
-        if *old_values.get(flag).unwrap_or(&false) != new_value {
+        let new_value = new_values[*flag];
+        if old_values[*flag] != new_value {
             diff.push((*flag, new_value))
         }
     }
@@ -136,11 +154,7 @@ where
     }
 
     fn solution_is_revoked(&self) -> bool {
-        self.values
-            .read()
-            .get(&WalletFlag::SolutionRevoked)
-            .copied()
-            .unwrap_or(false)
+        self.values.read()[WalletFlag::SolutionRevoked]
     }
 }
 
