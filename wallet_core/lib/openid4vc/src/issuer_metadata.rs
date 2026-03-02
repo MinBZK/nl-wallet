@@ -80,8 +80,9 @@ pub struct IssuerMetadata {
     /// the same Credential Dataset in a single request/response.
     pub batch_credential_issuance: Option<BatchCredentialIssuance>,
 
-    /// Array of objects, where each object contains display properties of a Credential Issuer for a certain language.
-    pub display: Option<Vec<IssuerDisplay>>,
+    ///  non-empty array of objects, where each object contains display properties of a Credential Issuer for a certain
+    /// language.
+    pub display: Option<VecNonEmpty<IssuerDisplay>>,
 
     /// Object that describes specifics of the Credential that the Credential Issuer supports issuance of. This object
     /// contains a list of name/value pairs, where each name is a unique identifier of the supported Credential being
@@ -262,15 +263,20 @@ pub struct IssuerDisplay {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NameLocale {
+    /// String value of a display name for the Credential Issuer or Credential.
     pub name: Option<String>,
+
+    /// String value that identifies the language of this object represented as a language tag taken from values defined
+    /// in BCP47 [RFC5646]. There MUST be only one object for each language identifier.
     pub locale: Option<String>,
 }
 
+/// Information about the logo of the Credential Issuer or Credential.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Logo {
-    /// A URI where the Wallet can obtain the logo of the Credential Issuer. The Wallet needs
-    /// to determine the scheme, since the URI value could use the `https:` scheme, the `data:` scheme, etc.
+    /// String value that contains a URI where the Wallet can obtain the logo. The Wallet needs to determine the scheme,
+    /// since the URI value could use the `https:` scheme, the `data:` scheme, etc.
     pub uri: Url,
 
     /// String value of the alternative text for the logo image.
