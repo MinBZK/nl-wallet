@@ -482,6 +482,7 @@ where
             credential_identifiers_supported: Some(false),
             display: None,
             credential_configurations_supported,
+            credential_preview_endpoint: None,
         };
         let metadata = IssuerMetadata {
             issuer_config,

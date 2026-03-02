@@ -138,6 +138,10 @@ pub struct IssuerData {
     /// Wallet which Credential is being offered. The value is an object that contains metadata about a specific
     /// Credential.
     pub credential_configurations_supported: HashMap<String, CredentialMetadata>,
+
+    /// URL of the credential issuer's credential preview endpoint. This URL MUST use the https scheme and MAY contain
+    /// port, path and query parameter components.
+    pub credential_preview_endpoint: Option<BaseUrl>,
 }
 
 impl IssuerData {

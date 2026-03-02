@@ -132,6 +132,7 @@ impl IssuerMetadata {
                 credential_identifiers_supported: None,
                 display: None,
                 credential_configurations_supported: HashMap::new(),
+                credential_preview_endpoint: None,
             },
             protected_metadata: None,
         }
