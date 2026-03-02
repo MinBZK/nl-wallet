@@ -818,6 +818,15 @@ class MockNavigatorState extends _i1.Mock implements _i4.NavigatorState {
   );
 
   @override
+  void popUntilWithResult<T extends Object?>(
+    _i4.RoutePredicate? predicate,
+    T? result,
+  ) => super.noSuchMethod(
+    Invocation.method(#popUntilWithResult, [predicate, result]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void removeRoute<T extends Object?>(_i4.Route<T>? route, [T? result]) => super.noSuchMethod(
     Invocation.method(#removeRoute, [route, result]),
     returnValueForMissingStub: null,
