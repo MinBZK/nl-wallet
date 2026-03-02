@@ -32,7 +32,7 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart' hide SessionType;
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';

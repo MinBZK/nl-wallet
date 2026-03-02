@@ -68,12 +68,12 @@ impl TryFrom<Vec<u8>> for ReqwestTrustAnchor {
     }
 }
 
-pub trait IntoPinnedReqwestClient {
-    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<PinnedReqwestClient, reqwest::Error>
+pub trait IntoReqwestClient {
+    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<ReqwestClient, reqwest::Error>
     where
         F: FnOnce(ClientBuilder) -> ClientBuilder;
 
-    fn try_into_custom_json_client<F>(self, builder_adapter: F) -> Result<PinnedReqwestClient, reqwest::Error>
+    fn try_into_custom_json_client<F>(self, builder_adapter: F) -> Result<ReqwestClient, reqwest::Error>
     where
         F: FnOnce(ClientBuilder) -> ClientBuilder,
         Self: Sized,
@@ -81,14 +81,14 @@ pub trait IntoPinnedReqwestClient {
         self.try_into_custom_client(|builder| builder_adapter(client_builder_accept_json(builder)))
     }
 
-    fn try_into_client(self) -> Result<PinnedReqwestClient, reqwest::Error>
+    fn try_into_client(self) -> Result<ReqwestClient, reqwest::Error>
     where
         Self: Sized,
     {
         self.try_into_custom_client(std::convert::identity)
     }
 
-    fn try_into_json_client(self) -> Result<PinnedReqwestClient, reqwest::Error>
+    fn try_into_json_client(self) -> Result<ReqwestClient, reqwest::Error>
     where
         Self: Sized,
     {
@@ -104,12 +104,12 @@ pub enum ReqwestClientUrl<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct PinnedReqwestClient {
+pub struct ReqwestClient {
     client: Client,
     pub base_url: BaseUrl,
 }
 
-impl PinnedReqwestClient {
+impl ReqwestClient {
     pub(crate) fn new(client: Client, base_url: BaseUrl) -> Self {
         Self { client, base_url }
     }
@@ -197,15 +197,17 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
 
 /// Create a [`ClientBuilder`] that validates certificates signed with the supplied trust anchors (root certificates) as
 /// well as the built-in root certificates.
-pub fn trusted_reqwest_client_builder(trust_anchors: impl Iterator<Item = Certificate>) -> ClientBuilder {
-    trust_anchors.fold(default_reqwest_client_builder(), |builder, root_ca| {
-        builder.add_root_certificate(root_ca)
-    })
+pub fn trusted_reqwest_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
+    trust_anchors
+        .into_iter()
+        .fold(default_reqwest_client_builder(), |builder, root_ca| {
+            builder.add_root_certificate(root_ca)
+        })
 }
 
 /// Create a [`ClientBuilder`] that only validates certificates signed with the supplied trust anchors (root
 /// certificates). The built-in root certificates are therefore disabled and the client will only work over https.
-pub fn tls_pinned_client_builder(trust_anchors: impl Iterator<Item = Certificate>) -> ClientBuilder {
+pub fn tls_pinned_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
     trusted_reqwest_client_builder(trust_anchors)
         .https_only(true)
         .tls_built_in_root_certs(false)

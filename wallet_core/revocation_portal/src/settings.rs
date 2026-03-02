@@ -8,12 +8,14 @@ use config::File;
 use serde::Deserialize;
 
 use crypto::SymmetricKey;
+use http_utils::client::HttpServiceConfig;
 use utils::path::prefix_local_path;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     pub webserver: Server,
     pub cookie_encryption_key: SymmetricKey,
+    pub revocation_endpoint: HttpServiceConfig,
     pub structured_logging: bool,
     pub log_requests: bool,
 }

@@ -32,7 +32,7 @@ fn new_nl_pid<'a>(
             issuer: "https://pid.example.com".parse().unwrap(),
             ..PreviewableCredentialPayload::example_with_attributes(
                 PID_ATTESTATION_TYPE,
-                eudi_nl_pid_example(),
+                eudi_nl_pid_example("123".to_string()),
                 &MockTimeGenerator::default(),
             )
         },

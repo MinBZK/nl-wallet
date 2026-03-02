@@ -77,11 +77,11 @@ impl From<AccountProviderError> for InstructionError {
                 _,
             )) => Self::InstructionValidation,
             AccountProviderError::Response(AccountProviderResponseError::Account(
-                AccountError::AccountRevoked(reason),
+                AccountError::AccountRevoked(data),
                 _,
             )) => Self::AccountRevoked(AccountRevokedData {
-                revocation_reason: reason.revocation_reason,
-                can_register_new_account: reason.can_register_new_account,
+                revocation_reason: data.revocation_reason,
+                can_register_new_account: data.can_register_new_account,
             }),
             value => Self::ServerError(value),
         }

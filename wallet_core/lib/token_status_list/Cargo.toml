@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 axum = ["axum/json", "utoipa/uuid", "uuid/serde"]
-verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types", "http_utils/client"]
+verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types"]
 mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
 
 [dependencies]

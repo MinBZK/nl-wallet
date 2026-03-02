@@ -12,7 +12,6 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_account::messages::errors::RevocationReason;
 
-use crate::model::QueryResult;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::RecoveryCode;
 use crate::model::wallet_user::TransferSession;
@@ -49,11 +48,11 @@ pub trait WalletUserRepository {
         wallet_ids: &HashSet<WalletId>,
     ) -> Result<HashMap<WalletId, Uuid>>;
 
-    async fn find_wallet_user_id_by_revocation_code(
+    async fn find_wallet_user_by_revocation_code(
         &self,
         transaction: &Self::TransactionType,
         revocation_code_hmac: &[u8],
-    ) -> Result<QueryResult<Uuid>>;
+    ) -> Result<WalletUserQueryResult>;
 
     async fn find_wallet_user_ids_by_recovery_code(
         &self,
@@ -319,12 +318,12 @@ pub mod mock {
             .into())
         }
 
-        async fn find_wallet_user_id_by_revocation_code(
+        async fn find_wallet_user_by_revocation_code(
             &self,
             _transaction: &Self::TransactionType,
             _revocation_code_hmac: &[u8],
-        ) -> Result<QueryResult<Uuid>> {
-            Ok(QueryResult::Found(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08").into()))
+        ) -> Result<WalletUserQueryResult> {
+            Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
         }
 
         async fn find_wallet_user_ids_by_recovery_code(

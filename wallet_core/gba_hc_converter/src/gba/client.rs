@@ -61,7 +61,7 @@ impl HttpGbavClient {
         .map(|pem| pem::encode(&pem))
         .join("");
 
-        let http_client = tls_pinned_client_builder(std::iter::once(trust_anchor))
+        let http_client = tls_pinned_client_builder([trust_anchor])
             .identity(Identity::from_pem(client_pems.as_bytes())?)
             .build()
             .expect("Could not build reqwest HTTP client");

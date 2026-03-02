@@ -1,5 +1,0 @@
-error: expected `#[defer]` attribute to identify the field to defer into, found none
- --> tests/derive_error_category/fail_on_struct_missing_defer.rs:5:8
-  |
-5 | struct Error {
-  |        ^^^^^

@@ -4,13 +4,12 @@ use std::time::Duration;
 
 use cfg_if::cfg_if;
 use futures::try_join;
-use reqwest::ClientBuilder;
 use tokio::sync::RwLock;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::default_reqwest_client_builder;
-use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::oidc::OidcClient;
@@ -135,7 +134,7 @@ where
         )
         .await?;
 
-        let wallet_clients = WalletClients::new_http(default_reqwest_client_builder())?;
+        let wallet_clients = WalletClients::new_http()?;
 
         Self::init_registration(
             config_repository,
@@ -159,9 +158,9 @@ impl<APC> WalletClients<APC, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
 {
-    pub fn new_http(disclosure_client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
-        let disclosure_client = VpDisclosureClient::new_http(disclosure_client_builder)?;
-        let status_list_client = HttpStatusListClient::new()?;
+    pub fn new_http() -> Result<Self, reqwest::Error> {
+        let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder())?;
+        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
         let clients = Self {
             account_provider_client: APC::default(),

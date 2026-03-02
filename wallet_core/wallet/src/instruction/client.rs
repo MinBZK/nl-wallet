@@ -5,7 +5,7 @@ use derive_more::Constructor;
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
 
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKey;

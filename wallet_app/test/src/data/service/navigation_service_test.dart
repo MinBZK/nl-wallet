@@ -63,6 +63,38 @@ void main() {
       );
     });
 
+    test('Verify walletTransferTarget navRequest triggers navigation', () async {
+      // Allow navigation
+      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
+
+      final navigationRequest = NavigationRequest.walletTransferTarget();
+      await service.handleNavigationRequest(navigationRequest);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          navigationRequest.destination,
+          any,
+          arguments: anyNamed('arguments'),
+        ),
+      );
+    });
+
+    test('Verify appBlocked navRequest triggers navigation', () async {
+      // Allow navigation
+      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
+
+      final navigationRequest = NavigationRequest.appBlocked(reason: .adminRequest);
+      await service.handleNavigationRequest(navigationRequest);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          navigationRequest.destination,
+          any,
+          arguments: anyNamed('arguments'),
+        ),
+      );
+    });
+
     test('Verify DisclosureNavigationRequest triggers navigation', () async {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);

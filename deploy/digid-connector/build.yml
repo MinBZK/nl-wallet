@@ -24,6 +24,8 @@ get-rdo-max-source:
     - tar xzf "nl-rdo-max-${RDO_MAX_VERSION}.tar.gz" -C nl-rdo-max --strip-components=1
     - cd nl-rdo-max
     - npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
+    - rm -rf saml/tvs
+    - sed -i "s|window.location.href = url.toString();|window.location.href = 'digid-mock-catch?' + params.toString();|" resources/js/mock_redirect.js
   artifacts:
     name: rdo-max-source
     paths:

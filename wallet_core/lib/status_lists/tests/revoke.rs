@@ -16,7 +16,8 @@ use uuid::Uuid;
 
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
-use health_checkers::test_settings::connection_from_settings;
+use db_test::DbSetup;
+use db_test::connection_from_url;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
 use status_lists::postgres::PostgresStatusListService;
@@ -50,10 +51,10 @@ pub async fn fetch_attestation_batch(
 }
 
 async fn setup_revocation_test(
+    db_setup: &DbSetup,
     publish_dir: PublishDir,
-) -> (Arc<PostgresStatusListService<SigningKey>>, Url, DatabaseConnection) {
+) -> (Arc<PostgresStatusListService<SigningKey>>, Url) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let connection = connection_from_settings().await;
 
     let key_pair = ca.generate_status_list_mock().unwrap();
 
@@ -68,6 +69,7 @@ async fn setup_revocation_test(
         key_pair,
     };
 
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let service = PostgresStatusListService::try_new(connection.clone(), &random_string(20), config)
         .await
         .unwrap();
@@ -78,18 +80,22 @@ async fn setup_revocation_test(
     let service = Arc::new(service);
     let revoke_endpoint = setup_revocation_server(Arc::clone(&service)).await.unwrap();
 
-    (service, revoke_endpoint, connection)
+    (service, revoke_endpoint)
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 #[case(&[Uuid::new_v4()])]
 #[case(&[Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4()])]
 async fn test_revoke_batch(#[case] batch: &[Uuid]) {
+    let db_setup = DbSetup::create().await;
     let publish_dir = tempfile::tempdir().unwrap();
 
-    let (service, revocation_endpoint, connection) =
-        setup_revocation_test(PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap()).await;
+    let (service, revocation_endpoint) = setup_revocation_test(
+        &db_setup,
+        PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
+    )
+    .await;
 
     join_all(batch.iter().map(async |id| {
         let tasks = service
@@ -112,6 +118,7 @@ async fn test_revoke_batch(#[case] batch: &[Uuid]) {
     assert_eq!(response.status(), 200);
 
     // assert that all batches in the list are revoked
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     assert!(
         join_all(batch.iter().map(async |batch_id| {
             let revocation_status = fetch_attestation_batch(&connection, *batch_id).await.unwrap();
@@ -133,12 +140,16 @@ async fn test_revoke_batch(#[case] batch: &[Uuid]) {
     assert_eq!(response.status(), 200);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_non_existing_batch_should_return_success() {
+    let db_setup = DbSetup::create().await;
     let publish_dir = tempfile::tempdir().unwrap();
 
-    let (_, revocation_endpoint, _) =
-        setup_revocation_test(PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap()).await;
+    let (_, revocation_endpoint) = setup_revocation_test(
+        &db_setup,
+        PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
+    )
+    .await;
 
     let uuid = Uuid::new_v4();
 

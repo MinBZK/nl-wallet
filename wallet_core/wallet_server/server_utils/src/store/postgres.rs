@@ -33,7 +33,7 @@ use utils::generator::TimeGenerator;
 
 use crate::entity::session_state;
 
-const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]

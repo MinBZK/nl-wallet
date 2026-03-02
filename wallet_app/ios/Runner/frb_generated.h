@@ -254,6 +254,7 @@ typedef struct wire_cst_wallet_instruction_error {
 
 typedef struct wire_cst_WalletState_Blocked {
   int32_t reason;
+  bool can_register_new_account;
 } wire_cst_WalletState_Blocked;
 
 typedef struct wire_cst_WalletState_Locked {

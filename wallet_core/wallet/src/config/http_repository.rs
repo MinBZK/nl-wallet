@@ -5,7 +5,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use tracing::info;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
 use jwt::UnverifiedJwt;
@@ -55,7 +55,7 @@ impl<C> Repository<Arc<WalletConfiguration>> for HttpConfigurationRepository<C> 
 /// we just panic when that occurs.
 impl<B> UpdateableRepository<Arc<WalletConfiguration>, B> for HttpConfigurationRepository<B>
 where
-    B: IntoPinnedReqwestClient + Clone + Hash + Send + Sync,
+    B: IntoReqwestClient + Clone + Hash + Send + Sync,
 {
     type Error = ConfigurationError;
 

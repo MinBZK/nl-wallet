@@ -396,7 +396,7 @@ then
         mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "test_internal_ui" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --package pid_issuer --features "allow_insecure_url,test_internal_ui" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
@@ -427,7 +427,7 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
-        RUST_LOG=debug cargo run --package verification_server --no-default-features --features "allow_insecure_url" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package verification_server --features "allow_insecure_url" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
 
         echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/demo_rp_verification_server.log${NC}"
     fi
@@ -462,7 +462,7 @@ then
         mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
-        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "allow_insecure_url,test_internal_ui" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package issuance_server --features "allow_insecure_url,test_internal_ui" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
 
         echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
     fi
@@ -526,7 +526,7 @@ then
     if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}static_server${NC}"
-        RUST_LOG=debug cargo run --package static_server --bin static_server > "${TARGET_DIR}/static_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package static_server --features "allow_insecure_url" --bin static_server > "${TARGET_DIR}/static_server.log" 2>&1 &
 
         echo -e "static_server logs can be found at ${CYAN}${TARGET_DIR}/static_server.log${NC}"
     fi

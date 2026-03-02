@@ -13,6 +13,7 @@ use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
+use crate::issuer_identifier::CredentialIssuerIdentifier;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
 use crate::metadata::IssuerMetadata;
@@ -48,7 +49,7 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn start_issuance(
         _: HttpVcMessageClient,
-        _: BaseUrl,
+        _: CredentialIssuerIdentifier,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError>
@@ -89,9 +90,13 @@ impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
 
 impl Config {
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
-    pub fn new_mock(issuer: &BaseUrl) -> Self {
+    pub fn new_mock(issuer_url: BaseUrl) -> Self {
+        let auth_url = issuer_url.join("/authorize");
+        let token_url = issuer_url.join("/issuance/token");
+        let jwks_url = issuer_url.join("/jwks.json");
+
         Self {
-            userinfo_endpoint: Some(issuer.join("/userinfo")),
+            userinfo_endpoint: Some(issuer_url.join("/userinfo")),
             registration_endpoint: None,
             scopes_supported: Some(IndexSet::from_iter(["openid".to_string()])),
             response_types_supported: IndexSet::from_iter(
@@ -99,24 +104,24 @@ impl Config {
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
 
-            ..Config::new(
-                issuer.clone(),
-                issuer.join("/authorize"),
-                issuer.join("/token"),
-                issuer.join("/jwks.json"),
-            )
+            ..Config::new(issuer_url, auth_url, token_url, jwks_url)
         }
     }
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(url: &BaseUrl) -> IssuerMetadata {
+    pub fn new_mock(issuer_identifier: CredentialIssuerIdentifier) -> IssuerMetadata {
+        let credential_endpoint = issuer_identifier.as_base_url().join_base_url("/issuance/credential");
+        let batch_credential_endpoint = issuer_identifier
+            .as_base_url()
+            .join_base_url("/issuance/batch_credential");
+
         IssuerMetadata {
             issuer_config: IssuerData {
-                credential_issuer: url.clone(),
+                credential_issuer: issuer_identifier,
                 authorization_servers: None,
-                credential_endpoint: url.join_base_url("/credential"),
-                batch_credential_endpoint: Some(url.join_base_url("/batch_credential")),
+                credential_endpoint,
+                batch_credential_endpoint: Some(batch_credential_endpoint),
                 deferred_credential_endpoint: None,
                 notification_endpoint: None,
                 credential_response_encryption: CredentialResponseEncryption {

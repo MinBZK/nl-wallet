@@ -1,46 +1,26 @@
 use std::error::Error;
-use std::path::Path;
-use std::time::Duration;
 
 use assert_matches::assert_matches;
 use audit_log::audited;
 use audit_log::model::FromAuditLogError;
 use chrono::Utc;
-use config::Config;
-use config::File;
 use rstest::rstest;
 use sea_orm::ColumnTrait;
-use sea_orm::ConnectOptions;
-use sea_orm::Database;
-use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
-use utils::path::prefix_local_path;
 
 use audit_log::entity;
 use audit_log::model::AuditLog;
 use audit_log::model::PostgresAuditLog;
 
-#[derive(Debug, Clone, Deserialize)]
-struct TestSettings {
-    pub storage_url: String,
-}
-
-fn test_settings() -> TestSettings {
-    Config::builder()
-        .add_source(File::from(prefix_local_path(Path::new("test_settings.toml")).as_ref()).required(true))
-        .build()
-        .expect("cannot build config")
-        .try_deserialize()
-        .expect("cannot read test settings")
-}
+use db_test::DbSetup;
+use db_test::connection_from_url;
 
 struct MockUuid(Uuid);
 
@@ -64,29 +44,19 @@ impl FromAuditLogError for TestError {
     }
 }
 
-async fn setup_test_database(
-    correlation_id: Uuid,
-) -> (DatabaseConnection, PostgresAuditLog<MockUuid, MockTimeGenerator>) {
-    let database_url = test_settings().storage_url;
-
-    let mut connection_options = ConnectOptions::new(database_url);
-    connection_options.connect_timeout(Duration::from_secs(3));
-    connection_options.sqlx_logging(true);
-
-    let connection = Database::connect(connection_options)
-        .await
-        .expect("Failed to connect to test database");
+async fn setup_test_database(correlation_id: Uuid) -> (DbSetup, PostgresAuditLog<MockUuid, MockTimeGenerator>) {
+    let db_setup = DbSetup::create().await;
 
     let now = Utc::now();
     let time_generator = MockTimeGenerator::new(now);
 
     let audit_log = PostgresAuditLog {
-        db_connection: connection.clone(),
+        db_connection: connection_from_url(db_setup.audit_log_url()).await,
         time_generator,
         uuid_generator: MockUuid(correlation_id),
     };
 
-    (connection, audit_log)
+    (db_setup, audit_log)
 }
 
 #[audited]
@@ -99,11 +69,11 @@ async fn operation(
 }
 
 #[rstest]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_audit(#[values(true, false)] is_success: bool) {
     // Setup PostgresAuditLog and database connection
     let correlation_id = Uuid::new_v4();
-    let (connection, audit_log) = setup_test_database(correlation_id).await;
+    let (db_setup, audit_log) = setup_test_database(correlation_id).await;
 
     // Perform audited test operation
     let result: Result<(), TestError> = operation(&audit_log, is_success, "input").await;
@@ -111,6 +81,7 @@ async fn test_audit(#[values(true, false)] is_success: bool) {
     assert_eq!(result.is_ok(), is_success);
 
     // Verify the audit records in the database
+    let connection = connection_from_url(db_setup.audit_log_url()).await;
     let audit_records = entity::audit_log::Entity::find()
         .filter(entity::audit_log::Column::CorrelationId.eq(correlation_id))
         .order_by_asc(entity::audit_log::Column::Id)

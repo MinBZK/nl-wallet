@@ -76,11 +76,9 @@ mod key {
             self.bridge.public_key(self.identifier.clone()).await
         }
 
-        pub async fn delete(self) -> Result<(), AttestedKeyError> {
+        pub async fn delete(&self) -> Result<(), AttestedKeyError> {
+            UNIQUE_IDENTIFIERS.lock().remove(&self.identifier);
             self.bridge.delete(self.identifier.clone()).await
-
-            // Note that upon returning, the `Drop` implementation will be called and
-            // the identifier will be removed from the static `UNIQUE_IDENTIFIERS`.
         }
     }
 
@@ -236,7 +234,7 @@ impl AppleAttestedKey for AppleHardwareAttestedKey {
 pub struct GoogleHardwareAttestedKey(HardwareAttestedKey);
 
 impl GoogleAttestedKey for GoogleHardwareAttestedKey {
-    async fn delete(self) -> Result<(), Self::Error> {
+    async fn delete(&self) -> Result<(), Self::Error> {
         self.0.delete().await?;
 
         Ok(())

@@ -3,7 +3,6 @@ mod http;
 use url::Url;
 
 use error_category::ErrorCategory;
-
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;

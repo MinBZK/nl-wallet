@@ -3,6 +3,7 @@ import 'package:fimber/fimber.dart';
 import '../../../../data/repository/disclosure/disclosure_repository.dart';
 import '../../../../data/repository/issuance/issuance_repository.dart';
 import '../../../../data/repository/pin/pin_repository.dart';
+import '../../../../data/repository/transfer/transfer_repository.dart';
 import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../../../../util/extension/wallet_state_extension.dart';
 import '../../../model/result/result.dart';
@@ -14,12 +15,14 @@ class MoveToReadyStateUseCaseImpl extends MoveToReadyStateUseCase {
   final IssuanceRepository _issuanceRepository;
   final DisclosureRepository _disclosureRepository;
   final PinRepository _pinRepository;
+  final TransferRepository _transferRepository;
 
   MoveToReadyStateUseCaseImpl(
     this._walletRepository,
     this._issuanceRepository,
     this._disclosureRepository,
     this._pinRepository,
+    this._transferRepository,
   );
 
   @override
@@ -39,8 +42,14 @@ class MoveToReadyStateUseCaseImpl extends MoveToReadyStateUseCase {
           Fimber.d('Wallet in locked state, not altering internal state');
           return state.unlockedState is WalletStateReady;
         case WalletStateTransferPossible():
-        case WalletStateTransferring():
-          throw 'Transferring states should be at startup: $state';
+          throw 'Destination transfer states should be explicitly cancelled: $state';
+        case WalletStateTransferring(:final role):
+          switch (role) {
+            case TransferRole.source:
+              await _transferRepository.cancelWalletTransfer();
+            case TransferRole.destination:
+              throw 'Destination transfer states should be explicitly cancelled: $state';
+          }
         case WalletStateInDisclosureFlow():
           await _disclosureRepository.cancelDisclosure();
         case WalletStateInIssuanceFlow():

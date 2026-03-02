@@ -8,6 +8,7 @@ use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
+use http_utils::reqwest::default_reqwest_client_builder;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::server;
 use issuance_server::settings::IssuanceServerSettings;
@@ -82,7 +83,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             .iter()
             .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
         &settings.status_lists,
-        &settings.issuer_settings.server_settings.public_url,
+        settings.issuer_settings.public_url.as_base_url(),
         hsm.clone(),
     )
     .await?;
@@ -107,7 +108,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         })
         .transpose()?;
 
-    let status_list_client = HttpStatusListClient::new()?;
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
     let db_checkers = [store_checker, status_list_checker].into_iter().flat_map(boxed);
     let health_router = create_health_router(std::iter::once(hsm_checker).flat_map(boxed).chain(db_checkers));

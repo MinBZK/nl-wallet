@@ -1,0 +1,6 @@
+@import url("./job_finder.css");
+@import url("../../../demo_utils/static/css/buttons-after.css");
+
+.buttons button > span {
+  background: #1b363e;
+}

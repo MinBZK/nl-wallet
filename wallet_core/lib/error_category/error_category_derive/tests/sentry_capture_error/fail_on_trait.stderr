@@ -1,5 +1,0 @@
-error: attribute macro `sentry_capture_error` not supported here
- --> tests/sentry_capture_error/fail_on_trait.rs:4:1
-  |
-4 | trait Foo {}
-  | ^^^^^

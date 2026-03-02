@@ -16,7 +16,6 @@ use hsm::model::wrapped_key::WrappedKey;
 use measure::measure;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
-use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::TransferSession;
@@ -94,12 +93,12 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn find_wallet_user_id_by_revocation_code(
+    async fn find_wallet_user_by_revocation_code(
         &self,
         transaction: &Self::TransactionType,
         revocation_code_hmac: &[u8],
-    ) -> Result<QueryResult<Uuid>, PersistenceError> {
-        wallet_user::find_wallet_user_id_by_revocation_code(transaction, revocation_code_hmac).await
+    ) -> Result<WalletUserQueryResult, PersistenceError> {
+        wallet_user::find_wallet_user_by_revocation_code(transaction, revocation_code_hmac).await
     }
 
     async fn find_wallet_user_ids_by_recovery_code(
@@ -599,11 +598,11 @@ pub mod mock {
                 wallet_ids: &HashSet<WalletId> ,
             ) -> Result<HashMap<WalletId, Uuid>, PersistenceError>;
 
-            async fn find_wallet_user_id_by_revocation_code(
+            async fn find_wallet_user_by_revocation_code(
                 &self,
                 transaction: &MockTransaction,
                 revocation_code_hmac: &[u8],
-            ) -> Result<QueryResult<Uuid>, PersistenceError>;
+            ) -> Result<WalletUserQueryResult, PersistenceError>;
 
             async fn find_wallet_user_ids_by_recovery_code(
                 &self,
@@ -934,12 +933,36 @@ pub mod mock {
             .into())
         }
 
-        async fn find_wallet_user_id_by_revocation_code(
+        async fn find_wallet_user_by_revocation_code(
             &self,
             _transaction: &Self::TransactionType,
             _revocation_code_hmac: &[u8],
-        ) -> Result<QueryResult<Uuid>, PersistenceError> {
-            Ok(QueryResult::Found(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08").into()))
+        ) -> Result<WalletUserQueryResult, PersistenceError> {
+            Ok(QueryResult::Found(Box::new(WalletUser {
+                id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                wallet_id: WalletId::from("wallet-123".to_owned()),
+                hw_pubkey: self.hw_pubkey,
+                encrypted_pin_pubkey: self.encrypted_pin_pubkey.clone(),
+                encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.clone(),
+                unsuccessful_pin_entries: 0,
+                last_unsuccessful_pin_entry: None,
+                instruction_challenge: self.challenge.clone().map(|c| InstructionChallenge {
+                    bytes: c,
+                    expiration_date_time: Utc::now() + Duration::from_millis(15000),
+                }),
+                instruction_sequence_number: self.instruction_sequence_number,
+                attestation: match self.apple_assertion_counter {
+                    Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
+                    None => WalletUserAttestation::Android {
+                        identifiers: AndroidHardwareIdentifiers::default(),
+                    },
+                },
+                state: self.state,
+                revocation_code_hmac: self.revocation_code_hmac.clone(),
+                revocation_registration: self.revocation_registration,
+                recovery_code: None,
+                recovery_code_is_denied: false,
+            })))
         }
 
         async fn find_wallet_user_ids_by_recovery_code(

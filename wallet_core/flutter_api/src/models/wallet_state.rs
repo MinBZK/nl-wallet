@@ -1,11 +1,18 @@
 pub enum WalletState {
-    Blocked { reason: BlockedReason },
+    Blocked {
+        reason: BlockedReason,
+        can_register_new_account: bool,
+    },
     Unregistered,
-    Locked { sub_state: Box<WalletState> },
+    Locked {
+        sub_state: Box<WalletState>,
+    },
     // The following variants may appear in `Locked { sub_state }`
     Empty,
     TransferPossible,
-    Transferring { role: TransferRole },
+    Transferring {
+        role: TransferRole,
+    },
     InDisclosureFlow,
     InIssuanceFlow,
     InPinChangeFlow,
@@ -37,7 +44,13 @@ impl From<wallet::WalletState> for WalletState {
             wallet::WalletState::InIssuanceFlow => WalletState::InIssuanceFlow,
             wallet::WalletState::InPinChangeFlow => WalletState::InPinChangeFlow,
             wallet::WalletState::InPinRecoveryFlow => WalletState::InPinRecoveryFlow,
-            wallet::WalletState::Blocked { reason } => WalletState::Blocked { reason: reason.into() },
+            wallet::WalletState::Blocked {
+                reason,
+                can_register_new_account,
+            } => WalletState::Blocked {
+                reason: reason.into(),
+                can_register_new_account,
+            },
             wallet::WalletState::Empty => WalletState::Empty,
         }
     }

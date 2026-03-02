@@ -2,6 +2,7 @@ use assert_matches::assert_matches;
 use serial_test::serial;
 use tempfile::TempDir;
 
+use db_test::DbSetup;
 use dcql::CredentialFormat;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use tests_integration::common::WalletWithStorage;
@@ -34,14 +35,14 @@ async fn assert_state(expected_state: TransferSessionState, wallet: &mut WalletW
     assert_eq!(wallet.get_transfer_status().await.unwrap(), expected_state);
 }
 
-async fn init_wallets() -> (WalletData, WalletData) {
+async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
     let source_wallet_pin = "112233";
     let destination_wallet_pin = "332211";
 
     let source_tempdir = TempDir::new().unwrap();
     let destination_tempdir = TempDir::new().unwrap();
 
-    let (config_server_config, mock_device_config, wallet_config, issuance_urls, _) = setup_env_default().await;
+    let (config_server_config, mock_device_config, wallet_config, issuance_urls, _) = setup_env_default(db_setup).await;
 
     let mut source = setup_file_wallet(
         config_server_config.clone(),
@@ -54,7 +55,10 @@ async fn init_wallets() -> (WalletData, WalletData) {
     source = do_pid_issuance(source, String::from(source_wallet_pin)).await;
     source
         .start_disclosure(
-            &universal_link(&issuance_urls.issuance_server.public, CredentialFormat::SdJwt),
+            &universal_link(
+                issuance_urls.issuance_server.public.as_base_url(),
+                CredentialFormat::SdJwt,
+            ),
             DisclosureUriSource::Link,
         )
         .await
@@ -89,9 +93,10 @@ async fn init_wallets() -> (WalletData, WalletData) {
     )
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc62_test_wallet_transfer() {
+    let db_setup = DbSetup::create_clean().await;
     let (
         WalletData {
             wallet: mut source,
@@ -103,7 +108,7 @@ async fn ltc62_test_wallet_transfer() {
             pin: destination_wallet_pin,
             tempdir: _destination_tempdir,
         },
-    ) = init_wallets().await;
+    ) = init_wallets(&db_setup).await;
 
     let url = destination.init_transfer().await.unwrap();
 
@@ -152,10 +157,11 @@ async fn ltc62_test_wallet_transfer() {
     assert!(attestations.is_empty());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc63_test_wallet_transfer_canceled_from_source() {
-    let (mut source_data, mut destination_data) = init_wallets().await;
+    let db_setup = DbSetup::create_clean().await;
+    let (mut source_data, mut destination_data) = init_wallets(&db_setup).await;
 
     let url = destination_data.wallet.init_transfer().await.unwrap();
 
@@ -175,9 +181,10 @@ async fn ltc63_test_wallet_transfer_canceled_from_source() {
     assert_state(TransferSessionState::Canceled, &mut destination_data.wallet).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc64_test_wallet_transfer_canceled_from_destination() {
+    let db_setup = DbSetup::create_clean().await;
     let (
         WalletData {
             wallet: mut source,
@@ -189,7 +196,7 @@ async fn ltc64_test_wallet_transfer_canceled_from_destination() {
             tempdir: _destination_tempdir,
             ..
         },
-    ) = init_wallets().await;
+    ) = init_wallets(&db_setup).await;
 
     let url = destination.init_transfer().await.unwrap();
 
@@ -212,10 +219,11 @@ async fn ltc64_test_wallet_transfer_canceled_from_destination() {
     assert_state(TransferSessionState::Canceled, &mut source).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc63_test_retry_transfer_after_canceled() {
-    let (mut source_data, mut destination_data) = init_wallets().await;
+    let db_setup = DbSetup::create_clean().await;
+    let (mut source_data, mut destination_data) = init_wallets(&db_setup).await;
 
     let url = destination_data.wallet.init_transfer().await.unwrap();
 

@@ -44,14 +44,19 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       case WalletStateTransferPossible():
         emit(const SplashLoaded(.transfer));
       case WalletStateTransferring():
-        if (unlockedState.role == .target) {
+        if (unlockedState.role == .destination) {
           emit(const SplashLoaded(.transfer));
         } else {
           /// Transfer will be cancelled by [WalletTransferEventListener]
           emit(const SplashLoaded(.dashboard));
         }
-      case WalletStateBlocked():
-        emit(const SplashLoaded(.blocked));
+      case WalletStateBlocked(:final reason):
+        switch (reason) {
+          case BlockedReason.requiresAppUpdate:
+            emit(const SplashLoaded(.none));
+          case BlockedReason.blockedByWalletProvider:
+            emit(const SplashLoaded(.blocked));
+        }
       case WalletStateInPinRecoveryFlow():
         emit(const SplashLoaded(.pinRecovery));
       case WalletStateReady():

@@ -6,13 +6,14 @@ use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use uuid::Uuid;
 
+use db_test::DbSetup;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
-use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::wallet_user_key::delete_blocked_keys_in_same_batch;
 use wallet_provider_persistence::wallet_user_key::find_active_keys_by_identifiers;
 use wallet_provider_persistence::wallet_user_key::is_blocked_key;
@@ -32,9 +33,10 @@ fn test_wallet_user_key() -> WalletUserKey {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_keys() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     let key1 = WalletUserKey {
         is_blocked: false,
@@ -80,9 +82,10 @@ async fn test_create_keys() {
     assert_eq!(HashSet::from_iter([key1, key2]), keys);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_move_keys() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     let source_key1 = WalletUserKey {
         is_blocked: false,
@@ -194,9 +197,10 @@ async fn test_move_keys() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_blocked_keys() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     let key1 = WalletUserKey {
         is_blocked: true,
@@ -261,9 +265,10 @@ async fn test_create_blocked_keys() {
     assert_eq!(active_keys.len(), 2);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_delete_blocked_keys() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     let key1 = WalletUserKey {
         is_blocked: true,

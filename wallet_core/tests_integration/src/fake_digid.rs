@@ -3,10 +3,10 @@ use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
 use url::Url;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::IntoReqwestClient;
+use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
-use http_utils::tls::pinning::TlsPinningConfig;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
 // invoking the same URLs at the DigiD bridge that would normally be invoked by the app and browser in the mock
@@ -47,11 +47,11 @@ pub async fn fake_digid_auth(mut authorization_url: Url, digid_http_config: TlsP
     Url::parse(redirect_url).expect("failed to parse redirect url")
 }
 
-async fn do_get_request(client: &PinnedReqwestClient, url: ReqwestClientUrl<'_>) -> Response {
+async fn do_get_request(client: &ReqwestClient, url: ReqwestClientUrl<'_>) -> Response {
     client.send_get(url).await.expect("failed to GET URL")
 }
 
-async fn do_get_as_text(client: &PinnedReqwestClient, url: ReqwestClientUrl<'_>) -> String {
+async fn do_get_as_text(client: &ReqwestClient, url: ReqwestClientUrl<'_>) -> String {
     do_get_request(client, url)
         .await
         .text()

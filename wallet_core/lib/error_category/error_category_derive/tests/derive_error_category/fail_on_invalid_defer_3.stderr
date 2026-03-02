@@ -1,5 +1,0 @@
-error: `#[category(defer)]` is not supported on unit variants
- --> tests/derive_error_category/fail_on_invalid_defer_3.rs:6:5
-  |
-6 |     SingleStruct,
-  |     ^^^^^^^^^^^^

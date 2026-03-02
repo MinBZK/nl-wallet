@@ -7,6 +7,7 @@ use android_attest::attestation_extension::key_attestation::OsVersion;
 use android_attest::attestation_extension::key_attestation::PatchLevel;
 use apple_app_attest::AssertionCounter;
 use crypto::utils::random_string;
+use db_test::DbSetup;
 use hsm::model::encrypted::Encrypted;
 use utils::generator::Generator;
 use wallet_provider_domain::EpochGenerator;
@@ -22,7 +23,7 @@ use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
-use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::test::encrypted_pin_key;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
@@ -39,22 +40,27 @@ use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
 
 pub mod common;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_wallet_user() {
-    let (_db, _wallet_user_id, wallet_id, wallet_user) = common::create_test_user(WalletDeviceVendor::Apple).await;
-    assert_eq!(wallet_id.as_ref(), &wallet_user.wallet_id);
+    let db_setup = DbSetup::create().await;
+    let (_db, _wallet_user_id, wallet_id, wallet_user) =
+        common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
+    assert_eq!(wallet_id, wallet_user.wallet_id.into());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_wallets() {
-    let (db, _wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, _wallet_user_id, wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
     let wallets = list_wallets(&db).await.unwrap();
     assert!(wallets.iter().any(|w| w.wallet_id == wallet_id));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_find_wallet_user_by_wallet_id() {
-    let (db, wallet_user_id, wallet_id, wallet_user_model) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, wallet_user_model) =
+        common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     // A wallet user that does not have an instruction challenge associated with it should be found.
     let wallet_user_result = find_wallet_user_by_wallet_id(&db, &wallet_id)
@@ -88,9 +94,10 @@ async fn test_find_wallet_user_by_wallet_id() {
     assert!(wallet_user.instruction_challenge.is_some());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_wallet_user_transaction_commit() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
 
     let transaction = transaction::begin_transaction(&db)
         .await
@@ -117,9 +124,10 @@ async fn test_create_wallet_user_transaction_commit() {
     assert_eq!(wallet_id.as_ref(), &wallet_user.wallet_id);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_wallet_user_transaction_rollback() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
     let wallet_id: WalletId = random_string(32).into();
 
     let wallet_user_id = {
@@ -135,9 +143,11 @@ async fn test_create_wallet_user_transaction_rollback() {
     assert!(maybe_wallet_user.is_none());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_insert_instruction_challenge_on_conflict() {
-    let (db, wallet_user_id, wallet_id, _wallet_user) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, _wallet_user) =
+        common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert!(challenges.is_empty());
@@ -198,9 +208,10 @@ async fn test_insert_instruction_challenge_on_conflict() {
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_register_unsuccessful_pin_entry() {
-    let (db, wallet_user_id, wallet_id, before) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, before) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
     assert!(before.last_unsuccessful_pin.is_none());
 
     register_unsuccessful_pin_entry(&db, &wallet_id, false, EpochGenerator.generate())
@@ -213,7 +224,9 @@ async fn test_register_unsuccessful_pin_entry() {
     assert_eq!(EpochGenerator.generate(), after.last_unsuccessful_pin.unwrap());
 }
 
-async fn do_change_pin() -> (
+async fn do_change_pin(
+    db_setup: &DbSetup,
+) -> (
     Db,
     Uuid,
     WalletId,
@@ -221,7 +234,7 @@ async fn do_change_pin() -> (
     wallet_user::Model,
     wallet_user::Model,
 ) {
-    let (db, wallet_user_id, wallet_id, before) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let (db, wallet_user_id, wallet_id, before) = common::create_test_user(db_setup, WalletDeviceVendor::Apple).await;
 
     let new_pin = encrypted_pin_key("new_pin_1").await;
 
@@ -243,9 +256,11 @@ async fn do_change_pin() -> (
     (db, wallet_user_id, wallet_id, new_pin, before, after)
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_change_pin_and_commit() {
-    let (db, wallet_user_id, wallet_id, new_pin, _before_pin_change, _after_pin_change) = do_change_pin().await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, new_pin, _before_pin_change, _after_pin_change) =
+        do_change_pin(&db_setup).await;
 
     commit_pin_change(&db, &wallet_id).await.unwrap();
 
@@ -257,9 +272,11 @@ async fn test_change_pin_and_commit() {
     assert_eq!(after_commit.pin_pubkey_iv, new_pin.iv.0);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_rollback_pin() {
-    let (db, wallet_user_id, wallet_id, _new_pin, before_pin_change, _after_pin_change) = do_change_pin().await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, _new_pin, before_pin_change, _after_pin_change) =
+        do_change_pin(&db_setup).await;
 
     rollback_pin_change(&db, &wallet_id).await.unwrap();
 
@@ -274,11 +291,12 @@ async fn test_rollback_pin() {
     assert_eq!(after_rollback.pin_pubkey_iv, before_pin_change.pin_pubkey_iv);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_update_apple_assertion_counter() {
+    let db_setup = DbSetup::create().await;
     let (db, _wallet_user_id, wallet_id, _wallet_user_model) =
-        common::create_test_user(WalletDeviceVendor::Apple).await;
-    let (_, _, other_wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+        common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
+    let (_, _, other_wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     // Each of the two users created above should start out with an assertion counter of 0.
     let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
@@ -322,10 +340,11 @@ async fn test_update_apple_assertion_counter() {
     };
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_wallet_user_android_attestations() {
+    let db_setup = DbSetup::create().await;
     let (db, _wallet_user_id, wallet_id, wallet_user_model) =
-        common::create_test_user(WalletDeviceVendor::Google).await;
+        common::create_test_user(&db_setup, WalletDeviceVendor::Google).await;
 
     assert_eq!(wallet_id.as_ref(), &wallet_user_model.wallet_id);
 
@@ -357,9 +376,10 @@ async fn test_create_wallet_user_android_attestations() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_transition_wallet_user_state() {
-    let (db, wallet_user_id, wallet_id, user) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, user) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     assert_eq!(user.state, WalletUserState::Active.to_string());
 
@@ -391,9 +411,10 @@ async fn test_transition_wallet_user_state() {
     assert_matches!(err, PersistenceError::NoRowsUpdated);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_reset_wallet_user_state() {
-    let (db, wallet_user_id, wallet_id, user) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, user) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     assert_eq!(user.state, WalletUserState::Active.to_string());
 
@@ -426,10 +447,11 @@ async fn test_reset_wallet_user_state() {
     assert_eq!(user.state, WalletUserState::Active);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_store_recovery_code() {
-    let (db, _, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
-    let (_, _, other_wallet_id, _) = common::create_test_user(WalletDeviceVendor::Google).await;
+    let db_setup = DbSetup::create().await;
+    let (db, _, wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
+    let (_, _, other_wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Google).await;
 
     // Each of the two users created above should start out with a recovery code that is null.
     let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
@@ -484,12 +506,14 @@ async fn test_store_recovery_code() {
         .expect_err("storing the recovery code twice should error");
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_has_multiple_accounts() {
+    let db_setup = DbSetup::create().await;
+
     // Prepare three wallet users
-    let (db, _, wallet_id1, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
-    let (_, wallet_user_id2, wallet_id2, _) = common::create_test_user(WalletDeviceVendor::Google).await;
-    let (_, wallet_user_id3, wallet_id3, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let (db, _, wallet_id1, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
+    let (_, wallet_user_id2, wallet_id2, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Google).await;
+    let (_, wallet_user_id3, wallet_id3, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     let recovery_code: RecoveryCode = random_string(64).into();
 

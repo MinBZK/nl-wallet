@@ -11,7 +11,7 @@ import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/report_issue/reporting_option.dart';
 import 'package:wallet/src/util/extension/core_error_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart' hide SessionType;
 
 import '../../../mocks/wallet_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';

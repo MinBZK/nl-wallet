@@ -1,5 +1,0 @@
-error: expected `category` attribute on struct `Error`
- --> tests/derive_error_category/fail_on_struct_missing_category.rs:4:1
-  |
-4 | struct Error {}
-  | ^^^^^^

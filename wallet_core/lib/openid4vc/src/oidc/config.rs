@@ -185,7 +185,7 @@ pub mod tests {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use http_utils::tls::insecure::InsecureHttpConfig;
+    use http_utils::client::InternalHttpConfig;
     use http_utils::urls::BaseUrl;
 
     use super::super::OidcReqwestClient;
@@ -226,7 +226,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new(InsecureHttpConfig::new(server_url.clone())).unwrap();
+        let client = OidcReqwestClient::try_new(InternalHttpConfig::try_new(server_url.clone()).unwrap()).unwrap();
 
         let discovered = Config::discover(&client).await.unwrap();
 

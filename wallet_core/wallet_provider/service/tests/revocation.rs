@@ -18,6 +18,7 @@ use audit_log::model::mock::MockAuditLog;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_bytes;
 use crypto::utils::random_string;
+use db_test::DbSetup;
 use hsm::model::Hsm;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
@@ -45,7 +46,7 @@ use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
-use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::test::encrypted_pin_key;
 use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wua;
@@ -61,10 +62,11 @@ use wallet_provider_service::wallet_certificate::mock::setup_hsm;
 use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
 
 async fn setup_state(
+    db_setup: &DbSetup,
     publish_dir: PublishDir,
 ) -> UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>> {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let db: Db = db_from_env().await.unwrap();
+    let db: Db = db_from_setup(db_setup).await;
 
     let key_pair = ca.generate_status_list_mock().unwrap();
 
@@ -293,7 +295,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
     (wallets, wuas)
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 #[case(vec![1], vec![0])]
 #[case(vec![4, 4, 4], vec![2])]
@@ -301,9 +303,10 @@ async fn register_wallets_to_revoke_with_revocation_codes(
 #[case(vec![0, 10, 10], vec![0])]
 #[case(vec![0, 10, 10], vec![1])]
 async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices_to_revoke: Vec<usize>) {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets, wuas) = register_wallets_with_wuas(wuas_per_wallet, &user_state).await;
 
@@ -382,16 +385,17 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 #[case(vec![1])]
 #[case(vec![4, 4, 4])]
 #[case(vec![0, 10, 10])]
 #[ignore] // TODO this test fails due to the DB already containing token status lists (PVW-5455)
 async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallet_ids, wuas) = register_wallets_with_wuas(wuas_per_wallet, &user_state).await;
     let wuas = wuas.into_iter().flatten().collect_vec();
@@ -437,11 +441,12 @@ async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_not_found() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets, wuas) = register_wallets_with_wuas(vec![1], &user_state).await;
     let wuas = wuas.into_iter().flatten().collect_vec();
@@ -496,11 +501,12 @@ async fn test_revoke_wallet_not_found() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_wua_error() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets, wuas) = register_wallets_with_wuas(vec![1], &user_state).await;
 
@@ -545,11 +551,12 @@ async fn test_revoke_wallet_wua_error() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_by_revocation_code() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets_with_codes, wuas) =
         register_wallets_to_revoke_with_revocation_codes(vec![4], &user_state, REVOCATION_CODE_KEY_IDENTIFIER).await;
@@ -568,12 +575,13 @@ async fn test_revoke_wallet_by_revocation_code() {
     )
     .await;
 
-    // revoke the wallet
-    revoke_wallet_by_revocation_code::<_, _, _>(
+    // revoke the wallet; use a fixed time so we can assert on the return value
+    let first_time_gen = MockTimeGenerator::epoch();
+    let revocation_date_time = revoke_wallet_by_revocation_code::<_, _, _>(
         revocation_code.clone(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
-        &MockTimeGenerator::default(),
+        &first_time_gen,
         &MockAuditLog,
     )
     .await
@@ -590,16 +598,20 @@ async fn test_revoke_wallet_by_revocation_code() {
     )
     .await;
 
-    // verify idempotency: revoking again should succeed without errors
-    revoke_wallet_by_revocation_code(
+    // verify idempotency: revoking again with a *different* time should return the originally
+    // stored datetime, not the new one
+    let second_time_gen = MockTimeGenerator::default();
+    let idempotent_date_time = revoke_wallet_by_revocation_code(
         revocation_code,
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
-        &MockTimeGenerator::default(),
+        &second_time_gen,
         &MockAuditLog,
     )
     .await
     .unwrap();
+
+    assert_eq!(idempotent_date_time, revocation_date_time);
 
     // wallet should still be revoked
     verify_revocation(
@@ -613,11 +625,12 @@ async fn test_revoke_wallet_by_revocation_code() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_by_revocation_code_not_found() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (_wallets_with_codes, wuas) =
         register_wallets_to_revoke_with_revocation_codes(vec![1], &user_state, REVOCATION_CODE_KEY_IDENTIFIER).await;
@@ -653,11 +666,12 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_by_revocation_code_hsm_error() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir).await;
 
     // remove the symmetric key, so sign_hmac will fail
     user_state
@@ -677,11 +691,12 @@ async fn test_revoke_wallet_by_revocation_code_hsm_error() {
     assert_matches!(err, RevocationError::RevocationCodeHmac(_));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_by_revocation_code_wua_error() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets_with_codes, wuas) =
         register_wallets_to_revoke_with_revocation_codes(vec![1], &user_state, REVOCATION_CODE_KEY_IDENTIFIER).await;
@@ -732,11 +747,12 @@ async fn test_revoke_wallet_by_revocation_code_wua_error() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_by_recovery_code() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallet_ids, wuas) = register_wallets_with_wuas(vec![1, 1, 1], &user_state).await;
 
@@ -842,11 +858,12 @@ async fn test_revoke_wallet_by_recovery_code() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_and_remove_denied_recovery_codes_service() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir).await;
 
     let recovery_code: RecoveryCode = random_string(64).into();
 
@@ -876,11 +893,12 @@ async fn test_list_and_remove_denied_recovery_codes_service() {
     assert!(!denied.contains(&recovery_code));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_remove_nonexistent_denied_recovery_code_service() {
+    let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(publish_dir.clone()).await;
+    let user_state = setup_state(&db_setup, publish_dir).await;
 
     let recovery_code = random_string(64).into();
 

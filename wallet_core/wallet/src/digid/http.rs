@@ -3,7 +3,7 @@ use std::hash::Hash;
 use tracing::info;
 use url::Url;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcReqwestClient;
 use wallet_configuration::wallet_config::DigidConfiguration;
@@ -17,7 +17,7 @@ pub async fn start_digid_session<O, C>(
     redirect_uri: Url,
 ) -> Result<DigidSessionState<O>, DigidError>
 where
-    C: IntoPinnedReqwestClient + Clone + Hash,
+    C: IntoReqwestClient + Clone + Hash,
     O: OidcClient,
 {
     let http_client = OidcReqwestClient::try_new(http_config)?;
@@ -30,12 +30,13 @@ where
 
 #[cfg(test)]
 mod test {
-    use http_utils::tls::insecure::InsecureHttpConfig;
+    use http_utils::client::TlsPinningConfig;
+    use serial_test::serial;
+    use url::Url;
+
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use serial_test::serial;
-    use url::Url;
     use wallet_configuration::wallet_config::DigidConfiguration;
 
     use crate::digid::DigidSessionState;
@@ -63,7 +64,7 @@ mod test {
 
         let session: DigidSessionState<MockOidcClient> = start_digid_session(
             DigidConfiguration::default(),
-            InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+            TlsPinningConfig::try_new("https://digid.example.com".parse().unwrap(), vec![]).unwrap(),
             "https://app.example.com".parse().unwrap(),
         )
         .await

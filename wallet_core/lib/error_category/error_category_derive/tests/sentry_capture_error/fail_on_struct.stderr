@@ -1,5 +1,0 @@
-error: attribute macro `sentry_capture_error` not supported here
- --> tests/sentry_capture_error/fail_on_struct.rs:4:1
-  |
-4 | struct Foo {}
-  | ^^^^^^

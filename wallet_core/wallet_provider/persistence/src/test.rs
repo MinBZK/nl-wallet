@@ -1,4 +1,5 @@
 use std::convert::Infallible;
+use std::time::Duration;
 
 use chrono::Utc;
 use p256::ecdsa::SigningKey;
@@ -12,17 +13,17 @@ use android_attest::attestation_extension::key_attestation::OsVersion;
 use android_attest::attestation_extension::key_attestation::PatchLevel;
 use apple_app_attest::AssertionCounter;
 use crypto::utils::random_bytes;
+use db_test::DbSetup;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::mock::MockPkcs11Client;
-use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
-use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
+use crate::database::ConnectionOptions;
 use crate::database::Db;
 use crate::entity::wallet_user_wua;
 use crate::wallet_user::create_wallet_user;
@@ -33,9 +34,16 @@ pub enum WalletDeviceVendor {
     Google,
 }
 
-pub async fn db_from_env() -> Result<Db, PersistenceError> {
-    let settings = Settings::new().unwrap();
-    Db::new(settings.url, Default::default()).await
+pub async fn db_from_setup(db_setup: &DbSetup) -> Db {
+    Db::new(
+        db_setup.wallet_provider_url(),
+        ConnectionOptions {
+            connect_timeout: Duration::from_secs(1),
+            max_connections: 5,
+        },
+    )
+    .await
+    .expect("Could not connect to database")
 }
 
 pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {

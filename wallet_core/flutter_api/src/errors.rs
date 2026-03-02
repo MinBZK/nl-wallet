@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
@@ -90,6 +91,9 @@ enum FlutterApiErrorType {
 
     /// DigiD authentication was cancelled.
     DeniedDigid,
+
+    /// Wallet has been revoked.
+    Revoked,
 
     /// Indicating something unexpected went wrong.
     Generic,
@@ -186,6 +190,12 @@ impl FlutterApiErrorFields for WalletRegistrationError {
     }
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize)]
+struct RevocationErrorData {
+    revocation_data: AccountRevokedData,
+}
+
 impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
@@ -198,6 +208,15 @@ impl FlutterApiErrorFields for WalletUnlockError {
             WalletUnlockError::ChangePin(e) => e.typ(),
             WalletUnlockError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            WalletUnlockError::Instruction(InstructionError::AccountRevoked(data)) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
         }
     }
 }
@@ -222,6 +241,7 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
 struct IssuanceErrorData {
     redirect_error: Option<AuthorizationErrorCode>,
     organization_name: Option<LocalizedStrings>,
+    revocation_data: Option<AccountRevokedData>,
 }
 
 impl FlutterApiErrorFields for IssuanceError {
@@ -255,6 +275,7 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }
+            IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -274,10 +295,17 @@ impl FlutterApiErrorFields for IssuanceError {
             _ => None,
         };
 
-        if redirect_error.is_some() || organization_name.is_some() {
+        let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
+            Some(*data)
+        } else {
+            None
+        };
+
+        if redirect_error.is_some() || organization_name.is_some() || revocation_data.is_some() {
             serde_json::to_value(IssuanceErrorData {
                 redirect_error,
                 organization_name,
+                revocation_data,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -293,6 +321,7 @@ struct DisclosureErrorData<'a> {
     can_retry: Option<bool>,
     return_url: Option<&'a Url>,
     organization_name: Option<LocalizedStrings>,
+    revocation_data: Option<AccountRevokedData>,
 }
 
 fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApiErrorType> {
@@ -363,13 +392,19 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             _ => None,
         };
+        let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
+            Some(*data)
+        } else {
+            None
+        };
 
-        if session_type.is_some() || can_retry.is_some() || return_url.is_some() {
+        if session_type.is_some() || can_retry.is_some() || return_url.is_some() || revocation_data.is_some() {
             serde_json::to_value(DisclosureErrorData {
                 session_type,
                 can_retry,
                 return_url,
                 organization_name,
+                revocation_data,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -443,6 +478,7 @@ impl From<&AccountProviderError> for FlutterApiErrorType {
 impl From<&InstructionError> for FlutterApiErrorType {
     fn from(value: &InstructionError) -> Self {
         match value {
+            InstructionError::AccountRevoked(_) => FlutterApiErrorType::Revoked,
             InstructionError::ServerError(e) => FlutterApiErrorType::from(e),
             InstructionError::InstructionValidation => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
@@ -506,6 +542,15 @@ impl FlutterApiErrorFields for ChangePinError {
             | Self::WalletIdMismatch => FlutterApiErrorType::Generic,
         }
     }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            ChangePinError::Instruction(InstructionError::AccountRevoked(data)) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
+        }
+    }
 }
 
 impl FlutterApiErrorFields for PinRecoveryError {
@@ -524,17 +569,20 @@ impl FlutterApiErrorFields for PinRecoveryError {
             }
             PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingPid)
             | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode) => FlutterApiErrorType::Issuer,
+            PinRecoveryError::DiscloseRecoveryCode(InstructionError::AccountRevoked(_)) => FlutterApiErrorType::Revoked,
             PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
         }
     }
 
     fn data(&self) -> serde_json::Value {
-        if let Self::Issuance(issuance_error) = self {
-            return issuance_error.data();
+        match self {
+            Self::Issuance(issuance_error) => issuance_error.data(),
+            Self::DiscloseRecoveryCode(InstructionError::AccountRevoked(data)) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
         }
-
-        serde_json::Value::Null
     }
 }
 
@@ -551,6 +599,15 @@ impl FlutterApiErrorFields for TransferError {
             TransferError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             TransferError::ChangePin(e) => e.typ(),
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            TransferError::Instruction(InstructionError::AccountRevoked(data)) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
         }
     }
 }
@@ -571,12 +628,20 @@ mod tests {
     use std::error::Error;
 
     use rstest::rstest;
-
     use serde_json::json;
+
+    use wallet::AccountRevokedData;
+    use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
+    use wallet::errors::ChangePinError;
     use wallet::errors::DigidError;
+    use wallet::errors::DisclosureError;
+    use wallet::errors::InstructionError;
     use wallet::errors::IssuanceError;
+    use wallet::errors::PinRecoveryError;
     use wallet::errors::RecoveryCodeError;
+    use wallet::errors::TransferError;
+    use wallet::errors::WalletUnlockError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OidcError;
@@ -646,7 +711,84 @@ mod tests {
         FlutterApiErrorType::WrongDigid,
         serde_json::Value::Null
     )]
-    fn test_pid_issuance_error<E>(
+    #[case(
+        IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        DisclosureError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        ChangePinError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        PinRecoveryError::DiscloseRecoveryCode(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        PinRecoveryError::Issuance(IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        }))),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        TransferError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    fn test_errors<E>(
         #[case] source_error: E,
         #[case] expected_type: FlutterApiErrorType,
         #[case] expected_data: serde_json::Value,

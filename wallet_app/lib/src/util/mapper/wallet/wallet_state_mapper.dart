@@ -14,7 +14,7 @@ class WalletStateMapper extends Mapper<core.WalletState, WalletState> {
       core.WalletState_Transferring() => WalletStateTransferring(
         switch (input.role) {
           core.TransferRole.Source => .source,
-          core.TransferRole.Destination => .target,
+          core.TransferRole.Destination => .destination,
         },
       ),
       core.WalletState_TransferPossible() => const WalletStateTransferPossible(),
@@ -26,7 +26,7 @@ class WalletStateMapper extends Mapper<core.WalletState, WalletState> {
       core.WalletState_Blocked() => WalletStateBlocked(switch (input.reason) {
         core.BlockedReason.RequiresAppUpdate => .requiresAppUpdate,
         core.BlockedReason.BlockedByWalletProvider => .blockedByWalletProvider,
-      }),
+      }, canRegisterNewAccount: input.canRegisterNewAccount),
       core.WalletState_Empty() => const WalletStateEmpty(),
     };
   }

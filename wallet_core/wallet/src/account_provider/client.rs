@@ -9,11 +9,11 @@ use reqwest::RequestBuilder;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
+use http_utils::client::TlsPinningConfig;
 use http_utils::error::HttpJsonErrorBody;
-use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::reqwest::parse_content_type;
-use http_utils::tls::pinning::TlsPinningConfig;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
@@ -61,7 +61,7 @@ impl<C> HttpAccountProviderClient<C> {
 
 impl<C> HttpAccountProviderClient<C>
 where
-    C: IntoPinnedReqwestClient + Clone + Hash,
+    C: IntoReqwestClient + Clone + Hash,
 {
     async fn send_post_request<T>(&self, http_config: &C, path: &str) -> Result<T, AccountProviderError>
     where
@@ -114,7 +114,7 @@ where
     {
         let http_client = self
             .http_client
-            .get_or_try_init(http_config, IntoPinnedReqwestClient::try_into_json_client)?;
+            .get_or_try_init(http_config, IntoReqwestClient::try_into_json_client)?;
         let response = http_client
             .send_custom_post(ReqwestClientUrl::Relative(path), request_adapter)
             .await?;
@@ -273,8 +273,8 @@ mod tests {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use http_utils::reqwest::IntoPinnedReqwestClient;
-    use http_utils::tls::insecure::InsecureHttpConfig;
+    use http_utils::client::InternalHttpConfig;
+    use http_utils::reqwest::IntoReqwestClient;
     use http_utils::urls::BaseUrl;
 
     use super::*;
@@ -298,7 +298,7 @@ mod tests {
         http_config: &C,
     ) -> Result<ExampleBody, AccountProviderError>
     where
-        C: IntoPinnedReqwestClient + Clone + Hash,
+        C: IntoReqwestClient + Clone + Hash,
     {
         client.send_post_request(http_config, path).await
     }
@@ -318,7 +318,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let body = post_example_request(&client, "foobar", &InsecureHttpConfig::new(base_url))
+        let body = post_example_request(&client, "foobar", &InternalHttpConfig::try_new(base_url).unwrap())
             .await
             .expect("Could not get succesful response from server");
 
@@ -338,7 +338,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_404", &InsecureHttpConfig::new(base_url))
+        let error = post_example_request(&client, "foobar_404", &InternalHttpConfig::try_new(base_url).unwrap())
             .await
             .expect_err("No error received from server");
 
@@ -360,7 +360,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_502", &InsecureHttpConfig::new(base_url))
+        let error = post_example_request(&client, "foobar_502", &InternalHttpConfig::try_new(base_url).unwrap())
             .await
             .expect_err("No error received from server");
 
@@ -397,7 +397,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_400", &InsecureHttpConfig::new(base_url))
+        let error = post_example_request(&client, "foobar_400", &InternalHttpConfig::try_new(base_url).unwrap())
             .await
             .expect_err("No error received from server");
 
@@ -424,7 +424,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_503", &InsecureHttpConfig::new(base_url))
+        let error = post_example_request(&client, "foobar_503", &InternalHttpConfig::try_new(base_url).unwrap())
             .await
             .expect_err("No error received from server");
 

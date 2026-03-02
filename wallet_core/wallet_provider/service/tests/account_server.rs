@@ -11,6 +11,7 @@ use rstest::rstest;
 use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
 use crypto::server_keys::generate::Ca;
+use db_test::DbSetup;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -33,7 +34,7 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
-use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
@@ -162,12 +163,13 @@ async fn assert_instruction_data(
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[rstest]
 async fn test_instruction_challenge(
     #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
 ) {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 
     let certificate_signing_key = SigningKey::random(&mut OsRng);
@@ -220,9 +222,10 @@ async fn test_instruction_challenge(
     assert_ne!(challenge1, challenge2);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_wua_status() {
-    let db = db_from_env().await.expect("Could not connect to database");
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 
     let certificate_signing_key = SigningKey::random(&mut OsRng);

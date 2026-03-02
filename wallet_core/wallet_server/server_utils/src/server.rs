@@ -106,18 +106,10 @@ pub async fn listen(
             internal_router = decorate_router(internal_router, log_requests);
 
             info!("listening for internal on {}", internal_listener.local_addr()?);
-            let internal_server = tokio::spawn(async move {
-                axum::serve(internal_listener, internal_router)
-                    .await
-                    .expect("internal server should be started");
-            });
+            let internal_server = axum::serve(internal_listener, internal_router);
 
             info!("listening for wallet on {}", wallet_listener.local_addr()?);
-            let wallet_server = tokio::spawn(async move {
-                axum::serve(wallet_listener, wallet_router)
-                    .await
-                    .expect("wallet server should be started");
-            });
+            let wallet_server = axum::serve(wallet_listener, wallet_router);
 
             tokio::try_join!(internal_server, wallet_server)?;
         }

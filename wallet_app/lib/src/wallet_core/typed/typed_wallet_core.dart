@@ -10,6 +10,12 @@ import 'package:wallet_core/core.dart' as core;
 import '../../util/mapper/mapper.dart';
 import '../error/core_error.dart';
 
+/// A callback function used to handle errors emitted by the [TypedWalletCore].
+///
+/// This listener receives a [CoreError] whenever an underlying operation in the
+/// Rust core fails and the error is successfully mapped.
+typedef CoreErrorListener = void Function(CoreError error);
+
 /// Wraps the [WalletCore].
 /// Adds auto initialization, pass through of the locked
 /// flag and parsing of the [FlutterApiError]s.
@@ -22,6 +28,10 @@ class TypedWalletCore {
   final BehaviorSubject<List<core.AttestationPresentation>> _attestations = BehaviorSubject();
   final BehaviorSubject<List<core.AppNotification>> _notifications = BehaviorSubject();
 
+  /// An optional listener that is notified whenever a [CoreError] occurs during
+  /// a wallet operation. This is not an interceptor, [CoreError]s are still thrown.
+  CoreErrorListener? _errorListener;
+
   TypedWalletCore(this._errorMapper) {
     _setupLockedStream();
     _setupConfigurationStream();
@@ -29,6 +39,11 @@ class TypedWalletCore {
     _setupAttestationsStream();
     _setupRecentHistoryStream();
     _setupNotificationStream();
+  }
+
+  void setErrorListener(CoreErrorListener? listener) {
+    if (_errorListener != null) Fimber.w('ErrorListener was already set, replacing existing listener...');
+    _errorListener = listener;
   }
 
   void _setupLockedStream() {
@@ -199,6 +214,8 @@ class TypedWalletCore {
         await Sentry.captureException(error, stackTrace: stackTrace);
         exit(0);
       }
+      // Use microtask so the listener triggers after the error is returned. (crucial to allow downstream navigation)
+      unawaited(Future.microtask(() => _errorListener?.call(error)));
       return error;
     } catch (exception) {
       Fimber.e(

@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use crypto::utils::random_bytes;
 use crypto::utils::random_string;
+use db_test::DbSetup;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_persistence::PersistenceConnection;
@@ -19,7 +20,7 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::entity::wallet_user_instruction_challenge;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
-use wallet_provider_persistence::test::db_from_env;
+use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::wallet_user::update_instruction_challenge_and_sequence_number;
 
 pub async fn find_wallet_user<S, T>(db: &T, id: Uuid) -> Option<wallet_user::Model>
@@ -96,8 +97,11 @@ where
         .expect("Could not fetch instruction challenges")
 }
 
-pub async fn create_test_user(vendor: WalletDeviceVendor) -> (Db, Uuid, WalletId, wallet_user::Model) {
-    let db = db_from_env().await.expect("Could not connect to database");
+pub async fn create_test_user(
+    db_setup: &DbSetup,
+    vendor: WalletDeviceVendor,
+) -> (Db, Uuid, WalletId, wallet_user::Model) {
+    let db = db_from_setup(db_setup).await;
 
     let wallet_id: WalletId = random_string(32).into();
 

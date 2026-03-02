@@ -41,4 +41,6 @@ enum FlutterApiErrorType {
   wrongDigid,
   @JsonValue('DeniedDigid')
   deniedDigid,
+  @JsonValue('Revoked')
+  revoked,
 }

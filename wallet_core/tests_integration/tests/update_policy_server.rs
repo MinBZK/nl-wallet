@@ -3,7 +3,7 @@ use std::env;
 use assert_matches::assert_matches;
 use serde_json::json;
 
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use tests_integration::common::*;
 use tests_integration::utils::read_file;
 use update_policy_server::config::UpdatePolicyConfig;
@@ -23,10 +23,7 @@ async fn ltc42_test_wallet_update_policy() {
 
     let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
-        http_config: TlsPinningConfig {
-            base_url: local_ups_base_url(port),
-            trust_anchors: vec![root_ca],
-        },
+        http_config: TlsPinningConfig::try_new(local_ups_base_url(port), vec![root_ca]).unwrap(),
     };
 
     let update_policy = HttpUpdatePolicyRepository::new();
@@ -49,10 +46,7 @@ async fn test_wallet_update_policy_stale() {
 
     let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
-        http_config: TlsPinningConfig {
-            base_url: local_ups_base_url(port),
-            trust_anchors: vec![root_ca],
-        },
+        http_config: TlsPinningConfig::try_new(local_ups_base_url(port), vec![root_ca]).unwrap(),
     };
 
     let update_policy = HttpUpdatePolicyRepository::new();
@@ -75,10 +69,7 @@ async fn test_wallet_update_policy_server_tls_pinning() {
     // Use bad root CA
     let root_ca = read_file("bad.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
-        http_config: TlsPinningConfig {
-            base_url: local_ups_base_url(port),
-            trust_anchors: vec![root_ca],
-        },
+        http_config: TlsPinningConfig::try_new(local_ups_base_url(port), vec![root_ca]).unwrap(),
     };
 
     let update_policy = HttpUpdatePolicyRepository::new();

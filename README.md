@@ -337,14 +337,7 @@ Make sure you can run Docker on your development system. You can follow the
 #### PKCS #11 library
 
 The wallet_provider is designed to use a HSM with the [PKCS #11][29] API. For
-local development we use the [SoftHSMv2][28] library. As of this writing
-(2025-08-28), the latest actually released version of this library is more than
-five years old and does *not* work in combination with the latest openssl.
-Therefore, you either need to install a git version of SoftHSMv2 using your
-package manager, or you need to compile the library from source, specifically,
-from the `develop` branch, and set the correct `HSM_LIBRARY_PATH` (if the setup
-script does not detect the library). There is an
-[install script](scripts/install-softhsm.sh) available, which you can use.
+local development we use the [SoftHSMv2][28] library.
 
 #### Starting an Android emulator instance
 

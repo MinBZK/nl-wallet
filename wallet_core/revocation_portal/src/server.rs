@@ -14,7 +14,7 @@ pub async fn serve(settings: Settings) -> Result<()> {
 
     info!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
 
-    let revocation_client = HttpRevocationClient {};
+    let revocation_client = HttpRevocationClient::new(settings.revocation_endpoint)?;
 
     let app = create_router(
         &settings.cookie_encryption_key,

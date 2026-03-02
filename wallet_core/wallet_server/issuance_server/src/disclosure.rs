@@ -7,11 +7,10 @@ use itertools::Itertools;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::issuable_document::IssuableDocument;
 use dcql::unique_id_vec::UniqueIdVec;
-use http_utils::reqwest::IntoPinnedReqwestClient;
-use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::IntoReqwestClient;
+use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
-use http_utils::tls::pinning::TlsPinningConfig;
-use http_utils::urls::BaseUrl;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
@@ -20,6 +19,7 @@ use openid4vc::credential::Grants;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreError;
 use openid4vc::verifier::DisclosureResultHandler;
@@ -48,7 +48,7 @@ pub trait AttributesFetcher {
 }
 
 pub struct HttpAttributesFetcher {
-    urls: HashMap<String, PinnedReqwestClient>,
+    urls: HashMap<String, ReqwestClient>,
 }
 
 impl HttpAttributesFetcher {
@@ -91,7 +91,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
 pub struct IssuanceResultHandler<AF, AS, K, S, C> {
     pub attributes_fetcher: AF,
     pub issuer: Arc<Issuer<AS, K, S, C>>,
-    pub credential_issuer: BaseUrl,
+    pub credential_issuer: CredentialIssuerIdentifier,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -281,7 +281,7 @@ mod tests {
             sessions,
             TrivialAttributeService,
             HashMap::<std::string::String, AttestationTypeConfig<SigningKey>>::new().into(),
-            &"https://example.com".parse().unwrap(),
+            "https://example.com".parse().unwrap(),
             vec![],
             None::<WuaConfig>,
             Arc::new(MockStatusListServices::default()),

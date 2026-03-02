@@ -5,7 +5,7 @@ use tracing::instrument;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
-use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -94,7 +94,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_revocation_code_with_pin(&self, pin: String) -> Result<&RevocationCode, RevocationCodeError>
+    pub async fn get_revocation_code_with_pin(&mut self, pin: String) -> Result<&RevocationCode, RevocationCodeError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,

@@ -7,8 +7,8 @@ use parking_lot::RwLock;
 use serde::de::DeserializeOwned;
 use tracing::info;
 
-use http_utils::tls::pinning::TlsPinningConfig;
-use http_utils::tls::pinning::TlsPinningConfigHash;
+use http_utils::client::TlsPinningConfig;
+use http_utils::client::TlsPinningConfigHash;
 use update_policy_model::update_policy::UpdatePolicyResponse;
 use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;

@@ -77,7 +77,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             .iter()
             .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
         &settings.status_lists,
-        &issuer_settings.server_settings.public_url,
+        issuer_settings.public_url.as_base_url(),
         hsm.clone(),
     )
     .await?;

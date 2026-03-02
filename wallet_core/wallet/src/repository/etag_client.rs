@@ -11,7 +11,7 @@ use http::header;
 use parking_lot::Mutex;
 use tokio::fs;
 
-use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
 use crate::reqwest::CachedReqwestClient;
@@ -80,7 +80,7 @@ impl<T, B, E> HttpClient<T, B> for EtagHttpClient<T, B, E>
 where
     T: FromStr + Send + Sync,
     T::Err: Error + Send + Sync + 'static,
-    B: IntoPinnedReqwestClient + Clone + Hash + Send + Sync,
+    B: IntoReqwestClient + Clone + Hash + Send + Sync,
     E: From<HttpClientError> + Error + Send + Sync + 'static,
 {
     type Error = E;
@@ -88,7 +88,7 @@ where
     async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
         let client = self
             .cached_client
-            .get_or_try_init(client_builder, IntoPinnedReqwestClient::try_into_client)
+            .get_or_try_init(client_builder, IntoReqwestClient::try_into_client)
             .map_err(HttpClientError::Networking)?;
         let response = client
             .send_custom_get(
@@ -147,7 +147,7 @@ mod test {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use http_utils::tls::insecure::InsecureHttpConfig;
+    use http_utils::client::InternalHttpConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
@@ -184,12 +184,12 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
+        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();
 
-        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
+        let client_builder = InternalHttpConfig::try_new(mock_server.uri().parse().unwrap()).unwrap();
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -217,8 +217,8 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
-        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
+        let client_builder = InternalHttpConfig::try_new(mock_server.uri().parse().unwrap()).unwrap();
+        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();

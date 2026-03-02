@@ -146,10 +146,10 @@ return ready(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( BlockedReason reason)?  blocked,TResult Function()?  unregistered,TResult Function( WalletState subState)?  locked,TResult Function()?  empty,TResult Function()?  transferPossible,TResult Function( TransferRole role)?  transferring,TResult Function()?  inDisclosureFlow,TResult Function()?  inIssuanceFlow,TResult Function()?  inPinChangeFlow,TResult Function()?  inPinRecoveryFlow,TResult Function()?  ready,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( BlockedReason reason,  bool canRegisterNewAccount)?  blocked,TResult Function()?  unregistered,TResult Function( WalletState subState)?  locked,TResult Function()?  empty,TResult Function()?  transferPossible,TResult Function( TransferRole role)?  transferring,TResult Function()?  inDisclosureFlow,TResult Function()?  inIssuanceFlow,TResult Function()?  inPinChangeFlow,TResult Function()?  inPinRecoveryFlow,TResult Function()?  ready,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case WalletState_Blocked() when blocked != null:
-return blocked(_that.reason);case WalletState_Unregistered() when unregistered != null:
+return blocked(_that.reason,_that.canRegisterNewAccount);case WalletState_Unregistered() when unregistered != null:
 return unregistered();case WalletState_Locked() when locked != null:
 return locked(_that.subState);case WalletState_Empty() when empty != null:
 return empty();case WalletState_TransferPossible() when transferPossible != null:
@@ -177,10 +177,10 @@ return ready();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( BlockedReason reason)  blocked,required TResult Function()  unregistered,required TResult Function( WalletState subState)  locked,required TResult Function()  empty,required TResult Function()  transferPossible,required TResult Function( TransferRole role)  transferring,required TResult Function()  inDisclosureFlow,required TResult Function()  inIssuanceFlow,required TResult Function()  inPinChangeFlow,required TResult Function()  inPinRecoveryFlow,required TResult Function()  ready,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( BlockedReason reason,  bool canRegisterNewAccount)  blocked,required TResult Function()  unregistered,required TResult Function( WalletState subState)  locked,required TResult Function()  empty,required TResult Function()  transferPossible,required TResult Function( TransferRole role)  transferring,required TResult Function()  inDisclosureFlow,required TResult Function()  inIssuanceFlow,required TResult Function()  inPinChangeFlow,required TResult Function()  inPinRecoveryFlow,required TResult Function()  ready,}) {final _that = this;
 switch (_that) {
 case WalletState_Blocked():
-return blocked(_that.reason);case WalletState_Unregistered():
+return blocked(_that.reason,_that.canRegisterNewAccount);case WalletState_Unregistered():
 return unregistered();case WalletState_Locked():
 return locked(_that.subState);case WalletState_Empty():
 return empty();case WalletState_TransferPossible():
@@ -204,10 +204,10 @@ return ready();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( BlockedReason reason)?  blocked,TResult? Function()?  unregistered,TResult? Function( WalletState subState)?  locked,TResult? Function()?  empty,TResult? Function()?  transferPossible,TResult? Function( TransferRole role)?  transferring,TResult? Function()?  inDisclosureFlow,TResult? Function()?  inIssuanceFlow,TResult? Function()?  inPinChangeFlow,TResult? Function()?  inPinRecoveryFlow,TResult? Function()?  ready,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( BlockedReason reason,  bool canRegisterNewAccount)?  blocked,TResult? Function()?  unregistered,TResult? Function( WalletState subState)?  locked,TResult? Function()?  empty,TResult? Function()?  transferPossible,TResult? Function( TransferRole role)?  transferring,TResult? Function()?  inDisclosureFlow,TResult? Function()?  inIssuanceFlow,TResult? Function()?  inPinChangeFlow,TResult? Function()?  inPinRecoveryFlow,TResult? Function()?  ready,}) {final _that = this;
 switch (_that) {
 case WalletState_Blocked() when blocked != null:
-return blocked(_that.reason);case WalletState_Unregistered() when unregistered != null:
+return blocked(_that.reason,_that.canRegisterNewAccount);case WalletState_Unregistered() when unregistered != null:
 return unregistered();case WalletState_Locked() when locked != null:
 return locked(_that.subState);case WalletState_Empty() when empty != null:
 return empty();case WalletState_TransferPossible() when transferPossible != null:
@@ -229,10 +229,11 @@ return ready();case _:
 
 
 class WalletState_Blocked extends WalletState {
-  const WalletState_Blocked({required this.reason}): super._();
+  const WalletState_Blocked({required this.reason, required this.canRegisterNewAccount}): super._();
   
 
  final  BlockedReason reason;
+ final  bool canRegisterNewAccount;
 
 /// Create a copy of WalletState
 /// with the given fields replaced by the non-null parameter values.
@@ -244,16 +245,16 @@ $WalletState_BlockedCopyWith<WalletState_Blocked> get copyWith => _$WalletState_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Blocked&&(identical(other.reason, reason) || other.reason == reason));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Blocked&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.canRegisterNewAccount, canRegisterNewAccount) || other.canRegisterNewAccount == canRegisterNewAccount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,reason);
+int get hashCode => Object.hash(runtimeType,reason,canRegisterNewAccount);
 
 @override
 String toString() {
-  return 'WalletState.blocked(reason: $reason)';
+  return 'WalletState.blocked(reason: $reason, canRegisterNewAccount: $canRegisterNewAccount)';
 }
 
 
@@ -264,7 +265,7 @@ abstract mixin class $WalletState_BlockedCopyWith<$Res> implements $WalletStateC
   factory $WalletState_BlockedCopyWith(WalletState_Blocked value, $Res Function(WalletState_Blocked) _then) = _$WalletState_BlockedCopyWithImpl;
 @useResult
 $Res call({
- BlockedReason reason
+ BlockedReason reason, bool canRegisterNewAccount
 });
 
 
@@ -281,10 +282,11 @@ class _$WalletState_BlockedCopyWithImpl<$Res>
 
 /// Create a copy of WalletState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? reason = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? reason = null,Object? canRegisterNewAccount = null,}) {
   return _then(WalletState_Blocked(
 reason: null == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
-as BlockedReason,
+as BlockedReason,canRegisterNewAccount: null == canRegisterNewAccount ? _self.canRegisterNewAccount : canRegisterNewAccount // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::future;
-use std::future::Future;
 use std::net::IpAddr;
 use std::process;
 use std::str::FromStr;
@@ -55,7 +53,6 @@ use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -165,8 +162,6 @@ async fn wallet_server_settings_and_listener(
 
         internal_server,
 
-        public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
-
         log_requests: true,
         structured_logging: false,
         storage: memory_storage_settings(),
@@ -181,6 +176,8 @@ async fn wallet_server_settings_and_listener(
 
         allow_origins: None,
         reader_trust_anchors,
+
+        public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
 
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
@@ -201,13 +198,13 @@ async fn start_wallet_server<S, C>(
     internal_listener: Option<TcpListener>,
     settings: VerifierSettings,
     hsm: Option<Pkcs11Hsm>,
-    disclosure_sessions: S,
+    disclosure_sessions: Arc<S>,
     status_list_client: C,
 ) where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
     C: StatusListClient + Sync + 'static,
 {
-    let public_url = settings.server_settings.public_url.clone();
+    let public_url = settings.public_url.clone();
 
     tokio::spawn(async move {
         if let Err(error) = server::serve_with_listeners(
@@ -215,7 +212,7 @@ async fn start_wallet_server<S, C>(
             internal_listener,
             settings,
             hsm,
-            Arc::new(disclosure_sessions),
+            disclosure_sessions,
             status_list_client,
         )
         .await
@@ -230,11 +227,15 @@ async fn start_wallet_server<S, C>(
 }
 
 async fn wait_for_server(base_url: BaseUrl) {
-    let client = default_reqwest_client_builder().build().unwrap();
+    let client = default_reqwest_client_builder()
+        .connect_timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
         loop {
+            interval.tick().await;
             match client
                 .get(base_url.join("health"))
                 .send()
@@ -242,10 +243,7 @@ async fn wait_for_server(base_url: BaseUrl) {
                 .and_then(|r| r.error_for_status())
             {
                 Ok(_) => break,
-                Err(error) => {
-                    println!("Server not yet up: {error}");
-                    interval.tick().await;
-                }
+                Err(error) => tracing::info!("Server not yet up: {error}"),
             }
         }
     })
@@ -253,14 +251,14 @@ async fn wait_for_server(base_url: BaseUrl) {
     .unwrap();
 }
 
-fn internal_url(server_settings: &Settings) -> BaseUrl {
-    match server_settings.internal_server {
+fn internal_url(settings: &VerifierSettings) -> BaseUrl {
+    match settings.server_settings.internal_server {
         ServerAuth::ProtectedInternalEndpoint {
             server: Server { port, .. },
             ..
         }
         | ServerAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
-        ServerAuth::Authentication(_) => server_settings.public_url.clone(),
+        ServerAuth::Authentication(_) => settings.public_url.clone(),
     }
 }
 
@@ -299,14 +297,14 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
         .unwrap();
     let auth = &settings.server_settings.internal_server;
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
 
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
         hsm,
-        MemorySessionStore::default(),
+        Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(issuer_ca.generate_status_list_mock().unwrap()),
     )
     .await;
@@ -316,7 +314,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
     // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise
     // (because it is served on the internal URL)
     let response = client
-        .post(settings.server_settings.public_url.join("disclosure/sessions"))
+        .post(settings.public_url.join("disclosure/sessions"))
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
@@ -343,7 +341,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
     // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because
     // it is served on the internal URL)
     let response = client
-        .post(settings.server_settings.public_url.join("disclosure/sessions"))
+        .post(settings.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
@@ -368,7 +366,6 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
 
     let session_token = response.json::<StartDisclosureResponse>().await.unwrap().session_token;
     let public_disclosed_attributes_url = settings
-        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
     let internal_disclosed_attributes_url =
@@ -458,13 +455,13 @@ async fn test_new_session_parameters_error() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings,
         hsm,
-        MemorySessionStore::default(),
+        Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
                 .unwrap()
@@ -512,13 +509,13 @@ async fn test_disclosure_not_found() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
         hsm,
-        MemorySessionStore::default(),
+        Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
                 .unwrap()
@@ -531,19 +528,13 @@ async fn test_disclosure_not_found() {
     let client = default_reqwest_client_builder().build().unwrap();
 
     // check if a non-existent token returns a 404 on the status URL
-    let status_url = settings
-        .server_settings
-        .public_url
-        .join("disclosure/sessions/nonexistent_session");
+    let status_url = settings.public_url.join("disclosure/sessions/nonexistent_session");
     let response = client.get(status_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the cancel URL
-    let cancel_url = settings
-        .server_settings
-        .public_url
-        .join("disclosure/sessions/nonexistent_session");
+    let cancel_url = settings.public_url.join("disclosure/sessions/nonexistent_session");
     let response = client.delete(cancel_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
@@ -588,7 +579,7 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
 }
 
 async fn start_disclosure<S>(
-    disclosure_sessions: S,
+    disclosure_sessions: Arc<S>,
     request: &StartDisclosureRequest,
 ) -> (
     VerifierSettings,
@@ -612,7 +603,7 @@ where
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.server_settings);
+    let internal_url = internal_url(&settings);
 
     start_wallet_server(
         wallet_listener,
@@ -647,11 +638,14 @@ where
 
 #[tokio::test]
 async fn test_disclosure_missing_session_type() {
-    let (settings, client, session_token, _, _, _) =
-        start_disclosure(MemorySessionStore::default(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
+    let (settings, client, session_token, _, _, _) = start_disclosure(
+        Arc::new(MemorySessionStore::default()),
+        &EXAMPLE_START_DISCLOSURE_REQUEST,
+    )
+    .await;
 
     // Check if requesting the session status without a session_type returns a 200, but without the universal link.
-    let status_url = format_status_url(&settings.server_settings.public_url, &session_token, None);
+    let status_url = format_status_url(&settings.public_url, &session_token, None);
 
     assert_matches!(
         get_status_ok(&client, status_url).await,
@@ -661,15 +655,14 @@ async fn test_disclosure_missing_session_type() {
 
 #[tokio::test]
 async fn test_disclosure_cancel() {
-    let (settings, client, session_token, internal_url, _, _) =
-        start_disclosure(MemorySessionStore::default(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
+    let (settings, client, session_token, internal_url, _, _) = start_disclosure(
+        Arc::new(MemorySessionStore::default()),
+        &EXAMPLE_START_DISCLOSURE_REQUEST,
+    )
+    .await;
 
     // Fetching the status should return OK and be in the Created state.
-    let status_url = format_status_url(
-        &settings.server_settings.public_url,
-        &session_token,
-        Some(SessionType::SameDevice),
-    );
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(SessionType::SameDevice));
 
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
@@ -678,7 +671,6 @@ async fn test_disclosure_cancel() {
 
     // Cancel the newly created session, which should return 204 and no body.
     let cancel_url = settings
-        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
@@ -691,7 +683,6 @@ async fn test_disclosure_cancel() {
 
     // Cancelling the session again should return a 400.
     let cancel_url = settings
-        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
@@ -715,26 +706,16 @@ async fn test_disclosure_cancel() {
     );
 }
 
-async fn test_disclosure_expired<S, F, Fut>(
-    storage: Storage,
-    session_store: S,
-    mock_time: &RwLock<DateTime<Utc>>,
-    create_cleanup_awaiter: F,
-) where
+async fn test_disclosure_expired<S>(timeouts: SessionStoreTimeouts, session_store: S, mock_time: &RwLock<DateTime<Utc>>)
+where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
-    F: Fn() -> Fut,
-    Fut: Future<Output = ()>,
 {
+    let session_store = Arc::new(session_store);
     let (settings, client, session_token, internal_url, _, _) =
-        start_disclosure(session_store, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
-    let timeouts = SessionStoreTimeouts::from(&storage);
+        start_disclosure(session_store.clone(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     // Fetch the status, this should return OK and be in the Created state.
-    let status_url = format_status_url(
-        &settings.server_settings.public_url,
-        &session_token,
-        Some(SessionType::SameDevice),
-    );
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(SessionType::SameDevice));
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
         StatusResponse::Created { ul: Some(_) }
@@ -751,15 +732,8 @@ async fn test_disclosure_expired<S, F, Fut>(
     let expiry_time = Utc::now() + timeouts.expiration;
     *mock_time.write() = expiry_time;
 
-    time::pause();
-    let cleanup_awaiter = create_cleanup_awaiter();
-    time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
-    time::resume();
-
-    // Wait for the database to have run the cleanup.
-    time::timeout(Duration::from_secs(10), cleanup_awaiter)
-        .await
-        .expect("timeout waiting for database cleanup");
+    // Call cleanup manually
+    session_store.cleanup().await.unwrap();
 
     // Fetching the status should return OK and be in the Expired state.
     assert_matches!(
@@ -775,15 +749,8 @@ async fn test_disclosure_expired<S, F, Fut>(
     // Advance the clock again so that the expired session will be purged.
     *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);
 
-    time::pause();
-    let cleanup_awaiter = create_cleanup_awaiter();
-    time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
-    time::resume();
-
-    // Wait for the database to have run the cleanup.
-    time::timeout(Duration::from_secs(10), cleanup_awaiter)
-        .await
-        .expect("timeout waiting for database cleanup");
+    // Call cleanup manually
+    session_store.cleanup().await.unwrap();
 
     // Both the status and disclosed attribute requests should now return 404.
     let response = client.get(status_url).send().await.unwrap();
@@ -806,129 +773,31 @@ async fn test_disclosure_expired_memory() {
 
     // The `MemorySessionStore` performs cleanup instantly, so we simply pass
     // an already completed future as the cleanup awaiter in the closure.
-    test_disclosure_expired(storage, session_store, mock_time.as_ref(), || future::ready(())).await;
+    test_disclosure_expired(timeouts, session_store, mock_time.as_ref()).await;
 }
 
 #[cfg(feature = "db_test")]
 mod db_test {
-    use std::future::Future;
-    use std::mem;
     use std::sync::Arc;
 
-    use futures::FutureExt;
-    use parking_lot::Mutex;
-    use tokio::sync::oneshot;
-
-    use openid4vc::server_state::SessionState;
-    use openid4vc::server_state::SessionStore;
-    use openid4vc::server_state::SessionStoreError;
+    use db_test::DbSetup;
+    use db_test::connection_from_url;
     use openid4vc::server_state::SessionStoreTimeouts;
-    use openid4vc::server_state::SessionToken;
-    use openid4vc::verifier::DisclosureData;
-    use server_utils::settings::ServerSettings;
-    use server_utils::store::postgres;
     use server_utils::store::postgres::PostgresSessionStore;
     use utils::generator::mock::MockTimeGenerator;
-    use verification_server::settings::VerifierSettings;
 
     use super::test_disclosure_expired;
 
-    /// Helper type created along with [`PostgresSessionStoreProxy`]
-    /// that can be used to register awaiters for the cleanup task.
-    struct PostgresSessionStoreNotifier {
-        cleanup_oneshots: Arc<Mutex<Vec<oneshot::Sender<()>>>>,
-    }
-
-    impl PostgresSessionStoreNotifier {
-        // Note that this method is not async, which means it creates a new
-        // oneshot channel as soon as it is called, i.e. hot instead of cold.
-        fn register_cleanup_awaiter(&self) -> impl Future<Output = ()> {
-            let (tx, rx) = oneshot::channel();
-
-            self.cleanup_oneshots.lock().push(tx);
-
-            // Ignore errors.
-            rx.map(|result| result.unwrap())
-        }
-    }
-
-    /// A wrapper for [`PostgresSessionStore`] that can be used to
-    /// monitor execution of cleanups from another tokio task.
-    struct PostgresSessionStoreProxy {
-        session_store: PostgresSessionStore<MockTimeGenerator>,
-        cleanup_oneshots: Arc<Mutex<Vec<oneshot::Sender<()>>>>,
-    }
-
-    impl PostgresSessionStoreProxy {
-        /// This creates both a [`PostgresSessionStoreProxy`] and a [`PostgresSessionStoreNotifier`].
-        fn new(session_store: PostgresSessionStore<MockTimeGenerator>) -> (Self, PostgresSessionStoreNotifier) {
-            let cleanup_oneshots = Arc::new(Mutex::new(Vec::new()));
-
-            let proxy = PostgresSessionStoreProxy {
-                session_store,
-                cleanup_oneshots: Arc::clone(&cleanup_oneshots),
-            };
-            let notifier = PostgresSessionStoreNotifier {
-                cleanup_oneshots: Arc::clone(&cleanup_oneshots),
-            };
-
-            (proxy, notifier)
-        }
-    }
-
-    impl SessionStore<DisclosureData> for PostgresSessionStoreProxy {
-        async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<DisclosureData>>, SessionStoreError> {
-            self.session_store.get(token).await
-        }
-
-        async fn write(&self, session: SessionState<DisclosureData>, is_new: bool) -> Result<(), SessionStoreError> {
-            self.session_store.write(session, is_new).await
-        }
-
-        async fn cleanup(&self) -> Result<(), SessionStoreError> {
-            // Before performing cleanup, take all of the oneshots that are currently
-            // waiting and replace the value of the mutex with an empty Vec.
-            let cleanup_oneshots: Vec<oneshot::Sender<()>> = mem::take(&mut self.cleanup_oneshots.lock());
-
-            <PostgresSessionStore<MockTimeGenerator> as SessionStore<DisclosureData>>::cleanup(&self.session_store)
-                .await
-                .inspect(|_| {
-                    // Then after the cleanup, notify all of the those oneshots, which consumes them.
-                    for cleanup_oneshot in cleanup_oneshots {
-                        cleanup_oneshot.send(()).unwrap()
-                    }
-                })
-        }
-    }
-
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_disclosure_expired_postgres() {
-        // Combine the generated settings with the storage settings from the configuration file.
-        let storage = VerifierSettings::new("verification_server.toml", "verification_server")
-            .unwrap()
-            .server_settings
-            .storage;
-
-        assert_eq!(
-            storage.url.scheme(),
-            "postgres",
-            "should be configured to use PostgreSQL storage"
-        );
-
-        let timeouts = SessionStoreTimeouts::from(&storage);
+        let db_setup = DbSetup::create().await;
+        let timeouts = SessionStoreTimeouts::default();
         let time_generator = MockTimeGenerator::default();
         let mock_time = Arc::clone(&time_generator.time);
-        let session_store = PostgresSessionStore::new_with_time(
-            postgres::new_connection(storage.url.clone()).await.unwrap(),
-            timeouts,
-            time_generator,
-        );
-        let (store_proxy, cleanup_notify) = PostgresSessionStoreProxy::new(session_store);
+        let connection = connection_from_url(db_setup.verification_server_url()).await;
+        let session_store = PostgresSessionStore::new_with_time(connection, timeouts, time_generator);
 
-        test_disclosure_expired(storage, store_proxy, mock_time.as_ref(), || {
-            cleanup_notify.register_cleanup_awaiter()
-        })
-        .await;
+        test_disclosure_expired(timeouts, session_store, mock_time.as_ref()).await;
     }
 }
 
@@ -997,11 +866,14 @@ async fn perform_full_disclosure(
     format: CredentialFormat,
 ) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
     // Start the verification_server and create a disclosure request.
-    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) =
-        start_disclosure(MemorySessionStore::default(), &pid_start_disclosure_request(format)).await;
+    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) = start_disclosure(
+        Arc::new(MemorySessionStore::default()),
+        &pid_start_disclosure_request(format),
+    )
+    .await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
-    let status_url = format_status_url(&settings.server_settings.public_url, &session_token, Some(session_type));
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(session_type));
 
     let StatusResponse::Created { ul: Some(ul) } = get_status_ok(&client, status_url.clone()).await else {
         panic!("session should be in CREATED state and a universal link should be provided")
@@ -1196,15 +1068,14 @@ async fn test_disclosed_attributes_with_nonce(
 #[tokio::test]
 async fn test_disclosed_attributes_failed_session() {
     // Start the verification_server and create a disclosure request.
-    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) =
-        start_disclosure(MemorySessionStore::default(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
+    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) = start_disclosure(
+        Arc::new(MemorySessionStore::default()),
+        &EXAMPLE_START_DISCLOSURE_REQUEST,
+    )
+    .await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
-    let status_url = format_status_url(
-        &settings.server_settings.public_url,
-        &session_token,
-        Some(SessionType::CrossDevice),
-    );
+    let status_url = format_status_url(&settings.public_url, &session_token, Some(SessionType::CrossDevice));
 
     let StatusResponse::Created { ul: Some(ul) } = get_status_ok(&client, status_url.clone()).await else {
         panic!("session should be in CREATED state and a universal link should be provided")

@@ -32,7 +32,7 @@
     }
   },
   "pid_issuance": {
-    "pid_issuer_url": "http://localhost:3001/issuance/",
+    "pid_issuer_url": "https://localhost:3001/",
     "digid": {
       "client_id": "ff04277f-0cf7-4437-8a95-14737861d306"
     },

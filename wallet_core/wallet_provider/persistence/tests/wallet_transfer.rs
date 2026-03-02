@@ -6,6 +6,7 @@ use semver::Version;
 use uuid::Uuid;
 
 use crypto::utils::random_string;
+use db_test::DbSetup;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::PersistenceConnection;
@@ -20,9 +21,10 @@ use wallet_provider_persistence::wallet_user::store_recovery_code;
 
 pub mod common;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_transfer_session() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, random_string(64).into())
         .await
@@ -48,9 +50,10 @@ async fn test_create_transfer_session() {
     assert_eq!(wallet_user_id, transfer_session.destination_wallet_user_id);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_find_transfer_session_by_transfer_session_id() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, random_string(64).into())
         .await
@@ -88,9 +91,10 @@ async fn test_find_transfer_session_by_transfer_session_id() {
     )
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_find_transfer_session_id_by_destination_wallet_user_id() {
-    let (db, wallet_user_id, _, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, _, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     let transfer_session_id = Uuid::new_v4();
 
@@ -112,9 +116,10 @@ async fn test_find_transfer_session_id_by_destination_wallet_user_id() {
     assert_eq!(stored_transfer_session_id, transfer_session_id);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_update_transfer_state() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, random_string(64).into())
         .await
@@ -159,9 +164,10 @@ async fn test_update_transfer_state() {
     assert_matches!(err, PersistenceError::NoRowsUpdated);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_set_wallet_transfer_data() {
-    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(WalletDeviceVendor::Apple).await;
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
 
     store_recovery_code(&db, &wallet_id, random_string(64).into())
         .await

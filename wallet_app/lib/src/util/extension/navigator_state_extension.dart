@@ -9,4 +9,11 @@ extension NavigatorStateExtension<T> on NavigatorState {
       ModalRoute.withName(WalletRoutes.splashRoute),
     );
   }
+
+  Future<T?> resetToSplash() {
+    return pushNamedAndRemoveUntil(
+      WalletRoutes.splashRoute,
+      ModalRoute.withName(WalletRoutes.splashRoute),
+    );
+  }
 }

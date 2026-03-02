@@ -1,9 +1,9 @@
 pub(crate) const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
 pub(crate) const PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/pid-metadata.json");
-pub(crate) const EUDI_PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/example:pid:1.json");
-pub(crate) const NL_PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/example:pid:nl:1.json");
-pub(crate) const EUDI_ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/example:pid-address:1.json");
-pub(crate) const NL_ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/example:pid-address:nl:1.json");
+pub(crate) const EUDI_PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/example_pid_1.json");
+pub(crate) const NL_PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/example_pid_nl_1.json");
+pub(crate) const EUDI_ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/example_pid-address_1.json");
+pub(crate) const NL_ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/example_pid-address_nl_1.json");
 pub(crate) const DEGREE_METADATA_BYTES: &[u8] = include_bytes!("../examples/degree-metadata.json");
 pub(crate) const CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES: &[u8] =
     include_bytes!("../examples/credential_payload_sd_jwt_metadata.json");

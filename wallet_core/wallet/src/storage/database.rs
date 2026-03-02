@@ -29,6 +29,8 @@ impl From<&SqliteUrl> for String {
     fn from(value: &SqliteUrl) -> Self {
         match value {
             SqliteUrl::File(path) => format!("sqlite://{}?mode=rwc", path.to_string_lossy()),
+            // sqlx ensures that `:memory:` works in a connection pool, it is
+            // translated to a named in memory database with a shared cache.
             SqliteUrl::InMemory => "sqlite::memory:".to_string(),
         }
     }

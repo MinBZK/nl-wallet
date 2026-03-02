@@ -79,7 +79,7 @@ where
     /// Start background revocation checks
     ///
     /// Spawns a background task that only accesses storage, not the entire wallet.
-    /// Stores the ablort handle in the wallet.
+    /// Stores the abort handle in the wallet.
     #[instrument(skip_all)]
     pub fn start_background_revocation_checks(&mut self, check_frequency: Duration)
     where

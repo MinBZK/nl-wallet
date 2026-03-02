@@ -33,6 +33,10 @@ extension CoreErrorExtension on CoreError {
       CoreWrongDigidError() => WrongDigidError(sourceError: error),
       CoreDeniedDigidError() => DeniedDigidError(sourceError: error),
       CoreStateError() => _handleStateError(error),
+      CoreAccountRevokedError() => AccountRevokedError(
+        sourceError: error,
+        canRegisterNewAccount: error.canRegisterNewAccount,
+      ),
     };
   }
 

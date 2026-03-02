@@ -12,6 +12,7 @@ members = [
     "lib/attestation_data",
     "lib/attestation_types",
     "lib/crypto",
+    "lib/db_test",
     "lib/dcql",
     "lib/error_category",
     "lib/error_category/error_category_derive",
@@ -46,7 +47,6 @@ members = [
     "wallet_provider/audit_log",
     "wallet_provider/audit_log/audit_log_macros",
     "wallet_provider/audit_log/migrations",
-    "wallet_provider/database_settings",
     "wallet_provider/domain",
     "wallet_provider/migrations",
     "wallet_provider/persistence",
@@ -103,16 +103,18 @@ assert-json-diff = "2.0.2"
 assert_cmd = "2.1.1"
 assert_fs = "1.1.3"
 assert_matches = "1.5.0"
-async-dropper = "0.3.1"
+async-dropper = { version = "0.3.1", features = ["tokio"] }
 async-trait = "0.1.89"
 axum = { version = "0.8.7", default-features = false, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
 axum-extra = "0.12.2"
-axum-server = "0.8.0"
+axum-server = { version = "0.8.0", features = ["tls-rustls-no-provider"] }
 axum_csrf = "0.11.0"
 backtrace = "0.3.76"
 base64 = "0.22.1"
 biscuit = "0.7.0"
 bitflags = "2.10.0"
+# bollard version is same as testcontainers
+bollard = "0.19.4"
 built = "0.8.0"
 bytes = "1.11.0"
 cfg-if = "1.0.4"
@@ -154,6 +156,9 @@ jsonwebtoken = { version = "10.2.0", default-features = false, features = ["rust
 libc = "0.2.178"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
+# The lightningcss crate has a 1.0.0 version as well as an `alpha` label, meaning they don't use the semver
+# strategy. However, since this should only be used as a build dependency, we accept the `alpha` label.
+lightningcss = "1.0.0-alpha.70"
 log = "0.4.29"
 mediatype = "0.21.0"
 metrics = "0.24.3"
@@ -221,6 +226,8 @@ strfmt = "0.2.5"
 strum = "0.27.2"
 syn = "2.0.111"
 tempfile = "3.23.0"
+testcontainers = "0.26.3"
+testcontainers-modules = "0.14.0"
 thiserror = "2.0.17"
 time = "0.3.44"
 tokio = { version = "1.48.0", default-features = false, features = ["parking_lot"] }
@@ -238,7 +245,6 @@ tracing-subscriber = { version = "0.3.22", default-features = false, features = 
 ] }
 tracing-test = "0.2.5"
 trait-variant = "0.1.2"
-trybuild = "1.0.114"
 ts-rs = "11.1.0"
 uniffi = { version = "0.30.0", default-features = false }
 url = "2.5.7"
@@ -249,6 +255,7 @@ uuid = "1.19.0"
 wiremock = "0.6.5"
 x509-cert = { version = "0.2.5", default-features = false, features = ["std"] }
 x509-parser = "0.18.0"
+xxhash-rust = "0.8.15"
 yoke = "0.8.1"
 zstd = "0.13.3"
 
