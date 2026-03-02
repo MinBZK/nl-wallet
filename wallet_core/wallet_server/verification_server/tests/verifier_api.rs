@@ -29,7 +29,7 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
-use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+use attestation_data::x509::CertificateType;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::qualification::AttestationQualification;
@@ -141,7 +141,13 @@ async fn wallet_server_settings_and_listener(
     let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap();
+    let usecase_keypair = rp_ca
+        .generate_key_pair(
+            "localhost",
+            CertificateType::ReaderAuth(reader_registration),
+            Default::default(),
+        )
+        .unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {

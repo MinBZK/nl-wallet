@@ -310,7 +310,8 @@ mod tests {
     use super::super::verifier_certificate::VerifierCertificate;
     use super::VpDisclosureSession;
 
-    static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://example.com/disclosure".parse().unwrap());
+    static VERIFIER_URL: LazyLock<BaseUrl> =
+        LazyLock::new(|| "http://cert.rp.example.com/disclosure".parse().unwrap());
 
     /// Creates a `VpDisclosureSession` that has already been started, along with a `MockVerifierSession`.
     fn setup_disclosure_session(

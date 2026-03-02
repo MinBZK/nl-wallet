@@ -180,7 +180,10 @@ impl MockVerifierSession {
         let nonce = crypto_utils::random_string(32);
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
         let response_uri = verifier_url.join_base_url("response_uri");
-        let client_id = String::from(key_pair.certificate().san_dns_name().unwrap().unwrap());
+        let client_id = format!(
+            "x509_san_dns:{}",
+            key_pair.certificate().san_dns_name().unwrap().unwrap()
+        );
         let request_uri =
             request_uri_with_verifier_params(verifier_url.join_base_url("request_uri").into_inner(), session_type);
 

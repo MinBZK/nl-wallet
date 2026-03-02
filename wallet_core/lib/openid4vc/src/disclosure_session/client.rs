@@ -285,7 +285,8 @@ mod tests {
     use super::super::session::VpDisclosureSession;
     use super::VpDisclosureClient;
 
-    static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://example.com/disclosure".parse().unwrap());
+    static VERIFIER_URL: LazyLock<BaseUrl> =
+        LazyLock::new(|| "http://cert.rp.example.com/disclosure".parse().unwrap());
 
     type StartDisclosureResult = Result<
         (

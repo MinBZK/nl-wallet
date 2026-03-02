@@ -836,12 +836,11 @@ where
 }
 
 fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<String, UseCaseCertificateError> {
-    Ok(String::from(
-        key_pair
-            .certificate()
-            .san_dns_name()?
-            .ok_or(UseCaseCertificateError::MissingSAN)?,
-    ))
+    let san_dns_name = key_pair
+        .certificate()
+        .san_dns_name()?
+        .ok_or(UseCaseCertificateError::MissingSAN)?;
+    Ok(format!("x509_san_dns:{san_dns_name}"))
 }
 
 pub trait ToPostAuthResponseErrorCode: Error {

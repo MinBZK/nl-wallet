@@ -159,7 +159,7 @@ fn disclosure_direct() {
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
-    let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
+    let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new(
         NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
@@ -332,11 +332,11 @@ impl DirectMockVpMessageClient {
             }),
         })
         .unwrap();
-        let request_uri = ("https://example.com/request_uri?".to_string() + &query)
+        let request_uri = (format!("https://{RP_CERT_CN}/request_uri?") + &query)
             .parse()
             .unwrap();
 
-        let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
+        let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = NormalizedVpAuthorizationRequest::new(
@@ -364,8 +364,10 @@ impl DirectMockVpMessageClient {
 
     fn start_session(&self) -> String {
         serde_urlencoded::to_string(VpRequestUri {
-            client_id: String::from(self.auth_keypair.certificate().san_dns_name().unwrap().unwrap()),
-            object: VpRequestUriObject::AsReference {
+            client_id: format!(
+                "x509_san_dns:{}",
+                self.auth_keypair.certificate().san_dns_name().unwrap().unwrap()
+            ),            object: VpRequestUriObject::AsReference {
                 request_uri: self.request_uri.clone(),
                 request_uri_method: Default::default(),
             },
@@ -814,7 +816,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     let (verifier, test_credentials, rp_trust_anchor, issuer_keypair) =
         setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
-    let mut request_uri: Url = format!("https://example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
+    let mut request_uri: Url = format!("https://{RP_CERT_CN}/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
         .parse()
         .unwrap();
     request_uri.set_query(Some(
@@ -826,7 +828,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: RP_CERT_CN.to_string(),
+        client_id: format!("x509_san_dns:{RP_CERT_CN}"),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
@@ -860,7 +862,7 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
     let (verifier, _test_credentials, rp_trust_anchor, _issuer_keypair) =
         setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
-    let mut request_uri: Url = format!("https://example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
+    let mut request_uri: Url = format!("https://{RP_CERT_CN}/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
         .parse()
         .unwrap();
     request_uri.set_query(Some(
@@ -872,7 +874,7 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: RP_CERT_CN.to_string(),
+        client_id: format!("x509_san_dns:{RP_CERT_CN}"),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
@@ -1166,8 +1168,8 @@ async fn request_status_endpoint(
         .status_response(
             session_token,
             session_type,
-            &"https://example.com/ul".parse().unwrap(),
-            format!("https://example.com/verifier_base_url/{session_token}/request_uri")
+            &format!("https://{RP_CERT_CN}/ul").parse().unwrap(),
+            format!("https://{RP_CERT_CN}/verifier_base_url/{session_token}/request_uri")
                 .parse()
                 .unwrap(),
             &TimeGenerator,
@@ -1217,7 +1219,7 @@ where
             .verifier
             .process_get_request(
                 session_token.as_ref(),
-                &"https://example.com/verifier_base_url".parse().unwrap(),
+                &format!("https://{RP_CERT_CN}/verifier_base_url").parse().unwrap(),
                 url.as_ref().query(),
                 wallet_nonce,
             )

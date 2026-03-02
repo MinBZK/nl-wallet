@@ -1322,13 +1322,15 @@ mod tests {
         let rp_keypair = ca.generate_reader_mock().unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let rp_fqdn = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
+        let response_uri = format!("https://{rp_fqdn}/response_uri").parse().unwrap();
 
         let auth_request = NormalizedVpAuthorizationRequest::new(
             credential_requests,
             rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
-            "https://example.com/response_uri".parse().unwrap(),
+            response_uri,
             None,
         )
         .unwrap();
