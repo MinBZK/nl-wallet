@@ -7,7 +7,7 @@ use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc41_test_pin_recovery() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233".to_string();
@@ -24,7 +24,7 @@ async fn ltc41_test_pin_recovery() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc46_test_pin_recovery_timeout() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233".to_string();

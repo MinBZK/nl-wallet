@@ -26,7 +26,7 @@ use wallet::errors::IssuanceError;
 use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc1_test_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -151,7 +151,7 @@ fn pid_missing_required_with_address() -> IssuableDocument {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc1_test_pid_optional_attributes() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -213,15 +213,16 @@ async fn ltc2_test_pid_missing_required_attributes() {
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
+
     wallet = do_wallet_registration(wallet, pin).await;
-    let redirect_url = {
-        let ctx = MockOidcClient::start_context();
-        ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
-        wallet
-            .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
-            .await
-            .expect("should create PID issuance redirect URL")
-    };
+
+    let ctx = MockOidcClient::start_context();
+    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
+    let redirect_url = wallet
+        .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
+        .await
+        .expect("should create PID issuance redirect URL");
+
     let _unsigned_mdocs = wallet
         .continue_pid_issuance(redirect_url)
         .await

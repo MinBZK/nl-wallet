@@ -1026,14 +1026,13 @@ pub async fn do_pid_issuance_with_purpose(
     pin: String,
     purpose: PidIssuancePurpose,
 ) -> WalletWithStorage {
-    let redirect_url = {
-        let ctx = MockOidcClient::start_context();
-        ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
-        wallet
-            .create_pid_issuance_auth_url(purpose)
-            .await
-            .expect("Could not create pid issuance auth url")
-    };
+    let ctx = MockOidcClient::start_context();
+    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
+    let redirect_url = wallet
+        .create_pid_issuance_auth_url(purpose)
+        .await
+        .expect("Could not create pid issuance auth url");
+
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)
         .await
@@ -1046,14 +1045,13 @@ pub async fn do_pid_issuance_with_purpose(
 }
 
 pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> WalletWithStorage {
-    let uri = {
-        let ctx = MockOidcClient::start_context();
-        ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
-        wallet
-            .create_pin_recovery_redirect_uri()
-            .await
-            .expect("Could not create pin recovery redirect URI")
-    };
+    let ctx = MockOidcClient::start_context();
+    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
+    let uri = wallet
+        .create_pin_recovery_redirect_uri()
+        .await
+        .expect("Could not create pin recovery redirect URI");
+
     wallet
         .continue_pin_recovery(uri)
         .await
