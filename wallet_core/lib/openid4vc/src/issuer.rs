@@ -64,8 +64,9 @@ use crate::credential::CredentialResponses;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_metadata::CredentialMetadata;
+use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
+use crate::issuer_metadata::ProofType;
 use crate::oidc;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::server_state::Expirable;
@@ -449,11 +450,38 @@ where
         let credential_configurations_supported = attestation_config
             .as_ref()
             .iter()
-            .map(|(typ, attestation)| {
-                (
-                    typ.to_string(),
-                    CredentialMetadata::from_sd_jwt_vc_type_metadata(&attestation.metadata),
-                )
+            .flat_map(|(attestation_type, config)| {
+                config.copies_per_format.keys().flat_map(move |format| {
+                    // TODO (PVW-5554): Include the credential configuration id in the settings, instead of
+                    //                  hard coupling the AttestationTypeConfig key with the doctype / vct.
+                    let config_id = format!("{attestation_type}_{format}");
+                    // TODO (PVW-5548): Add "attestation" proof type.
+                    let proof_types = vec![ProofType::Jwt];
+                    let display = config.metadata.display().to_vec();
+                    let claims = config.metadata.claims().to_vec();
+
+                    match format {
+                        Format::MsoMdoc => Some((
+                            config_id,
+                            CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
+                                attestation_type.clone(),
+                                proof_types,
+                                display,
+                                claims,
+                            ),
+                        )),
+                        Format::SdJwt => Some((
+                            config_id,
+                            CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
+                                attestation_type.clone(),
+                                proof_types,
+                                display,
+                                claims,
+                            ),
+                        )),
+                        _ => None,
+                    }
+                })
             })
             .collect();
 
