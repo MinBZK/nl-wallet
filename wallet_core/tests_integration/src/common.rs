@@ -1106,7 +1106,7 @@ pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -
     issuance_server_url.set_query(Some(&params));
 
     let query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: "university.example.com".to_string(),
+        client_id: "x509_san_dns:localhost".to_string(),
         object: VpRequestUriObject::AsReference {
             request_uri: issuance_server_url.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
