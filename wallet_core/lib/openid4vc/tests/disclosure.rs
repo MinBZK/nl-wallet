@@ -332,9 +332,7 @@ impl DirectMockVpMessageClient {
             }),
         })
         .unwrap();
-        let request_uri = (format!("https://{RP_CERT_CN}/request_uri?") + &query)
-            .parse()
-            .unwrap();
+        let request_uri = (format!("https://{RP_CERT_CN}/request_uri?") + &query).parse().unwrap();
 
         let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
