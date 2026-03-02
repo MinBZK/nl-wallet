@@ -345,7 +345,8 @@ DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/
 export DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
 
 # Generate relying party key and cert
-generate_demo_relying_party_key_pair xyz_bank
+# The verification server runs on localhost in tests, so use a localhost certificate for xyz_bank use cases.
+generate_demo_relying_party_key_pair xyz_bank localhost
 DEMO_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.key.der" ${BASE64})
 export DEMO_RELYING_PARTY_KEY_XYZ_BANK
 DEMO_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.crt.der" ${BASE64})
