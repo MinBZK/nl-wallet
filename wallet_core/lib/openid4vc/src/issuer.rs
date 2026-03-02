@@ -473,7 +473,6 @@ where
             credential_response_encryption: None,
             // TODO (PVW-5554): Configure batch size globally for the issuer and include it here.
             batch_credential_issuance: None,
-            credential_identifiers_supported: Some(false),
             display: None,
             credential_configurations_supported,
         };

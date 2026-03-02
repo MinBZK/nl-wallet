@@ -127,7 +127,6 @@ impl IssuerMetadata {
             batch_credential_issuance: Some(BatchCredentialIssuance {
                 batch_size: NonZeroOrOneU64::try_new(10.try_into().unwrap()).unwrap(),
             }),
-            credential_identifiers_supported: None,
             display: None,
             credential_configurations_supported: HashMap::new(),
         }

@@ -80,11 +80,6 @@ pub struct IssuerMetadata {
     /// the same Credential Dataset in a single request/response.
     pub batch_credential_issuance: Option<BatchCredentialIssuance>,
 
-    /// Boolean value specifying whether the Credential Issuer supports returning `credential_identifiers` parameter in
-    /// the authorization_details Token Response parameter, with true indicating support. If omitted, the default value
-    /// is `false`.
-    pub credential_identifiers_supported: Option<bool>,
-
     /// Array of objects, where each object contains display properties of a Credential Issuer for a certain language.
     pub display: Option<Vec<IssuerDisplay>>,
 
