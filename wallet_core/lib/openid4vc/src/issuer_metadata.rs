@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::num::NonZeroU64;
 
+use derive_more::Into;
 use josekit::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
@@ -71,6 +73,12 @@ pub struct IssuerMetadata {
     /// Object containing information about whether the Credential Issuer supports encryption of the Credential Response
     /// on top of TLS.
     pub credential_response_encryption: Option<CredentialResponseEncryption>,
+
+    /// Object containing information about the Credential Issuer's support for issuance of multiple Credentials in a
+    /// batch in the Credential Endpoint. The presence of this parameter means that the issuer supports more than one
+    /// key proof in the proofs parameter in the Credential Request so can issue more than one Verifiable Credential for
+    /// the same Credential Dataset in a single request/response.
+    pub batch_credential_issuance: Option<BatchCredentialIssuance>,
 
     /// Boolean value specifying whether the Credential Issuer supports returning `credential_identifiers` parameter in
     /// the authorization_details Token Response parameter, with true indicating support. If omitted, the default value
@@ -145,6 +153,14 @@ impl IssuerMetadata {
                 vec_nonempty![&self.credential_issuer]
             })
     }
+
+    /// Returns the maximum batch size that issuer supports. If it does not support batch issuance, this returns 1.
+    // TODO (PVW-5554): Use this value for determining the amount of proofs to include.
+    pub fn batch_size(&self) -> NonZeroU64 {
+        self.batch_credential_issuance
+            .map(|batch_issuance| batch_issuance.batch_size.into())
+            .unwrap_or(NonZeroU64::MIN)
+    }
 }
 
 // Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
@@ -196,6 +212,43 @@ pub struct CredentialResponseEncryption {
     /// Response and therefore the Wallet MUST provide encryption keys in the Credential Request. If the value is false,
     /// the Wallet MAY choose whether it provides encryption keys or not.
     pub encryption_required: bool,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("batch size must be 2 or greater, received: {0}")]
+pub struct NonZeroOrOneU64Error(NonZeroU64);
+
+#[derive(Debug, Clone, Copy, Into, Serialize, Deserialize)]
+#[serde(try_from = "NonZeroU64", into = "NonZeroU64")]
+pub struct NonZeroOrOneU64(NonZeroU64);
+
+impl NonZeroOrOneU64 {
+    pub fn try_new(size: NonZeroU64) -> Result<Self, NonZeroOrOneU64Error> {
+        if size.get() < 2 {
+            return Err(NonZeroOrOneU64Error(size));
+        }
+
+        Ok(Self(size))
+    }
+}
+
+impl TryFrom<NonZeroU64> for NonZeroOrOneU64 {
+    type Error = NonZeroOrOneU64Error;
+
+    fn try_from(value: NonZeroU64) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
+/// Information about the Credential Issuer's support for issuance of multiple Credentials in a batch in the Credential
+/// Endpoint. The presence of this parameter means that the issuer supports more than one key proof in the proofs
+/// parameter in the Credential Request so can issue more than one Verifiable Credential for the same Credential Dataset
+/// in a single request/response.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct BatchCredentialIssuance {
+    // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2 or
+    // greater.
+    pub batch_size: NonZeroOrOneU64,
 }
 
 /// Display properties of a Credential Issuer for a certain language.

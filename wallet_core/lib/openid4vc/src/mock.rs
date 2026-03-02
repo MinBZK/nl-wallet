@@ -13,7 +13,9 @@ use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_metadata::BatchCredentialIssuance;
 use crate::issuer_metadata::IssuerMetadata;
+use crate::issuer_metadata::NonZeroOrOneU64;
 use crate::oidc::Config;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
@@ -122,6 +124,9 @@ impl IssuerMetadata {
             notification_endpoint: None,
             credential_request_encryption: None,
             credential_response_encryption: None,
+            batch_credential_issuance: Some(BatchCredentialIssuance {
+                batch_size: NonZeroOrOneU64::try_new(10.try_into().unwrap()).unwrap(),
+            }),
             credential_identifiers_supported: None,
             display: None,
             credential_configurations_supported: HashMap::new(),
