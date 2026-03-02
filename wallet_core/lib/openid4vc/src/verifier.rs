@@ -1050,7 +1050,7 @@ where
                 let ul = session_type
                     .map(|session_type| {
                         let ephemeral_id = self.use_cases.generate_ephemeral_id(session_token, time);
-                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, client_id)
+                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, &client_id)
                     })
                     .transpose()?;
 
@@ -1129,7 +1129,7 @@ impl<S, US, C> Verifier<S, US, C> {
         request_uri: BaseUrl,
         ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
-        client_id: String,
+        client_id: &str,
     ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
@@ -2001,7 +2001,7 @@ mod tests {
                 time,
             }),
             SessionType::CrossDevice,
-            "client_id".to_string(),
+            "client_id",
         )
         .unwrap();
 
@@ -2043,7 +2043,7 @@ mod tests {
             "https://rp.example.com".parse().unwrap(),
             None,
             SessionType::CrossDevice,
-            "client_id".to_string(),
+            "client_id",
         )
         .unwrap();
 
