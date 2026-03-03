@@ -333,41 +333,41 @@ export READER_CA_CRT
 
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
-generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party localhost
+generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party
 export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
 
 # Generate relying party key and cert.
-generate_demo_relying_party_key_pair online_marketplace localhost
+generate_demo_relying_party_key_pair online_marketplace
 DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.key.der" ${BASE64})
 export DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE
 DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
 
 # Generate relying party key and cert.
-generate_demo_relying_party_key_pair xyz_bank localhost
+generate_demo_relying_party_key_pair xyz_bank
 DEMO_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.key.der" ${BASE64})
 export DEMO_RELYING_PARTY_KEY_XYZ_BANK
 DEMO_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_XYZ_BANK
 
 # Generate relying party key and cert.
-generate_demo_relying_party_key_pair monkey_bike localhost
+generate_demo_relying_party_key_pair monkey_bike
 DEMO_RELYING_PARTY_KEY_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.key.der" ${BASE64})
 export DEMO_RELYING_PARTY_KEY_MONKEY_BIKE
 DEMO_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MONKEY_BIKE
 
 # Generate relying party key and cert.
-generate_demo_relying_party_key_pair job_finder localhost
+generate_demo_relying_party_key_pair job_finder
 DEMO_RELYING_PARTY_KEY_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.key.der" ${BASE64})
 export DEMO_RELYING_PARTY_KEY_JOB_FINDER
 DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
 # Generate relying party key and cert.
-generate_demo_relying_party_key_pair housing localhost
+generate_demo_relying_party_key_pair housing
 DEMO_RELYING_PARTY_KEY_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.key.der" ${BASE64})
 export DEMO_RELYING_PARTY_KEY_HOUSING
 DEMO_RELYING_PARTY_CRT_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.crt.der" ${BASE64})
@@ -378,7 +378,7 @@ render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PAR
 
 # Generate issuer key and cert.
 # The demo issuer's reader certificates are used as verifier certificates in localhost flows.
-generate_demo_issuer_key_pairs university localhost
+generate_demo_issuer_key_pairs university
 DEMO_ISSUER_KEY_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.reader.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_UNIVERSITY_READER
 DEMO_ISSUER_CRT_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.reader.crt.der" ${BASE64})
@@ -392,7 +392,7 @@ export DEMO_ISSUER_KEY_UNIVERSITY_TSL
 DEMO_ISSUER_CRT_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_TSL
 
-generate_demo_issuer_key_pairs insurance localhost
+generate_demo_issuer_key_pairs insurance
 DEMO_ISSUER_KEY_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_INSURANCE_READER
 DEMO_ISSUER_CRT_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.crt.der" ${BASE64})
@@ -406,7 +406,7 @@ export DEMO_ISSUER_KEY_INSURANCE_TSL
 DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_TSL
 
-generate_demo_issuer_key_pairs housing localhost
+generate_demo_issuer_key_pairs housing
 DEMO_ISSUER_KEY_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_HOUSING_READER
 DEMO_ISSUER_CRT_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.crt.der" ${BASE64})

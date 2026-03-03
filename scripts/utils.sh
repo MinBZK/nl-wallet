@@ -377,15 +377,13 @@ function generate_wallet_provider_tsl_key_pair {
 # Generate an EC key pairs for the demo_issuer
 #
 # $1 - ISSUER_NAME: Name of the Issuer
-# $2 - READER_COMMON_NAME: Reader certificate common name (optional, defaults to "$1.example.com")
 function generate_demo_issuer_key_pairs {
-    local reader_common_name="${2:-$1.example.com}"
 
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "${reader_common_name}" \
+        --common-name "localhost" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
         --force
@@ -428,16 +426,14 @@ function generate_demo_issuer_key_pairs {
 # Generate an EC key pair for the demo_relying_party
 #
 # $1 - RELYING_PARTY_NAME: Name of the Relying Party
-# $2 - COMMON_NAME: Certificate common name (optional, defaults to "$1.example.com")
 function generate_demo_relying_party_key_pair {
     local relying_party_name="$1"
-    local common_name="${2:-$1.example.com}"
 
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "${common_name}" \
+        --common-name "localhost" \
         --reader-auth-file "${DEVENV}/${relying_party_name}_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/${relying_party_name}" \
         --force
@@ -455,9 +451,7 @@ function generate_demo_relying_party_key_pair {
 #
 # $1 - READER_NAME: Name of the Relying Party
 # $2 - path where the certificate will be written to
-# $3 - COMMON_NAME: Certificate common name (optional, defaults to "$1.example.com")
 function generate_relying_party_hsm_key_pair {
-    local common_name="${3:-$1.example.com}"
 
     # Generate EC key pair in the HSM
     generate_hsm_key_pair "$1_key" "$2/$1.pub.pem"
@@ -468,7 +462,7 @@ function generate_relying_party_hsm_key_pair {
           --public-key-file "${TARGET_DIR}/$2/$1.pub.pem" \
           --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
           --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-          --common-name "${common_name}" \
+          --common-name "localhost" \
           --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
           --file-prefix "${TARGET_DIR}/$2/$1" \
           --force
