@@ -379,4 +379,7 @@ class WalletCoreMock implements WalletCoreApi {
         return RevocationCodeResult.instructionError(error: result.error);
     }
   }
+
+  @override
+  Future<void> crateApiFullPerformBackgroundSync() => Future.delayed(const Duration(seconds: 2));
 }

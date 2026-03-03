@@ -7957,6 +7957,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
+  _i10.Future<void> crateApiFullPerformBackgroundSync() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullPerformBackgroundSync, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
   _i10.Future<void> crateApiFullReceiveWalletTransfer() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullReceiveWalletTransfer, []),
