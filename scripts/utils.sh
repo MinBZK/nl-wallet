@@ -383,7 +383,7 @@ function generate_demo_issuer_key_pairs {
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "localhost" \
+        --common-name "${SERVICES_HOST}" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
         --force
@@ -392,7 +392,7 @@ function generate_demo_issuer_key_pairs {
         --bin wallet_ca issuer \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "$1.example.com" \
+        --common-name "${SERVICES_HOST}" \
         --issuer-auth-file "${DEVENV}/$1_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.issuer" \
         --force
@@ -401,7 +401,7 @@ function generate_demo_issuer_key_pairs {
         --bin wallet_ca tsl \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "$1.example.com" \
+        --common-name "${SERVICES_HOST}" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.tsl" \
         --force
 
@@ -433,7 +433,7 @@ function generate_demo_relying_party_key_pair {
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "localhost" \
+        --common-name "${SERVICES_HOST}" \
         --reader-auth-file "${DEVENV}/${relying_party_name}_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/${relying_party_name}" \
         --force
@@ -462,7 +462,7 @@ function generate_relying_party_hsm_key_pair {
           --public-key-file "${TARGET_DIR}/$2/$1.pub.pem" \
           --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
           --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-          --common-name "localhost" \
+          --common-name "${SERVICES_HOST}" \
           --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
           --file-prefix "${TARGET_DIR}/$2/$1" \
           --force
