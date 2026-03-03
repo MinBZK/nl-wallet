@@ -62,6 +62,22 @@
     <vulnerabilityName>CVE-2025-69873</vulnerabilityName>
     <vulnerabilityName>GHSA-2g4f-4pwh-qvx6</vulnerabilityName>
   </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive, minimatch 3.1.4 is not affected
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/minimatch@3[.]1[.]4$</packageUrl>
+    <cve>CVE-2026-26996</cve>
+  </suppress>
+  <suppress>
+    <notes><![CDATA[
+    False positive, minimatch 9.0.7 is not affected
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/minimatch@9[.]0[.]7$</packageUrl>
+    <cve>CVE-2026-26996</cve>
+  </suppress>
+
   <!-- End group: [HIGH] -->
 
   <!-- Start group: [MEDIUM] -->
