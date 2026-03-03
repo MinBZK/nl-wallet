@@ -62,6 +62,9 @@
   "overrides": {
     "editorconfig": {
       "minimatch": "^9.0.7"
+    },
+    "@microsoft/api-extractor": {
+      "minimatch": "^10.2.3"
     }
   }
 }
