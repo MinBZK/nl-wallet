@@ -57,6 +57,8 @@ Future<void> setDirectNotificationsCallback({
   required FutureOr<void> Function(List<(int, NotificationType)>) callback,
 }) => WalletCore.instance.api.crateApiFullSetDirectNotificationsCallback(callback: callback);
 
+Future<void> performBackgroundSync() => WalletCore.instance.api.crateApiFullPerformBackgroundSync();
+
 Stream<List<WalletEvent>> setRecentHistoryStream() => WalletCore.instance.api.crateApiFullSetRecentHistoryStream();
 
 Future<void> clearRecentHistoryStream() => WalletCore.instance.api.crateApiFullClearRecentHistoryStream();

@@ -12,18 +12,9 @@ import '../../domain/usecase/notification/set_direct_os_notification_callback_us
 import '../../util/builder/notification/notification_payload_parser.dart';
 import '../../util/extension/locale_extension.dart';
 import '../../util/extension/object_extension.dart';
+import '../../wallet_constants.dart';
 import '../store/active_locale_provider.dart';
 import 'navigation_service.dart';
-
-const kAndroidInitSettings = AndroidInitializationSettings('ic_notification');
-const kDarwinInitSettings = DarwinInitializationSettings(
-  requestAlertPermission: false,
-  requestBadgePermission: false,
-  requestCriticalPermission: false,
-  requestSoundPermission: false,
-  requestProvisionalPermission: false,
-  requestProvidesAppNotificationSettings: false,
-);
 
 /// A function that provides an instance of [FlutterLocalNotificationsPlugin]. Useful for testing.
 typedef LocalNotificationsPluginProvider = FlutterLocalNotificationsPlugin Function();

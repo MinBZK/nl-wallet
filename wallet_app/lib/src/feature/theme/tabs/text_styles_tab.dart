@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../environment.dart';
 import '../../../data/service/navigation_service.dart';
+import '../../../data/service/work_manager_service.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -63,6 +64,12 @@ class TextStylesTab extends StatelessWidget {
           onPressed: () => ScheduledNotificationsScreen.show(context),
           icon: const Icon(Icons.notifications_outlined),
           text: const Text('Notifications'),
+        ),
+        const SizedBox(height: 12),
+        SecondaryButton(
+          onPressed: () => performRevocationCheckTask(initCore: false),
+          icon: const Icon(Icons.sync),
+          text: const Text('Force FRB Background Sync'),
         ),
         const SizedBox(height: 12),
       ],
