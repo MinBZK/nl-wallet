@@ -1,14 +1,16 @@
 pub mod attested_key;
 pub mod hw_keystore;
+pub mod iso18013_5;
 pub mod utils;
 
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use self::attested_key::AttestedKeyBridge;
-use self::hw_keystore::EncryptionKeyBridge;
-use self::hw_keystore::SigningKeyBridge;
-use self::utils::UtilitiesBridge;
+use crate::bridge::attested_key::AttestedKeyBridge;
+use crate::bridge::hw_keystore::EncryptionKeyBridge;
+use crate::bridge::hw_keystore::SigningKeyBridge;
+use crate::bridge::iso18013_5::Iso18013_5Bridge;
+use crate::bridge::utils::UtilitiesBridge;
 
 static PLATFORM_SUPPORT: OnceLock<PlatformSupport> = OnceLock::new();
 
@@ -18,6 +20,7 @@ struct PlatformSupport {
     encryption_key: Arc<dyn EncryptionKeyBridge>,
     attested_key: Arc<dyn AttestedKeyBridge>,
     utils: Arc<dyn UtilitiesBridge>,
+    iso18013_5: Arc<dyn Iso18013_5Bridge>,
 }
 
 pub fn init_platform_support(
@@ -25,12 +28,14 @@ pub fn init_platform_support(
     encryption_key: Arc<dyn EncryptionKeyBridge>,
     attested_key: Arc<dyn AttestedKeyBridge>,
     utils: Arc<dyn UtilitiesBridge>,
+    iso18013_5: Arc<dyn Iso18013_5Bridge>,
 ) {
     let platform_support = PlatformSupport {
         signing_key,
         encryption_key,
         attested_key,
         utils,
+        iso18013_5,
     };
 
     PLATFORM_SUPPORT

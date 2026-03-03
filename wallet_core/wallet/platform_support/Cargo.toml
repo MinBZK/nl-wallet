@@ -14,6 +14,8 @@ doctest = false
 [features]
 # Implement the mock hardware key types
 mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
+# Implement the mock ISO18013-5 types
+mock_iso18013_5 = []
 # Include the MockHardwareAttestedKeyHolder type for use in Apple tests
 mock_attested_key_apple = [
     "apple_app_attest/mock",
@@ -73,7 +75,7 @@ hardware_integration_test = [
 emulator_integration_test = [
     "android_attest/allow_emulator_keys",
     "android_attest/skip_root_key_check",
-    "hardware_integration_test"
+    "hardware_integration_test",
 ]
 
 [dependencies]
