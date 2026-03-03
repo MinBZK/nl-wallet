@@ -15,8 +15,7 @@ use crypto::utils::random_string;
 use db_test::DbSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::trusted_reqwest_client_builder;
-
-use tests_integration::common::*;
+use openid4vc::oidc::MockOidcClient;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
@@ -27,6 +26,8 @@ use wallet::errors::IssuanceError;
 use wallet::errors::WalletUnlockError;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
+
+use tests_integration::common::*;
 
 /// Revoke a wallet via the wallet provider's internal endpoint and assert
 /// that the wallet wipes itself (UserRequest revocation).
@@ -224,6 +225,10 @@ async fn test_revoke_wallets_by_recovery_code() {
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
+
+    let ctx = MockOidcClient::start_context();
+    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
+
     let redirect_url = wallet
         .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
