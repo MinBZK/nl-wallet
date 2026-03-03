@@ -28,7 +28,14 @@ allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["crypto/generate", "dep:mockall", "wscd/mock"]
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
+test = [
+    "dep:assert_matches",
+    "dep:parking_lot",
+    "jwt/test",
+    "tokio/test-util",
+    "utils/mock_time",
+    "wscd/mock",
+]
 # All features needed to run the integration test
 integration = ["example_constructors", "mock", "test"]
 # Credential payload examples
@@ -108,6 +115,7 @@ rstest.workspace = true
 serde_bytes.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
 serial_test.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
 tracing-test.workspace = true
 ts-rs.workspace = true
 wiremock.workspace = true
