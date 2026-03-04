@@ -525,6 +525,13 @@ impl VpAuthorizationRequest {
             None => return Err(AuthRequestValidationError::UnsupportedClientIdWithoutScheme),
         }
 
+        if !dns_sans.iter().any(|dns_san| *dns_san == client_id.id.as_str()) {
+            return Err(AuthRequestValidationError::UnauthorizedClientId {
+                client_id: client_id.to_string(),
+                dns_san: dns_sans.join(", "),
+            });
+        }
+
         // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
         // This checks the fqdn of the response uri against the x509_san_dns client id
         let response_uri_fqdn = validated_auth_request.response_uri.fqdn();
@@ -532,13 +539,6 @@ impl VpAuthorizationRequest {
             return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
                 fqdn: response_uri_fqdn.to_string(),
                 id: client_id.id.clone(),
-            });
-        }
-
-        if !dns_sans.iter().any(|dns_san| *dns_san == client_id.id.as_str()) {
-            return Err(AuthRequestValidationError::UnauthorizedClientId {
-                client_id: client_id.to_string(),
-                dns_san: dns_sans.join(", "),
             });
         }
 
