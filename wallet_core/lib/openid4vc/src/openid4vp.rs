@@ -213,16 +213,19 @@ pub struct VpClientMetadata {
     pub authorization_encryption_enc_values_supported: VpEncValues,
 }
 
+/// `client_id` prefix values as defined by OpenID4VP 1.0 section 5.9.3.
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.9.3>
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, strum::EnumString, strum::Display)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ClientIdScheme {
     RedirectUri,
-    EntityId,
-    Did,
+    OpenidFederation,
+    DecentralizedIdentifier,
     VerifierAttestation,
     X509SanDns,
-    X509SanUri,
+    X509Hash,
+    Origin,
     #[strum(default, to_string = "{0}")]
     Other(String),
 }
@@ -535,9 +538,9 @@ impl VpAuthorizationRequest {
         // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
         // This checks the fqdn of the response uri against the x509_san_dns client id
         if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
-        if response_uri_fqdn != client_id.id {
-            return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                fqdn: response_uri_fqdn.to_string(),
+            if response_uri_fqdn != client_id.id {
+                return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
+                    fqdn: response_uri_fqdn.to_string(),
                     id: client_id.id.clone(),
                 });
             }
@@ -1328,6 +1331,24 @@ mod tests {
         assert_eq!(client_id.to_string(), "future_scheme:example.com");
         assert_matches!(&client_id.scheme, Some(ClientIdScheme::Other(s)) if s == "future_scheme");
         assert_eq!(client_id.id, "example.com");
+    }
+
+    #[test]
+    fn test_client_id_parse_and_display_decentralized_identifier() {
+        let client_id = "decentralized_identifier:did:example:123".parse::<ClientId>().unwrap();
+
+        assert_eq!(client_id.to_string(), "decentralized_identifier:did:example:123");
+        assert_matches!(client_id.scheme, Some(ClientIdScheme::DecentralizedIdentifier));
+        assert_eq!(client_id.id, "did:example:123");
+    }
+
+    #[test]
+    fn test_client_id_parse_and_display_x509_hash() {
+        let client_id = "x509_hash:abcdef".parse::<ClientId>().unwrap();
+
+        assert_eq!(client_id.to_string(), "x509_hash:abcdef");
+        assert_matches!(client_id.scheme, Some(ClientIdScheme::X509Hash));
+        assert_eq!(client_id.id, "abcdef");
     }
 
     fn setup_mdoc() -> (
