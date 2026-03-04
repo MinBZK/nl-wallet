@@ -219,9 +219,6 @@ pub struct VpClientMetadata {
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ClientIdScheme {
-    #[serde(rename = "pre-registered")]
-    #[strum(serialize = "pre-registered")]
-    PreRegistered,
     RedirectUri,
     EntityId,
     Did,
@@ -235,16 +232,15 @@ pub enum ClientIdScheme {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ClientId {
     id: String,
-    scheme: ClientIdScheme,
+    scheme: Option<ClientIdScheme>,
 }
 
 impl fmt::Display for ClientId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let scheme = self.scheme.to_string();
         match &self.scheme {
+            Some(scheme) => write!(f, "{scheme}:{}", self.id),
             // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-fallback
-            ClientIdScheme::PreRegistered => write!(f, "{}", self.id),
-            _ => write!(f, "{scheme}:{}", self.id),
+            None => write!(f, "{}", self.id),
         }
     }
 }
@@ -262,13 +258,13 @@ impl FromStr for ClientId {
         if let Some((scheme_str, id)) = s.split_once(':') {
             let scheme = scheme_str.parse().map_err(|_| ParseClientIdError::BadScheme)?;
             Ok(Self {
-                scheme,
+                scheme: Some(scheme),
                 id: id.to_string(),
             })
         } else {
             Ok(Self {
                 // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-fallback
-                scheme: ClientIdScheme::PreRegistered,
+                scheme: None,
                 id: s.to_string(),
             })
         }
@@ -505,7 +501,7 @@ impl VpAuthorizationRequest {
     ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
         let client_id = match self.oauth_request.client_id.parse::<ClientId>() {
-            Ok(client_id) if client_id.scheme != ClientIdScheme::X509SanDns => {
+            Ok(client_id) if !matches!(&client_id.scheme, Some(ClientIdScheme::X509SanDns)) => {
                 return Err(AuthRequestValidationError::UnsupportedClientIdScheme {
                     scheme: client_id.to_string(),
                 });
