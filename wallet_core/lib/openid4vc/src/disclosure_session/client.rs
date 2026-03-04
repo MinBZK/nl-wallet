@@ -776,7 +776,7 @@ mod tests {
             VERIFIER_URL.join_base_url("redirect_uri").into_inner(),
             SessionType::SameDevice,
             VpRequestUriMethod::POST,
-            "client_id".to_string(),
+            "client_id",
         ))
         .unwrap();
 

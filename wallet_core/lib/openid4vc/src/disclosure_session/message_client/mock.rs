@@ -128,7 +128,7 @@ pub fn request_uri(
     request_uri: Url,
     session_type: SessionType,
     request_uri_method: VpRequestUriMethod,
-    client_id: String,
+    client_id: &str,
 ) -> VpRequestUri {
     VpRequestUri {
         client_id: client_id.parse().unwrap(),
