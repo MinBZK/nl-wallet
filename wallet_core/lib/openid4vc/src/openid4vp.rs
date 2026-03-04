@@ -215,7 +215,7 @@ pub struct VpClientMetadata {
     pub authorization_encryption_enc_values_supported: VpEncValues,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::EnumString, strum::Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, strum::EnumString, strum::Display)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ClientIdScheme {
@@ -228,6 +228,8 @@ pub enum ClientIdScheme {
     VerifierAttestation,
     X509SanDns,
     X509SanUri,
+    #[strum(default, to_string = "{0}")]
+    Other(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -239,7 +241,7 @@ pub struct ClientId {
 impl fmt::Display for ClientId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let scheme = self.scheme.to_string();
-        match self.scheme {
+        match &self.scheme {
             // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-fallback
             ClientIdScheme::PreRegistered => write!(f, "{}", self.id),
             _ => write!(f, "{scheme}:{}", self.id),
