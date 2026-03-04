@@ -528,7 +528,7 @@ impl VpAuthorizationRequest {
             None => return Err(AuthRequestValidationError::UnsupportedClientIdWithoutScheme),
         }
 
-        if !dns_sans.iter().any(|dns_san| *dns_san == client_id.id.as_str()) {
+        if !dns_sans.contains(&client_id.id.as_str()) {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: client_id.to_string(),
                 dns_san: dns_sans.join(", "),

@@ -1080,7 +1080,7 @@ where
                 let ul = session_type
                     .map(|session_type| {
                         let ephemeral_id = self.use_cases.generate_ephemeral_id(session_token, time);
-                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, client_id)
+                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, &client_id)
                     })
                     .transpose()?;
 
