@@ -81,20 +81,9 @@ impl<H> VpDisclosureClient<H> {
 
     /// Internal helper function for processing and checking the Authorization Request.
     fn process_auth_request(
-        request_uri_client_id: &str,
-        auth_request_client_id: &str,
         credential_requests: &NormalizedCredentialRequests,
         certificate: BorrowingCertificate,
     ) -> Result<VerifierCertificate, VpVerifierError> {
-        // The `client_id` in the Authorization Request, which has been authenticated, has to equal
-        // the `client_id` that the RP sent in the Request URI object at the start of the session.
-        if auth_request_client_id != request_uri_client_id {
-            return Err(VpVerifierError::IncorrectClientId {
-                expected: request_uri_client_id.to_string(),
-                found: auth_request_client_id.to_string(),
-            })?;
-        }
-
         // Extract `ReaderRegistration` from the certificate.
         let verifier_certificate = VerifierCertificate::try_new(certificate)
             .map_err(VpVerifierError::RpCertificate)?
@@ -169,6 +158,20 @@ where
         let (vp_auth_request, certificate) = VpAuthorizationRequest::try_new(&jws, trust_anchors)?;
         let response_uri = vp_auth_request.response_uri.clone();
 
+        // The `client_id` in the Authorization Request, which has been authenticated, has to equal
+        // the `client_id` that the RP sent in the Request URI object at the start of the session.
+        if vp_auth_request.oauth_request.client_id != request_uri_object.client_id {
+            let error = VpVerifierError::IncorrectClientId {
+                expected: request_uri_object.client_id.clone(),
+                found: vp_auth_request.oauth_request.client_id.clone(),
+            };
+
+            if let Some(response_uri) = response_uri {
+                return Err(self.report_error_back(response_uri, error).await)?;
+            }
+            return Err(error.into());
+        }
+
         let auth_request_result = vp_auth_request
             .validate(&certificate, request_nonce.as_deref())
             .map_err(VpVerifierError::AuthRequestValidation);
@@ -179,12 +182,7 @@ where
             (result, _) => result?,
         };
 
-        let process_request_result = Self::process_auth_request(
-            &request.client_id,
-            &auth_request.client_id.to_string(),
-            &auth_request.credential_requests,
-            certificate,
-        );
+        let process_request_result = Self::process_auth_request(&auth_request.credential_requests, certificate);
         let verifier_certificate = match process_request_result {
             Ok(value) => value,
             Err(error) => return Err(self.report_error_back(auth_request.response_uri, error).await)?,
