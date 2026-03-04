@@ -1509,6 +1509,17 @@ mod tests {
     }
 
     #[test]
+    fn test_authorization_request_validate_unsupported_client_id_without_scheme() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
+        auth_request.oauth_request.client_id = dns_san.to_string();
+
+        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
+    }
+
+    #[test]
     fn deserialize_authorization_request_example() {
         let example_json = json!(
             {
