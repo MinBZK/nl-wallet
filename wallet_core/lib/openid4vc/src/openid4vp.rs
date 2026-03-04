@@ -534,10 +534,16 @@ impl VpAuthorizationRequest {
 
         // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
         // This checks the fqdn of the response uri against the x509_san_dns client id
-        let response_uri_fqdn = validated_auth_request.response_uri.fqdn();
+        if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
         if response_uri_fqdn != client_id.id {
             return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
                 fqdn: response_uri_fqdn.to_string(),
+                    id: client_id.id.clone(),
+                });
+            }
+        } else {
+            return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
+                fqdn: validated_auth_request.response_uri.to_string(),
                 id: client_id.id.clone(),
             });
         }
