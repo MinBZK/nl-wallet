@@ -1214,6 +1214,8 @@ mod tests {
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
     use super::JsonBase64;
+    use super::ClientId;
+    use super::ClientIdScheme;
     use super::JwePublicKey;
     use super::JwePublicKeyError;
     use super::NormalizedVpAuthorizationRequest;
@@ -1293,6 +1295,33 @@ mod tests {
             serde_json::from_str::<VpAuthorizationErrorCode>(r#""vp_formats_not_supported""#).unwrap(),
             VpAuthorizationErrorCode::VpFormatsNotSupported,
         );
+    }
+
+    #[test]
+    fn test_client_id_parse_and_display_x509_san_dns() {
+        let client_id = "x509_san_dns:example.com".parse::<ClientId>().unwrap();
+
+        assert_eq!(client_id.to_string(), "x509_san_dns:example.com");
+        assert_matches!(client_id.scheme, Some(ClientIdScheme::X509SanDns));
+        assert_eq!(client_id.id, "example.com");
+    }
+
+    #[test]
+    fn test_client_id_parse_and_display_without_scheme() {
+        let client_id = "example.com".parse::<ClientId>().unwrap();
+
+        assert_eq!(client_id.to_string(), "example.com");
+        assert_matches!(client_id.scheme, None);
+        assert_eq!(client_id.id, "example.com");
+    }
+
+    #[test]
+    fn test_client_id_parse_and_display_unknown_scheme() {
+        let client_id = "future_scheme:example.com".parse::<ClientId>().unwrap();
+
+        assert_eq!(client_id.to_string(), "future_scheme:example.com");
+        assert_matches!(&client_id.scheme, Some(ClientIdScheme::Other(s)) if s == "future_scheme");
+        assert_eq!(client_id.id, "example.com");
     }
 
     fn setup_mdoc() -> (
