@@ -58,6 +58,8 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
+use openid4vc::openid4vp::ClientId;
+use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::token::TokenRequest;
 use openid4vc::verifier::SessionType;
@@ -1106,7 +1108,7 @@ pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -
     issuance_server_url.set_query(Some(&params));
 
     let query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: "x509_san_dns:localhost".to_string(),
+        client_id: ClientId::x509_san_dns("localhost").to_string(),
         object: VpRequestUriObject::AsReference {
             request_uri: issuance_server_url.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),

@@ -75,6 +75,7 @@ use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
 use openid4vc::openid4vp::VerifiablePresentation;
 use openid4vc::openid4vp::VpAuthorizationRequest;
@@ -362,10 +363,8 @@ impl DirectMockVpMessageClient {
 
     fn start_session(&self) -> String {
         serde_urlencoded::to_string(VpRequestUri {
-            client_id: format!(
-                "x509_san_dns:{}",
-                self.auth_keypair.certificate().san_dns_name().unwrap().unwrap()
-            ),            object: VpRequestUriObject::AsReference {
+            client_id: self.auth_request.client_id.to_string(),            
+            object: VpRequestUriObject::AsReference {
                 request_uri: self.request_uri.clone(),
                 request_uri_method: Default::default(),
             },
@@ -826,7 +825,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: format!("x509_san_dns:{RP_CERT_CN}"),
+        client_id: ClientId::x509_san_dns(RP_CERT_CN).to_string(),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
@@ -872,7 +871,7 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: format!("x509_san_dns:{RP_CERT_CN}"),
+        client_id: ClientId::x509_san_dns(RP_CERT_CN).to_string(),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
