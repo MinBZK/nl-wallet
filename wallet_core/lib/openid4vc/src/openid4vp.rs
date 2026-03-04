@@ -215,10 +215,12 @@ pub struct VpClientMetadata {
     pub authorization_encryption_enc_values_supported: VpEncValues,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::EnumString, strum::Display)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum ClientIdScheme {
     #[serde(rename = "pre-registered")]
+    #[strum(serialize = "pre-registered")]
     PreRegistered,
     RedirectUri,
     EntityId,
@@ -236,10 +238,7 @@ pub struct ClientId {
 
 impl fmt::Display for ClientId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let scheme = match serde_json::to_value(self.scheme).map_err(|_| fmt::Error)? {
-            serde_json::Value::String(s) => s,
-            _ => return Err(fmt::Error),
-        };
+        let scheme = self.scheme.to_string();
         match self.scheme {
             // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-fallback
             ClientIdScheme::PreRegistered => write!(f, "{}", self.id),
@@ -267,8 +266,7 @@ impl FromStr for ClientId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some((scheme_str, id)) = s.split_once(':') {
-            let scheme: ClientIdScheme =
-                serde_json::from_str(&format!("{scheme_str:?}")).map_err(|_| ParseClientIdError::BadScheme)?;
+            let scheme = scheme_str.parse().map_err(|_| ParseClientIdError::BadScheme)?;
             Ok(Self {
                 scheme,
                 id: id.to_string(),
