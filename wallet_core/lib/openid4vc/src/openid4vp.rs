@@ -445,7 +445,10 @@ pub enum AuthRequestValidationError {
     UnknownClientIdScheme { id: String },
     #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns is currently supported")]
     #[category(critical)]
-    UnsupportedClientIdScheme { scheme: String },
+    UnsupportedClientIdScheme { scheme: ClientIdScheme },
+    #[error("unsupported client_id without a scheme (pre-registered). Only x509_san_dns is currently supported")]
+    #[category(critical)]
+    UnsupportedClientIdWithoutScheme,
     #[error("response_uri fqdn {fqdn} does not match client_id {id}.")]
     #[category(critical)]
     UnmatchedResponseFqdn { fqdn: String, id: String },
@@ -510,10 +513,12 @@ impl VpAuthorizationRequest {
         let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
         let client_id = &validated_auth_request.client_id;
 
-        if !matches!(&client_id.scheme, Some(ClientIdScheme::X509SanDns)) {
-            return Err(AuthRequestValidationError::UnsupportedClientIdScheme {
-                scheme: client_id.to_string(),
-            });
+        match &client_id.scheme {
+            Some(ClientIdScheme::X509SanDns) => {}
+            Some(scheme) => {
+                return Err(AuthRequestValidationError::UnsupportedClientIdScheme { scheme: scheme.clone() });
+            }
+            None => return Err(AuthRequestValidationError::UnsupportedClientIdWithoutScheme),
         }
 
         // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
