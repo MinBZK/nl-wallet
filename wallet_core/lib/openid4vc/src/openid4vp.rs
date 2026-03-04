@@ -247,19 +247,11 @@ impl fmt::Display for ClientId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ParseClientIdError {
+    #[error("invalid scheme")]
     BadScheme,
 }
-
-impl fmt::Display for ParseClientIdError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::BadScheme => write!(f, "invalid scheme"),
-        }
-    }
-}
-impl std::error::Error for ParseClientIdError {}
 
 impl FromStr for ClientId {
     type Err = ParseClientIdError;
