@@ -220,6 +220,10 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
+
+    #[error("issuer has no credential configurations supported")]
+    #[category(critical)]
+    NoCredentialConfigurationsSupported,
 }
 
 #[derive(Clone, Debug)]
@@ -712,7 +716,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .cloned()
             .collect_vec()
             .try_into()
-            .unwrap(); // TODO
+            .map_err(|_| IssuanceSessionError::NoCredentialConfigurationsSupported)?;
 
         let oauth_server = issuer_metadata.issuer_config.authorization_servers().into_first();
         let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
