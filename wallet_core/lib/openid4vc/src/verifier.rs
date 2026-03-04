@@ -1159,7 +1159,7 @@ impl<S, US, C> Verifier<S, US, C> {
         request_uri: BaseUrl,
         ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
-        client_id: ClientId,
+        client_id: &ClientId,
     ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
