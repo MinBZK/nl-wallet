@@ -350,13 +350,22 @@ impl BorrowingCertificate {
 
     /// Returns the first DNS SAN, if any, from the certificate.
     pub fn san_dns_name(&self) -> Result<Option<&str>, CertificateError> {
-        let san = self.x509_certificate().subject_alternative_name()?.and_then(|ext| {
-            ext.value.general_names.iter().find_map(|name| match name {
+        Ok(self.san_dns_names()?.into_iter().next())
+    }
+
+    /// Returns all DNS SAN entries from the certificate.
+    pub fn san_dns_names(&self) -> Result<Vec<&str>, CertificateError> {
+        let dns_names = self
+            .x509_certificate()
+            .subject_alternative_name()?
+            .into_iter()
+            .flat_map(|ext| ext.value.general_names.iter())
+            .filter_map(|name| match name {
                 GeneralName::DNSName(name) => Some(*name),
                 _ => None,
             })
-        });
-        Ok(san)
+            .collect();
+        Ok(dns_names)
     }
 
     pub(crate) fn parse_and_extract_custom_ext<'a, T: Deserialize<'a>>(

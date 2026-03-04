@@ -500,7 +500,8 @@ impl VpAuthorizationRequest {
 
     /// Validate that an Authorization Request satisfies the following:
     /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` uses the `x509_san_dns` scheme and equals the DNS SAN name in the X.509 certificate.
+    /// - the `client_id` uses the `x509_san_dns` scheme and equals one of the DNS SAN names in the X.509
+    ///   certificate.
     ///
     /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
@@ -509,7 +510,10 @@ impl VpAuthorizationRequest {
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
     ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
-        let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
+        let dns_sans = rp_cert.san_dns_names()?;
+        if dns_sans.is_empty() {
+            return Err(AuthRequestValidationError::MissingSAN);
+        }
         let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
         let client_id = &validated_auth_request.client_id;
 
@@ -537,10 +541,10 @@ impl VpAuthorizationRequest {
             });
         }
 
-        if dns_san != client_id.id {
+        if !dns_sans.iter().any(|dns_san| *dns_san == client_id.id.as_str()) {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: client_id.to_string(),
-                dns_san: String::from(dns_san),
+                dns_san: dns_sans.join(", "),
             });
         }
 
