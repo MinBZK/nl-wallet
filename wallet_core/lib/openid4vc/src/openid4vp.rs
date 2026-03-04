@@ -86,8 +86,6 @@ pub enum AuthRequestError {
     CertificateParsing(#[from] CertificateError),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
-    #[error("Failed to parse client id string")]
-    ClientIdParsing(#[from] ParseClientIdError),
 }
 
 /// OpenID4VP request uri.
@@ -267,6 +265,15 @@ impl FromStr for ClientId {
                 scheme: None,
                 id: s.to_string(),
             })
+        }
+    }
+}
+
+impl ClientId {
+    pub fn x509_san_dns(id: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            scheme: Some(ClientIdScheme::X509SanDns),
         }
     }
 }
@@ -578,19 +585,15 @@ impl NormalizedVpAuthorizationRequest {
         wallet_nonce: Option<String>,
     ) -> Result<Self, AuthRequestError> {
         let jwk = encryption_pubkey.jwk().clone();
+        let client_id = ClientId::x509_san_dns(
+            rp_certificate
+                .san_dns_name()
+                .map_err(AuthRequestError::CertificateParsing)?
+                .ok_or(AuthRequestError::MissingSAN)?,
+        );
 
         Ok(Self {
-            client_id: ClientId::from_str(
-                format!(
-                    "x509_san_dns:{}",
-                    rp_certificate
-                        .san_dns_name()
-                        .map_err(AuthRequestError::CertificateParsing)?
-                        .ok_or(AuthRequestError::MissingSAN)?
-                )
-                .as_str(),
-            )
-            .map_err(AuthRequestError::ClientIdParsing)?,
+            client_id,
             nonce,
             encryption_pubkey,
             response_uri,
