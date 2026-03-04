@@ -742,3 +742,537 @@ impl From<ClaimMetadata> for CredentialClaim {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use assert_matches::assert_matches;
+    use serde_json::json;
+
+    use crate::jwe::JweAlgorithm;
+    use crate::jwe::JweCompressionAlgorithm;
+    use crate::jwe::JweEncryptionAlgorithm;
+
+    use super::CoseAlgorithmIdentifier;
+    use super::CredentialConfiguration;
+    use super::CredentialFormat;
+    use super::CryptographicBindingMethod;
+    use super::IssuerMetadata;
+    use super::JwsAlgorithm;
+    use super::KnownCoseAlgorithmIdentifier;
+
+    #[test]
+    fn test_sd_jwt_issuer_metadata_deserialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-I.1-4
+        let example_json = json!({
+            "credential_issuer": "https://credential-issuer.example.com",
+            "authorization_servers": [
+                "https://server.example.com"
+            ],
+            "credential_endpoint": "https://credential-issuer.example.com/credential",
+            "nonce_endpoint": "https://credential-issuer.example.com/nonce",
+            "deferred_credential_endpoint": "https://credential-issuer.example.com/deferred_credential",
+            "notification_endpoint": "https://credential-issuer.example.com/notification",
+            "credential_request_encryption": {
+                "jwks": [
+                    {
+                        "kty":"EC", "kid":"ac", "use":"enc", "crv":"P-256", "alg":"ECDH-ES",
+                        "x":"YO4epjifD-KWeq1sL2tNmm36BhXnkJ0He-WqMYrp9Fk",
+                        "y":"Hekpm0zfK7C-YccH5iBjcIXgf6YdUvNUac_0At55Okk"
+                    }
+                ],
+                "enc_values_supported": ["A128GCM"],
+                "zip_values_supported": ["DEF"],
+                "encryption_required": true
+            },
+            "credential_response_encryption": {
+                "alg_values_supported": ["ECDH-ES"],
+                "enc_values_supported": ["A128GCM"],
+                "zip_values_supported": ["DEF"],
+                "encryption_required": true
+            },
+            "batch_credential_issuance": {
+                "batch_size": 10
+            },
+            "display": [
+                {
+                    "name": "Example University",
+                    "locale": "en-US",
+                    "logo": {
+                        "uri": "https://university.example.edu/public/logo.png",
+                        "alt_text":"a square logo of a university"
+                    }
+                },
+                {
+                    "name": "Example Université",
+                    "locale": "fr-FR",
+                    "logo": {
+                        "uri": "https://university.example.edu/public/logo.png",
+                        "alt_text":"Un logo universitaire carré"
+                    }
+                }
+            ],
+            "credential_configurations_supported": {
+                "SD_JWT_VC_example_in_OpenID4VCI": {
+                    "format": "dc+sd-jwt",
+                    "scope": "SD_JWT_VC_example_in_OpenID4VCI",
+                    "credential_signing_alg_values_supported": ["ES256"],
+                    "cryptographic_binding_methods_supported": ["jwk"],
+                    "proof_types_supported": {
+                        "jwt": {
+                            "proof_signing_alg_values_supported": ["ES256"],
+                            "key_attestations_required": {
+                                "key_storage": ["iso_18045_moderate"],
+                                "user_authentication": ["iso_18045_moderate"]
+                            }
+                        }
+                    },
+                    "vct": "SD_JWT_VC_example_in_OpenID4VCI",
+                    "credential_metadata": {
+                        "display": [
+                            {
+                                "name": "IdentityCredential",
+                                "locale": "en-US",
+                                "logo": {
+                                    "uri": "https://university.example.edu/public/logo_credential.png",
+                                    "alt_text": "a square logo of a university credential"
+                                },
+                                "description": "A credential that signals the membership of a university",
+                                "background_color": "#12107c",
+                                "text_color": "#FFFFFF"
+                            }
+                        ],
+                        "claims": [
+                            {
+                                "path": ["given_name"],
+                                "display": [
+                                    {
+                                        "name": "Given Name",
+                                        "locale": "en-US"
+                                    },
+                                    {
+                                        "name": "Vorname",
+                                        "locale": "de-DE"
+                                    }
+                                ]
+                            },
+                            {
+                                "path": ["family_name"],
+                                "display": [
+                                    {
+                                        "name": "Surname",
+                                        "locale": "en-US"
+                                    },
+                                    {
+                                        "name": "Nachname",
+                                        "locale": "de-DE"
+                                    }
+                                ]
+                            },
+                            {"path": ["email"]},
+                            {"path": ["phone_number"]},
+                            {
+                                "path": ["address"],
+                                "display": [
+                                    {
+                                        "name": "Place of residence",
+                                        "locale": "en-US"
+                                    },
+                                    {
+                                        "name": "Wohnsitz",
+                                        "locale": "de-DE"
+                                    }
+                                ]
+                            },
+                            {"path": ["address", "street_address"]},
+                            {"path": ["address", "locality"]},
+                            {"path": ["address", "region"]},
+                            {"path": ["address", "country"]},
+                            {"path": ["birthdate"]},
+                            {"path": ["is_over_18"]},
+                            {"path": ["is_over_21"]},
+                            {"path": ["is_over_65"]}
+                        ]
+                    }
+                }
+            }
+        });
+
+        let metadata = serde_json::from_value::<IssuerMetadata>(example_json.clone())
+            .expect("deserializing IssuerMetadata from example JSON should succeed");
+
+        assert_eq!(
+            metadata.credential_issuer.as_ref(),
+            "https://credential-issuer.example.com"
+        );
+        assert_eq!(
+            metadata.credential_endpoint.as_ref().as_ref().as_str(),
+            "https://credential-issuer.example.com/credential"
+        );
+        assert_eq!(
+            metadata
+                .nonce_endpoint
+                .as_ref()
+                .map(|url| url.as_ref().as_ref().as_str()),
+            Some("https://credential-issuer.example.com/nonce")
+        );
+
+        let request_encryption = metadata
+            .credential_request_encryption
+            .as_ref()
+            .expect("IssuerMetadata should contain CredentialRequestEncryption");
+        assert_eq!(request_encryption.jwks.len().get(), 1);
+        assert_eq!(request_encryption.jwks.first().curve(), Some("P-256"));
+        assert!(
+            request_encryption
+                .enc_values_supported
+                .iter()
+                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+        );
+        assert!(
+            request_encryption
+                .zip_values_supported
+                .as_ref()
+                .map(|values| values.iter())
+                .unwrap_or_default()
+                .eq(&[JweCompressionAlgorithm::Deflate])
+        );
+        assert!(request_encryption.encryption_required);
+
+        let response_encryption = metadata
+            .credential_response_encryption
+            .as_ref()
+            .expect("IssuerMetadata should contain CredentialResponseEncryption");
+        assert!(
+            response_encryption
+                .alg_values_supported
+                .iter()
+                .eq(&[JweAlgorithm::EcdhEs])
+        );
+        assert!(
+            response_encryption
+                .enc_values_supported
+                .iter()
+                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+        );
+        assert!(
+            response_encryption
+                .zip_values_supported
+                .as_ref()
+                .map(|values| values.iter())
+                .unwrap_or_default()
+                .eq(&[JweCompressionAlgorithm::Deflate])
+        );
+        assert!(response_encryption.encryption_required);
+
+        assert_eq!(metadata.batch_size().get(), 10);
+        assert_eq!(
+            metadata
+                .display
+                .as_ref()
+                .map(|display| display.len().get())
+                .unwrap_or_default(),
+            2
+        );
+        assert!(
+            metadata
+                .display
+                .as_ref()
+                .map(|display| display.iter())
+                .unwrap_or_default()
+                .map(|display| display.name_locale.locale.as_deref())
+                .eq([Some("en-US"), Some("fr-FR")])
+        );
+        assert!(
+            metadata
+                .display
+                .as_ref()
+                .map(|display| display.iter())
+                .unwrap_or_default()
+                .map(|display| display.logo.as_ref().map(|logo| logo.uri.as_str()))
+                .eq([
+                    Some("https://university.example.edu/public/logo.png"),
+                    Some("https://university.example.edu/public/logo.png")
+                ])
+        );
+
+        assert_eq!(metadata.credential_configurations_supported.len(), 1);
+        let (config_id, config) = metadata.credential_configurations_supported.iter().next().unwrap();
+
+        assert_eq!(config_id, "SD_JWT_VC_example_in_OpenID4VCI");
+        assert_matches!(
+            &config.format,
+            CredentialFormat::SdJwt {
+                vct,
+                credential_signing_alg_values_supported
+            } if vct == "SD_JWT_VC_example_in_OpenID4VCI" &&
+                credential_signing_alg_values_supported
+                .as_ref()
+                    .map(|values| values.iter())
+                    .unwrap_or_default()
+                    .eq(&[JwsAlgorithm::ES256])
+        );
+        assert_eq!(config.scope.as_deref(), Some("SD_JWT_VC_example_in_OpenID4VCI"));
+
+        let binding = config
+            .cryptographic_binding
+            .as_ref()
+            .expect("CredentialConfiguration should contain CryptographicBinding");
+        assert!(
+            binding
+                .cryptographic_binding_methods_supported
+                .iter()
+                .eq(&[CryptographicBindingMethod::Jwk])
+        );
+
+        let credential_metadata = config
+            .credential_metadata
+            .as_ref()
+            .expect("CredentialConfiguration should contain CredentialMetadata");
+        assert!(
+            credential_metadata
+                .display
+                .as_ref()
+                .map(|display| display.iter())
+                .unwrap_or_default()
+                .map(|display| display.name_locale.name.as_deref())
+                .eq([Some("IdentityCredential")])
+        );
+        assert_eq!(
+            credential_metadata
+                .claims
+                .as_ref()
+                .map(|claims| claims.len().get())
+                .unwrap_or_default(),
+            13
+        );
+
+        let serialized_metadata =
+            serde_json::to_value(metadata).expect("serializing IssuerMetadata to JSON should succeed");
+        assert_eq!(serialized_metadata, example_json);
+    }
+
+    #[test]
+    fn test_mdoc_credential_configuration_deserialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-A.2.2-7
+        // Note that the "proof_types_supported" entry was added, as this is
+        // mandatory when "cryptographic_binding_methods_supported" is present.
+        let example_json = json!({
+            "org.iso.18013.5.1.mDL": {
+                "format": "mso_mdoc",
+                "doctype": "org.iso.18013.5.1.mDL",
+                "cryptographic_binding_methods_supported": [
+                    "cose_key"
+                ],
+                "proof_types_supported": {
+                    "jwt": {
+                        "proof_signing_alg_values_supported": [
+                            "ES256"
+                        ]
+                    }
+                },
+                "credential_signing_alg_values_supported": [
+                    -7, -9
+                ],
+                "credential_metadata": {
+                    "display": [
+                        {
+                            "name": "Mobile Driving License",
+                            "locale": "en-US",
+                            "logo": {
+                            "uri": "https://state.example.org/public/mdl.png",
+                                "alt_text": "state mobile driving license"
+                            },
+                            "background_color": "#12107c",
+                            "text_color": "#FFFFFF"
+                        },
+                        {
+                            "name": "モバイル運転免許証",
+                            "locale": "ja-JP",
+                            "logo": {
+                            "uri": "https://state.example.org/public/mdl.png",
+                                "alt_text": "米国州発行のモバイル運転免許証"
+                            },
+                            "background_color": "#12107c",
+                            "text_color": "#FFFFFF"
+                        }
+                    ],
+                    "claims": [
+                        {
+                            "path": ["org.iso.18013.5.1", "given_name"],
+                            "display": [
+                                {
+                                    "name": "Given Name",
+                                    "locale": "en-US"
+                                },
+                                {
+                                    "name": "名前",
+                                    "locale": "ja-JP"
+                                }
+                            ]
+                        },
+                        {
+                            "path": ["org.iso.18013.5.1", "family_name"],
+                            "display": [
+                                {
+                                    "name": "Surname",
+                                    "locale": "en-US"
+                                }
+                            ]
+                        },
+                        {
+                            "path": ["org.iso.18013.5.1", "birth_date"],
+                            "mandatory": true
+                        },
+                        {"path": ["org.iso.18013.5.1.aamva", "organ_donor"]}
+                    ]
+                }
+            }
+        });
+
+        let credential_configs =
+            serde_json::from_value::<HashMap<String, CredentialConfiguration>>(example_json.clone())
+                .expect("deserializing CredentialConfiguration values from example JSON should succeed");
+
+        assert_eq!(credential_configs.len(), 1);
+
+        let config = credential_configs
+            .get("org.iso.18013.5.1.mDL")
+            .expect("key \"org.iso.18013.5.1.mDL\" should contain a credential config");
+
+        assert_matches!(
+            &config.format,
+            CredentialFormat::MsoMdoc {
+                doctype,
+                credential_signing_alg_values_supported
+            } if doctype == "org.iso.18013.5.1.mDL" &&
+                credential_signing_alg_values_supported
+                .as_ref()
+                    .map(|values| values.iter())
+                    .unwrap_or_default()
+                    .eq(&[
+                        CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Es256),
+                        CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Esp256)
+                    ])
+        );
+
+        let credential_metadata = config
+            .credential_metadata
+            .as_ref()
+            .expect("CredentialConfiguration should contain CredentialMetadata");
+        assert!(
+            credential_metadata
+                .display
+                .as_ref()
+                .map(|display| display.iter())
+                .unwrap_or_default()
+                .map(|display| (display.background_color.as_deref(), display.text_color.as_deref()))
+                .eq([(Some("#12107c"), Some("#FFFFFF")), (Some("#12107c"), Some("#FFFFFF"))])
+        );
+        assert_eq!(
+            credential_metadata
+                .claims
+                .as_ref()
+                .map(|claims| claims.len().get())
+                .unwrap_or_default(),
+            4
+        );
+
+        let serialized_configs = serde_json::to_value(credential_configs)
+            .expect("serializing CredentialConfiguration to JSON should succeed");
+        assert_eq!(serialized_configs, example_json);
+    }
+
+    #[test]
+    fn test_jwt_vc_json_credential_configuration_deserialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-A.1.1.2-4
+        let example_json = json!({
+            "UniversityDegreeCredential": {
+                "format": "jwt_vc_json",
+                "scope": "UniversityDegree",
+                "cryptographic_binding_methods_supported": [
+                    "did:example"
+                ],
+                "credential_signing_alg_values_supported": [
+                    "ES256"
+                ],
+                "credential_definition": {
+                    "type": [
+                        "VerifiableCredential",
+                        "UniversityDegreeCredential"
+                    ]
+                },
+                "proof_types_supported": {
+                    "jwt": {
+                        "proof_signing_alg_values_supported": [
+                            "ES256"
+                        ]
+                    }
+                },
+                "credential_metadata": {
+                    "claims": [
+                        {
+                            "path": ["credentialSubject", "given_name"],
+                            "display": [
+                                {
+                                    "name": "Given Name",
+                                    "locale": "en-US"
+                                }
+                            ]
+                        },
+                        {
+                            "path": ["credentialSubject", "family_name"],
+                            "display": [
+                                {
+                                    "name": "Surname",
+                                    "locale": "en-US"
+                                }
+                            ]
+                        },
+                        {"path": ["credentialSubject", "degree"]},
+                        {
+                            "path": ["credentialSubject", "gpa"],
+                            "mandatory": true,
+                            "display": [
+                                {
+                                    "name": "GPA"
+                                }
+                            ]
+                        }
+                    ],
+                    "display": [
+                        {
+                            "name": "University Credential",
+                            "locale": "en-US",
+                            "logo": {
+                            "uri": "https://university.example.edu/public/logo.png",
+                            "alt_text": "a square logo of a university"
+                            },
+                            "background_color": "#12107c",
+                            "text_color": "#FFFFFF"
+                        }
+                    ]
+                }
+            }
+        });
+
+        let credential_configs =
+            serde_json::from_value::<HashMap<String, CredentialConfiguration>>(example_json.clone())
+                .expect("deserializing CredentialConfiguration values from example JSON should succeed");
+
+        assert_eq!(credential_configs.len(), 1);
+
+        let (_, credential_config) = credential_configs.iter().next().unwrap();
+
+        assert_matches!(&credential_config.format, CredentialFormat::Other { format } if format == "jwt_vc_json");
+        assert!(
+            credential_config
+                .cryptographic_binding
+                .as_ref()
+                .map(|binding| binding.cryptographic_binding_methods_supported.iter())
+                .unwrap_or_default()
+                .eq(&[CryptographicBindingMethod::Other("did:example".to_string())])
+        );
+    }
+}
