@@ -1429,6 +1429,40 @@ mod tests {
     }
 
     #[test]
+    fn test_authorization_request_validate_unauthorized_client_id() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let wrong_dns_san = "wrong.example.com";
+        let cert_dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
+
+        auth_request.oauth_request.client_id = format!("x509_san_dns:{wrong_dns_san}");
+        auth_request.response_uri = Some(format!("https://{wrong_dns_san}/response_uri").parse().unwrap());
+
+        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        assert_matches!(
+            err,
+            AuthRequestValidationError::UnauthorizedClientId { client_id, dns_san }
+            if client_id == format!("x509_san_dns:{wrong_dns_san}") && dns_san.contains(cert_dns_san)
+        );
+    }
+
+    #[test]
+    fn test_authorization_request_validate_unsupported_client_id_scheme() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
+        auth_request.oauth_request.client_id = format!("redirect_uri:{dns_san}");
+
+        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        assert_matches!(
+            err,
+            AuthRequestValidationError::UnsupportedClientIdScheme {
+                scheme: ClientIdScheme::RedirectUri
+            }
+        );
+    }
+
+    #[test]
     fn deserialize_authorization_request_example() {
         let example_json = json!(
             {
