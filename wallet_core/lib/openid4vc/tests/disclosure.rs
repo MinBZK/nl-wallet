@@ -1063,12 +1063,14 @@ fn setup_verifier(
         .unwrap();
 
     // Initialize the verifier
+    let public_url: BaseUrl = "https://localhost/".parse().unwrap();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
         (
             NO_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+                &public_url,
                 SessionTypeReturnUrl::Neither,
                 None,
                 None,
@@ -1080,6 +1082,7 @@ fn setup_verifier(
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+                &public_url,
                 SessionTypeReturnUrl::SameDevice,
                 None,
                 None,
@@ -1091,6 +1094,7 @@ fn setup_verifier(
             ALL_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
+                &public_url,
                 SessionTypeReturnUrl::Both,
                 None,
                 None,

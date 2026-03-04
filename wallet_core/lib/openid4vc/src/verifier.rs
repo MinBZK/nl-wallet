@@ -174,6 +174,10 @@ pub enum PostAuthResponseError {
 pub enum UseCaseCertificateError {
     #[error("missing DNS SAN from RP certificate")]
     MissingSAN,
+    #[error("missing host in verifier public URL: {0}")]
+    MissingPublicUrlHost(BaseUrl),
+    #[error("verifier public URL host {host} not present in RP certificate SAN DNS entries: {dns_sans}")]
+    PublicUrlHostNotInCertificate { host: String, dns_sans: String },
     #[error("RP certificate error: {0}")]
     Certificate(#[from] CertificateError),
 }
@@ -579,12 +583,13 @@ pub enum NewDisclosureUseCaseError {
 impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
+        public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
         accept_undetermined_revocation_status: bool,
     ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_key_pair(&key_pair)?;
+        let client_id = client_id_from_public_url(&key_pair, public_url)?;
 
         let use_case = Self {
             data: UseCaseData {
@@ -842,6 +847,30 @@ fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<ClientId, UseCase
         .san_dns_name()?
         .ok_or(UseCaseCertificateError::MissingSAN)?;
     Ok(ClientId::x509_san_dns(san_dns_name))
+}
+
+fn client_id_from_public_url<K>(
+    key_pair: &KeyPair<K>,
+    public_url: &BaseUrl,
+) -> Result<ClientId, UseCaseCertificateError> {
+    let host = public_url
+        .fqdn()
+        .ok_or_else(|| UseCaseCertificateError::MissingPublicUrlHost(public_url.clone()))?
+        .to_string();
+
+    let dns_sans = key_pair.certificate().san_dns_names()?;
+    if dns_sans.is_empty() {
+        return Err(UseCaseCertificateError::MissingSAN);
+    }
+
+    if !dns_sans.iter().any(|dns_san| *dns_san == host) {
+        return Err(UseCaseCertificateError::PublicUrlHostNotInCertificate {
+            host,
+            dns_sans: dns_sans.join(", "),
+        });
+    }
+
+    Ok(ClientId::x509_san_dns(host))
 }
 
 pub trait ToPostAuthResponseErrorCode: Error {
@@ -1639,6 +1668,7 @@ mod tests {
     fn create_verifier() -> TestVerifier {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
+        let public_url: BaseUrl = "https://localhost/".parse().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let reader_registration = ReaderRegistration::new_mock();
 
@@ -1647,6 +1677,7 @@ mod tests {
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+                    &public_url,
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
@@ -1658,6 +1689,7 @@ mod tests {
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+                    &public_url,
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
@@ -1669,6 +1701,7 @@ mod tests {
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
+                    &public_url,
                     SessionTypeReturnUrl::Both,
                     None,
                     None,
