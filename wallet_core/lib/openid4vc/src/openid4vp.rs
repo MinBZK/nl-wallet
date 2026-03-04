@@ -507,50 +507,41 @@ impl VpAuthorizationRequest {
         wallet_nonce: Option<&str>,
     ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
-        let client_id = match self.oauth_request.client_id.parse::<ClientId>() {
-            Ok(client_id) if !matches!(&client_id.scheme, Some(ClientIdScheme::X509SanDns)) => {
-                return Err(AuthRequestValidationError::UnsupportedClientIdScheme {
-                    scheme: client_id.to_string(),
-                });
-            }
-            Err(ParseClientIdError::BadScheme) => {
-                return Err(AuthRequestValidationError::UnknownClientIdScheme {
-                    id: self.oauth_request.client_id.clone(),
-                });
-            }
-            Ok(client_id) => client_id,
-        };
+        let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
+        let client_id = &validated_auth_request.client_id;
+
+        if !matches!(&client_id.scheme, Some(ClientIdScheme::X509SanDns)) {
+            return Err(AuthRequestValidationError::UnsupportedClientIdScheme {
+                scheme: client_id.to_string(),
+            });
+        }
 
         // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
         // This checks the fqdn of the response uri against the x509_san_dns client id
-        if let Some(response_uri) = &self.response_uri {
-            if let Some(response_uri_fqdn) = response_uri.fqdn() {
-                if response_uri_fqdn != client_id.id {
-                    return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                        fqdn: response_uri_fqdn.to_string(),
-                        id: client_id.id.clone(),
-                    });
-                }
-            } else {
+        if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
+            if response_uri_fqdn != client_id.id {
                 return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                    fqdn: response_uri.to_string(),
+                    fqdn: response_uri_fqdn.to_string(),
                     id: client_id.id.clone(),
                 });
             }
+        } else {
+            return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
+                fqdn: validated_auth_request.response_uri.to_string(),
+                id: client_id.id.clone(),
+            });
         }
 
         if dns_san != client_id.id {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
-                client_id: self.oauth_request.client_id.clone(),
+                client_id: client_id.to_string(),
                 dns_san: String::from(dns_san),
             });
         }
 
-        if wallet_nonce != self.wallet_nonce.as_deref() {
+        if wallet_nonce != validated_auth_request.wallet_nonce.as_deref() {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
-
-        let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
 
         Ok(validated_auth_request)
     }
@@ -713,9 +704,19 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         let jwk = jwks.first().unwrap().clone();
         let encryption_pubkey = JwePublicKey::try_new(jwk)?;
 
+        let client_id =
+            vp_auth_request
+                .oauth_request
+                .client_id
+                .parse::<ClientId>()
+                .map_err(
+                    |ParseClientIdError::BadScheme| AuthRequestValidationError::UnknownClientIdScheme {
+                        id: vp_auth_request.oauth_request.client_id.clone(),
+                    },
+                )?;
+
         Ok(NormalizedVpAuthorizationRequest {
-            // safe to unwrap because it was already validated in validate
-            client_id: vp_auth_request.oauth_request.client_id.parse::<ClientId>().unwrap(),
+            client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey,
             credential_requests: vp_auth_request.dcql_query.try_into()?,
