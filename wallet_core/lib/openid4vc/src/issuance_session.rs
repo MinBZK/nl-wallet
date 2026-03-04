@@ -707,7 +707,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .credential_preview_endpoint
             .as_ref()
             .map(|url| url.as_ref().clone())
-            .ok_or(IssuanceSessionError::NoCredentialPreviewEndpoint)?; // TODO: skip preview when no credential preview endpoint
+            .ok_or(IssuanceSessionError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
         let credential_configuration_ids: VecNonEmpty<String> = issuer_metadata
             .issuer_config
