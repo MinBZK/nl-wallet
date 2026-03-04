@@ -535,6 +535,10 @@ impl VpAuthorizationRequest {
             });
         }
 
+        if wallet_nonce != request_wallet_nonce.as_deref() {
+            return Err(AuthRequestValidationError::WalletNonceMismatch);
+        }
+
         // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
         // This checks the fqdn of the response uri against the x509_san_dns client id
         if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
@@ -549,10 +553,6 @@ impl VpAuthorizationRequest {
                 fqdn: validated_auth_request.response_uri.to_string(),
                 id: client_id.id.clone(),
             });
-        }
-
-        if wallet_nonce != validated_auth_request.wallet_nonce.as_deref() {
-            return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 
         Ok(validated_auth_request)
