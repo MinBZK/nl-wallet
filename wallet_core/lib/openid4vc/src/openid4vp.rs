@@ -535,7 +535,7 @@ impl VpAuthorizationRequest {
             });
         }
 
-        if wallet_nonce != request_wallet_nonce.as_deref() {
+        if wallet_nonce != validated_auth_request.wallet_nonce.as_deref() {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 
