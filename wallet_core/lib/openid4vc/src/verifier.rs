@@ -1625,6 +1625,7 @@ mod tests {
     use crate::server_state::SessionToken;
 
     use super::AuthorizationErrorCode;
+    use super::ClientId;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
     use super::Done;
@@ -2020,6 +2021,7 @@ mod tests {
         let session_token = "session_token".into();
         let time_str = "1969-07-21T02:56:15Z";
         let time = time_str.parse().unwrap();
+        let client_id: ClientId = "client_id".parse().unwrap();
 
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), (), ()>::format_ul(
@@ -2034,7 +2036,7 @@ mod tests {
                 time,
             }),
             SessionType::CrossDevice,
-            "client_id".parse().unwrap(),
+            &client_id,
         )
         .unwrap();
 
@@ -2070,13 +2072,15 @@ mod tests {
 
     #[test]
     fn test_verifier_url_without_ephemeral_id() {
+        let client_id: ClientId = "client_id".parse().unwrap();
+
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             None,
             SessionType::CrossDevice,
-            "client_id".parse().unwrap(),
+            &client_id,
         )
         .unwrap();
 
