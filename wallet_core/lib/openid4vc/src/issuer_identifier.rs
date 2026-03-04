@@ -2,10 +2,9 @@ use std::str::FromStr;
 
 use derive_more::Display;
 use derive_more::Eq;
-use derive_more::Into;
 use derive_more::PartialEq;
-use serde::Deserialize;
-use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 
 use http_utils::urls::ALLOWED_HTTP_SCHEMES;
 use http_utils::urls::BaseUrl;
@@ -34,8 +33,7 @@ pub enum IssuerIdentifierError {
     HasFragment(BaseUrl),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Display)]
-#[serde(try_from = "String", into = "String")]
+#[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
 pub struct IssuerUrl(BaseUrl);
 
 /// A URL that uses the "https" scheme, as contained within the Credential Issuer Metadata.
@@ -81,22 +79,6 @@ impl AsRef<BaseUrl> for IssuerUrl {
     }
 }
 
-impl TryFrom<String> for IssuerUrl {
-    type Error = IssuerUrlError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::try_new(&value)
-    }
-}
-
-impl From<IssuerUrl> for String {
-    fn from(value: IssuerUrl) -> Self {
-        let IssuerUrl(base_url) = value;
-
-        base_url.into_inner().into()
-    }
-}
-
 /// A (Credential) Issuer Identifier, as defined by
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.1> and
 /// <https://www.rfc-editor.org/rfc/rfc8414.html#section-2>.
@@ -108,14 +90,12 @@ impl From<IssuerUrl> for String {
 ///
 /// Internally, this URL is represented both by a [`String`] and a [`IssuerUrl`] which
 /// enables comparisons of the original string representation before URL normalization.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Into, Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{identifier}")]
-#[serde(try_from = "String", into = "String")]
 pub struct IssuerIdentifier {
     identifier: String,
     #[partial_eq(skip)]
-    #[serde(skip)]
-    #[into(skip)]
+    #[serde_with(skip)]
     url: IssuerUrl,
 }
 
@@ -140,14 +120,6 @@ impl IssuerIdentifier {
 
     pub fn join_issuer_url(&self, path: &str) -> IssuerUrl {
         self.url.join_issuer_url(path)
-    }
-}
-
-impl TryFrom<String> for IssuerIdentifier {
-    type Error = IssuerIdentifierError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::try_new(value)
     }
 }
 
