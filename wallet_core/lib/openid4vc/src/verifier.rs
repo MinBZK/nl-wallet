@@ -59,9 +59,10 @@ use crate::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
-use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
+use crate::openid4vp::VpRequestUri;
+use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::VpResponse;
 use crate::return_url::ReturnUrlTemplate;
@@ -1138,10 +1139,12 @@ impl<S, US, C> Verifier<S, US, C> {
         })?));
 
         let mut ul = base_ul.into_inner();
-        ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUriObject {
-            request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
+        ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUri {
             client_id,
-            request_uri_method: Some(RequestUriMethod::POST),
+            object: VpRequestUriObject::AsReference {
+                request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
+                request_uri_method: Some(VpRequestUriMethod::POST),
+            },
         })?));
 
         Ok(ul.try_into().unwrap()) // safe because we constructed ul from a BaseUrl
@@ -1580,6 +1583,7 @@ mod tests {
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
+    use http_utils::urls::BaseUrl;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationStatus;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -1615,6 +1619,8 @@ mod tests {
     use super::Verifier;
     use super::VerifierUrlParameters;
     use super::VpAuthorizationErrorCode;
+    use super::VpRequestUri;
+    use super::VpRequestUriMethod;
     use super::VpRequestUriObject;
     use super::VpToken;
     use super::WalletAuthResponse;
@@ -1727,9 +1733,7 @@ mod tests {
         }
     }
 
-    async fn init_and_start_disclosure(
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> (TestVerifier, SessionToken, VpRequestUriObject) {
+    async fn init_and_start_disclosure(time: &impl Generator<DateTime<Utc>>) -> (TestVerifier, SessionToken, BaseUrl) {
         let verifier = create_verifier();
 
         // Start session
@@ -1760,22 +1764,25 @@ mod tests {
             panic!("should match DisclosureData::Created with Some(ul)")
         };
 
-        let request_query_object: VpRequestUriObject =
-            serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap();
+        let request_query_object: VpRequestUri = serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap();
+        let request_uri = match request_query_object.object {
+            VpRequestUriObject::AsReference { request_uri, .. } => request_uri,
+            variant => panic!("expected RequestObjectAsReference, found {variant:?}"),
+        };
 
-        (verifier, session_token, request_query_object)
+        (verifier, session_token, request_uri)
     }
 
     #[tokio::test]
     async fn disclosure() {
-        let (verifier, session_token, request_uri_object) = init_and_start_disclosure(&TimeGenerator).await;
+        let (verifier, session_token, request_uri) = init_and_start_disclosure(&TimeGenerator).await;
 
         // Getting the Authorization Request should succeed
         verifier
             .process_get_request(
                 session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
-                request_uri_object.request_uri.as_ref().query(),
+                request_uri.as_ref().query(),
                 None,
             )
             .await
@@ -1811,21 +1818,19 @@ mod tests {
 
     #[tokio::test]
     async fn disclosure_expired_id() {
-        let (verifier, session_token, request_uri_object) =
-            init_and_start_disclosure(&ExpiredEphemeralIdGenerator).await;
+        let (verifier, session_token, request_uri) = init_and_start_disclosure(&ExpiredEphemeralIdGenerator).await;
 
         let error = verifier
             .process_get_request(
                 session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
-                request_uri_object.request_uri.as_ref().query(),
+                request_uri.as_ref().query(),
                 None,
             )
             .await
             .expect_err("should result in VerificationError::ExpiredEphemeralId");
 
-        let ephemeral_id = request_uri_object
-            .request_uri
+        let ephemeral_id = request_uri
             .as_ref()
             .query_pairs()
             .find_map(|(key, value)| (key == "ephemeral_id").then(|| hex::decode(value.as_bytes()).unwrap()))
@@ -1839,31 +1844,28 @@ mod tests {
 
     #[tokio::test]
     async fn disclosure_invalid_id() {
-        let (verifier, session_token, request_uri_object) = init_and_start_disclosure(&TimeGenerator).await;
+        let (verifier, session_token, request_uri) = init_and_start_disclosure(&TimeGenerator).await;
 
         let invalid_ephemeral_id = b"\xde\xad\xbe\xef".to_vec();
 
         // set an invalid ephemeral id
-        let mut request_uri = request_uri_object.request_uri.into_inner();
+        let mut request_uri = request_uri.into_inner();
         let query = request_uri
             .query_pairs()
             .filter_map(|(key, value)| (key != "ephemeral_id").then(|| (key.into_owned(), value.into_owned())))
             .collect_vec();
+
         request_uri
             .query_pairs_mut()
             .clear()
             .extend_pairs(query)
             .append_pair("ephemeral_id", &hex::encode(&invalid_ephemeral_id));
-        let request_uri_object = VpRequestUriObject {
-            request_uri: request_uri.try_into().unwrap(),
-            ..request_uri_object
-        };
 
         let error = verifier
             .process_get_request(
                 session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
-                request_uri_object.request_uri.as_ref().query(),
+                request_uri.query(),
                 None,
             )
             .await
@@ -2004,18 +2006,34 @@ mod tests {
         )
         .unwrap();
 
-        // Format the ephemeral ID and sign it as a HMAC, then include it as hex in the URL we expect.
+        // Format the ephemeral ID and sign it as a HMAC.
         let ephemeral_id = hmac::sign(
             &ephemeral_id_secret,
             (session_token.to_string() + "|" + time_str).as_bytes(),
         );
-        let expected_url = format!(
-            "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
-            %26ephemeral_id%3D{}%26time%3D1969-07-21T02%253A56%253A15Z&request_uri_method=post&client_id=client_id",
-            hex::encode(ephemeral_id)
-        );
 
-        assert_eq!(verifier_url.as_ref().as_str(), expected_url);
+        let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
+        assert_eq!(request_uri.client_id, "client_id");
+
+        let (request_uri, request_uri_method) = match request_uri.object {
+            VpRequestUriObject::AsReference {
+                request_uri,
+                request_uri_method,
+            } => (request_uri, request_uri_method),
+            variant => panic!("expected RequestObjectAsReference, found {variant:?}"),
+        };
+        assert_eq!(request_uri_method, Some(VpRequestUriMethod::POST));
+        let mut request_uri_without_query = request_uri.as_ref().clone();
+        request_uri_without_query.set_query(None);
+        assert_eq!(request_uri_without_query.as_str(), "https://rp.example.com/");
+
+        let url_params: VerifierUrlParameters =
+            serde_urlencoded::from_str(request_uri.as_ref().query().unwrap()).unwrap();
+        assert_eq!(url_params.session_type, SessionType::CrossDevice);
+        assert_eq!(
+            url_params.ephemeral_id_params.unwrap().ephemeral_id,
+            ephemeral_id.as_ref()
+        );
     }
 
     #[test]
@@ -2030,10 +2048,26 @@ mod tests {
         )
         .unwrap();
 
-        let expected_url = "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
-            &request_uri_method=post&client_id=client_id";
+        let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
+        assert_eq!(request_uri.client_id, "client_id");
 
-        assert_eq!(verifier_url.as_ref().as_str(), expected_url);
+        let (request_uri, request_uri_method) = match request_uri.object {
+            VpRequestUriObject::AsReference {
+                request_uri,
+                request_uri_method,
+            } => (request_uri, request_uri_method),
+            variant => panic!("expected RequestObjectAsReference, found {variant:?}"),
+        };
+        assert_eq!(request_uri_method, Some(VpRequestUriMethod::POST));
+        assert_eq!(
+            request_uri.as_ref().as_str(),
+            "https://rp.example.com/?session_type=cross_device"
+        );
+
+        let url_params: VerifierUrlParameters =
+            serde_urlencoded::from_str(request_uri.as_ref().query().unwrap()).unwrap();
+        assert_eq!(url_params.session_type, SessionType::CrossDevice);
+        assert!(url_params.ephemeral_id_params.is_none());
     }
 
     #[tokio::test]

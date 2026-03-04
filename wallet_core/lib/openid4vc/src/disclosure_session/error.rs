@@ -47,6 +47,10 @@ pub enum VpClientError {
     #[category(pd)]
     RequestUri(#[source] serde_urlencoded::de::Error),
 
+    #[error("unsupported OpenID4VP authorization request URI variant: {0}")]
+    #[category(critical)]
+    UnsupportedRequestUriVariant(UnsupportedRequestUriVariant),
+
     #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
     #[category(critical)]
     DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
@@ -100,6 +104,14 @@ pub enum VpVerifierError {
 
     #[error("error validating requested attributes: {0}")]
     RequestedAttributesValidation(#[source] ValidationError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UnsupportedRequestUriVariant {
+    #[error("request object as value is not supported")]
+    RequestObjectAsValue,
+    #[error("request object as query parameters is not supported")]
+    RequestObjectAsQueryParameters,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
