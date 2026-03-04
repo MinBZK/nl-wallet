@@ -8,6 +8,14 @@ impl Iso18013_5SessionManager for MockIso18013_5Session {
     async fn start_qr_handover() -> Result<String, Iso18013_5Error> {
         Ok("some_qr_code".to_string())
     }
+
+    async fn send_device_response(_response: Vec<u8>) -> Result<(), Iso18013_5Error> {
+        Ok(())
+    }
+
+    async fn stop_ble_server() -> Result<(), Iso18013_5Error> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

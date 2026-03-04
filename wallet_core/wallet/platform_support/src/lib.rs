@@ -18,7 +18,9 @@ use crate::bridge::hw_keystore::KeyStoreError;
 use crate::bridge::hw_keystore::SigningKeyBridge;
 use crate::bridge::init_platform_support;
 use crate::bridge::iso18013_5::Iso18013_5Bridge;
+use crate::bridge::iso18013_5::Iso18013_5Channel;
 use crate::bridge::iso18013_5::Iso18013_5Error;
+use crate::bridge::iso18013_5::Iso18013_5Update;
 use crate::bridge::utils::UtilitiesBridge;
 use crate::bridge::utils::UtilitiesError;
 

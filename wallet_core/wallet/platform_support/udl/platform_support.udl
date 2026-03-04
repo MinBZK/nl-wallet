@@ -122,19 +122,33 @@ interface UtilitiesBridge {
 [Trait, WithForeign]
 interface Iso18013_5Bridge {
     [Async, Throws=Iso18013_5Error]
-    string start_qr_handover();
+    string start_qr_handover(Iso18013_5Channel channel);
 
-    // [Async, Throws=Iso18013_5Error]
-    // void send_device_response(sequence<u8> device_response);
+    [Async, Throws=Iso18013_5Error]
+    void send_device_response(sequence<u8> device_response);
 
-    // [Async, Throws=Iso18013_5Error]
-    // void stop_ble_server();
+    [Async, Throws=Iso18013_5Error]
+    void stop_ble_server();
 };
 
 [Error]
 interface Iso18013_5Error {
     PlatformError(string reason); // All exceptions in native code are represented by this error
     BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
+};
+
+[Enum]
+interface Iso18013_5Update {
+    Connecting();
+    Connected(sequence<u8> session_transcript, sequence<u8> device_request);
+    Closed();
+    Error(Iso18013_5Error error);
+};
+
+[Trait]
+interface Iso18013_5Channel {
+    [Async, Throws=Iso18013_5Error]
+    void send_update(Iso18013_5Update update);
 };
 
 // all modules

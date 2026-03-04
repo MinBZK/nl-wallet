@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -17,10 +18,30 @@ pub enum Iso18013_5Error {
 #[uniffi::trait_interface]
 #[async_trait]
 pub trait Iso18013_5Bridge: Send + Sync + Debug {
-    async fn start_qr_handover(&self) -> Result<String, Iso18013_5Error>;
+    async fn start_qr_handover(&self, channel: Arc<dyn Iso18013_5Channel>) -> Result<String, Iso18013_5Error>;
 
-    // async fn send_device_response(&self, response: Vec<u8>) -> Result<(), Iso18013_5Error>;
-    // async fn stop_ble_server(&self) -> Result<(), Iso18013_5Error>;
+    async fn send_device_response(&self, response: Vec<u8>) -> Result<(), Iso18013_5Error>;
+
+    async fn stop_ble_server(&self) -> Result<(), Iso18013_5Error>;
+}
+
+#[derive(Debug)]
+pub enum Iso18013_5Update {
+    Connecting(),
+    Connected {
+        session_transcript: Vec<u8>,
+        device_request: Vec<u8>,
+    },
+    Closed(),
+    Error {
+        error: Iso18013_5Error,
+    },
+}
+
+#[uniffi::trait_interface]
+#[async_trait]
+pub trait Iso18013_5Channel: Send + Sync {
+    async fn send_update(&self, update: Iso18013_5Update) -> Result<(), Iso18013_5Error>;
 }
 
 /// Convenience function to access the a reference to `Iso18013_5Bridge`,
