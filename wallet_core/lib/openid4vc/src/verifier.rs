@@ -58,6 +58,7 @@ use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
+use crate::openid4vp::ClientId;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -219,7 +220,7 @@ pub struct Session<S: DisclosureState> {
 pub struct Created {
     credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
-    client_id: String,
+    client_id: ClientId,
     redirect_uri_template: Option<RedirectUriTemplate>,
     accept_undetermined_revocation_status: bool,
 }
@@ -513,7 +514,7 @@ pub enum SessionTypeReturnUrl {
 #[derive(Debug)]
 pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
-    pub client_id: String,
+    pub client_id: ClientId,
     pub session_type_return_url: SessionTypeReturnUrl,
 }
 
@@ -835,12 +836,12 @@ where
     }
 }
 
-fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<String, UseCaseCertificateError> {
+fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<ClientId, UseCaseCertificateError> {
     let san_dns_name = key_pair
         .certificate()
         .san_dns_name()?
         .ok_or(UseCaseCertificateError::MissingSAN)?;
-    Ok(format!("x509_san_dns:{san_dns_name}"))
+    Ok(ClientId::x509_san_dns(san_dns_name))
 }
 
 pub trait ToPostAuthResponseErrorCode: Error {
@@ -1050,7 +1051,7 @@ where
                 let ul = session_type
                     .map(|session_type| {
                         let ephemeral_id = self.use_cases.generate_ephemeral_id(session_token, time);
-                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, &client_id)
+                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, client_id)
                     })
                     .transpose()?;
 
@@ -1129,7 +1130,7 @@ impl<S, US, C> Verifier<S, US, C> {
         request_uri: BaseUrl,
         ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
-        client_id: &str,
+        client_id: ClientId,
     ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
@@ -1229,7 +1230,7 @@ impl Session<Created> {
     fn new(
         credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
-        client_id: String,
+        client_id: ClientId,
         redirect_uri_template: Option<RedirectUriTemplate>,
         accept_undetermined_revocation_status: bool,
     ) -> Session<Created> {
@@ -1341,13 +1342,12 @@ impl Session<Created> {
             EcKeyPair::generate(EcCurve::P256).map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
         let auth_request = NormalizedVpAuthorizationRequest::new(
             self.state.data.credential_requests.clone(),
-            usecase.key_pair.certificate(),
+            self.state.data.client_id.clone(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
             response_uri,
             wallet_nonce,
-        )
-        .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
+        );
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
         let jws = SignedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
@@ -2001,7 +2001,7 @@ mod tests {
                 time,
             }),
             SessionType::CrossDevice,
-            "client_id",
+            "client_id".parse().unwrap(),
         )
         .unwrap();
 
@@ -2043,7 +2043,7 @@ mod tests {
             "https://rp.example.com".parse().unwrap(),
             None,
             SessionType::CrossDevice,
-            "client_id",
+            "client_id".parse().unwrap(),
         )
         .unwrap();
 
@@ -2082,7 +2082,7 @@ mod tests {
                 data: UseCaseData {
                     key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
-                    client_id: "client_id".to_string(),
+                    client_id: "client_id".parse().unwrap(),
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),

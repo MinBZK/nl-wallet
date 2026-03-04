@@ -581,21 +581,15 @@ pub struct NormalizedVpAuthorizationRequest {
 impl NormalizedVpAuthorizationRequest {
     pub fn new(
         credential_requests: NormalizedCredentialRequests,
-        rp_certificate: &BorrowingCertificate,
+        client_id: ClientId,
         nonce: String,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<Self, AuthRequestError> {
+    ) -> Self {
         let jwk = encryption_pubkey.jwk().clone();
-        let client_id = ClientId::x509_san_dns(
-            rp_certificate
-                .san_dns_name()
-                .map_err(AuthRequestError::CertificateParsing)?
-                .ok_or(AuthRequestError::MissingSAN)?,
-        );
 
-        Ok(Self {
+        Self {
             client_id,
             nonce,
             encryption_pubkey,
@@ -611,7 +605,32 @@ impl NormalizedVpAuthorizationRequest {
             },
             state: None,
             wallet_nonce,
-        })
+        }
+    }
+
+    pub fn new_from_certificate(
+        credential_requests: NormalizedCredentialRequests,
+        rp_certificate: &BorrowingCertificate,
+        nonce: String,
+        encryption_pubkey: JwePublicKey,
+        response_uri: BaseUrl,
+        wallet_nonce: Option<String>,
+    ) -> Result<Self, AuthRequestError> {
+        let client_id = ClientId::x509_san_dns(
+            rp_certificate
+                .san_dns_name()
+                .map_err(AuthRequestError::CertificateParsing)?
+                .ok_or(AuthRequestError::MissingSAN)?,
+        );
+
+        Ok(Self::new(
+            credential_requests,
+            client_id,
+            nonce,
+            encryption_pubkey,
+            response_uri,
+            wallet_nonce,
+        ))
     }
 
     pub fn session_transcript(&self) -> SessionTranscript {
@@ -1376,7 +1395,7 @@ mod tests {
         let rp_fqdn = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
         let response_uri = format!("https://{rp_fqdn}/response_uri").parse().unwrap();
 
-        let auth_request = NormalizedVpAuthorizationRequest::new(
+        let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             credential_requests,
             rp_keypair.certificate(),
             "nonce".to_string(),

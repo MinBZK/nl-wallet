@@ -215,7 +215,7 @@ impl MockVerifierSession {
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
-        NormalizedVpAuthorizationRequest::new(
+        NormalizedVpAuthorizationRequest::new_from_certificate(
             self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
