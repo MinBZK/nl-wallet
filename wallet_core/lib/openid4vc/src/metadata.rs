@@ -467,6 +467,41 @@ pub struct BackgroundImage {
     pub uri: BaseUrl,
 }
 
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use std::collections::HashMap;
+
+    use crate::metadata::CredentialFormat;
+    use crate::metadata::CredentialMetadata;
+    use crate::metadata::CredentialSigningAlg;
+    use crate::metadata::CryptographicBindingMethod;
+    use crate::metadata::ProofSigningAlg;
+    use crate::metadata::ProofType;
+    use crate::metadata::ProofTypeData;
+
+    impl CredentialMetadata {
+        pub fn new_mock(attestation_type: &str) -> Self {
+            Self {
+                format: CredentialFormat::MsoMdoc {
+                    doctype: attestation_type.to_string(),
+                    claims: HashMap::new(),
+                    order: None,
+                },
+                display: None,
+                scope: None,
+                cryptographic_binding_methods_supported: Some(vec![CryptographicBindingMethod::CoseKey]),
+                credential_signing_alg_values_supported: Some(vec![CredentialSigningAlg::ES256]),
+                proof_types_supported: Some(HashMap::from([(
+                    ProofType::Jwt,
+                    ProofTypeData {
+                        proof_signing_alg_values_supported: vec![ProofSigningAlg::ES256],
+                    },
+                )])),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;

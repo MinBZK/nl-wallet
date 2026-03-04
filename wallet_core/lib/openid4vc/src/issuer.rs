@@ -69,6 +69,8 @@ use crate::metadata::CredentialMetadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerMetadata;
 use crate::oidc;
+use crate::preview::CredentialPreviewRequest;
+use crate::preview::CredentialPreviewResponse;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
@@ -85,7 +87,6 @@ use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
-use crate::token::TokenResponseWithPreviews;
 use crate::token::TokenType;
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
@@ -201,6 +202,28 @@ pub enum CredentialRequestError {
 
     #[error("incorrect number of status claims for attestation_type: {0}")]
     IncorrectNumberOfStatusClaims(String),
+}
+
+/// Errors that can occur during handling of the credential preview request.
+#[derive(Debug, thiserror::Error)]
+pub enum CredentialPreviewError {
+    #[error("issuance error: {0}")]
+    IssuanceError(#[from] IssuanceError),
+
+    #[error("malformed access token")]
+    MalformedToken,
+
+    #[error("unauthorized: incorrect access token")]
+    Unauthorized,
+
+    #[error("unknown credential identifier: {0}")]
+    UnknownCredentialIdentifier(String),
+
+    #[error("missing attestation type config for {0}")]
+    MissingAttestationTypeConfig(String),
+
+    #[error("requested credential previews not found in session")]
+    CredentialPreviewsNotFound,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -466,6 +489,7 @@ where
         let server_url = issuer_identifier.as_base_url().join_base_url("issuance");
         let credential_endpoint = server_url.join_base_url("/credential");
         let batch_credential_endpoint = server_url.join_base_url("/batch_credential");
+        let credential_preview_endpoint = server_url.join_base_url("/credential_preview");
 
         let issuer_config = metadata::IssuerData {
             credential_issuer: issuer_identifier,
@@ -482,7 +506,7 @@ where
             credential_identifiers_supported: Some(false),
             display: None,
             credential_configurations_supported,
-            credential_preview_endpoint: None,
+            credential_preview_endpoint: Some(credential_preview_endpoint),
         };
         let metadata = IssuerMetadata {
             issuer_config,
@@ -546,11 +570,84 @@ where
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
+    pub async fn process_credential_preview(
+        &self,
+        access_token: AccessToken,
+        request: CredentialPreviewRequest,
+    ) -> Result<CredentialPreviewResponse, CredentialPreviewError> {
+        let code = access_token.code().ok_or(CredentialPreviewError::MalformedToken)?;
+
+        let session: Session<WaitingForResponse> = self
+            .sessions
+            .get(&code.clone().into())
+            .await
+            .map_err(IssuanceError::SessionStore)?
+            .ok_or(IssuanceError::UnknownSession(code))?
+            .try_into()
+            .map_err(CredentialPreviewError::IssuanceError)?;
+
+        let session_data = session.session_data();
+
+        if session_data.access_token != access_token {
+            return Err(CredentialPreviewError::Unauthorized);
+        }
+
+        let previews = match request {
+            CredentialPreviewRequest::CredentialIdentifiers { .. } => {
+                todo!("implement in PVW-5541")
+            }
+            CredentialPreviewRequest::CredentialConfigurationIds {
+                credential_configuration_ids,
+            } => {
+                // Return previews only for the types that are actually in the session; silently
+                // ignore IDs that appear in the issuer metadata but are not part of this session.
+                session_data
+                    .credential_previews
+                    .iter()
+                    .filter(|preview_state| {
+                        credential_configuration_ids
+                            .iter()
+                            .contains(&preview_state.credential_payload.attestation_type)
+                    })
+                    .map(|state| self.credential_preview_from_state(state))
+                    .collect::<Result<Vec<_>, _>>()?
+            }
+        };
+
+        Ok(CredentialPreviewResponse {
+            credential_previews: previews
+                .try_into()
+                .map_err(|_| CredentialPreviewError::CredentialPreviewsNotFound)?,
+        })
+    }
+
+    fn credential_preview_from_state(
+        &self,
+        state: &CredentialPreviewState,
+    ) -> Result<CredentialPreview, CredentialPreviewError> {
+        let attestation_type = &state.credential_payload.attestation_type;
+        let config = self
+            .issuer_data
+            .attestation_config
+            .as_ref()
+            .get(attestation_type)
+            .ok_or_else(|| CredentialPreviewError::MissingAttestationTypeConfig(attestation_type.clone()))?;
+
+        Ok(CredentialPreview {
+            content: CredentialPreviewContent {
+                copies_per_format: state.copies_per_format.clone(),
+                credential_payload: state.credential_payload.clone(),
+                issuer_certificate: config.key_pair.certificate().clone(),
+            },
+            type_metadata: config.metadata_documents.clone(),
+        })
+    }
+
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
-    ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
+    ) -> Result<(TokenResponse, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
         // Retrieve the session from the session store, if present. It need not be, depending on the implementation of
@@ -743,21 +840,18 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
-    ) -> Result<(TokenResponseWithPreviews, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)>
-    {
+    ) -> Result<(TokenResponse, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
         let result = self
             .process_token_request_inner(token_request, dpop, attr_service, server_url, attestation_settings)
             .await;
 
         match result {
-            Ok((response, ids, dpop_pubkey, dpop_nonce)) => {
+            Ok((token_response, previews, ids, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(WaitingForResponse {
-                    access_token: response.token_response.access_token.clone(),
-                    c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
+                    access_token: token_response.access_token.clone(),
+                    c_nonce: token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
                     accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
-                    credential_previews: response
-                        .credential_previews
-                        .clone()
+                    credential_previews: previews
                         .into_iter()
                         // ids are unzipped from token_request issuable_documents which are transformed into previews
                         .zip_eq(ids)
@@ -766,7 +860,7 @@ impl Session<Created> {
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
                 });
-                Ok((response, dpop_nonce, next))
+                Ok((token_response, dpop_nonce, next))
             }
             Err(err) => {
                 let next = self.transition_fail(&err);
@@ -809,7 +903,16 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
-    ) -> Result<(TokenResponseWithPreviews, VecNonEmpty<Uuid>, VerifyingKey, String), TokenRequestError> {
+    ) -> Result<
+        (
+            TokenResponse,
+            VecNonEmpty<CredentialPreview>,
+            VecNonEmpty<Uuid>,
+            VerifyingKey,
+            String,
+        ),
+        TokenRequestError,
+    > {
         if !matches!(
             token_request.grant_type,
             TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code: _ }
@@ -853,12 +956,9 @@ impl Session<Created> {
         let c_nonce = random_string(32);
         let dpop_nonce = random_string(32);
 
-        let response = TokenResponseWithPreviews {
-            token_response: TokenResponse::new(AccessToken::new(&code), c_nonce),
-            credential_previews: previews,
-        };
+        let token_response = TokenResponse::new(AccessToken::new(&code), c_nonce);
 
-        Ok((response, ids, dpop_public_key, dpop_nonce))
+        Ok((token_response, previews, ids, dpop_public_key, dpop_nonce))
     }
 }
 

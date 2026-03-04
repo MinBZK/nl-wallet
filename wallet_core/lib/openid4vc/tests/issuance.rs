@@ -48,12 +48,14 @@ use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc;
+use openid4vc::preview::CredentialPreviewRequest;
+use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::test::memory_session_store_with_mock_time;
 use openid4vc::server_state::test::test_memory_store_with_cleanup_task;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenResponseWithPreviews;
+use openid4vc::token::TokenResponse;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -473,9 +475,9 @@ impl VcMessageClient for MockOpenidMessageClient {
 
     async fn discover_metadata(
         &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        _issuer_identifier: &CredentialIssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError> {
-        Ok(IssuerMetadata::new_mock(issuer_identifier.clone()))
+        Ok(self.issuer.metadata().clone())
     }
 
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
@@ -487,13 +489,25 @@ impl VcMessageClient for MockOpenidMessageClient {
         _url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError> {
+    ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError> {
         let (token_response, dpop_nonce) = self
             .issuer
             .process_token_request(token_request.clone(), dpop_header.clone())
             .await
             .map_err(|err| IssuanceSessionError::TokenRequest(err.into()))?;
         Ok((token_response, Some(dpop_nonce)))
+    }
+
+    async fn request_credential_preview(
+        &self,
+        _url: &Url,
+        preview_request: &CredentialPreviewRequest,
+        access_token: &AccessToken,
+    ) -> Result<CredentialPreviewResponse, IssuanceSessionError> {
+        self.issuer
+            .process_credential_preview(access_token.clone(), preview_request.clone())
+            .await
+            .map_err(|err| IssuanceSessionError::CredentialPreviewRequest(err.into()))
     }
 
     async fn request_credential(

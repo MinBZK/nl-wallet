@@ -14,6 +14,7 @@ use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
 use crate::issuer_identifier::CredentialIssuerIdentifier;
+use crate::metadata::CredentialMetadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
 use crate::metadata::IssuerMetadata;
@@ -110,11 +111,14 @@ impl Config {
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(issuer_identifier: CredentialIssuerIdentifier) -> IssuerMetadata {
+    pub fn new_mock(issuer_identifier: CredentialIssuerIdentifier, attestation_type: &str) -> IssuerMetadata {
         let credential_endpoint = issuer_identifier.as_base_url().join_base_url("/issuance/credential");
         let batch_credential_endpoint = issuer_identifier
             .as_base_url()
             .join_base_url("/issuance/batch_credential");
+        let credential_preview_endpoint = issuer_identifier
+            .as_base_url()
+            .join_base_url("/issuance/credential_preview");
 
         IssuerMetadata {
             issuer_config: IssuerData {
@@ -131,8 +135,11 @@ impl IssuerMetadata {
                 },
                 credential_identifiers_supported: None,
                 display: None,
-                credential_configurations_supported: HashMap::new(),
-                credential_preview_endpoint: None,
+                credential_configurations_supported: HashMap::from_iter(vec![(
+                    attestation_type.to_string(),
+                    CredentialMetadata::new_mock(attestation_type),
+                )]),
+                credential_preview_endpoint: Some(credential_preview_endpoint),
             },
             protected_metadata: None,
         }

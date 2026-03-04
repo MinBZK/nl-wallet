@@ -21,8 +21,10 @@ use axum_extra::headers::authorization::Credentials;
 use serde::Serialize;
 use tracing::warn;
 
+use axum_extra::headers::authorization::Bearer;
 use crypto::keys::EcdsaKeySend;
 use openid4vc::CredentialErrorCode;
+use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
@@ -38,10 +40,12 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
+use openid4vc::preview::CredentialPreviewRequest;
+use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenResponseWithPreviews;
+use openid4vc::token::TokenResponse;
 use token_status_list::status_list_service::StatusListServices;
 
 struct ApplicationState<A, K, S, L> {
@@ -78,6 +82,7 @@ where
             "/issuance",
             Router::new()
                 .route("/token", post(token))
+                .route("/credential_preview", post(credential_preview))
                 .route("/credential", post(credential))
                 .route("/credential", delete(reject_issuance))
                 .route("/batch_credential", post(batch_credential))
@@ -118,7 +123,7 @@ async fn token<A, K, S, L>(
     State(state): State<ApplicationState<A, K, S, L>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
-) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorCode>>
+) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
 where
     A: AttributeService,
     K: EcdsaKeySend,
@@ -138,6 +143,27 @@ where
         HeaderValue::from_str(&dpop_nonce).unwrap(),
     )]);
     Ok((headers, Json(response)))
+}
+
+async fn credential_preview<A, K, S, L>(
+    State(state): State<ApplicationState<A, K, S, L>>,
+    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<Bearer>>,
+    Json(preview_request): Json<CredentialPreviewRequest>,
+) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
+where
+    A: AttributeService,
+    K: EcdsaKeySend,
+    S: SessionStore<IssuanceData>,
+    L: StatusListServices,
+{
+    let access_token = AccessToken::from(authorization_header.token().to_string());
+    let response = state
+        .issuer
+        .process_credential_preview(access_token, preview_request)
+        .await
+        .inspect_err(|error| warn!("processing credential preview failed: {}", error))?;
+
+    Ok(Json(response))
 }
 
 async fn credential<A, K, S, L>(
