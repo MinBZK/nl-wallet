@@ -1063,7 +1063,7 @@ fn setup_verifier(
         .unwrap();
 
     // Initialize the verifier
-    let public_url: BaseUrl = "https://localhost/".parse().unwrap();
+    let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
         (

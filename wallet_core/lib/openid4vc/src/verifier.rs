@@ -1608,6 +1608,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::generate::mock::RP_CERT_CN;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1669,7 +1670,7 @@ mod tests {
     fn create_verifier() -> TestVerifier {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let public_url: BaseUrl = "https://localhost/".parse().unwrap();
+        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let reader_registration = ReaderRegistration::new_mock();
 
