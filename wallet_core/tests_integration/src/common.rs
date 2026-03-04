@@ -56,7 +56,8 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
-use openid4vc::openid4vp::RequestUriMethod;
+use openid4vc::openid4vp::VpRequestUri;
+use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::token::TokenRequest;
 use openid4vc::verifier::SessionType;
@@ -1104,10 +1105,12 @@ pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -
     let mut issuance_server_url = issuance_server_url.join_base_url(issuance_path).into_inner();
     issuance_server_url.set_query(Some(&params));
 
-    let query = serde_urlencoded::to_string(VpRequestUriObject {
-        request_uri: issuance_server_url.try_into().unwrap(),
-        request_uri_method: Some(RequestUriMethod::POST),
+    let query = serde_urlencoded::to_string(VpRequestUri {
         client_id: "university.example.com".to_string(),
+        object: VpRequestUriObject::AsReference {
+            request_uri: issuance_server_url.try_into().unwrap(),
+            request_uri_method: Some(VpRequestUriMethod::POST),
+        },
     })
     .unwrap();
 

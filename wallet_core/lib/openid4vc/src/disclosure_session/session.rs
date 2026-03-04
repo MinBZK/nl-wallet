@@ -292,7 +292,7 @@ mod tests {
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
-    use crate::openid4vp::RequestUriMethod;
+    use crate::openid4vp::VpRequestUriMethod;
     use crate::verifier::SessionType;
 
     use super::super::DisclosableAttestations;
@@ -325,7 +325,7 @@ mod tests {
         let verifier_session = MockVerifierSession::new(
             &VERIFIER_URL,
             session_type,
-            RequestUriMethod::GET,
+            VpRequestUriMethod::GET,
             redirect_uri,
             Some(ReaderRegistration::new_mock()),
             credential_requests,

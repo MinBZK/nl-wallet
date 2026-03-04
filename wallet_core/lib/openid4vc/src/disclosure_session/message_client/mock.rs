@@ -24,8 +24,9 @@ use jwt::headers::HeaderWithX5c;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
-use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpRequestUri;
+use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::WalletRequest;
 use crate::verifier::EphemeralIdParameters;
@@ -108,12 +109,7 @@ where
     }
 }
 
-pub fn request_uri_object(
-    mut request_uri: Url,
-    session_type: SessionType,
-    request_uri_method: RequestUriMethod,
-    client_id: String,
-) -> VpRequestUriObject {
+pub fn request_uri_with_verifier_params(mut request_uri: Url, session_type: SessionType) -> BaseUrl {
     request_uri.set_query(Some(
         &serde_urlencoded::to_string(VerifierUrlParameters {
             session_type,
@@ -125,10 +121,21 @@ pub fn request_uri_object(
         .unwrap(),
     ));
 
-    VpRequestUriObject {
-        request_uri: request_uri.try_into().unwrap(),
-        request_uri_method: Some(request_uri_method),
+    request_uri.try_into().unwrap()
+}
+
+pub fn request_uri(
+    request_uri: Url,
+    session_type: SessionType,
+    request_uri_method: VpRequestUriMethod,
+    client_id: String,
+) -> VpRequestUri {
+    VpRequestUri {
         client_id,
+        object: VpRequestUriObject::AsReference {
+            request_uri: request_uri_with_verifier_params(request_uri, session_type),
+            request_uri_method: Some(request_uri_method),
+        },
     }
 }
 
@@ -142,8 +149,9 @@ pub struct MockVerifierSession {
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: String,
     pub encryption_keypair: EcKeyPair,
-    pub request_uri_object: VpRequestUriObject,
-    pub request_uri_override: Option<String>,
+    pub client_id: String,
+    pub request_uri: BaseUrl,
+    pub request_uri_method: Option<VpRequestUriMethod>,
     pub response_uri: BaseUrl,
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
     pub key_pair: KeyPair,
@@ -153,7 +161,7 @@ impl MockVerifierSession {
     pub fn new(
         verifier_url: &BaseUrl,
         session_type: SessionType,
-        request_uri_method: RequestUriMethod,
+        request_uri_method: VpRequestUriMethod,
         redirect_uri: Option<BaseUrl>,
         reader_registration: Option<ReaderRegistration>,
         credential_requests: NormalizedCredentialRequests,
@@ -172,12 +180,9 @@ impl MockVerifierSession {
         let nonce = crypto_utils::random_string(32);
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
         let response_uri = verifier_url.join_base_url("response_uri");
-        let request_uri_object = request_uri_object(
-            verifier_url.join_base_url("request_uri").into_inner(),
-            session_type,
-            request_uri_method,
-            String::from(key_pair.certificate().san_dns_name().unwrap().unwrap()),
-        );
+        let client_id = String::from(key_pair.certificate().san_dns_name().unwrap().unwrap());
+        let request_uri =
+            request_uri_with_verifier_params(verifier_url.join_base_url("request_uri").into_inner(), session_type);
 
         MockVerifierSession {
             redirect_uri,
@@ -187,17 +192,23 @@ impl MockVerifierSession {
             credential_requests,
             nonce,
             encryption_keypair,
-            request_uri_object,
-            request_uri_override: None,
+            client_id,
+            request_uri,
+            request_uri_method: Some(request_uri_method),
             response_uri,
             wallet_messages: Mutex::new(Vec::new()),
         }
     }
 
     pub fn request_uri_query(&self) -> String {
-        self.request_uri_override
-            .clone()
-            .unwrap_or(serde_urlencoded::to_string(&self.request_uri_object).unwrap())
+        serde_urlencoded::to_string(&VpRequestUri {
+            client_id: self.client_id.clone(),
+            object: VpRequestUriObject::AsReference {
+                request_uri: self.request_uri.clone(),
+                request_uri_method: self.request_uri_method,
+            },
+        })
+        .unwrap()
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
@@ -236,7 +247,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
         wallet_nonce: Option<String>,
     ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         // The URL has to match the one in the session.
-        assert_eq!(url, self.session.request_uri_object.request_uri);
+        assert_eq!(url, self.session.request_uri);
 
         let wallet_request = WalletRequest { wallet_nonce };
         self.session
