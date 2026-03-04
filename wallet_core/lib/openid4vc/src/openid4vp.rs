@@ -229,7 +229,7 @@ pub enum ClientIdScheme {
     Other(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, SerializeDisplay, DeserializeFromStr, PartialEq, Eq)]
 pub struct ClientId {
     id: String,
     scheme: Option<ClientIdScheme>,
