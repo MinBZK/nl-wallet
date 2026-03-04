@@ -93,6 +93,9 @@ pub enum AuthRequestError {
 pub struct VpRequestUri {
     /// MUST equal the client_id from the full Authorization Request.
     pub client_id: ClientId,
+
+    #[serde(flatten)]
+    pub object: VpRequestUriObject,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -1241,9 +1244,9 @@ mod tests {
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
-    use super::JsonBase64;
     use super::ClientId;
     use super::ClientIdScheme;
+    use super::JsonBase64;
     use super::JwePublicKey;
     use super::JwePublicKeyError;
     use super::NormalizedVpAuthorizationRequest;
@@ -2285,7 +2288,7 @@ mod tests {
             VpRequestUri {
                 client_id,
                 object: VpRequestUriObject::AsReference { .. },
-            } if client_id == "test_client"
+            } if client_id.to_string() == "test_client"
         );
     }
 
@@ -2299,7 +2302,7 @@ mod tests {
             VpRequestUri {
                 client_id,
                 object: VpRequestUriObject::AsValue { request },
-            } if client_id == "test_client" && request.starts_with("eyJ")
+            } if client_id.to_string() == "test_client" && request.starts_with("eyJ")
         );
     }
 
@@ -2313,7 +2316,7 @@ mod tests {
             VpRequestUri {
                 client_id,
                 object: VpRequestUriObject::AsQueryParameters { response_type, nonce },
-            } if response_type == "vp_token" && client_id == "test_client" && nonce == "abc123"
+            } if response_type == "vp_token" && client_id.to_string() == "test_client" && nonce == "abc123"
         );
     }
 

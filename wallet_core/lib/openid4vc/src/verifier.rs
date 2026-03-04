@@ -1169,7 +1169,7 @@ impl<S, US, C> Verifier<S, US, C> {
 
         let mut ul = base_ul.into_inner();
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUri {
-            client_id: client_id.to_string(),
+            client_id: client_id.clone(),
             object: VpRequestUriObject::AsReference {
                 request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
                 request_uri_method: Some(VpRequestUriMethod::POST),
@@ -2048,7 +2048,7 @@ mod tests {
         );
 
         let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
-        assert_eq!(request_uri.client_id, "client_id");
+        assert_eq!(request_uri.client_id, "client_id".parse().unwrap());
 
         let (request_uri, request_uri_method) = match request_uri.object {
             VpRequestUriObject::AsReference {
@@ -2086,7 +2086,7 @@ mod tests {
         .unwrap();
 
         let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
-        assert_eq!(request_uri.client_id, "client_id");
+        assert_eq!(request_uri.client_id, "client_id".parse().unwrap());
 
         let (request_uri, request_uri_method) = match request_uri.object {
             VpRequestUriObject::AsReference {

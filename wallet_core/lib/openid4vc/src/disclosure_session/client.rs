@@ -159,10 +159,10 @@ where
         let response_uri = vp_auth_request.response_uri.clone();
 
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
-        // the `client_id` that the RP sent in the Request URI object at the start of the session.
-        if vp_auth_request.oauth_request.client_id != request_uri_object.client_id {
+        // the `client_id` that the RP sent in the request URI at the start of the session.
+        if vp_auth_request.oauth_request.client_id != request.client_id.to_string() {
             let error = VpVerifierError::IncorrectClientId {
-                expected: request_uri_object.client_id.clone(),
+                expected: request.client_id.to_string(),
                 found: vp_auth_request.oauth_request.client_id.clone(),
             };
 
@@ -598,7 +598,7 @@ mod tests {
         ));
 
         let query = serde_urlencoded::to_string(VpRequestUri {
-            client_id: "client_id".to_string(),
+            client_id: "client_id".parse().unwrap(),
             object: VpRequestUriObject::AsValue {
                 request: "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJzIiwiYXVkIjoicyJ9.sig".to_string(),
             },
@@ -629,7 +629,7 @@ mod tests {
         ));
 
         let query = serde_urlencoded::to_string(VpRequestUri {
-            client_id: "client_id".to_string(),
+            client_id: "client_id".parse().unwrap(),
             object: VpRequestUriObject::AsQueryParameters {
                 response_type: "vp_token".to_string(),
                 nonce: "nonce".to_string(),

@@ -131,7 +131,7 @@ pub fn request_uri(
     client_id: String,
 ) -> VpRequestUri {
     VpRequestUri {
-        client_id,
+        client_id: client_id.parse().unwrap(),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri_with_verifier_params(request_uri, session_type),
             request_uri_method: Some(request_uri_method),
@@ -205,7 +205,7 @@ impl MockVerifierSession {
 
     pub fn request_uri_query(&self) -> String {
         serde_urlencoded::to_string(&VpRequestUri {
-            client_id: self.client_id.clone(),
+            client_id: self.client_id.parse().unwrap(),
             object: VpRequestUriObject::AsReference {
                 request_uri: self.request_uri.clone(),
                 request_uri_method: self.request_uri_method,

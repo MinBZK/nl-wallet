@@ -363,7 +363,7 @@ impl DirectMockVpMessageClient {
 
     fn start_session(&self) -> String {
         serde_urlencoded::to_string(VpRequestUri {
-            client_id: self.auth_request.client_id.to_string(),            
+            client_id: self.auth_request.client_id.clone(),
             object: VpRequestUriObject::AsReference {
                 request_uri: self.request_uri.clone(),
                 request_uri_method: Default::default(),
@@ -825,7 +825,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: ClientId::x509_san_dns(RP_CERT_CN).to_string(),
+        client_id: ClientId::x509_san_dns(RP_CERT_CN),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
@@ -871,7 +871,7 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: ClientId::x509_san_dns(RP_CERT_CN).to_string(),
+        client_id: ClientId::x509_san_dns(RP_CERT_CN),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
