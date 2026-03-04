@@ -18,7 +18,7 @@ cfg_if! {
 }
 
 #[nutype(
-    validate(predicate = |u| !u.cannot_be_a_base()),
+    validate(predicate = |u| !u.cannot_be_a_base() && u.has_host()),
     derive(Debug, Clone, TryFrom, FromStr, Display, AsRef, PartialEq, Eq, Hash, Serialize, Deserialize),
 )]
 pub struct BaseUrl(Url);
@@ -44,8 +44,9 @@ impl BaseUrl {
         self.as_ref().scheme() == "https"
     }
 
-    pub fn fqdn(&self) -> Option<&str> {
-        self.as_ref().host_str()
+    pub fn fqdn(&self) -> &str {
+        // `BaseUrl` guarantees that a host is present.
+        self.as_ref().host_str().unwrap()
     }
 }
 
@@ -193,6 +194,7 @@ mod tests {
     #[case("https://example.com/", Ok(()))]
     #[case("https://example.com/path/", Ok(()))]
     #[case("https://example.com/path", Ok(()))] // this is okay, since the `.join` method will add a trailing slash
+    #[case("file:///etc/passwd", Err(()))]
     #[case("data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD", Err(()))]
     #[tokio::test]
     async fn base_url(#[case] value: &str, #[case] expected: Result<(), ()>) {
