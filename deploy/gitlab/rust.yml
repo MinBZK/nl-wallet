@@ -88,10 +88,8 @@ test-rust:
       variables:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_provider_audit_log,verification_server,issuance_server,pid_issuer"
   script:
     - ./scripts/setup-devenv.sh
-    - ./scripts/migrate-db.sh fresh
     - cd wallet_core
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
