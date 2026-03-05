@@ -330,6 +330,12 @@ where
 {
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn republish_all(&self) -> Result<(), RevocationError> {
+        let is_revoked_all = self
+            .revoke_all
+            .is_revoked_all()
+            .await
+            .map_err(|err| RevocationError::InternalError(err.into()))?;
+
         let service = self.clone();
         let mut stream = status_list::Entity::find()
             .select_only()
@@ -341,10 +347,17 @@ where
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?
             .map(async |result| match result {
-                Ok((list_id, external_id, size)) => {
-                    service.publish_status_list(list_id, &external_id, size as usize).await
+                Ok((list_id, external_id, size)) => if is_revoked_all {
+                    service
+                        .publish_status_list_all_revoked(&external_id, size as usize)
+                        .await
+                } else {
+                    service
+                        .publish_status_list_from_db(list_id, &external_id, size as usize)
+                        .await
                 }
-                Err(err) => Err(StatusListServiceError::Db(err)),
+                .map_err(|e| RevocationError::InternalError(Box::new(e))),
+                Err(err) => Err(RevocationError::InternalError(Box::new(err))),
             })
             .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
 
@@ -355,7 +368,7 @@ where
                 result = Err(err);
             }
         }
-        result.map_err(|e| RevocationError::InternalError(Box::new(e)))
+        result
     }
 
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
