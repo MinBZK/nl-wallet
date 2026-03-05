@@ -224,6 +224,10 @@ it on a deny list.</p></li>
 <li><p>The Wallet Provider now has an endpoint to revoke a wallet based on a user’s
 revocation code. This will be used by the Revocation portal to allow a user to
 revoke their wallet.</p></li>
+<li><p>The Wallet Provider now has an endpoint to revoke the solution which will
+effectively revoke all wallets and disallow registering new wallets. This will
+be used by the Wallet Provider’s admin interface. The endpoint is disabled by
+default and needs to be enabled via a setting change.</p></li>
 <li><p>The Wallet Provider now has an endpoint to list and remove recovery codes from
 the deny list.</p></li>
 <li><p>The Wallet Provider will write audit logs for all admin operations to another
@@ -232,9 +236,9 @@ at <code class="docutils literal notranslate"><span class="pre">audit_log.url</s
 <li><p>Before entering the ‘forgot pin’ flow from a disclosure/issuance/transfer
 session, the user is now preemptively informed that doing so will cause the
 active session will be aborted.</p></li>
-<li><p>When the wallet has been revoked by the Wallet Provider, it will now inform the
-user and reset the wallet to its initial state if the revocation was initiated
-remotely by the user.</p></li>
+<li><p>When the wallet has been revoked by the Wallet Provider, it will now inform
+the user and reset the wallet to its initial state if the revocation was
+initiated remotely by the user.</p></li>
 <li><p>Updated Flutter to 3.41.2</p></li>
 </ul>
 </section>
