@@ -81,7 +81,7 @@ const IN_FLIGHT_CREATE_TRIES: usize = 5;
 const FLAG_NAME_REVOKE_ALL: &str = "revoke_all";
 
 /// Maximal concurrent publish when revoke_all is called
-const REVOKE_ALL_MAX_CONCURRENT: usize = 16;
+const REPUBLISH_ALL_MAX_CONCURRENT: usize = 16;
 
 /// StatusListService implementation using Postgres for multiple attestation types.
 ///
@@ -206,6 +206,10 @@ impl<K> StatusListRevocationService for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + 'static,
 {
+    async fn revoke_all(&self) -> Result<(), RevocationError> {
+        unimplemented!("Only implemented for single PostgresStatusListService")
+    }
+
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         // Each service is responsible for revoking and publishing the status list it is configured for.
         try_join_all(
@@ -301,6 +305,17 @@ impl<K> StatusListRevocationService for PostgresStatusListService<K>
 where
     K: EcdsaKeySend + Sync + 'static,
 {
+    async fn revoke_all(&self) -> Result<(), RevocationError> {
+        // First set revoke all to ensure new lists are also created with invalid status
+        self.revoke_all_flag
+            .set()
+            .await
+            .map_err(|err| RevocationError::InternalError(Box::new(err)))?;
+        self.republish_revoke_all()
+            .await
+            .map_err(|err| RevocationError::InternalError(Box::new(err)))
+    }
+
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
         // Find batches and status_lists for this service by batch_ids
         let batches: Vec<(i64, i64, String, i32)> = attestation_batch::Entity::find()
@@ -1049,10 +1064,7 @@ where
     }
 
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    pub async fn revoke_all(&self) -> Result<(), StatusListServiceError> {
-        // First set revoke all to ensure new lists are also created with invalid status
-        self.revoke_all_flag.set().await?;
-
+    pub async fn republish_revoke_all(&self) -> Result<(), StatusListServiceError> {
         let service = self.clone();
         let mut stream = status_list::Entity::find()
             .select_only()
@@ -1069,7 +1081,7 @@ where
                 }
                 Err(err) => future::ready(Err(StatusListServiceError::Db(err))).await,
             })
-            .buffer_unordered(REVOKE_ALL_MAX_CONCURRENT);
+            .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
 
         let mut result = Ok(());
         while let Some(job_result) = stream.next().await {

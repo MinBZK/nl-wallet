@@ -42,7 +42,7 @@ async fn ltc43_test_registration_blocked() {
         WalletDeviceVendor::Apple,
         (settings, root_ca),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;

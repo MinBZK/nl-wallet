@@ -157,6 +157,7 @@
 | ------------------------------------- | ---------------------------------------------- | ------------------- |
 | `appIdentifier`                       | Application identifier                         | `nil`               |
 | `recoveryCodePaths.urn:eudi:pid:nl:1` | Recovery code path for default PID attestation | `["recovery_code"]` |
+| `revokeSolutionEnabled`               | Whether the revoke-solution API is enabled     | `false`             |
 
 ### WUA status list parameters
 

@@ -92,7 +92,7 @@ type Result<T> = std::result::Result<T, WalletProviderError>;
 #[openapi(info(title = "Wallet provider API"))]
 struct ApiDocs;
 
-pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>) -> Router
+pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>, revoke_solution_enabled: bool) -> Router
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
@@ -193,7 +193,7 @@ where
                 .with_state(Arc::clone(&state)),
         );
 
-    let (internal_router, internal_openapi) = internal::internal_router(state);
+    let (internal_router, internal_openapi) = internal::internal_router(state, revoke_solution_enabled);
     let router = router.nest("/internal", internal_router.layer(TraceLayer::new_for_http()));
     let openapi = ApiDocs::openapi().nest("/internal", internal_openapi);
 
@@ -206,7 +206,7 @@ where
     router
 }
 
-fn health_router<W, S>(user_state: &UserState<Repositories, Pkcs11Hsm, W, S>) -> Router {
+fn health_router<F, W, S>(user_state: &UserState<Repositories, F, Pkcs11Hsm, W, S>) -> Router {
     let checkers = [
         Box::new(DatabaseChecker::new("db", user_state.repositories.as_ref().as_ref())) as Box<_>,
         Box::new(HsmChecker::new(&user_state.wallet_user_hsm)) as Box<_>,
@@ -242,7 +242,7 @@ async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Re
 
     let challenge = state
         .account_server
-        .registration_challenge(&state.certificate_signing_key)
+        .registration_challenge(&state.certificate_signing_key, &state.user_state)
         .await
         .inspect_err(|error| warn!("generating wallet registration challenge failed: {}", error))?;
 

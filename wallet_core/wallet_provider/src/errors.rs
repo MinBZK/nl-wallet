@@ -16,6 +16,7 @@ use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_account::messages::errors::RevocationReason::WalletSolutionCompromised;
 use wallet_provider_service::account_server::ChallengeError;
 use wallet_provider_service::account_server::InstructionError;
 use wallet_provider_service::account_server::InstructionValidationError;
@@ -80,6 +81,12 @@ impl From<WalletProviderError> for AccountError {
                 ChallengeError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,
                 ChallengeError::AccountIsRevoked(data) => Self::AccountRevoked(data),
                 ChallengeError::WalletCertificate(_) => Self::ChallengeValidation,
+                ChallengeError::WalletSolutionRevoked => Self::AccountRevoked({
+                    AccountRevokedData {
+                        revocation_reason: WalletSolutionCompromised,
+                        can_register_new_account: false,
+                    }
+                }),
                 _ => Self::ChallengeValidation,
             },
             WalletProviderError::Registration(error) => match error {
@@ -95,6 +102,12 @@ impl From<WalletProviderError> for AccountError {
                 RegistrationError::CertificateStorage(_) => Self::Unexpected,
                 RegistrationError::WalletCertificate(_) => Self::Unexpected,
                 RegistrationError::HsmError(_) => Self::Unexpected,
+                RegistrationError::WalletSolutionRevoked => Self::AccountRevoked({
+                    AccountRevokedData {
+                        revocation_reason: WalletSolutionCompromised,
+                        can_register_new_account: false,
+                    }
+                }),
             },
             WalletProviderError::Instruction(error) => match error {
                 InstructionError::IncorrectPin(data) => Self::IncorrectPin(data),
@@ -106,6 +119,12 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::RecoveryCodeIsDenied(_) => Self::AccountRevoked(AccountRevokedData {
                     revocation_reason: RevocationReason::AdminRequest,
                     can_register_new_account: false,
+                }),
+                InstructionError::WalletSolutionRevoked => Self::AccountRevoked({
+                    AccountRevokedData {
+                        revocation_reason: WalletSolutionCompromised,
+                        can_register_new_account: false,
+                    }
                 }),
                 InstructionError::Validation(_)
                 | InstructionError::NonExistingKey(_)

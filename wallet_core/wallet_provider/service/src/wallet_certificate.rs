@@ -156,19 +156,19 @@ where
 /// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the (verified) wallet
 ///   certificate
 /// - Return the [`WalletUser`].
-pub async fn verify_wallet_certificate<T, R, H, F, S>(
+pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinCheckOptions,
-    pin_pubkey: F,
-    user_state: &UserState<R, H, impl WuaIssuer, S>,
+    pin_pubkey: P,
+    user_state: &UserState<R, F, H, impl WuaIssuer, S>,
 ) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
-    F: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
+    P: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
 {
     debug!("Parsing and verifying the provided certificate");
 
@@ -346,6 +346,7 @@ mod tests {
     use crate::account_server::AccountServerPinKeys;
     use crate::account_server::UserState;
     use crate::account_server::mock::user_state;
+    use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -362,7 +363,8 @@ mod tests {
         hw_pubkey: VerifyingKey,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
         hsm: MockPkcs11Client<HsmError>,
-    ) -> UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
+    ) -> UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService>
+    {
         user_state(
             WalletUserTestRepo {
                 hw_pubkey,
@@ -374,6 +376,7 @@ mod tests {
                 state: WalletUserState::Active,
                 revocation_code_hmac: random_bytes(32),
                 revocation_registration: None,
+                flags: Default::default(),
             },
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
