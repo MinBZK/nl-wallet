@@ -9,7 +9,7 @@ mod js_tests {
 
         if !manifest_dir.join("node_modules").exists() {
             let install = Command::new("npm")
-                .args(["ci", "--ignore-scripts"])
+                .args(["ci"])
                 .current_dir(manifest_dir)
                 .output()
                 .expect("Failed to run npm ci");
@@ -21,18 +21,12 @@ mod js_tests {
             );
         }
 
-        let output = Command::new("npm")
+        let status = Command::new("npm")
             .args(["test"])
             .current_dir(manifest_dir)
-            .output()
+            .status()
             .expect("Failed to run npm test — is Node.js installed?");
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        assert!(
-            output.status.success(),
-            "JavaScript tests failed:\nstdout:\n{stdout}\nstderr:\n{stderr}"
-        );
+        assert!(status.success(), "JavaScript tests failed");
     }
 }
