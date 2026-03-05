@@ -25,7 +25,7 @@ wua_signing_key_identifier = "wua_signing_key"
 # Identifier for the WUA issuer.
 wua_issuer_identifier = "wua-issuer.example.com"
 
-# Refresh delay in seconds for background job that refreshes flags
+# Delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
 
 # Indicates if the revoke-solution API endpoint should be enabled
