@@ -230,7 +230,7 @@ where
     Ok(())
 }
 
-pub async fn reboot_solution<R, F, H>(
+pub async fn restore_solution<R, F, H>(
     user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
 ) -> Result<(), RevocationError>
 where
