@@ -98,8 +98,8 @@ test-rust:
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit.xml qt/quality-time/junit-results/rust.xml
     - deploy/bin/store-artifact.sh wallet_core/revocation_portal/test-results/junit.xml
-      qt/quality-time/junit-results/revocation_portal.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/revocation_portal.zip
+      qt/quality-time/junit-results/revocation-portal.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/revocation-portal.zip
       wallet_core/revocation_portal/allure-results/*
   artifacts:
     name: test-rust
