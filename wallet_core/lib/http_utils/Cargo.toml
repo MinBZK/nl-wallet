@@ -16,7 +16,7 @@ allow_insecure_url = []
 # Include implementations for http clients
 client = ["reqwest/gzip", "serde_with/base64"]
 # Include implementations of the axum IntoResponse trait.
-server = ["axum/json", "dep:axum-server", "dep:tracing", "dep:futures", "serde_with/base64", "tower-http/cors"]
+server = ["axum/json", "dep:axum-server", "dep:rustls", "dep:rustls-pki-types", "dep:tracing", "dep:futures", "serde_with/base64", "tower-http/cors"]
 
 [dependencies]
 async-trait.workspace = true
@@ -40,6 +40,8 @@ axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true }
+rustls-pki-types = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 

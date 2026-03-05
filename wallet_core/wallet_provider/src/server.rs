@@ -49,7 +49,7 @@ where
     let app = router::router(router_state, revoke_solution_enabled);
 
     if let Some(tls_config) = tls_config {
-        axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config().await?)
+        axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config()?)
             .expect("TCP listener should not be in blocking mode")
             .serve(app.into_make_service())
             .await?;
