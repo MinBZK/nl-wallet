@@ -21,18 +21,20 @@ sonar-rust:
       artifacts: false
   script:
     - cd wallet_core
-    - sonar-scanner
-      -Dsonar.scanner.skipJreProvisioning=true
-      -Dsonar.sourceEncoding=UTF-8
-      -Dsonar.projectKey=nl-wallet-demo-app-rust
-      -Dsonar.sources=.
-      -Dsonar.exclusions=demo/**,static_server/**,wallet_ca/**,wallet_*/*/src/entity/**,uniffi-bindgen/**,target/**,**/examples.rs,**/examples/**,**/resources/**,**/assets/**,**/test-assets/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs
-      -Dsonar.coverage.exclusions=**/migrations/**
-      -Dsonar.tests=.
-      -Dsonar.test.inclusions=**/tests/**,**/tests_integration/**
-      -Dsonar.rust.lcov.reportPaths=lcov.info
-      -Dsonar.rust.clippy.enabled=false
-      -Dsonar.rust.clippy.reportPaths=clippy.json
+    - |
+      sonar-scanner \
+        -Dsonar.scanner.skipJreProvisioning=true \
+        -Dsonar.sourceEncoding=UTF-8 \
+        -Dsonar.projectKey=nl-wallet-demo-app-rust \
+        -Dsonar.sources=. \
+        -Dsonar.exclusions=demo/**,static_server/**,wallet_ca/**,wallet_*/*/src/entity/**,uniffi-bindgen/**,target/**,**/examples.rs,**/examples/**,**/resources/**,**/assets/**,**/test-assets/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs,revocation_portal/static/__tests__/**/* \
+        -Dsonar.coverage.exclusions=**/migrations/** \
+        -Dsonar.tests=. \
+        -Dsonar.test.inclusions=**/tests/**,**/tests_integration/**,revocation_portal/static/__tests__/** \
+        -Dsonar.rust.lcov.reportPaths=lcov.info \
+        -Dsonar.rust.clippy.enabled=false \
+        -Dsonar.rust.clippy.reportPaths=clippy.json \
+        -Dsonar.javascript.lcov.reportPaths=revocation_portal/coverage/lcov.info
   allow_failure: true
 
 sonar-flutter:
@@ -47,15 +49,10 @@ sonar-flutter:
   script:
     - cd wallet_app
     - flutter pub get --enforce-lockfile
-    - sonar-scanner
-      -Dsonar.scanner.skipJreProvisioning=true
-      -Dsonar.sourceEncoding=UTF-8
-      -Dsonar.projectKey=nl-wallet-demo-app
-      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
-      -Dsonar.sources=.
+    - sonar-scanner -Dsonar.scanner.skipJreProvisioning=true -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-demo-app -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT -Dsonar.sources=.
       -Dsonar.exclusions=android/**,ios/**,test/**,packages/wallet_core/lib/src/**,**/*.freezed.dart,**/*.g.dart,**/*.yaml
-      -Dsonar.coverage.exclusions=packages/wallet_mock/**
-      -Dsonar.tests=test/
+      -Dsonar.coverage.exclusions=packages/wallet_mock/** -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
       -Dsonar.dart.lcov.reportPaths=coverage/lcov*.info
@@ -68,15 +65,10 @@ sonar-wallet-web:
       artifacts: true
   script:
     - cd wallet_web
-    - sonar-scanner
-      -Dsonar.scanner.skipJreProvisioning=true
-      -Dsonar.sourceEncoding=UTF-8
-      -Dsonar.projectKey=nl-wallet-web
-      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
-      -Dsonar.sources=lib/
+    - sonar-scanner -Dsonar.scanner.skipJreProvisioning=true -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-web -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT -Dsonar.sources=lib/
       -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/models/openid4vc.ts,lib/models/relying_party.ts,lib/util/qrcodegen.ts
-      -Dsonar.tests=lib/__tests__
-      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+      -Dsonar.tests=lib/__tests__ -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
 
 sonar-ios:
@@ -86,16 +78,10 @@ sonar-ios:
       artifacts: true
   script:
     - cd wallet_core/wallet/platform_support/ios
-    - sonar-scanner
-      -Dsonar.scanner.skipJreProvisioning=true
-      -Dsonar.sourceEncoding=UTF-8
-      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
-      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
-      -Dsonar.sources=PlatformSupport
-      -Dsonar.tests="Integration Tests,Integration Tests Host App"
-      -Dsonar.c.file.suffixes=-
-      -Dsonar.cpp.file.suffixes=-
-      -Dsonar.objc.file.suffixes=-
+    - sonar-scanner -Dsonar.scanner.skipJreProvisioning=true -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
+      -Dsonar.sources=PlatformSupport -Dsonar.tests="Integration Tests,Integration Tests Host App"
+      -Dsonar.c.file.suffixes=- -Dsonar.cpp.file.suffixes=- -Dsonar.objc.file.suffixes=-
       -Dsonar.coverageReportPaths=../../../../fastlane/test_output/sonarqube-generic-coverage.xml
   allow_failure: true
 
@@ -106,14 +92,9 @@ sonar-android:
       artifacts: true
   script:
     - cd wallet_core/wallet/platform_support/android
-    - sonar-scanner
-      -Dsonar.scanner.skipJreProvisioning=true
-      -Dsonar.sourceEncoding=UTF-8
-      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
-      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
-      -Dsonar.sources=src/main
-      -Dsonar.exclusions=**/AndroidManifest.xml
-      -Dsonar.tests=src/test,src/androidTest
+    - sonar-scanner -Dsonar.scanner.skipJreProvisioning=true -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
+      -Dsonar.sources=src/main -Dsonar.exclusions=**/AndroidManifest.xml -Dsonar.tests=src/test,src/androidTest
       -Dsonar.findbugs.allowuncompiledcode=true
       -Dsonar.junit.reportPaths=build/test-results/testDebugUnitTest,build/outputs/androidTest-results/connected/debug
       -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/coverage/**/report.xml

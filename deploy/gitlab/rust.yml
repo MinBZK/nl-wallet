@@ -66,25 +66,25 @@ test-rust:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
       command: [
-        "postgres",
-        # Allow for more connections with larger shared buffers
-        "-N",
-        "200",
-        "-c",
-        "shared_buffers=128MB",
-        # Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
-        "-c",
-        "fsync=off",
-        "-c",
-        "synchronous_commit=off",
-        "-c",
-        "full_page_writes=off",
-        # Minimal WAL
-        "-c",
-        "wal_level=minimal",
-        "-c",
-        "max_wal_senders=0",
-      ]
+          "postgres",
+          # Allow for more connections with larger shared buffers
+          "-N",
+          "200",
+          "-c",
+          "shared_buffers=128MB",
+          # Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
+          "-c",
+          "fsync=off",
+          "-c",
+          "synchronous_commit=off",
+          "-c",
+          "full_page_writes=off",
+          # Minimal WAL
+          "-c",
+          "wal_level=minimal",
+          "-c",
+          "max_wal_senders=0",
+        ]
       variables:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
@@ -97,6 +97,10 @@ test-rust:
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit.xml qt/quality-time/junit-results/rust.xml
+    - deploy/bin/store-artifact.sh wallet_core/revocation_portal/test-results/junit.xml
+      qt/quality-time/junit-results/revocation-portal.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/revocation-portal.zip
+      wallet_core/revocation_portal/allure-results/*
   artifacts:
     name: test-rust
     reports:
@@ -106,6 +110,9 @@ test-rust:
       junit: wallet_core/target/nextest/ci/junit.xml
     paths:
       - wallet_core/lcov.info
+      - wallet_core/revocation_portal/coverage/lcov.info
+      - wallet_core/revocation_portal/allure-results
+      - wallet_core/revocation_portal/test-results/junit.xml
       - wallet_core/target/nextest/ci/junit.xml
 
 test-rust-doctest:
