@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::Eq;
 use derive_more::PartialEq;
@@ -33,7 +34,7 @@ pub enum IssuerIdentifierError {
     HasFragment(BaseUrl),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
 pub struct IssuerUrl(BaseUrl);
 
 /// A URL that uses the "https" scheme, as contained within the Credential Issuer Metadata.
@@ -71,14 +72,6 @@ impl FromStr for IssuerUrl {
     }
 }
 
-impl AsRef<BaseUrl> for IssuerUrl {
-    fn as_ref(&self) -> &BaseUrl {
-        let Self(base_url) = self;
-
-        base_url
-    }
-}
-
 /// A (Credential) Issuer Identifier, as defined by
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.1> and
 /// <https://www.rfc-editor.org/rfc/rfc8414.html#section-2>.
@@ -90,9 +83,10 @@ impl AsRef<BaseUrl> for IssuerUrl {
 ///
 /// Internally, this URL is represented both by a [`String`] and a [`IssuerUrl`] which
 /// enables comparisons of the original string representation before URL normalization.
-#[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{identifier}")]
 pub struct IssuerIdentifier {
+    #[as_ref(str)]
     identifier: String,
     #[partial_eq(skip)]
     #[serde_with(skip)]
@@ -128,12 +122,6 @@ impl FromStr for IssuerIdentifier {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::try_new(s.to_string())
-    }
-}
-
-impl AsRef<str> for IssuerIdentifier {
-    fn as_ref(&self) -> &str {
-        &self.identifier
     }
 }
 

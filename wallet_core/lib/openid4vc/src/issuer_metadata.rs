@@ -430,7 +430,7 @@ impl CredentialFormat {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, Serialize, Deserialize)]
 #[serde(from = "i64", into = "i64")]
 pub enum CoseAlgorithmIdentifier {
     Known(KnownCoseAlgorithmIdentifier),
@@ -469,8 +469,6 @@ impl PartialEq for CoseAlgorithmIdentifier {
         i64::from(*self) == i64::from(*other)
     }
 }
-
-impl Eq for CoseAlgorithmIdentifier {}
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
