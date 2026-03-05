@@ -61,7 +61,8 @@
   },
   "overrides": {
     "editorconfig": {
-      "minimatch": "^9.0.7"
+      "minimatch": "^9.0.7",
+      "brace-expansion": "2.0.2"
     },
     "@microsoft/api-extractor": {
       "minimatch": "^10.2.3"
