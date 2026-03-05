@@ -211,6 +211,15 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   # if `kid` field is specified.
   BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')
   export BSN_PRIVKEY
+else
+    # DIGID_CA_CRT must end up in the wallet configuration, so we generate it here in the target directory
+    echo -e "${SECTION}Generating digid-connector root ca for the wallet configuration${NC}"
+    mkdir -p "${TARGET_DIR}/digid"
+
+    generate_or_reuse_root_ca "${TARGET_DIR}/digid" "rdo-max"
+
+    DIGID_CA_CRT=$(< "${TARGET_DIR}/digid/ca.crt.der" ${BASE64})
+    export DIGID_CA_CRT
 fi
 
 ########################################################################
