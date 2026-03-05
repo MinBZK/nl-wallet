@@ -22,7 +22,7 @@ mod js_tests {
         }
 
         let status = Command::new("npm")
-            .args(["test"])
+            .args(["run", "coverage"])
             .current_dir(manifest_dir)
             .status()
             .expect("Failed to run npm test — is Node.js installed?");

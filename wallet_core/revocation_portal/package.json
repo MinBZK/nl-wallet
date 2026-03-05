@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run --coverage",
-    "lint": "eslint ."
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint . --fix"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.10",
