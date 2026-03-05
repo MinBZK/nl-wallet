@@ -885,7 +885,7 @@ async fn test_service_revoke_all() {
     let db_setup = DbSetup::create_clean_only([DbName::IssuanceServer]).await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, service) =
+    let (attestation_type, config, revoke_all, _service) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)
             .await
             .unwrap();
@@ -898,7 +898,7 @@ async fn test_service_revoke_all() {
         list_size: 9.try_into().unwrap(),
         ..config
     };
-    let _service = recreate_status_list_service(
+    let service = recreate_status_list_service(
         &connection,
         attestation_type.as_ref(),
         config.clone(),

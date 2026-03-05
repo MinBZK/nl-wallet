@@ -1488,7 +1488,7 @@ mod tests {
             StubWalletFlags::default(),
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
-            vec![ca.borrowing_trust_anchor().to_owned_trust_anchor()],
+            vec![ca.to_trust_anchor().to_owned()],
             MockStatusListService::default(),
         )
     }

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::future;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
@@ -345,7 +344,7 @@ where
                 Ok((list_id, external_id, size)) => {
                     service.publish_status_list(list_id, &external_id, size as usize).await
                 }
-                Err(err) => future::ready(Err(StatusListServiceError::Db(err))).await,
+                Err(err) => Err(StatusListServiceError::Db(err)),
             })
             .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
 

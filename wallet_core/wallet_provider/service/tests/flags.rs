@@ -51,11 +51,11 @@ async fn test_flags_on_refresh() {
         .await
         .unwrap();
     assert!(!flags.solution_is_revoked());
-    assert!(!flags.is_revoked_all().await.expect("could not get is revoked all"));
+    assert!(!flags.is_revoked_all().await.expect("could not call `is_revoked_all`"));
 
     // Using repo, since set_solution_revoked will refresh automatically
     repo.set_flag(SolutionRevoked).await.expect("could not set flag");
-    assert!(flags.is_revoked_all().await.expect("could not get is revoked all"));
+    assert!(flags.is_revoked_all().await.expect("could not call `is_revoked_all`"));
 
     let refresh_handle = flags.start_refresh_job();
     let result = tokio::time::timeout(Duration::from_secs(1), async {
