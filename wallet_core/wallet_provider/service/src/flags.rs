@@ -189,17 +189,11 @@ pub mod mock {
         solution_revoked: Arc<AtomicBool>,
     }
 
-    impl StubWalletFlags {
-        pub fn set_solution_revoked(&self, value: bool) {
-            self.solution_revoked.store(value, Ordering::Relaxed);
-        }
-    }
-
     impl WalletFlags for StubWalletFlags {
         type Error = Infallible;
 
         async fn set_solution_revoked(&self) -> Result<(), Self::Error> {
-            self.set_solution_revoked(true);
+            self.solution_revoked.store(true, Ordering::Relaxed);
             Ok(())
         }
 

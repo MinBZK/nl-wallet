@@ -2009,6 +2009,7 @@ mod tests {
     use crate::account_server::AccountServerPinKeys;
     use crate::account_server::RecoveryCodeConfig;
     use crate::account_server::WalletCertificateError;
+    use crate::flags::WalletFlags;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
     use crate::keys::WalletCertificateSigningKey;
@@ -3680,7 +3681,7 @@ mod tests {
         let (user_state, setup, account_server) = setup_mock_wallet().await;
 
         // Revoke wallet solution
-        user_state.flags.set_solution_revoked(true);
+        user_state.flags.set_solution_revoked().await.unwrap();
 
         let err = account_server
             .registration_challenge(&setup.signing_key, &user_state)
@@ -3713,7 +3714,7 @@ mod tests {
                 .expect("Could not sign new Apple attested registration");
 
         // Revoke solution
-        user_state.flags.set_solution_revoked(true);
+        user_state.flags.set_solution_revoked().await.unwrap();
 
         // Test register
         let err = account_server
@@ -3729,7 +3730,7 @@ mod tests {
         let (_setup, account_server, hw_privkey, wallet_cert, _revocation_code, user_state) =
             setup_and_do_registration(AttestationType::Apple).await;
 
-        user_state.flags.set_solution_revoked(true);
+        user_state.flags.set_solution_revoked().await.unwrap();
 
         let err = do_instruction_challenge::<CheckPin>(&account_server, &hw_privkey, wallet_cert, 12, &user_state)
             .await
@@ -3762,7 +3763,7 @@ mod tests {
             ..user_state.repositories
         };
         // Revoke solution
-        user_state.flags.set_solution_revoked(true);
+        user_state.flags.set_solution_revoked().await.unwrap();
 
         (setup, account_server, hw_privkey, wallet_cert, user_state, challenge)
     }
