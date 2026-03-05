@@ -128,12 +128,6 @@ pub fn local_ups_base_url(port: u16) -> BaseUrl {
         .expect("hardcoded values should always parse successfully")
 }
 
-pub fn local_pid_base_url(port: u16) -> BaseUrl {
-    format!("http://localhost:{port}/issuance/")
-        .parse()
-        .expect("hardcoded values should always parse successfully")
-}
-
 pub fn local_http_base_url(port: u16) -> BaseUrl {
     format!("http://localhost:{port}/")
         .parse()
@@ -844,7 +838,6 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     let internal_url = local_http_base_url(internal_port);
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
-
     let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
@@ -904,7 +897,6 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
     settings.public_url = public_url.clone();
 
     let storage_settings = &settings.server_settings.storage;
-
     let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
