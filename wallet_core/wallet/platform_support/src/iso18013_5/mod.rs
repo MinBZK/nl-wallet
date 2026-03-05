@@ -26,7 +26,7 @@ pub struct Iso18013_5ChannelImpl {
 
 impl Iso18013_5ChannelImpl {
     pub fn new() -> (Self, mpsc::Receiver<Iso18013_5Update>) {
-        let (sender, receiver) = mpsc::channel(16);
+        let (sender, receiver) = mpsc::channel(4);
         (Self { sender }, receiver)
     }
 }

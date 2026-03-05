@@ -140,7 +140,8 @@ interface Iso18013_5Error {
 [Enum]
 interface Iso18013_5Update {
     Connecting();
-    Connected(sequence<u8> session_transcript, sequence<u8> device_request);
+    Connected();
+    DeviceRequest(sequence<u8> session_transcript, sequence<u8> device_request);
     Closed();
     Error(Iso18013_5Error error);
 };

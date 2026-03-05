@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use super::get_platform_support;
 
 /// Implementation of `Iso18013_5Error` from the UDL file.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Iso18013_5Error {
     #[error("platform error: {reason}")]
     PlatformError { reason: String },
@@ -25,14 +25,15 @@ pub trait Iso18013_5Bridge: Send + Sync + Debug {
     async fn stop_ble_server(&self) -> Result<(), Iso18013_5Error>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Iso18013_5Update {
-    Connecting(),
-    Connected {
+    Connecting,
+    Connected,
+    DeviceRequest {
         session_transcript: Vec<u8>,
         device_request: Vec<u8>,
     },
-    Closed(),
+    Closed,
     Error {
         error: Iso18013_5Error,
     },
