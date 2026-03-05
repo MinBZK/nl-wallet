@@ -3,6 +3,7 @@ use std::string::FromUtf8Error;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
@@ -21,9 +22,12 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
+use serde::Serializer;
+use serde::de::DeserializeOwned;
 use serde::de::value::StringDeserializer;
 use serde_with::DeserializeAs;
 use serde_with::DeserializeFromStr;
+use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -82,31 +86,51 @@ pub enum AuthRequestError {
     MissingSAN,
 }
 
-/// A Request URI object, as defined in RFC 9101.
-/// Contains URL from which the wallet is to retrieve the Authorization Request.
-/// To be URL-encoded in the wallet's UL, which can then be put on a website directly, or in a QR code.
+/// OpenID4VP request uri.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct VpRequestUriObject {
-    /// URL at which the full Authorization Request is to be retrieved.
-    pub request_uri: BaseUrl,
-
-    /// Whether or not the `request_uri` supports `POST`, instead of only `GET` as defined by RFC 9101.
-    pub request_uri_method: Option<RequestUriMethod>,
-
+pub struct VpRequestUri {
     /// MUST equal the client_id from the full Authorization Request.
     pub client_id: String,
+
+    #[serde(flatten)]
+    pub object: VpRequestUriObject,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")] // Keeping these names as is might make more sense, but the spec says lowercase
-pub enum RequestUriMethod {
+pub enum VpRequestUriMethod {
     #[default]
     GET,
     POST,
 }
 
+/// The three ways an OpenID4VP request URI object can be conveyed, as described here:
+/// https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.4
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum VpRequestUriObject {
+    /// A request object by reference, i.e., contains a `request_uri` parameter
+    /// pointing to where to fetch the actual authorization request.
+    /// Note that this is the only supported variant of VpRequestUriObject.
+    AsReference {
+        request_uri: BaseUrl,
+        request_uri_method: Option<VpRequestUriMethod>,
+    },
+
+    /// A request object by value, i.e., a `request` parameter with an inline JWT.
+    /// Note that technically, instead of String, the request value could be an
+    /// UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, but since we don't
+    /// actually support AsValue, we (currently) don't bother.
+    AsValue { request: String },
+
+    /// A direct authorization request with required fields as query parameters.
+    /// Note that, as with AsValue, we do not support the AsQueryParameters variant.
+    AsQueryParameters { response_type: String, nonce: String },
+}
+
 /// An OpenID4VP Authorization Request, allowing an RP to request a set of credentials/attributes from a wallet.
 #[skip_serializing_none]
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationRequest {
     pub aud: VpAuthorizationRequestAudience,
@@ -128,9 +152,50 @@ pub struct VpAuthorizationRequest {
     pub response_uri: Option<BaseUrl>,
 
     pub wallet_nonce: Option<String>,
+
+    #[serde_as(as = "Option<Vec<JsonBase64>>")]
+    pub transaction_data: Option<VecNonEmpty<serde_json::Map<String, serde_json::Value>>>,
 }
 
 impl JwtTyp for VpAuthorizationRequest {}
+
+/// JsonBase64, a base64url-encoded JSON object. Used currently for transaction_data.
+/// See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1
+pub struct JsonBase64;
+
+impl<T> SerializeAs<T> for JsonBase64
+where
+    T: Serialize,
+{
+    fn serialize_as<S>(source: &T, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = serde_json::to_vec(source).map_err(serde::ser::Error::custom)?;
+        let base64 = BASE64_URL_SAFE_NO_PAD.encode(bytes).serialize(serializer)?;
+
+        Ok(base64)
+    }
+}
+
+impl<'de, T> DeserializeAs<'de, T> for JsonBase64
+where
+    T: DeserializeOwned,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<T, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let base64 = String::deserialize(deserializer)?;
+        let bytes = BASE64_URL_SAFE_NO_PAD
+            .decode(base64)
+            .map_err(|error| serde::de::Error::custom(format!("error decoding entry as base64: {error}")))?;
+        let value = serde_json::from_slice(bytes.as_slice())
+            .map_err(|error| serde::de::Error::custom(format!("error parsing entry as JSON: {error}")))?;
+
+        Ok(value)
+    }
+}
 
 #[derive(Debug, Clone, Default, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
 pub enum VpAuthorizationRequestAudience {
@@ -305,6 +370,9 @@ pub enum AuthRequestValidationError {
     #[error("unexpected field: {0}")]
     #[category(critical)]
     UnexpectedField(&'static str),
+    #[error("unsupported field: {0}")]
+    #[category(critical)]
+    UnsupportedField(&'static str),
     #[error("missing required field: {0}")]
     #[category(critical)]
     ExpectedFieldMissing(&'static str),
@@ -486,6 +554,7 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
             client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(value.response_uri),
             wallet_nonce: value.wallet_nonce,
+            transaction_data: None,
         }
     }
 }
@@ -509,6 +578,9 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         }
         if vp_auth_request.oauth_request.request_uri.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
+        }
+        if vp_auth_request.transaction_data.is_some() {
+            return Err(AuthRequestValidationError::UnsupportedField("transaction_data"));
         }
 
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
@@ -1003,6 +1075,7 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use base64::prelude::*;
     use futures::FutureExt;
     use itertools::Itertools;
     use josekit::jwk::Jwk;
@@ -1011,7 +1084,9 @@ mod tests {
     use josekit::jwk::alg::ed::EdCurve;
     use rstest::rstest;
     use rustls_pki_types::TrustAnchor;
+    use serde::Deserialize;
     use serde_json::json;
+    use serde_with::serde_as;
 
     use attestation_data::attributes::AttributesTraversalBehaviour;
     use attestation_data::disclosure::DisclosedAttributes;
@@ -1055,13 +1130,24 @@ mod tests {
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
 
+    use super::AuthRequestValidationError;
     use super::AuthResponseError;
+    use super::JsonBase64;
     use super::JwePublicKey;
     use super::JwePublicKeyError;
     use super::NormalizedVpAuthorizationRequest;
     use super::VerifiablePresentation;
     use super::VpAuthorizationRequest;
     use super::VpAuthorizationResponse;
+    use super::VpRequestUri;
+    use super::VpRequestUriObject;
+
+    #[serde_as]
+    #[derive(Debug, Deserialize)]
+    #[expect(dead_code)]
+    struct TransactionDataEntries(
+        #[serde_as(as = "Vec<JsonBase64>")] VecNonEmpty<serde_json::Map<String, serde_json::Value>>,
+    );
 
     enum ExpectedJwePublicKeyError {
         UnsupportedJwk { field: &'static str },
@@ -1277,6 +1363,75 @@ mod tests {
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+    }
+
+    #[test]
+    fn authorization_request_with_transaction_data_should_error() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id_scheme": "x509_san_dns",
+                "client_id": "example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES",
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "authorization_encryption_alg_values_supported": "ECDH-ES",
+                    "authorization_encryption_enc_values_supported": "A256GCM",
+                    "vp_formats": {
+                        "mso_mdoc": {
+                            "alg": [ "ES256" ]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false },
+                        ]
+                    }]
+                },
+                "transaction_data": ["eyJ0eXBlIjoiZXhhbXBsZSJ9"]
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        assert_matches!(error, AuthRequestValidationError::UnsupportedField("transaction_data"));
+    }
+
+    #[test]
+    fn transaction_data_should_be_non_empty() {
+        let error = serde_json::from_value::<TransactionDataEntries>(json!([])).unwrap_err();
+        assert!(error.to_string().contains("vector does not contain least 1 item"));
+    }
+
+    #[test]
+    fn transaction_data_entries_should_be_base64url_encoded_json_objects() {
+        let invalid_base64_error = serde_json::from_value::<TransactionDataEntries>(json!(["not-base64"])).unwrap_err();
+        assert!(
+            invalid_base64_error
+                .to_string()
+                .contains("error decoding entry as base64")
+        );
+
+        let encoded_json_array = BASE64_URL_SAFE_NO_PAD.encode(br#"["not-an-object"]"#);
+        let json_array_error =
+            serde_json::from_value::<TransactionDataEntries>(json!([encoded_json_array])).unwrap_err();
+        assert!(json_array_error.to_string().contains("error parsing entry as JSON"));
     }
 
     #[test]
@@ -1916,5 +2071,57 @@ mod tests {
             Ok(()) => assert!(expected.is_ok()),
             Err(error) => assert_eq!(error.to_string(), expected.err().unwrap().to_string()),
         };
+    }
+
+    #[test]
+    fn test_authorization_request_object_as_reference() {
+        let query = "client_id=test_client&request_uri=https%3A%2F%2Fclient.example.org%2Frequest%2Fvapof4ql2i7m41m68uep&request_uri_method=post";
+        let result = serde_urlencoded::from_str::<VpRequestUri>(query).unwrap();
+
+        assert_matches!(
+            result,
+            VpRequestUri {
+                client_id,
+                object: VpRequestUriObject::AsReference { .. },
+            } if client_id == "test_client"
+        );
+    }
+
+    #[test]
+    fn test_authorization_request_object_as_value() {
+        let query = "client_id=test_client&request=eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJzIiwiYXVkIjoicyJ9.sig";
+        let result = serde_urlencoded::from_str::<VpRequestUri>(query).unwrap();
+
+        assert_matches!(
+            result,
+            VpRequestUri {
+                client_id,
+                object: VpRequestUriObject::AsValue { request },
+            } if client_id == "test_client" && request.starts_with("eyJ")
+        );
+    }
+
+    #[test]
+    fn test_authorization_request_object_as_query_parameters() {
+        let query = "response_type=vp_token&client_id=test_client&nonce=abc123";
+        let result = serde_urlencoded::from_str::<VpRequestUri>(query).unwrap();
+
+        assert_matches!(
+            result,
+            VpRequestUri {
+                client_id,
+                object: VpRequestUriObject::AsQueryParameters { response_type, nonce },
+            } if response_type == "vp_token" && client_id == "test_client" && nonce == "abc123"
+        );
+    }
+
+    #[test]
+    fn test_authorization_request_unrecognized() {
+        let query = "foo=bar";
+        let result = serde_urlencoded::from_str::<VpRequestUri>(query)
+            .map_err(crate::disclosure_session::VpClientError::RequestUri)
+            .expect_err("unrecognized request object should fail to parse as VpRequestUri");
+
+        assert_matches!(result, crate::disclosure_session::VpClientError::RequestUri(_));
     }
 }

@@ -13,13 +13,15 @@ use http_utils::urls::BaseUrl;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
-use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpRequestUri;
+use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::VerifierUrlParameters;
 
 use super::DisclosureClient;
 use super::VerifierCertificate;
+use super::error::UnsupportedRequestUriVariant;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::error::VpVerifierError;
@@ -116,19 +118,29 @@ where
 
     async fn start(
         &self,
-        request_uri_query: &str,
+        uri_query: &str,
         uri_source: DisclosureUriSource,
         trust_anchors: &[rustls_pki_types::TrustAnchor<'_>],
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
-        let request_uri_object: VpRequestUriObject =
-            serde_urlencoded::from_str(request_uri_query).map_err(VpClientError::RequestUri)?;
+        let request = serde_urlencoded::from_str::<VpRequestUri>(uri_query).map_err(VpClientError::RequestUri)?;
+        let (request_uri, request_uri_method) = match request.object {
+            VpRequestUriObject::AsReference {
+                request_uri,
+                request_uri_method,
+            } => Ok((request_uri, request_uri_method)),
+            VpRequestUriObject::AsValue { .. } => Err(VpClientError::UnsupportedRequestUriVariant(
+                UnsupportedRequestUriVariant::RequestObjectAsValue,
+            )),
+            VpRequestUriObject::AsQueryParameters { .. } => Err(VpClientError::UnsupportedRequestUriVariant(
+                UnsupportedRequestUriVariant::RequestObjectAsQueryParameters,
+            )),
+        }?;
 
         // Parse the `SessionType` from the verifier URL.
         let VerifierUrlParameters { session_type, .. } = serde_urlencoded::from_str(
-            request_uri_object
-                .request_uri
+            request_uri
                 .as_ref()
                 .query()
                 .ok_or(VpVerifierError::MissingSessionType)?,
@@ -143,15 +155,15 @@ where
         }
 
         // If the server supports it, require it to include a nonce in the Authorization Request JWT
-        let method = request_uri_object.request_uri_method.unwrap_or_default();
-        let request_nonce = match method {
-            RequestUriMethod::GET => None,
-            RequestUriMethod::POST => Some(crypto_utils::random_string(32)),
+        let request_method = request_uri_method.unwrap_or_default();
+        let request_nonce = match request_method {
+            VpRequestUriMethod::GET => None,
+            VpRequestUriMethod::POST => Some(crypto_utils::random_string(32)),
         };
 
         let jws = self
             .client
-            .get_authorization_request(request_uri_object.request_uri, request_nonce.clone())
+            .get_authorization_request(request_uri, request_nonce.clone())
             .await?;
 
         let (vp_auth_request, certificate) = VpAuthorizationRequest::try_new(&jws, trust_anchors)?;
@@ -168,7 +180,7 @@ where
         };
 
         let process_request_result = Self::process_auth_request(
-            &request_uri_object.client_id,
+            &request.client_id,
             &auth_request.client_id,
             &auth_request.credential_requests,
             certificate,
@@ -249,8 +261,9 @@ mod tests {
     use crate::errors::VpAuthorizationErrorCode;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::openid4vp::AuthRequestValidationError;
-    use crate::openid4vp::RequestUriMethod;
     use crate::openid4vp::VpAuthorizationResponse;
+    use crate::openid4vp::VpRequestUri;
+    use crate::openid4vp::VpRequestUriMethod;
     use crate::openid4vp::VpRequestUriObject;
     use crate::openid4vp::WalletRequest;
     use crate::verifier::SessionType;
@@ -260,6 +273,7 @@ mod tests {
     use super::super::DisclosureSession;
     use super::super::DisclosureUriSource;
     use super::super::client::VpMessageClientError;
+    use super::super::error::UnsupportedRequestUriVariant;
     use super::super::error::VpClientError;
     use super::super::error::VpSessionError;
     use super::super::error::VpVerifierError;
@@ -267,7 +281,7 @@ mod tests {
     use super::super::message_client::mock::MockVerifierSession;
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
-    use super::super::message_client::mock::request_uri_object;
+    use super::super::message_client::mock::request_uri;
     use super::super::session::VpDisclosureSession;
     use super::VpDisclosureClient;
 
@@ -285,7 +299,7 @@ mod tests {
     fn start_disclosure_session<SF>(
         session_type: SessionType,
         uri_source: DisclosureUriSource,
-        request_uri_method: RequestUriMethod,
+        request_uri_method: VpRequestUriMethod,
         redirect_uri: Option<BaseUrl>,
         credential_requests: NormalizedCredentialRequests,
         reader_registration: Option<ReaderRegistration>,
@@ -327,7 +341,7 @@ mod tests {
     fn start_disclosure_session_format<SF>(
         session_type: SessionType,
         uri_source: DisclosureUriSource,
-        request_uri_method: RequestUriMethod,
+        request_uri_method: VpRequestUriMethod,
         redirect_uri: Option<BaseUrl>,
         credential_format: CredentialFormat,
         transform_verifier_session: SF,
@@ -373,7 +387,7 @@ mod tests {
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] credential_format: CredentialFormat,
         #[case] session_type: SessionType,
         #[case] uri_source: DisclosureUriSource,
-        #[values(RequestUriMethod::GET, RequestUriMethod::POST)] request_uri_method: RequestUriMethod,
+        #[values(VpRequestUriMethod::GET, VpRequestUriMethod::POST)] request_uri_method: VpRequestUriMethod,
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
         let (disclosure_session, verifier_session) = start_disclosure_session_format(
@@ -399,8 +413,8 @@ mod tests {
             };
 
             match request_uri_method {
-                RequestUriMethod::GET => assert!(wallet_nonce.is_none()),
-                RequestUriMethod::POST => assert!(wallet_nonce.is_some()),
+                VpRequestUriMethod::GET => assert!(wallet_nonce.is_none()),
+                VpRequestUriMethod::POST => assert!(wallet_nonce.is_some()),
             }
 
             // Extract the wallet nonce for response validation later on.
@@ -564,22 +578,81 @@ mod tests {
     #[test]
     fn test_vp_disclosure_client_start_error_request_uri() {
         // Calling `VpDisclosureClient::start()` with an invalid request URI object should result in an error.
-        let (error, verifier_session) = start_disclosure_session_format(
-            SessionType::SameDevice,
-            DisclosureUriSource::Link,
-            RequestUriMethod::POST,
-            None,
-            CredentialFormat::MsoMdoc,
-            |mut verifier_session| {
-                verifier_session.request_uri_override = Some(String::new());
+        let client = VpDisclosureClient::new(MockErrorFactoryVpMessageClient::new(
+            || panic!("message client should not be called"),
+            false,
+        ));
 
-                verifier_session
+        let error = client
+            .start("", DisclosureUriSource::Link, &[])
+            .now_or_never()
+            .unwrap()
+            .expect_err("starting a new disclosure session with an invalid request URI object should not succeed");
+
+        assert_matches!(error, VpSessionError::Client(VpClientError::RequestUri(_)));
+    }
+
+    #[test]
+    fn test_vp_disclosure_client_start_error_unsupported_request_object_as_value() {
+        let client = VpDisclosureClient::new(MockErrorFactoryVpMessageClient::new(
+            || panic!("message client should not be called"),
+            false,
+        ));
+
+        let query = serde_urlencoded::to_string(VpRequestUri {
+            client_id: "client_id".to_string(),
+            object: VpRequestUriObject::AsValue {
+                request: "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJzIiwiYXVkIjoicyJ9.sig".to_string(),
             },
-        )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        })
+        .unwrap();
 
-        assert_matches!(*error, VpSessionError::Client(VpClientError::RequestUri(_)));
-        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
+        let error = client
+            .start(&query, DisclosureUriSource::Link, &[])
+            .now_or_never()
+            .unwrap()
+            .expect_err(
+                "starting a new disclosure session with a request uri object passed as value should not succeed",
+            );
+
+        assert_matches!(
+            error,
+            VpSessionError::Client(VpClientError::UnsupportedRequestUriVariant(
+                UnsupportedRequestUriVariant::RequestObjectAsValue
+            ))
+        );
+    }
+
+    #[test]
+    fn test_vp_disclosure_client_start_error_unsupported_request_object_as_query_parameters() {
+        let client = VpDisclosureClient::new(MockErrorFactoryVpMessageClient::new(
+            || panic!("message client should not be called"),
+            false,
+        ));
+
+        let query = serde_urlencoded::to_string(VpRequestUri {
+            client_id: "client_id".to_string(),
+            object: VpRequestUriObject::AsQueryParameters {
+                response_type: "vp_token".to_string(),
+                nonce: "nonce".to_string(),
+            },
+        })
+        .unwrap();
+
+        let error = client
+            .start(&query, DisclosureUriSource::Link, &[])
+            .now_or_never()
+            .unwrap()
+            .expect_err(
+                "starting a new disclosure session with a request uri object passed as query parameters should not succeed",
+            );
+
+        assert_matches!(
+            error,
+            VpSessionError::Client(VpClientError::UnsupportedRequestUriVariant(
+                UnsupportedRequestUriVariant::RequestObjectAsQueryParameters
+            ))
+        );
     }
 
     #[test]
@@ -589,19 +662,19 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session_format(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             CredentialFormat::MsoMdoc,
             |mut verifier_session| {
-                let mut request_uri = verifier_session.request_uri_object.request_uri.clone().into_inner();
+                let mut request_uri = verifier_session.request_uri.clone().into_inner();
                 request_uri.set_query(None);
 
-                verifier_session.request_uri_object.request_uri = request_uri.try_into().unwrap();
+                verifier_session.request_uri = request_uri.try_into().unwrap();
 
                 verifier_session
             },
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session without a session type should not succeed");
 
         assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::MissingSessionType));
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
@@ -614,22 +687,18 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session_format(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             CredentialFormat::MsoMdoc,
             |mut verifier_session| {
-                let mut request_uri_object: VpRequestUriObject =
-                    serde_urlencoded::from_str(&verifier_session.request_uri_query()).unwrap();
-                request_uri_object.request_uri = format!("{}?session_type=invalid", LazyLock::force(&VERIFIER_URL))
+                verifier_session.request_uri = format!("{}?session_type=invalid", LazyLock::force(&VERIFIER_URL))
                     .parse()
                     .unwrap();
-
-                verifier_session.request_uri_object = request_uri_object;
 
                 verifier_session
             },
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session with a malformed session type should not succeed");
 
         assert_matches!(
             *error,
@@ -650,12 +719,12 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session_format(
             session_type,
             uri_source,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             CredentialFormat::MsoMdoc,
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session with a session type which is incompatible with its source should not succeed");
 
         assert_matches!(
             *error,
@@ -672,7 +741,7 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session_format(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             CredentialFormat::MsoMdoc,
             |mut verifier_session| {
@@ -681,7 +750,7 @@ mod tests {
                 verifier_session
             },
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session without trust anchors should not succeed");
 
         assert_matches!(
             *error,
@@ -705,10 +774,10 @@ mod tests {
         let error_client = MockErrorFactoryVpMessageClient::new(error_factory, error_has_error);
         let wallet_messages = Arc::clone(&error_client.wallet_messages);
 
-        let request_query = serde_urlencoded::to_string(request_uri_object(
+        let request_query = serde_urlencoded::to_string(request_uri(
             VERIFIER_URL.join_base_url("redirect_uri").into_inner(),
             SessionType::SameDevice,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             "client_id".to_string(),
         ))
         .unwrap();
@@ -718,7 +787,7 @@ mod tests {
             .start(&request_query, DisclosureUriSource::Link, &[])
             .now_or_never()
             .unwrap()
-            .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+            .expect_err("starting a new disclosure session which encounters an http error should not succeed");
 
         // Collect the messages sent through the `VpMessageClient`.
         let wallet_messages = wallet_messages.lock();
@@ -772,16 +841,16 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session_format(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             CredentialFormat::MsoMdoc,
             |mut verifier_session| {
-                verifier_session.request_uri_object.client_id = "other_client_id".to_string();
+                verifier_session.client_id = "other_client_id".to_string();
 
                 verifier_session
             },
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session where the request uri client_id does not match the RP certificate client_id should not succeed");
 
         assert_matches!(
             *error,
@@ -808,13 +877,13 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
             None,
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session with a valid reader certificate but no reader registration should not succeed");
 
         assert_matches!(
             *error,
@@ -845,13 +914,13 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
             Some(reader_registration),
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session with an authorization request that contains an attribute not in the reader registration should not succeed");
 
         let unregistered_attributes = HashMap::from([(
             PID_ATTESTATION_TYPE.to_string(),
@@ -889,7 +958,7 @@ mod tests {
         let (error, verifier_session) = start_disclosure_session(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            RequestUriMethod::POST,
+            VpRequestUriMethod::POST,
             None,
             vec![mdoc_credential_request, sd_jwt_credential_request]
                 .try_into()
@@ -897,7 +966,7 @@ mod tests {
             Some(reader_registration),
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
+        .expect_err("starting a new disclosure session with an authorization request that contains a credential request with a mix of requested formats should not succeed");
 
         assert_matches!(
             *error,

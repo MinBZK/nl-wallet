@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -9,12 +10,13 @@ use parking_lot::Mutex;
 use rand::random;
 use rustls_pki_types::TrustAnchor;
 use tokio::sync::RwLock;
-use tokio::task::AbortHandle;
+use tokio::task::JoinHandle;
 use tokio::time;
 use tokio::time::MissedTickBehavior;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
+use tracing::warn;
 use uuid::Uuid;
 
 use error_category::ErrorCategory;
@@ -67,6 +69,19 @@ struct RevocationTaskContext<S, SLC, CR> {
     scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
 }
 
+impl<S, SLC, CR> Clone for RevocationTaskContext<S, SLC, CR> {
+    fn clone(&self) -> Self {
+        Self {
+            config_repo: Arc::clone(&self.config_repo),
+            status_list_client: Arc::clone(&self.status_list_client),
+            storage: Arc::clone(&self.storage),
+            attestations_callback: Arc::clone(&self.attestations_callback),
+            direct_notifications_callback: Arc::clone(&self.direct_notifications_callback),
+            scheduled_notifications_callback: Arc::clone(&self.scheduled_notifications_callback),
+        }
+    }
+}
+
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -87,23 +102,50 @@ where
         SLC: Sync + 'static,
         CR: Send + Sync + 'static,
     {
-        if self.revocation_status_job_handle.is_some() {
-            info!("background revocation checks already running");
-            return;
+        if let Some(handle) = &self.revocation_status_job_handle {
+            if !handle.is_finished() {
+                info!("background revocation checks already running");
+                return;
+            }
+            warn!("previous background revocation task has stopped unexpectedly, restarting");
         }
 
-        let context = RevocationTaskContext {
-            config_repo: Arc::clone(&self.config_repository),
-            status_list_client: Arc::clone(&self.status_list_client),
-            storage: Arc::clone(&self.storage),
-            attestations_callback: Arc::clone(&self.attestations_callback),
-            direct_notifications_callback: Arc::clone(&self.direct_notifications_callback),
-            scheduled_notifications_callback: Arc::clone(&self.scheduled_notifications_callback),
-        };
+        let ctx = self.get_revocation_context();
+        let config_repo = Arc::clone(&self.config_repository);
 
-        let abort_handle = Self::spawn_revocation_checks(context, TimeGenerator, check_frequency);
+        info!("wallet revocation status background job started");
 
-        self.revocation_status_job_handle = Some(abort_handle);
+        let handle = spawn_periodic_task(check_frequency, move || {
+            let ctx = ctx.clone();
+            let config = config_repo.get();
+            async move {
+                if !matches!(ctx.storage.read().await.state().await, Ok(StorageState::Opened)) {
+                    info!("database is not opened, skipping wallet revocation status check");
+                    return;
+                }
+                info!("wallet revocation status update timer expired, performing revocation check...");
+                if let Err(e) = Self::check_revocations(&ctx, Arc::clone(&config), TimeGenerator).await {
+                    error!("background revocation check failed: {}", e);
+                }
+            }
+        });
+
+        self.revocation_status_job_handle = Some(handle);
+    }
+
+    /// Asynchronously performs revocation checks
+    #[instrument(skip_all)]
+    pub async fn perform_revocation_checks(&mut self) -> Result<(), RevocationError>
+    where
+        S: Sync + 'static,
+        SLC: Sync + 'static,
+        CR: Send + Sync + 'static,
+    {
+        info!("performing wallet revocation check");
+
+        let config = self.config_repository.get();
+
+        Self::check_revocations(&self.get_revocation_context(), Arc::clone(&config), TimeGenerator).await
     }
 
     /// Stop background revocation checks
@@ -114,42 +156,15 @@ where
         }
     }
 
-    fn spawn_revocation_checks<T>(
-        ctx: RevocationTaskContext<S, SLC, CR>,
-        time_generator: T,
-        check_interval: Duration,
-    ) -> AbortHandle
-    where
-        S: Sync + 'static,
-        SLC: Sync + 'static,
-        CR: Send + Sync + 'static,
-        T: Generator<DateTime<Utc>> + Clone + Send + Sync + 'static,
-    {
-        let task = tokio::spawn(async move {
-            info!("wallet revocation status background job started");
-
-            let mut interval = time::interval(check_interval);
-            interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
-
-            loop {
-                interval.tick().await;
-
-                let config = ctx.config_repo.get();
-
-                if !matches!(ctx.storage.read().await.state().await, Ok(StorageState::Opened)) {
-                    info!("database is not opened, skipping wallet revocation status check");
-                    continue;
-                }
-
-                info!("wallet revocation status update timer expired, performing revocation check...");
-
-                if let Err(e) = Self::check_revocations(&ctx, Arc::clone(&config), time_generator.clone()).await {
-                    error!("background revocation check failed: {}", e);
-                }
-            }
-        });
-
-        task.abort_handle()
+    fn get_revocation_context(&self) -> RevocationTaskContext<S, SLC, CR> {
+        RevocationTaskContext {
+            config_repo: Arc::clone(&self.config_repository),
+            status_list_client: Arc::clone(&self.status_list_client),
+            storage: Arc::clone(&self.storage),
+            attestations_callback: Arc::clone(&self.attestations_callback),
+            direct_notifications_callback: Arc::clone(&self.direct_notifications_callback),
+            scheduled_notifications_callback: Arc::clone(&self.scheduled_notifications_callback),
+        }
     }
 
     /// Perform revocation checks where all revocation info is fetched from storage
@@ -270,6 +285,21 @@ where
     }
 }
 
+fn spawn_periodic_task<F, Fut>(check_interval: Duration, task: F) -> JoinHandle<()>
+where
+    F: Fn() -> Fut + Send + 'static,
+    Fut: Future<Output = ()> + Send,
+{
+    tokio::spawn(async move {
+        let mut interval = time::interval(check_interval);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+        loop {
+            interval.tick().await;
+            task().await;
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -324,7 +354,6 @@ mod tests {
             .returning(move |_| Ok(status_list_token.clone()));
 
         let mut storage = MockStorage::new();
-        storage.expect_state().returning(|| Ok(StorageState::Opened));
 
         let revocation_id_1 = Uuid::new_v4();
         let revocation_id_2 = Uuid::new_v4();
@@ -389,17 +418,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_update_storage_with_revocation_statuses() {
-        // Pause time so we can advance it manually
-        time::pause();
-
+    async fn should_update_revocation_statuses() {
         let (config_repo, status_list_client, mut storage, _, _) = setup_revocation_test_env().await;
 
-        let update_count = Arc::new(AtomicU64::new(0));
-        let update_counter = Arc::clone(&update_count);
-
-        storage.expect_update_revocation_statuses().returning(move |updates| {
-            update_counter.fetch_add(1, Ordering::SeqCst);
+        storage.expect_update_revocation_statuses().returning(|updates| {
             assert_eq!(
                 vec![RevocationStatus::Valid, RevocationStatus::Revoked],
                 updates.into_iter().map(|(_, status)| status).collect_vec()
@@ -409,7 +431,7 @@ mod tests {
 
         let storage = Arc::new(RwLock::new(storage));
         let context = RevocationTaskContext {
-            config_repo,
+            config_repo: Arc::clone(&config_repo),
             status_list_client,
             storage,
             attestations_callback: Arc::default(),
@@ -417,46 +439,31 @@ mod tests {
             scheduled_notifications_callback: Arc::default(),
         };
 
-        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
-            context,
+        TestWalletMockStorage::<TestConfigRepo>::check_revocations(
+            &context,
+            config_repo.get(),
             MockTimeGenerator::new(Utc::now()),
-            Duration::from_millis(100),
-        );
-
-        // Advance time to trigger checks
-        for _ in 0..30 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-
-        assert!(
-            update_count.load(Ordering::SeqCst) > 0,
-            "Should have updated revocation statuses"
-        );
-
-        abort_handle.abort();
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
-    async fn should_only_send_direct_notifications_for_revoked_attestations() {
-        // Pause time so we can advance it manually
-        time::pause();
-
+    async fn should_send_direct_notification_only_for_revoked_attestations() {
         let (config_repo, status_list_client, mut storage, _, _) = setup_revocation_test_env().await;
         storage.expect_update_revocation_statuses().returning(|_| Ok(()));
         let storage = Arc::new(RwLock::new(storage));
 
-        let notification_counts: Arc<Mutex<Vec<usize>>> = Arc::default();
-        let counts_clone = Arc::clone(&notification_counts);
+        let notification_count: Arc<Mutex<Option<usize>>> = Arc::default();
+        let count_clone = Arc::clone(&notification_count);
 
         let notifications_callback: DirectNotificationsCallback = Arc::new(move |notifications| {
-            let counts = Arc::clone(&counts_clone);
-            Box::pin(async move {
-                counts.lock().push(notifications.len());
-            })
+            let count = Arc::clone(&count_clone);
+            Box::pin(async move { *count.lock() = Some(notifications.len()) })
         });
 
         let context = RevocationTaskContext {
-            config_repo,
+            config_repo: Arc::clone(&config_repo),
             status_list_client,
             storage,
             attestations_callback: Arc::default(),
@@ -464,166 +471,140 @@ mod tests {
             scheduled_notifications_callback: Arc::default(),
         };
 
-        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(
-            context,
+        TestWalletMockStorage::<TestConfigRepo>::check_revocations(
+            &context,
+            config_repo.get(),
             MockTimeGenerator::new(Utc::now()),
-            Duration::from_millis(100),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            Some(1),
+            *notification_count.lock(),
+            "expected exactly 1 notification for the revoked attestation, non-revoked should not trigger"
         );
-
-        // Advance time to trigger checks
-        for _ in 0..30 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-
-        abort_handle.abort();
-
-        let counts = notification_counts.lock().clone();
-        assert!(
-            !counts.is_empty(),
-            "Should have received at least one batch of notifications"
-        );
-
-        for count in counts {
-            assert_eq!(
-                count, 1,
-                "Expected only 1 notification (the revoked one), but got {count}. Non-revoked attestations should not \
-                 trigger direct notifications."
-            );
-        }
     }
 
     #[tokio::test]
     async fn should_check_revocation_periodically() {
-        // Pause time so we can advance it manually
         time::pause();
 
-        let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(default_wallet_config())));
-        let status_list_client = Arc::new(MockStatusListClient::new());
-
-        let mut storage = MockStorage::new();
-        storage.expect_state().returning(|| Ok(StorageState::Opened));
-        storage
-            .expect_fetch_all_revocation_info()
-            .returning(|_: &MockTimeGenerator| Ok(vec![]));
-        storage.expect_update_revocation_statuses().returning(|_| Ok(()));
-        storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
-        let storage = Arc::new(RwLock::new(storage));
-
-        let callback = Arc::new(Mutex::new(None));
-        let time_generator = MockTimeGenerator::new(Utc::now());
-        let check_interval = Duration::from_millis(100);
-
         let counter = Arc::new(AtomicU64::new(0));
-        let callback_counter = Arc::clone(&counter);
+        let counter_clone = Arc::clone(&counter);
 
-        let callback_fn: AttestationsCallback = Box::new(move |_| {
-            callback_counter.fetch_add(1, Ordering::SeqCst);
+        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
+            let counter = Arc::clone(&counter_clone);
+            async move {
+                counter.fetch_add(1, Ordering::SeqCst);
+            }
         });
 
-        let notifications_callback = Arc::default();
-
-        // Register callback to track updates
-        callback.lock().replace(callback_fn);
-
-        let context = RevocationTaskContext {
-            config_repo,
-            status_list_client: Arc::clone(&status_list_client),
-            storage: Arc::clone(&storage),
-            attestations_callback: Arc::clone(&callback),
-            direct_notifications_callback: Arc::clone(&notifications_callback),
-            scheduled_notifications_callback: Arc::default(),
-        };
-
-        let abort_handle =
-            TestWalletMockStorage::<TestConfigRepo>::spawn_revocation_checks(context, time_generator, check_interval);
-
-        // Initially no checks should have occurred
         assert_eq!(0, counter.load(Ordering::SeqCst));
 
-        // Advance time 10 times by 10 ms - should trigger first check
         for _ in 0..10 {
             time::advance(Duration::from_millis(10)).await;
         }
-
-        // Should have performed at least one check
         assert!(counter.load(Ordering::SeqCst) >= 1);
 
-        // Advance time 20 times by 10 ms - should trigger 2 more checks
         for _ in 0..20 {
             time::advance(Duration::from_millis(10)).await;
         }
-
-        let final_count = counter.load(Ordering::SeqCst);
-        assert!(final_count >= 3, "Expected at least 3 checks, got {}", final_count);
+        assert!(counter.load(Ordering::SeqCst) >= 3, "Expected at least 3 checks");
 
         abort_handle.abort();
     }
 
     #[tokio::test]
     async fn should_stop_checking_after_abort() {
-        // Pause time so we can advance it manually
         time::pause();
 
-        let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(default_wallet_config())));
-        let status_list_client = Arc::new(MockStatusListClient::new());
-
-        let mut storage = MockStorage::new();
-        storage.expect_state().returning(|| Ok(StorageState::Opened));
-        storage
-            .expect_fetch_all_revocation_info()
-            .returning(|_: &MockTimeGenerator| Ok(vec![]));
-        storage.expect_update_revocation_statuses().returning(|_| Ok(()));
-        storage.expect_fetch_unique_attestations().returning(|| Ok(vec![]));
-        let storage = Arc::new(RwLock::new(storage));
-
-        let callback = Arc::new(Mutex::new(None));
-        let time_generator = MockTimeGenerator::new(Utc::now());
-        let check_interval = Duration::from_millis(100);
-
         let counter = Arc::new(AtomicU64::new(0));
-        let callback_counter = Arc::clone(&counter);
+        let counter_clone = Arc::clone(&counter);
 
-        let callback_fn: AttestationsCallback = Box::new(move |_| {
-            callback_counter.fetch_add(1, Ordering::SeqCst);
+        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
+            let counter = Arc::clone(&counter_clone);
+            async move {
+                counter.fetch_add(1, Ordering::SeqCst);
+            }
         });
 
-        let notifications_callback = Arc::default();
-
-        // Register callback to track updates
-        callback.lock().replace(callback_fn);
-
-        let context = RevocationTaskContext {
-            config_repo,
-            status_list_client: Arc::clone(&status_list_client),
-            storage: Arc::clone(&storage),
-            attestations_callback: Arc::clone(&callback),
-            direct_notifications_callback: Arc::clone(&notifications_callback),
-            scheduled_notifications_callback: Arc::default(),
-        };
-
-        let abort_handle = TestWalletMockStorage::spawn_revocation_checks(context, time_generator, check_interval);
-
-        // Advance time to trigger multiple checks
         for _ in 0..30 {
             time::advance(Duration::from_millis(10)).await;
         }
-
         let count_before_abort = counter.load(Ordering::SeqCst);
-        assert!(count_before_abort > 0, "Should have performed checks before abort");
+        assert!(count_before_abort > 0);
 
-        // Abort the task
         abort_handle.abort();
 
-        // Advance time again
         for _ in 0..30 {
             time::advance(Duration::from_millis(10)).await;
         }
-
-        // Count should not have changed after abort
         assert_eq!(
             count_before_abort,
             counter.load(Ordering::SeqCst),
             "Count should not change after abort"
         );
+    }
+
+    #[tokio::test]
+    async fn should_fire_on_first_tick_immediately() {
+        time::pause();
+
+        let counter = Arc::new(AtomicU64::new(0));
+        let counter_clone = Arc::clone(&counter);
+
+        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
+            let counter = Arc::clone(&counter_clone);
+            async move {
+                counter.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+
+        // Advance 5 times by 1ms (5ms total, well under the 100ms interval). tokio's
+        // Interval fires its first tick immediately at t=0, so the first advance gives
+        // the spawned task a chance to run and increment the counter exactly once.
+        for _ in 0..5 {
+            time::advance(Duration::from_millis(1)).await;
+        }
+        assert_eq!(1, counter.load(Ordering::SeqCst));
+
+        abort_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn should_not_fire_between_ticks() {
+        time::pause();
+
+        let counter = Arc::new(AtomicU64::new(0));
+        let counter_clone = Arc::clone(&counter);
+
+        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
+            let counter = Arc::clone(&counter_clone);
+            async move {
+                counter.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+
+        // Advance to 150ms in small steps: first tick (t=0) and second tick (t=100ms)
+        // should both have fired, giving count >= 2.
+        for _ in 0..15 {
+            time::advance(Duration::from_millis(10)).await;
+        }
+        let count = counter.load(Ordering::SeqCst);
+        assert!(count >= 2);
+
+        // Advance 40ms more (total 190ms, still before the third tick at t=200ms).
+        // Count must not increase.
+        for _ in 0..4 {
+            time::advance(Duration::from_millis(10)).await;
+        }
+        assert_eq!(
+            count,
+            counter.load(Ordering::SeqCst),
+            "task must not fire between ticks"
+        );
+
+        abort_handle.abort();
     }
 }

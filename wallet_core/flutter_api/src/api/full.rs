@@ -180,6 +180,12 @@ pub async fn set_direct_notifications_callback(
     Ok(())
 }
 
+pub async fn perform_background_sync() -> anyhow::Result<()> {
+    wallet().write().await.perform_revocation_checks().await?;
+
+    Ok(())
+}
+
 #[flutter_api_error]
 pub async fn set_recent_history_stream(sink: StreamSink<Vec<WalletEvent>>) -> anyhow::Result<()> {
     wallet()

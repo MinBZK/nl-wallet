@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -476389463;
+  int get rustContentHash => 784391863;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -177,6 +177,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<void> crateApiFullLockWallet();
 
   Future<void> crateApiFullPairWalletTransfer({required String uri});
+
+  Future<void> crateApiFullPerformBackgroundSync();
 
   Future<void> crateApiFullReceiveWalletTransfer();
 
@@ -1187,6 +1189,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullPairWalletTransferConstMeta => const TaskConstMeta(
     debugName: "pair_wallet_transfer",
     argNames: ["uri"],
+  );
+
+  @override
+  Future<void> crateApiFullPerformBackgroundSync() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__perform_background_sync(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullPerformBackgroundSyncConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullPerformBackgroundSyncConstMeta => const TaskConstMeta(
+    debugName: "perform_background_sync",
+    argNames: [],
   );
 
   @override

@@ -1,6 +1,7 @@
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:workmanager/workmanager.dart';
 
 import '../data/service/announcement_service.dart';
 import '../data/service/app_lifecycle_service.dart';
@@ -13,6 +14,7 @@ import '../data/service/event/listener/wallet_transfer_app_event_listener.dart';
 import '../data/service/local_notification_service.dart';
 import '../data/service/navigation_service.dart';
 import '../data/service/semantics_event_service.dart';
+import '../data/service/work_manager_service.dart';
 import '../util/manager/biometric_unlock_manager.dart';
 
 class WalletServiceProvider extends StatelessWidget {
@@ -69,6 +71,10 @@ class WalletServiceProvider extends StatelessWidget {
           lazy: false,
         ),
         RepositoryProvider<AnnouncementService>(create: AnnouncementService.new),
+        RepositoryProvider<WorkManagerService>(
+          create: (context) => WorkManagerService(Workmanager()),
+          lazy: false,
+        ),
         RepositoryProvider<LocalNotificationService>(
           create: (context) => LocalNotificationService(context.read(), context.read(), context.read(), context.read()),
           lazy: false,

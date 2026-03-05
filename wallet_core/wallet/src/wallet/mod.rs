@@ -27,7 +27,7 @@ use std::sync::Arc;
 use cfg_if::cfg_if;
 use parking_lot::Mutex;
 use tokio::sync::RwLock;
-use tokio::task::AbortHandle;
+use tokio::task::JoinHandle;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -160,5 +160,5 @@ pub struct Wallet<
     recent_history_callback: Option<RecentHistoryCallback>,
     scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
     direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
-    revocation_status_job_handle: Option<AbortHandle>,
+    revocation_status_job_handle: Option<JoinHandle<()>>,
 }

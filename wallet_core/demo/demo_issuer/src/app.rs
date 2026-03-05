@@ -30,7 +30,8 @@ use demo_utils::disclosure::DemoDisclosedAttestations;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
-use openid4vc::openid4vp::RequestUriMethod;
+use openid4vc::openid4vp::VpRequestUri;
+use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
@@ -159,10 +160,12 @@ fn disclosure_based_issuance_universal_links(
             let mut issuance_server_url = issuance_server_url.join(&format!("/disclosure/{usecase}/request_uri"));
             issuance_server_url.set_query(Some(&params));
 
-            let query = serde_urlencoded::to_string(VpRequestUriObject {
-                request_uri: issuance_server_url.try_into().unwrap(),
-                request_uri_method: Some(RequestUriMethod::POST),
+            let query = serde_urlencoded::to_string(VpRequestUri {
                 client_id: client_id.to_owned(),
+                object: VpRequestUriObject::AsReference {
+                    request_uri: issuance_server_url.try_into().unwrap(),
+                    request_uri_method: Some(VpRequestUriMethod::POST),
+                },
             })
             .unwrap();
 
