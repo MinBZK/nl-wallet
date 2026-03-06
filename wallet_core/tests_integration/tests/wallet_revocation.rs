@@ -207,6 +207,7 @@ async fn test_revoke_wallets_by_recovery_code() {
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
 
+    // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
     let ctx = MockOidcClient::start_context();
     ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
 

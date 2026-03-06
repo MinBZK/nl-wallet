@@ -104,6 +104,7 @@ mod test {
     #[tokio::test]
     #[serial(MockOidcClient)]
     async fn test_start_session() {
+        // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
         let oidc_client = MockOidcClient::start_context();
         oidc_client
             .expect()

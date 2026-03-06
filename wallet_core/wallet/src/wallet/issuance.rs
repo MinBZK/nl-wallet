@@ -849,6 +849,7 @@ mod tests {
 
         assert!(wallet.session.is_none());
 
+        // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
         let oidc_ctx = MockOidcClient::start_context();
         oidc_ctx
             .expect()
