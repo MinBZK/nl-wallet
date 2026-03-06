@@ -86,7 +86,7 @@ pub struct IssuerMetadata {
     /// the same Credential Dataset in a single request/response.
     pub batch_credential_issuance: Option<BatchCredentialIssuance>,
 
-    ///  non-empty array of objects, where each object contains display properties of a Credential Issuer for a certain
+    /// A non-empty array of objects, where each object contains display properties of a Credential Issuer for a certain
     /// language.
     pub display: Option<VecNonEmpty<IssuerDisplay>>,
 
