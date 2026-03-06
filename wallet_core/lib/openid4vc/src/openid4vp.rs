@@ -700,10 +700,7 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         let jwk = jwks.first().unwrap().clone();
         let encryption_pubkey = JwePublicKey::try_new(jwk)?;
 
-        let client_id =
-            vp_auth_request
-                .oauth_request
-                .client_id.as_str().into();
+        let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
