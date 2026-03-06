@@ -125,11 +125,11 @@ pub enum IssuanceSessionError {
 
     #[error("error requesting access token: {0:?}")]
     #[category(pd)]
-    TokenRequest(ErrorResponse<TokenErrorCode>),
+    TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
 
     #[error("error requesting credentials: {0:?}")]
     #[category(pd)]
-    CredentialRequest(ErrorResponse<CredentialErrorCode>),
+    CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
 
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
@@ -415,7 +415,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
-                    Err(IssuanceSessionError::TokenRequest(error))
+                    Err(IssuanceSessionError::TokenRequest(Box::new(error)))
                 } else {
                     let dpop_nonce = response
                         .headers()
@@ -469,7 +469,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(error))
+                    Err(IssuanceSessionError::CredentialRequest(Box::new(error)))
                 } else {
                     Ok(())
                 }
@@ -499,7 +499,7 @@ impl HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(error))
+                    Err(IssuanceSessionError::CredentialRequest(Box::new(error)))
                 } else {
                     let response = response.json().await?;
                     Ok(response)

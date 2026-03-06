@@ -235,7 +235,7 @@ where
 {
     let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
+        .map_err(|error| WalletCertificateError::PinPubKeyDecoding(Box::new(error)))?;
 
     let signature = hsm.sign_hmac(key_identifier, pin_pubkey.as_bytes()).await?;
 
@@ -253,7 +253,7 @@ where
 {
     let pin_pubkey = pubkey
         .to_public_key_der()
-        .map_err(WalletCertificateError::PinPubKeyDecoding)?;
+        .map_err(|error| WalletCertificateError::PinPubKeyDecoding(Box::new(error)))?;
 
     hsm.verify_hmac(key_identifier, pin_pubkey.as_bytes(), pin_pubkey_hash)
         .await?;

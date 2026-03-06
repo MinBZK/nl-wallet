@@ -40,7 +40,7 @@ pub enum AttributeError {
     NumberFromCborConversion(#[from] TryFromIntError),
 
     #[error("unable to convert claim value: {0:?}")]
-    FromClaimValueConversion(ClaimValue),
+    FromClaimValueConversion(Box<ClaimValue>),
 
     #[error("unable to convert number from claim value: {0}")]
     NumberFromClaimValueConversion(Number),
@@ -58,7 +58,7 @@ pub enum AttributesError {
     AttributeAtPath(String, #[source] AttributeError),
 
     #[error("some attributes have not been processed by metadata: {0:?}")]
-    SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
+    SomeAttributesNotProcessed(Box<IndexMap<String, Vec<Entry>>>),
 }
 
 impl From<AttributeValue> for ciborium::Value {
@@ -127,7 +127,7 @@ impl TryFrom<ClaimValue> for AttributeValue {
                     .try_collect()?,
             )),
             // nested objects are handled at the Attribute level
-            _ => Err(AttributeError::FromClaimValueConversion(value)),
+            _ => Err(AttributeError::FromClaimValueConversion(Box::new(value))),
         }
     }
 }
@@ -314,7 +314,7 @@ impl Attributes {
         }
 
         if !attributes.is_empty() {
-            return Err(AttributesError::SomeAttributesNotProcessed(attributes));
+            return Err(AttributesError::SomeAttributesNotProcessed(Box::new(attributes)));
         }
 
         Ok(Self(result))
@@ -933,7 +933,7 @@ pub mod test {
 
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes);
         assert_matches!(result, Err(AttributesError::SomeAttributesNotProcessed(attrs))
-        if attrs == IndexMap::from([(
+        if *attrs == IndexMap::from([(
             String::from("com.example.pid.a"),
             vec![Entry { name: String::from("a3"), value: ciborium::Value::Text(String::from("3")) }]
         )]));

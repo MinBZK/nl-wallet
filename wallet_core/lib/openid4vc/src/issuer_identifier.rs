@@ -17,11 +17,11 @@ pub enum CredentialIssuerIdentifierError {
     #[error("credential issuer identifier is not a URL: {0}")]
     UrlParsing(#[from] BaseUrlParseError),
     #[error("credential issuer identifier URL scheme is not \"https\": {0}")]
-    SchemeNotHttps(BaseUrl),
+    SchemeNotHttps(Box<BaseUrl>),
     #[error("credential issuer identifier URL has query component: {0}")]
-    HasQuery(BaseUrl),
+    HasQuery(Box<BaseUrl>),
     #[error("credential issuer identifier URL has fragment component: {0}")]
-    HasFragment(BaseUrl),
+    HasFragment(Box<BaseUrl>),
 }
 
 /// A Credential Issuer Identifier, as defined by
@@ -51,15 +51,15 @@ impl CredentialIssuerIdentifier {
 
         // TODO (PVW-5612): Only allow HTTPS in local development environment.
         if !ALLOWED_HTTP_SCHEMES.contains(&url.as_ref().scheme()) {
-            return Err(CredentialIssuerIdentifierError::SchemeNotHttps(url));
+            return Err(CredentialIssuerIdentifierError::SchemeNotHttps(Box::new(url)));
         }
 
         if url.as_ref().query().is_some() {
-            return Err(CredentialIssuerIdentifierError::HasQuery(url));
+            return Err(CredentialIssuerIdentifierError::HasQuery(Box::new(url)));
         }
 
         if url.as_ref().fragment().is_some() {
-            return Err(CredentialIssuerIdentifierError::HasFragment(url));
+            return Err(CredentialIssuerIdentifierError::HasFragment(Box::new(url)));
         }
 
         Ok(Self { identifier, url })
