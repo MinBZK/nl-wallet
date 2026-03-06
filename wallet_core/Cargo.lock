@@ -7913,6 +7913,7 @@ version = "0.5.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "async-trait",
  "attestation_types",
  "axum",
  "chrono",
@@ -7941,6 +7942,7 @@ dependencies = [
  "tokio",
  "tower-http",
  "tracing",
+ "trait-variant",
  "url",
  "utils",
  "utoipa",
@@ -9680,7 +9682,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_with",
- "status_lists",
  "thiserror 2.0.17",
  "tokio",
  "tracing",

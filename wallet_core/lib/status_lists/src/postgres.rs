@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use async_trait::async_trait;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::StreamExt;
@@ -187,6 +188,37 @@ pub enum StatusListServiceError {
     UnknownAttestationType(String),
 }
 
+#[async_trait]
+trait Publisher {
+    async fn publish(&self, list_id: i64, external_id: &str, size: usize) -> Result<bool, StatusListServiceError>;
+}
+
+struct PublishFromDb<'a, K, R>(&'a PostgresStatusListService<K, R>);
+
+#[async_trait]
+impl<'a, K, R> Publisher for PublishFromDb<'a, K, R>
+where
+    K: EcdsaKeySend + Sync + 'static,
+    R: RevokeAll + Clone + Sync + 'static,
+{
+    async fn publish(&self, list_id: i64, external_id: &str, size: usize) -> Result<bool, StatusListServiceError> {
+        self.0.publish_status_list_from_db(list_id, external_id, size).await
+    }
+}
+
+struct PublishRevokeAll<'a, K, R>(&'a PostgresStatusListService<K, R>);
+
+#[async_trait]
+impl<'a, K, R> Publisher for PublishRevokeAll<'a, K, R>
+where
+    K: EcdsaKeySend + Sync + 'static,
+    R: RevokeAll + Clone + Sync + 'static,
+{
+    async fn publish(&self, _list_id: i64, external_id: &str, size: usize) -> Result<bool, StatusListServiceError> {
+        self.0.publish_status_list_all_revoked(external_id, size).await
+    }
+}
+
 impl<K> StatusListServices for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + 'static,
@@ -330,13 +362,11 @@ where
 {
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn republish_all(&self) -> Result<(), RevocationError> {
-        let is_revoked_all = self
-            .revoke_all
-            .is_revoked_all()
+        let publisher = self
+            .to_publisher()
             .await
-            .map_err(|err| RevocationError::InternalError(err.into()))?;
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
-        let service = self.clone();
         let mut stream = status_list::Entity::find()
             .select_only()
             .select_column(status_list::Column::Id)
@@ -347,16 +377,10 @@ where
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?
             .map(async |result| match result {
-                Ok((list_id, external_id, size)) => if is_revoked_all {
-                    service
-                        .publish_status_list_all_revoked(&external_id, size as usize)
-                        .await
-                } else {
-                    service
-                        .publish_status_list_from_db(list_id, &external_id, size as usize)
-                        .await
-                }
-                .map_err(|e| RevocationError::InternalError(Box::new(e))),
+                Ok((list_id, external_id, size)) => publisher
+                    .publish(list_id, &external_id, size as usize)
+                    .await
+                    .map_err(|e| RevocationError::InternalError(Box::new(e))),
                 Err(err) => Err(RevocationError::InternalError(Box::new(err))),
             })
             .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
@@ -405,12 +429,22 @@ where
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         // Publish new status list
-        try_join_all(status_list_info.into_iter().unique_by(|(id, _, _)| *id).map(
-            |(list_id, external_id, size)| async move {
-                let size = size.try_into().expect("size should be non-zero");
-                self.publish_status_list(list_id, external_id.as_str(), size).await
-            },
-        ))
+        let publisher = self
+            .to_publisher()
+            .await
+            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+        try_join_all(
+            status_list_info
+                .into_iter()
+                .unique_by(|(id, _, _)| *id)
+                .map(|(list_id, external_id, size)| {
+                    let publisher = publisher.clone();
+                    async move {
+                        let size = size.try_into().expect("size should be non-zero");
+                        publisher.publish(list_id, external_id.as_str(), size).await
+                    }
+                }),
+        )
         .await
         .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
@@ -878,6 +912,14 @@ where
         }
     }
 
+    async fn to_publisher<'a>(&'a self) -> Result<Arc<dyn Publisher + Send + Sync + 'a>, R::Error> {
+        if self.revoke_all.is_revoked_all().await? {
+            Ok(Arc::new(PublishRevokeAll(self)))
+        } else {
+            Ok(Arc::new(PublishFromDb(self)))
+        }
+    }
+
     pub fn start_refresh_job(&self) -> AbortHandle {
         let service = self.clone();
         // Create control before spawning as the constructor can panic on incompatible settings
@@ -936,38 +978,50 @@ where
             }
         };
 
-        // Republish if necessary
-        let expiries = join_all(lists.into_iter().map(|list| async move {
-            let path = self.config.publish_dir.jwt_path(&list.external_id);
-            let mut expiry = read_token_expiry(&path)
-                .await
-                .inspect_err(|err| tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err))
-                // Ignore error is ok because it is just logged with WARN
-                .ok();
-
-            if expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
-                tracing::info!("Republishing status list for ID {}", list.id);
-                let size = list.size.try_into().expect("size should be non-zero");
-
-                match self.publish_status_list(list.id, &list.external_id, size).await {
-                    // Always read token expiry as it can be changed by another instance
-                    Ok(_) => {
-                        expiry = read_token_expiry(&path)
-                            .await
-                            .inspect_err(|err| {
-                                tracing::error!(
-                                    "Could not read expiry from just published token `{}`: {}",
-                                    path.display(),
-                                    err
-                                )
-                            })
-                            // Ignore error is ok because it is just logged with ERROR
-                            .ok()
-                    }
-                    Err(err) => tracing::warn!("Failed to refresh status list for ID {}: {}", list.id, err),
-                }
+        // Get publisher
+        let publisher = match self.to_publisher().await {
+            Ok(publisher) => publisher,
+            Err(err) => {
+                tracing::warn!("Failed to get refresh flag: {err}");
+                return refresh_control.next_refresh_delay([]);
             }
-            expiry
+        };
+
+        // Republish if necessary
+        let expiries = join_all(lists.into_iter().map(|list| {
+            let publisher = publisher.clone();
+            async move {
+                let path = self.config.publish_dir.jwt_path(&list.external_id);
+                let mut expiry = read_token_expiry(&path)
+                    .await
+                    .inspect_err(|err| tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err))
+                    // Ignore error is ok because it is just logged with WARN
+                    .ok();
+
+                if expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
+                    tracing::info!("Republishing status list for ID {}", list.id);
+                    let size = list.size.try_into().expect("size should be non-zero");
+
+                    match publisher.publish(list.id, &list.external_id, size).await {
+                        // Always read token expiry as it can be changed by another instance
+                        Ok(_) => {
+                            expiry = read_token_expiry(&path)
+                                .await
+                                .inspect_err(|err| {
+                                    tracing::error!(
+                                        "Could not read expiry from just published token `{}`: {}",
+                                        path.display(),
+                                        err
+                                    )
+                                })
+                                // Ignore error is ok because it is just logged with ERROR
+                                .ok()
+                        }
+                        Err(err) => tracing::warn!("Failed to refresh status list for ID {}: {}", list.id, err),
+                    }
+                }
+                expiry
+            }
         }))
         .await;
 
@@ -1007,25 +1061,6 @@ where
                 .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
         })
         .await?
-    }
-
-    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn publish_status_list(
-        &self,
-        list_id: i64,
-        external_id: &str,
-        size: usize,
-    ) -> Result<bool, StatusListServiceError> {
-        let is_revoked_all = self
-            .revoke_all
-            .is_revoked_all()
-            .await
-            .map_err(|err| StatusListServiceError::RevokeAll(err.into()))?;
-        if is_revoked_all {
-            self.publish_status_list_all_revoked(external_id, size).await
-        } else {
-            self.publish_status_list_from_db(list_id, external_id, size).await
-        }
     }
 
     async fn publish_status_list_from_db(
