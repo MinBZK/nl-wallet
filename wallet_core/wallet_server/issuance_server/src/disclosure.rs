@@ -19,7 +19,7 @@ use openid4vc::credential::Grants;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreError;
 use openid4vc::verifier::DisclosureResultHandler;
@@ -91,7 +91,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
 pub struct IssuanceResultHandler<AF, AS, K, S, C> {
     pub attributes_fetcher: AF,
     pub issuer: Arc<Issuer<AS, K, S, C>>,
-    pub credential_issuer: CredentialIssuerIdentifier,
+    pub credential_issuer: IssuerIdentifier,
 }
 
 #[derive(Debug, thiserror::Error)]

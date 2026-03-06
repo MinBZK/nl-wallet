@@ -55,7 +55,7 @@ use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
@@ -142,7 +142,7 @@ pub fn local_https_base_url(port: u16) -> BaseUrl {
         .expect("hardcoded values should always parse successfully")
 }
 
-pub fn local_http_issuer_identifier(port: u16) -> CredentialIssuerIdentifier {
+pub fn local_http_issuer_identifier(port: u16) -> IssuerIdentifier {
     format!("http://localhost:{port}/")
         .parse()
         .expect("hardcoded values should always parse successfully")
@@ -187,7 +187,7 @@ pub struct DisclosureUrls {
 
 pub struct IssuerUrl {
     pub internal: BaseUrl,
-    pub public: CredentialIssuerIdentifier,
+    pub public: IssuerIdentifier,
 }
 
 pub struct IssuerUrls {
@@ -1036,7 +1036,7 @@ pub async fn do_pid_issuance_with_purpose(
 pub async fn do_degree_issuance(
     wallet: &mut WalletWithStorage,
     pin: String,
-    issuance_server_url: &CredentialIssuerIdentifier,
+    issuance_server_url: &IssuerIdentifier,
     format: CredentialFormat,
 ) -> Vec<AttestationPresentation> {
     let _proposal = wallet

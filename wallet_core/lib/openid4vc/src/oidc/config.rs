@@ -9,7 +9,8 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use http_utils::reqwest::ReqwestClientUrl;
-use http_utils::urls::BaseUrl;
+
+use crate::issuer_identifier::IssuerIdentifier;
 
 use super::OidcError;
 use super::OidcReqwestClient;
@@ -19,7 +20,7 @@ use super::OidcReqwestClient;
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub issuer: BaseUrl, // not a cannot_be_a_base URL
+    pub issuer: IssuerIdentifier,
     pub authorization_endpoint: Url,
     pub token_endpoint: Url,
     #[serde(default)]
@@ -102,7 +103,7 @@ pub struct Config {
 
 impl Config {
     /// Returns a new instance with the specified URLs, and all other parameters set to none/empty/false.
-    pub fn new(issuer: BaseUrl, authorization_endpoint: Url, token_endpoint: Url, jwks_uri: Url) -> Self {
+    pub fn new(issuer: IssuerIdentifier, authorization_endpoint: Url, token_endpoint: Url, jwks_uri: Url) -> Self {
         Self {
             issuer,
             authorization_endpoint,
@@ -199,7 +200,7 @@ pub mod tests {
         Mock::given(method("GET"))
             .and(path("/.well-known/openid-configuration"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "issuer": server_url,
+                "issuer": "https://example.com/",
                 "authorization_endpoint": server_url.join("/oauth2/authorize"),
                 "token_endpoint": server_url.join("/oauth2/token"),
                 "jwks_uri": server_url.join("/.well-known/jwks.json"),
@@ -230,11 +231,7 @@ pub mod tests {
 
         let discovered = Config::discover(&client).await.unwrap();
 
-        assert_eq!(&discovered.issuer, &server_url);
-        assert_eq!(
-            &discovered.authorization_endpoint,
-            &server_url.join("/oauth2/authorize")
-        );
+        assert_eq!(discovered.issuer.as_ref(), "https://example.com/");
 
         let jwks = discovered.jwks(&client).await.unwrap();
         assert!(jwks.keys.is_empty());

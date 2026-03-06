@@ -6,17 +6,16 @@ use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use dcql::disclosure::ExtendingVctRetriever;
-use http_utils::urls::BaseUrl;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
-use crate::issuer_identifier::CredentialIssuerIdentifier;
-use crate::metadata::CredentialResponseEncryption;
-use crate::metadata::IssuerData;
-use crate::metadata::IssuerMetadata;
+use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_metadata::BatchCredentialIssuance;
+use crate::issuer_metadata::IssuerMetadata;
+use crate::issuer_metadata::NonZeroOrOneU64;
 use crate::oidc::Config;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
@@ -49,7 +48,7 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn start_issuance(
         _: HttpVcMessageClient,
-        _: CredentialIssuerIdentifier,
+        _: IssuerIdentifier,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError>
@@ -90,7 +89,8 @@ impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
 
 impl Config {
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
-    pub fn new_mock(issuer_url: BaseUrl) -> Self {
+    pub fn new_mock(issuer_identifier: IssuerIdentifier) -> Self {
+        let issuer_url = issuer_identifier.as_base_url();
         let auth_url = issuer_url.join("/authorize");
         let token_url = issuer_url.join("/issuance/token");
         let jwks_url = issuer_url.join("/jwks.json");
@@ -104,36 +104,31 @@ impl Config {
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
 
-            ..Config::new(issuer_url, auth_url, token_url, jwks_url)
+            ..Config::new(issuer_identifier, auth_url, token_url, jwks_url)
         }
     }
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(issuer_identifier: CredentialIssuerIdentifier) -> IssuerMetadata {
-        let credential_endpoint = issuer_identifier.as_base_url().join_base_url("/issuance/credential");
-        let batch_credential_endpoint = issuer_identifier
-            .as_base_url()
-            .join_base_url("/issuance/batch_credential");
+    pub fn new_mock(issuer_identifier: IssuerIdentifier) -> IssuerMetadata {
+        let credential_endpoint = issuer_identifier.join_issuer_url("/issuance/credential");
+        let batch_credential_endpoint = issuer_identifier.join_issuer_url("/issuance/batch_credential");
 
         IssuerMetadata {
-            issuer_config: IssuerData {
-                credential_issuer: issuer_identifier,
-                authorization_servers: None,
-                credential_endpoint,
-                batch_credential_endpoint: Some(batch_credential_endpoint),
-                deferred_credential_endpoint: None,
-                notification_endpoint: None,
-                credential_response_encryption: CredentialResponseEncryption {
-                    alg_values_supported: vec![],
-                    enc_values_supported: vec![],
-                    encryption_required: false,
-                },
-                credential_identifiers_supported: None,
-                display: None,
-                credential_configurations_supported: HashMap::new(),
-            },
-            protected_metadata: None,
+            credential_issuer: issuer_identifier,
+            authorization_servers: None,
+            credential_endpoint,
+            batch_credential_endpoint: Some(batch_credential_endpoint),
+            nonce_endpoint: None,
+            deferred_credential_endpoint: None,
+            notification_endpoint: None,
+            credential_request_encryption: None,
+            credential_response_encryption: None,
+            batch_credential_issuance: Some(BatchCredentialIssuance {
+                batch_size: NonZeroOrOneU64::try_new(10.try_into().unwrap()).unwrap(),
+            }),
+            display: None,
+            credential_configurations_supported: HashMap::new(),
         }
     }
 }
