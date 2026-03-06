@@ -223,7 +223,6 @@ impl MockVerifierSession {
             self.response_uri.clone(),
             wallet_nonce,
         )
-        .unwrap()
     }
 
     /// Generate the first protocol message of the verifier.

@@ -56,7 +56,6 @@ use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
-use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::ClientId;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
@@ -142,8 +141,6 @@ pub enum GetAuthRequestError {
     ExpiredEphemeralId(Vec<u8>),
     #[error("error creating ephemeral encryption keypair: {0}")]
     EncryptionKey(#[from] JoseError),
-    #[error("error creating Authorization Request: {0}")]
-    AuthRequest(#[from] AuthRequestError),
     #[error("error signing Authorization Request JWE: {0}")]
     Jwt(#[from] JwtError),
     #[error("presence or absence of return url template does not match configuration for the required use case")]

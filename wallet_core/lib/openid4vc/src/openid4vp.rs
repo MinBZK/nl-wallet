@@ -80,14 +80,6 @@ use crate::authorization::ResponseType;
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
 const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
-#[derive(Debug, thiserror::Error)]
-pub enum AuthRequestError {
-    #[error("error parsing X.509 certificate: {0}")]
-    CertificateParsing(#[from] CertificateError),
-    #[error("Subject Alternative Name missing from X.509 certificate")]
-    MissingSAN,
-}
-
 /// OpenID4VP request uri.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct VpRequestUri {
@@ -604,31 +596,6 @@ impl NormalizedVpAuthorizationRequest {
             state: None,
             wallet_nonce,
         }
-    }
-
-    pub fn new_from_certificate(
-        credential_requests: NormalizedCredentialRequests,
-        rp_certificate: &BorrowingCertificate,
-        nonce: String,
-        encryption_pubkey: JwePublicKey,
-        response_uri: BaseUrl,
-        wallet_nonce: Option<String>,
-    ) -> Result<Self, AuthRequestError> {
-        let client_id = ClientId::x509_san_dns(
-            rp_certificate
-                .san_dns_name()
-                .map_err(AuthRequestError::CertificateParsing)?
-                .ok_or(AuthRequestError::MissingSAN)?,
-        );
-
-        Ok(Self::new(
-            credential_requests,
-            client_id,
-            nonce,
-            encryption_pubkey,
-            response_uri,
-            wallet_nonce,
-        ))
     }
 
     pub fn session_transcript(&self) -> SessionTranscript {
@@ -1169,6 +1136,38 @@ pub struct VpResponse {
     pub redirect_uri: Option<BaseUrl>,
 }
 
+#[cfg(any(test, feature = "test"))]
+pub mod test {
+    use super::*;
+
+    impl NormalizedVpAuthorizationRequest {
+        pub fn new_from_certificate(
+            credential_requests: NormalizedCredentialRequests,
+            rp_certificate: &BorrowingCertificate,
+            nonce: String,
+            encryption_pubkey: JwePublicKey,
+            response_uri: BaseUrl,
+            wallet_nonce: Option<String>,
+        ) -> Self {
+            let client_id = ClientId::x509_san_dns(
+                rp_certificate
+                    .san_dns_name()
+                    .expect("certificate SAN DNSName should be parseable")
+                    .expect("certificate should contain SAN DNSName"),
+            );
+
+            Self::new(
+                credential_requests,
+                client_id,
+                nonce,
+                encryption_pubkey,
+                response_uri,
+                wallet_nonce,
+            )
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -1394,8 +1393,7 @@ mod tests {
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             response_uri,
             None,
-        )
-        .unwrap();
+        );
 
         (trust_anchor, rp_keypair, encryption_privkey, auth_request)
     }

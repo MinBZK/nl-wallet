@@ -169,8 +169,7 @@ fn disclosure_direct() {
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
         response_uri,
         None,
-    )
-    .unwrap();
+    );
     let auth_request = iso_auth_request.clone().into();
     let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .now_or_never()
@@ -345,8 +344,7 @@ impl DirectMockVpMessageClient {
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
             response_uri.clone(),
             None,
-        )
-        .unwrap();
+        );
 
         Self {
             test_credentials,
