@@ -78,9 +78,15 @@ class AppBlockedScreen extends StatelessWidget {
   }
 
   Widget _buildBlockedByAdmin(BuildContext context, bool canRegisterNewAccount) {
+    final title = canRegisterNewAccount
+        ? context.l10n.appBlockedScreenTitle
+        : context.l10n.appBlockedScreenPermanentTitle;
+    final description = canRegisterNewAccount
+        ? context.l10n.appBlockedScreenDescription
+        : context.l10n.appBlockedScreenPermanentDescription;
     return TerminalScreen(
-      title: context.l10n.appBlockedScreenTitle,
-      description: context.l10n.appBlockedScreenDescription,
+      title: title,
+      description: description,
       primaryButton: canRegisterNewAccount ? _buildCreateWalletButton(context) : _buildHelpdeskButton(context),
       secondaryButton: canRegisterNewAccount ? _buildHelpdeskButton(context) : null,
       illustration: WalletAssets.svg_blocked_final,

@@ -1,17 +1,15 @@
-use std::collections::HashSet;
 use std::iter;
 
 use assert_matches::assert_matches;
-use sea_orm::ColumnTrait;
+use axum::http::StatusCode;
 use sea_orm::EntityTrait;
-use sea_orm::QueryFilter;
+use sea_orm::PaginatorTrait;
 use sea_orm::QueryOrder;
 use serde_json::json;
 use serial_test::serial;
 use tempfile::TempDir;
 
 use audit_log::entity;
-use crypto::utils::random_string;
 use db_test::DbSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::trusted_reqwest_client_builder;
@@ -21,11 +19,16 @@ use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
 use wallet::RevocationReason;
 use wallet::WalletState;
+use wallet::errors::AccountProviderError;
+use wallet::errors::AccountProviderResponseError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
+use wallet::errors::WalletRegistrationError;
 use wallet::errors::WalletUnlockError;
+use wallet_account::messages::errors::AccountError;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
+use wallet_provider_persistence::test::clear_flags_dropper;
 
 use tests_integration::common::*;
 
@@ -38,7 +41,7 @@ async fn test_revoke_wallet_by_revocation_code() {
     let pin = "112233";
 
     let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _, audit_log_connection) =
-        setup_revocation_env(&db_setup, "123".to_string()).await;
+        setup_revocation_env(&db_setup, false).await;
 
     let dir = TempDir::new().unwrap();
     let wallet = setup_file_wallet(
@@ -57,8 +60,6 @@ async fn test_revoke_wallet_by_revocation_code() {
         .unwrap()
         .to_string();
 
-    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
-
     call_wp_revocation_endpoint(
         wp_root_ca,
         wp_port,
@@ -69,7 +70,6 @@ async fn test_revoke_wallet_by_revocation_code() {
 
     assert_audit_log_entry(
         &audit_log_connection,
-        max_audit_log_id,
         "revoke_wallet_by_revocation_code",
         json!({"revocation_code": revocation_code}),
     )
@@ -103,9 +103,7 @@ async fn test_revoke_wallets_by_id() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, "123".to_string()).await;
-
-    let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
+    ) = setup_revocation_env(&db_setup, false).await;
 
     let wallet = setup_in_memory_wallet(
         config_server_config,
@@ -116,20 +114,13 @@ async fn test_revoke_wallets_by_id() {
     let wallet = do_wallet_registration(wallet, pin).await;
     let mut wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
-    let wallet_ids_after: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
-    let wallet_id = wallet_ids_after
-        .difference(&wallet_ids_before)
-        .next()
-        .expect("should have registered exactly one new wallet")
-        .to_string();
-
-    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
+    let wallet_ids = get_all_wallet_ids(&connection).await;
+    let wallet_id = wallet_ids.first().expect("should have registered a wallet").to_string();
 
     call_wp_revocation_endpoint(wp_root_ca, wp_port, "/internal/revoke-wallets-by-id/", &[&wallet_id]).await;
 
     assert_audit_log_entry(
         &audit_log_connection,
-        max_audit_log_id,
         "revoke_wallets_by_wallet_id",
         json!({"wallet_ids": [wallet_id]}),
     )
@@ -156,7 +147,6 @@ async fn test_revoke_wallets_by_recovery_code() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
-    // Use a random recovery code to prevent breaking other tests that use a constant recovery code
     let (
         config_server_config,
         mock_device_config,
@@ -165,9 +155,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, random_string(32)).await;
-
-    let wallet_ids_before: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
+    ) = setup_revocation_env(&db_setup, false).await;
 
     let wallet = setup_in_memory_wallet(
         config_server_config.clone(),
@@ -178,16 +166,10 @@ async fn test_revoke_wallets_by_recovery_code() {
     let wallet = do_wallet_registration(wallet, pin).await;
     let mut wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
-    let wallet_ids_after: HashSet<String> = get_all_wallet_ids(&connection).await.into_iter().collect();
-    let wallet_id = wallet_ids_after
-        .difference(&wallet_ids_before)
-        .next()
-        .expect("should have registered exactly one new wallet")
-        .to_string();
+    let wallet_ids = get_all_wallet_ids(&connection).await;
+    let wallet_id = wallet_ids.first().expect("should have registered a wallet").to_string();
 
     let recovery_code = get_wallet_recovery_code(&connection, &wallet_id).await;
-
-    let max_audit_log_id = get_max_audit_log_id(&audit_log_connection).await;
 
     call_wp_revocation_endpoint(
         wp_root_ca,
@@ -199,7 +181,6 @@ async fn test_revoke_wallets_by_recovery_code() {
 
     assert_audit_log_entry(
         &audit_log_connection,
-        max_audit_log_id,
         "revoke_wallets_by_recovery_code",
         json!({"recovery_code": recovery_code}),
     )
@@ -251,9 +232,119 @@ async fn test_revoke_wallets_by_recovery_code() {
     );
 }
 
+/// Revoke the wallet solution and assert that the wallet is blocked (AdminRequest revocation)
+/// and no new account can be registered.
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn test_revoke_wallet_solution() {
+    let db_setup = DbSetup::create_clean().await;
+    let _clear_flags = clear_flags_dropper(&db_setup);
+    let pin = "112233";
+
+    // Use a random recovery code to prevent breaking other tests that use a constant recovery code
+    let (
+        config_server_config,
+        mock_device_config,
+        wallet_config,
+        wp_port,
+        wp_root_ca,
+        _connection,
+        audit_log_connection,
+    ) = setup_revocation_env(&db_setup, true).await;
+
+    let wallet = setup_in_memory_wallet(
+        config_server_config.clone(),
+        wallet_config.clone(),
+        mock_device_config.apple_key_holder(),
+    )
+    .await;
+    let wallet = do_wallet_registration(wallet, pin).await;
+    let mut wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+
+    call_revoke_solution_endpoint(wp_root_ca, wp_port, StatusCode::OK).await;
+
+    assert_audit_log_entry(&audit_log_connection, "revoke_solution", json!({})).await;
+
+    assert_wallet_revoked(
+        &mut wallet,
+        pin,
+        true,
+        AccountRevokedData {
+            revocation_reason: RevocationReason::WalletSolutionCompromised,
+            can_register_new_account: false,
+        },
+    )
+    .await;
+
+    // Try to register a new wallet and see it won't succeed
+    let mut wallet = setup_in_memory_wallet(
+        config_server_config,
+        wallet_config,
+        mock_device_config.apple_key_holder(),
+    )
+    .await;
+    let err = wallet.register(pin).await.expect_err("Could still register");
+
+    assert_matches!(
+        err,
+        WalletRegistrationError::ChallengeRequest(AccountProviderError::Response(
+            AccountProviderResponseError::Account(
+                AccountError::AccountRevoked(AccountRevokedData {
+                    revocation_reason: RevocationReason::WalletSolutionCompromised,
+                    can_register_new_account: false,
+                }),
+                _
+            )
+        ))
+    );
+}
+
+/// Test if the wallet solution cannot be revoked if the option is not enabled
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn test_revoke_wallet_solution_not_enabled() {
+    let db_setup = DbSetup::create_clean().await;
+    let _clear_flags = clear_flags_dropper(&db_setup);
+    let pin = "112233";
+
+    // Use a random recovery code to prevent breaking other tests that use a constant recovery code
+    let (
+        config_server_config,
+        mock_device_config,
+        wallet_config,
+        wp_port,
+        wp_root_ca,
+        _connection,
+        audit_log_connection,
+    ) = setup_revocation_env(&db_setup, false).await;
+
+    let wallet = setup_in_memory_wallet(
+        config_server_config.clone(),
+        wallet_config.clone(),
+        mock_device_config.apple_key_holder(),
+    )
+    .await;
+    let wallet = do_wallet_registration(wallet, pin).await;
+    let mut wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+
+    call_revoke_solution_endpoint(wp_root_ca, wp_port, StatusCode::NOT_FOUND).await;
+
+    // Check for no audit logs
+    assert_eq!(
+        entity::audit_log::Entity::find()
+            .count(&audit_log_connection)
+            .await
+            .unwrap(),
+        0
+    );
+
+    // Test if wallet still works
+    assert!(wallet.check_pin(pin.to_string()).await.is_ok());
+}
+
 async fn setup_revocation_env(
     db_setup: &DbSetup,
-    recovery_code: String,
+    revoke_solution_enabled: bool,
 ) -> (
     ConfigServerConfiguration,
     MockDeviceConfig,
@@ -263,7 +354,9 @@ async fn setup_revocation_env(
     sea_orm::DatabaseConnection,
     sea_orm::DatabaseConnection,
 ) {
-    let (wp_settings, wp_root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
+    let (mut wp_settings, wp_root_ca) =
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
+    wp_settings.revoke_solution_enabled = revoke_solution_enabled;
     let connection = new_connection(wp_settings.database.url.clone()).await.unwrap();
     let audit_log_url = wp_settings.audit_log.url.clone();
 
@@ -272,7 +365,7 @@ async fn setup_revocation_env(
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),
         verification_server_settings(db_setup.verification_server_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url(), recovery_code),
+        pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
@@ -316,24 +409,27 @@ async fn call_wp_revocation_endpoint(
     assert!(response.status().is_success());
 }
 
-async fn get_max_audit_log_id(connection: &sea_orm::DatabaseConnection) -> i32 {
-    entity::audit_log::Entity::find()
-        .order_by_desc(entity::audit_log::Column::Id)
-        .one(connection)
+/// Revoke wallet solution by calling admin endpoint
+///
+/// Separate revoke solution endpoint to ensure both tests call the same.
+async fn call_revoke_solution_endpoint(wp_root_ca: ReqwestTrustAnchor, wp_port: u16, status_code: StatusCode) {
+    let client = trusted_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
+        .build()
+        .unwrap();
+    let response = client
+        .post(format!("https://localhost:{wp_port}/internal/revoke-solution/"))
+        .send()
         .await
-        .unwrap()
-        .map(|m| m.id)
-        .unwrap_or(0)
+        .unwrap();
+    assert_eq!(response.status(), status_code);
 }
 
 async fn assert_audit_log_entry(
     connection: &sea_orm::DatabaseConnection,
-    max_id_before: i32,
     expected_operation: &str,
     expected_params: serde_json::Value,
 ) {
     let records = entity::audit_log::Entity::find()
-        .filter(entity::audit_log::Column::Id.gt(max_id_before))
         .order_by_asc(entity::audit_log::Column::Id)
         .all(connection)
         .await
@@ -364,7 +460,7 @@ async fn assert_wallet_revoked(
         Err(WalletUnlockError::Instruction(InstructionError::AccountRevoked(actual))) if actual == revocation_data
     );
 
-    assert!(wallet.has_registration() == has_registration);
+    assert_eq!(wallet.has_registration(), has_registration);
 
     if has_registration {
         assert_eq!(

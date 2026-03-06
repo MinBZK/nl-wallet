@@ -1,12 +1,16 @@
 use std::convert::Infallible;
 use std::time::Duration;
 
+use async_dropper::AsyncDrop;
+use async_dropper::AsyncDropper;
+use async_trait::async_trait;
 use chrono::Utc;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
+use url::Url;
 use uuid::Uuid;
 
 use android_attest::attestation_extension::key_attestation::OsVersion;
@@ -17,6 +21,7 @@ use db_test::DbSetup;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::mock::MockPkcs11Client;
+use status_lists::entity::status_list_flag;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -25,6 +30,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use crate::PersistenceConnection;
 use crate::database::ConnectionOptions;
 use crate::database::Db;
+use crate::entity::wallet_flag;
 use crate::entity::wallet_user_wua;
 use crate::wallet_user::create_wallet_user;
 
@@ -35,8 +41,12 @@ pub enum WalletDeviceVendor {
 }
 
 pub async fn db_from_setup(db_setup: &DbSetup) -> Db {
+    db_from_url(db_setup.wallet_provider_url()).await
+}
+
+async fn db_from_url(url: Url) -> Db {
     Db::new(
-        db_setup.wallet_provider_url(),
+        url,
         ConnectionOptions {
             connect_timeout: Duration::from_secs(1),
             max_connections: 5,
@@ -106,4 +116,24 @@ where
         .exec(db.connection())
         .await
         .expect("should delete all WUA ids");
+}
+
+pub fn clear_flags_dropper(db_setup: &DbSetup) -> AsyncDropper<ClearFlags> {
+    AsyncDropper::new(ClearFlags(Some(db_setup.wallet_provider_url())))
+}
+
+#[derive(Default)]
+pub struct ClearFlags(Option<Url>);
+
+#[async_trait]
+impl AsyncDrop for ClearFlags {
+    async fn async_drop(&mut self) {
+        let db = db_from_url(self.0.as_ref().unwrap().clone()).await;
+        if let Err(err) = wallet_flag::Entity::delete_many().exec(db.connection()).await {
+            tracing::error!("Could not delete flags {err}");
+        }
+        if let Err(err) = status_list_flag::Entity::delete_many().exec(db.connection()).await {
+            tracing::error!("Could not delete flags {err}");
+        }
+    }
 }

@@ -25,6 +25,19 @@ wua_signing_key_identifier = "wua_signing_key"
 # Identifier for the WUA issuer.
 wua_issuer_identifier = "wua-issuer.example.com"
 
+# Delay in seconds for background job that refreshes flags
+# flags_refresh_delay_in_seconds = 300
+
+# Indicates if the revoke-solution API endpoint should be enabled
+#revoke_solution_enabled = false
+
+# Indicates whether logging should be output in a structured (JSON) manner.
+#structured_logging = false
+
+# Recovery code claim path for every attestation type
+[recovery_code_paths]
+"urn:eudi:pid:nl:1" = ["recovery_code"]
+
 # Status List configuration for the WUA
 [wua_status_lists]
 # Base URL for the Status List Claims
@@ -35,13 +48,6 @@ publish_dir = "/srv/html/tsl"
 key_identifier = "instruction_result_signing_key"
 # Base64 DER encoded certificate containing the public key
 key_certificate = "MIJ..."
-
-# Indicates whether logging should be output in a structured (JSON) manner.
-#structured_logging = false
-
-# Recovery code claim path for every attestation type
-[recovery_code_paths]
-"urn:eudi:pid:nl:1" = ["recovery_code"]
 
 [database]
 # host = "localhost"

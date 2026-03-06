@@ -44,11 +44,12 @@ where
     let listener = listener.into_std()?;
 
     let tls_config = settings.tls_config.clone();
+    let revoke_solution_enabled = settings.revoke_solution_enabled;
     let router_state = RouterState::new_from_settings(settings, hsm, google_crl_client, play_integrity_client).await?;
-    let app = router::router(router_state);
+    let app = router::router(router_state, revoke_solution_enabled);
 
     if let Some(tls_config) = tls_config {
-        axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config().await?)
+        axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config()?)
             .expect("TCP listener should not be in blocking mode")
             .serve(app.into_make_service())
             .await?;

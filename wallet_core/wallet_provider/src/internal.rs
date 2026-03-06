@@ -167,22 +167,19 @@ where
 
 #[utoipa::path(
     post,
-    path = "/nuke/",
+    path = "/revoke-solution/",
     responses(
-        (status = OK, description = "Successfully revoked all wallets."),
+        (status = OK, description = "Successfully revoked wallet solution."),
     )
 )]
-async fn nuke<GRC, PIC>(State(router_state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(), RevocationError>
+async fn revoke_solution<GRC, PIC>(
+    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
 {
-    Ok(wallet_provider_service::revocation::revoke_all_wallets(
-        &router_state.user_state,
-        &TimeGenerator,
-        &router_state.audit_log,
-    )
-    .await?)
+    Ok(wallet_provider_service::revocation::revoke_solution(&router_state.user_state, &router_state.audit_log).await?)
 }
 
 #[cfg(feature = "test_internal_ui")]
@@ -276,18 +273,24 @@ where
     Ok(NoContent)
 }
 
-pub fn internal_router<GRC, PIC>(state: Arc<RouterState<GRC, PIC>>) -> (Router, utoipa::openapi::OpenApi)
+pub fn internal_router<GRC, PIC>(
+    state: Arc<RouterState<GRC, PIC>>,
+    revoke_solution_enabled: bool,
+) -> (Router, utoipa::openapi::OpenApi)
 where
     PIC: Send + Sync + 'static,
     GRC: Send + Sync + 'static,
 {
-    let router = OpenApiRouter::with_openapi(ApiDoc::openapi())
+    let mut router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(revoke_wallets_by_id))
         .routes(routes!(revoke_wallet_by_revocation_code))
         .routes(routes!(revoke_wallets_by_recovery_code))
-        .routes(routes!(nuke))
         .routes(routes!(list_denied_recovery_codes))
         .routes(routes!(remove_denied_recovery_code));
+
+    if revoke_solution_enabled {
+        router = router.routes(routes!(revoke_solution));
+    }
 
     #[cfg(feature = "test_internal_ui")]
     let router = router.routes(routes!(list_wallets));

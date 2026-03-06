@@ -3,9 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint . --fix"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.10",
+    "allure-vitest": "^3.2.0",
     "vitest": "^4.0.0"
   }
 }

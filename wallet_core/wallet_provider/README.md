@@ -2,9 +2,9 @@
 
 ## Setup database
 
-The wallet provider requires a Postgres database, named `wallet_provider`, that
-is accessible to a user named `postgres` having the password `postgres`. See the
-defaults in `wallet_provider/src/settings.rs`.
+The wallet provider requires a Postgres database, named `wallet_provider`. By
+default it uses localhost with `postgres` as username and password. You can
+change this via the settings file and/or `scripts/.env` for `setup-devenv.sh`.
 
 To setup a local database using `psql`:
 
@@ -16,7 +16,11 @@ create database wallet_provider_audit_log;
 For running the database migrations:
 
 ```bash
+DATABASE_URL="postgres://$DB_USERNAME:$DB_PASSWORD@$PGHOST:$PGPORT/wallet_provider" \
 cargo run --bin wallet_provider_migrations -- fresh
+
+DATABASE_URL="postgres://$DB_USERNAME:$DB_PASSWORD@$PGHOST:$PGPORT/wallet_provider_audit_log" \
+cargo run --bin audit_log_migrations -- fresh
 ```
 
 This command drops all tables and runs all migrations.
@@ -36,7 +40,7 @@ Default settings (in `wallet_provider/src/settings.rs`) and settings specified
 in `wallet_provider.toml` can both be overriden by environment variables. All
 environment variables should be prefixed with `WALLET_PROVIDER__`, e.g.
 `WALLET_PROVIDER__SIGNING_PRIVATE_KEY`. Grouped settings can be specified as
-follows: `WALLET_PROVIDER__DATABASE__HOST`, where the group name is separated
+follows: `WALLET_PROVIDER__DATABASE__URL`, where the group name is separated
 from the key by a double underscore `__`.
 
 ## Generating entity files

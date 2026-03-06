@@ -29,6 +29,7 @@ use wallet_provider_service::account_server::AccountServerPinKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::UserState;
+use wallet_provider_service::flags::WalletRepoFlags;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
@@ -47,7 +48,13 @@ pub struct RouterState<GRC, PIC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>, PostgresStatusListService<HsmEcdsaKey>>,
+    pub user_state: UserState<
+        Repositories,
+        WalletRepoFlags<Repositories>,
+        Pkcs11Hsm,
+        HsmWuaIssuer<Pkcs11Hsm>,
+        PostgresStatusListService<HsmEcdsaKey>,
+    >,
     pub max_transfer_upload_size_in_bytes: usize,
 }
 
@@ -154,6 +161,9 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             settings.attestation_wrapping_key_identifier.clone(),
         );
 
+        let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
+        flags.start_refresh_job();
+
         let state = RouterState {
             account_server,
             audit_log,
@@ -163,6 +173,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             max_transfer_upload_size_in_bytes: settings.max_transfer_upload_size_in_bytes,
             user_state: UserState {
                 repositories,
+                flags,
                 wallet_user_hsm,
                 wua_issuer,
                 wua_validity: Days::new(settings.wua_valid_days),
