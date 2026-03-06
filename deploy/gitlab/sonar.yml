@@ -19,6 +19,8 @@ sonar-rust:
       artifacts: true
     - job: test-rust-doctest
       artifacts: false
+    - job: test-revocation-portal-js
+      artifacts: true
   script:
     - cd wallet_core
     - |
