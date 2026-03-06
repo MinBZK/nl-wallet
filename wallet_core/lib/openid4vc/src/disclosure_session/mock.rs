@@ -48,7 +48,7 @@ mockall::mock! {
         pub async fn disclose(
             self,
             attestations: NonEmptyDisclosableAttestations,
-        ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>;
+        ) -> Result<Option<BaseUrl>, (Box<Self>, DisclosureError<VpSessionError>)>;
     }
 }
 
@@ -74,7 +74,7 @@ impl DisclosureSession for MockDisclosureSession {
         attestations: NonEmptyDisclosableAttestations,
         _wscd: &W,
         _time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
+    ) -> Result<Option<BaseUrl>, (Box<Self>, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,

@@ -28,7 +28,6 @@ use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
-use http_utils::urls::BaseUrl;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::wua::WuaDisclosure;
@@ -66,9 +65,9 @@ use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
-use crate::issuer_identifier::CredentialIssuerIdentifier;
-use crate::metadata::IssuerMetadata;
-use crate::metadata::IssuerMetadataDiscoveryError;
+use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_metadata::IssuerMetadata;
+use crate::issuer_metadata::IssuerMetadataDiscoveryError;
 use crate::oidc;
 use crate::token::AccessToken;
 use crate::token::CredentialPreview;
@@ -125,11 +124,11 @@ pub enum IssuanceSessionError {
 
     #[error("error requesting access token: {0:?}")]
     #[category(pd)]
-    TokenRequest(ErrorResponse<TokenErrorCode>),
+    TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
 
     #[error("error requesting credentials: {0:?}")]
     #[category(pd)]
-    CredentialRequest(ErrorResponse<CredentialErrorCode>),
+    CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
 
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
@@ -178,7 +177,7 @@ pub enum IssuanceSessionError {
 
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
-    OauthDiscovery(#[source] reqwest::Error),
+    OauthDiscovery(#[source] OauthDiscoveryError),
 
     #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
     #[category(expected)]
@@ -209,6 +208,18 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum OauthDiscoveryError {
+    #[error("could not fetch or deserialize credential OAuth Server Metadata: {0}")]
+    Http(#[from] reqwest::Error),
+
+    #[error("issuer identifier in OAuth Server Metadata does not match, expected: {expected}, received: {received}")]
+    IssuerIdentifierMismatch {
+        expected: Box<IssuerIdentifier>,
+        received: Box<IssuerIdentifier>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -293,7 +304,7 @@ mod example_constructors {
 pub trait IssuanceSession<H = HttpVcMessageClient> {
     async fn start_issuance(
         message_client: H,
-        issuer_identifier: CredentialIssuerIdentifier,
+        issuer_identifier: IssuerIdentifier,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError>
@@ -328,9 +339,12 @@ pub trait VcMessageClient {
     fn client_id(&self) -> &str;
     async fn discover_metadata(
         &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError>;
-    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
+    async fn discover_oauth_metadata(
+        &self,
+        issuer_identifier: &IssuerIdentifier,
+    ) -> Result<oidc::Config, IssuanceSessionError>;
 
     async fn request_token(
         &self,
@@ -377,7 +391,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
     async fn discover_metadata(
         &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError> {
         let metadata = IssuerMetadata::discover(&self.http_client, issuer_identifier)
             .await
@@ -385,16 +399,35 @@ impl VcMessageClient for HttpVcMessageClient {
         Ok(metadata)
     }
 
-    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
+    async fn discover_oauth_metadata(
+        &self,
+        issuer_identifier: &IssuerIdentifier,
+    ) -> Result<oidc::Config, IssuanceSessionError> {
+        // TODO (PVW-5527): Implement some sort of unified processing for fetching well-known metadata.
         let metadata = self
             .http_client
-            .get(url.join("/.well-known/oauth-authorization-server"))
+            .get(
+                issuer_identifier
+                    .as_base_url()
+                    .join("/.well-known/oauth-authorization-server"),
+            )
             .send()
             .await?
             .error_for_status()?
-            .json()
+            .json::<oidc::Config>()
             .await
-            .map_err(IssuanceSessionError::OauthDiscovery)?;
+            .map_err(|error| IssuanceSessionError::OauthDiscovery(OauthDiscoveryError::Http(error)))?;
+
+        // According to <https://www.rfc-editor.org/rfc/rfc8414.html#section-3.3> these values should be identifical.
+        if metadata.issuer != *issuer_identifier {
+            return Err(IssuanceSessionError::OauthDiscovery(
+                OauthDiscoveryError::IssuerIdentifierMismatch {
+                    expected: Box::new(issuer_identifier.clone()),
+                    received: Box::new(metadata.issuer),
+                },
+            ));
+        }
+
         Ok(metadata)
     }
 
@@ -415,7 +448,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
-                    Err(IssuanceSessionError::TokenRequest(error))
+                    Err(IssuanceSessionError::TokenRequest(Box::new(error)))
                 } else {
                     let dpop_nonce = response
                         .headers()
@@ -469,7 +502,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(error))
+                    Err(IssuanceSessionError::CredentialRequest(Box::new(error)))
                 } else {
                     Ok(())
                 }
@@ -499,7 +532,7 @@ impl HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(error))
+                    Err(IssuanceSessionError::CredentialRequest(Box::new(error)))
                 } else {
                     let response = response.json().await?;
                     Ok(response)
@@ -545,7 +578,7 @@ struct IssuanceState {
     normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
     issuer_registration: IssuerRegistration,
-    issuer_identifier: CredentialIssuerIdentifier,
+    issuer_identifier: IssuerIdentifier,
     #[debug(skip)]
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
@@ -614,13 +647,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// Discover the token endpoint from the OAuth server metadata.
     async fn discover_token_endpoint(
         message_client: &H,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<Url, IssuanceSessionError> {
         let issuer_metadata = message_client.discover_metadata(issuer_identifier).await?;
 
         // The issuer may announce multiple OAuth authorization servers the wallet may use. Which one the wallet
         // uses is left up to the wallet. We just take the first one.
-        let oauth_server = issuer_metadata.issuer_config.authorization_servers().into_first();
+        let oauth_server = issuer_metadata.authorization_servers().into_first();
         let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
 
         let token_endpoint = oauth_metadata.token_endpoint.clone();
@@ -630,15 +663,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// Discover the credential endpoint from the Credential Issuer metadata.
     async fn discover_credential_endpoint(
         message_client: &H,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<Url, IssuanceSessionError> {
         let url = message_client
             .discover_metadata(issuer_identifier)
             .await?
-            .issuer_config
             .credential_endpoint
-            .as_ref()
-            .clone();
+            .into_url();
 
         Ok(url)
     }
@@ -647,14 +678,14 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// This function returns an `Option` because the batch credential is optional.
     async fn discover_batch_credential_endpoint(
         message_client: &H,
-        issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<Option<Url>, IssuanceSessionError> {
         let url = message_client
             .discover_metadata(issuer_identifier)
             .await?
-            .issuer_config
             .batch_credential_endpoint
-            .map(|url| url.as_ref().clone());
+            .map(|url| url.into_url());
+
         Ok(url)
     }
 }
@@ -662,7 +693,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn start_issuance(
         message_client: H,
-        issuer_identifier: CredentialIssuerIdentifier,
+        issuer_identifier: IssuerIdentifier,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError> {

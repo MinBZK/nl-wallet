@@ -1,3 +1,4 @@
+use assert_matches::assert_matches;
 use serial_test::serial;
 
 use attestation_data::attributes::Attributes;
@@ -233,11 +234,15 @@ async fn ltc2_test_pid_missing_required_attributes() {
         .await
         .expect_err("should fail to accept issuance");
 
-    assert!(matches!(
-        error,
+    assert_matches!(
+        &error,
         IssuanceError::IssuerServer {
-            error: IssuanceSessionError::CredentialRequest(ErrorResponse { error_description: Some(description), .. }),
+            error: IssuanceSessionError::CredentialRequest(response),
             ..
-            } if description.contains("\"urn:eudi:pid:nl:1\": \"bsn\" is a required property")
-    ));
+        } if matches!(
+            response.as_ref(),
+            ErrorResponse { error_description: Some(description), .. }
+                if description.contains("\"urn:eudi:pid:nl:1\": \"bsn\" is a required property")
+        )
+    );
 }

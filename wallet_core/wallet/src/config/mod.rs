@@ -8,7 +8,9 @@ mod updating_repository;
 
 use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
+use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;
@@ -20,6 +22,8 @@ pub use self::data::init_universal_link_base_url;
 pub use self::file_repository::FileStorageConfigurationRepository;
 pub use self::http_repository::HttpConfigurationRepository;
 pub use self::updating_repository::UpdatingConfigurationRepository;
+
+pub type WalletConfigJwt = UnverifiedJwt<WalletConfiguration>;
 
 pub type WalletConfigurationRepository =
     UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>>>;

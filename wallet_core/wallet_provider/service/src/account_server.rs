@@ -130,17 +130,6 @@ use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
 use crate::wua_issuer::WuaIssuer;
 
-#[derive(Debug, thiserror::Error)]
-pub enum AccountServerInitError {
-    // Do not format original error to prevent potentially leaking key material
-    #[error("server private key decoding error")]
-    PrivateKeyDecoding(#[from] p256::pkcs8::Error),
-    #[error("server public key decoding error")]
-    PublicKeyDecoding(#[from] HsmError),
-    #[error("could not extract trust anchor from provided Apple certificate")]
-    AppleCertificate(#[from] webpki::Error),
-}
-
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
     #[error("challenge signing error: {0}")]
@@ -161,10 +150,8 @@ pub enum ChallengeError {
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum WalletCertificateError {
-    #[error("registration PIN public key DER encoding error: {0}")]
-    PinPubKeyEncoding(#[source] der::Error),
     #[error("registration PIN public key decoding error: {0}")]
-    PinPubKeyDecoding(#[source] p256::pkcs8::spki::Error),
+    PinPubKeyDecoding(#[source] Box<p256::pkcs8::spki::Error>),
     #[error("stored hardware public key does not match provided one")]
     HwPubKeyMismatch,
     #[error("stored pin public key does not match provided one")]
@@ -186,7 +173,7 @@ pub enum WalletCertificateError {
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidKeyAttestationError {
     #[error("could not decode public key from leaf certificate: {0}")]
-    LeafPublicKey(#[source] p256::pkcs8::spki::Error),
+    LeafPublicKey(#[source] Box<p256::pkcs8::spki::Error>),
     #[error("could not obtain Google certificate revocation list")]
     CrlClient,
     #[error("android key attestation verification failed: {0}")]
@@ -698,7 +685,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
                 // Extract the leaf certificate's verifying key
                 let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
-                    .map_err(AndroidKeyAttestationError::LeafPublicKey)?;
+                    .map_err(|error| AndroidKeyAttestationError::LeafPublicKey(Box::new(error)))?;
 
                 debug!("Validating Android app attestation");
 

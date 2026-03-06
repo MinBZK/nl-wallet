@@ -30,7 +30,7 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
@@ -420,7 +420,7 @@ where
     pub(super) async fn issuance_fetch_previews(
         &mut self,
         token_request: TokenRequest,
-        issuer_identifier: CredentialIssuerIdentifier,
+        issuer_identifier: IssuerIdentifier,
         issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
         pid_purpose: Option<PidIssuancePurpose>,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {

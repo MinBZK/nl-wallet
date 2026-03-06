@@ -36,7 +36,7 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::metadata::IssuerMetadata;
+use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionStore;
 use openid4vc::token::AccessToken;
