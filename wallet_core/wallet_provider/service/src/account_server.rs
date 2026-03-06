@@ -130,17 +130,6 @@ use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
 use crate::wua_issuer::WuaIssuer;
 
-#[derive(Debug, thiserror::Error)]
-pub enum AccountServerInitError {
-    // Do not format original error to prevent potentially leaking key material
-    #[error("server private key decoding error")]
-    PrivateKeyDecoding(#[from] p256::pkcs8::Error),
-    #[error("server public key decoding error")]
-    PublicKeyDecoding(#[from] HsmError),
-    #[error("could not extract trust anchor from provided Apple certificate")]
-    AppleCertificate(#[from] webpki::Error),
-}
-
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
     #[error("challenge signing error: {0}")]
