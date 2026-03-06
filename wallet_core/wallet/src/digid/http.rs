@@ -74,7 +74,6 @@ mod test {
     }
 
     #[tokio::test]
-    #[serial(MockOidcClient)]
     async fn test_into_token_request() {
         let mut oidc_client = MockOidcClient::default();
         oidc_client
