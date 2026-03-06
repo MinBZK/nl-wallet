@@ -7,9 +7,7 @@ use super::ConfigurationError;
 use super::FileStorageError;
 use super::WalletConfigJwt;
 
-pub async fn get_config_file(
-    storage_path: &Path,
-) -> Result<Option<WalletConfigJwt>, ConfigurationError> {
+pub async fn get_config_file(storage_path: &Path) -> Result<Option<WalletConfigJwt>, ConfigurationError> {
     let path = path_for_config_file(storage_path);
 
     if !fs::try_exists(&path).await.map_err(FileStorageError::from)? {
@@ -20,10 +18,7 @@ pub async fn get_config_file(
     Ok(Some(jwt_string.parse()?))
 }
 
-pub async fn update_config_file(
-    storage_path: &Path,
-    jwt: &WalletConfigJwt,
-) -> Result<(), FileStorageError> {
+pub async fn update_config_file(storage_path: &Path, jwt: &WalletConfigJwt) -> Result<(), FileStorageError> {
     let path = path_for_config_file(storage_path);
     fs::write(path, jwt.serialization()).await?;
     Ok(())
