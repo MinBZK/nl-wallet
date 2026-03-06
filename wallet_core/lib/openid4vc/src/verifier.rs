@@ -2022,7 +2022,7 @@ mod tests {
         let session_token = "session_token".into();
         let time_str = "1969-07-21T02:56:15Z";
         let time = time_str.parse().unwrap();
-        let client_id: ClientId = "client_id".parse().unwrap();
+        let client_id: ClientId = "client_id".into();
 
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), (), ()>::format_ul(
@@ -2048,7 +2048,7 @@ mod tests {
         );
 
         let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
-        assert_eq!(request_uri.client_id, "client_id".parse().unwrap());
+        assert_eq!(request_uri.client_id, "client_id".into());
 
         let (request_uri, request_uri_method) = match request_uri.object {
             VpRequestUriObject::AsReference {
@@ -2073,7 +2073,7 @@ mod tests {
 
     #[test]
     fn test_verifier_url_without_ephemeral_id() {
-        let client_id: ClientId = "client_id".parse().unwrap();
+        let client_id: ClientId = "client_id".into();
 
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), (), ()>::format_ul(
@@ -2086,7 +2086,7 @@ mod tests {
         .unwrap();
 
         let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
-        assert_eq!(request_uri.client_id, "client_id".parse().unwrap());
+        assert_eq!(request_uri.client_id, "client_id".into());
 
         let (request_uri, request_uri_method) = match request_uri.object {
             VpRequestUriObject::AsReference {
@@ -2120,7 +2120,7 @@ mod tests {
                 data: UseCaseData {
                     key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
-                    client_id: "client_id".parse().unwrap(),
+                    client_id: "client_id".into(),
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),

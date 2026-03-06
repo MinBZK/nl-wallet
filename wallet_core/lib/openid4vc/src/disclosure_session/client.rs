@@ -598,7 +598,7 @@ mod tests {
         ));
 
         let query = serde_urlencoded::to_string(VpRequestUri {
-            client_id: "client_id".parse().unwrap(),
+            client_id: "client_id".into(),
             object: VpRequestUriObject::AsValue {
                 request: "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJzIiwiYXVkIjoicyJ9.sig".to_string(),
             },
@@ -629,7 +629,7 @@ mod tests {
         ));
 
         let query = serde_urlencoded::to_string(VpRequestUri {
-            client_id: "client_id".parse().unwrap(),
+            client_id: "client_id".into(),
             object: VpRequestUriObject::AsQueryParameters {
                 response_type: "vp_token".to_string(),
                 nonce: "nonce".to_string(),

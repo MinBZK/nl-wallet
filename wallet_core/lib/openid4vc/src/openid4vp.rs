@@ -218,8 +218,7 @@ pub struct VpClientMetadata {
 
 /// `client_id` prefix values as defined by OpenID4VP 1.0 section 5.9.3.
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.9.3>
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, strum::EnumString, strum::Display)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
 pub enum ClientIdScheme {
     RedirectUri,
@@ -229,7 +228,7 @@ pub enum ClientIdScheme {
     X509SanDns,
     X509Hash,
     Origin,
-    #[strum(default, to_string = "{0}")]
+    #[strum(default)]
     Other(String),
 }
 
@@ -249,29 +248,28 @@ impl fmt::Display for ClientId {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ParseClientIdError {
-    #[error("invalid scheme")]
-    BadScheme,
-}
-
-impl FromStr for ClientId {
-    type Err = ParseClientIdError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl From<&str> for ClientId {
+    fn from(s: &str) -> Self {
         if let Some((scheme_str, id)) = s.split_once(':') {
-            let scheme = scheme_str.parse().map_err(|_| ParseClientIdError::BadScheme)?;
-            Ok(Self {
-                scheme: Some(scheme),
+            Self {
+                scheme: Some(scheme_str.parse().unwrap()),
                 id: id.to_string(),
-            })
+            }
         } else {
-            Ok(Self {
+            Self {
                 // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-fallback
                 scheme: None,
                 id: s.to_string(),
-            })
+            }
         }
+    }
+}
+
+impl FromStr for ClientId {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(ClientId::from(s))
     }
 }
 
@@ -446,9 +444,6 @@ pub enum AuthRequestValidationError {
     #[error("{0}")]
     #[category(pd)]
     Jwk(#[from] JwePublicKeyError),
-    #[error("unknown client_id scheme: {id}. Only x509_san_dns is currently supported")]
-    #[category(critical)]
-    UnknownClientIdScheme { id: String },
     #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns is currently supported")]
     #[category(critical)]
     UnsupportedClientIdScheme { scheme: ClientIdScheme },
@@ -741,13 +736,7 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         let client_id =
             vp_auth_request
                 .oauth_request
-                .client_id
-                .parse::<ClientId>()
-                .map_err(
-                    |ParseClientIdError::BadScheme| AuthRequestValidationError::UnknownClientIdScheme {
-                        id: vp_auth_request.oauth_request.client_id.clone(),
-                    },
-                )?;
+                .client_id.as_str().into();
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
@@ -1330,7 +1319,7 @@ mod tests {
 
     #[test]
     fn test_client_id_parse_and_display_x509_san_dns() {
-        let client_id = "x509_san_dns:example.com".parse::<ClientId>().unwrap();
+        let client_id: ClientId = "x509_san_dns:example.com".into();
 
         assert_eq!(client_id.to_string(), "x509_san_dns:example.com");
         assert_matches!(client_id.scheme, Some(ClientIdScheme::X509SanDns));
@@ -1339,7 +1328,7 @@ mod tests {
 
     #[test]
     fn test_client_id_parse_and_display_without_scheme() {
-        let client_id = "example.com".parse::<ClientId>().unwrap();
+        let client_id: ClientId = "example.com".into();
 
         assert_eq!(client_id.to_string(), "example.com");
         assert_matches!(client_id.scheme, None);
@@ -1348,7 +1337,7 @@ mod tests {
 
     #[test]
     fn test_client_id_parse_and_display_unknown_scheme() {
-        let client_id = "future_scheme:example.com".parse::<ClientId>().unwrap();
+        let client_id: ClientId = "future_scheme:example.com".into();
 
         assert_eq!(client_id.to_string(), "future_scheme:example.com");
         assert_matches!(&client_id.scheme, Some(ClientIdScheme::Other(s)) if s == "future_scheme");
@@ -1357,7 +1346,7 @@ mod tests {
 
     #[test]
     fn test_client_id_parse_and_display_decentralized_identifier() {
-        let client_id = "decentralized_identifier:did:example:123".parse::<ClientId>().unwrap();
+        let client_id: ClientId = "decentralized_identifier:did:example:123".into();
 
         assert_eq!(client_id.to_string(), "decentralized_identifier:did:example:123");
         assert_matches!(client_id.scheme, Some(ClientIdScheme::DecentralizedIdentifier));
@@ -1366,7 +1355,7 @@ mod tests {
 
     #[test]
     fn test_client_id_parse_and_display_x509_hash() {
-        let client_id = "x509_hash:abcdef".parse::<ClientId>().unwrap();
+        let client_id: ClientId = "x509_hash:abcdef".into();
 
         assert_eq!(client_id.to_string(), "x509_hash:abcdef");
         assert_matches!(client_id.scheme, Some(ClientIdScheme::X509Hash));
