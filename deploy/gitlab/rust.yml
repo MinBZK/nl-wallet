@@ -362,6 +362,11 @@ build-gba-fetch-frontend-binary:
 
 build-revocation-portal-binary:
   extends: .build-binary
+  needs:
+    - !reference [.build-binary, needs]
+    - job: test-revocation-portal-js
+      artifacts: false
+      optional: true
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "revocation_portal" --bin
       revocation_portal
