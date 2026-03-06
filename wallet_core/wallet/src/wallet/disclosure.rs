@@ -909,7 +909,7 @@ where
                 }
 
                 // At this point place the `DisclosureSession` back so that `WalletDisclosureSession` is whole again.
-                session.protocol_state = protocol_state;
+                session.protocol_state = *protocol_state;
 
                 match disclosure_error {
                     DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked) => {
@@ -2658,10 +2658,10 @@ mod tests {
             .times(1)
             .return_once(|_disclosable_attestations| {
                 Err((
-                    setup_disclosure_session_verifier_certificate(
+                    Box::new(setup_disclosure_session_verifier_certificate(
                         disclose_verifier_certificate,
                         default_pid_credential_requests(CredentialFormat::MsoMdoc),
-                    ),
+                    )),
                     disclosure_error,
                 ))
             });
@@ -2699,10 +2699,10 @@ mod tests {
             .times(1)
             .return_once(|_disclosable_attestations| {
                 Err((
-                    setup_disclosure_session_verifier_certificate(
+                    Box::new(setup_disclosure_session_verifier_certificate(
                         disclose_verifier_certificate,
                         default_pid_credential_requests(CredentialFormat::MsoMdoc),
-                    ),
+                    )),
                     disclosure_error,
                 ))
             });
@@ -2875,7 +2875,7 @@ mod tests {
                 }
 
                 Err((
-                    session,
+                    Box::new(session),
                     disclosure_session::DisclosureError::before_sharing(VpSessionError::Client(
                         VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(Box::new(
                             RemoteEcdsaKeyError::Instruction(instruction_error),
@@ -3053,7 +3053,7 @@ mod tests {
             );
 
             Err((
-                session,
+                Box::new(session),
                 wallet_revocation_error(AccountRevokedData {
                     revocation_reason: RevocationReason::UserRequest,
                     can_register_new_account: true,
@@ -3123,7 +3123,7 @@ mod tests {
             );
 
             Err((
-                session,
+                Box::new(session),
                 wallet_revocation_error(AccountRevokedData {
                     revocation_reason: RevocationReason::AdminRequest,
                     can_register_new_account: true,
