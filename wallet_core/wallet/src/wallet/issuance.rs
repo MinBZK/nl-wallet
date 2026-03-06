@@ -31,6 +31,7 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
@@ -54,9 +55,8 @@ use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::AttestationValidity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
-use crate::digid::DigidClient;
 use crate::digid::DigidError;
-use crate::digid::DigidSession;
+use crate::digid::start_digid_session;
 use crate::errors::ChangePinError;
 use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
@@ -229,11 +229,11 @@ pub enum PidAttestationFormat {
     Either,
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     pub(super) async fn has_pid(
@@ -254,13 +254,13 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     IS: IssuanceSession,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
@@ -308,18 +308,16 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
-        let session = self
-            .digid_client
-            .start_session(
-                pid_issuance_config.digid.clone(),
-                pid_issuance_config.digid_http_config.clone(),
-                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
-            )
-            .await
-            .map_err(IssuanceError::DigidSessionStart)?;
+        let session = start_digid_session(
+            pid_issuance_config.digid.clone(),
+            pid_issuance_config.digid_http_config.clone(),
+            urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
+        )
+        .await
+        .map_err(IssuanceError::DigidSessionStart)?;
 
         info!("DigiD auth URL generated");
-        let auth_url = session.auth_url().clone();
+        let auth_url = session.auth_url.clone();
         self.session.replace(Session::Digid { purpose, session });
 
         Ok(auth_url)
@@ -405,10 +403,7 @@ where
             panic!()
         };
 
-        let pid_issuance_config = &self.config_repository.get().pid_issuance;
-        let token_request = session
-            .into_token_request(&pid_issuance_config.digid_http_config, redirect_uri)
-            .await?;
+        let token_request = session.into_token_request(&redirect_uri)?;
 
         let config = self.config_repository.get();
 
@@ -807,6 +802,7 @@ mod tests {
     use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
@@ -821,7 +817,10 @@ mod tests {
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
-    use crate::digid::MockDigidSession;
+    use crate::digid::DigidSessionState;
+    use crate::digid::mock::AUTH_URL;
+    use crate::digid::mock::mock_digid_session_state;
+    use crate::digid::mock::mock_digid_session_state_tuple;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::RegistrationData;
@@ -844,23 +843,17 @@ mod tests {
     #[case(PidIssuancePurpose::Enrollment, false)]
     #[case(PidIssuancePurpose::Renewal, true)]
     #[tokio::test]
+    #[serial(MockOidcClient)]
     async fn test_create_pid_issuance_auth_url(#[case] purpose: PidIssuancePurpose, #[case] pid_present: bool) {
-        const AUTH_URL: &str = "http://example.com/auth";
-
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         assert!(wallet.session.is_none());
 
-        // Set up a mock DigiD session.
-        wallet.digid_client.expect_start_session().times(1).return_once(
-            |_digid_config, _http_config, _redirect_uri| {
-                let mut session = MockDigidSession::new();
-
-                session.expect_auth_url().return_const(Url::parse(AUTH_URL).unwrap());
-
-                Ok(session)
-            },
-        );
+        // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
+        let oidc_ctx = MockOidcClient::start_context();
+        oidc_ctx
+            .expect()
+            .return_once(|_, _, _| Ok(mock_digid_session_state_tuple()));
 
         wallet
             .mut_storage()
@@ -946,7 +939,7 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Digid {
             purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
+            session: mock_digid_session_state(),
         });
 
         // Creating a DigiD authentication URL on a `Wallet` that
@@ -985,17 +978,14 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    #[serial(MockOidcClient)]
     async fn test_create_pid_issuance_auth_url_error_digid_session_start(
         #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Make DigiD session starting return an error.
-        wallet
-            .digid_client
-            .expect_start_session()
-            .times(1)
-            .return_once(|_digid_config, _http_config, _redirect_uri| Err(OidcError::NoAuthCode.into()));
+        let oidc_ctx = MockOidcClient::start_context();
+        oidc_ctx.expect().return_once(|_, _, _| Err(OidcError::NoAuthCode));
 
         wallet
             .mut_storage()
@@ -1018,7 +1008,7 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Digid {
             purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
+            session: mock_digid_session_state(),
         });
 
         assert!(wallet.session.is_some());
@@ -1224,33 +1214,34 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    fn mock_digid_session() -> MockDigidSession<TlsPinningConfig> {
-        // Set up a mock DigiD session that returns a token request.
-        let mut session = MockDigidSession::new();
+    fn mock_digid_session() -> DigidSessionState<MockOidcClient> {
+        // Set up a mock OIDC client that returns a token request.
+        let mut oidc_client = MockOidcClient::new();
 
-        session
-            .expect_into_token_request()
-            .return_once(|_http_config, redirect_uri| {
-                if redirect_uri
-                    .query_pairs()
-                    .any(|(key, val)| key == "error" && val == "access_denied")
-                {
-                    return Err(DigidError::Oidc(OidcError::Denied));
-                }
+        oidc_client.expect_into_token_request().return_once(|redirect_uri| {
+            if redirect_uri
+                .query_pairs()
+                .any(|(key, val)| key == "error" && val == "access_denied")
+            {
+                return Err(OidcError::Denied);
+            }
 
-                let token_request = TokenRequest {
-                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                        pre_authorized_code: "123".to_string().into(),
-                    },
-                    code_verifier: None,
-                    client_id: None,
-                    redirect_uri: None,
-                };
+            let token_request = TokenRequest {
+                grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: "123".to_string().into(),
+                },
+                code_verifier: None,
+                client_id: None,
+                redirect_uri: None,
+            };
 
-                Ok(token_request)
-            });
+            Ok(token_request)
+        });
 
-        session
+        DigidSessionState {
+            oidc_client,
+            auth_url: Url::parse(AUTH_URL).unwrap(),
+        }
     }
 
     async fn setup_wallet_with_digid_session() -> TestWalletMockStorage {

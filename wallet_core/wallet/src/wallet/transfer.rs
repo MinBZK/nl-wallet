@@ -14,6 +14,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
@@ -31,7 +32,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
-use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
 use crate::errors::UpdatePolicyError;
@@ -117,13 +117,13 @@ pub enum TransferError {
     TempFileCreation(#[source] std::io::Error),
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     IS: IssuanceSession,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
@@ -482,7 +482,7 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
-    use crate::digid::MockDigidSession;
+    use crate::digid::mock::mock_digid_session_state;
     use crate::storage::ChangePinData;
     use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
@@ -538,7 +538,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Digid {
             purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
+            session: mock_digid_session_state(),
         });
 
         let error = wallet

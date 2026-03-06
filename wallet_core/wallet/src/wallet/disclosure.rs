@@ -35,6 +35,7 @@ use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
+use openid4vc::oidc::OidcClient;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
@@ -53,7 +54,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::AttestationPresentationConfig;
-use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientParameters;
@@ -365,12 +365,12 @@ fn is_request_for_recovery_code(
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
     S: Storage,
 {
@@ -1008,7 +1008,6 @@ mod tests {
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
-    use http_utils::client::TlsPinningConfig;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
     use mdoc::iso::mdocs::Entry;
@@ -1029,6 +1028,7 @@ mod tests {
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetRequestErrorCode;
     use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::oidc::MockOidcClient;
     use openid4vc::verifier::SessionType;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -1042,7 +1042,6 @@ mod tests {
     use crate::attestation::AttestationIdentity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
     use crate::errors::StorageError;
@@ -1185,7 +1184,7 @@ mod tests {
     fn setup_wallet_disclosure_session_missing_attributes(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) =
@@ -1203,7 +1202,7 @@ mod tests {
     fn setup_wallet_disclosure_session(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let credential_requests = default_pid_credential_requests(requested_format);

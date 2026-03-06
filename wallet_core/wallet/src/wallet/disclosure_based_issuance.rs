@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use openid4vc::disclosure_session::DisclosureSession;
 use tracing::info;
 use tracing::instrument;
 
@@ -12,9 +11,11 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
+use openid4vc::oidc::OidcClient;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -24,7 +25,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
-use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
@@ -71,14 +71,14 @@ pub enum DisclosureBasedIssuanceError {
 // However, the `flutter_api` already knows which flow it is in anyway, because it displays
 // different things to the user in each flow. So keeping this a distinct method is more
 // pragmatic.
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    DC: DigidClient,
+    OC: OidcClient,
     IS: Openid4vcIssuanceSession,
     DCC: DisclosureClient,
 {

@@ -24,7 +24,6 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
-use crate::digid::DigidApp2AppConfiguration;
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -172,8 +171,6 @@ pub struct PidIssuanceConfiguration {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DigidConfiguration {
     pub client_id: String,
-    #[serde(default)]
-    pub app2app: Option<DigidApp2AppConfiguration>,
 }
 
 #[serde_as]

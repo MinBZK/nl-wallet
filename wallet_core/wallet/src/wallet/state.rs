@@ -2,13 +2,13 @@ use tracing::instrument;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
 
 use crate::Wallet;
-use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
@@ -60,12 +60,12 @@ pub enum TransferRole {
     Destination,
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]
@@ -148,11 +148,9 @@ where
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
     use futures::FutureExt;
-    use http_utils::client::TlsPinningConfig;
     use josekit::jwk::Jwk;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
-    use openid4vc::mock::MockIssuanceSession;
     use rstest::rstest;
     use uuid::Uuid;
 
@@ -160,6 +158,8 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::issuance_session::IssuedCredential;
+    use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::oidc::MockOidcClient;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
@@ -168,7 +168,7 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
     use crate::WalletState;
-    use crate::digid::MockDigidSession;
+    use crate::digid::mock::mock_digid_session_state;
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
@@ -337,7 +337,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_session(
         #[case] is_locked: bool,
-        #[case] session: Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
+        #[case] session: Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>,
         #[case] expected_state: WalletState,
     ) {
         // Prepare a registered and unlocked wallet.
@@ -445,9 +445,7 @@ mod tests {
         #[case] change_pin_data: Option<impl Into<ChangePinData>>,
         #[case] transfer_data: Option<TransferData>,
         #[case] pin_recovery_data: Option<PinRecoveryData>,
-        #[case] session: Option<
-            Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
-        >,
+        #[case] session: Option<Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>>,
         #[case] expected_state: WalletState,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -543,14 +541,14 @@ mod tests {
         }
     }
 
-    fn digid_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession> {
+    fn digid_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
         Session::Digid {
             purpose: PidIssuancePurpose::Enrollment,
-            session: MockDigidSession::new(),
+            session: mock_digid_session_state(),
         }
     }
 
-    fn issuance_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession> {
+    fn issuance_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
@@ -569,7 +567,7 @@ mod tests {
         ))
     }
 
-    fn disclosure_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession> {
+    fn disclosure_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
         Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
@@ -577,15 +575,14 @@ mod tests {
         ))
     }
 
-    fn pin_recovery_session() -> Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>
-    {
+    fn pin_recovery_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
         let wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple)
             .now_or_never()
             .unwrap();
 
         Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(MockDigidSession::new()),
+            session: PinRecoverySession::Digid(mock_digid_session_state()),
         }
     }
 }
