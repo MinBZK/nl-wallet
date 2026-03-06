@@ -380,7 +380,7 @@ pub mod test {
         assert_matches!(
             error,
             AttestationError::Attributes(AttributesError::SomeAttributesNotProcessed(claims))
-                if claims == IndexMap::from([
+                if *claims == IndexMap::from([
                     (String::from("example_attestation_type"),
                     vec![Entry {
                         name: String::from("entry2"),

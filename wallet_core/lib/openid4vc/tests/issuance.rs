@@ -489,7 +489,7 @@ impl VcMessageClient for MockOpenidMessageClient {
             .issuer
             .process_token_request(token_request.clone(), dpop_header.clone())
             .await
-            .map_err(|err| IssuanceSessionError::TokenRequest(err.into()))?;
+            .map_err(|err| IssuanceSessionError::TokenRequest(Box::new(err.into())))?;
         Ok((token_response, Some(dpop_nonce)))
     }
 
@@ -507,7 +507,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 self.credential_request(credential_request.clone()),
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 
     async fn request_credentials(
@@ -524,7 +524,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 self.credential_requests(credential_requests.clone()),
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 
     async fn reject(
@@ -540,7 +540,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 "batch_credential",
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 }
 

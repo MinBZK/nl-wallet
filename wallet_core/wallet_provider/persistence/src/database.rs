@@ -13,7 +13,7 @@ use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 
-#[derive(AsRef)]
+#[derive(Clone, AsRef)]
 pub struct Db(DatabaseConnection);
 
 #[serde_as]

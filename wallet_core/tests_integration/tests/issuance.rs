@@ -1,3 +1,4 @@
+use assert_matches::assert_matches;
 use serial_test::serial;
 
 use attestation_data::attributes::Attributes;
@@ -161,7 +162,7 @@ async fn ltc1_test_pid_optional_attributes() {
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
-            pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()).0,
+            pid_issuer_settings(db_setup.pid_issuer_url()).0,
             vec![pid_without_optionals_with_address()].try_into().unwrap(),
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
@@ -206,7 +207,7 @@ async fn ltc2_test_pid_missing_required_attributes() {
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
-            pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()).0,
+            pid_issuer_settings(db_setup.pid_issuer_url()).0,
             vec![pid_missing_required_with_address()].try_into().unwrap(),
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
@@ -226,11 +227,15 @@ async fn ltc2_test_pid_missing_required_attributes() {
         .await
         .expect_err("should fail to accept issuance");
 
-    assert!(matches!(
-        error,
+    assert_matches!(
+        &error,
         IssuanceError::IssuerServer {
-            error: IssuanceSessionError::CredentialRequest(ErrorResponse { error_description: Some(description), .. }),
+            error: IssuanceSessionError::CredentialRequest(response),
             ..
-            } if description.contains("\"urn:eudi:pid:nl:1\": \"bsn\" is a required property")
-    ));
+        } if matches!(
+            response.as_ref(),
+            ErrorResponse { error_description: Some(description), .. }
+                if description.contains("\"urn:eudi:pid:nl:1\": \"bsn\" is a required property")
+        )
+    );
 }

@@ -18,7 +18,7 @@ pub enum IssuerUrlError {
     UrlParsing(#[from] BaseUrlParseError),
 
     #[error("issuer URL scheme is not \"https\": {0}")]
-    SchemeNotHttps(BaseUrl),
+    SchemeNotHttps(Box<BaseUrl>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -28,10 +28,10 @@ pub enum IssuerIdentifierError {
     UrlParsing(#[from] IssuerUrlError),
 
     #[error("issuer identifier URL has query component: {0}")]
-    HasQuery(BaseUrl),
+    HasQuery(Box<BaseUrl>),
 
     #[error("issuer identifier URL has fragment component: {0}")]
-    HasFragment(BaseUrl),
+    HasFragment(Box<BaseUrl>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
@@ -44,7 +44,7 @@ impl IssuerUrl {
 
         // TODO (PVW-5612): Only allow HTTPS in local development environment.
         if !ALLOWED_HTTP_SCHEMES.contains(&url.as_ref().scheme()) {
-            return Err(IssuerUrlError::SchemeNotHttps(url));
+            return Err(IssuerUrlError::SchemeNotHttps(Box::new(url)));
         }
 
         Ok(Self(url))
@@ -98,11 +98,11 @@ impl IssuerIdentifier {
         let url = identifier.parse::<IssuerUrl>()?;
 
         if url.as_ref().as_ref().query().is_some() {
-            return Err(IssuerIdentifierError::HasQuery(url.into_inner()));
+            return Err(IssuerIdentifierError::HasQuery(Box::new(url.into_inner())));
         }
 
         if url.as_ref().as_ref().fragment().is_some() {
-            return Err(IssuerIdentifierError::HasFragment(url.into_inner()));
+            return Err(IssuerIdentifierError::HasFragment(Box::new(url.into_inner())));
         }
 
         Ok(Self { identifier, url })

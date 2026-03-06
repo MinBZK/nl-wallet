@@ -16,6 +16,11 @@ path = "tests/wallet_transfer.rs"
 required-features = ["db_test"]
 
 [[test]]
+name = "wallet_flag"
+path = "tests/wallet_flag.rs"
+required-features = ["db_test"]
+
+[[test]]
 name = "wallet_user"
 path = "tests/wallet_user.rs"
 required-features = ["db_test"]
@@ -32,7 +37,7 @@ required-features = ["db_test"]
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["dep:mockall", "dep:rand_core", "wallet_provider_domain/mock"]
+mock = ["dep:dashmap", "dep:mockall", "dep:rand_core", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "dep:ctor",
@@ -48,7 +53,15 @@ db_test = [
     "test",
 ]
 # Include code used for testing
-test = ["dep:android_attest", "dep:db_test", "dep:rand_core", "hsm/mock"]
+test = [
+    "async-dropper/simple",
+    "dep:async-trait",
+    "dep:android_attest",
+    "dep:db_test",
+    "dep:rand_core",
+    "dep:status_lists",
+    "hsm/mock"
+]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
@@ -70,7 +83,10 @@ tracing.workspace = true
 url.workspace = true
 uuid.workspace = true
 
+async-dropper = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
+dashmap = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
@@ -86,6 +102,7 @@ wallet_provider_domain.path = "../domain"
 
 android_attest = { path = "../../lib/android_attest", optional = true }
 db_test = { path = "../../lib/db_test", optional = true }
+status_lists = { path = "../../lib/status_lists", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true

@@ -45,7 +45,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         .merge(status_list_router)
         .nest("/config/v1", config_router);
 
-    axum_server::from_tcp_rustls(listener, settings.tls_config.into_rustls_config().await?)
+    axum_server::from_tcp_rustls(listener, settings.tls_config.into_rustls_config()?)
         .expect("TCP listener should not be in blocking mode")
         .serve(app.into_make_service())
         .await?;

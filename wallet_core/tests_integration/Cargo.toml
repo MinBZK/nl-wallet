@@ -192,6 +192,7 @@ integration_test = [
     "tokio/rt-multi-thread",
     "tokio/sync",
     "tokio/time",
+    "wallet_account/client",
 ]
 
 # Optional feature for running integration tests that depend on the DigiD connector
@@ -292,6 +293,7 @@ update_policy_server = { path = "../update_policy/server", optional = true }
 utils = { path = "../lib/utils", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true }
 wallet = { path = "../wallet", optional = true }
+wallet_account = { path = "../wallet_provider/wallet_account", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }

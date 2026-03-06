@@ -30,7 +30,6 @@ pub struct HttpUpdatePolicyRepository {
 static CACHE_DURATION: LazyLock<Duration> = LazyLock::new(|| Duration::from_secs(1 * 60 * 60)); // 1 hour
 
 impl HttpUpdatePolicyRepository {
-    #[expect(clippy::new_without_default)] // this will receive some parameters in the future
     pub fn new() -> Self {
         version(); // force a failure as early as possible
 
@@ -38,6 +37,12 @@ impl HttpUpdatePolicyRepository {
             client: ReqwestHttpClient::new("update-policy".parse().expect("should be a valid filename")),
             state: RwLock::new((VersionState::Ok, None)),
         }
+    }
+}
+
+impl Default for HttpUpdatePolicyRepository {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
