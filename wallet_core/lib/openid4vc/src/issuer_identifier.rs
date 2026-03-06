@@ -6,6 +6,7 @@ use derive_more::Eq;
 use derive_more::PartialEq;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+use url::Url;
 
 use http_utils::urls::ALLOWED_HTTP_SCHEMES;
 use http_utils::urls::BaseUrl;
@@ -54,6 +55,12 @@ impl IssuerUrl {
         let Self(base_url) = self;
 
         base_url
+    }
+
+    pub fn into_url(self) -> Url {
+        let Self(base_url) = self;
+
+        base_url.into_inner()
     }
 
     pub fn join_issuer_url(&self, path: &str) -> Self {

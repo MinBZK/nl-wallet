@@ -669,8 +669,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .discover_metadata(issuer_identifier)
             .await?
             .credential_endpoint
-            .into_inner()
-            .into_inner();
+            .into_url();
 
         Ok(url)
     }
@@ -685,7 +684,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .discover_metadata(issuer_identifier)
             .await?
             .batch_credential_endpoint
-            .map(|url| url.into_inner().into_inner());
+            .map(|url| url.into_url());
 
         Ok(url)
     }
