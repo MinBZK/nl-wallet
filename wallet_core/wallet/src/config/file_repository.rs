@@ -40,6 +40,12 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
                     // Initial config is newer or JWT is tampered/invalid: fall back to the embedded config.
                     // We do not write the embedded config to disk since it has no corresponding JWT.
                     // The next successful HTTP fetch will populate the file.
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to parse and verify wallet configuration JWT, falling back to embedded config: {e}"
+                        );
+                        initial_config
+                    }
                     _ => initial_config,
                 }
             }
