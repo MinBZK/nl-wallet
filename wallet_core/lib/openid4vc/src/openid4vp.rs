@@ -244,7 +244,7 @@ impl From<&str> for ClientId {
     fn from(s: &str) -> Self {
         if let Some((scheme_str, id)) = s.split_once(':') {
             Self {
-                scheme: Some(scheme_str.parse().unwrap()),
+                scheme: Some(scheme_str.into()),
                 id: id.to_string(),
             }
         } else {
