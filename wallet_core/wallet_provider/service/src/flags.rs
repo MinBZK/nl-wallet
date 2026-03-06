@@ -166,9 +166,11 @@ where
     type Error = PersistenceError;
 
     async fn is_revoked_all(&self) -> Result<bool, Self::Error> {
-        // Directly query the database as the republish all is already done and
-        // new status lists can get created which should be published with all
-        // invalid.
+        // Directly query the database and not use the flags cache. The reason
+        // is that after setting the flag, we directly republish all known
+        // status lists. Other instances of the app that do not have their flags
+        // refreshed can register new wallets and create new status lists. Those
+        // newly status lists also need to be published with all items revoked.
         self.repository.get_flag(WalletFlag::SolutionRevoked).await
     }
 }

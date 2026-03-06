@@ -84,6 +84,7 @@ const REPUBLISH_ALL_MAX_CONCURRENT: usize = 16;
 pub trait RevokeAll {
     type Error: std::error::Error + Send + Sync + 'static;
 
+    /// Whether all items in a status list needs to be revoked
     async fn is_revoked_all(&self) -> Result<bool, Self::Error>;
 }
 
