@@ -7,7 +7,7 @@ use crate::iso18013_5::Iso18013_5ChannelImpl;
 
 use super::Iso18013_5SessionManager;
 
-struct MockIso18013_5Session;
+pub struct MockIso18013_5Session;
 
 impl Iso18013_5SessionManager for MockIso18013_5Session {
     async fn start_qr_handover() -> Result<(String, mpsc::Receiver<Iso18013_5Update>), Iso18013_5Error> {
