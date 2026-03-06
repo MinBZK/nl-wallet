@@ -1017,10 +1017,12 @@ where
     let test_credentials = nl_pid_credentials_full_name();
     let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt]);
     let reader_registration = ReaderRegistration::mock_from_dcql_query(&dcql_query);
+    let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
     let usecases = HashMap::from([(
         WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
         WalletInitiatedUseCase::try_new(
             generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+            &public_url,
             SessionTypeReturnUrl::SameDevice,
             dcql_query.try_into().unwrap(),
             "https://example.com/redirect_uri".parse().unwrap(),

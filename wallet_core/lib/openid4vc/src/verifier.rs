@@ -758,11 +758,12 @@ pub struct WalletInitiatedUseCases<K> {
 impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
+        public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_key_pair(&key_pair)?;
+        let client_id = client_id_from_public_url(&key_pair, public_url)?;
 
         let use_case = Self {
             data: UseCaseData {
@@ -836,14 +837,6 @@ where
     ) -> Option<EphemeralIdParameters> {
         None
     }
-}
-
-fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<ClientId, UseCaseCertificateError> {
-    let san_dns_name = key_pair
-        .certificate()
-        .san_dns_name()?
-        .ok_or(UseCaseCertificateError::MissingSAN)?;
-    Ok(ClientId::x509_san_dns(san_dns_name))
 }
 
 fn client_id_from_public_url<K>(
