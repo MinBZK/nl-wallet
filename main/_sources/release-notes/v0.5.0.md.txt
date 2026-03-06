@@ -53,6 +53,11 @@
   the user and reset the wallet to its initial state if the revocation was
   initiated remotely by the user.
 - Updated Flutter to 3.41.2
+- The wallet now stores the signed wallet configuration (as a JWT) on disk.
+  On startup, the stored configuration is loaded and its signature verified,
+  preventing a tampered configuration from being used without detection.
+  When a newer configuration is fetched from the server, it replaces the
+  previously stored one.
 
 ## Interoperability improvements
 
