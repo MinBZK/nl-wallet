@@ -97,10 +97,6 @@ test-rust:
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit.xml qt/quality-time/junit-results/rust.xml
-    - deploy/bin/store-artifact.sh wallet_core/revocation_portal/test-results/junit.xml
-      qt/quality-time/junit-results/revocation-portal.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/revocation-portal.zip
-      wallet_core/revocation_portal/allure-results/*
   artifacts:
     name: test-rust
     reports:
@@ -110,9 +106,6 @@ test-rust:
       junit: wallet_core/target/nextest/ci/junit.xml
     paths:
       - wallet_core/lcov.info
-      - wallet_core/revocation_portal/coverage/lcov.info
-      - wallet_core/revocation_portal/allure-results
-      - wallet_core/revocation_portal/test-results/junit.xml
       - wallet_core/target/nextest/ci/junit.xml
 
 test-rust-doctest:
@@ -369,6 +362,11 @@ build-gba-fetch-frontend-binary:
 
 build-revocation-portal-binary:
   extends: .build-binary
+  needs:
+    - !reference [.build-binary, needs]
+    - job: test-revocation-portal-js
+      artifacts: false
+      optional: true
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "revocation_portal" --bin
       revocation_portal

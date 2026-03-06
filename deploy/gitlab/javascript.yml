@@ -35,3 +35,25 @@ test-generate-web-bindings:
     - scripts/generate-web-bindings.sh
     - git diff
     - if [[ -n $(git status --porcelain) ]]; then echo "Bindings generation results in different files!"; exit 1; fi
+
+test-revocation-portal-js:
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  rules: !reference [.default-or-merge-request, rules]
+  script:
+    - set -euxo pipefail
+    - cd wallet_core/revocation_portal
+    - npm ci --ignore-scripts
+    - npm run coverage
+  after_script:
+    - deploy/bin/store-artifact.sh wallet_core/revocation_portal/test-results/junit.xml
+      qt/quality-time/junit-results/revocation-portal.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/revocation-portal.zip
+      wallet_core/revocation_portal/allure-results/*
+  artifacts:
+    name: test-revocation-portal-js
+    reports:
+      junit: wallet_core/revocation_portal/test-results/junit.xml
+    paths:
+      - wallet_core/revocation_portal/coverage/lcov.info
+      - wallet_core/revocation_portal/allure-results
+      - wallet_core/revocation_portal/test-results/junit.xml

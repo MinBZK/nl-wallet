@@ -42,6 +42,9 @@ build-test-report:
     - job: wallet-web
       artifacts: false
       optional: true
+    - job: test-revocation-portal-js
+      artifacts: false
+      optional: true
   script:
     - cd testreporting
     - npm ci --ignore-scripts
