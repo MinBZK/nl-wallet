@@ -150,8 +150,6 @@ pub enum ChallengeError {
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum WalletCertificateError {
-    #[error("registration PIN public key DER encoding error: {0}")]
-    PinPubKeyEncoding(#[source] der::Error),
     #[error("registration PIN public key decoding error: {0}")]
     PinPubKeyDecoding(#[source] p256::pkcs8::spki::Error),
     #[error("stored hardware public key does not match provided one")]
