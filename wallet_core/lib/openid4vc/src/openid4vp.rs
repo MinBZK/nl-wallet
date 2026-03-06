@@ -1205,6 +1205,7 @@ mod tests {
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
+    use http_utils::urls::BaseUrl;
     use jwt::SignedJwt;
     use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
@@ -1507,6 +1508,41 @@ mod tests {
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
+    }
+
+    #[test]
+    fn test_authorization_request_validate_unmatched_response_fqdn() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let wrong_fqdn = "wrong.example.com";
+        let expected_client_id = rp_keypair.certificate().san_dns_name().unwrap().unwrap().to_string();
+
+        auth_request.response_uri = Some(format!("https://{wrong_fqdn}/response_uri").parse().unwrap());
+
+        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        assert_matches!(
+            err,
+            AuthRequestValidationError::UnmatchedResponseFqdn { fqdn, id }
+            if fqdn == wrong_fqdn && id == expected_client_id
+        );
+    }
+
+    #[test]
+    fn test_authorization_request_validate_unmatched_response_fqdn_without_fqdn() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let response_uri: BaseUrl = "file:///response_uri".parse().unwrap();
+        let expected_response_uri = response_uri.to_string();
+        let expected_client_id = rp_keypair.certificate().san_dns_name().unwrap().unwrap().to_string();
+
+        auth_request.response_uri = Some(response_uri);
+
+        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        assert_matches!(
+            err,
+            AuthRequestValidationError::UnmatchedResponseFqdn { fqdn, id }
+            if fqdn == expected_response_uri && id == expected_client_id
+        );
     }
 
     #[test]
