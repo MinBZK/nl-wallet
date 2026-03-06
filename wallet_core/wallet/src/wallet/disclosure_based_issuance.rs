@@ -382,7 +382,7 @@ mod tests {
         let mut disclosure_session = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
         disclosure_session.protocol_state.expect_disclose().return_once(|_| {
             Err((
-                MockDisclosureSession::new(),
+                Box::new(MockDisclosureSession::new()),
                 disclosure_session::DisclosureError::new(
                     DataDisclosed::Disclosed,
                     VpSessionError::Client(VpClientError::Request(

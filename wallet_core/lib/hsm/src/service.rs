@@ -48,7 +48,7 @@ pub enum HsmError {
     R2d2(#[from] r2d2_cryptoki::r2d2::Error),
 
     #[error("sec1 error: {0}")]
-    Sec1(#[from] sec1::der::Error),
+    Sec1(#[source] Box<sec1::der::Error>),
 
     #[error("no initialized slot available")]
     NoInitializedSlotAvailable,
@@ -347,7 +347,9 @@ impl Pkcs11Client for Pkcs11Hsm {
             let session = pool.get()?;
 
             let mut oid = vec![];
-            EcParameters::NamedCurve(NistP256::OID).encode_to_vec(&mut oid)?;
+            EcParameters::NamedCurve(NistP256::OID)
+                .encode_to_vec(&mut oid)
+                .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
             let pub_key_template = &[Attribute::EcParams(oid)];
             let priv_key_template = &[
@@ -375,7 +377,9 @@ impl Pkcs11Client for Pkcs11Hsm {
             let session = pool.get()?;
 
             let mut oid = vec![];
-            EcParameters::NamedCurve(NistP256::OID).encode_to_vec(&mut oid)?;
+            EcParameters::NamedCurve(NistP256::OID)
+                .encode_to_vec(&mut oid)
+                .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
             let pub_key_template = &[Attribute::EcParams(oid), Attribute::Label(identifier.clone().into())];
             let priv_key_template = &[
@@ -424,7 +428,8 @@ impl Pkcs11Client for Pkcs11Hsm {
 
             match attr {
                 Attribute::EcPoint(ec_point) => {
-                    let octet_string = OctetString::from_der(&ec_point)?;
+                    let octet_string =
+                        OctetString::from_der(&ec_point).map_err(|error| HsmError::Sec1(Box::new(error)))?;
                     let public_key = VerifyingKey::from_sec1_bytes(octet_string.as_bytes())?;
                     Ok(public_key)
                 }

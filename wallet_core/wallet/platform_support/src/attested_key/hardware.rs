@@ -96,7 +96,7 @@ pub enum HardwareAttestedKeyError {
     #[error("could not decode DER signature: {0}")]
     Signature(#[from] p256::ecdsa::Error),
     #[error("could not decode DER public key: {0}")]
-    PublicKey(#[from] p256::pkcs8::spki::Error),
+    PublicKey(#[source] Box<p256::pkcs8::spki::Error>),
     #[error("could not perform attested key operation in platform code: {0}")]
     Platform(#[source] AttestedKeyError),
 }
@@ -248,7 +248,8 @@ impl EcdsaKey for GoogleHardwareAttestedKey {
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         let public_key_bytes = self.0.public_key().await?;
-        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
+        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)
+            .map_err(|error| HardwareAttestedKeyError::PublicKey(Box::new(error)))?;
 
         Ok(public_key)
     }

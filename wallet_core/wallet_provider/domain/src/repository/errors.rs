@@ -10,7 +10,7 @@ pub enum PersistenceError {
     Execution(#[source] sea_orm::DbErr),
 
     #[error("verifying key conversion error: {0}")]
-    VerifyingKeyConversion(#[from] p256::pkcs8::spki::Error),
+    VerifyingKeyConversion(#[source] Box<p256::pkcs8::spki::Error>),
 
     #[error("signing key conversion error: {0}")]
     SigningKeyConversion(#[from] p256::ecdsa::Error),

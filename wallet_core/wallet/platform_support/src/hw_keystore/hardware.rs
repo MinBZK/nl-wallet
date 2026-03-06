@@ -84,7 +84,8 @@ impl EcdsaKey for HardwareEcdsaKey {
 
         spawn::blocking(|| {
             let public_key_bytes = get_signing_key_bridge().public_key(identifier)?;
-            let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
+            let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)
+                .map_err(|error| HardwareKeyStoreError::PublicKeyError(Box::new(error)))?;
 
             Ok::<_, Self::Error>(public_key)
         })

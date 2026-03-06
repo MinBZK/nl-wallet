@@ -43,7 +43,12 @@ where
                 wallet_user_id: Set(create.wallet_user_id),
                 batch_id: Set(create.batch_id),
                 identifier: Set(key_identifier),
-                public_key: Set(key_create.key.public_key().to_public_key_der()?.into_vec()),
+                public_key: Set(key_create
+                    .key
+                    .public_key()
+                    .to_public_key_der()
+                    .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?
+                    .into_vec()),
                 encrypted_private_key: Set(key_create.key.wrapped_private_key().to_vec()),
                 is_blocked: Set(key_create.is_blocked),
             })
@@ -182,7 +187,11 @@ where
         .map(|(id, key_data, public_key)| {
             Ok((
                 id,
-                WrappedKey::new(key_data, VerifyingKey::from_public_key_der(&public_key)?),
+                WrappedKey::new(
+                    key_data,
+                    VerifyingKey::from_public_key_der(&public_key)
+                        .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?,
+                ),
             ))
         })
         .collect()
