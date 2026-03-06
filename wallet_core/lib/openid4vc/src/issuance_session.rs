@@ -212,7 +212,7 @@ pub enum IssuanceSessionError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum OauthDiscoveryError {
-    #[error("could not fetch or deserialize credential OAuth Server Metadata : {0}")]
+    #[error("could not fetch or deserialize credential OAuth Server Metadata: {0}")]
     Http(#[from] reqwest::Error),
 
     #[error("issuer identifier in OAuth Server Metadata does not match, expected: {expected}, received: {received}")]
