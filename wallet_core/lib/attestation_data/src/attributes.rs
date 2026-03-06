@@ -44,9 +44,6 @@ pub enum AttributeError {
 
     #[error("unable to convert number from claim value: {0}")]
     NumberFromClaimValueConversion(Number),
-
-    #[error("unable to convert json value: {0}")]
-    FromJsonConversion(serde_json::Value),
 }
 
 #[derive(Debug, thiserror::Error)]
