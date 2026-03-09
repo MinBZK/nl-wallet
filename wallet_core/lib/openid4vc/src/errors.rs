@@ -212,8 +212,8 @@ impl ErrorStatusCode for TokenErrorCode {
 }
 
 /// Error codes for the credential preview endpoint.
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum CredentialPreviewErrorCode {
     InvalidRequest,
     InvalidToken,
