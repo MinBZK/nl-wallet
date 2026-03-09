@@ -162,11 +162,14 @@ fn disclosure_direct() {
     let nonce = "nonce".to_string();
     let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+    let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
+    encryption_jwk.set_algorithm("ECDH-ES");
+    encryption_jwk.set_key_id("test-kid");
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
         NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
-        encryption_keypair.to_jwk_public_key().try_into().unwrap(),
+        encryption_jwk.try_into().unwrap(),
         response_uri,
         None,
     );
@@ -336,12 +339,15 @@ impl DirectMockVpMessageClient {
 
         let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
+        encryption_jwk.set_algorithm("ECDH-ES");
+        encryption_jwk.set_key_id("test-kid");
 
         let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             test_credentials.to_normalized_credential_requests(formats.iter().copied()),
             auth_keypair.certificate(),
             "nonce".to_string(),
-            encryption_keypair.to_jwk_public_key().try_into().unwrap(),
+            encryption_jwk.try_into().unwrap(),
             response_uri.clone(),
             None,
         );
