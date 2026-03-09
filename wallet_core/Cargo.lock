@@ -7913,7 +7913,6 @@ version = "0.5.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
- "async-trait",
  "attestation_types",
  "axum",
  "chrono",

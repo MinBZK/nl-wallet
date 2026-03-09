@@ -6,7 +6,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use async_trait::async_trait;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::StreamExt;
@@ -189,34 +188,33 @@ pub enum StatusListServiceError {
     UnknownAttestationType(String),
 }
 
-#[async_trait]
-trait Publisher {
-    async fn publish(&self, list_id: i64, external_id: &str, size: usize) -> Result<bool, StatusListServiceError>;
+struct Publisher<'a, K, R> {
+    service: &'a PostgresStatusListService<K, R>,
+    revoke_all: bool,
 }
 
-struct PublishFromDb<'a, K, R>(&'a PostgresStatusListService<K, R>);
-
-#[async_trait]
-impl<'a, K, R> Publisher for PublishFromDb<'a, K, R>
+impl<'a, K, R> Publisher<'a, K, R>
 where
     K: EcdsaKeySend + Sync + 'static,
     R: RevokeAll + Clone + Sync + 'static,
 {
     async fn publish(&self, list_id: i64, external_id: &str, size: usize) -> Result<bool, StatusListServiceError> {
-        self.0.publish_status_list_from_db(list_id, external_id, size).await
+        if self.revoke_all {
+            self.service.publish_status_list_all_revoked(external_id, size).await
+        } else {
+            self.service
+                .publish_status_list_from_db(list_id, external_id, size)
+                .await
+        }
     }
 }
 
-struct PublishRevokeAll<'a, K, R>(&'a PostgresStatusListService<K, R>);
-
-#[async_trait]
-impl<'a, K, R> Publisher for PublishRevokeAll<'a, K, R>
-where
-    K: EcdsaKeySend + Sync + 'static,
-    R: RevokeAll + Clone + Sync + 'static,
-{
-    async fn publish(&self, _list_id: i64, external_id: &str, size: usize) -> Result<bool, StatusListServiceError> {
-        self.0.publish_status_list_all_revoked(external_id, size).await
+impl<'a, K, R> Clone for Publisher<'a, K, R> {
+    fn clone(&self) -> Self {
+        Self {
+            service: self.service,
+            revoke_all: self.revoke_all,
+        }
     }
 }
 
@@ -913,12 +911,11 @@ where
         }
     }
 
-    async fn to_publisher<'a>(&'a self) -> Result<Arc<dyn Publisher + Send + Sync + 'a>, R::Error> {
-        if self.revoke_all.is_revoked_all().await? {
-            Ok(Arc::new(PublishRevokeAll(self)))
-        } else {
-            Ok(Arc::new(PublishFromDb(self)))
-        }
+    async fn to_publisher<'a>(&'a self) -> Result<Publisher<'a, K, R>, R::Error> {
+        Ok(Publisher {
+            service: self,
+            revoke_all: self.revoke_all.is_revoked_all().await?,
+        })
     }
 
     pub fn start_refresh_job(&self) -> AbortHandle {
