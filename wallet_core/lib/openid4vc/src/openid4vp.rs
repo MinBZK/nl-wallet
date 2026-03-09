@@ -319,11 +319,22 @@ where
     Ok(values)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::Display)]
+/// JWE content encryption algorithms for `encrypted_response_enc_values_supported`.
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.3>
+#[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum VpEncValues {
     A128GCM,
     A192GCM,
     A256GCM,
+    #[strum(default)]
+    Other(String),
+}
+
+impl VpEncValues {
+    fn is_supported(&self) -> bool {
+        matches!(self, Self::A128GCM | Self::A192GCM | Self::A256GCM)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -478,6 +489,12 @@ pub enum AuthRequestValidationError {
     #[error("no supported JWK found in client_metadata.jwks: expected at least one EC/P-256 JWK with alg ECDH-ES")]
     #[category(critical)]
     NoSupportedJwk,
+    #[error(
+        "no supported value found in client_metadata.encrypted_response_enc_values_supported: expected at least one \
+         of A128GCM, A192GCM or A256GCM"
+    )]
+    #[category(critical)]
+    NoSupportedEncryptedResponseEnc,
     #[error("{0}")]
     #[category(pd)]
     Jwk(#[from] JwePublicKeyError),
@@ -743,6 +760,13 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
             .cloned()
             .find_map(|jwk| JwePublicKey::try_new(jwk).ok())
             .ok_or(AuthRequestValidationError::NoSupportedJwk)?;
+        if !client_metadata
+            .encrypted_response_enc_values_supported
+            .iter()
+            .any(VpEncValues::is_supported)
+        {
+            return Err(AuthRequestValidationError::NoSupportedEncryptedResponseEnc);
+        }
 
         let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
 
@@ -887,13 +911,13 @@ impl VpAuthorizationResponse {
         header.set_agreement_partyuinfo(encryption_nonce);
         header.set_agreement_partyvinfo(auth_request.nonce.clone());
 
-        // Use the first content encryption algorithm that the server advertises.
+        // Use the first content encryption algorithm that both parties support.
         let content_encryption = auth_request
             .client_metadata
             .encrypted_response_enc_values_supported
-            .first()
-            .copied()
-            .unwrap_or(VpEncValues::A128GCM);
+            .iter()
+            .find(|enc| enc.is_supported())
+            .unwrap_or(&VpEncValues::A128GCM);
         header.set_content_encryption(content_encryption.to_string());
         header.set_key_id(auth_request.encryption_pubkey.kid().to_string());
 
@@ -1760,6 +1784,107 @@ mod tests {
     }
 
     #[test]
+    fn deserialize_authorization_request_unknown_and_supported_encryption_enc_supported() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "encrypted_response_enc_values_supported": ["A512GCM", "A256GCM"],
+                    "vp_formats": {
+                        "mso_mdoc": {
+                            "alg": [ "ES256" ]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+
+        assert!(matches!(
+            normalized_request.client_metadata.encrypted_response_enc_values_supported.first(),
+            Some(VpEncValues::Other(value)) if value == "A512GCM"
+        ));
+        assert_eq!(
+            normalized_request
+                .client_metadata
+                .encrypted_response_enc_values_supported
+                .get(1),
+            Some(&VpEncValues::A256GCM)
+        );
+    }
+
+    #[test]
+    fn authorization_request_without_supported_encryption_enc_should_error() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "encrypted_response_enc_values_supported": ["A512GCM"],
+                    "vp_formats": {
+                        "mso_mdoc": {
+                            "alg": [ "ES256" ]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        assert_matches!(error, AuthRequestValidationError::NoSupportedEncryptedResponseEnc);
+    }
+
+    #[test]
     fn authorization_request_missing_kid_should_error() {
         let example_json = json!(
             {
@@ -1802,6 +1927,24 @@ mod tests {
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
+    }
+
+    #[test]
+    fn authorization_response_should_use_first_supported_encryption_enc() {
+        let (_, _, encryption_privkey, mut auth_request) = setup_mdoc();
+        auth_request.client_metadata.encrypted_response_enc_values_supported =
+            vec![VpEncValues::Other("A512GCM".to_string()), VpEncValues::A256GCM];
+
+        let encryption_nonce = "encryption_nonce".to_string();
+        let auth_response = VpAuthorizationResponse::new(HashMap::new(), None, None);
+        let jwe = auth_response.encrypt(&auth_request, &encryption_nonce).unwrap();
+
+        let decrypter = EcdhEsJweAlgorithm::EcdhEs
+            .decrypter_from_jwk(&encryption_privkey.to_jwk_key_pair())
+            .unwrap();
+        let (_, header) = josekit::jwt::decode_with_decrypter(&jwe, &decrypter).unwrap();
+
+        assert_eq!(header.content_encryption(), Some("A256GCM"));
     }
 
     #[test]
