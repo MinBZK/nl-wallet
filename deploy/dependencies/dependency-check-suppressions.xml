@@ -43,54 +43,7 @@
   </suppress>
   <!-- End group: [CRITICAL] -->
 
-  <!-- Start group: [HIGH] -->
-  <suppress>
-     <notes><![CDATA[
-     False positive, 10.5.0 is not affected
-     ]]></notes>
-     <packageUrl regex="true">^pkg:npm/glob@10[.]5[.]0$</packageUrl>
-     <vulnerabilityName>CVE-2025-64756</vulnerabilityName>
-  </suppress>
-
-  <suppress>
-    <notes><![CDATA[
-    We are not vulnerable as ajv is only run as dev-dependency.
-    Also eslint pinned their dependency on 6.x.y. and will not update.
-    See https://github.com/eslint/eslint/pull/19340
-    ]]></notes>
-    <packageUrl regex="true">^pkg:npm/ajv@.*$</packageUrl>
-    <vulnerabilityName>CVE-2025-69873</vulnerabilityName>
-    <vulnerabilityName>GHSA-2g4f-4pwh-qvx6</vulnerabilityName>
-  </suppress>
-
-  <suppress>
-    <notes><![CDATA[
-    False positive, minimatch 3.1.4 is not affected
-    ]]></notes>
-    <packageUrl regex="true">^pkg:npm/minimatch@3[.]1[.]4$</packageUrl>
-    <cve>CVE-2026-26996</cve>
-  </suppress>
-  <suppress>
-    <notes><![CDATA[
-    False positive, minimatch 9.0.7 is not affected
-    ]]></notes>
-    <packageUrl regex="true">^pkg:npm/minimatch@9[.]0[.]7$</packageUrl>
-    <cve>CVE-2026-26996</cve>
-  </suppress>
-
-  <!-- End group: [HIGH] -->
-
   <!-- Start group: [MEDIUM] -->
-  <suppress>
-    <notes><![CDATA[
-    See the discussion in https://github.com/prettier/prettier/issues/17737.
-    Suppressing here because it is a dev dependency and we only input our own source files, therefore lowering the
-    exploitability.
-    ]]></notes>
-    <packageUrl regex="true">^pkg:npm/prettier@.*$</packageUrl>
-    <vulnerabilityName>CVE-2025-8263</vulnerabilityName>
-  </suppress>
-
   <suppress>
      <notes><![CDATA[
      We are not vulnerable as there are no user controlled URI paths.
@@ -99,14 +52,4 @@
      <vulnerabilityName>CVE-2026-25765</vulnerabilityName>
   </suppress>
   <!-- End group: [MEDIUM] -->
-
-  <!-- Start group: [LOW] -->
-  <suppress>
-    <notes><![CDATA[
-    False positive (Drupal)
-    ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/video_player_avfoundation@.*$</packageUrl>
-    <cve>CVE-2015-3362</cve>
-  </suppress>
-  <!-- End group: [LOW] -->
 </suppressions>
