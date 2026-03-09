@@ -192,7 +192,7 @@ pub enum IssuanceSessionError {
 
     #[error("issuer has no credential preview endpoint")]
     #[category(critical)]
-    NoCredentialPreviewEndpoint,
+    NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
 
     #[error("error requesting credential preview: {0:?}")]
     #[category(pd)]
