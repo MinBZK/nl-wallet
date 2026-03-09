@@ -17,11 +17,11 @@ use axum_extra::TypedHeader;
 use axum_extra::headers;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
+use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use serde::Serialize;
 use tracing::warn;
 
-use axum_extra::headers::authorization::Bearer;
 use crypto::keys::EcdsaKeySend;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
@@ -38,6 +38,7 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
@@ -46,7 +47,6 @@ use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
 use token_status_list::status_list_service::StatusListServices;
-use openid4vc::issuer_metadata::IssuerMetadata;
 
 struct ApplicationState<A, K, S, L> {
     issuer: Arc<Issuer<A, K, S, L>>,
