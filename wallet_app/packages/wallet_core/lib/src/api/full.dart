@@ -112,6 +112,8 @@ Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
+Future<String> startCloseProximityDisclosure() => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure();
+
 Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancelDisclosure();
 
 Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>

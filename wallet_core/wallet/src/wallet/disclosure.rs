@@ -589,6 +589,11 @@ where
         Ok(proposal)
     }
 
+    pub async fn start_close_proximity_disclosure(&mut self) -> Result<String, DisclosureError> {
+        // TODO should return an mdoc: URL
+        unimplemented!()
+    }
+
     fn verify_non_selectively_disclosable_claims<'a>(
         candidate_attestations: impl IntoIterator<
             Item = (
