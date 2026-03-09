@@ -196,7 +196,7 @@ pub enum IssuanceSessionError {
 
     #[error("error requesting credential preview: {0:?}")]
     #[category(pd)]
-    CredentialPreviewRequest(ErrorResponse<CredentialPreviewErrorCode>),
+    CredentialPreviewRequest(Box<ErrorResponse<CredentialPreviewErrorCode>>),
 
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
@@ -502,7 +502,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialPreviewErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialPreviewRequest(error))
+                    Err(IssuanceSessionError::CredentialPreviewRequest(Box::new(error)))
                 } else {
                     let response = response.json().await?;
                     Ok(response)

@@ -504,7 +504,7 @@ impl VcMessageClient for MockOpenidMessageClient {
         self.issuer
             .process_credential_preview(access_token.clone(), preview_request.clone())
             .await
-            .map_err(|err| IssuanceSessionError::CredentialPreviewRequest(err.into()))
+            .map_err(|err| IssuanceSessionError::CredentialPreviewRequest(Box::new(err.into())))
     }
 
     async fn request_credential(
