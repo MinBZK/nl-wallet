@@ -161,7 +161,6 @@ fake_digid = ["dep:reqwest", "http_utils/client", "dep:url", "dep:wallet_configu
 db_test = [
     "audit_log?/db_test",
     "health_checkers?/db_test",
-    "pid_issuer?/db_test",
     "server_utils?/db_test",
     "status_lists?/db_test",
     "verification_server?/db_test",
@@ -193,6 +192,7 @@ integration_test = [
     "tokio/rt-multi-thread",
     "tokio/sync",
     "tokio/time",
+    "wallet_account/client",
 ]
 
 # Optional feature for running integration tests that depend on the DigiD connector
@@ -293,6 +293,7 @@ update_policy_server = { path = "../update_policy/server", optional = true }
 utils = { path = "../lib/utils", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true }
 wallet = { path = "../wallet", optional = true }
+wallet_account = { path = "../wallet_provider/wallet_account", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
@@ -312,7 +313,6 @@ issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer" }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
-revocation_portal = { path = "../revocation_portal", features = ["integration_test"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }
 token_status_list = { path = "../lib/token_status_list", features = ["verification"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["test"] }

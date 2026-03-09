@@ -5,11 +5,11 @@ use tracing::info;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::attestation::AttestationPresentation;
-use crate::digid::DigidClient;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -25,12 +25,12 @@ pub enum AttestationsError {
 
 pub type AttestationsCallback = Box<dyn Fn(Vec<AttestationPresentation>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
 {
     pub(super) async fn emit_attestations(&self) -> Result<(), AttestationsError> {

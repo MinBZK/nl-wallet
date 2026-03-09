@@ -76,10 +76,11 @@ use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
-use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VerifiablePresentation;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
+use openid4vc::openid4vp::VpRequestUri;
+use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::MemorySessionStore;
@@ -362,10 +363,12 @@ impl DirectMockVpMessageClient {
     }
 
     fn start_session(&self) -> String {
-        serde_urlencoded::to_string(VpRequestUriObject {
-            request_uri: self.request_uri.clone(),
+        serde_urlencoded::to_string(VpRequestUri {
             client_id: String::from(self.auth_keypair.certificate().san_dns_name().unwrap().unwrap()),
-            request_uri_method: Default::default(),
+            object: VpRequestUriObject::AsReference {
+                request_uri: self.request_uri.clone(),
+                request_uri_method: Default::default(),
+            },
         })
         .unwrap()
     }
@@ -822,10 +825,12 @@ async fn test_wallet_initiated_usecase_verifier() {
         .unwrap(),
     ));
 
-    let universal_link_query = serde_urlencoded::to_string(VpRequestUriObject {
-        request_uri: request_uri.try_into().unwrap(),
-        request_uri_method: Some(RequestUriMethod::POST),
+    let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
         client_id: RP_CERT_CN.to_string(),
+        object: VpRequestUriObject::AsReference {
+            request_uri: request_uri.try_into().unwrap(),
+            request_uri_method: Some(VpRequestUriMethod::POST),
+        },
     })
     .unwrap();
 
@@ -866,10 +871,12 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
         .unwrap(),
     ));
 
-    let universal_link_query = serde_urlencoded::to_string(VpRequestUriObject {
-        request_uri: request_uri.try_into().unwrap(),
-        request_uri_method: Some(RequestUriMethod::POST),
+    let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
         client_id: RP_CERT_CN.to_string(),
+        object: VpRequestUriObject::AsReference {
+            request_uri: request_uri.try_into().unwrap(),
+            request_uri_method: Some(VpRequestUriMethod::POST),
+        },
     })
     .unwrap();
 

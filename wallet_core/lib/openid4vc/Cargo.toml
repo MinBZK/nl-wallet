@@ -11,8 +11,8 @@ workspace = true
 doctest = false
 
 [[test]]
-name = "issuance"
-path = "tests/issuance.rs"
+name = "disclosure"
+path = "tests/disclosure.rs"
 required-features = ["integration"]
 
 [[test]]

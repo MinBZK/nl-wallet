@@ -66,25 +66,25 @@ test-rust:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
       command: [
-        "postgres",
-        # Allow for more connections with larger shared buffers
-        "-N",
-        "200",
-        "-c",
-        "shared_buffers=128MB",
-        # Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
-        "-c",
-        "fsync=off",
-        "-c",
-        "synchronous_commit=off",
-        "-c",
-        "full_page_writes=off",
-        # Minimal WAL
-        "-c",
-        "wal_level=minimal",
-        "-c",
-        "max_wal_senders=0",
-      ]
+          "postgres",
+          # Allow for more connections with larger shared buffers
+          "-N",
+          "200",
+          "-c",
+          "shared_buffers=128MB",
+          # Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
+          "-c",
+          "fsync=off",
+          "-c",
+          "synchronous_commit=off",
+          "-c",
+          "full_page_writes=off",
+          # Minimal WAL
+          "-c",
+          "wal_level=minimal",
+          "-c",
+          "max_wal_senders=0",
+        ]
       variables:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
@@ -362,6 +362,11 @@ build-gba-fetch-frontend-binary:
 
 build-revocation-portal-binary:
   extends: .build-binary
+  needs:
+    - !reference [.build-binary, needs]
+    - job: test-revocation-portal-js
+      artifacts: false
+      optional: true
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "revocation_portal" --bin
       revocation_portal

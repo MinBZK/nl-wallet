@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 pub mod api;
 mod errors;
 #[expect(clippy::cast_lossless, clippy::uninlined_format_args)]

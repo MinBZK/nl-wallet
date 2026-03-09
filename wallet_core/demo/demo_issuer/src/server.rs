@@ -38,7 +38,6 @@ pub async fn serve(settings: Settings) -> Result<()> {
                 tls_config
                     .clone()
                     .into_rustls_config()
-                    .await
                     .expect("TLS config should be valid"),
             )
             .expect("TCP listener should not be in blocking mode")

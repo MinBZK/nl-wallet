@@ -23,7 +23,6 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::UnverifiedJwt;
 use openid4vc::CredentialErrorCode;
@@ -44,8 +43,8 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
-use openid4vc::metadata::IssuerMetadata;
+use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc;
 use openid4vc::preview::CredentialPreviewRequest;
@@ -75,7 +74,7 @@ type MockIssuer<G = TimeGenerator> =
 
 fn setup_mock_issuer(
     attestation_count: NonZeroUsize,
-) -> (MockIssuer, TrustAnchor<'static>, CredentialIssuerIdentifier, SigningKey) {
+) -> (MockIssuer, TrustAnchor<'static>, IssuerIdentifier, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
 
@@ -94,16 +93,11 @@ fn setup<G>(
     ca: &Ca,
     issuance_keypair: &KeyPair,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-) -> (
-    MockIssuer<G>,
-    TrustAnchor<'static>,
-    CredentialIssuerIdentifier,
-    SigningKey,
-)
+) -> (MockIssuer<G>, TrustAnchor<'static>, IssuerIdentifier, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
-    let issuer_identifier = "https://example.com/".parse::<CredentialIssuerIdentifier>().unwrap();
+    let issuer_identifier = "https://example.com/".parse::<IssuerIdentifier>().unwrap();
     let wua_issuer_privkey = SigningKey::random(&mut OsRng);
     let trust_anchor = ca.to_trust_anchor().to_owned();
 
@@ -217,7 +211,7 @@ async fn reject_issuance() {
 
 async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
-    issuer_identifier: CredentialIssuerIdentifier,
+    issuer_identifier: IssuerIdentifier,
     trust_anchor: TrustAnchor<'static>,
     wua_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
@@ -475,13 +469,16 @@ impl VcMessageClient for MockOpenidMessageClient {
 
     async fn discover_metadata(
         &self,
-        _issuer_identifier: &CredentialIssuerIdentifier,
+        issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError> {
-        Ok(self.issuer.metadata().clone())
+        Ok(IssuerMetadata::new_mock(issuer_identifier.clone()))
     }
 
-    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
-        Ok(oidc::Config::new_mock(url.clone()))
+    async fn discover_oauth_metadata(
+        &self,
+        issuer_identifier: &IssuerIdentifier,
+    ) -> Result<oidc::Config, IssuanceSessionError> {
+        Ok(oidc::Config::new_mock(issuer_identifier.clone()))
     }
 
     async fn request_token(
@@ -494,7 +491,7 @@ impl VcMessageClient for MockOpenidMessageClient {
             .issuer
             .process_token_request(token_request.clone(), dpop_header.clone())
             .await
-            .map_err(|err| IssuanceSessionError::TokenRequest(err.into()))?;
+            .map_err(|err| IssuanceSessionError::TokenRequest(Box::new(err.into())))?;
         Ok((token_response, Some(dpop_nonce)))
     }
 
@@ -524,7 +521,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 self.credential_request(credential_request.clone()),
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 
     async fn request_credentials(
@@ -541,7 +538,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 self.credential_requests(credential_requests.clone()),
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 
     async fn reject(
@@ -557,7 +554,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 "batch_credential",
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 }
 
@@ -616,7 +613,7 @@ impl AttributeService for MockAttributeService {
         Ok(self.documents.clone())
     }
 
-    async fn oauth_metadata(&self, issuer_url: &CredentialIssuerIdentifier) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new_mock(issuer_url.as_base_url().clone()))
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
+        Ok(oidc::Config::new_mock(issuer_identifier.clone()))
     }
 }

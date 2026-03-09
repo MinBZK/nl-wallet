@@ -645,6 +645,8 @@ void frbgen_wallet_core_wire__crate__api__full__lock_wallet(int64_t port_);
 void frbgen_wallet_core_wire__crate__api__full__pair_wallet_transfer(int64_t port_,
                                                                      struct wire_cst_list_prim_u_8_strict *uri);
 
+void frbgen_wallet_core_wire__crate__api__full__perform_background_sync(int64_t port_);
+
 void frbgen_wallet_core_wire__crate__api__full__receive_wallet_transfer(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__register(int64_t port_,
@@ -811,6 +813,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__is_valid_pin);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__lock_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__pair_wallet_transfer);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__perform_background_sync);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__receive_wallet_transfer);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__register);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__reset_wallet);

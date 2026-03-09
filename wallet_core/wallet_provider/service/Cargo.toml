@@ -16,6 +16,11 @@ path = "tests/account_server.rs"
 required-features = ["db_test"]
 
 [[test]]
+name = "flags"
+path = "tests/flags.rs"
+required-features = ["db_test"]
+
+[[test]]
 name = "revocation"
 path = "tests/revocation.rs"
 required-features = ["db_test"]
@@ -54,7 +59,9 @@ db_test = [
     "mock",
     "mock_secure_keys",
     "dep:tempfile",
+    "tokio/macros",
     "tokio/rt-multi-thread",
+    "tokio/time",
     "tracing-subscriber/ansi",
     "tracing-subscriber/env-filter",
     "wallet_provider_persistence/test",
@@ -68,6 +75,7 @@ derive_more = { workspace = true, features = ["constructor", "into"] }
 futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
+parking_lot = { workspace = true }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 semver.workspace = true
@@ -77,6 +85,7 @@ serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tracing.workspace = true
+tokio = { workspace = true, features = ["sync"] }
 uuid = { workspace = true, features = ["v4"] }
 trait-variant.workspace = true
 

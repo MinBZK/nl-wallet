@@ -2,6 +2,7 @@ import UIKit
 import PlatformSupport
 import Flutter
 import flutter_local_notifications
+import workmanager_apple
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -19,10 +20,11 @@ import flutter_local_notifications
     print(dummy_frb)
 
     initializeLocalNotifications()
+    initializeWorkmanager()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
-    
+
   fileprivate func initializeLocalNotifications() {
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
@@ -34,7 +36,21 @@ import flutter_local_notifications
       UserDefaults.standard.set(true, forKey: notificationInitializedKey)
     }
   }
-  
+
+  fileprivate func initializeWorkmanager() {
+    // Enable debug logging
+    WorkmanagerDebug.setCurrent(LoggingDebugHandler())
+    // Enable other plugins during background operations
+    WorkmanagerPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+    }
+    // Schedule hourly background-sync task
+    WorkmanagerPlugin.registerPeriodicTask(
+      withIdentifier: "nl.edi.wallet.background-sync",
+      frequency: NSNumber(value: 3600) // 1 hour
+    )
+  }
+
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }

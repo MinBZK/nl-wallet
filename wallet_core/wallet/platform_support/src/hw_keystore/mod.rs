@@ -18,7 +18,7 @@ pub enum HardwareKeyStoreError {
     #[error(transparent)]
     KeyStoreError(#[from] KeyStoreError),
     #[error("error decoding public key from hardware: {0}")]
-    PublicKeyError(#[from] p256::pkcs8::spki::Error),
+    PublicKeyError(#[source] Box<p256::pkcs8::spki::Error>),
     #[error("error signing with hardware key: {0}")]
     SigningError(#[from] p256::ecdsa::Error),
 }

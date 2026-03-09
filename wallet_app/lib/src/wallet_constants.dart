@@ -1,5 +1,6 @@
 // Animation
 import 'package:flutter/painting.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 const kDefaultAnimationDuration = Duration(milliseconds: 300);
 
@@ -28,3 +29,12 @@ const kDeepDivePath = '/deepdive'; //Used to support deepdives with dedicated ho
 
 // Notification related
 const kNotificationPayloadScheme = 'nlwallet';
+const kAndroidInitSettings = AndroidInitializationSettings('ic_notification');
+const kDarwinInitSettings = DarwinInitializationSettings(
+  requestAlertPermission: false,
+  requestBadgePermission: false,
+  requestCriticalPermission: false,
+  requestSoundPermission: false,
+  requestProvisionalPermission: false,
+  requestProvidesAppNotificationSettings: false,
+);

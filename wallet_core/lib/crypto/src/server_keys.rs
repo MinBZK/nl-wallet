@@ -106,7 +106,8 @@ pub mod generate {
     use crate::x509::CertificateUsage;
 
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateError> {
-        SigningKey::from_pkcs8_der(keypair.serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
+        SigningKey::from_pkcs8_der(keypair.serialized_der())
+            .map_err(|error| CertificateError::GeneratingPrivateKey(Box::new(error)))
     }
 
     pub struct Ca {
@@ -122,7 +123,8 @@ pub mod generate {
             certificate: CertificateDer<'static>,
             intermediate_count: u8,
         ) -> Result<Self, CertificateError> {
-            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.as_ref())?;
+            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.as_ref())
+                .map_err(|error| CertificateError::Verification(Box::new(error)))?;
 
             let ca = Self {
                 issuer,

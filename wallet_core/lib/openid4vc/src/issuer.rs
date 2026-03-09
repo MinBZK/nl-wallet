@@ -63,11 +63,10 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
-use crate::issuer_identifier::CredentialIssuerIdentifier;
-use crate::metadata;
-use crate::metadata::CredentialMetadata;
-use crate::metadata::CredentialResponseEncryption;
-use crate::metadata::IssuerMetadata;
+use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_metadata::CredentialConfiguration;
+use crate::issuer_metadata::IssuerMetadata;
+use crate::issuer_metadata::ProofType;
 use crate::oidc;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
@@ -332,8 +331,7 @@ pub trait AttributeService {
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 
-    async fn oauth_metadata(&self, issuer_identifier: &CredentialIssuerIdentifier)
-    -> Result<oidc::Config, Self::Error>;
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error>;
 }
 
 pub struct TrivialAttributeService;
@@ -345,10 +343,7 @@ impl AttributeService for TrivialAttributeService {
         unimplemented!()
     }
 
-    async fn oauth_metadata(
-        &self,
-        issuer_identifier: &CredentialIssuerIdentifier,
-    ) -> Result<oidc::Config, Self::Error> {
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
         // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
         // because they are mandatory in an OIDC Provider Metadata document (see
         // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
@@ -361,7 +356,7 @@ impl AttributeService for TrivialAttributeService {
         let token_url = issuer_url.join("issuance/token");
         let jwks_url = issuer_url.join("jwks");
 
-        let config = oidc::Config::new(issuer_url, auth_url, token_url, jwks_url);
+        let config = oidc::Config::new(issuer_identifier.clone(), auth_url, token_url, jwks_url);
 
         Ok(config)
     }
@@ -470,7 +465,7 @@ where
         sessions: Arc<S>,
         attr_service: A,
         attestation_config: AttestationTypesConfig<K>,
-        issuer_identifier: CredentialIssuerIdentifier,
+        issuer_identifier: IssuerIdentifier,
         wallet_client_ids: Vec<String>,
         wua_config: Option<WuaConfig>,
         status_list_services: Arc<L>,
@@ -478,39 +473,61 @@ where
         let credential_configurations_supported = attestation_config
             .as_ref()
             .iter()
-            .map(|(typ, attestation)| {
-                (
-                    typ.to_string(),
-                    CredentialMetadata::from_sd_jwt_vc_type_metadata(&attestation.metadata),
-                )
+            .flat_map(|(attestation_type, config)| {
+                config.copies_per_format.keys().flat_map(move |format| {
+                    // TODO (PVW-5554): Include the credential configuration id in the settings, instead of
+                    //                  hard coupling the AttestationTypeConfig key with the doctype / vct.
+                    let config_id = format!("{attestation_type}_{format}");
+                    // TODO (PVW-5548): Add "attestation" proof type.
+                    let proof_types = vec![ProofType::Jwt];
+                    let display = config.metadata.display().to_vec();
+                    let claims = config.metadata.claims().to_vec();
+
+                    match format {
+                        Format::MsoMdoc => Some((
+                            config_id,
+                            CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
+                                attestation_type.clone(),
+                                proof_types,
+                                display,
+                                claims,
+                            ),
+                        )),
+                        Format::SdJwt => Some((
+                            config_id,
+                            CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
+                                attestation_type.clone(),
+                                proof_types,
+                                display,
+                                claims,
+                            ),
+                        )),
+                        _ => None,
+                    }
+                })
             })
             .collect();
 
-        let server_url = issuer_identifier.as_base_url().join_base_url("issuance");
-        let credential_endpoint = server_url.join_base_url("/credential");
-        let batch_credential_endpoint = server_url.join_base_url("/batch_credential");
-        let credential_preview_endpoint = server_url.join_base_url("/credential_preview");
+        let server_url = issuer_identifier.join_issuer_url("/issuance");
+        let credential_endpoint = server_url.join_issuer_url("/credential");
+        let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
+        let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
 
-        let issuer_config = metadata::IssuerData {
+        let metadata = IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
             credential_endpoint,
             batch_credential_endpoint: Some(batch_credential_endpoint),
+            nonce_endpoint: None,
             deferred_credential_endpoint: None,
             notification_endpoint: None,
-            credential_response_encryption: CredentialResponseEncryption {
-                alg_values_supported: vec![],
-                enc_values_supported: vec![],
-                encryption_required: false,
-            },
-            credential_identifiers_supported: Some(false),
+            credential_request_encryption: None,
+            credential_response_encryption: None,
+            // TODO (PVW-5554): Configure batch size globally for the issuer and include it here.
+            batch_credential_issuance: None,
             display: None,
             credential_configurations_supported,
             credential_preview_endpoint: Some(credential_preview_endpoint),
-        };
-        let metadata = IssuerMetadata {
-            issuer_config,
-            protected_metadata: None,
         };
 
         let issuer_data = IssuerData {
@@ -520,7 +537,7 @@ where
 
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
-            server_url,
+            server_url: server_url.into_inner(),
             metadata,
         };
 
@@ -802,7 +819,7 @@ where
 
     pub async fn oauth_metadata(&self) -> Result<oidc::Config, A::Error> {
         self.attr_service
-            .oauth_metadata(&self.issuer_data.metadata.issuer_config.credential_issuer)
+            .oauth_metadata(&self.issuer_data.metadata.credential_issuer)
             .await
     }
 }
@@ -1088,7 +1105,7 @@ impl Session<WaitingForResponse> {
         attestation_keys: impl Iterator<Item = VerifyingKey>,
         issuer_data: &IssuerData<K>,
     ) -> Result<(), CredentialRequestError> {
-        let issuer_identifier = issuer_data.metadata.issuer_config.credential_issuer.as_ref();
+        let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
 
         let attestation_keys = match &issuer_data.wua_config {
             None => attestation_keys.collect_vec(),
@@ -1375,7 +1392,7 @@ impl CredentialRequest {
             .verify(
                 c_nonce,
                 &issuer_data.accepted_wallet_client_ids,
-                &issuer_data.metadata.issuer_config.credential_issuer,
+                &issuer_data.metadata.credential_issuer,
             )?;
 
         Ok(holder_pubkey)
@@ -1439,7 +1456,7 @@ impl CredentialRequestProof {
         &self,
         nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
-        credential_issuer_identifier: &CredentialIssuerIdentifier,
+        credential_issuer_identifier: &IssuerIdentifier,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let CredentialRequestProof::Jwt { jwt } = self;
 

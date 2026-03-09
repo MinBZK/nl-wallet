@@ -1,3 +1,4 @@
+use assert_matches::assert_matches;
 use serial_test::serial;
 
 use attestation_data::attributes::Attributes;
@@ -5,6 +6,7 @@ use attestation_data::issuable_document::IssuableDocument;
 use db_test::DbSetup;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::oidc::MockOidcClient;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_BIRTH_DATE;
@@ -25,7 +27,7 @@ use wallet::errors::IssuanceError;
 use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc1_test_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -150,7 +152,7 @@ fn pid_missing_required_with_address() -> IssuableDocument {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc1_test_pid_optional_attributes() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -161,7 +163,7 @@ async fn ltc1_test_pid_optional_attributes() {
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
-            pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()).0,
+            pid_issuer_settings(db_setup.pid_issuer_url()).0,
             vec![pid_without_optionals_with_address()].try_into().unwrap(),
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
@@ -206,17 +208,23 @@ async fn ltc2_test_pid_missing_required_attributes() {
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
-            pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()).0,
+            pid_issuer_settings(db_setup.pid_issuer_url()).0,
             vec![pid_missing_required_with_address()].try_into().unwrap(),
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;
+
     wallet = do_wallet_registration(wallet, pin).await;
+
+    // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
+    let ctx = MockOidcClient::start_context();
+    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
     let redirect_url = wallet
         .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("should create PID issuance redirect URL");
+
     let _unsigned_mdocs = wallet
         .continue_pid_issuance(redirect_url)
         .await
@@ -226,11 +234,15 @@ async fn ltc2_test_pid_missing_required_attributes() {
         .await
         .expect_err("should fail to accept issuance");
 
-    assert!(matches!(
-        error,
+    assert_matches!(
+        &error,
         IssuanceError::IssuerServer {
-            error: IssuanceSessionError::CredentialRequest(ErrorResponse { error_description: Some(description), .. }),
+            error: IssuanceSessionError::CredentialRequest(response),
             ..
-            } if description.contains("\"urn:eudi:pid:nl:1\": \"bsn\" is a required property")
-    ));
+        } if matches!(
+            response.as_ref(),
+            ErrorResponse { error_description: Some(description), .. }
+                if description.contains("\"urn:eudi:pid:nl:1\": \"bsn\" is a required property")
+        )
+    );
 }

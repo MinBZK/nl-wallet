@@ -7,7 +7,7 @@ use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc41_test_pin_recovery() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233".to_string();
@@ -17,16 +17,14 @@ async fn ltc41_test_pin_recovery() {
     wallet = do_pid_issuance(wallet, pin).await;
 
     let new_pin = "314159".to_string();
-    let uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
-    wallet.continue_pin_recovery(uri).await.unwrap();
-    wallet.complete_pin_recovery(new_pin.clone()).await.unwrap();
+    wallet = do_pin_recovery(wallet, new_pin.clone()).await;
 
     // The wallet can now use the new PIN.
     wallet.check_pin(new_pin).await.unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc46_test_pin_recovery_timeout() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233".to_string();
@@ -49,9 +47,7 @@ async fn ltc46_test_pin_recovery_timeout() {
     );
 
     let new_pin = "314159".to_string();
-    let uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
-    wallet.continue_pin_recovery(uri).await.unwrap();
-    wallet.complete_pin_recovery(new_pin.clone()).await.unwrap();
+    wallet = do_pin_recovery(wallet, new_pin.clone()).await;
 
     // The wallet can now use the new PIN.
     wallet.check_pin(new_pin).await.unwrap();

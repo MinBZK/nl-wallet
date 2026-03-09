@@ -28,6 +28,7 @@ export class GroupedReader implements ResultsReader {
       visitTestFixtureResult: visitor.visitTestFixtureResult.bind(visitor),
       visitAttachmentFile: visitor.visitAttachmentFile.bind(visitor),
       visitMetadata: visitor.visitMetadata.bind(visitor),
+      visitGlobals: visitor.visitGlobals.bind(visitor),
     }
     return this.#reader.read(wrappedVisitor, data)
   }
