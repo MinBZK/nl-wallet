@@ -19,7 +19,7 @@ impl Iso18013_5SessionManager for MockIso18013_5Session {
             let _ = channel.send_update(Iso18013_5Update::Connected).await;
 
             let _ = channel
-                .send_update(Iso18013_5Update::DeviceRequest {
+                .send_update(Iso18013_5Update::SessionEstablished {
                     session_transcript: vec![0x01, 0x02, 0x03],
                     device_request: vec![0x04, 0x05, 0x06],
                 })

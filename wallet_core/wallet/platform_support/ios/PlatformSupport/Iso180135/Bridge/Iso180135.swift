@@ -16,7 +16,7 @@ extension Iso180135: Iso180135bridge {
         try await channel.sendUpdate(update: Iso180135update.connected)
 
         try await channel.sendUpdate(
-            update: Iso180135update.deviceRequest(
+            update: Iso180135update.sessionEstablished(
                 sessionTranscript: [0x01, 0x02, 0x03], deviceRequest: [0x04, 0x05, 0x06]))
 
         try await channel.sendUpdate(update: Iso180135update.closed)

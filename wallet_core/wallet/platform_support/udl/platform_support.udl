@@ -131,6 +131,7 @@ interface Iso18013_5Bridge {
     void stop_ble_server();
 };
 
+// TODO this probably needs to be more fine-grained (PVW-5629)
 [Error]
 interface Iso18013_5Error {
     PlatformError(string reason); // All exceptions in native code are represented by this error
@@ -141,8 +142,9 @@ interface Iso18013_5Error {
 interface Iso18013_5Update {
     Connecting();
     Connected();
-    DeviceRequest(sequence<u8> session_transcript, sequence<u8> device_request);
+    SessionEstablished(sequence<u8> session_transcript, sequence<u8> device_request);
     Closed();
+    // TODO this probably warrants its own enum variant (PVW-5630)
     Error(Iso18013_5Error error);
 };
 

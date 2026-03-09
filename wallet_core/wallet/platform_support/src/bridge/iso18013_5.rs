@@ -29,7 +29,7 @@ pub trait Iso18013_5Bridge: Send + Sync + Debug {
 pub enum Iso18013_5Update {
     Connecting,
     Connected,
-    DeviceRequest {
+    SessionEstablished {
         session_transcript: Vec<u8>,
         device_request: Vec<u8>,
     },

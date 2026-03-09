@@ -16,7 +16,7 @@ class Iso180135Bridge(val context: Context) : RustIso180135Bridge {
 
         channel.sendUpdate(update = Iso180135update.Connected)
 
-        channel.sendUpdate(update = Iso180135update.DeviceRequest(sessionTranscript = listOf(0x01.toUByte(), 0x02.toUByte(), 0x03.toUByte()), deviceRequest = listOf(0x04.toUByte(), 0x05.toUByte(), 0x06.toUByte())))
+        channel.sendUpdate(update = Iso180135update.SessionEstablished(sessionTranscript = listOf(0x01.toUByte(), 0x02.toUByte(), 0x03.toUByte()), deviceRequest = listOf(0x04.toUByte(), 0x05.toUByte(), 0x06.toUByte())))
 
         channel.sendUpdate(update = Iso180135update.Closed)
 

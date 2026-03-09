@@ -17,7 +17,7 @@ pub async fn test_start_qr_handover<I: Iso18013_5SessionManager>() {
     let update = receiver.recv().await.expect("channel closed before third update");
     assert_matches!(
         update,
-        Iso18013_5Update::DeviceRequest { session_transcript, device_request }
+        Iso18013_5Update::SessionEstablished { session_transcript, device_request }
             if session_transcript == vec![0x01, 0x02, 0x03] && device_request == vec![0x04, 0x05, 0x06]
     );
 
