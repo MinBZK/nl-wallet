@@ -56,8 +56,8 @@ use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
-use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
+use crate::openid4vp::ClientId;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -141,8 +141,6 @@ pub enum GetAuthRequestError {
     ExpiredEphemeralId(Vec<u8>),
     #[error("error creating ephemeral encryption keypair: {0}")]
     EncryptionKey(#[from] JoseError),
-    #[error("error creating Authorization Request: {0}")]
-    AuthRequest(#[from] AuthRequestError),
     #[error("error signing Authorization Request JWE: {0}")]
     Jwt(#[from] JwtError),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
@@ -173,6 +171,10 @@ pub enum PostAuthResponseError {
 pub enum UseCaseCertificateError {
     #[error("missing DNS SAN from RP certificate")]
     MissingSAN,
+    #[error("missing host in verifier public URL: {0}")]
+    MissingPublicUrlHost(BaseUrl),
+    #[error("verifier public URL host {host} not present in RP certificate SAN DNS entries: {dns_sans}")]
+    PublicUrlHostNotInCertificate { host: String, dns_sans: String },
     #[error("RP certificate error: {0}")]
     Certificate(#[from] CertificateError),
 }
@@ -219,7 +221,7 @@ pub struct Session<S: DisclosureState> {
 pub struct Created {
     credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
-    client_id: String,
+    client_id: ClientId,
     redirect_uri_template: Option<RedirectUriTemplate>,
     accept_undetermined_revocation_status: bool,
 }
@@ -513,7 +515,7 @@ pub enum SessionTypeReturnUrl {
 #[derive(Debug)]
 pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
-    pub client_id: String,
+    pub client_id: ClientId,
     pub session_type_return_url: SessionTypeReturnUrl,
 }
 
@@ -578,12 +580,13 @@ pub enum NewDisclosureUseCaseError {
 impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
+        public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
         accept_undetermined_revocation_status: bool,
     ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_key_pair(&key_pair)?;
+        let client_id = client_id_from_public_url(&key_pair, public_url)?;
 
         let use_case = Self {
             data: UseCaseData {
@@ -755,11 +758,12 @@ pub struct WalletInitiatedUseCases<K> {
 impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
+        public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_key_pair(&key_pair)?;
+        let client_id = client_id_from_public_url(&key_pair, public_url)?;
 
         let use_case = Self {
             data: UseCaseData {
@@ -835,13 +839,28 @@ where
     }
 }
 
-fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<String, UseCaseCertificateError> {
-    Ok(String::from(
-        key_pair
-            .certificate()
-            .san_dns_name()?
-            .ok_or(UseCaseCertificateError::MissingSAN)?,
-    ))
+fn client_id_from_public_url<K>(
+    key_pair: &KeyPair<K>,
+    public_url: &BaseUrl,
+) -> Result<ClientId, UseCaseCertificateError> {
+    let host = public_url
+        .fqdn()
+        .ok_or_else(|| UseCaseCertificateError::MissingPublicUrlHost(public_url.clone()))?
+        .to_string();
+
+    let dns_sans = key_pair.certificate().san_dns_names()?;
+    if dns_sans.is_empty() {
+        return Err(UseCaseCertificateError::MissingSAN);
+    }
+
+    if !dns_sans.iter().any(|dns_san| *dns_san == host) {
+        return Err(UseCaseCertificateError::PublicUrlHostNotInCertificate {
+            host,
+            dns_sans: dns_sans.join(", "),
+        });
+    }
+
+    Ok(ClientId::x509_san_dns(host))
 }
 
 pub trait ToPostAuthResponseErrorCode: Error {
@@ -1051,7 +1070,7 @@ where
                 let ul = session_type
                     .map(|session_type| {
                         let ephemeral_id = self.use_cases.generate_ephemeral_id(session_token, time);
-                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, client_id)
+                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, &client_id)
                     })
                     .transpose()?;
 
@@ -1130,7 +1149,7 @@ impl<S, US, C> Verifier<S, US, C> {
         request_uri: BaseUrl,
         ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
-        client_id: String,
+        client_id: &ClientId,
     ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
@@ -1140,7 +1159,7 @@ impl<S, US, C> Verifier<S, US, C> {
 
         let mut ul = base_ul.into_inner();
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUri {
-            client_id,
+            client_id: client_id.clone(),
             object: VpRequestUriObject::AsReference {
                 request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
                 request_uri_method: Some(VpRequestUriMethod::POST),
@@ -1230,7 +1249,7 @@ impl Session<Created> {
     fn new(
         credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
-        client_id: String,
+        client_id: ClientId,
         redirect_uri_template: Option<RedirectUriTemplate>,
         accept_undetermined_revocation_status: bool,
     ) -> Session<Created> {
@@ -1342,13 +1361,12 @@ impl Session<Created> {
             EcKeyPair::generate(EcCurve::P256).map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
         let auth_request = NormalizedVpAuthorizationRequest::new(
             self.state.data.credential_requests.clone(),
-            usecase.key_pair.certificate(),
+            self.state.data.client_id.clone(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
             response_uri,
             wallet_nonce,
-        )
-        .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
+        );
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
         let jws = SignedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
@@ -1580,6 +1598,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::generate::mock::RP_CERT_CN;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1597,6 +1616,7 @@ mod tests {
     use crate::server_state::SessionToken;
 
     use super::AuthorizationErrorCode;
+    use super::ClientId;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
     use super::Done;
@@ -1640,6 +1660,7 @@ mod tests {
     fn create_verifier() -> TestVerifier {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
+        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let reader_registration = ReaderRegistration::new_mock();
 
@@ -1648,6 +1669,7 @@ mod tests {
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+                    &public_url,
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
@@ -1659,6 +1681,7 @@ mod tests {
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+                    &public_url,
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
@@ -1670,6 +1693,7 @@ mod tests {
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
+                    &public_url,
                     SessionTypeReturnUrl::Both,
                     None,
                     None,
@@ -1988,6 +2012,7 @@ mod tests {
         let session_token = "session_token".into();
         let time_str = "1969-07-21T02:56:15Z";
         let time = time_str.parse().unwrap();
+        let client_id: ClientId = "client_id".into();
 
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), (), ()>::format_ul(
@@ -2002,7 +2027,7 @@ mod tests {
                 time,
             }),
             SessionType::CrossDevice,
-            "client_id".to_string(),
+            &client_id,
         )
         .unwrap();
 
@@ -2013,7 +2038,7 @@ mod tests {
         );
 
         let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
-        assert_eq!(request_uri.client_id, "client_id");
+        assert_eq!(request_uri.client_id, "client_id".into());
 
         let (request_uri, request_uri_method) = match request_uri.object {
             VpRequestUriObject::AsReference {
@@ -2038,18 +2063,20 @@ mod tests {
 
     #[test]
     fn test_verifier_url_without_ephemeral_id() {
+        let client_id: ClientId = "client_id".into();
+
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             None,
             SessionType::CrossDevice,
-            "client_id".to_string(),
+            &client_id,
         )
         .unwrap();
 
         let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
-        assert_eq!(request_uri.client_id, "client_id");
+        assert_eq!(request_uri.client_id, "client_id".into());
 
         let (request_uri, request_uri_method) = match request_uri.object {
             VpRequestUriObject::AsReference {
@@ -2083,7 +2110,7 @@ mod tests {
                 data: UseCaseData {
                     key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
-                    client_id: "client_id".to_string(),
+                    client_id: "client_id".into(),
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),

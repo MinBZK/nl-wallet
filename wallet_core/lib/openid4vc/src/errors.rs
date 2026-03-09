@@ -208,7 +208,6 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 }
                 GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
                 GetAuthRequestError::EncryptionKey(_)
-                | GetAuthRequestError::AuthRequest(_)
                 | GetAuthRequestError::Jwt(_)
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)

@@ -15,7 +15,7 @@
   },
   "usecases": {
     "university": {
-      "client_id": "university.example.com",
+      "client_id": "x509_san_dns:localhost",
       "data": {
         "9999999999": [
           {
@@ -36,7 +36,7 @@
       }
     },
     "insurance": {
-      "client_id": "insurance.example.com",
+      "client_id": "x509_san_dns:localhost",
       "data": {
         "9999999999": [
           {

@@ -378,11 +378,12 @@ function generate_wallet_provider_tsl_key_pair {
 #
 # $1 - ISSUER_NAME: Name of the Issuer
 function generate_demo_issuer_key_pairs {
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "$1.example.com" \
+        --common-name "${SERVICES_HOST}" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
         --force
@@ -391,7 +392,7 @@ function generate_demo_issuer_key_pairs {
         --bin wallet_ca issuer \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "$1.example.com" \
+        --common-name "${SERVICES_HOST}" \
         --issuer-auth-file "${DEVENV}/$1_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.issuer" \
         --force
@@ -400,7 +401,7 @@ function generate_demo_issuer_key_pairs {
         --bin wallet_ca tsl \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "$1.example.com" \
+        --common-name "${SERVICES_HOST}" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.tsl" \
         --force
 
@@ -426,20 +427,23 @@ function generate_demo_issuer_key_pairs {
 #
 # $1 - RELYING_PARTY_NAME: Name of the Relying Party
 function generate_demo_relying_party_key_pair {
+    local relying_party_name="$1"
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "$1.example.com" \
-        --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
-        --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \
+        --common-name "${SERVICES_HOST}" \
+        --reader-auth-file "${DEVENV}/${relying_party_name}_reader_auth.json" \
+        --file-prefix "${TARGET_DIR}/demo_relying_party/${relying_party_name}" \
         --force
 
-    openssl x509 -in "${TARGET_DIR}/demo_relying_party/$1.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/demo_relying_party/$1.crt.der"
+    openssl x509 -in "${TARGET_DIR}/demo_relying_party/${relying_party_name}.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/demo_relying_party/${relying_party_name}.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/demo_relying_party/$1.key.pem" -out "${TARGET_DIR}/demo_relying_party/$1.key.der" -nocrypt
+        -in "${TARGET_DIR}/demo_relying_party/${relying_party_name}.key.pem" \
+        -out "${TARGET_DIR}/demo_relying_party/${relying_party_name}.key.der" -nocrypt
 }
 
 # Generate an EC key pair for the demo_relying_party in the HSM.
@@ -448,6 +452,7 @@ function generate_demo_relying_party_key_pair {
 # $1 - READER_NAME: Name of the Relying Party
 # $2 - path where the certificate will be written to
 function generate_relying_party_hsm_key_pair {
+
     # Generate EC key pair in the HSM
     generate_hsm_key_pair "$1_key" "$2/$1.pub.pem"
 
@@ -457,7 +462,7 @@ function generate_relying_party_hsm_key_pair {
           --public-key-file "${TARGET_DIR}/$2/$1.pub.pem" \
           --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
           --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-          --common-name "$1.example.com" \
+          --common-name "${SERVICES_HOST}" \
           --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
           --file-prefix "${TARGET_DIR}/$2/$1" \
           --force

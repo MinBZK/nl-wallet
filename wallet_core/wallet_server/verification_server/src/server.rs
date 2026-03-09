@@ -63,6 +63,7 @@ where
         .usecases
         .parse(
             hsm,
+            &settings.public_url,
             (&settings.ephemeral_id_secret).into(),
             Arc::clone(&disclosure_sessions),
         )

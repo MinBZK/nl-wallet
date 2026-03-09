@@ -128,10 +128,10 @@ pub fn request_uri(
     request_uri: Url,
     session_type: SessionType,
     request_uri_method: VpRequestUriMethod,
-    client_id: String,
+    client_id: &str,
 ) -> VpRequestUri {
     VpRequestUri {
-        client_id,
+        client_id: client_id.into(),
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri_with_verifier_params(request_uri, session_type),
             request_uri_method: Some(request_uri_method),
@@ -180,7 +180,10 @@ impl MockVerifierSession {
         let nonce = crypto_utils::random_string(32);
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
         let response_uri = verifier_url.join_base_url("response_uri");
-        let client_id = String::from(key_pair.certificate().san_dns_name().unwrap().unwrap());
+        let client_id = format!(
+            "x509_san_dns:{}",
+            key_pair.certificate().san_dns_name().unwrap().unwrap()
+        );
         let request_uri =
             request_uri_with_verifier_params(verifier_url.join_base_url("request_uri").into_inner(), session_type);
 
@@ -202,7 +205,7 @@ impl MockVerifierSession {
 
     pub fn request_uri_query(&self) -> String {
         serde_urlencoded::to_string(&VpRequestUri {
-            client_id: self.client_id.clone(),
+            client_id: self.client_id.as_str().into(),
             object: VpRequestUriObject::AsReference {
                 request_uri: self.request_uri.clone(),
                 request_uri_method: self.request_uri_method,
@@ -212,7 +215,7 @@ impl MockVerifierSession {
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
-        NormalizedVpAuthorizationRequest::new(
+        NormalizedVpAuthorizationRequest::new_from_certificate(
             self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
@@ -220,7 +223,6 @@ impl MockVerifierSession {
             self.response_uri.clone(),
             wallet_nonce,
         )
-        .unwrap()
     }
 
     /// Generate the first protocol message of the verifier.

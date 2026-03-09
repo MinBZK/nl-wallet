@@ -223,7 +223,7 @@ sha2 = "0.10.9"
 spki = { version = "0.7.3", features = ["std"] }
 ssri = "9.2.0"
 strfmt = "0.2.5"
-strum = "0.27.2"
+strum = "0.28.0"
 syn = "2.0.111"
 tempfile = "3.23.0"
 testcontainers = "0.26.3"
