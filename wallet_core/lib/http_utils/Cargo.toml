@@ -35,6 +35,7 @@ serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
+x509-parser.workspace = true
 
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
@@ -46,6 +47,7 @@ tracing = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 
 [dev-dependencies]
+assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
 toml.workspace = true

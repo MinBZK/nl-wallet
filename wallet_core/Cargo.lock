@@ -3543,6 +3543,7 @@ dependencies = [
 name = "http_utils"
 version = "0.5.0-dev"
 dependencies = [
+ "assert_matches",
  "async-trait",
  "axum",
  "axum-server",
@@ -3570,6 +3571,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "url",
+ "x509-parser",
 ]
 
 [[package]]

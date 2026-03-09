@@ -4,18 +4,21 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::AsRef;
+use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
-use http::header;
-use mime::APPLICATION_JSON;
 use mime::Mime;
+use mime::APPLICATION_JSON;
 use reqwest::Certificate;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::RequestBuilder;
 use reqwest::Response;
 use url::Url;
+use x509_parser::error::X509Error;
+use x509_parser::prelude::FromDer;
+use x509_parser::prelude::X509Certificate;
 
 use crate::error::APPLICATION_PROBLEM_JSON;
 use crate::urls::BaseUrl;
@@ -57,15 +60,26 @@ impl Hash for ReqwestTrustAnchor {
 }
 
 impl TryFrom<Vec<u8>> for ReqwestTrustAnchor {
-    type Error = reqwest::Error;
+    type Error = ReqwestTrustAnchorError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        // Certificate::from_der does not parse the bytes when using `rustls`, so we explicitly parse it here to ensure
+        // the bytes represent a valid X.509 certificate.
+        let _ = X509Certificate::from_der(&value)?;
         let certificate = Certificate::from_der(&value)?;
         Ok(Self {
             der_bytes: value,
             certificate,
         })
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ReqwestTrustAnchorError {
+    #[error("reqwest error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("certificate parsing error: {0}")]
+    X509Parser(#[from] x509_parser::nom::Err<X509Error>),
 }
 
 pub trait IntoReqwestClient {
@@ -218,4 +232,41 @@ pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
         header::ACCEPT,
         HeaderValue::from_static(APPLICATION_JSON.as_ref()),
     )]))
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use base64::prelude::Engine;
+    use base64::prelude::BASE64_STANDARD;
+    use rstest::rstest;
+
+    use super::ReqwestTrustAnchor;
+    use super::ReqwestTrustAnchorError;
+
+    #[test]
+    fn request_trust_anchor_from_bytes_success() {
+        let trust_anchor = "MIIDGDCCAgCgAwIBAgIUBnabkUuAQCIHnTuaZwPH4hU4/H4wDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwHcmRvLW1heDAeFw0yNjAzMDgwOTUzNTFaFw0yNzAzMDkxMTUzNTFaMBIxEDAOBgNVBAMMB3Jkby1tYXgwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDTpt+BBiah4NAe19zCULiY7s4BLwy3EflzeqD1CUVe4vTQrVNjLXAfNAVGvzpufXOZbDSEs6nMie+pPH67pHjk5x+5QwmUEGLF0PSbSh/ETlubxRr/K7l5QsSxcW/HLrlTa+2mbCsrs9YdaNMjBvsE69aVbD18oNbRrcw4YsIc+lDd4aR/IwiVhHG35gpHw+6/kxKKp5EDe06XOrplDphLacPJgq5dMdhkVqwglDq7UjCet0fB+QvtfRRwH5oFJ9a6BSue6wL+8Rrb3Aj6e1WWF5+7w9o2rfF3dHrGNIfN703K3eH1gM5dL7uJKPHjtHjFfAHalYuewK9A8bRp+wAdAgMBAAGjZjBkMB0GA1UdDgQWBBRBwSobJB2DHadw3d+wQcLY4hm0hzAfBgNVHSMEGDAWgBRBwSobJB2DHadw3d+wQcLY4hm0hzAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIBADANBgkqhkiG9w0BAQsFAAOCAQEAxON5KqA3hI8bG9ekw4dxucGW1JImYyDrsDZKubf/O7eTdphIDXLOuW5Tx1lIaQ8Qy2zJKrvDiiRZhDf+Q+imea8p2BvbZTDiUBevQwSzmSAggeuzuNCrwQKTGxSLXbsq6qFsEI7t+EsJGQMhXXTrBgdrWyrsfmSPiB7TyUGYwM+p+SBI9wiDAYwp7K1H7DurwE4vvM4ZmmSp7yt9VZNXmEQzrETczlf3E7mDDgd3lTzb/rnsfuPJ0yWrSxbLOmpABEg8YgdSEDmfZNAIw7hirl3bNJmbX53Y0CZdI3zg/Ytlmtq0SR5VPmBseHqOulgH2jOEQ6WEHv01gBP5w+aWKQ==";
+
+        let der_bytes = BASE64_STANDARD.decode(trust_anchor).expect("valid base64");
+
+        let trust_anchor_result: Result<ReqwestTrustAnchor, ReqwestTrustAnchorError> = der_bytes.try_into();
+        let _ = trust_anchor_result.unwrap();
+    }
+
+    #[rstest]
+    #[case("")]
+    #[case("SGVsbG8gV29ybGQh")]
+    fn reqwest_trust_anchor_from_bytes_errors(#[case] input: &str) {
+        let der_bytes = BASE64_STANDARD.decode(input).expect("valid base64");
+
+        let trust_anchor_result: Result<ReqwestTrustAnchor, ReqwestTrustAnchorError> = der_bytes.try_into();
+
+        // `unwrap` not possible because `ReqwestTrustAnchor` is not `Debug`
+        let Err(error) = trust_anchor_result else {
+            panic!("expected an error");
+        };
+
+        assert_matches!(error, ReqwestTrustAnchorError::X509Parser(_));
+    }
 }
