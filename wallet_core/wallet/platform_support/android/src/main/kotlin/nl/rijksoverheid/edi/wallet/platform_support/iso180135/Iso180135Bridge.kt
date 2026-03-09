@@ -13,13 +13,10 @@ import uniffi.platform_support.Iso180135bridge as RustIso180135Bridge
 class Iso180135Bridge(val context: Context) : RustIso180135Bridge {
     override suspend fun startQrHandover(channel: Iso180135channel): kotlin.String {
         channel.sendUpdate(update = Iso180135update.Connecting)
-        Thread.sleep(1_000)
 
         channel.sendUpdate(update = Iso180135update.Connected)
-        Thread.sleep(1_000)
 
-        channel.sendUpdate(update = Iso180135update.DeviceRequest(sessionTranscript = emptyList(), deviceRequest = emptyList()))
-        Thread.sleep(1_000)
+        channel.sendUpdate(update = Iso180135update.DeviceRequest(sessionTranscript = listOf(0x01.toUByte(), 0x02.toUByte(), 0x03.toUByte()), deviceRequest = listOf(0x04.toUByte(), 0x05.toUByte(), 0x06.toUByte())))
 
         channel.sendUpdate(update = Iso180135update.Closed)
 

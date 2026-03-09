@@ -14,7 +14,7 @@ pub enum Iso18013_5Error {
     BridgingError { reason: String },
 }
 
-// the callback traits defined in the UDL, which we have write out here ourselves
+// the callback traits defined in the UDL, which we have to write out here ourselves
 #[uniffi::trait_interface]
 #[async_trait]
 pub trait Iso18013_5Bridge: Send + Sync + Debug {

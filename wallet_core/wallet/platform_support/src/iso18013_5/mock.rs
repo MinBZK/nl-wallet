@@ -14,25 +14,18 @@ impl Iso18013_5SessionManager for MockIso18013_5Session {
         let (channel, receiver) = Iso18013_5ChannelImpl::new();
 
         tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             let _ = channel.send_update(Iso18013_5Update::Connecting).await;
 
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             let _ = channel.send_update(Iso18013_5Update::Connected).await;
 
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             let _ = channel
                 .send_update(Iso18013_5Update::DeviceRequest {
-                    session_transcript: vec![],
-                    device_request: vec![],
+                    session_transcript: vec![0x01, 0x02, 0x03],
+                    device_request: vec![0x04, 0x05, 0x06],
                 })
                 .await;
 
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             let _ = channel.send_update(Iso18013_5Update::Closed).await;
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-
-            drop(channel);
         });
 
         Ok(("some_qr_code".to_string(), receiver))

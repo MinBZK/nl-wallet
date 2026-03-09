@@ -63,6 +63,7 @@ hardware_integration_test = [
     "dep:android_attest",
     "dep:android_logger",
     "dep:apple_app_attest",
+    "dep:assert_matches",
     "dep:cfg-if",
     "dep:jni",
     "dep:log",
@@ -88,6 +89,7 @@ trait-variant.workspace = true
 uniffi.workspace = true
 
 aes-gcm = { workspace = true, optional = true }
+assert_matches = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
 cfg-if = { workspace = true, optional = true }
 cfg_eval = { workspace = true, optional = true }
@@ -114,8 +116,9 @@ android_logger = { workspace = true, optional = true }
 jni = { workspace = true, optional = true }
 
 [dev-dependencies]
-rustls-pki-types.workspace = true
+assert_matches.workspace = true
 log.workspace = true
+rustls-pki-types.workspace = true
 tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
 
 [build-dependencies]
