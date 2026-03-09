@@ -8,7 +8,6 @@ pub mod token;
 
 // Cryptographic tools.
 pub mod dpop;
-
 pub mod jwe;
 pub mod pkce;
 
@@ -27,9 +26,7 @@ pub mod errors;
 pub use errors::*;
 
 pub mod issuer_identifier;
-
 pub mod issuer_metadata;
-pub mod jwe;
 pub mod oidc;
 pub mod server_state;
 

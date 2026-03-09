@@ -16,8 +16,8 @@ path = "tests/disclosure.rs"
 required-features = ["integration"]
 
 [[test]]
-name = "disclosure"
-path = "tests/disclosure.rs"
+name = "issuance"
+path = "tests/issuance.rs"
 required-features = ["integration"]
 
 [features]

@@ -734,14 +734,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await?;
 
         let credential_preview_endpoint = issuer_metadata
-            .issuer_config
             .credential_preview_endpoint
             .as_ref()
-            .map(|url| url.as_ref().clone())
+            .map(|url| url.clone().into_url())
             .ok_or(IssuanceSessionError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
         let credential_configuration_ids: VecNonEmpty<String> = issuer_metadata
-            .issuer_config
             .credential_configurations_supported
             .keys()
             .cloned()
@@ -749,7 +747,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .try_into()
             .map_err(|_| IssuanceSessionError::NoCredentialConfigurationsSupported)?;
 
-        let oauth_server = issuer_metadata.issuer_config.authorization_servers().into_first();
+        let oauth_server = issuer_metadata.authorization_servers().into_first();
         let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
         let token_endpoint = oauth_metadata.token_endpoint.clone();
 

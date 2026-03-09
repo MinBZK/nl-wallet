@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::convert::Infallible;
 use std::num::NonZero;
 use std::ops::Add;
@@ -616,15 +617,25 @@ where
             CredentialPreviewRequest::CredentialConfigurationIds {
                 credential_configuration_ids,
             } => {
-                // Return previews only for the types that are actually in the session; silently
-                // ignore IDs that appear in the issuer metadata but are not part of this session.
+                // Resolve credential_configuration_ids to attestation types by looking them up in the issuer metadata.
+                let requested_attestation_types: HashSet<&str> = credential_configuration_ids
+                    .iter()
+                    .filter_map(|id| {
+                        self.issuer_data
+                            .metadata
+                            .credential_configurations_supported
+                            .get(id)
+                            .and_then(|config| config.format.attestation_type())
+                    })
+                    .collect();
+
+                // Return previews only for the types that are actually in the session; silently ignore IDs that appear
+                // in the issuer metadata but are not part of this session.
                 session_data
                     .credential_previews
                     .iter()
                     .filter(|preview_state| {
-                        credential_configuration_ids
-                            .iter()
-                            .contains(&preview_state.credential_payload.attestation_type)
+                        requested_attestation_types.contains(preview_state.credential_payload.attestation_type.as_str())
                     })
                     .map(|state| self.credential_preview_from_state(state))
                     .collect::<Result<Vec<_>, _>>()?

@@ -469,9 +469,9 @@ impl VcMessageClient for MockOpenidMessageClient {
 
     async fn discover_metadata(
         &self,
-        issuer_identifier: &IssuerIdentifier,
+        _issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError> {
-        Ok(IssuerMetadata::new_mock(issuer_identifier.clone()))
+        Ok(self.issuer.metadata().clone())
     }
 
     async fn discover_oauth_metadata(
