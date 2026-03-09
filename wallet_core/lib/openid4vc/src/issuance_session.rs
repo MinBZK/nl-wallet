@@ -51,6 +51,7 @@ use wscd::Poa;
 use wscd::wscd::IssuanceWscd;
 
 use crate::CredentialErrorCode;
+use crate::CredentialPreviewErrorCode;
 use crate::ErrorResponse;
 use crate::Format;
 use crate::TokenErrorCode;
@@ -69,12 +70,14 @@ use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::IssuerMetadataDiscoveryError;
 use crate::oidc;
+use crate::preview::CredentialPreviewRequest;
+use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewContent;
 use crate::token::CredentialPreviewError;
 use crate::token::TokenRequest;
-use crate::token::TokenResponseWithPreviews;
+use crate::token::TokenResponse;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -187,6 +190,14 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     NoBatchCredentialEndpoint,
 
+    #[error("issuer has no credential preview endpoint")]
+    #[category(critical)]
+    NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
+
+    #[error("error requesting credential preview: {0:?}")]
+    #[category(pd)]
+    CredentialPreviewRequest(Box<ErrorResponse<CredentialPreviewErrorCode>>),
+
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
     AttributeRandomLength(usize, usize),
@@ -208,6 +219,10 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
+
+    #[error("issuer has no credential configurations supported")]
+    #[category(critical)]
+    NoCredentialConfigurationsSupported,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -351,7 +366,14 @@ pub trait VcMessageClient {
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError>;
+    ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError>;
+
+    async fn request_credential_preview(
+        &self,
+        url: &Url,
+        preview_request: &CredentialPreviewRequest,
+        access_token: &AccessToken,
+    ) -> Result<CredentialPreviewResponse, IssuanceSessionError>;
 
     async fn request_credential(
         &self,
@@ -436,7 +458,7 @@ impl VcMessageClient for HttpVcMessageClient {
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError> {
+    ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError> {
         self.http_client
             .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header.to_string())
@@ -456,8 +478,34 @@ impl VcMessageClient for HttpVcMessageClient {
                         .map(|val| val.to_str())
                         .transpose()?
                         .map(str::to_string);
-                    let deserialized = response.json::<TokenResponseWithPreviews>().await?;
+                    let deserialized = response.json::<TokenResponse>().await?;
                     Ok((deserialized, dpop_nonce))
+                }
+            })
+            .await
+    }
+
+    async fn request_credential_preview(
+        &self,
+        url: &Url,
+        preview_request: &CredentialPreviewRequest,
+        access_token: &AccessToken,
+    ) -> Result<CredentialPreviewResponse, IssuanceSessionError> {
+        self.http_client
+            .post(url.as_ref())
+            .bearer_auth(access_token.as_ref())
+            .json(preview_request)
+            .send()
+            .map_err(IssuanceSessionError::from)
+            .and_then(|response| async {
+                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+                let status = response.status();
+                if status.is_client_error() || status.is_server_error() {
+                    let error = response.json::<ErrorResponse<CredentialPreviewErrorCode>>().await?;
+                    Err(IssuanceSessionError::CredentialPreviewRequest(Box::new(error)))
+                } else {
+                    let response = response.json().await?;
+                    Ok(response)
                 }
             })
             .await
@@ -644,22 +692,6 @@ fn credential_request_types_from_preview(
 }
 
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
-    /// Discover the token endpoint from the OAuth server metadata.
-    async fn discover_token_endpoint(
-        message_client: &H,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<Url, IssuanceSessionError> {
-        let issuer_metadata = message_client.discover_metadata(issuer_identifier).await?;
-
-        // The issuer may announce multiple OAuth authorization servers the wallet may use. Which one the wallet
-        // uses is left up to the wallet. We just take the first one.
-        let oauth_server = issuer_metadata.authorization_servers().into_first();
-        let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
-
-        let token_endpoint = oauth_metadata.token_endpoint.clone();
-        Ok(token_endpoint)
-    }
-
     /// Discover the credential endpoint from the Credential Issuer metadata.
     async fn discover_credential_endpoint(
         message_client: &H,
@@ -697,7 +729,27 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError> {
-        let token_endpoint = Self::discover_token_endpoint(&message_client, &issuer_identifier).await?;
+        // Discover the issuer metadata first to get the token endpoint, credential preview endpoint
+        // and the credential configuration IDs.
+        let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await?;
+
+        let credential_preview_endpoint = issuer_metadata
+            .credential_preview_endpoint
+            .as_ref()
+            .map(|url| url.clone().into_url())
+            .ok_or(IssuanceSessionError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
+
+        let credential_configuration_ids: VecNonEmpty<String> = issuer_metadata
+            .credential_configurations_supported
+            .keys()
+            .cloned()
+            .collect_vec()
+            .try_into()
+            .map_err(|_| IssuanceSessionError::NoCredentialConfigurationsSupported)?;
+
+        let oauth_server = issuer_metadata.authorization_servers().into_first();
+        let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
+        let token_endpoint = oauth_metadata.token_endpoint.clone();
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_private_key, token_endpoint.clone(), Method::POST, None, None).await?;
@@ -706,19 +758,31 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .request_token(&token_endpoint, &token_request, &dpop_header)
             .await?;
 
-        let issuer_registration = token_response
-            .credential_previews
+        // Call the credential preview endpoint to retrieve the credential previews.
+        let preview_request = CredentialPreviewRequest::CredentialConfigurationIds {
+            credential_configuration_ids,
+        };
+        let preview_response = message_client
+            .request_credential_preview(
+                &credential_preview_endpoint,
+                &preview_request,
+                &token_response.access_token,
+            )
+            .await?;
+
+        let credential_previews: VecNonEmpty<CredentialPreview> = preview_response.credential_previews;
+
+        let issuer_registration = credential_previews
             .iter()
             .map(|preview| preview.issuer_registration())
             .collect::<Result<Vec<_>, _>>()?
             .iter()
             .single_unique()
             .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
-            .expect("there are always credential_previews in the token_response")
+            .expect("there are always credential_previews in the preview response")
             .clone();
 
-        let normalized_credential_previews: VecNonEmpty<_> = token_response
-            .credential_previews
+        let normalized_credential_previews: VecNonEmpty<_> = credential_previews
             .into_iter()
             .map(|preview| {
                 // Verify the issuer certificate against the trust anchors.
@@ -728,16 +792,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             })
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
-            .unwrap(); // token_response.credential_previews is VecNonempty
+            .unwrap(); // credential_previews is VecNonEmpty
 
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
 
         let session_state = IssuanceState {
-            access_token: token_response.token_response.access_token,
-            c_nonce: token_response
-                .token_response
-                .c_nonce
-                .ok_or(IssuanceSessionError::MissingNonce)?,
+            access_token: token_response.access_token,
+            c_nonce: token_response.c_nonce.ok_or(IssuanceSessionError::MissingNonce)?,
             normalized_credential_previews,
             credential_request_types,
             issuer_registration,
@@ -1189,6 +1250,7 @@ mod tests {
 
     use crate::Format;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
     use crate::token::TokenResponse;
 
@@ -1198,7 +1260,12 @@ mod tests {
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_discover_metadata()
-            .returning(|issuer_identifier| Ok(IssuerMetadata::new_mock(issuer_identifier.clone())));
+            .returning(|issuer_identifier| {
+                Ok(IssuerMetadata::new_mock(
+                    issuer_identifier.clone(),
+                    PID_ATTESTATION_TYPE,
+                ))
+            });
         mock_msg_client
             .expect_discover_oauth_metadata()
             .returning(|issuer_identifier| Ok(oidc::Config::new_mock(issuer_identifier.clone())));
@@ -1222,6 +1289,12 @@ mod tests {
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
+                let token_response = TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string());
+                Ok((token_response, None))
+            });
+        mock_msg_client
+            .expect_request_credential_preview()
+            .return_once(move |_url, _request, _access_token| {
                 let (_, _, type_metadata) = TypeMetadataDocuments::from_single_example(type_metadata);
 
                 let previews = preview_payloads
@@ -1234,14 +1307,13 @@ mod tests {
                         },
                         type_metadata: type_metadata.clone(),
                     })
-                    .collect_vec();
+                    .collect_vec()
+                    .try_into()
+                    .unwrap();
 
-                let token_response = TokenResponseWithPreviews {
-                    token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                    credential_previews: VecNonEmpty::try_from(previews).unwrap(),
-                };
-
-                Ok((token_response, None))
+                Ok(CredentialPreviewResponse {
+                    credential_previews: previews,
+                })
             });
 
         HttpIssuanceSession::start_issuance(
@@ -1373,9 +1445,15 @@ mod tests {
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
+                let token_response = TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string());
+                Ok((token_response, None))
+            });
+        mock_msg_client
+            .expect_request_credential_preview()
+            .return_once(move |_url, _request, _access_token| {
                 let (_, _, type_metadata) = TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example());
 
-                let previews = vec![
+                let previews = vec_nonempty![
                     CredentialPreview {
                         content: CredentialPreviewContent {
                             copies_per_format: copies_per_format.clone(),
@@ -1394,12 +1472,9 @@ mod tests {
                     },
                 ];
 
-                let token_response = TokenResponseWithPreviews {
-                    token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                    credential_previews: VecNonEmpty::try_from(previews).unwrap(),
-                };
-
-                Ok((token_response, None))
+                Ok(CredentialPreviewResponse {
+                    credential_previews: previews,
+                })
             });
 
         let error = HttpIssuanceSession::start_issuance(

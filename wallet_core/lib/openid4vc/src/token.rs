@@ -142,16 +142,6 @@ pub struct TokenResponse {
     pub authorization_details: Option<AuthorizationDetails>,
 }
 
-/// A [`TokenResponse`] with an extra field for the credential previews.
-/// This is a custom field so other implementations might not send it. For now however we assume that it is always
-/// present so it is not an [`Option`].
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TokenResponseWithPreviews {
-    #[serde(flatten)]
-    pub token_response: TokenResponse,
-    pub credential_previews: VecNonEmpty<CredentialPreview>,
-}
-
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialPreviewContent {
