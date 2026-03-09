@@ -128,6 +128,7 @@ platform :android do
     mock_repositories = options[:mock] || false
     demo_index_url = options[:demo_index_url] || ""
     show_debug_options = options[:show_debug_options] || false
+    allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
 
     UI.user_error!("Invalid file_format: #{file_format}") unless ["aab", "apk"].include? file_format
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
@@ -151,6 +152,7 @@ platform :android do
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
             "--dart-define=SHOW_DEBUG_OPTIONS=#{show_debug_options}",
+            "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
       )
 
       upload_sentry_symbols
@@ -313,6 +315,7 @@ platform :ios do
     mock_repositories = options[:mock] || false
     demo_index_url = options[:demo_index_url] || ""
     show_debug_options = options[:show_debug_options] || false
+    allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
 
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
@@ -346,6 +349,7 @@ platform :ios do
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
             "--dart-define=SHOW_DEBUG_OPTIONS=#{show_debug_options}",
+            "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
       )
 
       upload_sentry_symbols
