@@ -18,6 +18,7 @@ use audit_log::model::mock::MockAuditLog;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_bytes;
 use crypto::utils::random_string;
+use db_test::DbName;
 use db_test::DbSetup;
 use hsm::model::Hsm;
 use hsm::model::mock::MockPkcs11Client;
@@ -45,6 +46,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::WalletDeviceVendor;
+use wallet_provider_persistence::test::clear_flags_dropper;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
 use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::test::encrypted_pin_key;
@@ -52,8 +54,10 @@ use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wua;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
+use wallet_provider_service::flags::WalletFlags;
+use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::revocation::RevocationError;
-use wallet_provider_service::revocation::revoke_all_wallets;
+use wallet_provider_service::revocation::revoke_solution;
 use wallet_provider_service::revocation::revoke_wallet_by_revocation_code;
 use wallet_provider_service::revocation::revoke_wallets_by_recovery_code;
 use wallet_provider_service::revocation::revoke_wallets_by_wallet_id;
@@ -64,7 +68,13 @@ use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
 async fn setup_state(
     db_setup: &DbSetup,
     publish_dir: PublishDir,
-) -> UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer, PostgresStatusListService<SigningKey>> {
+) -> UserState<
+    Repositories,
+    StubWalletFlags,
+    MockPkcs11Client<HsmError>,
+    MockWuaIssuer,
+    PostgresStatusListService<SigningKey>,
+> {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db: Db = db_from_setup(db_setup).await;
 
@@ -103,6 +113,7 @@ async fn register_wallets_with_wuas(
     wuas_per_wallet: Vec<usize>,
     user_state: &UserState<
         Repositories,
+        StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
         PostgresStatusListService<SigningKey>,
@@ -171,6 +182,7 @@ async fn verify_revocation(
     publish_dir: Option<&PublishDir>,
     user_state: &UserState<
         Repositories,
+        StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
         PostgresStatusListService<SigningKey>,
@@ -201,12 +213,9 @@ async fn verify_revocation(
     .await;
 
     // verify wua revocation
+    let status_list_service = &user_state.status_list_service;
     join_all(wua_id_and_claim.into_iter().map(async |(wua_id, wua_claim)| {
-        let batch = user_state
-            .status_list_service
-            .get_attestation_batch(*wua_id)
-            .await
-            .unwrap();
+        let batch = status_list_service.get_attestation_batch(*wua_id).await.unwrap();
         assert_eq!(expected_status_type == StatusType::Invalid, batch.is_revoked);
 
         // only verify status list content if publish dir is provided
@@ -234,6 +243,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
     wuas_per_wallet: Vec<usize>,
     user_state: &UserState<
         Repositories,
+        StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
         PostgresStatusListService<SigningKey>,
@@ -386,62 +396,6 @@ async fn test_revoke_wallet(#[case] wuas_per_wallet: Vec<usize>, #[case] indices
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[rstest]
-#[case(vec![1])]
-#[case(vec![4, 4, 4])]
-#[case(vec![0, 10, 10])]
-#[ignore] // TODO this test fails due to the DB already containing token status lists (PVW-5455)
-async fn test_revoke_all(#[case] wuas_per_wallet: Vec<usize>) {
-    let db_setup = DbSetup::create().await;
-    let temp_dir = tempfile::tempdir().unwrap();
-    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
-
-    let (wallet_ids, wuas) = register_wallets_with_wuas(wuas_per_wallet, &user_state).await;
-    let wuas = wuas.into_iter().flatten().collect_vec();
-
-    // all wallets should not be revoked
-    verify_revocation(
-        &wallet_ids,
-        None,
-        &wuas,
-        Some(&publish_dir),
-        &user_state,
-        StatusType::Valid,
-    )
-    .await;
-
-    revoke_all_wallets(&user_state, &MockTimeGenerator::default(), &MockAuditLog)
-        .await
-        .unwrap();
-
-    // all wallets should be revoked
-    verify_revocation(
-        &wallet_ids,
-        Some(RevocationReason::WalletSolutionCompromised),
-        &wuas,
-        Some(&publish_dir),
-        &user_state,
-        StatusType::Invalid,
-    )
-    .await;
-
-    // verify idempotency
-    revoke_all_wallets(&user_state, &MockTimeGenerator::default(), &MockAuditLog)
-        .await
-        .unwrap();
-    verify_revocation(
-        &wallet_ids,
-        Some(RevocationReason::WalletSolutionCompromised),
-        &wuas,
-        Some(&publish_dir),
-        &user_state,
-        StatusType::Invalid,
-    )
-    .await;
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_wallet_not_found() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
@@ -577,7 +531,7 @@ async fn test_revoke_wallet_by_revocation_code() {
 
     // revoke the wallet; use a fixed time so we can assert on the return value
     let first_time_gen = MockTimeGenerator::epoch();
-    let revocation_date_time = revoke_wallet_by_revocation_code::<_, _, _>(
+    let revocation_date_time = revoke_wallet_by_revocation_code::<_, _, _, _>(
         revocation_code.clone(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -601,7 +555,7 @@ async fn test_revoke_wallet_by_revocation_code() {
     // verify idempotency: revoking again with a *different* time should return the originally
     // stored datetime, not the new one
     let second_time_gen = MockTimeGenerator::default();
-    let idempotent_date_time = revoke_wallet_by_revocation_code(
+    let idempotent_date_time = revoke_wallet_by_revocation_code::<_, _, _, _>(
         revocation_code,
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -638,7 +592,7 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
 
     let bogus_code = RevocationCode::new_random();
 
-    let err = revoke_wallet_by_revocation_code(
+    let err = revoke_wallet_by_revocation_code::<_, _, _, _>(
         bogus_code.clone(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -678,7 +632,7 @@ async fn test_revoke_wallet_by_revocation_code_hsm_error() {
         .wallet_user_hsm
         .remove_symmetric_key(REVOCATION_CODE_KEY_IDENTIFIER);
 
-    let err = revoke_wallet_by_revocation_code(
+    let err = revoke_wallet_by_revocation_code::<_, _, _, _>(
         RevocationCode::new_random(),
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -718,7 +672,7 @@ async fn test_revoke_wallet_by_revocation_code_wua_error() {
 
     let (_wallet_id, revocation_code) = wallets_with_codes.into_iter().exactly_one().unwrap();
 
-    let err = revoke_wallet_by_revocation_code(
+    let err = revoke_wallet_by_revocation_code::<_, _, _, _>(
         revocation_code,
         REVOCATION_CODE_KEY_IDENTIFIER,
         &user_state,
@@ -911,4 +865,41 @@ async fn test_remove_nonexistent_denied_recovery_code_service() {
         err,
         RevocationError::RecoveryCodeNotFound(code) if code == recovery_code
     ));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_revoke_solution() {
+    let db_setup = DbSetup::create_clean_only([DbName::WalletProvider]).await;
+    let _clear_flags = clear_flags_dropper(&db_setup);
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
+    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+
+    let (wallet_ids, wuas) = register_wallets_with_wuas(vec![1, 1, 1], &user_state).await;
+
+    // wallet should not be revoked initially
+    verify_revocation(
+        &wallet_ids,
+        None,
+        wuas.iter().flatten(),
+        Some(&publish_dir),
+        &user_state,
+        StatusType::Valid,
+    )
+    .await;
+
+    // revoke solution
+    revoke_solution(&user_state, &MockAuditLog).await.unwrap();
+
+    // flag should return revoked solution
+    assert!(user_state.flags.solution_is_revoked());
+
+    // wuas should be revoked
+    join_all(wuas.iter().flatten().map(async |(_, wua_claim)| {
+        // since the status list is not served in this test, we read it directly from disk
+        let status_type = status_type_for_claim(wua_claim, &publish_dir).await;
+        assert_eq!(status_type, StatusType::Invalid);
+    }))
+    .await;
 }

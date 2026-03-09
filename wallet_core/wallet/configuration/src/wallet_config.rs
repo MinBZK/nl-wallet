@@ -19,12 +19,11 @@ use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
-use crate::digid::DigidApp2AppConfiguration;
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -164,7 +163,7 @@ pub struct PidAttributePaths {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PidIssuanceConfiguration {
-    pub pid_issuer_url: CredentialIssuerIdentifier,
+    pub pid_issuer_url: IssuerIdentifier,
     pub digid: DigidConfiguration,
     pub digid_http_config: TlsPinningConfig,
 }
@@ -172,8 +171,6 @@ pub struct PidIssuanceConfiguration {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DigidConfiguration {
     pub client_id: String,
-    #[serde(default)]
-    pub app2app: Option<DigidApp2AppConfiguration>,
 }
 
 #[serde_as]

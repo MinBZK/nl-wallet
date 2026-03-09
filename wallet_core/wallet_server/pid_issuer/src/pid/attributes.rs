@@ -8,7 +8,7 @@ use crypto::x509::CertificateError;
 use hsm::service::HsmError;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
@@ -54,6 +54,7 @@ pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient,
     recovery_code_secret_key: SecretKeyVariant,
+    issuer_identifier: IssuerIdentifier,
 }
 
 impl BrpPidAttributeService {
@@ -62,11 +63,13 @@ impl BrpPidAttributeService {
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_identifier: IssuerIdentifier,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::try_new(bsn_privkey, http_config)?,
             recovery_code_secret_key,
+            issuer_identifier,
         })
     }
 }
@@ -99,8 +102,10 @@ impl AttributeService for BrpPidAttributeService {
         Ok(vec_nonempty![issuable_document])
     }
 
-    async fn oauth_metadata(&self, issuer_identifier: &CredentialIssuerIdentifier) -> Result<oidc::Config, Error> {
+    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Error> {
         let mut metadata = self.openid_client.discover_metadata().await?;
+
+        metadata.issuer = self.issuer_identifier.clone();
         metadata.token_endpoint = issuer_identifier.as_base_url().join("/issuance/token");
 
         Ok(metadata)

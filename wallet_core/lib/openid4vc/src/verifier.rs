@@ -181,7 +181,7 @@ pub enum UseCaseCertificateError {
 
 #[derive(thiserror::Error, Debug)]
 #[error("user aborted with error: {0:?}")]
-pub struct UserError(ErrorResponse<VpAuthorizationErrorCode>);
+pub struct UserError(Box<ErrorResponse<VpAuthorizationErrorCode>>);
 
 #[derive(thiserror::Error, Debug)]
 pub struct WithRedirectUri<T: Error> {
@@ -1464,7 +1464,7 @@ impl Session<WaitingForResponse> {
                     self.transition_abort()
                 } else {
                     // If the user sent any other error, fail the session.
-                    self.transition_fail(&UserError(err))
+                    self.transition_fail(&UserError(Box::new(err)))
                 };
                 // Return a non-error response to the wallet (including the redirect URI) to indicate
                 // we successfully processed its error response.

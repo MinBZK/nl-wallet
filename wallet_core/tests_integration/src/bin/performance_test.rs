@@ -6,6 +6,7 @@ use url::Url;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::oidc::HttpOidcClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
@@ -22,7 +23,6 @@ use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
-use wallet::test::HttpDigidClient;
 use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
@@ -41,7 +41,7 @@ type PerformanceTestWallet = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpDigidClient,
+    HttpOidcClient,
     HttpIssuanceSession,
     VpDisclosureClient,
 >;

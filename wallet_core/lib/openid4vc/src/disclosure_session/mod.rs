@@ -82,7 +82,7 @@ pub trait DisclosureSession {
         attestations: NonEmptyDisclosableAttestations,
         wscd: &W,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
+    ) -> Result<Option<BaseUrl>, (Box<Self>, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,

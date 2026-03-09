@@ -15,6 +15,7 @@ use derive_more::From;
 use derive_more::Into;
 use serde::Deserialize;
 use serde_with::DurationMilliSeconds;
+use serde_with::DurationSeconds;
 use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
@@ -60,6 +61,10 @@ pub struct Settings {
     pub structured_logging: bool,
     pub capture_and_redirect_logging: Option<PathBuf>,
     pub max_transfer_upload_size_in_bytes: usize,
+    #[serde(rename = "flags_refresh_delay_in_seconds")]
+    #[serde_as(as = "DurationSeconds<u64>")]
+    pub flags_refresh_delay: Duration,
+    pub revoke_solution_enabled: bool,
 
     pub wua_status_list: WuaStatusListsSettings,
 
@@ -191,6 +196,8 @@ impl Settings {
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
             .set_default("max_transfer_upload_size_in_bytes", 100_000_000)?
+            .set_default("flags_refresh_delay_in_seconds", 300)?
+            .set_default("revoke_solution_enabled", false)?
             .add_source(File::from(prefix_local_path(Path::new("wallet_provider.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")

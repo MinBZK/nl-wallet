@@ -8,7 +8,6 @@ use tracing::info;
 use http_utils::reqwest::IntoReqwestClient;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
-use jwt::UnverifiedJwt;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::ConfigurationError;
@@ -19,10 +18,15 @@ use crate::repository::Repository;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
 
+use super::WalletConfigJwt;
+use super::file_repository::RawJwtProvider;
+
+type ConfigState = (Arc<WalletConfiguration>, Option<Arc<WalletConfigJwt>>);
+
 pub struct HttpConfigurationRepository<B> {
-    client: EtagHttpClient<UnverifiedJwt<WalletConfiguration>, B, ConfigurationError>,
+    client: EtagHttpClient<WalletConfigJwt, B, ConfigurationError>,
     signing_public_key: EcdsaDecodingKey,
-    config: RwLock<Arc<WalletConfiguration>>,
+    config: RwLock<ConfigState>,
 }
 
 impl<B> HttpConfigurationRepository<B> {
@@ -38,7 +42,7 @@ impl<B> HttpConfigurationRepository<B> {
             )
             .await?,
             signing_public_key,
-            config: RwLock::new(Arc::new(initial_config)),
+            config: RwLock::new((Arc::new(initial_config), None)),
         };
 
         Ok(repo)
@@ -47,7 +51,13 @@ impl<B> HttpConfigurationRepository<B> {
 
 impl<C> Repository<Arc<WalletConfiguration>> for HttpConfigurationRepository<C> {
     fn get(&self) -> Arc<WalletConfiguration> {
-        Arc::clone(&self.config.read())
+        Arc::clone(&self.config.read().0)
+    }
+}
+
+impl<B> RawJwtProvider for HttpConfigurationRepository<B> {
+    fn last_raw_jwt(&self) -> Option<Arc<WalletConfigJwt>> {
+        self.config.read().1.as_ref().map(Arc::clone)
     }
 }
 
@@ -68,24 +78,24 @@ where
 
                 {
                     let current_config = self.config.read();
-                    if new_config.version <= current_config.version {
+                    if new_config.version <= current_config.0.version {
                         info!(
                             "Received wallet configuration with version: {}, but we have version: {}",
-                            new_config.version, current_config.version
+                            new_config.version, current_config.0.version
                         );
-                        return Ok(RepositoryUpdateState::Unmodified(Arc::clone(&current_config)));
+                        return Ok(RepositoryUpdateState::Unmodified(Arc::clone(&current_config.0)));
                     }
                 }
 
                 info!("Received new wallet configuration with version: {}", new_config.version);
 
                 let mut config = self.config.write();
-                let from = Arc::clone(&*config);
-                *config = Arc::new(new_config);
+                let from = Arc::clone(&config.0);
+                *config = (Arc::new(new_config), Some(Arc::new(parsed_response)));
 
                 Ok(RepositoryUpdateState::Updated {
                     from,
-                    to: Arc::clone(&*config),
+                    to: Arc::clone(&config.0),
                 })
             }
             HttpResponse::NotModified => {

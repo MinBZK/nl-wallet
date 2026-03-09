@@ -329,7 +329,7 @@ pub enum JwePublicKeyError {
     UnsupportedJwk {
         field: &'static str,
         expected: &'static str,
-        found: Option<serde_json::Value>,
+        found: Option<Box<serde_json::Value>>,
     },
 
     #[error("error parsing JWK: {0}")]
@@ -357,7 +357,7 @@ impl JwePublicKey {
             return Err(JwePublicKeyError::UnsupportedJwk {
                 field: "kty",
                 expected: "EC",
-                found: jwk.parameter("kty").cloned(),
+                found: jwk.parameter("kty").cloned().map(Box::new),
             });
         }
 
@@ -365,7 +365,7 @@ impl JwePublicKey {
             return Err(JwePublicKeyError::UnsupportedJwk {
                 field: "crv",
                 expected: "P-256",
-                found: jwk.curve().map(serde_json::Value::from),
+                found: jwk.curve().map(serde_json::Value::from).map(Box::new),
             });
         }
 

@@ -10,8 +10,8 @@ export const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g
  */
 export function formatDeletionCode(value) {
   let val = value.toUpperCase()
-  val = val.replace(/[IL]/g, "1").replace(/O/g, "0")
-  const rawValue = val.replace(ALLOWED_REGEX, "")
+  val = val.replaceAll(/[IL]/g, "1").replaceAll("O", "0")
+  const rawValue = val.replaceAll(ALLOWED_REGEX, "")
   const parts = rawValue.match(/.{1,4}/g)
   let formatted = parts ? parts.join("-") : rawValue
 
@@ -28,7 +28,7 @@ export function formatDeletionCode(value) {
  * preserving the user's position relative to raw characters.
  */
 export function calculateCursorPosition(oldVal, oldPos, formatted, rawValue, addTrailingHyphen) {
-  const rawPosBefore = oldVal.substring(0, oldPos).replace(/-/g, "").length
+  const rawPosBefore = oldVal.substring(0, oldPos).replaceAll("-", "").length
   const rawPosInNewValue = Math.min(rawPosBefore, rawValue.length)
   let newPos = rawPosInNewValue + Math.floor(rawPosInNewValue / 4)
 

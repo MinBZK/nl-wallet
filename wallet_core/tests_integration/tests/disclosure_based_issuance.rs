@@ -25,7 +25,7 @@ use tests_integration::common::*;
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] pid_format: CredentialFormat,
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] degree_format: CredentialFormat,
@@ -219,7 +219,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
 ) {
@@ -233,7 +233,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        pid_issuer_settings(db_setup.pid_issuer_url()),
         (issuance_server_settings, vec![], di_trust_anchor, di_tls_config),
     )
     .await;

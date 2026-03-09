@@ -31,13 +31,13 @@ use crate::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
 #[derive(Debug, thiserror::Error)]
 pub enum GoogleKeyAttestationError {
     #[error("invalid trust anchor: {0}")]
-    InvalidTrustAnchor(#[source] webpki::Error),
+    InvalidTrustAnchor(#[source] Box<webpki::Error>),
     #[error("invalid certificate chain: {0}")]
-    InvalidCertificateChain(#[source] webpki::Error),
+    InvalidCertificateChain(#[source] Box<webpki::Error>),
     #[error("could not decode certificate from chain: {0}")]
     CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
     #[error("could not decode end entity certificate from leaf certificate: {0}")]
-    LeafCertificate(#[source] webpki::Error),
+    LeafCertificate(#[source] Box<webpki::Error>),
     #[error("could not decode public key from root certificate: {0}")]
     RootPublicKey(#[source] X509Error),
     #[error("root CA in certificate chain does not contain any of the configured public keys")]
@@ -208,13 +208,13 @@ fn verify_google_attestation_certificate_chain<'a>(
     // `EndEntityCert::verify_for_usage` to verify the certificate chain. This hack is safe, because we have verified
     // (or assumed) the public key of the root certificate to be trustworthy.
     let trust_anchor = webpki::anchor_from_trusted_cert(root_certificate_der)
-        .map_err(GoogleKeyAttestationError::InvalidTrustAnchor)?;
+        .map_err(|error| GoogleKeyAttestationError::InvalidTrustAnchor(Box::new(error)))?;
     let trust_anchors = vec![trust_anchor];
 
     // EndEntityCert is the first certificate in the list.
     // `unwrap` is safe because of guard that verifies the certificate chain is not empty.
     let end_certificate = EndEntityCert::try_from(certificate_chain.first().unwrap())
-        .map_err(GoogleKeyAttestationError::LeafCertificate)?;
+        .map_err(|error| GoogleKeyAttestationError::LeafCertificate(Box::new(error)))?;
 
     // Verify that each certificate signs the next certificate in the chain.
     let _verified_path = end_certificate
@@ -227,7 +227,7 @@ fn verify_google_attestation_certificate_chain<'a>(
             None,
             None,
         )
-        .map_err(GoogleKeyAttestationError::InvalidCertificateChain)?;
+        .map_err(|error| GoogleKeyAttestationError::InvalidCertificateChain(Box::new(error)))?;
 
     Ok(root_certificate)
 }

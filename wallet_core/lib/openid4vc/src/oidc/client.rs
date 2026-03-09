@@ -344,9 +344,9 @@ mod tests {
     use url::Url;
 
     use http_utils::client::InternalHttpConfig;
-    use http_utils::urls::BaseUrl;
 
     use crate::AuthorizationErrorCode;
+    use crate::issuer_identifier::IssuerIdentifier;
     use crate::oidc::tests::start_discovery_server;
     use crate::pkce::MockPkcePair;
     use crate::pkce::S256PkcePair;
@@ -359,7 +359,7 @@ mod tests {
     use super::OidcReqwestClient;
 
     // These constants are used by multiple tests.
-    const ISSUER_URL: &str = "http://example.com";
+    const ISSUER_URL: &str = "https://example.com";
     const CLIENT_ID: &str = "client-1";
     const REDIRECT_URI: &str = "redirect://here";
     const CSRF_TOKEN: &str = "csrf_token";
@@ -451,13 +451,13 @@ mod tests {
     }
 
     fn create_client() -> HttpOidcClient<MockPkcePair> {
-        let server_url: BaseUrl = ISSUER_URL.parse().unwrap();
+        let issuer_identifier = ISSUER_URL.parse::<IssuerIdentifier>().unwrap();
 
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
 
         HttpOidcClient {
-            provider: Config::new_mock(server_url),
+            provider: Config::new_mock(issuer_identifier),
             jwks: Some(JWKSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),

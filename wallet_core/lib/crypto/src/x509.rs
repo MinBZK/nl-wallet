@@ -125,9 +125,9 @@ impl TryFrom<CertificateUsage> for Vec<rcgen::CustomExtension> {
 #[category(pd)]
 pub enum CertificateError {
     #[error("certificate verification failed: {0}")]
-    Verification(#[source] webpki::Error),
+    Verification(#[source] Box<webpki::Error>),
     #[error("certificate parsing for validation failed: {0}")]
-    EndEntityCertificateParsing(#[from] webpki::Error),
+    EndEntityCertificateParsing(#[source] Box<webpki::Error>),
     #[error("certificate content parsing failed: {0}")]
     X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
     #[error("pem parsing failed: {0}")]
@@ -135,7 +135,7 @@ pub enum CertificateError {
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate private key generation failed: {0}")]
     #[category(unexpected)]
-    GeneratingPrivateKey(#[source] p256::pkcs8::Error),
+    GeneratingPrivateKey(#[source] Box<p256::pkcs8::Error>),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
     #[category(unexpected)]
@@ -149,7 +149,7 @@ pub enum CertificateError {
     #[category(unexpected)]
     BasicConstraintViolation,
     #[error("failed to parse certificate public key: {0}")]
-    PublicKeyParsing(p256::pkcs8::spki::Error),
+    PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
     #[error("EKU count incorrect ({0})")]
     #[category(critical)]
     IncorrectEkuCount(usize),
@@ -159,7 +159,7 @@ pub enum CertificateError {
     #[error("PEM decoding error: {0}")]
     Pem(#[from] nom::Err<PEMError>),
     #[error("DER coding error: {0}")]
-    DerEncodingError(#[from] p256::pkcs8::der::Error),
+    DerEncodingError(#[source] Box<p256::pkcs8::der::Error>),
     #[error("JSON coding error: {0}")]
     JsonEncodingError(#[from] serde_json::Error),
     #[error("X509 coding error: {0}")]
@@ -224,11 +224,13 @@ impl BorrowingCertificate {
 
     fn from_certificate_der_arc(certificate_der: Arc<CertificateDer<'static>>) -> Result<Self, CertificateError> {
         let yoke = Yoke::try_attach_to_cart(certificate_der, |cert| {
-            let end_entity_cert = cert.try_into().map_err(CertificateError::EndEntityCertificateParsing)?;
+            let end_entity_cert = cert
+                .try_into()
+                .map_err(|error| CertificateError::EndEntityCertificateParsing(Box::new(error)))?;
             let (_, x509_cert) =
                 X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::X509CertificateParsing)?;
             let public_key = VerifyingKey::from_public_key_der(x509_cert.public_key().raw)
-                .map_err(CertificateError::PublicKeyParsing)?;
+                .map_err(|error| CertificateError::PublicKeyParsing(Box::new(error)))?;
 
             Ok::<_, CertificateError>(ParsedCertificate {
                 end_entity_cert,
@@ -260,7 +262,7 @@ impl BorrowingCertificate {
                 None,
             )
             .map(|_| ())
-            .map_err(CertificateError::Verification)
+            .map_err(|error| CertificateError::Verification(Box::new(error)))
     }
 
     pub fn end_entity_certificate(&self) -> &EndEntityCert<'_> {
@@ -375,8 +377,10 @@ impl BorrowingCertificate {
         let x509_cert = self.x509_certificate();
         let ext = x509_cert.iter_extensions().find(|ext| ext.oid == *oid);
         ext.map(|ext| {
-            let mut reader = SliceReader::new(ext.value)?;
-            let json = Utf8StringRef::decode(&mut reader)?;
+            let mut reader =
+                SliceReader::new(ext.value).map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?;
+            let json = Utf8StringRef::decode(&mut reader)
+                .map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?;
             let registration = serde_json::from_str(json.as_str())?;
             Ok::<_, CertificateError>(registration)
         })
@@ -441,13 +445,19 @@ where
         use p256::pkcs8::der::Encode;
 
         let json_string = serde_json::to_string(self)?;
-        let string = Utf8StringRef::new(&json_string)?;
+        let string =
+            Utf8StringRef::new(&json_string).map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?;
 
         let sub_identifiers = Self::OID
             .iter()
             .ok_or(CertificateError::IncorrectEku(Self::OID.to_id_string()))?
             .collect::<Vec<_>>();
-        let ext = rcgen::CustomExtension::from_oid_content(sub_identifiers.as_slice(), string.to_der()?);
+        let ext = rcgen::CustomExtension::from_oid_content(
+            sub_identifiers.as_slice(),
+            string
+                .to_der()
+                .map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?,
+        );
         Ok(ext)
     }
 }
@@ -579,7 +589,7 @@ mod test {
         let error = generate_and_verify_issuer_for_validity(start, end);
         assert_matches!(
             error,
-            CertificateError::Verification(webpki::Error::CertNotValidYet { .. })
+            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertNotValidYet { .. })
         );
     }
 
@@ -590,7 +600,10 @@ mod test {
         let end = Some(now - Duration::days(1));
 
         let error = generate_and_verify_issuer_for_validity(start, end);
-        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired { .. }));
+        assert_matches!(
+            error,
+            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertExpired { .. })
+        );
     }
 
     fn assert_certificate_default_validity(certificate: &X509Certificate) {

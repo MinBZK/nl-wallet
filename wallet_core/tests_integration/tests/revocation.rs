@@ -18,7 +18,7 @@ use wallet::errors::DisclosureError;
 use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn test_revocation_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -46,7 +46,7 @@ async fn test_revocation_pid_ok() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
+#[serial(hsm, MockOidcClient)]
 async fn test_revocation_degree_ok() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -57,7 +57,7 @@ async fn test_revocation_degree_ok() {
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        pid_issuer_settings(db_setup.pid_issuer_url()),
         (
             settings,
             vec![IssuableDocument::new_mock_degree("MSc".to_string())],

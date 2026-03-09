@@ -84,7 +84,7 @@ where
         attestations: NonEmptyDisclosableAttestations,
         wscd: &W,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
+    ) -> Result<Option<BaseUrl>, (Box<Self>, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,
@@ -138,7 +138,7 @@ where
                     Ok(value) => value,
                     Err(error) => {
                         return Err((
-                            self,
+                            Box::new(self),
                             DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
                         ));
                     }
@@ -200,7 +200,7 @@ where
                     Ok(value) => value,
                     Err(error) => {
                         return Err((
-                            self,
+                            Box::new(self),
                             DisclosureError::before_sharing(VpClientError::SdJwtSigning(error).into()),
                         ));
                     }
@@ -236,7 +236,7 @@ where
             Ok(value) => value,
             Err(error) => {
                 return Err((
-                    self,
+                    Box::new(self),
                     DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(error).into()),
                 ));
             }
@@ -253,7 +253,7 @@ where
             });
         let redirect_uri = match result {
             Ok(value) => value,
-            Err(error) => return Err((self, error.into())),
+            Err(error) => return Err((Box::new(self), error.into())),
         };
 
         info!("sending Authorization Response succeeded");

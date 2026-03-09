@@ -55,7 +55,8 @@ use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer_identifier::CredentialIssuerIdentifier;
+use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::oidc::MockOidcClient;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
@@ -87,8 +88,6 @@ use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
-use wallet::test::MockDigidClient;
-use wallet::test::MockDigidSession;
 use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
@@ -143,7 +142,7 @@ pub fn local_https_base_url(port: u16) -> BaseUrl {
         .expect("hardcoded values should always parse successfully")
 }
 
-pub fn local_http_issuer_identifier(port: u16) -> CredentialIssuerIdentifier {
+pub fn local_http_issuer_identifier(port: u16) -> IssuerIdentifier {
     format!("http://localhost:{port}/")
         .parse()
         .expect("hardcoded values should always parse successfully")
@@ -161,7 +160,7 @@ pub type WalletWithStorage = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    MockDigidClient<TlsPinningConfig>,
+    MockOidcClient,
     HttpIssuanceSession,
     VpDisclosureClient,
 >;
@@ -175,7 +174,7 @@ pub async fn setup_wallet_and_default_env(
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
@@ -188,7 +187,7 @@ pub struct DisclosureUrls {
 
 pub struct IssuerUrl {
     pub internal: BaseUrl,
-    pub public: CredentialIssuerIdentifier,
+    pub public: IssuerIdentifier,
 }
 
 pub struct IssuerUrls {
@@ -260,7 +259,7 @@ pub async fn setup_env_default(
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         verification_server_settings(db_setup.verification_server_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url(), "123".to_string()),
+        pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
@@ -421,8 +420,7 @@ where
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
-    let mut wallet_clients = WalletClients::new_http().unwrap();
-    setup_mock_digid_client(&mut wallet_clients.digid_client);
+    let wallet_clients = WalletClients::new_http().unwrap();
 
     Wallet::init_registration(
         config_repository,
@@ -607,7 +605,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings(db_url: Url, recovery_code: String) -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
+pub fn pid_issuer_settings(db_url: Url) -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     settings.issuer_settings.server_settings.storage.url = db_url;
@@ -615,10 +613,7 @@ pub fn pid_issuer_settings(db_url: Url, recovery_code: String) -> (PidIssuerSett
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (
-        settings,
-        vec![mock_issuable_document_pid(recovery_code)].try_into().unwrap(),
-    )
+    (settings, vec![mock_issuable_document_pid()].try_into().unwrap())
 }
 
 pub fn issuance_server_settings(
@@ -740,7 +735,7 @@ async fn start_mock_attestation_server(
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async move {
-        axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().await.unwrap())
+        axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
             .unwrap()
             .serve(
                 Router::new()
@@ -1022,10 +1017,14 @@ pub async fn do_pid_issuance_with_purpose(
     pin: String,
     purpose: PidIssuancePurpose,
 ) -> WalletWithStorage {
+    // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
+    let ctx = MockOidcClient::start_context();
+    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
     let redirect_url = wallet
         .create_pid_issuance_auth_url(purpose)
         .await
         .expect("Could not create pid issuance auth url");
+
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)
         .await
@@ -1037,10 +1036,29 @@ pub async fn do_pid_issuance_with_purpose(
     wallet
 }
 
+pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> WalletWithStorage {
+    let ctx = MockOidcClient::start_context();
+    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
+    let uri = wallet
+        .create_pin_recovery_redirect_uri()
+        .await
+        .expect("Could not create pin recovery redirect URI");
+
+    wallet
+        .continue_pin_recovery(uri)
+        .await
+        .expect("Could not continue pin recovery");
+    wallet
+        .complete_pin_recovery(new_pin)
+        .await
+        .expect("Could not complete pin recovery");
+    wallet
+}
+
 pub async fn do_degree_issuance(
     wallet: &mut WalletWithStorage,
     pin: String,
-    issuance_server_url: &CredentialIssuerIdentifier,
+    issuance_server_url: &IssuerIdentifier,
     format: CredentialFormat,
 ) -> Vec<AttestationPresentation> {
     let _proposal = wallet
@@ -1061,35 +1079,27 @@ pub async fn do_degree_issuance(
     attestation_previews
 }
 
-/// Configure [`MockDigidClient`] to return a [`MockDigidClient`] that returns some arbitrary token.
-pub fn setup_mock_digid_client(digid_client: &mut MockDigidClient<TlsPinningConfig>) {
-    digid_client
-        .expect_start_session()
-        .returning(|_digid_config, _http_config, _redirect_uri| {
-            let mut session = MockDigidSession::new();
+/// Creates a [`MockOidcClient`] that is mocked to return some arbitrary token.
+pub fn mock_oidc_start_result() -> (MockOidcClient, Url) {
+    let mut oidc_client = MockOidcClient::new();
 
-            session
-                .expect_auth_url()
-                .return_const(Url::parse("http://localhost/").unwrap());
+    oidc_client
+        .expect_into_token_request()
+        .times(1)
+        .return_once(|_redirect_uri| {
+            let token_request = TokenRequest {
+                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: crypto::utils::random_string(32).into(),
+                },
+                code_verifier: Some("my_code_verifier".to_string()),
+                client_id: Some("my_client_id".to_string()),
+                redirect_uri: Some("redirect://here".parse().unwrap()),
+            };
 
-            session
-                .expect_into_token_request()
-                .times(1)
-                .return_once(|_http_config, _redirect_uri| {
-                    let token_request = TokenRequest {
-                        grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                            pre_authorized_code: crypto::utils::random_string(32).into(),
-                        },
-                        code_verifier: Some("my_code_verifier".to_string()),
-                        client_id: Some("my_client_id".to_string()),
-                        redirect_uri: Some("redirect://here".parse().unwrap()),
-                    };
-
-                    Ok(token_request)
-                });
-
-            Ok(session)
+            Ok(token_request)
         });
+
+    (oidc_client, Url::parse("http://localhost/").unwrap())
 }
 
 pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -> Url {

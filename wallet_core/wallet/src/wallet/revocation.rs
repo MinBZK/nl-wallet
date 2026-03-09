@@ -21,6 +21,7 @@ use uuid::Uuid;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -32,7 +33,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::NotificationType;
 use crate::ScheduledNotificationsCallback;
 use crate::Wallet;
-use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::RevocationInfo;
@@ -82,12 +82,12 @@ impl<S, SLC, CR> Clone for RevocationTaskContext<S, SLC, CR> {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DigidClient,
+    OC: OidcClient,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {

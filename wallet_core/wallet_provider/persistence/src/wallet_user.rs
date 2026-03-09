@@ -208,7 +208,11 @@ where
     wallet_user::ActiveModel {
         id: Set(user_id),
         wallet_id: Set(user.wallet_id.into()),
-        hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
+        hw_pubkey_der: Set(user
+            .hw_pubkey
+            .to_public_key_der()
+            .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?
+            .to_vec()),
         encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.data),
         pin_pubkey_iv: Set(user.encrypted_pin_pubkey.iv.0),
         encrypted_previous_pin_pubkey_sec1: Set(None),
