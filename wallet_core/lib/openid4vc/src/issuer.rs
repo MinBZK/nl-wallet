@@ -630,7 +630,7 @@ where
                     .collect();
 
                 // Return previews only for the types that are actually in the session; silently ignore IDs that appear
-                // in the issuer metadata but are not part of this session.
+                // in the requested_attestation_types but are not part of this session.
                 session_data
                     .credential_previews
                     .iter()
