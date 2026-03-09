@@ -179,10 +179,8 @@ impl DbSetup {
     }
 
     async fn create_with_clean(clean: impl IntoIterator<Item = DbName>) -> Self {
-        let ci = std::env::var("CI").is_ok();
-
         // Start testcontainer when not on CI
-        let (host, port) = if ci {
+        let (host, port) = if std::env::var("CI").is_ok() {
             (
                 std::env::var("DB_HOST").expect("DB_HOST should be set").to_string(),
                 std::env::var("DB_PORT")
@@ -214,10 +212,8 @@ impl DbSetup {
         .await
         .expect("Could not connect to database");
 
-        // Create templates if not on CI
-        if !ci {
-            setup_templates(&mut connection, &connect_options).await;
-        }
+        // Create templates
+        setup_templates(&mut connection, &connect_options).await;
 
         // Find free set of databases
         let index = find_free_set_of_databases(&mut connection).await;
