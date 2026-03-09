@@ -12,6 +12,7 @@ use http_utils::error::HttpJsonErrorType;
 use http_utils::urls::BaseUrl;
 use jwt::wua::WuaError;
 
+use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
 use crate::issuer::TokenRequestError;
@@ -206,6 +207,45 @@ impl ErrorStatusCode for TokenErrorCode {
             // The `Other` variant is only to be used on the receiving end, but we have
             // to specify it here in order for this implementation to cover all cases.
             Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
+/// Error codes for the credential preview endpoint.
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CredentialPreviewErrorCode {
+    InvalidRequest,
+    InvalidToken,
+    ServerError,
+}
+
+impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> {
+    fn from(err: CredentialPreviewError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                CredentialPreviewError::IssuanceError(IssuanceError::SessionStore(_))
+                | CredentialPreviewError::MissingAttestationTypeConfig(_) => CredentialPreviewErrorCode::ServerError,
+                CredentialPreviewError::IssuanceError(_)
+                | CredentialPreviewError::UnknownCredentialIdentifier(_)
+                | CredentialPreviewError::CredentialPreviewsNotFound => CredentialPreviewErrorCode::InvalidRequest,
+                CredentialPreviewError::MalformedToken | CredentialPreviewError::Unauthorized => {
+                    CredentialPreviewErrorCode::InvalidToken
+                }
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl ErrorStatusCode for CredentialPreviewErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            CredentialPreviewErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+            CredentialPreviewErrorCode::InvalidToken => StatusCode::UNAUTHORIZED,
+            CredentialPreviewErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

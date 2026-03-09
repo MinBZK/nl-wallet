@@ -14,8 +14,10 @@ use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::BatchCredentialIssuance;
+use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::NonZeroOrOneU64;
+use crate::issuer_metadata::ProofType;
 use crate::oidc::Config;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
@@ -110,9 +112,10 @@ impl Config {
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(issuer_identifier: IssuerIdentifier) -> IssuerMetadata {
+    pub fn new_mock(issuer_identifier: IssuerIdentifier, attestation_type: &str) -> IssuerMetadata {
         let credential_endpoint = issuer_identifier.join_issuer_url("/issuance/credential");
         let batch_credential_endpoint = issuer_identifier.join_issuer_url("/issuance/batch_credential");
+        let credential_preview_endpoint = issuer_identifier.join_issuer_url("/issuance/credential_preview");
 
         IssuerMetadata {
             credential_issuer: issuer_identifier,
@@ -128,7 +131,16 @@ impl IssuerMetadata {
                 batch_size: NonZeroOrOneU64::try_new(10.try_into().unwrap()).unwrap(),
             }),
             display: None,
-            credential_configurations_supported: HashMap::new(),
+            credential_configurations_supported: HashMap::from_iter(vec![(
+                attestation_type.to_string(),
+                CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
+                    attestation_type.to_string(),
+                    vec![ProofType::Jwt],
+                    vec![],
+                    vec![],
+                ),
+            )]),
+            credential_preview_endpoint: Some(credential_preview_endpoint),
         }
     }
 }
