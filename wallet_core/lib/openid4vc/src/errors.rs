@@ -1,7 +1,10 @@
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use serde_with::skip_serializing_none;
+use strum::EnumString;
 use url::Url;
 
 use http_utils::error::HttpJsonError;
@@ -52,8 +55,8 @@ pub trait ErrorStatusCode {
 
 /// See
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-error-response>
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum CredentialErrorCode {
     InvalidCredentialRequest,
     UnsupportedCredentialType,
@@ -130,8 +133,8 @@ impl ErrorStatusCode for CredentialErrorCode {
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-6.3>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum TokenErrorCode {
     InvalidRequest,
     InvalidClient,
@@ -182,8 +185,8 @@ impl ErrorStatusCode for TokenErrorCode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum GetRequestErrorCode {
     InvalidRequest,
     ExpiredEphemeralId,
@@ -240,8 +243,8 @@ impl ErrorStatusCode for GetRequestErrorCode {
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#name-error-response>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum PostAuthResponseErrorCode {
     InvalidRequest,
     ExpiredSession,
@@ -314,7 +317,7 @@ where
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
 /// Error codes sent to the Relying Party when an error occurs when handling their request.
-#[derive(Debug, Clone, Copy, strum::EnumString, strum::Display)]
+#[derive(Debug, Clone, Copy, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
     ServerError,
@@ -455,8 +458,8 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum AuthBearerErrorCode {
     InvalidRequest,
     InvalidToken,
@@ -464,21 +467,21 @@ pub enum AuthBearerErrorCode {
 }
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
     VpFormatsNotSupported,
     InvalidPresentationDefinitionUri,
     InvalidPresentationDefinitionReference,
     InvalidRequestUriMethod,
 
-    #[serde(untagged)]
+    #[strum(default)]
     AuthorizationError(AuthorizationErrorCode),
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum AuthorizationErrorCode {
     InvalidRequest,
     UnauthorizedClient,
@@ -487,7 +490,7 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
-    #[serde(untagged)]
+    #[strum(default)]
     Other(String),
 }
 
