@@ -10,6 +10,7 @@ use url::Url;
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use http_utils::urls::BaseUrl;
+use jwt::wua::WuaError;
 
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
@@ -53,16 +54,17 @@ pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
 }
 
-/// See
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-error-response>
-#[derive(Clone, Debug, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+/// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3.1>.
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum CredentialErrorCode {
     InvalidCredentialRequest,
-    UnsupportedCredentialType,
-    UnsupportedCredentialFormat,
+    UnknownCredentialConfiguration,
+    UnknownCredentialIdentifier,
     InvalidProof,
+    InvalidNonce,
     InvalidEncryptionParameters,
+    CredentialRequestDenied,
 
     // From https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
     InvalidRequest,
@@ -73,6 +75,10 @@ pub enum CredentialErrorCode {
     /// This error type is not defined in the spec, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the spec, so we have freedom to return what we want.
     ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    #[strum(default)]
+    Other(String),
 }
 
 impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
@@ -80,6 +86,39 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
+                CredentialRequestError::IssuanceError(IssuanceError::UnexpectedState)
+                | CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(_))
+                | CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_))
+                | CredentialRequestError::UseBatchIssuance
+                | CredentialRequestError::WrongNumberOfCredentialRequests
+                | CredentialRequestError::MissingWua
+                | CredentialRequestError::MissingPoa
+                | CredentialRequestError::CredentialTypeMismatch { .. } => {
+                    CredentialErrorCode::InvalidCredentialRequest
+                }
+
+                CredentialRequestError::CredentialTypeNotOffered(_) => {
+                    CredentialErrorCode::UnknownCredentialConfiguration
+                }
+
+                // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
+                CredentialRequestError::UnsupportedJwt(_)
+                | CredentialRequestError::Jwt(_)
+                | CredentialRequestError::JwkConversion(_)
+                | CredentialRequestError::MissingCredentialRequestPoP
+                | CredentialRequestError::PoaVerification(_)
+                | CredentialRequestError::Wua(WuaError::JwkConversion(_))
+                | CredentialRequestError::Wua(WuaError::Jwt(_)) => CredentialErrorCode::InvalidProof,
+
+                CredentialRequestError::IncorrectNonce | CredentialRequestError::Wua(WuaError::IncorrectNonce) => {
+                    CredentialErrorCode::InvalidNonce
+                }
+
+                // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
+                CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
+                    CredentialErrorCode::InvalidToken
+                }
+
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | CredentialRequestError::MissingAttestationTypeConfiguration(_)
                 | CredentialRequestError::PreviewConversion(_)
@@ -88,26 +127,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::IncorrectNumberOfStatusClaims(_)
                 | CredentialRequestError::ObtainStatusClaim(_) => CredentialErrorCode::ServerError,
-
-                CredentialRequestError::IssuanceError(_)
-                | CredentialRequestError::UseBatchIssuance
-                | CredentialRequestError::WrongNumberOfCredentialRequests
-                | CredentialRequestError::MissingWua
-                | CredentialRequestError::MissingPoa
-                | CredentialRequestError::CredentialTypeMismatch { .. }
-                | CredentialRequestError::Wua(_)
-                | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
-
-                CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
-                    CredentialErrorCode::InvalidToken
-                }
-
-                CredentialRequestError::UnsupportedJwt(_)
-                | CredentialRequestError::IncorrectNonce
-                | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::JwkConversion(_)
-                | CredentialRequestError::MissingCredentialRequestPoP
-                | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,
             },
             error_description: Some(description),
             error_uri: None,
@@ -118,15 +137,19 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
 impl ErrorStatusCode for CredentialErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            CredentialErrorCode::InvalidCredentialRequest
-            | CredentialErrorCode::UnsupportedCredentialType
-            | CredentialErrorCode::UnsupportedCredentialFormat
-            | CredentialErrorCode::InvalidProof
-            | CredentialErrorCode::InvalidEncryptionParameters
-            | CredentialErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
-            CredentialErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            CredentialErrorCode::InvalidToken => StatusCode::UNAUTHORIZED,
-            CredentialErrorCode::InsufficientScope => StatusCode::FORBIDDEN,
+            Self::InvalidCredentialRequest
+            | Self::UnknownCredentialConfiguration
+            | Self::UnknownCredentialIdentifier
+            | Self::InvalidProof
+            | Self::InvalidNonce
+            | Self::InvalidEncryptionParameters
+            | Self::CredentialRequestDenied
+            | Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::InvalidToken => StatusCode::UNAUTHORIZED,
+            // The `Other` variant is only to be used on the receiving end, but we have
+            // to specify it here in order for this implementation to cover all cases.
+            Self::InsufficientScope | Self::Other(_) => StatusCode::FORBIDDEN,
         }
     }
 }
