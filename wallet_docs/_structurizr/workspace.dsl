@@ -3,7 +3,8 @@ workspace "Name" "NL-Wallet" {
     !identifiers hierarchical
 
     model {
-        u = person "User"
+
+        u = person "User" "End user of wallet App"
         us = person "Wallet User Support"
         uaPid = person "PID issuer admin"
         uaPb = person "Issuer admin"
@@ -75,6 +76,12 @@ workspace "Name" "NL-Wallet" {
           tags "External"            
         }
         
+        sentry = softwareSystem "Sentry" {
+            tags "External"
+        }
+
+
+
         ua = person "Wallet Technical Support"{
             -> ws "Maintain configuration, Manage vulnerabilities" 
             -> adminPortal "Perform system administration"
@@ -144,6 +151,7 @@ workspace "Name" "NL-Wallet" {
         ws -> verifier.ov "[E-401] Present data"
         //issuerPb -> ws "Issue attestations" 
         ws.walletApp -> platformServices "[I-113] Request App/key attestation (Apple AppAttest)"
+        ws.walletApp -> sentry " [I-114] Send error report"
         ws.walletBackend -> platformServices "[I-405] Verify App attestation (Google Play Integrity)"
         ws.walletApp -> digid "[I-106] Start authentication for activation/recovery"
         ws.walletBackend -> ws.db "[I-401] Reads from and writes to"
@@ -259,12 +267,9 @@ workspace "Name" "NL-Wallet" {
             "structurizr.sort" "key"
         }
 
-        branding {
-            font "Calibri, Arial" 
-        }
       
         styles {
-            
+
             element "Element" {
                 color #ffffff
             }
@@ -331,6 +336,10 @@ workspace "Name" "NL-Wallet" {
                 fontSize 28
             }
         }
+        branding {            
+            font "Calibri, Arial" 
+        }
+
     }
 
     configuration {

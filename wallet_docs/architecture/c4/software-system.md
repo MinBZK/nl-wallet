@@ -26,7 +26,8 @@ Relations:
 - [I-109] Other Issuers, to retrieve other types of (PUB/Q)EAA credentials [E-301]
 - [I-110] Retrieve Status List for revocation status of credentials from Other Issuers [E-302]
 - [I-111] Verifiers, to present stored credentials [E-401]
-- [I-113] Request App Attest attestation from Apple (iOS only) 
+- [I-113] Request App Attest attestation from Apple (iOS only)
+- [I-114] Send error reports (to Sentry)  
 
 ## 2. App database
 
