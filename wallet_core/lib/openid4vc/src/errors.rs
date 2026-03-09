@@ -212,12 +212,16 @@ impl ErrorStatusCode for TokenErrorCode {
 }
 
 /// Error codes for the credential preview endpoint.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum CredentialPreviewErrorCode {
     InvalidRequest,
     InvalidToken,
     ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    #[strum(default)]
+    Other(String),
 }
 
 impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> {
@@ -243,9 +247,11 @@ impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> 
 impl ErrorStatusCode for CredentialPreviewErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            CredentialPreviewErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
-            CredentialPreviewErrorCode::InvalidToken => StatusCode::UNAUTHORIZED,
-            CredentialPreviewErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::InvalidToken => StatusCode::UNAUTHORIZED,
+            // The `Other` variant is only to be used on the receiving end, but we have
+            // to specify it here in order for this implementation to cover all cases.
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
