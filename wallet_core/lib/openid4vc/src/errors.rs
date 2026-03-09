@@ -131,9 +131,9 @@ impl ErrorStatusCode for CredentialErrorCode {
     }
 }
 
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-6.3>
+/// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.3>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
-#[derive(Clone, Debug, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum TokenErrorCode {
     InvalidRequest,
@@ -142,13 +142,15 @@ pub enum TokenErrorCode {
     UnauthorizedClient,
     UnsupportedGrantType,
     InvalidScope,
-    AuthorizationPending, // OpenID4VCI-specific error type
-    SlowDown,             // OpenID4VCI-specific error type
 
     /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
     /// This error type is not defined in the specs, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
     ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    #[strum(default)]
+    Other(String),
 }
 
 impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
@@ -172,15 +174,15 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
 impl ErrorStatusCode for TokenErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            TokenErrorCode::InvalidRequest
-            | TokenErrorCode::InvalidGrant
-            | TokenErrorCode::UnauthorizedClient
-            | TokenErrorCode::UnsupportedGrantType
-            | TokenErrorCode::InvalidScope
-            | TokenErrorCode::AuthorizationPending
-            | TokenErrorCode::SlowDown => StatusCode::BAD_REQUEST,
-            TokenErrorCode::InvalidClient => StatusCode::UNAUTHORIZED,
-            TokenErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::InvalidRequest
+            | Self::InvalidGrant
+            | Self::UnauthorizedClient
+            | Self::UnsupportedGrantType
+            | Self::InvalidScope => StatusCode::BAD_REQUEST,
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            // The `Other` variant is only to be used on the receiving end, but we have
+            // to specify it here in order for this implementation to cover all cases.
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
