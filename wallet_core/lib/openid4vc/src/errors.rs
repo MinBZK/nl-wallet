@@ -125,7 +125,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::PreviewConversion(_)
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
-                | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::IncorrectNumberOfStatusClaims(_)
                 | CredentialRequestError::ObtainStatusClaim(_) => CredentialErrorCode::ServerError,
             },

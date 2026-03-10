@@ -164,9 +164,6 @@ pub enum CredentialRequestError {
     #[error("missing attestation type config for {0}")]
     MissingAttestationTypeConfiguration(String),
 
-    #[error("failed to sign credential: {0}")]
-    CredentialSigning(mdoc::Error),
-
     #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
     CredentialTypeMismatch { requested: Format, offered: Format },
 
