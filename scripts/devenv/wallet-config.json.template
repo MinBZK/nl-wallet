@@ -32,16 +32,8 @@
     }
   },
   "pid_issuance": {
-    "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/",
-    "digid": {
-      "client_id": "${WALLET_CLIENT_ID}"
-    },
-    "digid_http_config": {
-      "base_url": "https://${SERVICES_HOST}:${RDO_MAX_PORT}/",
-      "trust_anchors": [
-        "${DIGID_CA_CRT}"
-      ]
-    }
+    "url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/",
+    "client_id": "${WALLET_CLIENT_ID}"
   },
   "disclosure": {
     "rp_trust_anchors": [

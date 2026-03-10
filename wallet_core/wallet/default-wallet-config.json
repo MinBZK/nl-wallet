@@ -32,16 +32,8 @@
     }
   },
   "pid_issuance": {
-    "pid_issuer_url": "https://localhost:3001/",
-    "digid": {
-      "client_id": "ff04277f-0cf7-4437-8a95-14737861d306"
-    },
-    "digid_http_config": {
-      "base_url": "https://localhost:8006/",
-      "trust_anchors": [
-        "MIIFMTCCAxmgAwIBAgIUF5qpbwhL40tysmEukxCGB/jSZqwwDQYJKoZIhvcNAQELBQAwKDELMAkGA1UEBhMCVVMxGTAXBgNVBAMMEGluZ2UtNi11emlwb2MtY2EwHhcNMjQxMDE1MTMzMDU3WhcNMjcwODA1MTMzMDU3WjAoMQswCQYDVQQGEwJVUzEZMBcGA1UEAwwQaW5nZS02LXV6aXBvYy1jYTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAOYmJ6Gt0a3/WNBj5/8CqkqoRVsUUa+oY/VJY0fptmaG0lKdhyZkg/7ayFApC9KEsnFKrhIvKPYiu6mYYAY6fQDnNMT0/+xhVUqC6+sZ+D3Ycu5mDsLiA3YrgDbvuRjBH++np9TtV/c7e/UjYv/jFQFHKTlTm39OmrFa2kUnz1dSkxk3LKHGlkmUosl9EnyqLKjKlw5p+ZoN7667SfwWBcvWZHJYo0sM6tWgRcjkwB/NOQHVjrOFo18Dk+/sxPnz+YMXzO7ir+Iwrls+i+3BUkbtBgtA6OVqLgBQyKRfYm4vSnTDgi8V0RLcspmNQKs3n5I4SbIRlHpoEpdUT7Nz7VF+UfGYxynrzJBmPiWTdFrKX8yqWRh88Sui2YQu7XiG0hU4rFQRfzpxBGomLwanuKnVo/oYuTWY5eLcoFw1Pc5j7QM+mnK0+YiH7wgw+Tv8Nckx7l6hc79Xfb3X+uJnGpCYhyxyXzTrIFsRUN8iJkR/DcWYfD8zOXJabp9BNiJwnFMtcXy88wYM3an4tWcz/TJq5qL3kEy5EWaTsfJxcvUW9NeCTCR9gd9Ta3a5tj9f7gs3DeEwymhjnXnWqesQqSkJrGajgOykE39/vgY33kGsRDGuliNxPCLpL7A7PzJ8X7LZmF7rrad9MQxs/WqqEKaSbVqJp1Att1HucO9ULJ+zAgMBAAGjUzBRMB0GA1UdDgQWBBTl5EglmDO1R+zC07Zbge1OklSbbDAfBgNVHSMEGDAWgBTl5EglmDO1R+zC07Zbge1OklSbbDAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQDJI6ir/raWftxKP6QKikaeeMssNM+VznL22MmruuZkEJCKOiiwSAiRlhZ3TM9rXesfc9YlLPphgtfr6oL7A+vj+fL+gC9wS9SNCC2NeYnMfcbNi10DJLbClBNH2v9A7qWFPSMCGFNdY24uHwRrjdMiYJcV6FmxmQZmSZzn50AjvuDTMuwNyWtxlIFUbpfO9tytn4cxyzXdoipj7vsA9gIm8Cd4fGABhSneDLEf4KEX44Fk3JV3slFy1IXg0vt8P8P7BbRC7DuLVnf/sd6IbQvL5szhPMbB9uZVIA291dCqsa0X7DbxVZFvbHe0OOzzC0tfYCnduKVr/Y7YKa/6VrmlwiqXuX9XvcJH47stLKsH1kjX+MaPN0pA5EnJHeMxBjeTE+iOWfubE6M2LfhrkuhszHnH4pUcE/0ug084s9viVUY02UWv7ZBf/AaPGcVrGTRoaIibuQFaFM00Qap4aZeoTypd2aoaW5VrEJ4rTo4XlbHyL8u13PFIOsJsj/a0iPoRyrRs2+3zT+NZKU9llVmZt2K4EuAJP06XBu/MTQsVyt6Ek84ToEYfB1ZKLoVjS9IK0b9RtkVCcSpgas9xiS9kiUzdBiCUeg0kWIiAD1h7D/OCjY0SnjtpAz4BdRSPDbuf77cmvx/J71Yy0K5lHODuZZ/mteeZVNoXnlM1KJwY7w=="
-      ]
-    }
+    "url": "https://localhost:3001/",
+    "client_id": "ff04277f-0cf7-4437-8a95-14737861d306"
   },
   "disclosure": {
     "rp_trust_anchors": [

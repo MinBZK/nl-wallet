@@ -15,6 +15,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
+use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -169,9 +170,21 @@ where
 
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
 
+        // TODO: in a later commit, use the OidcClient to fetch the metadata and store the result in the session
+        let http_client = client_builder_accept_json(default_reqwest_client_builder())
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        info!("Fetching issuer metadata to discover authorization server");
+        let issuer_metadata = IssuerMetadata::discover(&http_client, &config.pid_issuance.url)
+            .await
+            .map_err(IssuanceError::IssuerMetadataDiscovery)?;
+
+        let issuer_identifier = issuer_metadata.authorization_servers().into_first().clone();
+
         let session = start_digid_session(
-            config.pid_issuance.digid.clone(),
-            config.pid_issuance.digid_http_config.clone(),
+            config.pid_issuance.client_id.clone(),
+            issuer_identifier.as_base_url().clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
@@ -231,7 +244,7 @@ where
             .expect("Could not build reqwest HTTP client");
         let issuance_session = IS::start_issuance(
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
-            config.pid_issuance.pid_issuer_url.clone(),
+            config.pid_issuance.url.clone(),
             token_request,
             &config.issuer_trust_anchors(),
         )
@@ -524,14 +537,44 @@ mod tests {
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
+    use serde_json::json;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
+
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
+    use crate::wallet::test::create_wallet_configuration;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
 
     use super::PinRecoveryError;
+
+    // TODO: remove when the OidcClient is used to fetch the metadata
+    async fn wallet_with_issuer_metadata_mock(vendor: WalletDeviceVendor) -> (MockServer, TestWalletMockStorage) {
+        let server = MockServer::start().await;
+        let server_url = server.uri();
+        Mock::given(method("GET"))
+            .and(path("/.well-known/openid-credential-issuer"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "credential_issuer": server_url,
+                "authorization_servers": [server_url],
+                "credential_endpoint": format!("{server_url}/credential"),
+                "credential_configurations_supported": {},
+            })))
+            .mount(&server)
+            .await;
+        let mut config = create_wallet_configuration();
+        config.pid_issuance.url = server_url
+            .parse()
+            .expect("wiremock URL should be a valid IssuerIdentifier");
+        let wallet = TestWalletMockStorage::new_registered_and_unlocked_with_config(vendor, config).await;
+        (server, wallet)
+    }
 
     #[rstest]
     #[tokio::test]
@@ -539,7 +582,7 @@ mod tests {
     pub async fn create_pin_recovery_redirect_uri(
         #[values(None, Some(PinRecoveryData))] pin_recovery_data: Option<PinRecoveryData>,
     ) {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (_server, mut wallet) = wallet_with_issuer_metadata_mock(WalletDeviceVendor::Apple).await;
 
         // create_pin_recovery_redirect_uri() is allowed regardless of whether the wallet
         // was already recovering the PIN.
@@ -554,7 +597,6 @@ mod tests {
             .once()
             .return_once(|_| Ok(true));
 
-        // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
         let oidc_ctx = MockOidcClient::start_context();
         oidc_ctx
             .expect()

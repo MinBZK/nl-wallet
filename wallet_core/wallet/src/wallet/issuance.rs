@@ -31,6 +31,8 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::issuer_metadata::IssuerMetadata;
+use openid4vc::issuer_metadata::IssuerMetadataDiscoveryError;
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
@@ -105,6 +107,10 @@ pub enum IssuanceError {
     #[error("cannot renew PID: wallet has no PID")]
     #[category(critical)]
     NoPidPresent,
+
+    #[error("could not discover issuer metadata: {0}")]
+    #[category(expected)]
+    IssuerMetadataDiscovery(#[from] IssuerMetadataDiscoveryError),
 
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
@@ -308,9 +314,20 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
+
+        // TODO: in a later commit, use the OidcClient to fetch the metadata and store the result in the session
+        let http_client = client_builder_accept_json(default_reqwest_client_builder())
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        info!("Fetching issuer metadata to discover authorization server");
+        let issuer_metadata = IssuerMetadata::discover(&http_client, &pid_issuance_config.url).await?;
+
+        let issuer_identifier = issuer_metadata.authorization_servers().into_first();
+
         let session = start_digid_session(
-            pid_issuance_config.digid.clone(),
-            pid_issuance_config.digid_http_config.clone(),
+            pid_issuance_config.client_id.clone(),
+            issuer_identifier.as_base_url().clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
@@ -409,7 +426,7 @@ where
 
         self.issuance_fetch_previews(
             token_request,
-            config.pid_issuance.pid_issuer_url.clone(),
+            config.pid_issuance.url.clone(),
             &config.issuer_trust_anchors(),
             Some(purpose),
         )
@@ -789,9 +806,15 @@ mod tests {
     use itertools::multiunzip;
     use mockall::predicate::*;
     use rstest::rstest;
+    use serde_json::json;
     use serial_test::serial;
     use url::Url;
     use uuid::Uuid;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -837,7 +860,33 @@ mod tests {
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
+    use super::super::test::create_wallet_configuration;
     use super::*;
+
+    // TODO: remove when the OidcClient is used to fetch the metadata
+    async fn setup_issuer_metadata_mock(vendor: WalletDeviceVendor) -> (MockServer, TestWalletMockStorage) {
+        let server = MockServer::start().await;
+        let server_url = server.uri();
+
+        Mock::given(method("GET"))
+            .and(path("/.well-known/openid-credential-issuer"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "credential_issuer": server_url,
+                "authorization_servers": [server_url],
+                "credential_endpoint": format!("{server_url}/credential"),
+                "credential_configurations_supported": {},
+            })))
+            .mount(&server)
+            .await;
+
+        let mut config = create_wallet_configuration();
+        config.pid_issuance.url = server_url
+            .parse()
+            .expect("wiremock URL should be a valid IssuerIdentifier");
+
+        let wallet = TestWalletMockStorage::new_registered_and_unlocked_with_config(vendor, config).await;
+        (server, wallet)
+    }
 
     #[rstest]
     #[case(PidIssuancePurpose::Enrollment, false)]
@@ -845,11 +894,10 @@ mod tests {
     #[tokio::test]
     #[serial(MockOidcClient)]
     async fn test_create_pid_issuance_auth_url(#[case] purpose: PidIssuancePurpose, #[case] pid_present: bool) {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (_server, mut wallet) = setup_issuer_metadata_mock(WalletDeviceVendor::Apple).await;
 
         assert!(wallet.session.is_none());
 
-        // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
         let oidc_ctx = MockOidcClient::start_context();
         oidc_ctx
             .expect()
@@ -982,7 +1030,7 @@ mod tests {
     async fn test_create_pid_issuance_auth_url_error_digid_session_start(
         #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
     ) {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (_server, mut wallet) = setup_issuer_metadata_mock(WalletDeviceVendor::Apple).await;
 
         let oidc_ctx = MockOidcClient::start_context();
         oidc_ctx.expect().return_once(|_, _, _| Err(OidcError::NoAuthCode));
@@ -1374,7 +1422,7 @@ mod tests {
         let mut attestations = wallet
             .issuance_fetch_previews(
                 TokenRequest::new_mock(),
-                config.pid_issuance.pid_issuer_url.clone(),
+                config.pid_issuance.url.clone(),
                 &config.issuer_trust_anchors(),
                 purpose,
             )

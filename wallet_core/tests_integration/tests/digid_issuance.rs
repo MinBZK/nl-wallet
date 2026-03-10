@@ -2,11 +2,13 @@ use serial_test::serial;
 
 use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
+use http_utils::client::InternalHttpConfig;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::oidc::HttpOidcClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
@@ -68,22 +70,29 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let wallet_config = default_wallet_config();
 
+    // Discover the authorization server URL from issuer metadata
+    let http_client = reqwest::Client::new();
+    let issuer_metadata = IssuerMetadata::discover(&http_client, &wallet_config.pid_issuance.url)
+        .await
+        .unwrap();
+
+    let issuer_base_url = issuer_metadata
+        .authorization_servers()
+        .into_first()
+        .as_base_url()
+        .clone();
+
     // Prepare DigiD flow
     let digid_session = start_digid_session::<HttpOidcClient, _>(
         wallet_config.pid_issuance.digid.clone(),
-        wallet_config.pid_issuance.digid_http_config.clone(),
+        issuer_base_url.clone(),
         urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
     )
     .await
     .unwrap();
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
-    let redirect_url = fake_digid_auth(
-        digid_session.auth_url.clone(),
-        wallet_config.pid_issuance.digid_http_config.clone(),
-        "999991772",
-    )
-    .await;
+    let redirect_url = fake_digid_auth(digid_session.auth_url.clone(), issuer_base_url, "999991772").await;
     let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
     // Start issuance by exchanging the authorization code for the attestation previews

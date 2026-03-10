@@ -335,7 +335,7 @@ pub async fn setup_env(
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.pid_issuer_url = issuer_urls.pid_issuer.public.clone();
+    served_wallet_config.pid_issuance.url = issuer_urls.pid_issuer.public.clone();
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         served_wallet_config.account_server.http_config.trust_anchors().to_vec(),
@@ -353,7 +353,7 @@ pub async fn setup_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_issuance.pid_issuer_url = issuer_urls.pid_issuer.public.clone();
+    wallet_config.pid_issuance.url = issuer_urls.pid_issuer.public.clone();
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         wallet_config.account_server.http_config.trust_anchors().to_vec(),

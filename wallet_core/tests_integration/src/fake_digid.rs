@@ -3,19 +3,23 @@ use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
 use url::Url;
 
-use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
+use http_utils::urls::BaseUrl;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
 // invoking the same URLs at the DigiD bridge that would normally be invoked by the app and browser in the mock
 // flow of the DigiD bridge.
 // Note that this depends of part of the internal API of the DigiD bridge, so it may break when the bridge
 // is updated.
-pub async fn fake_digid_auth(mut authorization_url: Url, digid_http_config: TlsPinningConfig, bsn: &str) -> Url {
-    let client = digid_http_config
-        .try_into_custom_client(|client_builder| client_builder.redirect(Policy::none()))
+pub async fn fake_digid_auth(mut authorization_url: Url, digid_base_url: BaseUrl, bsn: &str) -> Url {
+    let client = digid_base_url
+        .try_into_custom_client(|client_builder| {
+            client_builder
+                // .danger_accept_invalid_certs(true) // TODO: is this necessary?
+                .redirect(Policy::none())
+        })
         .unwrap();
 
     // Avoid the DigiD/mock DigiD landing page of the DigiD bridge by preselecting the latter

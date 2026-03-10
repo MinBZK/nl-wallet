@@ -117,7 +117,7 @@ pub enum IssuerMetadataDiscoveryError {
 
 impl IssuerMetadata {
     /// Discover the Credential Issuer metadata by GETting it from .well-known and parsing it.
-    pub(crate) async fn discover(
+    pub async fn discover(
         client: &reqwest::Client,
         issuer_identifier: &IssuerIdentifier,
     ) -> Result<Self, IssuerMetadataDiscoveryError> {

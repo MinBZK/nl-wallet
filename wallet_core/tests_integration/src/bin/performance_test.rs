@@ -99,7 +99,7 @@ async fn main() {
 
     let redirect_url = fake_digid_auth(
         authorization_url,
-        pid_issuance_config.digid_http_config.clone(),
+        pid_issuance_config.url.as_base_url().clone(),
         "999991772",
     )
     .await;

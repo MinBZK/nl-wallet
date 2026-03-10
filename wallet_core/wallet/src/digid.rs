@@ -9,7 +9,6 @@ use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::token::TokenRequest;
-use wallet_configuration::wallet_config::DigidConfiguration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -38,7 +37,7 @@ impl<O: OidcClient> DigidSessionState<O> {
 }
 
 pub async fn start_digid_session<O, C>(
-    digid_config: DigidConfiguration,
+    client_id: String,
     http_config: C,
     redirect_uri: Url,
 ) -> Result<DigidSessionState<O>, DigidError>
@@ -47,7 +46,7 @@ where
     O: OidcClient,
 {
     let http_client = OidcReqwestClient::try_new(http_config)?;
-    let (oidc_client, auth_url) = O::start(&http_client, digid_config.client_id, redirect_uri).await?;
+    let (oidc_client, auth_url) = O::start(&http_client, client_id, redirect_uri).await?;
 
     info!("DigiD auth URL generated");
 
@@ -84,7 +83,6 @@ mod test {
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use wallet_configuration::wallet_config::DigidConfiguration;
 
     use crate::digid::DigidSessionState;
 
@@ -111,7 +109,7 @@ mod test {
             .return_once(|_, _, _| Ok((MockOidcClient::default(), Url::parse("https://example.com/").unwrap())));
 
         let session: DigidSessionState<MockOidcClient> = start_digid_session(
-            DigidConfiguration::default(),
+            String::from("client_id"),
             TlsPinningConfig::try_new("https://digid.example.com".parse().unwrap(), vec![]).unwrap(),
             "https://app.example.com".parse().unwrap(),
         )
