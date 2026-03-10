@@ -56,6 +56,7 @@ use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
+use crate::jwe::JweEncryptionAlgorithm;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::ClientId;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
@@ -1366,6 +1367,7 @@ impl Session<Created> {
             self.state.data.credential_requests.clone(),
             self.state.data.client_id.clone(),
             nonce.clone(),
+            JweEncryptionAlgorithm::A256Gcm,
             encryption_pubkey.try_into().unwrap(), // safe because we just constructed this key
             response_uri,
             wallet_nonce,

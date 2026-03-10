@@ -74,6 +74,7 @@ use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::jwe::JweEncryptionAlgorithm;
 use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::ClientId;
@@ -81,7 +82,6 @@ use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
 use openid4vc::openid4vp::VerifiablePresentation;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
-use openid4vc::openid4vp::VpEncValues;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
@@ -225,8 +225,10 @@ fn disclosure_response_jwe_header_contains_selected_kid_and_enc() {
         response_uri,
         None,
     );
-    iso_auth_request.client_metadata.encrypted_response_enc_values_supported =
-        vec![VpEncValues::Other("A512GCM".to_string()), VpEncValues::A256GCM];
+    iso_auth_request.client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
+        JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+        JweEncryptionAlgorithm::A256Gcm,
+    ]);
 
     let auth_request = iso_auth_request.clone().into();
     let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)

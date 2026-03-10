@@ -69,12 +69,14 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
+use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
@@ -197,17 +199,18 @@ pub enum VpAuthorizationRequestAudience {
 
 /// Metadata of the verifier (which acts as the "client" in OAuth).
 /// https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-11
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpClientMetadata {
     #[serde(flatten)]
     pub jwks: VpJwks,
     pub vp_formats: VpFormat,
 
-    #[serde(
-        default = "default_encrypted_response_enc_values_supported",
-        deserialize_with = "deserialize_encrypted_response_enc_values_supported"
-    )]
-    pub encrypted_response_enc_values_supported: Vec<VpEncValues>,
+    /// Non-empty array of strings, where each string is a JWE [RFC7516] enc algorithm that can be used as the content
+    /// encryption algorithm for encrypting the Response. When a response_mode requiring encryption of the Response
+    /// (such as `dc_api.jwt`` or `direct_post.jwt``) is specified, this MUST be present for anything other than the
+    /// default single value of `A128GCM``. Otherwise, this SHOULD be absent.
+    pub encrypted_response_enc_values_supported: Option<VecNonEmpty<JweEncryptionAlgorithm>>,
 }
 
 /// `client_id` prefix values as defined by OpenID4VP 1.0 section 5.9.3.
@@ -287,53 +290,6 @@ impl VpJwks {
         match self {
             VpJwks::Direct { keys } => keys,
         }
-    }
-}
-
-fn default_encrypted_response_enc_values_supported() -> Vec<VpEncValues> {
-    vec![VpEncValues::A128GCM]
-}
-
-fn deserialize_encrypted_response_enc_values_supported<'de, D>(deserializer: D) -> Result<Vec<VpEncValues>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum EncValues {
-        Single(VpEncValues),
-        Multiple(Vec<VpEncValues>),
-    }
-
-    let values = match EncValues::deserialize(deserializer)? {
-        EncValues::Single(value) => vec![value],
-        EncValues::Multiple(values) => values,
-    };
-
-    if values.is_empty() {
-        return Err(serde::de::Error::custom(
-            "encrypted_response_enc_values_supported cannot be empty",
-        ));
-    }
-
-    Ok(values)
-}
-
-/// JWE content encryption algorithms for `encrypted_response_enc_values_supported`.
-/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.3>
-#[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::Display, strum::EnumString)]
-#[strum(serialize_all = "UPPERCASE")]
-pub enum VpEncValues {
-    A128GCM,
-    A192GCM,
-    A256GCM,
-    #[strum(default)]
-    Other(String),
-}
-
-impl VpEncValues {
-    fn is_supported(&self) -> bool {
-        matches!(self, Self::A128GCM | Self::A192GCM | Self::A256GCM)
     }
 }
 
@@ -622,6 +578,7 @@ impl VpAuthorizationRequest {
 pub struct NormalizedVpAuthorizationRequest {
     pub client_id: ClientId,
     pub nonce: String,
+    pub encryption_algorithm: JweEncryptionAlgorithm,
     pub encryption_pubkey: JwePublicKey,
     pub response_uri: BaseUrl,
     pub credential_requests: NormalizedCredentialRequests,
@@ -631,10 +588,12 @@ pub struct NormalizedVpAuthorizationRequest {
 }
 
 impl NormalizedVpAuthorizationRequest {
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         credential_requests: NormalizedCredentialRequests,
         client_id: ClientId,
         nonce: String,
+        encryption_algorithm: JweEncryptionAlgorithm,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
         wallet_nonce: Option<String>,
@@ -644,6 +603,7 @@ impl NormalizedVpAuthorizationRequest {
         Self {
             client_id,
             nonce,
+            encryption_algorithm: encryption_algorithm.clone(),
             encryption_pubkey,
             response_uri,
             credential_requests,
@@ -652,7 +612,7 @@ impl NormalizedVpAuthorizationRequest {
                 vp_formats: VpFormat::MsoMdoc {
                     alg: IndexSet::from([FormatAlg::ES256]),
                 },
-                encrypted_response_enc_values_supported: vec![VpEncValues::A128GCM],
+                encrypted_response_enc_values_supported: Some(vec_nonempty![encryption_algorithm]),
             },
             state: None,
             wallet_nonce,
@@ -760,19 +720,34 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
             .cloned()
             .find_map(|jwk| JwePublicKey::try_new(jwk).ok())
             .ok_or(AuthRequestValidationError::NoSupportedJwk)?;
-        if !client_metadata
+
+        // If the verifier sent a list of supported encryption algorithms, select the best one amongst the ones that
+        // the wallet supports.
+        // See: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5>.
+        // Note that for selecting the best algorithm, we use the derived `Ord` implementation.
+        //
+        // If the verifier did not send any supported algorithms, default to AES128GCM.
+        // See: <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2>
+        let encryption_algorithm = client_metadata
             .encrypted_response_enc_values_supported
-            .iter()
-            .any(VpEncValues::is_supported)
-        {
-            return Err(AuthRequestValidationError::NoSupportedEncryptedResponseEnc);
-        }
+            .as_ref()
+            .map(|enc_values| {
+                enc_values
+                    .iter()
+                    .filter(|alg| alg.is_supported())
+                    .max()
+                    .cloned()
+                    .ok_or(AuthRequestValidationError::NoSupportedEncryptedResponseEnc)
+            })
+            .transpose()?
+            .unwrap_or_default();
 
         let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
+            encryption_algorithm,
             encryption_pubkey,
             credential_requests: vp_auth_request.dcql_query.try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
@@ -912,13 +887,7 @@ impl VpAuthorizationResponse {
         header.set_agreement_partyvinfo(auth_request.nonce.clone());
 
         // Use the first content encryption algorithm that both parties support.
-        let content_encryption = auth_request
-            .client_metadata
-            .encrypted_response_enc_values_supported
-            .iter()
-            .find(|enc| enc.is_supported())
-            .unwrap_or(&VpEncValues::A128GCM);
-        header.set_content_encryption(content_encryption.to_string());
+        header.set_content_encryption(auth_request.encryption_algorithm.to_string());
         header.set_key_id(auth_request.encryption_pubkey.kid().to_string());
 
         // VpAuthorizationRequest always serializes to a JSON object useable as a JWT payload.
@@ -1227,6 +1196,7 @@ pub mod test {
                 credential_requests,
                 client_id,
                 nonce,
+                JweEncryptionAlgorithm::default(),
                 encryption_pubkey,
                 response_uri,
                 wallet_nonce,
@@ -1296,6 +1266,7 @@ mod tests {
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
+    use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
 
@@ -1310,7 +1281,6 @@ mod tests {
     use super::VerifiablePresentation;
     use super::VpAuthorizationRequest;
     use super::VpAuthorizationResponse;
-    use super::VpEncValues;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
 
@@ -1700,7 +1670,7 @@ mod tests {
                             "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
                         }]
                     },
-                    "encrypted_response_enc_values_supported": "A256GCM",
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
                     "vp_formats": {
                         "mso_mdoc": {
                             "alg": [ "ES256" ]
@@ -1729,7 +1699,7 @@ mod tests {
             normalized_request
                 .client_metadata
                 .encrypted_response_enc_values_supported,
-            vec![VpEncValues::A256GCM]
+            Some(vec_nonempty![JweEncryptionAlgorithm::A256Gcm])
         );
     }
 
@@ -1775,12 +1745,13 @@ mod tests {
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
-        assert_eq!(
+        assert!(
             normalized_request
                 .client_metadata
-                .encrypted_response_enc_values_supported,
-            vec![VpEncValues::A128GCM]
+                .encrypted_response_enc_values_supported
+                .is_none()
         );
+        assert_eq!(normalized_request.encryption_algorithm, JweEncryptionAlgorithm::A128Gcm)
     }
 
     #[test]
@@ -1826,16 +1797,14 @@ mod tests {
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
-        assert!(matches!(
-            normalized_request.client_metadata.encrypted_response_enc_values_supported.first(),
-            Some(VpEncValues::Other(value)) if value == "A512GCM"
-        ));
         assert_eq!(
             normalized_request
                 .client_metadata
-                .encrypted_response_enc_values_supported
-                .get(1),
-            Some(&VpEncValues::A256GCM)
+                .encrypted_response_enc_values_supported,
+            Some(vec_nonempty![
+                JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+                JweEncryptionAlgorithm::A256Gcm
+            ])
         );
     }
 
@@ -1927,24 +1896,6 @@ mod tests {
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
-    }
-
-    #[test]
-    fn authorization_response_should_use_first_supported_encryption_enc() {
-        let (_, _, encryption_privkey, mut auth_request) = setup_mdoc();
-        auth_request.client_metadata.encrypted_response_enc_values_supported =
-            vec![VpEncValues::Other("A512GCM".to_string()), VpEncValues::A256GCM];
-
-        let encryption_nonce = "encryption_nonce".to_string();
-        let auth_response = VpAuthorizationResponse::new(HashMap::new(), None, None);
-        let jwe = auth_response.encrypt(&auth_request, &encryption_nonce).unwrap();
-
-        let decrypter = EcdhEsJweAlgorithm::EcdhEs
-            .decrypter_from_jwk(&encryption_privkey.to_jwk_key_pair())
-            .unwrap();
-        let (_, header) = josekit::jwt::decode_with_decrypter(&jwe, &decrypter).unwrap();
-
-        assert_eq!(header.content_encryption(), Some("A256GCM"));
     }
 
     #[test]
