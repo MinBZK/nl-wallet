@@ -14,8 +14,8 @@ doctest = false
 [features]
 # Implement the mock hardware key types
 mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
-# Implement the mock ISO18013-5 types
-mock_iso18013_5 = ["tokio/time"]
+# Include the MockCloseProximityDisclosureClient
+mock_close_proximity_disclosure = ["tokio/time"]
 # Include the MockHardwareAttestedKeyHolder type for use in Apple tests
 mock_attested_key_apple = [
     "apple_app_attest/mock",

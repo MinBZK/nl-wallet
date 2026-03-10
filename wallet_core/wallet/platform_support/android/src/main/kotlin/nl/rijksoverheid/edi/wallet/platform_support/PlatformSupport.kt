@@ -3,7 +3,7 @@ package nl.rijksoverheid.edi.wallet.platform_support
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.attested_key.AttestedKeyBridge
-import nl.rijksoverheid.edi.wallet.platform_support.iso180135.Iso180135Bridge
+import nl.rijksoverheid.edi.wallet.platform_support.close_proximity_disclosure.CloseProximityDisclosureBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.encryption.EncryptionKeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.UtilitiesBridge
@@ -25,10 +25,10 @@ class PlatformSupport private constructor(context: Context) {
     val utilitiesBridge = UtilitiesBridge(StoragePathProviderImpl(context))
 
     @VisibleForTesting
-    val iso180135Bridge = Iso180135Bridge(context)
+    val closeProximityDisclosureBridge = CloseProximityDisclosureBridge(context)
 
     init {
-        initPlatformSupport(signingKeyBridge, encryptionKeyBridge, attestedKeyBridge, utilitiesBridge, iso180135Bridge)
+        initPlatformSupport(signingKeyBridge, encryptionKeyBridge, attestedKeyBridge, utilitiesBridge, closeProximityDisclosureBridge)
     }
 
     companion object {
