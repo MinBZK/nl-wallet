@@ -56,6 +56,7 @@ members = [
     "wallet_server/issuance_server",
     "wallet_server/issuance_server/migrations",
     "wallet_server/issuer_common",
+    "wallet_server/issuer_common/migrations",
     "wallet_server/pid_issuer",
     "wallet_server/pid_issuer/migrations",
     "wallet_server/server_utils",

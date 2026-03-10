@@ -1982,7 +1982,7 @@ dependencies = [
  "async-trait",
  "audit_log_migrations",
  "bollard",
- "issuance_server_migrations",
+ "issuer_common_migrations",
  "rand 0.8.5",
  "sea-orm",
  "sea-orm-migration",
@@ -3971,9 +3971,8 @@ dependencies = [
 name = "issuance_server_migrations"
 version = "0.5.0-dev"
 dependencies = [
+ "issuer_common_migrations",
  "sea-orm-migration",
- "server_utils_migrations",
- "status_lists_migrations",
  "tokio",
 ]
 
@@ -4002,6 +4001,16 @@ dependencies = [
  "thiserror 2.0.17",
  "tracing",
  "utils",
+]
+
+[[package]]
+name = "issuer_common_migrations"
+version = "0.5.0-dev"
+dependencies = [
+ "async-trait",
+ "sea-orm-migration",
+ "server_utils_migrations",
+ "status_lists_migrations",
 ]
 
 [[package]]
@@ -5563,7 +5572,7 @@ dependencies = [
 name = "pid_issuer_migrations"
 version = "0.5.0-dev"
 dependencies = [
- "issuance_server_migrations",
+ "issuer_common_migrations",
  "sea-orm-migration",
  "tokio",
 ]
