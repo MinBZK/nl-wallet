@@ -149,7 +149,7 @@ impl ErrorStatusCode for CredentialErrorCode {
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
             Self::InsufficientScope => StatusCode::FORBIDDEN,
-            Self::Other(_) => unimplemented!("the Other variant is only to be used for reception, not transmission"),
+            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
         }
     }
 }
@@ -205,7 +205,7 @@ impl ErrorStatusCode for TokenErrorCode {
             | Self::InvalidScope => StatusCode::BAD_REQUEST,
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Other(_) => unimplemented!("the Other variant is only to be used for reception, not transmission"),
+            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
         }
     }
 }
@@ -250,7 +250,7 @@ impl ErrorStatusCode for CredentialPreviewErrorCode {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Other(_) => unimplemented!("the Other variant is only to be used for reception, not transmission"),
+            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
         }
     }
 }
