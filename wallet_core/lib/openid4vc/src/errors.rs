@@ -78,6 +78,7 @@ pub enum CredentialErrorCode {
     ServerError,
 
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
     #[strum(default)]
     Other(String),
 }
@@ -147,9 +148,8 @@ impl ErrorStatusCode for CredentialErrorCode {
             | Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
-            // The `Other` variant is only to be used on the receiving end, but we have
-            // to specify it here in order for this implementation to cover all cases.
-            Self::InsufficientScope | Self::Other(_) => StatusCode::FORBIDDEN,
+            Self::InsufficientScope => StatusCode::FORBIDDEN,
+            Self::Other(_) => unimplemented!("the Other variant is only to be used for reception, not transmission"),
         }
     }
 }
@@ -172,6 +172,7 @@ pub enum TokenErrorCode {
     ServerError,
 
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
     #[strum(default)]
     Other(String),
 }
@@ -203,9 +204,8 @@ impl ErrorStatusCode for TokenErrorCode {
             | Self::UnsupportedGrantType
             | Self::InvalidScope => StatusCode::BAD_REQUEST,
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
-            // The `Other` variant is only to be used on the receiving end, but we have
-            // to specify it here in order for this implementation to cover all cases.
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Other(_) => unimplemented!("the Other variant is only to be used for reception, not transmission"),
         }
     }
 }
@@ -219,6 +219,7 @@ pub enum CredentialPreviewErrorCode {
     ServerError,
 
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
     #[strum(default)]
     Other(String),
 }
@@ -248,9 +249,8 @@ impl ErrorStatusCode for CredentialPreviewErrorCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
-            // The `Other` variant is only to be used on the receiving end, but we have
-            // to specify it here in order for this implementation to cover all cases.
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Other(_) => unimplemented!("the Other variant is only to be used for reception, not transmission"),
         }
     }
 }
