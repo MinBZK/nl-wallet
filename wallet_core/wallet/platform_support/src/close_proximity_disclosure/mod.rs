@@ -30,7 +30,7 @@ pub struct CloseProximityDisclosureChannelImpl {
 
 impl CloseProximityDisclosureChannelImpl {
     pub fn new() -> (Self, mpsc::Receiver<CloseProximityDisclosureUpdate>) {
-        let (sender, receiver) = mpsc::channel(4);
+        let (sender, receiver) = mpsc::channel(128);
         (Self { sender }, receiver)
     }
 }
