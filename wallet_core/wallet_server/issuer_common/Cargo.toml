@@ -1,5 +1,5 @@
 [package]
-name = "issuer_settings"
+name = "issuer_common"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

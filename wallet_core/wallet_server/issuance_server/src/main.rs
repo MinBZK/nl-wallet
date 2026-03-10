@@ -12,7 +12,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::server;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_settings::settings::StatusListAttestationSettings;
+use issuer_common::settings::StatusListAttestationSettings;
 use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;

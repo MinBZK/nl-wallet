@@ -6,7 +6,7 @@ use p256::ecdsa::VerifyingKey;
 use tokio::net::TcpListener;
 
 use hsm::service::Pkcs11Hsm;
-use issuer_settings::settings::IssuerSettings;
+use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;

@@ -3946,7 +3946,7 @@ dependencies = [
  "hsm",
  "http_utils",
  "indexmap 2.12.1",
- "issuer_settings",
+ "issuer_common",
  "itertools 0.14.0",
  "openid4vc",
  "openid4vc_server",
@@ -3978,7 +3978,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "issuer_settings"
+name = "issuer_common"
 version = "0.5.0-dev"
 dependencies = [
  "assert_matches",
@@ -5538,7 +5538,7 @@ dependencies = [
  "hsm",
  "http_utils",
  "indexmap 2.12.1",
- "issuer_settings",
+ "issuer_common",
  "itertools 0.14.0",
  "openid4vc",
  "openid4vc_server",
@@ -8245,7 +8245,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "issuance_server",
- "issuer_settings",
+ "issuer_common",
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",

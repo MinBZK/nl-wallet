@@ -8,7 +8,7 @@ use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
-use issuer_settings::settings::StatusListAttestationSettings;
+use issuer_common::settings::StatusListAttestationSettings;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::server;
