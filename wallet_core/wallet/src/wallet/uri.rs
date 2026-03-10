@@ -83,7 +83,7 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::Digid {
+                    Some(Session::Oidc {
                         purpose: PidIssuancePurpose::Enrollment,
                         ..
                     }),
@@ -94,7 +94,7 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::Digid {
+                    Some(Session::Oidc {
                         purpose: PidIssuancePurpose::Renewal,
                         ..
                     }),
@@ -106,7 +106,7 @@ where
                 if matches!(
                     self.session,
                     Some(Session::PinRecovery {
-                        session: PinRecoverySession::Digid(_),
+                        session: PinRecoverySession::Oidc(_),
                         ..
                     })
                 ) =>
@@ -131,7 +131,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::digid::mock::mock_digid_session_state;
+    use crate::oidc_session::mock::mock_oidc_session;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
@@ -169,18 +169,18 @@ mod tests {
         );
 
         // Set up an enrollment `DigidSession` that will match the URI.
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session_state(),
+            session: mock_oidc_session(),
         });
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance);
 
         // Set up a PID renewal `DigidSession` that will match the URI.
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Renewal,
-            session: mock_digid_session_state(),
+            session: mock_oidc_session(),
         });
 
         // The wallet should now recognise the DigiD URI.

@@ -106,6 +106,7 @@ dcql = { path = "../lib/dcql", features = ["mock"] }
 http_utils = { path = "../lib/http_utils", features = ["client"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
 openid4vc = { path = "../lib/openid4vc", features = [
+    "allow_insecure_url", # TODO: remove
     "mock",
     "test",
     "example_credential_payloads",

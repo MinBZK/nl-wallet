@@ -482,7 +482,7 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
-    use crate::digid::mock::mock_digid_session_state;
+    use crate::oidc_session::mock::mock_oidc_session;
     use crate::storage::ChangePinData;
     use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
@@ -536,9 +536,9 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_error_issuance_session_active() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session_state(),
+            session: mock_oidc_session(),
         });
 
         let error = wallet

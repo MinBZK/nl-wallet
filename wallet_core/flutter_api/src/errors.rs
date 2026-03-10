@@ -10,13 +10,13 @@ use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
-use wallet::errors::DigidError;
 use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::HistoryError;
 use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
+use wallet::errors::OidcSessionError;
 use wallet::errors::PinRecoveryError;
 use wallet::errors::RecoveryCodeError;
 use wallet::errors::ResetError;
@@ -255,16 +255,16 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::NotRegistered | IssuanceError::Locked | IssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            IssuanceError::DigidSessionFinish(DigidError::Oidc(OidcError::RedirectUriError(_))) => {
+            IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
             IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(_))
             | IssuanceError::IssuanceSession(IssuanceSessionError::CredentialRequest(_))
-            | IssuanceError::DigidSessionStart(DigidError::Oidc(OidcError::RedirectUriError(_)))
-            | IssuanceError::DigidSessionStart(DigidError::Oidc(OidcError::RequestingAccessToken(_)))
-            | IssuanceError::DigidSessionStart(DigidError::Oidc(OidcError::RequestingUserInfo(_)))
-            | IssuanceError::DigidSessionFinish(DigidError::Oidc(OidcError::RequestingAccessToken(_)))
-            | IssuanceError::DigidSessionFinish(DigidError::Oidc(OidcError::RequestingUserInfo(_))) => {
+            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RedirectUriError(_)))
+            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RequestingAccessToken(_)))
+            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RequestingUserInfo(_)))
+            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RequestingAccessToken(_)))
+            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
                 FlutterApiErrorType::Server
             }
             IssuanceError::AttestationPreview(_)
@@ -281,12 +281,12 @@ impl FlutterApiErrorFields for IssuanceError {
     }
 
     fn data(&self) -> serde_json::Value {
-        let redirect_error = if let Self::DigidSessionFinish(DigidError::Oidc(OidcError::RedirectUriError(err))) = self
-        {
-            Some(err.error.clone())
-        } else {
-            None
-        };
+        let redirect_error =
+            if let Self::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(err))) = self {
+                Some(err.error.clone())
+            } else {
+                None
+            };
 
         let organization_name = match self {
             IssuanceError::Attestation { organization, .. } | IssuanceError::IssuerServer { organization, .. } => {
@@ -634,10 +634,10 @@ mod tests {
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
     use wallet::errors::ChangePinError;
-    use wallet::errors::DigidError;
     use wallet::errors::DisclosureError;
     use wallet::errors::InstructionError;
     use wallet::errors::IssuanceError;
+    use wallet::errors::OidcSessionError;
     use wallet::errors::PinRecoveryError;
     use wallet::errors::RecoveryCodeError;
     use wallet::errors::TransferError;
@@ -668,7 +668,7 @@ mod tests {
         serde_json::Value::Null
     )]
     #[case(
-        IssuanceError::DigidSessionFinish(DigidError::Oidc(OidcError::RedirectUriError(
+        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::InvalidRequest,
                 error_description: None,
@@ -679,7 +679,7 @@ mod tests {
         json!({"redirect_error": "invalid_request"})
     )]
     #[case(
-        IssuanceError::DigidSessionFinish(DigidError::Oidc(OidcError::RedirectUriError(
+        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::Other("some_error".to_string()),
                 error_description: None,
@@ -690,7 +690,7 @@ mod tests {
         json!({"redirect_error": "some_error"})
     )]
     #[case(
-        IssuanceError::DigidSessionStart(DigidError::Oidc(OidcError::RedirectUriError(Box::new(ErrorResponse {
+        IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RedirectUriError(Box::new(ErrorResponse {
             error: AuthorizationErrorCode::InvalidRequest,
             error_description: None,
             error_uri: None,

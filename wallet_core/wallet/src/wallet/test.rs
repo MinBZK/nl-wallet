@@ -412,11 +412,8 @@ where
         config: WalletConfiguration,
     ) -> Self {
         let config_server_config = default_config_server_config();
-        let config_repository = UpdatingConfigurationRepository::new(
-            LocalConfigurationRepository::new(config),
-            config_server_config,
-        )
-        .await;
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), config_server_config).await;
 
         let mut wallet = Wallet::new(
             config_repository,

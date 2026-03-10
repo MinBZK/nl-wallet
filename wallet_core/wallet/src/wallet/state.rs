@@ -121,7 +121,7 @@ where
 
         if let Some(session) = &self.session {
             return match session {
-                Session::Digid { .. } => Ok(WalletState::InIssuanceFlow),
+                Session::Oidc { .. } => Ok(WalletState::InIssuanceFlow),
                 Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
                 Session::Disclosure(_) => Ok(WalletState::InDisclosureFlow),
                 Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
@@ -168,7 +168,7 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
     use crate::WalletState;
-    use crate::digid::mock::mock_digid_session_state;
+    use crate::oidc_session::mock::mock_oidc_session;
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
@@ -542,9 +542,9 @@ mod tests {
     }
 
     fn digid_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
-        Session::Digid {
+        Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session_state(),
+            session: mock_oidc_session(),
         }
     }
 
@@ -582,7 +582,7 @@ mod tests {
 
         Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(mock_digid_session_state()),
+            session: PinRecoverySession::Oidc(mock_oidc_session()),
         }
     }
 }

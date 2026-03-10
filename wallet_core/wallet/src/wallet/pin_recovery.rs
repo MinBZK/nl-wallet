@@ -27,9 +27,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
-use crate::digid::DigidError;
-use crate::digid::DigidSessionState;
-use crate::digid::start_digid_session;
 use crate::errors::InstructionError;
 use crate::errors::PinKeyError;
 use crate::errors::PinValidationError;
@@ -38,6 +35,9 @@ use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::instruction::PinRecoveryRemoteEcdsaWscd;
 use crate::instruction::PinRecoveryWscd;
+use crate::oidc_session::OidcSession;
+use crate::oidc_session::OidcSessionError;
+use crate::oidc_session::start_oidc_session;
 use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
@@ -105,19 +105,19 @@ pub enum PinRecoveryError {
     PidAttributesConfiguration(#[from] PidAttributesConfigurationError),
 }
 
-impl From<DigidError> for PinRecoveryError {
-    fn from(error: DigidError) -> Self {
-        if matches!(error, DigidError::Oidc(OidcError::Denied)) {
+impl From<OidcSessionError> for PinRecoveryError {
+    fn from(error: OidcSessionError) -> Self {
+        if matches!(error, OidcSessionError::Oidc(OidcError::Denied)) {
             PinRecoveryError::DeniedDigiD
         } else {
-            PinRecoveryError::Issuance(IssuanceError::DigidSessionFinish(error))
+            PinRecoveryError::Issuance(IssuanceError::OidcSessionFinish(error))
         }
     }
 }
 
 #[derive(Debug)]
 pub(super) enum PinRecoverySession<OC: OidcClient, IS> {
-    Digid(DigidSessionState<OC>),
+    Oidc(OidcSession<OC>),
     Issuance {
         pid_attestation_type: String,
         issuance_session: IS,
@@ -182,19 +182,19 @@ where
 
         let issuer_identifier = issuer_metadata.authorization_servers().into_first().clone();
 
-        let session = start_digid_session(
+        let session = start_oidc_session(
             config.pid_issuance.client_id.clone(),
             issuer_identifier.as_base_url().clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
-        .map_err(IssuanceError::DigidSessionStart)?;
+        .map_err(IssuanceError::OidcSessionStart)?;
 
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = session.auth_url.clone();
         self.session.replace(Session::PinRecovery {
             pid_config: config.pid_attributes.clone(),
-            session: PinRecoverySession::Digid(session),
+            session: PinRecoverySession::Oidc(session),
         });
 
         Ok(auth_url)
@@ -221,7 +221,7 @@ where
         if !matches!(
             self.session,
             Some(Session::PinRecovery {
-                session: PinRecoverySession::Digid(..),
+                session: PinRecoverySession::Oidc(..),
                 ..
             })
         ) {
@@ -229,7 +229,7 @@ where
         }
 
         let Some(Session::PinRecovery {
-            session: PinRecoverySession::Digid(session),
+            session: PinRecoverySession::Oidc(session),
             pid_config,
         }) = self.session.take()
         else {
@@ -521,12 +521,12 @@ mod tests {
     use wscd::Poa;
     use wscd::wscd::IssuanceWscd;
 
-    use crate::digid::DigidSessionState;
-    use crate::digid::mock::AUTH_URL;
-    use crate::digid::mock::mock_digid_session_state;
-    use crate::digid::mock::mock_digid_session_state_tuple;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
+    use crate::oidc_session::OidcSession;
+    use crate::oidc_session::mock::AUTH_URL;
+    use crate::oidc_session::mock::mock_oidc_session;
+    use crate::oidc_session::mock::mock_oidc_session_tuple;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
@@ -598,9 +598,7 @@ mod tests {
             .return_once(|_| Ok(true));
 
         let oidc_ctx = MockOidcClient::start_context();
-        oidc_ctx
-            .expect()
-            .return_once(|_, _, _| Ok(mock_digid_session_state_tuple()));
+        oidc_ctx.expect().return_once(|_, _, _| Ok(mock_oidc_session_tuple()));
 
         let redirect_uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
         assert_eq!(&redirect_uri.to_string(), AUTH_URL);
@@ -629,7 +627,7 @@ mod tests {
             });
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(DigidSessionState {
+            session: PinRecoverySession::Oidc(OidcSession {
                 oidc_client,
                 auth_url: Url::parse(AUTH_URL).unwrap(),
             }),
@@ -837,7 +835,7 @@ mod tests {
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(DigidSessionState {
+            session: PinRecoverySession::Oidc(OidcSession {
                 oidc_client,
                 auth_url: Url::parse(AUTH_URL).unwrap(),
             }),
@@ -874,7 +872,7 @@ mod tests {
             });
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(DigidSessionState {
+            session: PinRecoverySession::Oidc(OidcSession {
                 oidc_client,
                 auth_url: Url::parse(AUTH_URL).unwrap(),
             }),
@@ -937,7 +935,7 @@ mod tests {
             });
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(DigidSessionState {
+            session: PinRecoverySession::Oidc(OidcSession {
                 oidc_client,
                 auth_url: Url::parse(AUTH_URL).unwrap(),
             }),
@@ -1022,7 +1020,7 @@ mod tests {
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Digid(mock_digid_session_state()),
+            session: PinRecoverySession::Oidc(mock_oidc_session()),
         });
 
         assert_matches!(err, PinRecoveryError::SessionState);

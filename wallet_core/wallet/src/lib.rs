@@ -1,10 +1,10 @@
 mod account_provider;
 mod attestation;
 mod config;
-mod digid;
 mod instruction;
 mod lock;
 mod notification;
+mod oidc_session;
 mod pin;
 mod repository;
 mod reqwest;
@@ -98,7 +98,7 @@ pub mod test {
     pub use crate::config::WalletConfigurationRepository;
     pub use crate::config::default_config_server_config;
     pub use crate::config::default_wallet_config;
-    pub use crate::digid::start_digid_session;
+    pub use crate::oidc_session::start_oidc_session;
     pub use crate::repository::BackgroundUpdateableRepository;
     pub use crate::repository::Repository;
     pub use crate::repository::RepositoryUpdateState;

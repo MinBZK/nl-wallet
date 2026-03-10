@@ -12,7 +12,7 @@ use openid4vc::token::TokenRequest;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
-pub enum DigidError {
+pub enum OidcSessionError {
     #[error("HTTP error: {0}")]
     #[category(critical)] // DigiD/OIDC urls do not contain sensitive data
     Http(#[from] reqwest::Error),
@@ -21,26 +21,26 @@ pub enum DigidError {
     Oidc(#[from] OidcError),
 }
 
-/// The state of a DigiD session after OIDC discovery.
+/// The state of an OIDC authorization code flow session after OIDC discovery.
 /// Contains the OIDC client (for token exchange) and the authorization URL.
 #[derive(Debug)]
-pub struct DigidSessionState<O: OidcClient> {
+pub struct OidcSession<O: OidcClient> {
     pub oidc_client: O,
     pub auth_url: Url,
 }
 
-impl<O: OidcClient> DigidSessionState<O> {
-    pub fn into_token_request(self, redirect_uri: &Url) -> Result<TokenRequest, DigidError> {
+impl<O: OidcClient> OidcSession<O> {
+    pub fn into_token_request(self, redirect_uri: &Url) -> Result<TokenRequest, OidcSessionError> {
         let token_request = self.oidc_client.into_token_request(redirect_uri)?;
         Ok(token_request)
     }
 }
 
-pub async fn start_digid_session<O, C>(
+pub async fn start_oidc_session<O, C>(
     client_id: String,
     http_config: C,
     redirect_uri: Url,
-) -> Result<DigidSessionState<O>, DigidError>
+) -> Result<OidcSession<O>, OidcSessionError>
 where
     C: IntoReqwestClient + Clone + Hash,
     O: OidcClient,
@@ -50,7 +50,7 @@ where
 
     info!("DigiD auth URL generated");
 
-    Ok(DigidSessionState { oidc_client, auth_url })
+    Ok(OidcSession { oidc_client, auth_url })
 }
 
 #[cfg(test)]
@@ -61,15 +61,15 @@ pub mod mock {
 
     pub const AUTH_URL: &str = "http://example.com/auth";
 
-    pub fn mock_digid_session_state() -> DigidSessionState<MockOidcClient> {
-        DigidSessionState {
+    pub fn mock_oidc_session() -> OidcSession<MockOidcClient> {
+        OidcSession {
             oidc_client: MockOidcClient::new(),
             auth_url: Url::parse(AUTH_URL).unwrap(),
         }
     }
 
-    pub fn mock_digid_session_state_tuple() -> (MockOidcClient, Url) {
-        let DigidSessionState { oidc_client, auth_url } = mock_digid_session_state();
+    pub fn mock_oidc_session_tuple() -> (MockOidcClient, Url) {
+        let OidcSession { oidc_client, auth_url } = mock_oidc_session();
         (oidc_client, auth_url)
     }
 }
@@ -84,9 +84,9 @@ mod test {
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
 
-    use crate::digid::DigidSessionState;
+    use crate::oidc_session::OidcSession;
 
-    use super::start_digid_session;
+    use super::start_oidc_session;
 
     fn default_token_request() -> TokenRequest {
         TokenRequest {
@@ -108,7 +108,7 @@ mod test {
             .expect()
             .return_once(|_, _, _| Ok((MockOidcClient::default(), Url::parse("https://example.com/").unwrap())));
 
-        let session: DigidSessionState<MockOidcClient> = start_digid_session(
+        let session: OidcSession<MockOidcClient> = start_oidc_session(
             String::from("client_id"),
             TlsPinningConfig::try_new("https://digid.example.com".parse().unwrap(), vec![]).unwrap(),
             "https://app.example.com".parse().unwrap(),
@@ -126,7 +126,7 @@ mod test {
             .expect_into_token_request()
             .return_once(|_| Ok(default_token_request()));
 
-        let session = super::DigidSessionState {
+        let session = super::OidcSession {
             oidc_client,
             auth_url: "https://example.com/".parse().unwrap(),
         };

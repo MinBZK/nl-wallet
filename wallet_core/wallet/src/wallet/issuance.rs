@@ -57,8 +57,6 @@ use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::AttestationValidity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
-use crate::digid::DigidError;
-use crate::digid::start_digid_session;
 use crate::errors::ChangePinError;
 use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
@@ -67,6 +65,8 @@ use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
+use crate::oidc_session::OidcSessionError;
+use crate::oidc_session::start_oidc_session;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -113,10 +113,10 @@ pub enum IssuanceError {
     IssuerMetadataDiscovery(#[from] IssuerMetadataDiscoveryError),
 
     #[error("could not start DigiD session: {0}")]
-    DigidSessionStart(#[source] DigidError),
+    OidcSessionStart(#[source] OidcSessionError),
 
     #[error("could not finish DigiD session: {0}")]
-    DigidSessionFinish(#[source] DigidError),
+    OidcSessionFinish(#[source] OidcSessionError),
 
     #[error("user denied DigiD authentication")]
     #[category(expected)]
@@ -201,12 +201,12 @@ pub enum IssuanceError {
     RecoveryCode(#[from] RecoveryCodeError),
 }
 
-impl From<DigidError> for IssuanceError {
-    fn from(error: DigidError) -> Self {
-        if matches!(error, DigidError::Oidc(OidcError::Denied)) {
+impl From<OidcSessionError> for IssuanceError {
+    fn from(error: OidcSessionError) -> Self {
+        if matches!(error, OidcSessionError::Oidc(OidcError::Denied)) {
             IssuanceError::DeniedDigiD
         } else {
-            IssuanceError::DigidSessionFinish(error)
+            IssuanceError::OidcSessionFinish(error)
         }
     }
 }
@@ -325,17 +325,17 @@ where
 
         let issuer_identifier = issuer_metadata.authorization_servers().into_first();
 
-        let session = start_digid_session(
+        let session = start_oidc_session(
             pid_issuance_config.client_id.clone(),
             issuer_identifier.as_base_url().clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
-        .map_err(IssuanceError::DigidSessionStart)?;
+        .map_err(IssuanceError::OidcSessionStart)?;
 
         info!("DigiD auth URL generated");
         let auth_url = session.auth_url.clone();
-        self.session.replace(Session::Digid { purpose, session });
+        self.session.replace(Session::Oidc { purpose, session });
 
         Ok(auth_url)
     }
@@ -361,7 +361,7 @@ where
         }
 
         info!("Checking if there is an active issuance session");
-        if !matches!(self.session, Some(Session::Digid { .. }) | Some(Session::Issuance(..))) {
+        if !matches!(self.session, Some(Session::Oidc { .. }) | Some(Session::Issuance(..))) {
             return Err(IssuanceError::SessionState);
         }
 
@@ -411,12 +411,12 @@ where
         }
 
         info!("Checking if there is an active DigiD issuance session");
-        if !matches!(self.session, Some(Session::Digid { .. })) {
+        if !matches!(self.session, Some(Session::Oidc { .. })) {
             return Err(IssuanceError::SessionState);
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Digid { session, purpose }) = self.session.take() else {
+        let Some(Session::Oidc { session, purpose }) = self.session.take() else {
             panic!()
         };
 
@@ -840,10 +840,9 @@ mod tests {
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
-    use crate::digid::DigidSessionState;
-    use crate::digid::mock::AUTH_URL;
-    use crate::digid::mock::mock_digid_session_state;
-    use crate::digid::mock::mock_digid_session_state_tuple;
+    use crate::oidc_session::OidcSession;
+    use crate::oidc_session::mock::AUTH_URL;
+    use crate::oidc_session::mock::mock_oidc_session_tuple;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::RegistrationData;
@@ -899,9 +898,7 @@ mod tests {
         assert!(wallet.session.is_none());
 
         let oidc_ctx = MockOidcClient::start_context();
-        oidc_ctx
-            .expect()
-            .return_once(|_, _, _| Ok(mock_digid_session_state_tuple()));
+        oidc_ctx.expect().return_once(|_, _, _| Ok(mock_oidc_session_tuple()));
 
         wallet
             .mut_storage()
@@ -979,15 +976,15 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_create_pid_issuance_auth_url_error_session_state_digid(
+    async fn test_create_pid_issuance_auth_url_error_session_state_oidc(
         #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session_state(),
+            session: mock_oidc_session(),
         });
 
         // Creating a DigiD authentication URL on a `Wallet` that
@@ -1027,7 +1024,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     #[serial(MockOidcClient)]
-    async fn test_create_pid_issuance_auth_url_error_digid_session_start(
+    async fn test_create_pid_issuance_auth_url_error_oidc_session_start(
         #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
     ) {
         let (_server, mut wallet) = setup_issuer_metadata_mock(WalletDeviceVendor::Apple).await;
@@ -1046,17 +1043,17 @@ mod tests {
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
-        assert_matches!(error, IssuanceError::DigidSessionStart(_));
+        assert_matches!(error, IssuanceError::OidcSessionStart(_));
     }
 
     #[tokio::test]
-    async fn test_cancel_pid_issuance_digid() {
+    async fn test_cancel_pid_issuance_oidc() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session_state(),
+            session: mock_oidc_session(),
         });
 
         assert!(wallet.session.is_some());
@@ -1141,7 +1138,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance() {
-        let mut wallet = setup_wallet_with_digid_session_and_database_mock().await;
+        let mut wallet = setup_wallet_with_oidc_session_and_database_mock().await;
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -1208,7 +1205,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_continue_pid_issuance_user_cancelled() {
-        let mut wallet = setup_wallet_with_digid_session_and_database_mock().await;
+        let mut wallet = setup_wallet_with_oidc_session_and_database_mock().await;
 
         let error = wallet
             .continue_pid_issuance(Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied")).unwrap())
@@ -1262,7 +1259,7 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    fn mock_digid_session() -> DigidSessionState<MockOidcClient> {
+    fn mock_oidc_session() -> OidcSession<MockOidcClient> {
         // Set up a mock OIDC client that returns a token request.
         let mut oidc_client = MockOidcClient::new();
 
@@ -1286,28 +1283,28 @@ mod tests {
             Ok(token_request)
         });
 
-        DigidSessionState {
+        OidcSession {
             oidc_client,
             auth_url: Url::parse(AUTH_URL).unwrap(),
         }
     }
 
-    async fn setup_wallet_with_digid_session() -> TestWalletMockStorage {
+    async fn setup_wallet_with_oidc_session() -> TestWalletMockStorage {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session(),
+            session: mock_oidc_session(),
         });
         wallet
     }
 
-    async fn setup_wallet_with_digid_session_and_database_mock() -> TestWalletMockStorage {
+    async fn setup_wallet_with_oidc_session_and_database_mock() -> TestWalletMockStorage {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session(),
+            session: mock_oidc_session(),
         });
         wallet
     }
@@ -1315,7 +1312,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance_error_pid_issuer() {
-        let mut wallet = setup_wallet_with_digid_session().await;
+        let mut wallet = setup_wallet_with_oidc_session().await;
 
         // Set up the `MockIssuanceSession` to return an error.
         let start_context = MockIssuanceSession::start_context();

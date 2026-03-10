@@ -42,8 +42,8 @@ use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
-use crate::digid::DigidSessionState;
 use crate::lock::WalletLock;
+use crate::oidc_session::OidcSession;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
@@ -119,9 +119,9 @@ impl<A, G> WalletRegistration<A, G> {
 
 #[derive(Debug)]
 enum Session<OC: OidcClient, IS, DCS> {
-    Digid {
+    Oidc {
         purpose: PidIssuancePurpose,
-        session: DigidSessionState<OC>,
+        session: OidcSession<OC>,
     },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
