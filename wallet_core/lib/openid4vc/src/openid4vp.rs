@@ -202,7 +202,6 @@ pub enum VpAuthorizationRequestAudience {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpClientMetadata {
-    #[serde(flatten)]
     pub jwks: VpJwks,
     pub vp_formats: VpFormat,
 
@@ -280,17 +279,8 @@ impl ClientId {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum VpJwks {
-    #[serde(rename = "jwks")]
-    Direct { keys: Vec<Jwk> },
-}
-
-impl VpJwks {
-    pub fn direct(&self) -> &Vec<Jwk> {
-        match self {
-            VpJwks::Direct { keys } => keys,
-        }
-    }
+pub struct VpJwks {
+    pub keys: Vec<Jwk>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -608,7 +598,7 @@ impl NormalizedVpAuthorizationRequest {
             response_uri,
             credential_requests,
             client_metadata: VpClientMetadata {
-                jwks: VpJwks::Direct { keys: vec![jwk] },
+                jwks: VpJwks { keys: vec![jwk] },
                 vp_formats: VpFormat::MsoMdoc {
                     alg: IndexSet::from([FormatAlg::ES256]),
                 },
@@ -707,7 +697,7 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
             });
         }
-        let jwks = client_metadata.jwks.direct();
+        let jwks = &client_metadata.jwks.keys;
 
         // OpenID4VP 1.0 mandates that every JWK in verifier metadata has a `kid`.
         if let Some((index, _)) = jwks.iter().enumerate().find(|(_, jwk)| jwk.key_id().is_none()) {
