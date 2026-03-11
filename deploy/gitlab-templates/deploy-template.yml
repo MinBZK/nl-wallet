@@ -284,6 +284,8 @@ digid-connector-${DEPLOY_ENV}:
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
+    - job: redis-${DEPLOY_ENV}
+      artifacts: false
   variables:
     CHART_NAME: rdo-max
     RELEASE_NAME: digid-connector
