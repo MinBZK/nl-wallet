@@ -10,6 +10,7 @@ use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
+use openid4vc::nonce_store::MemoryNonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -76,14 +77,15 @@ where
 
     let status_list_services = Arc::new(status_list_services);
     let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
-        issuance_sessions,
-        attr_service,
-        attestation_config,
         settings.public_url,
         settings.wallet_client_ids,
+        attestation_config,
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
         }),
+        attr_service,
+        issuance_sessions,
+        MemoryNonceStore::default(),
         Arc::clone(&status_list_services),
     )));
 

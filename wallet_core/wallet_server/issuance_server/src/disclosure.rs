@@ -16,7 +16,6 @@ use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
-use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -88,9 +87,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<AF, AS, K, S, C> {
+pub struct IssuanceResultHandler<AF, K, AS, S, N, L> {
     pub attributes_fetcher: AF,
-    pub issuer: Arc<Issuer<AS, K, S, C>>,
+    pub issuer: Arc<Issuer<K, AS, S, N, L>>,
     pub credential_issuer: IssuerIdentifier,
 }
 
@@ -118,13 +117,14 @@ impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
 }
 
 #[async_trait]
-impl<AF, AS, K, S, C> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, C>
+impl<AF, K, AS, S, N, L> DisclosureResultHandler for IssuanceResultHandler<AF, K, AS, S, N, L>
 where
     AF: AttributesFetcher + Sync,
-    AS: AttributeService + Sync,
     K: Send + Sync,
+    AS: Send + Sync,
     S: SessionStore<IssuanceData> + Sync,
-    C: Send + Sync,
+    N: Send + Sync,
+    L: Send + Sync,
 {
     async fn disclosure_result(
         &self,
@@ -202,7 +202,7 @@ mod tests {
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::issuer::TrivialAttributeService;
-    use openid4vc::issuer::WuaConfig;
+    use openid4vc::nonce_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreTimeouts;
@@ -273,17 +273,23 @@ mod tests {
         }
     }
 
-    type MockIssuer =
-        Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusListServices>;
+    type MockIssuer = Issuer<
+        SigningKey,
+        TrivialAttributeService,
+        MemorySessionStore<IssuanceData>,
+        MemoryNonceStore,
+        MockStatusListServices,
+    >;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
-            sessions,
-            TrivialAttributeService,
-            HashMap::<std::string::String, AttestationTypeConfig<SigningKey>>::new().into(),
             "https://example.com".parse().unwrap(),
             vec![],
-            None::<WuaConfig>,
+            HashMap::<String, AttestationTypeConfig<SigningKey>>::new().into(),
+            None,
+            TrivialAttributeService,
+            sessions,
+            MemoryNonceStore::default(),
             Arc::new(MockStatusListServices::default()),
         )
     }

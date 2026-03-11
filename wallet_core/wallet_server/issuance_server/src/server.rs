@@ -12,7 +12,7 @@ use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::TrivialAttributeService;
-use openid4vc::issuer::WuaConfig;
+use openid4vc::nonce_store::MemoryNonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -124,12 +124,13 @@ where
 
     let status_list_services = Arc::new(status_list_services);
     let issuer = Arc::new(Issuer::new(
-        issuance_sessions,
-        TrivialAttributeService,
-        attestation_config,
         issuer_settings.public_url.clone(),
         issuer_settings.wallet_client_ids.clone(),
-        Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here,
+        attestation_config,
+        None,
+        TrivialAttributeService,
+        issuance_sessions,
+        MemoryNonceStore::default(),
         Arc::clone(&status_list_services),
     ));
 

@@ -68,6 +68,8 @@ use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::ProofType;
+use crate::nonce_store::NonceStore;
+use crate::nonce_store::NonceStoreError;
 use crate::oidc;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
@@ -413,12 +415,13 @@ impl<K> AttestationTypeConfig<K> {
 #[derive(Debug, From, AsRef)]
 pub struct AttestationTypesConfig<K>(HashMap<String, AttestationTypeConfig<K>>);
 
-pub struct Issuer<A, K, S, L> {
-    sessions: Arc<S>,
+pub struct Issuer<K, A, S, N, L> {
     attr_service: A,
     issuer_data: IssuerData<K>,
-    sessions_cleanup_task: AbortHandle,
+    sessions: Arc<S>,
+    nonce_store: N,
     status_list_services: Arc<L>,
+    sessions_cleanup_task: AbortHandle,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
@@ -440,34 +443,32 @@ pub struct WuaConfig {
     pub wua_issuer_pubkey: EcdsaDecodingKey,
 }
 
-impl<A, K, S, L> Drop for Issuer<A, K, S, L> {
+impl<K, A, S, N, L> Drop for Issuer<K, A, S, N, L> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.sessions_cleanup_task.abort();
     }
 }
 
-impl<A, K, S, L> Issuer<A, K, S, L> {
+impl<K, A, S, N, L> Issuer<K, A, S, N, L> {
     pub fn metadata(&self) -> &IssuerMetadata {
         &self.issuer_data.metadata
     }
 }
 
-impl<A, K, S, L> Issuer<A, K, S, L>
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
-    A: AttributeService,
-    K: EcdsaKeySend,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    L: StatusListServices,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
-        sessions: Arc<S>,
-        attr_service: A,
-        attestation_config: AttestationTypesConfig<K>,
         issuer_identifier: IssuerIdentifier,
         wallet_client_ids: Vec<String>,
+        attestation_config: AttestationTypesConfig<K>,
         wua_config: Option<WuaConfig>,
+        attr_service: A,
+        sessions: Arc<S>,
+        nonce_store: N,
         status_list_services: Arc<L>,
     ) -> Self {
         let credential_configurations_supported = attestation_config
@@ -543,9 +544,10 @@ where
         };
 
         Self {
-            sessions: Arc::clone(&sessions),
-            attr_service,
             issuer_data,
+            attr_service,
+            sessions: Arc::clone(&sessions),
+            nonce_store,
             status_list_services,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS).abort_handle(),
         }
@@ -558,7 +560,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-impl<A, K, S, L> Issuer<A, K, S, L>
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -581,21 +583,23 @@ where
     }
 }
 
-impl<A, K, S, L> Issuer<A, K, S, L> {
-    #[expect(clippy::unused_async, reason = "TODO")]
-    pub async fn generate_proof_nonce(&self) -> Result<String, std::convert::Infallible> {
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
+where
+    N: NonceStore,
+{
+    pub async fn generate_proof_nonce(&self) -> Result<String, NonceStoreError<N::Error>> {
         let nonce = random_string(C_NONCE_LENGTH);
 
-        // TODO: Store the generated nonce in the database.
+        self.nonce_store.store_nonce(nonce.clone()).await?;
 
         Ok(nonce)
     }
 }
 
-impl<A, K, S, L> Issuer<A, K, S, L>
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
+    A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
@@ -1179,6 +1183,7 @@ impl Session<WaitingForResponse> {
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
+        // TODO (PVW-5676): Consult the nonce store instead of using the `c_nonce` contained in the session state.
         let holder_pubkey = credential_request.verify(&session_data.c_nonce, issuer_data)?;
 
         self.verify_wua_and_poa(
@@ -1288,6 +1293,8 @@ impl Session<WaitingForResponse> {
                                 requested: cred_req.credential_type.as_ref().format(),
                             });
                         }
+                        // TODO (PVW-5676): Consult the nonce store instead of using
+                        //                  the `c_nonce` contained in the session state.
                         let key = cred_req.verify(&session_data.c_nonce, issuer_data)?;
                         Ok((format, key))
                     })
