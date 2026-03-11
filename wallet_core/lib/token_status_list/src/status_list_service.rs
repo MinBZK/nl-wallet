@@ -64,7 +64,7 @@ pub struct BatchIsRevoked {
 
 #[trait_variant::make(Send)]
 pub trait StatusListRevocationService {
-    async fn republish_all(&self) -> Result<(), RevocationError>;
+    async fn republish_all(&self, reset: bool) -> Result<(), RevocationError>;
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
 
     async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError>;
@@ -131,7 +131,7 @@ pub mod mock {
     }
 
     impl StatusListRevocationService for MockStatusListServices {
-        async fn republish_all(&self) -> Result<(), RevocationError> {
+        async fn republish_all(&self, _reset: bool) -> Result<(), RevocationError> {
             Ok(())
         }
 

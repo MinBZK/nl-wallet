@@ -254,8 +254,8 @@ impl<K> StatusListRevocationService for PostgresStatusListServices<K>
 where
     K: EcdsaKeySend + Sync + 'static,
 {
-    async fn republish_all(&self) -> Result<(), RevocationError> {
-        join_all(self.services().map(|service| service.republish_all()))
+    async fn republish_all(&self, reset: bool) -> Result<(), RevocationError> {
+        join_all(self.services().map(|service| service.republish_all(reset)))
             .await
             .into_iter()
             .fold_ok((), |_, _| ())
@@ -359,7 +359,16 @@ where
     R: RevokeAll + Clone + Sync + 'static,
 {
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn republish_all(&self) -> Result<(), RevocationError> {
+    async fn republish_all(&self, reset: bool) -> Result<(), RevocationError> {
+        if reset {
+            tracing::warn!("Resetting published status lists");
+            let config = Arc::clone(&self.config);
+            tokio::task::spawn_blocking(move || config.publish_dir.clear_locks())
+                .await
+                .map_err(|err| RevocationError::InternalError(err.into()))?
+                .map_err(|err| RevocationError::InternalError(err.into()))?;
+        }
+
         let publisher = self
             .to_publisher()
             .await
